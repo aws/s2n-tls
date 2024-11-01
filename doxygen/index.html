@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.6-c58f23c9</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.7-19859ef7</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -193,8 +193,8 @@ s2n-tls features</h2>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md27"></a>
 s2n-tls safety mechanisms</h2>
 <p >Internally s2n-tls takes a systematic approach to data protection and includes several mechanisms designed to improve safety.</p>
-<p ><a class="anchor" id="autotoc_md28"></a> </p><h5>Small and auditable code base</h5>
-<p >Ignoring tests, blank lines and comments, s2n-tls is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.</p>
+<p ><a class="anchor" id="autotoc_md28"></a> </p><h5>Auditable code base</h5>
+<p >s2n-tls's code is structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.</p>
 <p >To date there have been two external code-level reviews of s2n-tls, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker.</p>
 <p ><a class="anchor" id="autotoc_md29"></a> </p><h5>Static analysis, fuzz-testing and penetration testing</h5>
 <p >In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz-testing, and penetration testing. Several penetration tests have occurred, including two by commercial vendors.</p>
@@ -206,7 +206,7 @@ s2n-tls safety mechanisms</h2>
 <p ><a class="anchor" id="autotoc_md32"></a> </p><h5>Built-in memory protection</h5>
 <p >s2n-tls uses operating system features to protect data from being swapped to disk or appearing in core dumps.</p>
 <p ><a class="anchor" id="autotoc_md33"></a> </p><h5>Minimalist feature adoption</h5>
-<p >s2n-tls avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example there is no support for session renegotiation or DTLS.</p>
+<p >s2n-tls avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example, there is no support for DTLS.</p>
 <p ><a class="anchor" id="autotoc_md34"></a> </p><h5>Compartmentalized random number generation</h5>
 <p >The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n-tls provides every thread with two separate random number generators. One for "public" randomly generated data that may appear in the clear, and one for "private" data that should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts.</p>
 <p ><a class="anchor" id="autotoc_md35"></a> </p><h5>Modularized encryption</h5>
