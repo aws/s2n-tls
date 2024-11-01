@@ -11,20 +11,13 @@
 #  ==6652==    by 0x16CD16: s2n_new_inet_socket_pair (s2n_self_talk_ktls_test.c:69)
 #  ==6652==    by 0x15DBB2: main (s2n_self_talk_ktls_test.c:168)
 #  ==6652==
-#  ==6652== Open file descriptor 5: /codebuild/output/src109671166/src/github.com/boquan-fang/s2n-tls/build/bin/s2n_self_talk_ktls_test
-#  ==6652==    at 0x497A175: open (open64.c:41)
-#  ==6652==    by 0x15DA57: open (fcntl2.h:53)
-#  ==6652==    by 0x15DA57: main (s2n_self_talk_ktls_test.c:138)
-#  ==6652==
-#  ==6652== Open file descriptor 3: /codebuild/output/src109671166/src/github.com/boquan-fang/s2n-tls/build/Testing/Temporary/LastDynamicAnalysis_20241023-2129.log.tmp
-#  ==6652==    <inherited from parent>
-#  ==6652==
-#  ==6652==
 import os
 import sys
 
 # Exit with error code 1 if leaking fds are detected.
 ERROR_EXIT_CODE = 1
+# This test is designed to be informational, so we only print five lines when a leak is detected.
+NUM_OF_LINES_TO_PRINT = 5
 
 
 def open_analysis_file(path):
@@ -36,28 +29,22 @@ def open_analysis_file(path):
 
 def read_analysis_file(file):
     exit_code = 0
-    to_print = False
     lines = file.readlines()
     for i in range(len(lines)):
-        if "<end of output>" in lines[i]:
-            to_print = False
-            continue
-        # Check if the line contains FILE DESCRITOPRS:
-        if "FILE DESCRIPTORS: " in lines[i]:
-            # If a process doesn't leak file descriptors
-            # Then the next line will always be the file descriptor
-            # for LastDynamicAnalysis log file.
-            if not "LastDynamicAnalysis" in lines[i + 1]:
-                # Print a new line to separate the old output from the new output
-                print("")
-                to_print = True
-                print(lines[i][lines[i].find("FILE DESCRIPTORS: "):], end=" ")
+        if "FILE DESCRIPTORS:" in lines[i]:
+            line_elements = lines[i].split()
+            # The element after "FILE DESCRIPTORS:" is the number of fds that remain opened at exit.
+            open_fd_number = line_elements[line_elements.index("DESCRIPTORS:") + 1]
+            # The element before "std)" is a open parenthesis followed by the number of std fds at exit.
+            # Hence, we remove the open parenthesis and only take the number.
+            std_fd_number = line_elements[line_elements.index("std)") - 1][1:]
+            # The only open fd we allowed other than std fds are the fd pointing to the LastDynamicAnalysis log file.
+            # Hence, the number of open fds should be exactly one more than the number of open std fds.
+            if int(open_fd_number) - int(std_fd_number) > 1:
+                print(lines[i], end=" ")
+                for j in range(NUM_OF_LINES_TO_PRINT):
+                    print(lines[i + j + 1], end=" ")
                 exit_code = ERROR_EXIT_CODE
-                continue
-            else:
-                to_print = False
-        if to_print:
-            print(lines[i], end=" ")
     file.close()
     return exit_code
 
