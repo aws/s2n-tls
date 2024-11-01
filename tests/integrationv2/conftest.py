@@ -25,6 +25,7 @@ def pytest_configure(config):
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
 
+
 def pytest_collection_modifyitems(config, items):
     """
     pytest hook to modify the test arguments to call the uncollect function.
