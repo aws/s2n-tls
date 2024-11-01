@@ -296,7 +296,9 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         POSIX_GUARD(s2n_stuffer_read(&personalization, &personalization_string));
 
         /* Over-ride the entropy sources */
+        POSIX_GUARD_RESULT(s2n_rand_cleanup());
         POSIX_GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
+        POSIX_GUARD_RESULT(s2n_rand_init());
 
         /* Instantiate the DRBG */
         POSIX_GUARD_RESULT(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
