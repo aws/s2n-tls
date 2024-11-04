@@ -17,8 +17,8 @@ import sys
 EXIT_SUCCESS = 0
 # Exit with error code 1 if leaking fds are detected.
 ERROR_EXIT_CODE = 1
-# This test is designed to be informational, so we only print five lines when a leak is detected.
-NUM_OF_LINES_TO_PRINT = 5
+# This test is designed to be informational only, so we only print fifteen lines of error messages when a leak is detected.
+NUM_OF_LINES_TO_PRINT = 15
 
 
 def read_analysis_file(file):
@@ -35,7 +35,9 @@ def read_analysis_file(file):
             # Hence, the number of open fds should be exactly one more than the number of open std fds.
             if int(open_fd_count) - int(std_fd_count) > 1:
                 for j in range(NUM_OF_LINES_TO_PRINT):
-                    print(lines[i + j], end=" ")
+                    print(lines[i + j], end="")
+                # Print a new line to separate different leak reports.
+                print()
                 fd_leak_detected = True
     file.close()
     if fd_leak_detected:
