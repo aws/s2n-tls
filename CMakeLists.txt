@@ -513,7 +513,7 @@ if (BUILD_TESTING)
     # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
     # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
     if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
-        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=yes --show-leak-kinds=all")
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=yes --show-leak-kinds=all --errors-for-leak-kinds=all")
     else()
         set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=no")
     endif()
