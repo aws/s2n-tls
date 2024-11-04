@@ -83,7 +83,7 @@ cc -Iapi build/detect_exec_leak_finish.c build/lib/libs2n.so -o build/bin/detect
 valgrind_log_dir=valgrind_log_dir
 for test_file in detect_exec_leak detect_exec_leak_finish; do
     LD_LIBRARY_PATH="build/lib:$TARGET_LIBCRYPTO_PATH/lib:$LD_LIBRARY_PATH" S2N_VALGRIND=1 \
-        valgrind --leak-check=full --show-leak-kinds=all \
+        valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
         --run-libc-freeres=yes -q --gen-suppressions=all --track-fds=yes \
         --leak-resolution=high --undef-value-errors=no --trace-children=yes \
         --suppressions=tests/unit/valgrind.suppressions --log-file="build/$valgrind_log_dir/$test_file" \
