@@ -1,5 +1,7 @@
 # TLS Connections
 
+Users must configure a connection, and associate it with a config. `s2n_connection` is responsible for managing the actual state of a TLS connection. In a TLS server, there will be one `s2n_connection` for each TCP stream. For each `s2n_config`, there may be many `s2n_connection` structs associated with it.
+
 Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
 
 ## Connection Memory
