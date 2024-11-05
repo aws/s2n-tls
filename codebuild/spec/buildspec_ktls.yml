@@ -1,24 +1,33 @@
 ---
 version: 0.2
+env:
+  variables:
+    NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
 phases:
   install:
     commands:
       - apt update
       - apt upgrade -y
       - apt install -y qemu qemu-system-x86 wget cloud-image-utils
+      - time sh <(curl -L https://nixos.org/nix/install) --no-daemon --yes
+      - time mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+      - time nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+      - time nix build .#s2n-tls
+      - time nix build .#devShell
   pre_build:
     commands:
+      - mkdir ~/.ssh; echo -e "Host localhost\nUser codebuild\nPort 2222" > ~/.ssh/config
       - aws s3 --quiet sync s3://s2n-ktls-testing ./qemu
       - cd qemu; bash ./run.sh; cd ..
       - rsync -avz --exclude=qemu --exclude=tests/fuzz -e 'ssh -p 2222' . codebuild@localhost:/home/codebuild/s2n-tls
   build:
     commands:
-      - codebuild-breakpoint
+      - time nix copy --to ssh://localhost .
       - |
-        ssh -p 2222 codebuild@localhost " \
+        ssh localhost " \
             cd s2n-tls; sudo modprobe tls; \
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
-            nix develop .#openssl111 --command bash -c \
+            time nix develop .#openssl111 --command bash -c \
                 'source ./nix/shell.sh && clean && configure && unit' \
         "
