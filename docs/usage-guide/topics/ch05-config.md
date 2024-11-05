@@ -1,8 +1,6 @@
 # Configuring the Connection
 
-Users start by building a config. In the general case, there will be one config per server. This involves loading the certificate, configuring session resumption, etc. Users should configure an `s2n_config` before associating any `s2n_connection` objects with it.
-
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+Users start by building a config. `s2n_config` objects are used to change the default settings of a s2n-tls connection, such as loading the certificate, configuring session resumption, etc. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. Users should complete all configurations before establishing any connection, and the config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
 
 Calling `s2n_config_new()` can have a performance cost during config creation due to loading
 default system certificates into the trust store (see [Configuring the Trust Store](./ch09-certificates.md#configuring-the-trust-store)).
