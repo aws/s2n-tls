@@ -1,6 +1,7 @@
 ---
 version: 0.2
 env:
+  shell: bash
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
 phases:
@@ -9,7 +10,10 @@ phases:
       - apt update
       - apt upgrade -y
       - apt install -y qemu qemu-system-x86 wget cloud-image-utils
+      - codebuild-breakpoint
+      - id; addgroup nixbld; usermod -aG nixbld $USER
       - time sh <(curl -L https://nixos.org/nix/install) --no-daemon --yes
+      - . ~/.nix-profile/etc/profile.d/nix.sh
       - time mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
       - time nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
       - time nix build .#s2n-tls
