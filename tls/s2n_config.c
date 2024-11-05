@@ -729,6 +729,96 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     return 0;
 }
 
+/* Only used in the Rust bindings for cleanup */
+int s2n_config_get_cert_chains(struct s2n_config *config,
+        struct s2n_cert_chain_and_key ***cert_chains,
+        uint32_t *chain_count) 
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(cert_chains);
+    POSIX_ENSURE_REF(chain_count);
+    *chain_count = 0;
+    *cert_chains = NULL;
+    uint32_t total_possible_chains = 0;
+    
+    /* Count all the certs to know how much max memory to allocate */ 
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
+            total_possible_chains++;
+        }
+    }
+    if (config->domain_name_to_cert_map != NULL) {
+        uint32_t domain_count = 0;
+        POSIX_GUARD_RESULT(s2n_map_size(config->domain_name_to_cert_map, &domain_count));
+        total_possible_chains += (domain_count * S2N_CERT_TYPE_COUNT);
+    }
+
+    if (total_possible_chains == 0) {
+        return S2N_SUCCESS;
+    }
+    DEFER_CLEANUP(struct s2n_blob allocator = {0}, s2n_free);
+    POSIX_GUARD(s2n_alloc(&allocator, sizeof(struct s2n_cert_chain_and_key*) * total_possible_chains));
+    // These two lines to try and fix cast from 'uint8_t *' (aka 'unsigned char *') to 'struct s2n_cert_chain_and_key **' increases required alignment from 1 to 8 [-Werror,-Wcast-align]GCC
+    POSIX_GUARD(s2n_blob_init(&allocator, allocator.data, sizeof(struct s2n_cert_chain_and_key*) * total_possible_chains));
+    POSIX_GUARD(s2n_blob_zero(&allocator));
+    *cert_chains = (struct s2n_cert_chain_and_key**)allocator.data;
+
+
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
+            (*cert_chains)[*chain_count] = config->default_certs_by_type.certs[i];
+            (*chain_count)++;
+        }
+    }
+    if (config->domain_name_to_cert_map != NULL) {
+        struct s2n_map_iterator iter = {0};
+        POSIX_GUARD_RESULT(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+
+        while (s2n_map_iterator_has_next(&iter)) {
+            struct s2n_blob value = {0};
+            POSIX_GUARD_RESULT(s2n_map_iterator_next(&iter, &value));
+            
+            struct certs_by_type *domain_certs = (void *)value.data;
+            for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+                if (domain_certs->certs[i] != NULL) {
+                    bool duplicate = false;
+                    for (uint32_t j = 0; j < *chain_count; j++) {
+                        if ((*cert_chains)[j] == domain_certs->certs[i]) {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!duplicate) {
+                        (*cert_chains)[*chain_count] = domain_certs->certs[i];
+                        (*chain_count)++;
+                    }
+                }
+            }
+        }
+    }
+
+    /* If we found fewer chains than allocated, reallocate to the exact size */
+    if (*chain_count < total_possible_chains) {
+        DEFER_CLEANUP(struct s2n_blob right_sized_allocator = {0}, s2n_free);
+        POSIX_GUARD(s2n_alloc(&right_sized_allocator, sizeof(struct s2n_cert_chain_and_key*) * (*chain_count)));
+        POSIX_GUARD(s2n_blob_init(&right_sized_allocator, right_sized_allocator.data, 
+            sizeof(struct s2n_cert_chain_and_key*) * (*chain_count)));
+        struct s2n_cert_chain_and_key **right_sized_chains = (struct s2n_cert_chain_and_key**)right_sized_allocator.data;
+        
+        POSIX_CHECKED_MEMCPY(right_sized_chains, *cert_chains, sizeof(struct s2n_cert_chain_and_key*) * (*chain_count));
+        *cert_chains = right_sized_chains;
+        
+        /* Prevent double free of the memory */
+        right_sized_allocator.data = NULL;
+    }
+
+    /* Prevent double free of the memory */
+    allocator.data = NULL;
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);

@@ -155,6 +155,12 @@ impl Drop for Config {
             // This is the last instance so free the context.
             let context = Box::from_raw(context);
             drop(context);
+            // TODO: drop certs
+            // let mut certs = core::ptr::null_mut();
+            // let _ = s2n_config_get_cert_chains(self.0.as_ptr(), &mut certs).into_result();
+            // for(cert : certs) {
+            //    drop(CertificateChain::from_owned_ptr_reference(cert));
+            // }
 
             let _ = s2n_config_free(self.0.as_ptr()).into_result();
         }
@@ -277,6 +283,25 @@ impl Builder {
         Ok(self)
     }
 
+    /// Adds the CertificateChain to the Config.
+    /// Prefer to use this function over load_pem.
+    /// This function is not compatible with load_pem and will error if both are used
+    pub fn add_cert_chain(&mut self, mut cert_chain: CertificateChain) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_add_cert_chain_and_key_to_store(
+                self.as_mut_ptr(),
+                cert_chain.as_mut_ptr().as_ptr(),
+            ).into_result()?;
+        }
+        // Setting the cert chain on the config creates one additional reference
+        // so do not drop so prevent Rust from calling `drop()` at the end of this function.
+        mem::forget(cert_chain);
+        Ok(self)
+    }
+
+    /// Creates a certificate chain and binds it to the config.
+    /// Prefer to use the newer add_cert_chain which enables multiple certs over this function.
+    /// This function is not compatible with add_cert_chain and will error if both are used
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
@@ -395,6 +420,8 @@ impl Builder {
     /// Sets the OCSP data for the default certificate chain associated with the Config.
     ///
     /// Servers will send the data in response to OCSP stapling requests from clients.
+    ///
+    /// Prefer to use add_cert_chain with a CertificateChain that has OCSP data set over this function.
     //
     // NOTE: this modifies a certificate chain, NOT the Config itself. This is currently safe
     // because the certificate chain is set with s2n_config_add_cert_chain_and_key, which

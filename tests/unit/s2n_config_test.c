@@ -763,6 +763,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
     };
 
+    // TODO: add Test s2n_config_get_cert_chains
+
     /* Test loading system certs */
     {
         /* s2n_config_load_system_certs safety */
