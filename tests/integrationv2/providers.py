@@ -46,11 +46,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            # lgtm [py/init-calls-subclass]
-            self.cmd_line = self.setup_server()
+            self.cmd_line = self.setup_server() # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            # lgtm [py/init-calls-subclass]
-            self.cmd_line = self.setup_client()
+            self.cmd_line = self.setup_client() # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -142,8 +140,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True
+        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -412,8 +409,7 @@ class OpenSSL(Provider):
         version = version_str[1]
         print(f"openssl version: {project} version: {version}")
         if (project != "OpenSSL" or version[0:3] != "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {
-                                    version}, expected 1.1.x.")
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
@@ -706,8 +702,7 @@ class GnuTLS(Provider):
         Provider.__init__(self, options)
 
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True
+        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
