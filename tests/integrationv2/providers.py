@@ -46,9 +46,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            self.cmd_line = self.setup_server() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_server()  # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            self.cmd_line = self.setup_client() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_client()  # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -140,7 +140,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -402,8 +402,7 @@ class OpenSSL(Provider):
         return True
 
     def _is_openssl_11(self) -> None:
-        result = subprocess.run(["openssl", "version"],
-                                shell=False, capture_output=True, text=True)
+        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
         version_str = result.stdout.split(" ")
         project = version_str[0]
         version = version_str[1]
@@ -702,7 +701,7 @@ class GnuTLS(Provider):
         Provider.__init__(self, options)
 
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
@@ -774,15 +773,13 @@ class GnuTLS(Provider):
     def create_priority_str(self):
         priority_str = "NONE"
 
-        protocol_to_priority_str = self.protocol_to_priority_str(
-            self.options.protocol)
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
         if protocol_to_priority_str:
             priority_str += ":+" + protocol_to_priority_str
         else:
             priority_str += ":+VERS-ALL"
 
-        cipher_to_priority_str = self.cipher_to_priority_str(
-            self.options.cipher)
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
         if cipher_to_priority_str:
             priority_str += ":+" + cipher_to_priority_str
         else:
@@ -794,8 +791,7 @@ class GnuTLS(Provider):
         else:
             priority_str += ":+GROUP-ALL"
 
-        sigalg_to_priority_str = self.sigalg_to_priority_str(
-            self.options.signature_algorithm)
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
         if sigalg_to_priority_str:
             priority_str += ":+" + sigalg_to_priority_str
         else:
