@@ -10,6 +10,7 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
+
 @pytest.mark.flaky(reruns=5, reruns_delay=2)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
