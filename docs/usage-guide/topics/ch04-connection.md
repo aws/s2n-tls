@@ -1,6 +1,6 @@
 # TLS Connections
 
-Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed. In a TLS server, there will be one `s2n_connection` for each TCP stream.
+Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. One `s2n_connection` must be created for each TCP stream. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
 
 ## Connection Memory
 
