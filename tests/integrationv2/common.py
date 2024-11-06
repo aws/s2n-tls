@@ -303,6 +303,12 @@ class Ciphers(object):
     CHACHA20_POLY1305_SHA256 = Cipher("TLS_CHACHA20_POLY1305_SHA256", Protocols.TLS13,
                                       True, False, iana_standard_name="TLS_CHACHA20_POLY1305_SHA256")
 
+
+    # allows all cryptographic parameters and SSLv3 <= protocol <= TLS 1.3
+    TEST_ALL = Cipher("test_all", Protocols.SSLv3, False, False, s2n=True)
+    # allows all cryptographic parameters and SSLv3 <= protocol <= TLS 1.2
+    TEST_ALL_TLS12 = Cipher("test_all_tls12", Protocols.SSLv3, False, False, s2n=True)
+
     KMS_TLS_1_0_2018_10 = Cipher(
         "KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False, s2n=True)
     KMS_PQ_TLS_1_0_2019_06 = Cipher(

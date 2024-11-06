@@ -19,17 +19,6 @@ ENDPOINTS = [
     "s3.us-west-2.amazonaws.com",
     "www.apple.com",
     "www.att.com",
-    #    "www.badssl.com",
-    #    "mozilla-intermediate.badssl.com",
-    #    "mozilla-modern.badssl.com",
-    #    "rsa2048.badssl.com",
-    #    "rsa4096.badssl.com",
-    #    "sha256.badssl.com",
-    #    "sha384.badssl.com",
-    #    "sha512.badssl.com",
-    #    "tls-v1-0.badssl.com",
-    #    "tls-v1-1.badssl.com",
-    #    "tls-v1-2.badssl.com",
     "www.cloudflare.com",
     "www.ebay.com",
     "www.f5.com",
@@ -51,7 +40,8 @@ ENDPOINTS = [
 ]
 
 CIPHERS = [
-    None,  # `None` will default to the appropriate `test_all` cipher preference in the S2N client provider
+    Ciphers.TEST_ALL,
+    Ciphers.TEST_ALL_TLS12,
     Ciphers.KMS_PQ_TLS_1_0_2019_06,
     Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
     Ciphers.KMS_PQ_TLS_1_0_2020_07,
@@ -62,12 +52,17 @@ CIPHERS = [
 
 if pq_enabled():
     EXPECTED_RESULTS = {
+        # positive case: pq should be negotiated
+        ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
+            {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "kem": "kyber512r3"},
+        # negative cases: pq should not be negotiated, but the handshake should
+        # still be successful. These security policies support earlier drafts of
+        # kyber, and we want to ensure that support for old drafts doesn't break
+        # things.
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2019_06):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
-        ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
-            {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "kem": "kyber512r3"},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02):
@@ -75,11 +70,11 @@ if pq_enabled():
     }
 else:
     EXPECTED_RESULTS = {
+        ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2019_06):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
-        ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
@@ -93,7 +88,7 @@ else:
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", CIPHERS, ids=get_parameter_name)
 @pytest.mark.flaky(reruns=5, reruns_delay=4)
-def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cipher):
+def test_well_known_endpoints(managed_process, endpoint, provider, cipher):
     port = "443"
 
     client_options = ProviderOptions(
@@ -102,7 +97,6 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
         port=port,
         insecure=False,
         trust_store=TRUST_STORE_BUNDLE,
-        protocol=protocol,
         cipher=cipher)
 
     if get_flag(S2N_FIPS_MODE) is True:
