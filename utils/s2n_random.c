@@ -47,7 +47,6 @@
 #endif
 #include <errno.h>
 #include <limits.h>
-#include <openssl/engine.h>
 #include <openssl/rand.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -75,6 +74,10 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    #include <openssl/engine.h>
+#endif
 
 #if defined(O_CLOEXEC)
     #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
