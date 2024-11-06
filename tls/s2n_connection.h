@@ -70,8 +70,7 @@ struct s2n_connection {
     /* Connection can be used by a QUIC implementation */
     unsigned quic_enabled : 1;
 
-    /* s2n does not support renegotiation.
-     * RFC5746 Section 4.3 suggests servers implement a minimal version of the
+    /* RFC5746 Section 4.3 suggests servers implement a minimal version of the
      * renegotiation_info extension even if renegotiation is not supported.
      * Some clients may fail the handshake if a corresponding renegotiation_info
      * extension is not sent back by the server.
