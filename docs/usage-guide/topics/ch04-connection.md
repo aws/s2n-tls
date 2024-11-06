@@ -1,5 +1,7 @@
 # TLS Connections
 
+Users interact with s2n-tls primarily through the `s2n_connection` and `s2n_config` structures. Users should build a `s2n_config` object and `s2n_connection` objects, associate the config with those connections, and then calling `s2n_negotiate()` on those connections until the TLS handshakes are completed. Users should then call `s2n_send`/`s2n_recv` on those connections to send and receive application data.
+
 Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. One `s2n_connection` must be created for each TCP stream. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
 
 ## Connection Memory
