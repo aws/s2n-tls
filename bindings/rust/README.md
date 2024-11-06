@@ -20,18 +20,31 @@ Generating rust bindings can be accomplished by running the `generate.sh` script
 $ ./bindings/rust/generate.sh
 ```
 
-Alternatively, rust bindings can be generated using pre-built libs2n by first compiling libs2n, and then running the `generate.sh` script:
+Our Rust bindings support using pre-built libs2n by using the [s2n-tls-sys crate](https://crates.io/crates/s2n-tls-sys) and following the next steps below:
+
+1. Compile your preferred configuration of s2n-tls. 
+
+You may choose to link against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto)
 ```
 cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
 cmake --build build -- -j $(nproc)
-
-export S2N_TLS_LIB_DIR=`pwd`/build/lib
-export S2N_TLS_INCLUDE_DIR=`pwd`/api
-export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
-
-cd bindings/rust/
-./generate.sh
 ```
+
+2. CD into your rust project and set environment variables to libs2n library sources. 
+
+This tells the bindings to link to pre-built libs2n when running the build script for s2n-tls-sys
+```
+export S2N_TLS_LIB_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/build/lib
+export S2N_TLS_INCLUDE_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/api
+export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
+```
+
+3. Build your project. This triggers the build script for s2n-tls-sys
+
+```
+cargo build
+```
+
 This method is useful if you want the bindings to be built with a non-default libcrypto. Currently, the default libcrypto when generating rust bindings is `aws-lc`.
 
 ## Minimum Supported Rust Version (MSRV)
