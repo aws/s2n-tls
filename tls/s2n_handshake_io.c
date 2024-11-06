@@ -1389,8 +1389,7 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
  * HEARTBEAT messages), or during renegotiations we may even get application
- * data messages that need to be handled by the application. The latter is punted
- * for now (s2n does not support renegotiations).
+ * data messages that need to be handled by the application.
  */
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
