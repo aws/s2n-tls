@@ -9,11 +9,16 @@ phases:
     commands:
       - apt update
       - apt upgrade -y
-      - apt install -y qemu qemu-system-x86 wget cloud-image-utils
-      - codebuild-breakpoint
-      - id; addgroup nixbld; usermod -aG nixbld $USER
-      - time sh <(curl -L https://nixos.org/nix/install) --no-daemon --yes
-      - . ~/.nix-profile/etc/profile.d/nix.sh
+      - apt install -y qemu qemu-system-x86 wget cloud-image-utils sudo xz-utils
+      # Work around the opinions of the nix installer.
+      - id; groupadd nixbld; useradd -m -g nixbld -G nixbld nix
+      - |
+        echo "Working around the faulty yaml parser..."
+        echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix
+      - su nix -c "wget -O /tmp/install.sh https://nixos.org/nix/install"
+      - su nix -c "bash /tmp/install.sh --no-daemon --yes"
+      - cp -aR /home/nix/.nix-profile ~/; chown -R root /root/.nix-profile; export PATH=$HOME/.nix-profile/bin:$PATH
+      # phew, nix installed, now turn on flakes.
       - time mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
       - time nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
       - time nix build .#s2n-tls
