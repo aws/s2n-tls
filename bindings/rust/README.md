@@ -30,7 +30,7 @@ cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
 cmake --build build -- -j $(nproc)
 ```
 
-2. CD into your rust project and set environment variables to libs2n library sources. 
+2. cd into your rust project and set environment variables to libs2n library sources. 
 
 This tells the bindings to link to pre-built libs2n when running the build script for s2n-tls-sys
 ```
