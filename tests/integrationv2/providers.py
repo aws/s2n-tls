@@ -149,6 +149,10 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
+        # the test doesn't care which protocol is used, so we support it
+        if protocol is None:
+            return True
+
         # TLS 1.3 is unsupported for openssl-1.0
         # libressl and boringssl are disabled because of configuration issues
         # see https://github.com/aws/s2n-tls/issues/3250
