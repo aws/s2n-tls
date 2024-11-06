@@ -192,11 +192,12 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
-target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PUBLIC -fPIC -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
 
-add_definitions(-D_POSIX_C_SOURCE=200809L)
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    add_definitions(-D_FORTIFY_SOURCE=2)
+# Match on Release, RelWithDebInfo and MinSizeRel
+# See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
+if(CMAKE_BUILD_TYPE MATCHES Rel)
+    add_definitions(-DS2N_BUILD_RELEASE)
 endif()
 
 if(NO_STACK_PROTECTOR)
@@ -331,7 +332,7 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
