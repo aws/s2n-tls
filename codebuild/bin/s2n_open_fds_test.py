@@ -5,7 +5,7 @@
 # It identifies any leaking file descriptors and triggers an error when detected.
 # This enhances the capabilities of existing Valgrind checks.
 # Output snippet for open file descriptors:
-# FILE DESCRIPTORS: 6 open (3 std) at exit.
+#  ==6652== FILE DESCRIPTORS: 6 open (3 std) at exit.
 #  ==6652== Open AF_INET socket 6: 127.0.0.1:36915 <-> unbound
 #  ==6652==    at 0x498B2EB: socket (syscall-template.S:120)
 #  ==6652==    by 0x16CD16: s2n_new_inet_socket_pair (s2n_self_talk_ktls_test.c:69)
@@ -21,29 +21,23 @@ ERROR_EXIT_CODE = 1
 NUM_OF_LINES_TO_PRINT = 15
 
 
-def read_analysis_file(file):
+def detect_leak(file):
     fd_leak_detected = False
     lines = file.readlines()
     for i in range(len(lines)):
         if "FILE DESCRIPTORS:" in lines[i]:
+            # Example line: `==6096== FILE DESCRIPTORS: 4 open (3 std) at exit.`
             line_elements = lines[i].split()
             open_fd_count = line_elements[line_elements.index("DESCRIPTORS:") + 1]
-            # The element before "std)" is a open parenthesis followed by the number of std fds at exit.
-            # Hence, we remove the open parenthesis and only take the number.
             std_fd_count = line_elements[line_elements.index("std)") - 1][1:]
-            # The only open fd we allowed other than std fds are the fd pointing to the LastDynamicAnalysis log file.
-            # Hence, the number of open fds should be exactly one more than the number of open std fds.
+            # CTest memcheck writes to a LastDynamicAnslysis log file.
+            # We allow that fd to remain opened.
             if int(open_fd_count) - int(std_fd_count) > 1:
                 for j in range(NUM_OF_LINES_TO_PRINT):
                     print(lines[i + j], end="")
-                # Print a new line to separate different leak reports.
                 print()
                 fd_leak_detected = True
-    file.close()
-    if fd_leak_detected:
-        return ERROR_EXIT_CODE
-    else:
-        return EXIT_SUCCESS
+    return fd_leak_detected
 
 
 def main():
@@ -51,13 +45,18 @@ def main():
     print("############################################################################")
     print("################# Test for Leaking File Descriptors ########################")
     print("############################################################################")
-    # open LastDynamicAnalysis log file
+
     path = sys.argv[1]
     for f in os.listdir(path):
         if "LastDynamicAnalysis" in f:
-            file = open(os.path.join(path, f), 'r')
-    return read_analysis_file(file)
+            with open(os.path.join(path, f), 'r') as file:
+                if detect_leak(file):
+                    sys.exit(ERROR_EXIT_CODE)
+                else:
+                    return EXIT_SUCCESS
+
+    raise FileNotFoundError("LastDynamicAnalysis log file is not found!")
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
