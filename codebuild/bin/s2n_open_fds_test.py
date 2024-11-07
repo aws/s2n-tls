@@ -21,6 +21,14 @@ ERROR_EXIT_CODE = 1
 NUM_OF_LINES_TO_PRINT = 15
 
 
+def find_log_file(path):
+    for f in os.listdir(path):
+        if "LastDynamicAnalysis" in f:
+            return os.path.join(path, f)
+
+    raise FileNotFoundError("LastDynamicAnalysis log file is not found!")
+
+
 def detect_leak(file):
     fd_leak_detected = False
     lines = file.readlines()
@@ -32,7 +40,7 @@ def detect_leak(file):
             std_fd_count = line_elements[line_elements.index("std)") - 1][1:]
             # CTest memcheck writes to a LastDynamicAnslysis log file.
             # We allow that fd to remain opened.
-            if int(open_fd_count) - int(std_fd_count) > 1:
+            if int(open_fd_count) > int(std_fd_count) + 1:
                 for j in range(NUM_OF_LINES_TO_PRINT):
                     print(lines[i + j], end="")
                 print()
@@ -46,16 +54,11 @@ def main():
     print("################# Test for Leaking File Descriptors ########################")
     print("############################################################################")
 
-    path = sys.argv[1]
-    for f in os.listdir(path):
-        if "LastDynamicAnalysis" in f:
-            with open(os.path.join(path, f), 'r') as file:
-                if detect_leak(file):
-                    sys.exit(ERROR_EXIT_CODE)
-                else:
-                    return EXIT_SUCCESS
+    with open(find_log_file(sys.argv[1]), 'r') as file:
+        if detect_leak(file):
+            sys.exit(ERROR_EXIT_CODE)
 
-    raise FileNotFoundError("LastDynamicAnalysis log file is not found!")
+    return EXIT_SUCCESS
 
 
 if __name__ == '__main__':
