@@ -670,7 +670,7 @@ static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
 
     EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
 
-    EXPECT_SUCCESS(s2n_cleanup_final());
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return EXIT_SUCCESS;
 }
@@ -783,7 +783,7 @@ static int s2n_random_noop_destructor_test_cb(struct random_test_case *test_case
 static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
-    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_SUCCESS(s2n_cleanup_final());
 
     unsigned char rndbytes[16];
     EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
