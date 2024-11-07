@@ -15,18 +15,18 @@
 
 #pragma once
 #include <errno.h>
+#include <openssl/crypto.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/crypto.h>
-
 #include "error/s2n_errno.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_result.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_init.h"
+#include "utils/s2n_result.h"
+#include "utils/s2n_safety.h"
 
 int test_count;
 
@@ -64,14 +64,15 @@ bool s2n_use_color_in_output = true;
  * number of independent childs at the start of a unit test and where you want
  * each child to have its own independently initialised s2n.
  */
-#define BEGIN_TEST_NO_INIT()                                        \
-    do {                                                            \
-        test_count = 0;                                             \
-        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
-        fflush(stdout);                                             \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
-        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
-    } while(0)
+#define BEGIN_TEST_NO_INIT()                                      \
+    do {                                                          \
+        test_count = 0;                                           \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);          \
+        fflush(stdout);                                           \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true)); \
+        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                   \
+        EXPECT_SUCCESS(s2n_enable_atexit());                      \
+    } while (0)
 
 #define END_TEST_NO_INIT()                                          \
     do {                                                            \

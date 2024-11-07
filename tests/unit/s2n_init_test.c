@@ -105,12 +105,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cleanup_final());
         EXPECT_FALSE(s2n_is_initialized());
 
-        /* s2n_cleanup fully cleans up the library when the atexit handler is disabled.
-         * Therefore, calling s2n_cleanup_final after s2n_cleanup will error */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_SUCCESS(s2n_cleanup());
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup_final(), S2N_ERR_NOT_INITIALIZED);
-
         /* s2n_cleanup_thread only cleans up thread-local storage.
          * Therefore calling s2n_cleanup_final after s2n_cleanup_thread will succeed  */
         EXPECT_SUCCESS(s2n_init());
@@ -127,7 +121,6 @@ int main(int argc, char **argv)
     pthread_t init_success_thread = { 0 };
     EXPECT_EQUAL(pthread_create(&init_success_thread, NULL, s2n_init_success_cb, NULL), 0);
     EXPECT_EQUAL(pthread_join(init_success_thread, NULL), 0);
-    EXPECT_SUCCESS(s2n_cleanup_final());
 
     END_TEST_NO_INIT();
 }
