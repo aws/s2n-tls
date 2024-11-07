@@ -13,36 +13,14 @@
  * permissions and limitations under the License.
  */
 
-/* This captures Darwin specialities. This is the only APPLE flavor we care about.
- * Here we also capture varius required feature test macros.
- */
-#if defined(__APPLE__)
-typedef struct _opaque_pthread_once_t __darwin_pthread_once_t;
-typedef __darwin_pthread_once_t pthread_once_t;
-    #define _DARWIN_C_SOURCE
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
-    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
-     * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
-    #undef _POSIX_C_SOURCE
-#elif !defined(_GNU_SOURCE)
-    /* Keep in sync with feature probe tests/features/madvise.c */
-    #define _GNU_SOURCE
-#endif
+/* force the internal header to be included first, since it modifies _GNU_SOURCE/_POSIX_C_SOURCE */
+/* clang-format off */
+#include "utils/s2n_fork_detection_features.h"
+/* clang-format on */
 
-#include <sys/mman.h>
-
-/* Not always defined for Darwin */
-#if !defined(MAP_ANONYMOUS)
-    #define MAP_ANONYMOUS MAP_ANON
-#endif
-
-#include <pthread.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "utils/s2n_fork_detection.h"
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_safety.h"
 
 #if defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK)
