@@ -2,17 +2,26 @@ This crates provides low level rust bindings for [s2n-tls](https://github.com/aw
 
 This crate is not intended for direct consumption by end consumers. Interested developers should instead look at the [s2n-tls](https://crates.io/crates/s2n-tls) or [s2n-tls-tokio](https://crates.io/crates/s2n-tls-tokio) crates. These  provide higher-level, more ergonomic bindings than the `s2n-tls-sys` crate.
 
-This crate supports using pre-built libs2n following the next steps below:
+# Bring Your Own libs2n
 
-1. Clone [s2n-tls](https://github.com/aws/s2n-tls) and compile your preferred configuration of s2n-tls. 
+The `s2n-tls-sys` crate contains the raw C code of `s2n-tls`. By default, it follows this build process:
 
-You may choose to link against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto)
+1. Uses the system C compiler to build `libs2n.a`
+2. Links the built `libs2n.a` to the Rust bindings
+3. Links against `aws-lc` through the `aws-lc-rs` crate
+
+However, you can customize this process to use your own pre-built libs2n library. Here's how you can do that:
+
+1. Clone [s2n-tls](https://github.com/aws/s2n-tls) and compile your preferred configuration of s2n-tls.
+
+You may choose to link against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto).
+Also see [Building s2n-tls](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-s2n-tls) for further guidance on configuring s2n-tls for your own use case.
 ```
 cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
 cmake --build build -- -j $(nproc)
 ```
 
-2. cd into your rust project and set environment variables to libs2n library sources. 
+2. `cd` into your rust project and set environment variables to your libs2n library sources. 
 
 This tells the bindings to link to pre-built libs2n when running the build script for s2n-tls-sys
 ```
@@ -20,6 +29,10 @@ export S2N_TLS_LIB_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/build/lib
 export S2N_TLS_INCLUDE_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/api
 export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
 ```
+
+`S2N_TLS_LIB_DIR` points to the folder containing `libs2n.a`/`lins2n.so` artifact that you would like s2n-tls-sys to link against.
+`S2N_TLS_INCLUDE_DIR` points to the folder containing header files for `libs2n.a`/`lins2n.so` artifact.
+`LD_LIBRARY_PATH` adds the path to `libs2n.a`/`lins2n.so` artifact for dynamic linker's search path.
 
 3. Build your project. This triggers the build script for s2n-tls-sys
 
