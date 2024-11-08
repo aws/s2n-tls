@@ -3,7 +3,7 @@ TLS handshake sessions are CPU-heavy due to the calculations involved in authent
 
 ## Session Ticket Key
 
-The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys. Calling `s2n_config_add_ticket_crypto_key()` is an exception to the general immutability of the `s2n_config` object.
+The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys. Unlike other methods that modify `s2n_config` objects, `s2n_config_add_ticket_crypto_key()` can be called after associating an `s2n_config` object with a connection.
 
 Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
 
