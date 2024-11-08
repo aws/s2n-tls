@@ -2,8 +2,6 @@
 version: 0.2
 env:
   shell: bash
-  variables:
-    NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
 phases:
   install:
     commands:
@@ -20,9 +18,6 @@ phases:
       - cp -aR /home/nix/.nix-profile ~/; chown -R root /root/.nix-profile; export PATH=$HOME/.nix-profile/bin:$PATH
       # phew, nix installed, now turn on flakes.
       - time mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-      - time nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-      - time nix build .#s2n-tls
-      - time nix build .#devShell
   pre_build:
     commands:
       - mkdir ~/.ssh; echo -e "Host localhost\nUser codebuild\nPort 2222" > ~/.ssh/config
@@ -31,7 +26,13 @@ phases:
       - rsync -avz --exclude=qemu --exclude=tests/fuzz -e 'ssh -p 2222' . codebuild@localhost:/home/codebuild/s2n-tls
   build:
     commands:
-      - time nix copy --to ssh://localhost .
+      - nix copy --to ssh://localhost github:dougch/aws-lc?ref=nixv1.36.0 --no-write-lock-file
+      - nix copy --to ssh://localhost ".#packages.x86_64-linux.s2n-tls"
+      - nix copy --to ssh://localhost ".#packages.x86_64-linux.s2n-tls-libressl"
+      - nix copy --to ssh://localhost ".#packages.x86_64-linux.s2n-tls-openssl3"
+      - nix copy --to ssh://localhost ".#packages.x86_64-linux.s2n-tls-openssl11"
+  post_build:
+    commands:
       - |
         ssh localhost " \
             cd s2n-tls; sudo modprobe tls; \
