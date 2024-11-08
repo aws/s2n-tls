@@ -38,7 +38,8 @@ ENDPOINTS = [
     "www.github.com",
     "www.ibm.com",
     "www.microsoft.com",
-    "www.mozilla.org",
+    # https://github.com/aws/s2n-tls/issues/4879
+    # "www.mozilla.org",
     "www.netflix.com",
     "www.openssl.org",
     "www.samsung.com",
