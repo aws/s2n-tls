@@ -11,7 +11,7 @@ If you are trying to use FIPS mode, you must enable FIPS in your libcrypto libra
 
 ## Teardown
 ### Thread-local Memory
-s2n has thread-local memory that it attempts to clean up automatically at thread-exit. This is done using pthread destructors and may not work if you are using a threads library other than pthreads. You can call `s2n_cleanup()` from every thread or process created after `s2n_init()` if you notice thread-local memory leaks.
+s2n-tls has thread-local memory that it attempts to clean up automatically at thread-exit. This is done using pthread destructors and may not work if you are using a threads library other than pthreads. You can call `s2n_cleanup()` from every thread or process created after `s2n_init()` if you notice thread-local memory leaks.
 
 ### Library Cleanup
 A full cleanup and de-initialization of the library can be done by calling `s2n_cleanup_final()`.

@@ -526,12 +526,6 @@ RAND_METHOD s2n_openssl_rand_method = {
     .status = s2n_openssl_compat_status
 };
 
-/* Static pointer keeps memory checkers from complaining about
- * leaked memory for the engine if the cleanup_final function
- * isn't run.
- */
-static ENGINE *e = NULL;
-
 #endif
 
 static int s2n_rand_init_cb_impl(void)
@@ -564,7 +558,7 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD_OSSL(RAND_set_rand_engine(NULL), S2N_ERR_OPEN_RANDOM);
 
     /* Create an engine */
-    e = ENGINE_new();
+    ENGINE *e = ENGINE_new();
 
     RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM);

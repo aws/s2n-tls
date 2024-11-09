@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup_final());
 
-    /* Calling s2n_init/s2n_cleanup in a different thread than s2n_cleanup_thread is called cleans up properly */
+    /* Calling s2n_init/s2n_cleanup_final in a different thread than s2n_cleanup_thread is called cleans up properly */
     {
         EXPECT_SUCCESS(s2n_init());
         EXPECT_TRUE(s2n_is_initialized());
@@ -104,6 +104,12 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_is_initialized());
         EXPECT_SUCCESS(s2n_cleanup_final());
         EXPECT_FALSE(s2n_is_initialized());
+
+        /* s2n_cleanup only cleans up thread-local storage.
+         * Therefore, calling s2n_cleanup_final after s2n_cleanup will succeed */
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_SUCCESS(s2n_cleanup());
+        EXPECT_SUCCESS(s2n_cleanup_final());
 
         /* s2n_cleanup_thread only cleans up thread-local storage.
          * Therefore calling s2n_cleanup_final after s2n_cleanup_thread will succeed  */

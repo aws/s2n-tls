@@ -70,9 +70,9 @@ static void *s2n_load_dynamic_lib(void *ctx)
     }
 
     /* TODO: https://github.com/aws/s2n-tls/issues/4827
-     * This is a bug. We can get this test to
-     * pass by commenting out dlclose, however this issue eventually
-     * needs to be fixed.
+     * This dlclose call invokes the pthread key destructor that
+     * asserts that the s2n-tls library is initialized, which at this point
+     * is not, due to the s2n_cleanup_final call. This is a bug.
     if (dlclose(s2n_so)) {
         printf("Error closing libs2n\n");
         printf("%s\n", dlerror());
