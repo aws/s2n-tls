@@ -972,6 +972,23 @@ impl Connection {
         }
     }
 
+    pub fn kem_name(&self) -> Result<Option<&str>, Error> {
+        let kem_name = unsafe {s2n_connection_get_kem_name(self.connection.as_ptr()).into_result()?};
+        let name = unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: kem_name has a static lifetime because it lives on a const
+            //         struct s2n_kem with file scope.
+            const_str!(kem_name)
+        };
+
+        match name {
+            Ok("NONE") => Ok(None),
+            Ok(name) => Ok(Some(name)),
+            Err(e) => Err(e),
+        }
+    }
+
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         unsafe {

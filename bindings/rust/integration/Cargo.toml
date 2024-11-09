@@ -7,7 +7,11 @@ publish = false
 
 [dependencies]
 s2n-tls = { path = "../s2n-tls"}
+s2n-tls-hyper = { path = "../s2n-tls-hyper" }
+s2n-tls-tokio = { path = "../s2n-tls-tokio" }
 s2n-tls-sys = { path = "../s2n-tls-sys" }
+
+# s2nc/d criterion harness dependencies
 criterion = { version = "0.3", features = ["html_reports"] }
 anyhow = "1"
 unicode-width = "=0.1.13" # newer versions require newer rust, see https://github.com/aws/s2n-tls/issues/4786
@@ -21,4 +25,16 @@ name = "s2nd"
 harness = false
 
 [dev-dependencies]
+tokio = { version = "1", features = ["macros", "test-util"] }
+
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-appender = "0.2"
+test-log = "0.2"
+
+http = "1.1"
+http-body-util = "0.1"
+bytes = "1.8"
+hyper-util = "0.1"
+
 regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
