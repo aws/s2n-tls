@@ -6,8 +6,8 @@ edition = "2021"
 publish = false
 
 [features]
-# network tests are useful but expensive in terms of duration and inherent flakiness.
-# Accordingly they are gated behind this feature flag.
+# Network tests are useful but relatively slow and inherently flaky. So they are
+# behind this feature flag.
 network-tests = []
 
 [dependencies]
