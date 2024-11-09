@@ -5,6 +5,11 @@ authors = ["AWS s2n"]
 edition = "2021"
 publish = false
 
+[features]
+# network tests are useful but expensive in terms of duration and inherent flakiness.
+# Accordingly they are gated behind this feature flag.
+network-tests = []
+
 [dependencies]
 s2n-tls = { path = "../s2n-tls"}
 s2n-tls-hyper = { path = "../s2n-tls-hyper" }

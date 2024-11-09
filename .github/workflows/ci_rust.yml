@@ -58,6 +58,10 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --features unstable-renegotiate
 
+      - name: Network Tests
+        working-directory: ${{env.ROOT_PATH}}/integration
+        run: cargo test --features network-tests
+
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
         # included. For a symbol to be visible in a shared lib, the
