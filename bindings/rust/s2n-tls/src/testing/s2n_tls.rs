@@ -34,7 +34,7 @@ mod tests {
             let policy = Policy::from_version("20240501")?;
             let config = build_config(&policy)?;
             let mut pair = TestPair::from_config(&config);
-            
+
             // before negotiation, kem_name is none
             assert!(pair.client.kem_name()?.is_none());
 

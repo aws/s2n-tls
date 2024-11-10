@@ -973,16 +973,17 @@ impl Connection {
     }
 
     pub fn kem_name(&self) -> Result<Option<&str>, Error> {
-        let kem_name = unsafe {s2n_connection_get_kem_name(self.connection.as_ptr()).into_result()?};
-        let name = unsafe {
+        let name_bytes =
+            unsafe { s2n_connection_get_kem_name(self.connection.as_ptr()).into_result()? };
+        let name_str = unsafe {
             // SAFETY: The data is null terminated because it is declared as a C
             //         string literal.
             // SAFETY: kem_name has a static lifetime because it lives on a const
             //         struct s2n_kem with file scope.
-            const_str!(kem_name)
+            const_str!(name_bytes)
         };
 
-        match name {
+        match name_str {
             Ok("NONE") => Ok(None),
             Ok(name) => Ok(Some(name)),
             Err(e) => Err(e),
