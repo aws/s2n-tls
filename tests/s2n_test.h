@@ -262,7 +262,7 @@ void s2n_test__fuzz_cleanup() \
     if (fuzz_cleanup) { \
         ((void (*)()) fuzz_cleanup)(); \
     } \
-    s2n_cleanup(); \
+    s2n_cleanup_final(); \
 } \
 int LLVMFuzzerInitialize(int *argc, char **argv[]) \
 { \

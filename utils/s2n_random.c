@@ -525,7 +525,6 @@ RAND_METHOD s2n_openssl_rand_method = {
     .pseudorand = s2n_openssl_compat_rand,
     .status = s2n_openssl_compat_status
 };
-
 #endif
 
 static int s2n_rand_init_cb_impl(void)
