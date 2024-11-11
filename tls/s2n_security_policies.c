@@ -351,6 +351,15 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+/* Same as security_policy_cloudfront_tls_1_0_2016, but with TLS 1.2 as minimum */
+const struct s2n_security_policy security_policy_20241106 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_0_2016,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
     .minimum_protocol_version = S2N_TLS11,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_1_2016,
@@ -1222,6 +1231,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_pq", .security_policy = &security_policy_20241001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20241106", .security_policy = &security_policy_20241106, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240501", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240502", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240503", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
