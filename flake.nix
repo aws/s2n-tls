@@ -171,7 +171,20 @@
               source ${writeScript ./nix/shell.sh}
             '';
           });
-
+        devShells.ktls = pkgs.mkShell {
+          # Intended for kTLS.
+          # This is not an over-ride like the other shells.
+          inherit system;
+          buildInputs = [ pkgs.cmake openssl_1_1_1 ];
+          S2N_LIBCRYPTO = "openssl-1.1.1";
+          OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
+          shellHook = ''
+            echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+            export PATH=${openssl_1_1_1}/bin:$PATH
+            export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+            source ${writeScript ./nix/shell.sh}
+          '';
+        };
         # Used to backup the devShell to s3 for caching.
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
