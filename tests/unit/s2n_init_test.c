@@ -104,6 +104,27 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
     }
 
+    /* s2n_cleanup_final */
+    {
+        /* s2n_cleanup_final fully de-initializes the library */
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_TRUE(s2n_is_initialized());
+        EXPECT_SUCCESS(s2n_cleanup_final());
+        EXPECT_FALSE(s2n_is_initialized());
+
+        /* s2n_cleanup fully cleans up the library when the atexit handler is disabled.
+         * Therefore, calling s2n_cleanup_final after s2n_cleanup will error */
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_SUCCESS(s2n_cleanup());
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup_final(), S2N_ERR_NOT_INITIALIZED);
+
+        /* s2n_cleanup_thread only cleans up thread-local storage.
+         * Therefore calling s2n_cleanup_final after s2n_cleanup_thread will succeed  */
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_SUCCESS(s2n_cleanup_thread());
+        EXPECT_SUCCESS(s2n_cleanup_final());
+    }
+
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());
 

@@ -10,6 +10,9 @@ on:
 jobs:
   bench:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # This is required for actions/checkout
+      id-token: write # This is required for requesting the JWT
     steps:
       - uses: actions/checkout@v3
 

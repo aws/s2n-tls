@@ -13,8 +13,8 @@ publish = false
 default = []
 
 [dependencies]
-s2n-tls = { version = "=0.3.4", path = "../s2n-tls" }
-s2n-tls-tokio = { version = "=0.3.4", path = "../s2n-tls-tokio" }
+s2n-tls = { version = "=0.3.6", path = "../s2n-tls" }
+s2n-tls-tokio = { version = "=0.3.6", path = "../s2n-tls-tokio" }
 hyper = { version = "1" }
 hyper-util = { version = "0.1", features = ["client-legacy", "tokio", "http1"] }
 tower-service = { version = "0.3" }
