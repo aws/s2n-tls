@@ -53,7 +53,7 @@ mod pq_kms {
     ///
     /// This test makes network calls over the public internet.
     ///
-    /// KMS is has PQ support. Assert that we successfully negotiate PQ key exchange.
+    /// KMS has PQ support. Assert that we successfully negotiate PQ key exchange.
     // Everything is included in the same block to prevent "unused" errors when
     // "network-tests" aren't enabled.
     #[tokio::test]
