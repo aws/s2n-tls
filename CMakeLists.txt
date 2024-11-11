@@ -192,7 +192,10 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
-target_compile_options(${PROJECT_NAME} PUBLIC -fPIC -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
+target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+
+set(S2N_PRELUDE "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
+target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
 
 # Match on Release, RelWithDebInfo and MinSizeRel
 # See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
@@ -476,6 +479,8 @@ if (BUILD_TESTING)
     add_library(testss2n STATIC ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
+    # make sure all linked tests include the prelude
+    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}")
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
     if (SECCOMP)
         message(STATUS "Linking tests with seccomp")
@@ -634,7 +639,7 @@ if (BUILD_TESTING)
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-                        --provider-criterion=off --fips-mode=0 ${test_file_path}
+                        --fips-mode=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
                 )
             else()
