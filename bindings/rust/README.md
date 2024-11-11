@@ -48,9 +48,9 @@ export S2N_TLS_INCLUDE_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/api
 export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
 ```
 
-`S2N_TLS_LIB_DIR` points to the folder containing `libs2n.a`/`lins2n.so` artifact that you would like s2n-tls-sys to link against.
-`S2N_TLS_INCLUDE_DIR` points to the folder containing header files for `libs2n.a`/`lins2n.so` artifact.
-`LD_LIBRARY_PATH` adds the path to `libs2n.a`/`lins2n.so` artifact for dynamic linker's search path.
+`S2N_TLS_LIB_DIR` points to the folder containing `libs2n.a`/`libs2n.so` artifact that you would like s2n-tls-sys to link against.
+`S2N_TLS_INCLUDE_DIR` points to the folder containing header files for `libs2n.a`/`libs2n.so` artifact.
+`LD_LIBRARY_PATH` adds the path to `libs2n.a`/`libs2n.so` artifact for dynamic linker's search path.
 
 3. Build your project. This triggers the build script for s2n-tls-sys
 
