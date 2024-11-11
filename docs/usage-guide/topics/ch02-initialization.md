@@ -1,7 +1,7 @@
 # Initialization and Teardown
 
 ## Initialization
-The s2n-tls library must be initialized with `s2n_init()` before using the library functions. `s2n_init()` will error if it is called more than once per process.
+The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` will error if it is called more than once, even when an application uses multiple threads or processes.
 
 Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_disable_atexit()` before `s2n_init()`.
 
@@ -11,7 +11,7 @@ If you are trying to use FIPS mode, you must enable FIPS in your libcrypto libra
 
 ## Teardown
 ### Thread-local Memory
-s2n-tls has thread-local memory that it attempts to clean up automatically at thread-exit. This is done using pthread destructors and may not work if you are using a threads library other than pthreads. You can call `s2n_cleanup()` from every thread or process created after `s2n_init()` if you notice thread-local memory leaks.
+We recommend calling `s2n_cleanup()` from every thread or process created after `s2n_init()` to ensure there are no memory leaks. s2n-tls has thread-local memory that it attempts to clean up automatically at thread-exit. However, this is done using pthread destructors and may not work if you are using a threads library other than pthreads. 
 
 ### Library Cleanup
 A full cleanup and de-initialization of the library can be done by calling `s2n_cleanup_final()`.
