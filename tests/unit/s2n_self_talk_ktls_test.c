@@ -82,16 +82,10 @@ static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair)
     io_pair->client = socket(AF_INET, SOCK_STREAM, 0);
     RESULT_ENSURE_GT(io_pair->client, 0);
 
-    fflush(stdout);
-    pid_t pid = fork();
-    RESULT_ENSURE_GTE(pid, 0);
-    if (pid == 0) {
-        RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
-        ZERO_TO_DISABLE_DEFER_CLEANUP(io_pair);
-        exit(0);
-    }
+    RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
     io_pair->server = accept(listener, NULL, NULL);
     RESULT_ENSURE_GT(io_pair->server, 0);
+    RESULT_ENSURE_EQ(close(listener), 0);
     return S2N_RESULT_OK;
 }
 
@@ -134,12 +128,6 @@ int main(int argc, char **argv)
         sizeof(test_data),
     };
 
-    uint8_t file_test_data[100] = { 0 };
-    int file = open(argv[0], O_RDONLY);
-    EXPECT_TRUE(file > 0);
-    int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
-    EXPECT_EQUAL(file_read, sizeof(file_test_data));
-
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
@@ -171,6 +159,7 @@ int main(int argc, char **argv)
              * to be able to test ktls.
              */
             EXPECT_FALSE(ktls_expected);
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             END_TEST();
         }
         EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
@@ -270,22 +259,32 @@ int main(int argc, char **argv)
         };
 
         /* Test: s2n_sendfile */
-        for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
-            const size_t offset = test_offsets[offset_i];
-            const size_t expected_written = sizeof(test_data) - offset;
+        {
+            uint8_t file_test_data[100] = { 0 };
+            int file = open(argv[0], O_RDONLY);
+            EXPECT_TRUE(file > 0);
+            int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
+            EXPECT_EQUAL(file_read, sizeof(file_test_data));
 
-            size_t written = 0;
-            EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
-                    &written, &blocked));
-            EXPECT_EQUAL(written, expected_written);
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
+                const size_t offset = test_offsets[offset_i];
+                const size_t expected_written = sizeof(test_data) - offset;
 
-            uint8_t buffer[sizeof(file_test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, expected_written, &blocked);
-            EXPECT_EQUAL(read, expected_written);
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                size_t written = 0;
+                EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
+                        &written, &blocked));
+                EXPECT_EQUAL(written, expected_written);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-            EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
+                uint8_t buffer[sizeof(file_test_data)] = { 0 };
+                int read = s2n_recv(reader, buffer, expected_written, &blocked);
+                EXPECT_EQUAL(read, expected_written);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+                EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
+            }
+
+            EXPECT_SUCCESS(close(file));
         }
 
         /* Test: s2n_shutdown */
