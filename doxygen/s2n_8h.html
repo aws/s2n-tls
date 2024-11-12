@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.7-0f965487</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.7-493b7716</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -2848,7 +2848,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Cleans up any internal resources used by s2n-tls. This function should be called from each thread or process that is created subsequent to calling <code>s2n_init</code> when that thread or process is done calling other s2n-tls functions.</p>
+<p >Cleans up thread-local resources used by s2n-tls. Does not perform a full library cleanup. To fully clean up the library use s2n_cleanup_final().</p>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
