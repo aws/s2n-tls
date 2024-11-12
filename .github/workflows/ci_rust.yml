@@ -58,9 +58,9 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --features unstable-renegotiate
 
-      - name: Network Tests
+      - name: Network-enabled integration tests
         working-directory: ${{env.ROOT_PATH}}/integration
-        run: cargo test --features network-tests
+        run: RUST_LOG=TRACE cargo test --features network-tests
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately

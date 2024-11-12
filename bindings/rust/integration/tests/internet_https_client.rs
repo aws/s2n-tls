@@ -6,7 +6,7 @@
 /// This test uses s2n-tls-hyper to make http requests over a TLS connection to
 /// a number of well known http sites.
 #[cfg(feature = "network-tests")]
-mod http_get {
+mod https_client {
     use bytes::Bytes;
     use http::{StatusCode, Uri};
     use http_body_util::{BodyExt, Empty};
@@ -14,7 +14,6 @@ mod http_get {
     use s2n_tls::{config::Config, security};
     use s2n_tls_hyper::connector::HttpsConnector;
     use std::{error::Error, str::FromStr};
-    use tracing_subscriber::filter::LevelFilter;
 
     #[derive(Debug)]
     struct TestCase {
@@ -32,10 +31,6 @@ mod http_get {
     }
 
     const TEST_CASES: &[TestCase] = &[
-        // Akamai hangs indefinitely. This is also observed with curl and chrome
-        // https://github.com/aws/s2n-tls/issues/4883
-        // TestCase::new("https://www.akamai.com/", 200),
-
         // this is a link to the s2n-tls unit test coverage report, hosted on cloudfront
         TestCase::new("https://dx1inn44oyl7n.cloudfront.net/main/index.html", 200),
         // this is a link to a non-existent S3 item
@@ -63,7 +58,7 @@ mod http_get {
         TestCase::new("https://www.f5.com", 403),
     ];
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn http_get_test() -> Result<(), Box<dyn std::error::Error>> {
         async fn get(test_case: &TestCase) -> Result<(), Box<dyn Error>> {
             for p in [security::DEFAULT, security::DEFAULT_TLS13] {
@@ -90,13 +85,6 @@ mod http_get {
 
             Ok(())
         }
-
-        // enable tracing metrics. hyper/http has extensive logging, so these logs
-        // are very useful if failures happen in CI.
-        tracing_subscriber::fmt()
-            .with_max_level(LevelFilter::TRACE)
-            .with_test_writer()
-            .init();
 
         for case in TEST_CASES {
             get(case).await?;

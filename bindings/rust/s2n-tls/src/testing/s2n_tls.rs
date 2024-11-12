@@ -36,10 +36,10 @@ mod tests {
             let mut pair = TestPair::from_config(&config);
 
             // before negotiation, kem_name is none
-            assert!(pair.client.kem_name()?.is_none());
+            assert!(pair.client.kem_name().is_none());
 
             pair.handshake().unwrap();
-            assert!(pair.client.kem_name()?.is_none());
+            assert!(pair.client.kem_name().is_none());
         }
 
         // PQ is supported
@@ -49,7 +49,7 @@ mod tests {
             let mut pair = TestPair::from_config(&config);
 
             pair.handshake().unwrap();
-            assert_eq!(pair.client.kem_name()?, Some("kyber512r3"));
+            assert_eq!(pair.client.kem_name(), Some("kyber512r3"));
         }
 
         Ok(())

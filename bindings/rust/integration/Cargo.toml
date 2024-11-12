@@ -34,8 +34,7 @@ tokio = { version = "1", features = ["macros", "test-util"] }
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
-tracing-appender = "0.2"
-test-log = "0.2"
+test-log = { version = "0.2", features = ["log", "trace"]}
 
 http = "1.1"
 http-body-util = "0.1"

@@ -972,9 +972,15 @@ impl Connection {
         }
     }
 
-    pub fn kem_name(&self) -> Result<Option<&str>, Error> {
-        let name_bytes =
-            unsafe { s2n_connection_get_kem_name(self.connection.as_ptr()).into_result()? };
+    pub fn kem_name(&self) -> Option<&str> {
+        let name_bytes = {
+            let name = unsafe { s2n_connection_get_kem_name(self.connection.as_ptr()) };
+            if name.is_null() {
+                return None;
+            }
+            name
+        };
+
         let name_str = unsafe {
             // SAFETY: The data is null terminated because it is declared as a C
             //         string literal.
@@ -984,9 +990,13 @@ impl Connection {
         };
 
         match name_str {
-            Ok("NONE") => Ok(None),
-            Ok(name) => Ok(Some(name)),
-            Err(e) => Err(e),
+            Ok("NONE") => None,
+            Ok(name) => Some(name),
+            Err(_) => {
+                // Unreachable: This would indicate a non-utf-8 string literal in
+                // the s2n-tls C codebase.
+                None
+            },
         }
     }
 
