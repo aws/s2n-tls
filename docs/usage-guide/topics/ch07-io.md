@@ -103,7 +103,7 @@ connections aborted while active.
 
 A single call to `s2n_send()` may involve multiple system calls to write the
 provided application data. s2n-tls breaks the application data into fixed-sized
-records before encryption, and calls write for each record.
+records before encryption, then calls write for each record.
 [See the record size documentation for how record size may impact performance](./ch08-record-sizes.md).
 
 In non-blocking mode, `s2n_send()` will send data from the provided buffer and return the number of
@@ -117,7 +117,9 @@ able to send more data. This can be determined by using methods like
 [`poll`](https://linux.die.net/man/2/poll) or [`select`](https://linux.die.net/man/2/select).
 
 Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
-parameters, but should update the inputs per the indication of size written.
+parameters, but should update the inputs per the indication of size written. s2n-tls
+will attempt to sanity check that the inputs are properly updated between calls.
+Because of those sanity checks, a zero-length send call cannot be used as a flushing mechanism.
 
 `s2n_sendv_with_offset()` behaves like `s2n_send()`, but supports vectorized buffers.
 The offset input should be updated between calls to reflect the data already written.

@@ -8,7 +8,7 @@ use std::{error::Error, fs};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
 /// NOTE: this certificate is to be used for demonstration purposes only!
-const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
+const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem");
 
 #[derive(Parser, Debug)]
 struct Args {
