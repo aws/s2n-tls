@@ -99,6 +99,7 @@ extern const struct s2n_security_policy security_policy_20240501;
 extern const struct s2n_security_policy security_policy_20240502;
 extern const struct s2n_security_policy security_policy_20240503;
 
+extern const struct s2n_security_policy security_policy_20241106;
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
