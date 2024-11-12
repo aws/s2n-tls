@@ -45,7 +45,7 @@ function configure {(set -e
 
 function build {(set -e
     banner "Running Build"
-    if [[ -x "$(which javac)" ]]; then
+    if [[ -f "/usr/bin/javac" ]]; then
         javac tests/integrationv2/bin/SSLSocketClient.java
     fi
     cmake --build ./build -j $(nproc)
