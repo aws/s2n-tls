@@ -7,7 +7,7 @@ phases:
     commands:
       - apt update
       - apt upgrade -y
-      - apt install -y qemu qemu-system-x86 wget cloud-image-utils sudo xz-utils
+      - apt install -y qemu qemu-system-x86 wget cloud-image-utils
   pre_build:
     commands:
       - mkdir ~/.ssh; echo -e "Host localhost\nUser codebuild\nPort 2222" > ~/.ssh/config
@@ -21,7 +21,7 @@ phases:
             cd s2n-tls; sudo modprobe tls; \
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
-            time nix develop .#ktls --command bash -c \
+            nix develop .#ktls --command bash -c \
                 'source ./nix/shell.sh && clean && configure && build' \
         "
   post_build:
@@ -31,6 +31,6 @@ phases:
             cd s2n-tls; \
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
-            time nix develop .#ktls --command bash -c \
+            nix develop .#ktls --command bash -c \
                 'source ./nix/shell.sh && unit ktls' \
         "
