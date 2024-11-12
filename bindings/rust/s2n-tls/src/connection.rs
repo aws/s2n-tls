@@ -996,7 +996,7 @@ impl Connection {
                 // Unreachable: This would indicate a non-utf-8 string literal in
                 // the s2n-tls C codebase.
                 None
-            },
+            }
         }
     }
 

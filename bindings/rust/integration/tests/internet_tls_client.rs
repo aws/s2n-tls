@@ -8,13 +8,16 @@ mod tls_client {
     use tokio::net::TcpStream;
 
     /// Perform a TLS handshake with port 443 of `domain`.
-    /// 
+    ///
     /// * `domain`: The domain to perform the handshake with
     /// * `security_policy`: The security policy to set on the handshaking client.
-    /// 
+    ///
     /// Returns an open `TlsStream` if the handshake was successful, otherwise an
     /// `Err``.
-    async fn handshake_with_domain(domain: &str, security_policy: &str) -> Result<TlsStream<TcpStream>, Box<dyn std::error::Error>> {
+    async fn handshake_with_domain(
+        domain: &str,
+        security_policy: &str,
+    ) -> Result<TlsStream<TcpStream>, Box<dyn std::error::Error>> {
         tracing::info!("querying {domain} with {security_policy}");
         const PORT: u16 = 443;
 
@@ -45,7 +48,10 @@ mod tls_client {
         async fn pq_handshake() -> Result<(), Box<dyn std::error::Error>> {
             let tls = handshake_with_domain(DOMAIN, "KMS-PQ-TLS-1-0-2020-07").await?;
 
-            assert_eq!(tls.as_ref().cipher_suite()?, "ECDHE-KYBER-RSA-AES256-GCM-SHA384");
+            assert_eq!(
+                tls.as_ref().cipher_suite()?,
+                "ECDHE-KYBER-RSA-AES256-GCM-SHA384"
+            );
             assert_eq!(tls.as_ref().kem_name(), Some("kyber512r3"));
 
             Ok(())
