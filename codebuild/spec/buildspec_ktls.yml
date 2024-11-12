@@ -22,7 +22,7 @@ phases:
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
             nix develop .#ktls --command bash -c \
-                'source ./nix/shell.sh && clean && configure && build' \
+                'source ./nix/shell.sh && clean && configure' \
         "
   post_build:
     commands:
@@ -32,5 +32,5 @@ phases:
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
             nix develop .#ktls --command bash -c \
-                'source ./nix/shell.sh && unit ktls' \
+                'source ./nix/shell.sh && unit' \
         "

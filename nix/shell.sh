@@ -45,9 +45,7 @@ function configure {(set -e
 
 function build {(set -e
     banner "Running Build"
-    if [[ -f "/usr/bin/javac" ]]; then
-        javac tests/integrationv2/bin/SSLSocketClient.java
-    fi
+    javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
     if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
