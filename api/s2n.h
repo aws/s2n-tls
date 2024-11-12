@@ -22,17 +22,12 @@
 
 #pragma once
 
-#if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
-    /**
-     * Marks a function as belonging to the public s2n API.
-     */
-    #define S2N_API __attribute__((visibility("default")))
-#else
+#ifndef S2N_API
     /**
      * Marks a function as belonging to the public s2n API.
      */
     #define S2N_API
-#endif /* __GNUC__ >= 4 || defined(__clang__) */
+#endif
 
 #ifdef __cplusplus
 extern "C" {

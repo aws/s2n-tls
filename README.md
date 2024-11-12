@@ -126,8 +126,8 @@ s2n_config_set_cipher_preferences(config, "20150306")
 
 Internally s2n-tls takes a systematic approach to data protection and includes several mechanisms designed to improve safety.
 
-##### Small and auditable code base
-Ignoring tests, blank lines and comments, s2n-tls is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.
+##### Auditable code base
+s2n-tls's code is structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.
 
 To date there have been two external code-level reviews of s2n-tls, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker.
 
@@ -148,7 +148,7 @@ s2n-tls encrypts or erases plaintext data as quickly as possible. For example, d
 s2n-tls uses operating system features to protect data from being swapped to disk or appearing in core dumps.
 
 ##### Minimalist feature adoption
-s2n-tls avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example there is no support for session renegotiation or DTLS.
+s2n-tls avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example, there is no support for DTLS.
 
 ##### Compartmentalized random number generation
 The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n-tls provides every thread with two separate random number generators. One for "public" randomly generated data that may appear in the clear, and one for "private" data that should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts.
