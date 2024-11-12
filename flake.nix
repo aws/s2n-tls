@@ -174,7 +174,6 @@
         devShells.ktls = pkgs.mkShell {
           # Intended for kTLS.
           # This is not an over-ride like the other shells.
-          inherit system;
           buildInputs = [ pkgs.cmake openssl_1_1_1 ];
           S2N_LIBCRYPTO = "openssl-1.1.1";
           OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
