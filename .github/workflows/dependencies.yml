@@ -1,0 +1,29 @@
+name: dependencies
+
+on:
+  # Because of permissions issues with forked PRs,
+  # Only run on a schedule or pushes to main.
+  push:
+    branches:
+      - main
+    # Only run if these files were touched.
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/dependencies.yml"
+
+  schedule:
+    # Run every day at 1800 UTC.
+    - cron: "0 18 * * *"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write   # Open/update issues.
+      checks: write   # Create/update a check run.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

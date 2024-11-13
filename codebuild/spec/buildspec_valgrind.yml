@@ -32,7 +32,7 @@ batch:
     - identifier: gcc_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
@@ -70,3 +70,5 @@ phases:
         CTEST_OUTPUT_ON_FAILURE=1 \
         cmake --build build/ --target test \
           -- ARGS="--test-action memcheck"
+      - cd codebuild/bin
+      - python3 s2n_open_fds_test.py $CODEBUILD_SRC_DIR/build/Testing/Temporary
