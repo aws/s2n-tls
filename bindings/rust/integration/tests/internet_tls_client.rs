@@ -78,18 +78,22 @@ mod tls_client {
         }
     }
 
-    // This should be an http test in internet_https_client.rs but Akamai
-    // http requests hang indefinitely. This behavior is also observed with curl
-    // and chrome. https://github.com/aws/s2n-tls/issues/4883
     #[test_log::test(tokio::test)]
-    async fn akamai() -> Result<(), Box<dyn std::error::Error>> {
-        const DOMAIN: &str = "www.akamai.com";
+    async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
+        // The akamai request should be in internet_https_client.rs but Akamai
+        // http requests hang indefinitely. This behavior is also observed with
+        // curl and chrome. https://github.com/aws/s2n-tls/issues/4883
+        const DOMAINS: &[&str] = &["www.akamai.com"];
 
-        let tls12 = handshake_with_domain(DOMAIN, "default").await?;
-        assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS12);
+        for domain in DOMAINS {
+            tracing::info!("querying {domain}");
 
-        let tls12 = handshake_with_domain(DOMAIN, "default_tls13").await?;
-        assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS13);
+            let tls12 = handshake_with_domain(domain, "default").await?;
+            assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS12);
+
+            let tls12 = handshake_with_domain(domain, "default_tls13").await?;
+            assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS13);
+        }
 
         Ok(())
     }

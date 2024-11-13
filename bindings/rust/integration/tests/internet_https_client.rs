@@ -8,12 +8,16 @@
 #[cfg(feature = "network-tests")]
 mod https_client {
     use bytes::Bytes;
-    use http::{StatusCode, Uri};
+    use http::{Response, StatusCode, Uri};
     use http_body_util::{BodyExt, Empty};
+    use hyper::body::Incoming;
     use hyper_util::{client::legacy::Client, rt::TokioExecutor};
-    use s2n_tls::{config::Config, security};
+    use s2n_tls::{
+        config::Config,
+        security::{self, Policy},
+    };
     use s2n_tls_hyper::connector::HttpsConnector;
-    use std::{error::Error, str::FromStr};
+    use std::str::FromStr;
 
     #[derive(Debug)]
     struct TestCase {
@@ -58,22 +62,30 @@ mod https_client {
         TestCase::new("https://www.f5.com", 403),
     ];
 
+    /// perform an HTTP GET request against `uri` using an s2n-tls config with
+    /// `security_policy`.
+    async fn https_get(
+        uri: &str,
+        security_policy: &Policy,
+    ) -> Result<Response<Incoming>, hyper_util::client::legacy::Error> {
+        let mut config = Config::builder();
+        config.set_security_policy(security_policy).unwrap();
+
+        let connector = HttpsConnector::new(config.build().unwrap());
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
+
+        let uri = Uri::from_str(uri).unwrap();
+        client.get(uri).await
+    }
+
     #[test_log::test(tokio::test)]
     async fn http_get_test() -> Result<(), Box<dyn std::error::Error>> {
-        async fn get(test_case: &TestCase) -> Result<(), Box<dyn Error>> {
-            for p in [security::DEFAULT, security::DEFAULT_TLS13] {
-                tracing::info!("executing test case {:#?} with {:?}", test_case, p);
+        for test_case in TEST_CASES {
+            for policy in [security::DEFAULT, security::DEFAULT_TLS13] {
+                tracing::info!("executing test case {:#?} with {:?}", test_case, policy);
 
-                let mut config = Config::builder();
-                config.set_security_policy(&p)?;
-
-                let connector = HttpsConnector::new(config.build()?);
-                let client: Client<_, Empty<Bytes>> =
-                    Client::builder(TokioExecutor::new()).build(connector);
-
-                let uri = Uri::from_str(test_case.query_target)?;
-                let response = client.get(uri).await?;
-
+                let response = https_get(test_case.query_target, &policy).await?;
                 let expected_status = StatusCode::from_u16(test_case.expected_status_code).unwrap();
                 assert_eq!(response.status(), expected_status);
 
@@ -82,12 +94,6 @@ mod https_client {
                     assert!(!body.is_empty());
                 }
             }
-
-            Ok(())
-        }
-
-        for case in TEST_CASES {
-            get(case).await?;
         }
 
         Ok(())
