@@ -37,10 +37,10 @@ static void *s2n_load_dynamic_lib(void *ctx)
         exit(1);
     }
 
-    int (*s2n_cleanup_dl)(void) = NULL;
-    *(void **) (&s2n_cleanup_dl) = dlsym(s2n_so, "s2n_cleanup");
+    int (*s2n_cleanup_final_dl)(void) = NULL;
+    *(void **) (&s2n_cleanup_final_dl) = dlsym(s2n_so, "s2n_cleanup_final");
     if (dlerror()) {
-        printf("Error dynamically loading s2n_cleanup\n");
+        printf("Error dynamically loading s2n_cleanup_final\n");
         exit(1);
     }
 
@@ -63,17 +63,22 @@ static void *s2n_load_dynamic_lib(void *ctx)
         fprintf(stderr, "Error calling s2n_init: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
         exit(1);
     }
-    if ((*s2n_cleanup_dl)()) {
+    if ((*s2n_cleanup_final_dl)()) {
         int s2n_errno = (*s2n_errno_location_dl)();
-        fprintf(stderr, "Error calling s2n_cleanup: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
+        fprintf(stderr, "Error calling s2n_cleanup_final: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
         exit(1);
     }
 
+    /* TODO: https://github.com/aws/s2n-tls/issues/4827
+     * This dlclose call invokes the pthread key destructor that
+     * asserts that the s2n-tls library is initialized, which at this point
+     * is not, due to the s2n_cleanup_final call. This is a bug.
     if (dlclose(s2n_so)) {
         printf("Error closing libs2n\n");
         printf("%s\n", dlerror());
         exit(1);
     }
+    */
 
     return NULL;
 }

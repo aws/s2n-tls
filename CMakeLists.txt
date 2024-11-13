@@ -511,6 +511,7 @@ if (BUILD_TESTING)
         --error-limit=no \
         --num-callers=40 \
         --undef-value-errors=no \
+        --track-fds=yes \
         --log-fd=2 \
         --suppressions=valgrind.suppressions")
 
