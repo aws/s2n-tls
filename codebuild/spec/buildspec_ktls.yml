@@ -12,7 +12,7 @@ phases:
       - aws s3 --quiet sync s3://s2n-ktls-testing ./qemu
       - cd qemu; bash ./run.sh; cd ..
       - rsync -avz --exclude=qemu --exclude=tests/fuzz -e 'ssh -p 2222' . codebuild@localhost:/home/codebuild/s2n-tls
-  pre_build:
+  build:
     commands:
       - |
         ssh localhost " \
@@ -22,7 +22,7 @@ phases:
             nix develop .#minimal --command bash -c \
                 'source ./nix/shell.sh && clean && configure' \
         "
-  build:
+  post_build:
     commands:
       - |
         ssh localhost " \
