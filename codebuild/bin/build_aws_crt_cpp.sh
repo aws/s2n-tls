@@ -30,6 +30,8 @@ source codebuild/bin/s2n_setup_env.sh
 BUILD_DIR=$1
 INSTALL_DIR=$2
 
+# Make sure there isn't another source tree hanging around.
+rm -rf /opt/s2n-tls || true
 mkdir -p "$BUILD_DIR/s2n"
 # In case $BUILD_DIR is a subdirectory of current directory
 for file in *;do test "$file" != "$BUILD_DIR" && cp -r "$file" "$BUILD_DIR/s2n";done

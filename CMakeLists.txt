@@ -511,6 +511,7 @@ if (BUILD_TESTING)
         --error-limit=no \
         --num-callers=40 \
         --undef-value-errors=no \
+        --track-fds=yes \
         --log-fd=2 \
         --suppressions=valgrind.suppressions")
 
@@ -639,7 +640,7 @@ if (BUILD_TESTING)
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-                        --provider-criterion=off --fips-mode=0 ${test_file_path}
+                        --fips-mode=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
                 )
             else()
