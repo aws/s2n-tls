@@ -33,7 +33,7 @@ mod tls_client {
 
     /// Purpose: ensure that we remain compatible with existing pq AWS deployments.
     ///
-    /// KMS is has PQ support. Assert that we successfully negotiate PQ key exchange.
+    /// KMS has PQ support. Assert that we successfully negotiate PQ key exchange.
     mod kms {
         use crate::tls_client::handshake_with_domain;
 
