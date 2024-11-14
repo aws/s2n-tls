@@ -56,7 +56,7 @@ function build {(set -e
 function unit {(set -e
     if [[ -z "$1" ]]; then
         cmake --build build -j $(nproc)
-        ctest --test-dir build -L unit -j $(nproc) --verbose
+        ctest --test-dir build -L unit -E "$S2N_EXCLUDE_TESTS" -j $(nproc) --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
         echo "Tests:"

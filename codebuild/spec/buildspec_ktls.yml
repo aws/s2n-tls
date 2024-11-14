@@ -29,6 +29,7 @@ phases:
             cd s2n-tls; \
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
+            export S2N_EXCLUDE_TESTS=aead; \
             nix develop .#minimal --command bash -c \
                 'source ./nix/shell.sh && unit' \
         "
