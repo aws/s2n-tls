@@ -155,12 +155,29 @@ impl Drop for Config {
             // This is the last instance so free the context.
             let context = Box::from_raw(context);
             drop(context);
-            // TODO: drop certs
-            // let mut certs = core::ptr::null_mut();
-            // let _ = s2n_config_get_cert_chains(self.0.as_ptr(), &mut certs).into_result();
-            // for(cert : certs) {
-            //    drop(CertificateChain::from_owned_ptr_reference(cert));
-            // }
+
+            // Clean up the certificate chains
+            let mut cert_chains: *mut *mut s2n_cert_chain_and_key = std::ptr::null_mut();
+            let mut chain_count: u32 = 0;
+            if s2n_config_get_cert_chains(self.0.as_ptr(), &mut cert_chains, &mut chain_count)
+                .into_result()
+                .is_ok()
+            {
+                if !cert_chains.is_null() && chain_count > 0 {
+                    let cert_slice = std::slice::from_raw_parts(cert_chains, chain_count as usize);
+                    for &cert_ptr in cert_slice {
+                        if !cert_ptr.is_null() {
+                            drop(CertificateChain::from_owned_ptr_reference(cert_ptr));
+                        }
+                    }
+
+                    let _ = s2n_free_object(
+                        &mut (cert_chains as *mut u8),
+                        (chain_count as usize) * std::mem::size_of::<*mut s2n_cert_chain_and_key>(),
+                    )
+                    .into_result();
+                }
+            }
 
             let _ = s2n_config_free(self.0.as_ptr()).into_result();
         }
@@ -291,7 +308,8 @@ impl Builder {
             s2n_config_add_cert_chain_and_key_to_store(
                 self.as_mut_ptr(),
                 cert_chain.as_mut_ptr().as_ptr(),
-            ).into_result()?;
+            )
+            .into_result()?;
         }
         // Setting the cert chain on the config creates one additional reference
         // so do not drop so prevent Rust from calling `drop()` at the end of this function.

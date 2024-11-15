@@ -6,6 +6,7 @@ use s2n_tls_sys::*;
 use std::{
     marker::PhantomData,
     ptr::{self, NonNull},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 /// A CertificateChain represents a chain of X.509 certificates.
@@ -52,8 +53,7 @@ impl CertificateChain<'_> {
     ///
     /// This CertificateChain _MUST_ have been initialized with the constructor.
     /// Additionally, this does NOT increment the reference count,
-    /// so consider cloning the result if the source pointer is still
-    /// valid and usable afterwards.
+    /// so consider cloning the result if the source pointer is still valid and usable afterwards.
     pub(crate) unsafe fn from_owned_ptr_reference<'a>(
         ptr: NonNull<s2n_cert_chain_and_key>,
     ) -> CertificateChain<'a> {
@@ -154,7 +154,7 @@ impl CertificateChain<'_> {
     }
 }
 
-impl Clone for CertificateChain {
+impl Clone for CertificateChain<'_> {
     fn clone(&self) -> Self {
         let context = self.context();
 
@@ -293,5 +293,21 @@ impl Default for CertificateChainContext {
         Self {
             refcount: AtomicUsize::new(1),
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clone_and_drop_update_ref_count() {
+        let original_cert = CertificateChain::new().unwrap();
+        assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 1);
+        
+        let second_cert = original_cert.clone();
+        assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 2);
+        
+        drop(second_cert);
+        assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 1);
     }
 }

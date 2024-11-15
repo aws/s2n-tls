@@ -763,7 +763,99 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
     };
 
-    // TODO: add Test s2n_config_get_cert_chains
+/* Test s2n_config_get_cert_chains */
+{
+    /* Test with no certificates */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        struct s2n_cert_chain_and_key **cert_chains = NULL;
+        uint32_t chain_count = 0;
+
+        EXPECT_SUCCESS(s2n_config_get_cert_chains(config, &cert_chains, &chain_count));
+        EXPECT_NULL(cert_chains);
+        EXPECT_EQUAL(chain_count, 0);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    };
+
+    /* Test with a single certificate */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_cert_chain_and_key **cert_chains = NULL;
+        uint32_t chain_count = 0;
+
+        EXPECT_SUCCESS(s2n_config_get_cert_chains(config, &cert_chains, &chain_count));
+        EXPECT_NOT_NULL(cert_chains);
+        EXPECT_EQUAL(chain_count, 1);
+        EXPECT_EQUAL(cert_chains[0], chain_and_key);
+
+        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    };
+
+    /* Test with multiple certificates */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        struct s2n_cert_chain_and_key *chain1 = NULL;
+        struct s2n_cert_chain_and_key *chain2 = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain1, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain2, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain2));
+
+        struct s2n_cert_chain_and_key **cert_chains = NULL;
+        uint32_t chain_count = 0;
+
+        EXPECT_SUCCESS(s2n_config_get_cert_chains(config, &cert_chains, &chain_count));
+        EXPECT_NOT_NULL(cert_chains);
+        EXPECT_EQUAL(chain_count, 2);
+        EXPECT_TRUE((cert_chains[0] == chain1 && cert_chains[1] == chain2) ||
+                    (cert_chains[0] == chain2 && cert_chains[1] == chain1));
+
+        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain1));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain2));
+    };
+
+    /* Test with domain name to cert map */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        struct s2n_cert_chain_and_key *chain1 = NULL;
+        struct s2n_cert_chain_and_key *chain2 = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain1, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain2, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain1));
+        EXPECT_SUCCESS(s2n_config_build_domain_name_to_cert_map(config, chain2));
+
+        struct s2n_cert_chain_and_key **cert_chains = NULL;
+        uint32_t chain_count = 0;
+
+        EXPECT_SUCCESS(s2n_config_get_cert_chains(config, &cert_chains, &chain_count));
+        EXPECT_NOT_NULL(cert_chains);
+        EXPECT_EQUAL(chain_count, 2);
+        EXPECT_TRUE((cert_chains[0] == chain1 && cert_chains[1] == chain2) ||
+                    (cert_chains[0] == chain2 && cert_chains[1] == chain1));
+
+        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain1));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain2));
+    };
+}
 
     /* Test loading system certs */
     {
