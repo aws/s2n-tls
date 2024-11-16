@@ -811,6 +811,17 @@ int s2n_config_get_cert_chains(struct s2n_config *config,
     return S2N_SUCCESS;
 }
 
+int s2n_free_config_cert_chains(struct s2n_cert_chain_and_key ***cert_chains, uint32_t chain_count)
+{
+    POSIX_ENSURE_REF(cert_chains);
+    if (*cert_chains != NULL) {
+        POSIX_GUARD(s2n_free_object((uint8_t **)cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        *cert_chains = NULL;
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);

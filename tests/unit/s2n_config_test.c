@@ -776,6 +776,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_get_cert_chains(config, &cert_chains, &chain_count));
         EXPECT_NULL(cert_chains);
         EXPECT_EQUAL(chain_count, 0);
+        EXPECT_SUCCESS(s2n_free_config_cert_chains(&cert_chains, chain_count));
 
         EXPECT_SUCCESS(s2n_config_free(config));
     };
@@ -797,7 +798,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(chain_count, 1);
         EXPECT_EQUAL(cert_chains[0], chain_and_key);
 
-        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_free_config_cert_chains(&cert_chains, chain_count));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     };
@@ -823,7 +824,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE((cert_chains[0] == chain1 && cert_chains[1] == chain2) ||
                     (cert_chains[0] == chain2 && cert_chains[1] == chain1));
 
-        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_free_config_cert_chains(&cert_chains, chain_count));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain1));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain2));
@@ -850,7 +851,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE((cert_chains[0] == chain1 && cert_chains[1] == chain2) ||
                     (cert_chains[0] == chain2 && cert_chains[1] == chain1));
 
-        EXPECT_SUCCESS(s2n_free_object((uint8_t **)&cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        EXPECT_SUCCESS(s2n_free_config_cert_chains(&cert_chains, chain_count));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain1));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain2));
