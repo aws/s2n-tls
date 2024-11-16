@@ -4,6 +4,7 @@
 use crate::error::{Error, Fallible};
 use s2n_tls_sys::*;
 use std::{
+    ffi::{c_void, CString},
     marker::PhantomData,
     ptr::{self, NonNull},
     sync::atomic::{AtomicUsize, Ordering},
@@ -19,22 +20,22 @@ pub struct CertificateChain<'a> {
 impl CertificateChain<'_> {
     /// This allocates a new certificate chain from s2n.
     pub(crate) fn new() -> Result<CertificateChain<'static>, Error> {
-        unsafe {
-            let ptr = s2n_cert_chain_and_key_new().into_result()?;
-            let context = Box::<CertificateChainContext>::default();
-            let context = Box::into_raw(context) as *mut c_void;
+        crate::init::init();
+        let ptr = unsafe { s2n_cert_chain_and_key_new().into_result()? };
 
-            unsafe {
-                s2n_cert_chain_and_key_set_ctx(ptr.as_ptr(), context)
-                    .into_result()
-                    .unwrap();
-            }
-            Ok(CertificateChain {
-                ptr,
-                is_owned: true,
-                _lifetime: PhantomData,
-            })
+        let context = Box::<CertificateChainContext>::default();
+        let context = Box::into_raw(context) as *mut c_void;
+
+        unsafe {
+            s2n_cert_chain_and_key_set_ctx(ptr.as_ptr(), context)
+                .into_result()
+                .unwrap();
         }
+        Ok(CertificateChain {
+            ptr,
+            is_owned: true,
+            _lifetime: PhantomData,
+        })
     }
 
     /// This CertificateChain is not owned and will not increment the reference count.
@@ -64,7 +65,7 @@ impl CertificateChain<'_> {
         };
 
         // Check if the context can be retrieved.
-        // If it can't, this is not a valid CertificateChain.
+        // If it can't, this is not an owned CertificateChain created through constructor.
         cert_chain.context();
         cert_chain
     }
@@ -109,27 +110,25 @@ impl CertificateChain<'_> {
 
     /// Retrieve a reference to the [`CertificateChainContext`] stored on the CertificateChain.
     pub(crate) fn context(&self) -> &CertificateChainContext {
-        let mut ctx = core::ptr::null_mut();
         unsafe {
-            ctx = s2n_cert_chain_and_key_get_ctx(self.ptr)
+            let ctx = s2n_cert_chain_and_key_get_ctx(self.ptr.as_ptr())
                 .into_result()
                 .unwrap();
-            &*(ctx as *const CertificateChainContext)
+            &*(ctx.as_ptr() as *const CertificateChainContext)
         }
     }
 
     /// Retrieve a mutable reference to the [`CertificateChainContext`] stored on the CertificateChain.
     pub(crate) fn context_mut(&mut self) -> &mut CertificateChainContext {
-        let mut ctx = core::ptr::null_mut();
         unsafe {
-            ctx = s2n_cert_chain_and_key_get_ctx(self.ptr.as_ptr())
+            let ctx = s2n_cert_chain_and_key_get_ctx(self.ptr.as_ptr())
                 .into_result()
                 .unwrap();
-            &mut *(ctx as *mut CertificateChainContext)
+            &mut *(ctx.as_ptr() as *mut CertificateChainContext)
         }
     }
 
-    pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) {
+    pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
@@ -142,7 +141,6 @@ impl CertificateChain<'_> {
         }?;
         Ok(self)
     }
-
 
     pub fn set_ocsp_data(&mut self, data: &[u8]) -> Result<&mut Self, Error> {
         let size: u32 = data.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
@@ -303,11 +301,18 @@ mod tests {
     fn clone_and_drop_update_ref_count() {
         let original_cert = CertificateChain::new().unwrap();
         assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 1);
-        
+
         let second_cert = original_cert.clone();
         assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 2);
-        
+
         drop(second_cert);
         assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 1);
+    }
+
+    // ensure the config context is send and sync
+    #[test]
+    fn context_send_sync_test() {
+        fn assert_send_sync<T: 'static + Send + Sync>() {}
+        assert_send_sync::<CertificateChainContext>();
     }
 }

@@ -5,10 +5,12 @@
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
     callbacks::*,
+    cert_chain::CertificateChain,
     enums::*,
     error::{Error, Fallible},
     security,
 };
+use core::mem::{self};
 use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;
 use std::{
@@ -166,16 +168,13 @@ impl Drop for Config {
                 if !cert_chains.is_null() && chain_count > 0 {
                     let cert_slice = std::slice::from_raw_parts(cert_chains, chain_count as usize);
                     for &cert_ptr in cert_slice {
-                        if !cert_ptr.is_null() {
-                            drop(CertificateChain::from_owned_ptr_reference(cert_ptr));
+                        if let Some(non_null_ptr) = NonNull::new(cert_ptr) {
+                            drop(CertificateChain::from_owned_ptr_reference(non_null_ptr));
                         }
                     }
 
-                    let _ = s2n_free_object(
-                        &mut (cert_chains as *mut u8),
-                        (chain_count as usize) * std::mem::size_of::<*mut s2n_cert_chain_and_key>(),
-                    )
-                    .into_result();
+                    let _ =
+                        s2n_free_config_cert_chains(&mut cert_chains, chain_count).into_result();
                 }
             }
 
