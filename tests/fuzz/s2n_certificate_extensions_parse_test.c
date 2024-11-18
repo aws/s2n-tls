@@ -49,11 +49,6 @@ static uint8_t verify_host_accept_everything(const char *host_name, size_t host_
 /* This test is for TLS versions 1.3 and up only */
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
-int s2n_fuzz_init(int *argc, char **argv[])
-{
-    return S2N_SUCCESS;
-}
-
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
@@ -117,4 +112,4 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     return S2N_SUCCESS;
 }
 
-S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, NULL)
+S2N_FUZZ_TARGET(NULL, s2n_fuzz_test, NULL)
