@@ -18,9 +18,6 @@ on:
     - cron: "0 18 * * *"
 
 env:
-  # Pin the nightly toolchain to prevent breakage.
-  # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-01-01
   ROOT_PATH: bindings/rust
 
 jobs:
