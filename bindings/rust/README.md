@@ -20,15 +20,15 @@ Generating rust bindings can be accomplished by running the `generate.sh` script
 $ ./bindings/rust/generate.sh
 ```
 
-## Bring Your Own libs2n with `s2n-tls-sys` crate
+The `s2n-tls-sys` bindings crate contains the raw C code of `s2n-tls`. By default, it follows this build process:
 
-The `s2n-tls-sys` crate contains the raw C code of `s2n-tls`. By default, it follows this build process:
-
-1. Uses the system C compiler to build `libs2n.a`
+1. Links the system C compiler to build `libs2n.a`
 2. Links the built `libs2n.a` to the Rust bindings
 3. Links against `aws-lc` through the `aws-lc-rs` crate
 
-However, you can customize this process to use your own pre-built libs2n library using [s2n-tls-sys crate](https://crates.io/crates/s2n-tls-sys). Here's how you can do that:
+## Bring Your Own libs2n with `s2n-tls-sys` crate
+
+You can customize above build process to use your own pre-built libs2n library. Here's how you can do that:
 
 1. Clone [s2n-tls](https://github.com/aws/s2n-tls) and compile your preferred configuration of s2n-tls.
 
