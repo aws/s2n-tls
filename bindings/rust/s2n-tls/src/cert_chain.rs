@@ -309,7 +309,7 @@ mod tests {
         assert_eq!(original_cert.context().refcount.load(Ordering::Relaxed), 1);
     }
 
-    // ensure the config context is send and sync
+    // ensure the CertificateChainContext is send and sync
     #[test]
     fn context_send_sync_test() {
         fn assert_send_sync<T: 'static + Send + Sync>() {}
