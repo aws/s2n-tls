@@ -1,8 +1,8 @@
 # TLS Connections
 
-A TLS connection is a secure and encrypted channel established between two communicating peers. A TLS connection is used to send and receive data, perform TLS handshake negotiations, send alert messages, and etc. Read [TLS Connections](./ch04-connection.md) for information about connections, and [Sending and Receiving](./ch07-io.md) for io interactions. TLS connections are configured by TLS configs, which contains a collection of TLS settings. TLS configs apply rules on TLS connections by defining connection specs, such as supported certificate authorities. Read [Configuring the Connection](./ch05-config.md) for information about TLS connection and config interactions.
+In general, s2n-tls works by operating on `s2n_connection` structs. A user should first create a connection by calling `s2n_connection_new()`. Then a [TLS handshake can be performed](./ch07-io.md#performing-the-tls-handshake) on the connection. Finally, the connection can be used to [send and receive encrypted data](./ch07-io.md#application-data). An `s2n_config` struct can be associated with a connection to provide [configuration outside of the default](./ch05-config.md).
 
-Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. One `s2n_connection` must be created for each TCP stream. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
+Call `s2n_connection_free()` to free the memory allocated for connection when no longer needed.
 
 ## Connection Memory
 
