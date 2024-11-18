@@ -166,9 +166,9 @@ int main(int argc, char *argv[])
 
     const char *security_policy_test_cases[] = {
         /* TLS 1.3 */
-    "20240503",
+        "20240503",
         /* TLS 1.2 */
-    "20240501",
+        "20240501",
     };
 
     /* Ensure that the input buffer is wiped after failing to read a record */
