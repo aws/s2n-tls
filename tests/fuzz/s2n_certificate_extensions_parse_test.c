@@ -65,6 +65,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     POSIX_GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
     POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240503"));
 
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
