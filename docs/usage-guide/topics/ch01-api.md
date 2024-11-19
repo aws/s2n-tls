@@ -6,6 +6,8 @@ are intended to be stable (API and ABI) within major version numbers of s2n-tls 
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and
 sizes may change.
 
+In general, s2n-tls APIs are not thread safe unless explicitly specified otherwise.
+
 Read [Error Handling](./ch03-error-handling.md) for information on processing API return values safely.
 
 The [VERSIONING.rst](https://github.com/aws/s2n-tls/blob/main/VERSIONING.rst) document contains more details about s2n's approach to versions and API changes.
