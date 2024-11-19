@@ -60,7 +60,7 @@ jobs:
 
       - name: Network-enabled integration tests
         working-directory: ${{env.ROOT_PATH}}/integration
-        run: RUST_LOG=TRACE cargo test --features network-tests
+        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
