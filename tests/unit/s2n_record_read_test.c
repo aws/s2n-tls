@@ -176,6 +176,10 @@ int main(int argc, char *argv[])
 
     /* Ensure that the input buffer is wiped after failing to read a record */
     for (size_t i = 0; i < s2n_array_len(policy_test_cases); i++) {
+        if (policy_test_cases[i].version == S2N_TLS13 && !s2n_is_tls13_fully_supported()) {
+            continue;
+        }
+
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
