@@ -20,8 +20,6 @@
 #include "utils/s2n_safety.h"
 
 #define SSLV2_MIN_SIZE 3
-/* Record Header length for TLS1.3 and TLS1.2 protocols */
-const int S2N_TLS_RECORD_HEADER_LEN = 5;
 
 int main(int argc, char *argv[])
 {
@@ -214,8 +212,8 @@ int main(int argc, char *argv[])
 
         /* Invalidate an encrypted byte to cause decryption to fail. */
         struct s2n_stuffer invalidation_stuffer = stuffer_pair.server_in;
-        /* Skip the TLS Record Header content, since its not used for decryption in TLS1.3. */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(&invalidation_stuffer, S2N_TLS_RECORD_HEADER_LEN));
+        /* Skip the TLS Record Header content, since its not used for decryption in TLS 1.3. */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&invalidation_stuffer, S2N_TLS_RECORD_HEADER_LENGTH));
         uint8_t *corrupt_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
         EXPECT_NOT_NULL(corrupt_byte);
         *corrupt_byte += 1;
