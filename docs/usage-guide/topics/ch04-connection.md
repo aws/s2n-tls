@@ -1,6 +1,6 @@
 # TLS Connections
 
-In general, s2n-tls works by operating on `s2n_connection` structs. A user should first create a connection by calling `s2n_connection_new()`. Then a [TLS handshake can be performed](./ch07-io.md#performing-the-tls-handshake) on the connection. Finally, the connection can be used to [send and receive encrypted data](./ch07-io.md#application-data). An `s2n_config` struct can be associated with a connection to provide [configuration outside of the default](./ch05-config.md).
+In general, s2n-tls works by operating on `s2n_connection` structs. A user should first create a connection by calling `s2n_connection_new()`. Then a [TLS handshake can be performed](./ch07-io.md#performing-the-tls-handshake) on the connection. Finally, the connection can be used to [send and receive encrypted data](./ch07-io.md#application-data). An `s2n_config` struct can be associated with a connection to [configure additional options](./ch05-config.md).
 
 Call `s2n_connection_free()` to free the memory allocated for connection when no longer needed.
 
