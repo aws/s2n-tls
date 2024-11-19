@@ -17,7 +17,7 @@ async fn echo(
     Ok(Response::new(req.into_body().boxed()))
 }
 
-async fn serve_echo<B>(
+pub async fn serve_echo<B>(
     tcp_listener: TcpListener,
     builder: B,
 ) -> Result<(), Box<dyn Error + Send + Sync>>

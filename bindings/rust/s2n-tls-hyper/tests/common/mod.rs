@@ -6,10 +6,9 @@ use s2n_tls::{callbacks::VerifyHostNameCallback, config, error::Error, security:
 pub mod echo;
 
 /// NOTE: this certificate and key are used for testing purposes only!
-pub static CERT_PEM: &[u8] =
+pub const CERT_PEM: &[u8] =
     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
-pub static KEY_PEM: &[u8] =
-    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
+pub const KEY_PEM: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
 
 pub fn config() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
