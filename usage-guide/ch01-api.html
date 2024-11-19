@@ -158,6 +158,7 @@ are in the <a href="https://github.com/aws/s2n-tls/blob/main/api/s2n.h">s2n.h</a
 are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and
 sizes may change.</p>
+<p>In general, s2n-tls APIs are not thread safe unless explicitly specified otherwise.</p>
 <p>Read <a href="./ch03-error-handling.html">Error Handling</a> for information on processing API return values safely.</p>
 <p>The <a href="https://github.com/aws/s2n-tls/blob/main/VERSIONING.rst">VERSIONING.rst</a> document contains more details about s2n's approach to versions and API changes.</p>
 <h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
