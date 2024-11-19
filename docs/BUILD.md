@@ -112,12 +112,16 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
 - [AWS-LC](https://github.com/aws/aws-lc)
   - Limited ["Sandboxing"](https://github.com/aws/aws-lc/blob/main/SANDBOXING.md) is only supported and tested with AWS-LC.
   - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
+  - FIPS mode is supported with versions of AWS-LC [that support
+    FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
 - [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
+  - FIPS mode is not supported with Openssl-3.0 or later.
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
+  - FIPS mode is not supported with BoringSSL.
 - [LibreSSL](https://www.libressl.org/)
 
 By default, s2n-tls will attempt to find a system libcrypto to link with when building. However, this search can be overridden to any of the above libcryptos by specifying the install directory with the `CMAKE_PREFIX_PATH` flag.

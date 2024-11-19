@@ -20,22 +20,16 @@ mod time;
 pub use time::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
-pub static CERT_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/cert.pem"
-));
-pub static KEY_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/key.pem"
-));
+pub static CERT_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
+pub static KEY_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
 pub static RSA_CERT_PEM: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/cert_rsa.pem"
+    "/../certs/cert_rsa.pem"
 ));
-pub static RSA_KEY_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/key_rsa.pem"
-));
+pub static RSA_KEY_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key_rsa.pem"));
 
 pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
 pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);

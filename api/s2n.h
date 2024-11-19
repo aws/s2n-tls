@@ -22,17 +22,12 @@
 
 #pragma once
 
-#if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
-    /**
-     * Marks a function as belonging to the public s2n API.
-     */
-    #define S2N_API __attribute__((visibility("default")))
-#else
+#ifndef S2N_API
     /**
      * Marks a function as belonging to the public s2n API.
      */
     #define S2N_API
-#endif /* __GNUC__ >= 4 || defined(__clang__) */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -234,12 +229,19 @@ S2N_API extern unsigned long s2n_get_openssl_version(void);
 S2N_API extern int s2n_init(void);
 
 /**
- * Cleans up any internal resources used by s2n-tls. This function should be called from each thread or process
- * that is created subsequent to calling `s2n_init` when that thread or process is done calling other s2n-tls functions.
+ * Cleans up thread-local resources used by s2n-tls. Does not perform a full library cleanup. To fully
+ * clean up the library use s2n_cleanup_final().
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_cleanup(void);
+
+/*
+ * Performs a complete deinitialization and cleanup of the s2n-tls library.
+ *
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_cleanup_final(void);
 
 typedef enum {
     S2N_FIPS_MODE_DISABLED = 0,
@@ -249,13 +251,13 @@ typedef enum {
 /**
  * Determines whether s2n-tls is operating in FIPS mode.
  *
- * s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled. Some
- * libcryptos, such as AWS-LC-FIPS, have FIPS mode enabled by default. With other libcryptos, such
- * as OpenSSL, FIPS mode must be enabled before initialization by calling `FIPS_mode_set()`.
+ * s2n-tls enters FIPS mode on initialization when built with a version of AWS-LC that supports
+ * FIPS (https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md). FIPS mode controls
+ * some internal configuration related to FIPS support, like which random number generator is used.
  *
- * s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS
- * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
- * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
+ * FIPS mode does not enforce the use of FIPS-approved cryptography. Applications attempting to use
+ * only FIPS-approved cryptography should also ensure that s2n-tls is configured to use a security
+ * policy that only supports FIPS-approved cryptography.
  *
  * @param fips_mode Set to the FIPS mode of s2n-tls.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.

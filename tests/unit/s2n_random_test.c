@@ -782,9 +782,8 @@ static int s2n_random_noop_destructor_test_cb(struct random_test_case *test_case
 
 static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_case)
 {
-    s2n_disable_atexit();
     EXPECT_SUCCESS(s2n_init());
-    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_SUCCESS(s2n_cleanup_final());
 
     unsigned char rndbytes[16];
     EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
@@ -818,8 +817,6 @@ static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
 
 static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
 {
-    EXPECT_SUCCESS(s2n_disable_atexit());
-
     struct s2n_rand_device *dev_urandom = NULL;
     EXPECT_OK(s2n_rand_get_urandom_for_test(&dev_urandom));
     EXPECT_NOT_NULL(dev_urandom);
@@ -840,9 +837,13 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
 
         EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
         if (test == 0) {
-            /* Close the file descriptor. */
+            /* Test 0 tests for closed dev_urandom fd */
             EXPECT_EQUAL(close(dev_urandom->fd), 0);
         } else {
+            /* Test 1 tests for invalid value for dev_urandom.
+             * Needs to close the previously set dev_urandom fd
+             * before making it invalid. */
+            EXPECT_EQUAL(close(dev_urandom->fd), 0);
             /* Make the file descriptor invalid by pointing it to STDERR. */
             dev_urandom->fd = STDERR_FILENO;
         }
@@ -867,7 +868,7 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
             EXPECT_TRUE(public_bytes_used > 0);
         }
 
-        EXPECT_SUCCESS(s2n_cleanup());
+        EXPECT_SUCCESS(s2n_cleanup_final());
     }
 
     return S2N_SUCCESS;

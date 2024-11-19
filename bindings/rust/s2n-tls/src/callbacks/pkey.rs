@@ -133,14 +133,8 @@ mod tests {
 
     type Error = Box<dyn std::error::Error>;
 
-    const KEY: &[u8] = include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../tests/pems/ecdsa_p384_pkcs1_key.pem"
-    ));
-    const CERT: &[u8] = include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../tests/pems/ecdsa_p384_pkcs1_cert.pem"
-    ));
+    const KEY: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
+    const CERT: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
 
     fn new_pair<T>(callback: T, waker: Waker) -> Result<TestPair, Error>
     where

@@ -32,16 +32,13 @@ if [[ ! -f "$(which clang)" ]]; then
   exit 1
 fi
 
-# There are currently no AWSLC release tags for the 2022 FIPS branch. The
-# following is the latest commit in this branch as of 8/19/24:
-# https://github.com/aws/aws-lc/commits/fips-2022-11-02
-AWSLC_VERSION=ec94d74a19b5a0aa738b436a95bb06ff87fc7ba9
+AWSLC_VERSION=AWS-LC-FIPS-2.0.17
 
 mkdir -p "$BUILD_DIR" || true
 cd "$BUILD_DIR"
-git clone https://github.com/aws/aws-lc.git
-cd aws-lc
-git checkout "${AWSLC_VERSION}"
+# --branch can also take tags and detaches the HEAD at that commit in the resulting repository
+# --depth 1 Create a shallow clone with a history truncated to 1 commit
+git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --depth 1
 
 build() {
     shared=$1
