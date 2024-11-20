@@ -20,7 +20,7 @@ Generating rust bindings can be accomplished by running the `generate.sh` script
 $ ./bindings/rust/generate.sh
 ```
 
-This script generates the low-level bindings crate `s2n-tls-sys`, which other bindings crates depend on.
+This script generates the low-level bindings in the crate `s2n-tls-sys`, which is used by the `s2n-tls` crate to provide higher-level bindings.
 See [s2n-tls-sys](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls-sys/README.md) for more information on `s2n-tls-sys` crate.
 
 ## Minimum Supported Rust Version (MSRV)
