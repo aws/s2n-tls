@@ -20,45 +20,8 @@ Generating rust bindings can be accomplished by running the `generate.sh` script
 $ ./bindings/rust/generate.sh
 ```
 
-The `s2n-tls-sys` bindings crate contains the raw C code of `s2n-tls`. By default, it follows this build process:
-
-1. Links the system C compiler to build `libs2n.a`
-2. Links the built `libs2n.a` to the Rust bindings
-3. Links against `aws-lc` through the `aws-lc-rs` crate
-
-## Bring Your Own libs2n with `s2n-tls-sys` crate
-
-You can customize above build process to use your own pre-built libs2n library. Here's how you can do that:
-
-1. Clone [s2n-tls](https://github.com/aws/s2n-tls) and compile your preferred configuration of s2n-tls.
-
-You may choose to link against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto).
-Also see [Building s2n-tls](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-s2n-tls) for further guidance on configuring s2n-tls for your own use case.
-```
-cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
-cmake --build build -- -j $(nproc)
-```
-
-2. `cd` into your rust project and set environment variables to your libs2n library sources. 
-
-This tells the bindings to link to pre-built libs2n when running the build script for s2n-tls-sys
-```
-export S2N_TLS_LIB_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/build/lib
-export S2N_TLS_INCLUDE_DIR=<PATH_TO_ROOT_OF_S2N_TLS>/api
-export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
-```
-
-`S2N_TLS_LIB_DIR` points to the folder containing `libs2n.a`/`libs2n.so` artifact that you would like s2n-tls-sys to link against.
-`S2N_TLS_INCLUDE_DIR` points to the folder containing header files for `libs2n.a`/`libs2n.so` artifact.
-`LD_LIBRARY_PATH` adds the path to `libs2n.a`/`libs2n.so` artifact for dynamic linker's search path.
-
-3. Build your project. This triggers the build script for s2n-tls-sys
-
-```
-cargo build
-```
-
-This method is useful if you want the bindings to be built with a non-default libcrypto. Currently, the default libcrypto when generating rust bindings is `aws-lc`.
+This script generates the low-level bindings crate `s2n-tls-sys`, which other bindings crates depend on.
+See [s2n-tls Rust Bindings](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls-sys/README.md) for more information on `s2n-tls-sys` crate.
 
 ## Minimum Supported Rust Version (MSRV)
 
