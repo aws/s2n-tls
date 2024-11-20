@@ -21,7 +21,7 @@ $ ./bindings/rust/generate.sh
 ```
 
 This script generates the low-level bindings crate `s2n-tls-sys`, which other bindings crates depend on.
-See [s2n-tls Rust Bindings](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls-sys/README.md) for more information on `s2n-tls-sys` crate.
+See [s2n-tls-sys](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls-sys/README.md) for more information on `s2n-tls-sys` crate.
 
 ## Minimum Supported Rust Version (MSRV)
 
