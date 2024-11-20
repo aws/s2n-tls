@@ -369,8 +369,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_FAILURE_WITH_ALERT(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
 
             /* Ensure that a client certificate was received on the server, indicating that the
              * validation error occurred when processing the client's certificate, rather than the
