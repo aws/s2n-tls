@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: nixbuild/nix-quick-install-action@v21
+      - uses: nixbuild/nix-quick-install-action@v29
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix flake check
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: nixbuild/nix-quick-install-action@v21
+      - uses: nixbuild/nix-quick-install-action@v29
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix fmt
