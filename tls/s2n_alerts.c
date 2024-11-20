@@ -93,7 +93,6 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          *# unsupported_certificate:  A certificate was of an unsupported type.
          */
         S2N_ALERT_CASE(S2N_ERR_CERT_TYPE_UNSUPPORTED, S2N_TLS_ALERT_UNSUPPORTED_CERTIFICATE);
-        S2N_ALERT_CASE(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, S2N_TLS_ALERT_UNSUPPORTED_CERTIFICATE);
 
         /*
          *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
