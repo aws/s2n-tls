@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read  # This is required for actions/checkout
   id-token: write # This is required for requesting the JWT/OIDC
+  statuses: write # Required for dependabot PRs https://github.com/ouzi-dev/commit-status-updater?tab=readme-ov-file#workflow-permissions
 
 jobs:
   duvet:

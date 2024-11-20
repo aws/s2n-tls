@@ -1342,7 +1342,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -1446,6 +1446,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "20240501"));
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
                 s2n_config_ptr_free);
@@ -1453,6 +1454,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
                 chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "20240501"));
 
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
