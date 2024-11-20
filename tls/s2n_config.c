@@ -251,12 +251,6 @@ int s2n_config_defaults_init(void)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
-{
-    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
-    return S2N_RESULT_OK;
-}
-
 void s2n_wipe_static_configs(void)
 {
     s2n_config_cleanup(&s2n_default_fips_config);
