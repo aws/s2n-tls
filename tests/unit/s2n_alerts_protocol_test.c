@@ -270,8 +270,8 @@ int main(int argc, char **argv)
                 case S2N_ERR_CERT_UNTRUSTED:
                     EXPECT_SUCCESS(s2n_connection_set_config(client, untrusted_config));
 
-                    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
-                            S2N_ERR_CERT_UNTRUSTED);
+                    EXPECT_FAILURE_WITH_ALERT(s2n_negotiate_test_server_and_client(server, client),
+                            S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
 
                     failed_conn = client;
                     closed_conn = server;
