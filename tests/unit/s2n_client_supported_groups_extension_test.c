@@ -259,13 +259,19 @@ int main()
             };
 
             for (size_t i = 0; i < NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES; i++) {
-                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                        s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+
                 struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
                 client_conn->security_policy_override = test_policy_overrides[i][0];
 
                 struct s2n_connection *server_conn = NULL;
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
                 server_conn->security_policy_override = test_policy_overrides[i][1];
 
                 const struct s2n_ecc_preferences *server_ecc_pref = NULL;
