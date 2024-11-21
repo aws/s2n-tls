@@ -24,6 +24,6 @@ brew update
 brew_install_if_not_installed gnu-indent
 brew_install_if_not_installed coreutils
 brew_install_if_not_installed cppcheck
-brew_install_if_not_installed pkg-config  # for gnutls compilation
+brew_install_if_not_installed pkgconfig  # for gnutls compilation
 brew_install_if_not_installed ninja
 brew_install_if_not_installed openssl@1.1 # for libcrypto
