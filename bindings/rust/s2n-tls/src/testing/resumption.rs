@@ -64,7 +64,7 @@ mod tests {
     }
 
     #[test]
-    fn resume_session() -> Result<(), Box<dyn Error>> {
+    fn resume_tls12_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
 
         let tls12_policy = Policy::from_version("20240501")?;
