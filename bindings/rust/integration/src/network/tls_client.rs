@@ -84,7 +84,7 @@ async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
     for domain in DOMAINS {
         tracing::info!("querying {domain}");
 
-        let tls12 = handshake_with_domain(domain, "default").await?;
+        let tls12 = handshake_with_domain(domain, "20240501").await?;
         assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS12);
 
         let tls13 = handshake_with_domain(domain, "default_tls13").await?;
