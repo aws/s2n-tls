@@ -270,8 +270,8 @@ int main(int argc, char **argv)
                 case S2N_ERR_CERT_UNTRUSTED:
                     EXPECT_SUCCESS(s2n_connection_set_config(client, untrusted_config));
 
-                    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
-                            S2N_ERR_CERT_UNTRUSTED);
+                    EXPECT_FAILURE_WITH_ALERT(s2n_negotiate_test_server_and_client(server, client),
+                            S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
 
                     failed_conn = client;
                     closed_conn = server;
@@ -479,13 +479,13 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "20240501"));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "20240501"));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
         EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));

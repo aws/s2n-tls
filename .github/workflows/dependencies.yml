@@ -1,3 +1,4 @@
+---
 name: dependencies
 
 on:
@@ -16,6 +17,9 @@ on:
     # Run every day at 1800 UTC.
     - cron: "0 18 * * *"
 
+env:
+  ROOT_PATH: bindings/rust
+
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -24,6 +28,15 @@ jobs:
       checks: write   # Create/update a check run.
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+      - uses: camshaft/rust-cache@v1
+      - name: Generate
+        run: ${{env.ROOT_PATH}}/generate.sh
       - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ${{env.ROOT_PATH}}
