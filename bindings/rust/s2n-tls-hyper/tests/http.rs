@@ -4,7 +4,7 @@
 use crate::common::InsecureAcceptAllCertificatesHandler;
 use bytes::Bytes;
 use common::echo::serve_echo;
-use http::{Method, Request, Uri};
+use http::{Method, Request, Uri, Version};
 use http_body_util::{BodyExt, Empty, Full};
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use s2n_tls::{
@@ -213,5 +213,53 @@ async fn error_matching() -> Result<(), Box<dyn Error + Send + Sync>> {
     assert_eq!(s2n_tls_error.name(), "S2N_ERR_CERT_UNTRUSTED");
 
     server_task.abort();
+    Ok(())
+}
+
+#[tokio::test]
+async fn http2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let server_config = {
+        let mut builder = common::config()?;
+        builder.set_application_protocol_preference(["h2"])?;
+        builder.build()?
+    };
+
+    for send_h2 in [true, false] {
+        let client_config = {
+            let mut builder = common::config()?;
+            if send_h2 {
+                builder.set_application_protocol_preference(["h2"])?;
+            }
+            builder.build()?
+        };
+
+        common::echo::make_echo_request(server_config.clone(), |port| async move {
+            let connector = HttpsConnector::new(client_config);
+            let client: Client<_, Empty<Bytes>> =
+                Client::builder(TokioExecutor::new()).build(connector);
+
+            let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+            let response = client.get(uri).await?;
+            assert_eq!(response.status(), 200);
+
+            // Ensure that HTTP/2 is negotiated when included in the ALPN.
+            #[cfg(feature = "http2")]
+            let expected_version = match send_h2 {
+                true => Version::HTTP_2,
+                false => Version::HTTP_11,
+            };
+
+            // If the http2 feature isn't enabled, then HTTP/1 should be negotiated even if HTTP/2
+            // was included in the ALPN.
+            #[cfg(not(feature = "http2"))]
+            let expected_version = Version::HTTP_11;
+
+            assert_eq!(response.version(), expected_version);
+
+            Ok(())
+        })
+        .await?;
+    }
+
     Ok(())
 }

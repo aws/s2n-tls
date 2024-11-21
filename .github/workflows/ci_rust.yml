@@ -49,10 +49,10 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
-      - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, PQ, and http2"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq,http2
 
       - name: "Feature Test: Renegotiate"
         working-directory: ${{env.ROOT_PATH}}
