@@ -65,6 +65,52 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
 
         S2N_ALERT_CASE(S2N_ERR_KTLS_KEYUPDATE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
+        /* For errors involving certificates */
+
+        /* This error is used in several ways so make it a general certificate issue
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_unknown:  Some other (unspecified) issue arose in
+         *#    processing the certificate, rendering it unacceptable.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_revoked:  A certificate was revoked by its signer.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_REVOKED, S2N_TLS_ALERT_CERTIFICATE_REVOKED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_expired:  A certificate has expired or is not currently
+         *#    valid.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_NOT_YET_VALID, S2N_TLS_ALERT_CERTIFICATE_EXPIRED);
+        S2N_ALERT_CASE(S2N_ERR_CERT_EXPIRED, S2N_TLS_ALERT_CERTIFICATE_EXPIRED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# unsupported_certificate:  A certificate was of an unsupported type.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_TYPE_UNSUPPORTED, S2N_TLS_ALERT_UNSUPPORTED_CERTIFICATE);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# access_denied:  A valid certificate or PSK was received, but when
+         *#    access control was applied, the sender decided not to proceed with
+         *#    negotiation.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_REJECTED, S2N_TLS_ALERT_ACCESS_DENIED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# bad_certificate:  A certificate was corrupt, contained signatures
+         *#    that did not verify correctly, etc.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, S2N_TLS_ALERT_BAD_CERTIFICATE);
+        S2N_ALERT_CASE(S2N_ERR_CERT_INVALID, S2N_TLS_ALERT_BAD_CERTIFICATE);
+        S2N_ALERT_CASE(S2N_ERR_DECODE_CERTIFICATE, S2N_TLS_ALERT_BAD_CERTIFICATE);
+
         /* TODO: Add mappings for other protocol errors.
          */
         S2N_NO_ALERT(S2N_ERR_ENCRYPT);
@@ -87,7 +133,6 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_HASH_WIPE_FAILED);
         S2N_NO_ALERT(S2N_ERR_HASH_NOT_READY);
         S2N_NO_ALERT(S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED);
-        S2N_NO_ALERT(S2N_ERR_DECODE_CERTIFICATE);
         S2N_NO_ALERT(S2N_ERR_DECODE_PRIVATE_KEY);
         S2N_NO_ALERT(S2N_ERR_INVALID_HELLO_RETRY);
         S2N_NO_ALERT(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
@@ -108,14 +153,6 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_SHUTDOWN_CLOSED);
         S2N_NO_ALERT(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         S2N_NO_ALERT(S2N_ERR_RECORD_LIMIT);
-        S2N_NO_ALERT(S2N_ERR_CERT_UNTRUSTED);
-        S2N_NO_ALERT(S2N_ERR_CERT_REVOKED);
-        S2N_NO_ALERT(S2N_ERR_CERT_NOT_YET_VALID);
-        S2N_NO_ALERT(S2N_ERR_CERT_EXPIRED);
-        S2N_NO_ALERT(S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        S2N_NO_ALERT(S2N_ERR_CERT_INVALID);
-        S2N_NO_ALERT(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED);
-        S2N_NO_ALERT(S2N_ERR_CERT_REJECTED);
         S2N_NO_ALERT(S2N_ERR_CRL_LOOKUP_FAILED);
         S2N_NO_ALERT(S2N_ERR_CRL_SIGNATURE);
         S2N_NO_ALERT(S2N_ERR_CRL_ISSUER);
