@@ -4,9 +4,7 @@
 use s2n_tls::{
     config,
     connection::Builder,
-    enums::FipsMode,
     error::Error,
-    init::fips_mode,
     security::{Policy, DEFAULT_TLS13},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
@@ -63,23 +61,14 @@ pub fn server_config() -> Result<config::Builder, Error> {
 
 pub fn client_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-    if matches!(fips_mode().unwrap(), FipsMode::Enabled) {
-        builder.set_security_policy(&Policy::from_version("20240502").unwrap())?;
-    } else {
-        builder.set_security_policy(&Policy::from_version("20240501").unwrap())?;
-    }
+    builder.set_security_policy(&Policy::from_version("20240501").unwrap())?;
     builder.trust_pem(RSA_CERT_PEM)?;
     Ok(builder)
 }
 
 pub fn server_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-
-    if matches!(fips_mode().unwrap(), FipsMode::Enabled) {
-        builder.set_security_policy(&Policy::from_version("20240502").unwrap())?;
-    } else {
-        builder.set_security_policy(&Policy::from_version("20240501").unwrap())?;
-    }
+    builder.set_security_policy(&Policy::from_version("20240501").unwrap())?;
 
     builder.load_pem(RSA_CERT_PEM, RSA_KEY_PEM)?;
     Ok(builder)
