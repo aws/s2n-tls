@@ -251,6 +251,23 @@ int main(int argc, char **argv)
                 "--" BEGIN_CERT "--" CERTIFICATE_3 "--" END_CERT "--" ,
         },
         {
+            .name = "non-certificate data",
+            .input =
+                "this is not a certificate\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                "\n"
+                "this is not a certificate either\n"
+                "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "not a certificate\n"
+                "not a certificate" BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n",
+        },
+        {
             .name = "comments",
             .input =
                 "# cert1"
@@ -332,6 +349,21 @@ int main(int argc, char **argv)
                 END_CERT_LINE "\n"
                 "\n"
                 "\n",
+        },
+        {
+            .name = "trailing non-certificate data",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n"
+                "this is not a certificate\n"
+                "neither is this",
         },
     };
     /* clang-format on */
