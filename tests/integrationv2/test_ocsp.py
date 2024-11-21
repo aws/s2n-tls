@@ -119,9 +119,9 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, other_provi
         # it immediately after sending the message.
         kill_marker = b"Sent: "
 
-    server = managed_process(S2N, server_options, timeout=2000)
+    server = managed_process(S2N, server_options, timeout=90)
     client = managed_process(provider, client_options,
-                             timeout=2000, kill_marker=kill_marker)
+                             timeout=90, kill_marker=kill_marker)
 
     for client_results in client.get_results():
         client_results.assert_success()
