@@ -76,10 +76,16 @@ mod kms_pq {
 
 #[test_log::test(tokio::test)]
 async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
-    // The akamai request should be in internet_https_client.rs but Akamai
-    // http requests hang indefinitely. This behavior is also observed with
-    // curl and chrome. https://github.com/aws/s2n-tls/issues/4883
-    const DOMAINS: &[&str] = &["www.akamai.com"];
+    const DOMAINS: &[&str] = &[
+        // The akamai request should be in internet_https_client.rs but Akamai
+        // http requests hang indefinitely. This behavior is also observed with
+        // curl and chrome. https://github.com/aws/s2n-tls/issues/4883
+        "www.akamai.com",
+        // microsoft.com started returning 403 HTTP status codes in CI, but returned 200 locally.
+        // This domain may be throttling HTTP requests from CI, so a plain TLS connection is tested
+        // instead.
+        "www.microsoft.com",
+    ];
 
     for domain in DOMAINS {
         tracing::info!("querying {domain}");

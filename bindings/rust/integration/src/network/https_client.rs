@@ -51,7 +51,6 @@ const TEST_CASES: &[TestCase] = &[
     TestCase::new("https://www.samsung.com", 301),
     TestCase::new("https://www.twitter.com", 301),
     TestCase::new("https://www.facebook.com", 302),
-    TestCase::new("https://www.microsoft.com", 302),
     TestCase::new("https://www.ibm.com", 303),
     TestCase::new("https://www.f5.com", 403),
 ];
