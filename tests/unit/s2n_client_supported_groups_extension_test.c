@@ -259,6 +259,7 @@ int main()
             };
 
             for (size_t i = 0; i < NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES; i++) {
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                         s2n_config_ptr_free);
                 EXPECT_NOT_NULL(config);
