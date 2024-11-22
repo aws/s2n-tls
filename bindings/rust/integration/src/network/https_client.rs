@@ -17,7 +17,7 @@ use std::str::FromStr;
 struct TestCase {
     pub query_target: &'static str,
     /// We accept multiple possible results because some websites frequently change
-    /// behavior, possibly as a result of throttling the IP ranges of our CI 
+    /// behavior, possibly as a result of throttling the IP ranges of our CI
     /// providers.
     pub expected_status_codes: &'static [u16],
 }
@@ -33,9 +33,15 @@ impl TestCase {
 
 const TEST_CASES: &[TestCase] = &[
     // this is a link to the s2n-tls unit test coverage report, hosted on cloudfront
-    TestCase::new("https://dx1inn44oyl7n.cloudfront.net/main/index.html", &[200]),
+    TestCase::new(
+        "https://dx1inn44oyl7n.cloudfront.net/main/index.html",
+        &[200],
+    ),
     // this is a link to a non-existent S3 item
-    TestCase::new("https://notmybucket.s3.amazonaws.com/folder/afile.jpg", &[403]),
+    TestCase::new(
+        "https://notmybucket.s3.amazonaws.com/folder/afile.jpg",
+        &[403],
+    ),
     TestCase::new("https://www.amazon.com", &[200]),
     TestCase::new("https://www.apple.com", &[200]),
     TestCase::new("https://www.att.com", &[200]),
