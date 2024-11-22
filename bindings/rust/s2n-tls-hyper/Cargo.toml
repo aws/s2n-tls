@@ -10,22 +10,20 @@ license = "Apache-2.0"
 publish = false
 
 [features]
-default = ["http1"]
-http1 = ["hyper-util/http1"]
-http2 = ["hyper-util/http2", "dep:hashbrown", "dep:tokio-util"]
+default = []
 
 [dependencies]
 s2n-tls = { version = "=0.3.7", path = "../s2n-tls" }
 s2n-tls-tokio = { version = "=0.3.7", path = "../s2n-tls-tokio" }
 hyper = { version = "1" }
-hyper-util = { version = "0.1", features = ["client-legacy", "tokio"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "tokio", "http1", "http2"] }
 tower-service = { version = "0.3" }
 http = { version = "1" }
 
 # Newer versions require Rust 1.65, see https://github.com/aws/s2n-tls/issues/4242.
-hashbrown = { version = "=0.15.0", optional = true }
+hashbrown = { version = "=0.15.0" }
 # Newer versions require Rust 1.70, see https://github.com/aws/s2n-tls/issues/4395.
-tokio-util = { version = "=0.7.11", optional = true }
+tokio-util = { version = "=0.7.11" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "test-util"] }

@@ -218,23 +218,17 @@ async fn error_matching() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::test]
 async fn http2() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let server_config = {
-        let mut builder = common::config()?;
-        builder.set_application_protocol_preference(["h2"])?;
-        builder.build()?
-    };
-
-    for send_h2 in [true, false] {
-        let client_config = {
+    for expected_http_version in [Version::HTTP_11, Version::HTTP_2] {
+        let server_config = {
             let mut builder = common::config()?;
-            if send_h2 {
+            if expected_http_version == Version::HTTP_2 {
                 builder.set_application_protocol_preference(["h2"])?;
             }
             builder.build()?
         };
 
         common::echo::make_echo_request(server_config.clone(), |port| async move {
-            let connector = HttpsConnector::new(client_config);
+            let connector = HttpsConnector::new(common::config()?.build()?);
             let client: Client<_, Empty<Bytes>> =
                 Client::builder(TokioExecutor::new()).build(connector);
 
@@ -242,24 +236,48 @@ async fn http2() -> Result<(), Box<dyn Error + Send + Sync>> {
             let response = client.get(uri).await?;
             assert_eq!(response.status(), 200);
 
-            // Ensure that HTTP/2 is negotiated when included in the ALPN.
-            #[cfg(feature = "http2")]
-            let expected_version = match send_h2 {
-                true => Version::HTTP_2,
-                false => Version::HTTP_11,
-            };
-
-            // If the http2 feature isn't enabled, then HTTP/1 should be negotiated even if HTTP/2
-            // was included in the ALPN.
-            #[cfg(not(feature = "http2"))]
-            let expected_version = Version::HTTP_11;
-
-            assert_eq!(response.version(), expected_version);
+            // Ensure that HTTP/2 is negotiated when supported by the server.
+            assert_eq!(response.version(), expected_http_version);
 
             Ok(())
         })
         .await?;
     }
+
+    Ok(())
+}
+
+/// Ensure that HTTP/2 is negotiated, regardless of any pre-configured ALPN values.
+#[tokio::test]
+async fn config_alpn_ignored() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let server_config = {
+        let mut builder = common::config()?;
+        builder.set_application_protocol_preference(["h2"])?;
+        builder.build()?
+    };
+
+    common::echo::make_echo_request(server_config, |port| async move {
+        let client_config = {
+            let mut builder = common::config()?;
+            // Set an arbitrary non-HTTP/2 ALPN value.
+            builder.set_application_protocol_preference([b"http/1.1"])?;
+            builder.build()?
+        };
+
+        let connector = HttpsConnector::new(client_config);
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
+
+        let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+        let response = client.get(uri).await?;
+        assert_eq!(response.status(), 200);
+
+        // Ensure that HTTP/2 was negotiated.
+        assert_eq!(response.version(), Version::HTTP_2);
+
+        Ok(())
+    })
+    .await?;
 
     Ok(())
 }

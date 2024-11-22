@@ -53,7 +53,6 @@ where
                 let conn = stream.inner().as_ref();
                 match conn.application_protocol() {
                     // Inform hyper that HTTP/2 was negotiated in the ALPN.
-                    #[cfg(feature = "http2")]
                     Some(b"h2") => connected.negotiated_h2(),
                     _ => connected,
                 }
