@@ -251,7 +251,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *client_conn = NULL;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_conn->config, "default_tls13"));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20240503"));
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
