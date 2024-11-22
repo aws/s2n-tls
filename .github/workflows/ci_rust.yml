@@ -60,7 +60,10 @@ jobs:
 
       - name: Network-enabled integration tests
         working-directory: ${{env.ROOT_PATH}}/integration
-        run: RUST_LOG=TRACE cargo test --features network-tests
+        # no-default-features is used because network tests are hidden behind a
+        # default "negative" feature. This is because we don't want network tests
+        # invoked on the `cargo test --all-features` pattern.
+        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately

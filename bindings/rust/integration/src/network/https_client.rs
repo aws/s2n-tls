@@ -16,44 +16,55 @@ use std::str::FromStr;
 #[derive(Debug)]
 struct TestCase {
     pub query_target: &'static str,
-    pub expected_status_code: u16,
+    /// We accept multiple possible results because some websites frequently change
+    /// behavior, possibly as a result of throttling the IP ranges of our CI
+    /// providers.
+    pub expected_status_codes: &'static [u16],
 }
 
 impl TestCase {
-    const fn new(domain: &'static str, expected_status_code: u16) -> Self {
+    const fn new(domain: &'static str, expected_status_codes: &'static [u16]) -> Self {
         TestCase {
             query_target: domain,
-            expected_status_code,
+            expected_status_codes,
         }
     }
 }
 
 const TEST_CASES: &[TestCase] = &[
     // this is a link to the s2n-tls unit test coverage report, hosted on cloudfront
-    TestCase::new("https://dx1inn44oyl7n.cloudfront.net/main/index.html", 200),
+    TestCase::new(
+        "https://dx1inn44oyl7n.cloudfront.net/main/index.html",
+        &[200],
+    ),
     // this is a link to a non-existent S3 item
-    TestCase::new("https://notmybucket.s3.amazonaws.com/folder/afile.jpg", 403),
-    TestCase::new("https://www.amazon.com", 200),
-    TestCase::new("https://www.apple.com", 200),
-    TestCase::new("https://www.att.com", 200),
-    TestCase::new("https://www.cloudflare.com", 200),
-    TestCase::new("https://www.ebay.com", 200),
-    TestCase::new("https://www.google.com", 200),
-    TestCase::new("https://www.mozilla.org", 200),
-    TestCase::new("https://www.netflix.com", 200),
-    TestCase::new("https://www.openssl.org", 200),
-    TestCase::new("https://www.t-mobile.com", 200),
-    TestCase::new("https://www.verizon.com", 200),
-    TestCase::new("https://www.wikipedia.org", 200),
-    TestCase::new("https://www.yahoo.com", 200),
-    TestCase::new("https://www.youtube.com", 200),
-    TestCase::new("https://www.github.com", 301),
-    TestCase::new("https://www.samsung.com", 301),
-    TestCase::new("https://www.twitter.com", 301),
-    TestCase::new("https://www.facebook.com", 302),
-    TestCase::new("https://www.microsoft.com", 302),
-    TestCase::new("https://www.ibm.com", 303),
-    TestCase::new("https://www.f5.com", 403),
+    TestCase::new(
+        "https://notmybucket.s3.amazonaws.com/folder/afile.jpg",
+        &[403],
+    ),
+    TestCase::new("https://www.amazon.com", &[200]),
+    TestCase::new("https://www.apple.com", &[200]),
+    TestCase::new("https://www.att.com", &[200]),
+    TestCase::new("https://www.cloudflare.com", &[200]),
+    TestCase::new("https://www.ebay.com", &[200]),
+    TestCase::new("https://www.google.com", &[200]),
+    TestCase::new("https://www.mozilla.org", &[200]),
+    TestCase::new("https://www.netflix.com", &[200]),
+    TestCase::new("https://www.openssl.org", &[200]),
+    TestCase::new("https://www.t-mobile.com", &[200]),
+    TestCase::new("https://www.verizon.com", &[200]),
+    TestCase::new("https://www.wikipedia.org", &[200]),
+    TestCase::new("https://www.yahoo.com", &[200]),
+    TestCase::new("https://www.youtube.com", &[200]),
+    TestCase::new("https://www.github.com", &[301]),
+    TestCase::new("https://www.samsung.com", &[301]),
+    TestCase::new("https://www.twitter.com", &[301]),
+    TestCase::new("https://www.facebook.com", &[302]),
+    // 2024-11-21: Microsoft had been consistently returning a 302. It then started
+    // returning 403 codes in CI, but was returning 200 codes when run locally.
+    TestCase::new("https://www.microsoft.com", &[200, 302, 403]),
+    TestCase::new("https://www.ibm.com", &[303]),
+    TestCase::new("https://www.f5.com", &[403]),
 ];
 
 /// perform an HTTP GET request against `uri` using an s2n-tls config with
@@ -83,10 +94,15 @@ async fn http_get_test() -> Result<(), Box<dyn std::error::Error>> {
             tracing::info!("executing test case {:#?} with {:?}", test_case, policy);
 
             let response = https_get(test_case.query_target, &policy).await?;
-            let expected_status = StatusCode::from_u16(test_case.expected_status_code).unwrap();
-            assert_eq!(response.status(), expected_status);
+            let status_code = response.status().as_u16();
 
-            if expected_status == StatusCode::OK {
+            let status_was_expected = test_case.expected_status_codes.contains(&status_code);
+            if !status_was_expected {
+                tracing::error!("unexpected status code: {status_code}");
+            }
+            assert!(status_was_expected);
+
+            if status_code == StatusCode::OK.as_u16() {
                 let body = response.into_body().collect().await?.to_bytes();
                 assert!(!body.is_empty());
             }
