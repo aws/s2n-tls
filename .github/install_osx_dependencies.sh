@@ -20,6 +20,7 @@ function brew_install_if_not_installed () {
 }
 
 brew update
+brew uninstall --force pkg-config
 
 brew_install_if_not_installed gnu-indent
 brew_install_if_not_installed coreutils
