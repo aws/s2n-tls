@@ -911,6 +911,14 @@ int main(int argc, char **argv)
      * https://github.com/aws/s2n-tls/issues/4900
      */
 
+    {
+        if (s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode()) {
+#if !defined(OPENSSL_NO_ENGINE) && !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE)
+            FAIL_MSG("Expected ENGINE feature probe to be enabled");
+#endif
+        }
+    };
+
     /* s2n_supports_custom_rand */
     {
         if (s2n_supports_custom_rand()) {
