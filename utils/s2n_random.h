@@ -28,6 +28,7 @@ struct s2n_rand_device {
     dev_t rdev;
 };
 
+bool s2n_supports_custom_rand();
 S2N_RESULT s2n_rand_init(void);
 S2N_RESULT s2n_rand_cleanup(void);
 S2N_RESULT s2n_get_seed_entropy(struct s2n_blob *blob);
