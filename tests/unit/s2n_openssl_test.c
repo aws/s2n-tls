@@ -21,21 +21,32 @@ int main(int argc, char** argv)
 {
     BEGIN_TEST();
 
-    const char* env_libcrypto = getenv("S2N_LIBCRYPTO");
-    if (env_libcrypto == NULL) {
-        END_TEST();
-    }
+    {
+        const char* env_libcrypto = getenv("S2N_LIBCRYPTO");
+        if (env_libcrypto == NULL) {
+            END_TEST();
+        }
 
-    if (strcmp(env_libcrypto, "boringssl") == 0) {
-        EXPECT_FALSE(s2n_libcrypto_is_awslc());
-        EXPECT_TRUE(s2n_libcrypto_is_boringssl());
-    } else if (strstr(env_libcrypto, "awslc") != NULL) {
-        EXPECT_TRUE(s2n_libcrypto_is_awslc());
-        EXPECT_FALSE(s2n_libcrypto_is_boringssl());
-    } else {
-        EXPECT_FALSE(s2n_libcrypto_is_awslc());
-        EXPECT_FALSE(s2n_libcrypto_is_boringssl());
-    }
+        if (strcmp(env_libcrypto, "boringssl") == 0) {
+            EXPECT_FALSE(s2n_libcrypto_is_awslc());
+            EXPECT_TRUE(s2n_libcrypto_is_boringssl());
+        } else if (strstr(env_libcrypto, "awslc") != NULL) {
+            EXPECT_TRUE(s2n_libcrypto_is_awslc());
+            EXPECT_FALSE(s2n_libcrypto_is_boringssl());
+        } else {
+            EXPECT_FALSE(s2n_libcrypto_is_awslc());
+            EXPECT_FALSE(s2n_libcrypto_is_boringssl());
+        }
+    };
+
+    /* Check if libcrypto is OpenSSL. */
+    {
+        if (s2n_libcrypto_is_openssl()) {
+            EXPECT_FALSE(s2n_libcrypto_is_awslc());
+            EXPECT_FALSE(s2n_libcrypto_is_boringssl());
+            EXPECT_FALSE(s2n_libcrypto_is_libressl());
+        }
+    };
 
     END_TEST();
 }
