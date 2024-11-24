@@ -108,7 +108,8 @@ pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 #[cfg(feature = "pq")]
 pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 
-pub(crate) const TESTING_TLS12: Policy = policy!("20240501");
+#[cfg(any(feature = "unstable-testing", test))]
+pub const TESTING_TLS12: Policy = policy!("20240501");
 
 #[cfg(feature = "pq")]
 pub const DEFAULT_PQ: Policy = policy!("default_pq");
@@ -116,7 +117,6 @@ pub const DEFAULT_PQ: Policy = policy!("default_pq");
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,
     DEFAULT_TLS13,
-    TESTING_TLS12,
     #[cfg(feature = "pq")]
     TESTING_PQ,
     #[cfg(feature = "pq")]

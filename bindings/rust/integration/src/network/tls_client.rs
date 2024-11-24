@@ -1,7 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::{config::Config, enums::Version, security::Policy};
+use s2n_tls::{
+    config::Config,
+    enums::Version,
+    security::{self, Policy},
+};
 use s2n_tls_tokio::{TlsConnector, TlsStream};
 use tokio::net::TcpStream;
 
@@ -14,13 +18,13 @@ use tokio::net::TcpStream;
 /// `Err``.
 async fn handshake_with_domain(
     domain: &str,
-    security_policy: &str,
+    security_policy: &Policy,
 ) -> Result<TlsStream<TcpStream>, Box<dyn std::error::Error>> {
-    tracing::info!("querying {domain} with {security_policy}");
+    tracing::info!("querying {domain} with {:?}", security_policy);
     const PORT: u16 = 443;
 
     let mut config = Config::builder();
-    config.set_security_policy(&Policy::from_version(security_policy)?)?;
+    config.set_security_policy(security_policy)?;
 
     let client = TlsConnector::new(config.build()?);
     // open the TCP stream
@@ -42,7 +46,8 @@ mod kms_pq {
     // supports ML-KEM.
     #[test_log::test(tokio::test)]
     async fn pq_handshake() -> Result<(), Box<dyn std::error::Error>> {
-        let tls = handshake_with_domain(DOMAIN, "KMS-PQ-TLS-1-0-2020-07").await?;
+        let policy = Policy::from_version("KMS-PQ-TLS-1-0-2020-07")?;
+        let tls = handshake_with_domain(DOMAIN, &policy).await?;
 
         assert_eq!(
             tls.as_ref().cipher_suite()?,
@@ -65,7 +70,8 @@ mod kms_pq {
         ];
 
         for security_policy in EARLY_DRAFT_PQ_POLICIES {
-            let tls = handshake_with_domain(DOMAIN, security_policy).await?;
+            let policy = Policy::from_version(security_policy)?;
+            let tls = handshake_with_domain(DOMAIN, &policy).await?;
 
             assert_eq!(tls.as_ref().cipher_suite()?, "ECDHE-RSA-AES256-GCM-SHA384");
             assert_eq!(tls.as_ref().kem_name(), None);
@@ -84,10 +90,10 @@ async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
     for domain in DOMAINS {
         tracing::info!("querying {domain}");
 
-        let tls12 = handshake_with_domain(domain, "20240501").await?;
+        let tls12 = handshake_with_domain(domain, &security::TESTING_TLS12).await?;
         assert_eq!(tls12.as_ref().actual_protocol_version()?, Version::TLS12);
 
-        let tls13 = handshake_with_domain(domain, "default_tls13").await?;
+        let tls13 = handshake_with_domain(domain, &security::DEFAULT_TLS13).await?;
         assert_eq!(tls13.as_ref().actual_protocol_version()?, Version::TLS13);
     }
 
