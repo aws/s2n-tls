@@ -21,6 +21,9 @@ function brew_install_if_not_installed () {
 
 brew update
 
+# Broken version of pkg-config
+brew uninstall --ignore-dependencies --force pkg-config@0.29.2
+
 brew_install_if_not_installed gnu-indent
 brew_install_if_not_installed coreutils
 brew_install_if_not_installed cppcheck
