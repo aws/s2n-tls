@@ -65,6 +65,33 @@ S2N_RESULT s2n_test_lowercase_copy(const char *input, char *destination, size_t 
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
+{
+    RESULT_ENSURE_REF(s2n_libcrypto);
+
+    /* List of supported libcrypto variants we test with */
+    const char *supported_libcrypto[] = {
+        "awslc",
+        "awslc-fips",
+        "awslc-fips-2022",
+        "boringssl",
+        "libressl",
+        "openssl-1.0.2",
+        "openssl-1.0.2-fips",
+        "openssl-1.1.1",
+        "openssl-3.0"
+    };
+
+    for (size_t i = 0; i < s2n_array_len(supported_libcrypto); i++) {
+        if (strcmp(s2n_libcrypto, supported_libcrypto[i]) == 0) {
+            return S2N_RESULT_OK;
+        }
+    }
+
+    /* Testing with an unexpected libcrypto. */
+    return S2N_RESULT_ERROR;
+}
+
 int main()
 {
     BEGIN_TEST();
@@ -129,6 +156,15 @@ int main()
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
             EXPECT_NOT_NULL(strstr(ssleay_version_text, version));
         }
+    };
+
+    /* Ensure we are testing with supported libcryto variants.
+     *
+     * We might need to update s2n_libcrypto_is_openssl() when adding support
+     * for a new libcrypto.
+     */
+    {
+        EXPECT_OK(s2n_check_supported_libcrypto(s2n_libcrypto));
     };
 
     END_TEST();
