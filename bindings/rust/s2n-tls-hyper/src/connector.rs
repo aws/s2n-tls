@@ -42,9 +42,10 @@ where
     /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
     /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
     ///
-    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by overriding
+    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by appending to
     /// the ALPN extension. Any ALPN values configured on `conn_builder` with APIs like
-    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
+    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be sent in addition
+    /// to "h2".
     pub fn new(conn_builder: Builder) -> HttpsConnector<HttpConnector, Builder> {
         let mut http = HttpConnector::new();
 
@@ -82,9 +83,10 @@ where
     ///
     /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
     ///
-    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by overriding
+    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by appending to
     /// the ALPN extension. Any ALPN values configured on `conn_builder` with APIs like
-    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
+    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be sent in addition
+    /// to "h2".
     pub fn new_with_http(http: Http, conn_builder: Builder) -> HttpsConnector<Http, Builder> {
         Self { http, conn_builder }
     }
@@ -128,7 +130,7 @@ where
 
         // Attempt to negotiate HTTP/2.
         let builder = connection::ModifiedBuilder::new(self.conn_builder.clone(), |conn| {
-            conn.set_application_protocol_preference([b"h2"])
+            conn.append_application_protocol_preference(b"h2")
         });
 
         let host = req.host().unwrap_or("").to_owned();
