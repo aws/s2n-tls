@@ -21,6 +21,7 @@ int main(int argc, char** argv)
 {
     BEGIN_TEST();
 
+    /* Confirm "S2N_LIBCRYPTO" env variable matches the linked libcrypto. */
     {
         const char* env_libcrypto = getenv("S2N_LIBCRYPTO");
         if (env_libcrypto == NULL) {

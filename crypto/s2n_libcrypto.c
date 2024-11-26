@@ -111,9 +111,9 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
 
 /* Attempt to detect if the libcrypto is OpenSSL.
  *
- * Since, quite a few libcrypto (BoringSSL, AWSLC) implementations are ABI
- * compatible forks of OpenSSL, detecting OpenSSL is done by checking the
- * absence of other libcrypto variants.
+ * Since several libcrypto implementations (such as BoringSSL and AWS-LC) are
+ * ABI compatible forks of OpenSSL, detecting OpenSSL is done by checking the
+ * absence of other known libcrypto variants.
  *
  * Note: This check needs to be updated if s2n-tls adds support for a new
  * libcrypto.
