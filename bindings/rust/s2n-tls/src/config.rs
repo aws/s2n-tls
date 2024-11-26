@@ -5,6 +5,7 @@
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
     callbacks::*,
+    cert_chain::CertificateChain,
     enums::*,
     error::{Error, Fallible},
     security,
@@ -277,6 +278,12 @@ impl Builder {
         Ok(self)
     }
 
+    /// Associate a `certificate` and corresponding `private_key` with a config.
+    /// Using this method, at most one config per auth type (ECDSA, RSA, RSA-PSS)
+    /// can be loaded.
+    ///
+    /// For more advanced cert use cases such as sharing certs across configs or
+    /// serving differents certs based on the client SNI, see [Builder::add_to_store].
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
@@ -288,6 +295,57 @@ impl Builder {
             )
             .into_result()
         }?;
+        Ok(self)
+    }
+
+    /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#abfb875eff7e81b22378e4ae5b313169f)
+    pub fn add_to_store(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
+        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // regardless of whether add_to_store fails or succeeds. We have limited
+        // visibility into the failure modes, so this behavior ensures that _if_
+        // the C library held the reference despite the failure, it would continue
+        // to be valid memory.
+        self.context_mut()
+            .application_owned_certs
+            .push(chain.clone());
+
+        unsafe {
+            s2n_config_add_cert_chain_and_key_to_store(
+                self.as_mut_ptr(),
+                // SAFETY: audit of add_to_store shows that the certificate chain
+                // is not mutated. https://github.com/aws/s2n-tls/issues/4140
+                chain.as_ptr() as *mut _,
+            )
+            .into_result()
+        }?;
+
+        Ok(self)
+    }
+
+    /// Corresponds to [s2n_config_set_cert_chain_and_key_defaults](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a30d021a10ad7183c995d6d2a65926272)
+    pub fn set_default_cert_chain_and_key(
+        &mut self,
+        chains: Vec<CertificateChain<'static>>,
+    ) -> Result<&mut Self, Error> {
+        self.context_mut()
+            .application_owned_certs
+            .extend(chains.clone());
+
+        let raw_certs: Vec<*mut s2n_cert_chain_and_key> = chains
+            .into_iter()
+            .map(|cert| cert.as_ptr() as *mut _)
+            .collect();
+
+        unsafe {
+            s2n_config_set_cert_chain_and_key_defaults(
+                self.as_mut_ptr(),
+                // SAFETY: manual inspection of set_defaults shows that certificates
+                // are not mutated. https://github.com/aws/s2n-tls/issues/4140
+                raw_certs.as_ptr() as *mut _,
+                raw_certs.len() as u32,
+            );
+        }
+
         Ok(self)
     }
 
@@ -811,6 +869,16 @@ impl Default for Builder {
 
 pub(crate) struct Context {
     refcount: AtomicUsize,
+    /// This is a container for reference counts.
+    ///
+    /// In the bindings, application owned certificate chains are reference counted.
+    /// The C library is not aware of the reference counts, so a naive implementation
+    /// would result in certs being prematurely freed because the "reference"
+    /// held by the C library wouldn't be accounted for.
+    ///
+    /// Storing the CertificateChains in this Vec ensures that reference counts
+    /// behave as expected when stored in an s2n-tls config.
+    application_owned_certs: Vec<CertificateChain<'static>>,
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
@@ -830,6 +898,7 @@ impl Default for Context {
 
         Self {
             refcount,
+            application_owned_certs: Vec::new(),
             client_hello_callback: None,
             private_key_callback: None,
             verify_host_callback: None,

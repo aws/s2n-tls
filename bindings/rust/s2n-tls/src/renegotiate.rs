@@ -514,11 +514,12 @@ mod tests {
             //
             // openssl also requires a properly configured CA cert, which the
             // default TestPair does not include.
-            let certs_dir = concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../../../tests/pems/permutations/rsae_pkcs_4096_sha384/"
+            let certs = CertKeyPair::from_path(
+                "permutations/rsae_pkcs_4096_sha384/",
+                "server-chain",
+                "server-key",
+                "ca-cert",
             );
-            let certs = CertKeyPair::from(certs_dir, "server-chain", "server-key", "ca-cert");
 
             // Build the s2n-tls client.
             builder.load_pem(certs.cert(), certs.key())?;
@@ -1021,7 +1022,7 @@ mod tests {
                     // Perform the pkey operation with the selected cert / key pair.
                     let op = this.op.take().unwrap();
                     let opt_ptr = op.as_ptr();
-                    let chain_ptr = conn.selected_cert().unwrap().as_mut_ptr().as_ptr();
+                    let chain_ptr = conn.selected_cert().unwrap().as_mut_ptr();
                     unsafe {
                         let key_ptr = s2n_cert_chain_and_key_get_private_key(chain_ptr)
                             .into_result()?

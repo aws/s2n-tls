@@ -3,6 +3,7 @@
 
 use crate::{
     callbacks::VerifyHostNameCallback,
+    cert_chain::CertificateChain,
     config::{self, *},
     connection,
     enums::{self, Blinding},
@@ -59,6 +60,26 @@ impl Default for Counter {
     }
 }
 
+#[allow(non_camel_case_types)]
+// allow non camel case types because the mixture of letters and numbers is easier
+// to read with snake_case.
+pub enum SniTestCerts {
+    AlligatorRsa,
+    AlligatorEcdsa,
+    BeaverRsa,
+}
+
+impl SniTestCerts {
+    pub fn get(&self) -> CertKeyPair {
+        let prefix = match *self {
+            SniTestCerts::AlligatorRsa => "alligator_",
+            SniTestCerts::AlligatorEcdsa => "alligator_ecdsa_",
+            SniTestCerts::BeaverRsa => "beaver_",
+        };
+        CertKeyPair::from_path(&format!("sni/{prefix}"), "cert", "key", "cert")
+    }
+}
+
 pub struct CertKeyPair {
     cert_path: String,
     key_path: String,
@@ -69,19 +90,38 @@ pub struct CertKeyPair {
 
 impl Default for CertKeyPair {
     fn default() -> Self {
-        let prefix = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../../tests/pems/rsa_4096_sha512_client_"
-        );
-        Self::from(prefix, "cert", "key", "cert")
+        Self::from_path("rsa_4096_sha512_client_", "cert", "key", "cert")
     }
 }
 
 impl CertKeyPair {
-    pub fn from(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
-        let cert_path = format!("{prefix}{chain}.pem");
-        let key_path = format!("{prefix}{key}.pem");
-        let ca_path = format!("{prefix}{ca}.pem");
+    /// This is the directory holding all of the pems used for s2n-tls unit tests
+    const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems/");
+
+    /// Create a test CertKeyPair
+    /// * `prefix`: The *relative* prefix from the s2n-tls/tests/pems/ folder.
+    /// * `chain`: The suffix indicate the full chain.
+    /// * `key`: The suffix indicate the private key.
+    /// * `ca`: The suffix indicating the CA.
+    ///
+    /// ### Example
+    /// Assuming the relevant files are at
+    /// - s2n-tls/tests/pems/permutations/rsae_pkcs_4096_sha384/server-chain.pem
+    /// - s2n-tls/tests/pems/permutations/rsae_pkcs_4096_sha384/server-key.pem
+    /// - s2n-tls/tests/pems/permutations/rsae_pkcs_4096_sha384/ca-cert.pem
+    ///
+    /// ```ignore
+    /// let cert = CertKeyPair::from(
+    ///     "permutations/rsae_pkcs_4096_sha384/",
+    ///     "server-chain",
+    ///     "server-key",
+    ///     "ca-cert"
+    /// );
+    /// ```
+    pub fn from_path(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
+        let cert_path = format!("{}{prefix}{chain}.pem", Self::TEST_PEMS_PATH);
+        let key_path = format!("{}{prefix}{key}.pem", Self::TEST_PEMS_PATH);
+        let ca_path = format!("{}{prefix}{ca}.pem", Self::TEST_PEMS_PATH);
         let cert = std::fs::read(&cert_path)
             .unwrap_or_else(|_| panic!("Failed to read cert at {cert_path}"));
         let key =
@@ -93,6 +133,10 @@ impl CertKeyPair {
             cert,
             key,
         }
+    }
+
+    pub fn into_certificate_chain(&self) -> CertificateChain<'static> {
+        CertificateChain::load_pems(&self.cert, &self.key).unwrap()
     }
 
     pub fn cert_path(&self) -> &str {
