@@ -118,8 +118,21 @@ where
             return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
+        // IPv6 addresses are enclosed in square brackets within the host of a URI:
+        // https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2
+        //   IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+        //
+        // These square brackets aren't part of the domain itself, so they are trimmed off to ensure
+        // that the proper server name is provided to s2n-tls-tokio.
+        let mut domain = req.host().unwrap_or("");
+        if let Some(trimmed) = domain.strip_prefix('[') {
+            if let Some(trimmed) = trimmed.strip_suffix(']') {
+                domain = trimmed;
+            }
+        }
+        let domain = domain.to_owned();
+
         let builder = self.conn_builder.clone();
-        let host = req.host().unwrap_or("").to_owned();
         let call = self.http.call(req);
         Box::pin(async move {
             // `HttpsConnector` wraps an HTTP connector that also implements `Service<Uri>`.
@@ -130,7 +143,7 @@ where
 
             let connector = TlsConnector::new(builder);
             let tls = connector
-                .connect(&host, tcp)
+                .connect(&domain, tcp)
                 .await
                 .map_err(Error::TlsError)?;
 
