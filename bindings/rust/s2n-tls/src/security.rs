@@ -105,11 +105,11 @@ pub const DEFAULT: Policy = policy!("default");
 /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
 pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 
-#[cfg(feature = "pq")]
-pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
-
 #[cfg(any(feature = "unstable-testing", test))]
 pub const TESTING_TLS12: Policy = policy!("20240501");
+
+#[cfg(feature = "pq")]
+pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 
 #[cfg(feature = "pq")]
 pub const DEFAULT_PQ: Policy = policy!("default_pq");
