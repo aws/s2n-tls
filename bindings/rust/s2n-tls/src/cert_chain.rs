@@ -38,7 +38,7 @@ impl CertificateChain<'_> {
     ///
     /// This can be used with [crate::config::Builder::add_to_store] to share a
     /// single cert across multiple configs.
-    pub fn load_pems(cert: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
+    pub fn load_pem(cert: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
         let mut chain = Self::allocate_owned()?;
         unsafe {
             // SAFETY: manual audit of load_pem_bytes shows that `chain_pem` and
@@ -222,10 +222,10 @@ mod tests {
             .with_system_certs(false)?
             .set_security_policy(&DEFAULT_TLS13)?;
         for cert in certs.into_iter() {
-            server_config.add_to_store(cert)?;
+            server_config.add_cert_chain_and_key_to_store(cert)?;
         }
         if let Some(defaults) = defaults {
-            server_config.set_default_cert_chain_and_key(defaults)?;
+            server_config.set_cert_chain_and_key_defaults(defaults)?;
         }
 
         let mut client_config = config::Builder::new();
@@ -244,10 +244,7 @@ mod tests {
 
     /// This is a useful (but inefficient) test utility to check if CertificateChain
     /// structs are equal. It does this by comparing the serialized `der` representation.
-    fn cert_chains_are_equal(
-        this: &CertificateChain<'_>,
-        that: &CertificateChain<'_>,
-    ) -> bool {
+    fn cert_chains_are_equal(this: &CertificateChain<'_>, that: &CertificateChain<'_>) -> bool {
         let this: Vec<Vec<u8>> = this
             .iter()
             .map(|cert| cert.unwrap().der().unwrap().to_owned())
@@ -266,7 +263,7 @@ mod tests {
 
         {
             let mut server = config::Builder::new();
-            server.add_to_store(cert.clone())?;
+            server.add_cert_chain_and_key_to_store(cert.clone())?;
 
             // after being added, the reference count should have increased
             assert_eq!(Arc::strong_count(&cert.ptr), 2);
@@ -390,7 +387,7 @@ mod tests {
         let mut config = config::Builder::new();
 
         // library owned certs can not be used with application owned certs
-        config.add_to_store(application_owned_cert)?;
+        config.add_cert_chain_and_key_to_store(application_owned_cert)?;
         let err = config
             .load_pem(cert_for_lib.cert(), cert_for_lib.key())
             .err()

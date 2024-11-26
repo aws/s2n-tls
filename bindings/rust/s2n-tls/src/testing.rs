@@ -96,7 +96,8 @@ impl Default for CertKeyPair {
 
 impl CertKeyPair {
     /// This is the directory holding all of the pems used for s2n-tls unit tests
-    const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems/");
+    const TEST_PEMS_PATH: &'static str =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems/");
 
     /// Create a test CertKeyPair
     /// * `prefix`: The *relative* prefix from the s2n-tls/tests/pems/ folder.
@@ -136,7 +137,7 @@ impl CertKeyPair {
     }
 
     pub fn into_certificate_chain(&self) -> CertificateChain<'static> {
-        CertificateChain::load_pems(&self.cert, &self.key).unwrap()
+        CertificateChain::load_pem(&self.cert, &self.key).unwrap()
     }
 
     pub fn cert_path(&self) -> &str {
