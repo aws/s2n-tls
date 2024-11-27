@@ -260,10 +260,15 @@ int main()
 
             for (size_t i = 0; i < NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES; i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
                 DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                         s2n_config_ptr_free);
                 EXPECT_NOT_NULL(config);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+                /* These tests explicitly set security_policy_override to test ECC
+                 * selection logic and expect a s2n_config that does support x25519 and
+                 * TLS 1.3, but does not support PQ.
+                 */
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240503"));
 
                 struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
