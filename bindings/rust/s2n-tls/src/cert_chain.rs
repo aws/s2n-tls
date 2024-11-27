@@ -34,31 +34,55 @@ pub struct CertificateChain<'a> {
 }
 
 impl CertificateChain<'_> {
-    /// Create an internally reference counted cert chain.
+    /// Corresponds to [s2n_cert_chain_and_key_load_pem_bytes], but with reference
+    /// counting handled by the rust bindings.
     ///
-    /// This can be used with [crate::config::Builder::add_to_store] to share a
+    /// This can be used with [crate::config::Builder::load_chain] to share a
     /// single cert across multiple configs.
-    pub fn load_pem(cert: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
-        let mut chain = Self::allocate_owned()?;
+    pub fn from_pems(chain: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
+        let mut builder = Self::allocate_owned()?;
         unsafe {
             // SAFETY: manual audit of load_pem_bytes shows that `chain_pem` and
             // `private_key_pem` are not modified.
             // https://github.com/aws/s2n-tls/issues/4140
             s2n_cert_chain_and_key_load_pem_bytes(
-                chain.as_mut_ptr(),
-                cert.as_ptr() as *mut _,
-                cert.len() as u32,
+                builder.as_mut_ptr(),
+                chain.as_ptr() as *mut _,
+                chain.len() as u32,
                 key.as_ptr() as *mut _,
                 key.len() as u32,
             )
             .into_result()
         }?;
 
-        Ok(chain)
+        Ok(builder)
+    }
+
+    /// Corresponds to [s2n_cert_chain_and_key_load_public_pem_bytes], but with
+    /// reference counting handled by the rust bindings.
+    ///
+    /// This method is only used when performing private-key offloading. For standard
+    /// use-cases see [CertificateChain::from_pems].
+    pub fn from_public_pems(chain: &[u8]) -> Result<CertificateChain<'static>, Error> {
+        let mut builder = Self::allocate_owned()?;
+        unsafe {
+            // SAFETY: manual audit of load_public_pem_bytes shows that `chain_pem`
+            // is not modified
+            // https://github.com/aws/s2n-tls/issues/4140
+            s2n_cert_chain_and_key_load_public_pem_bytes(
+                builder.as_mut_ptr(),
+                chain.as_ptr() as *mut _,
+                chain.len() as u32,
+            )
+            .into_result()
+        }?;
+
+        Ok(builder)
     }
 
     /// This allocates a new certificate chain from s2n.
     pub(crate) fn allocate_owned() -> Result<CertificateChain<'static>, Error> {
+        crate::init::init();
         unsafe {
             let ptr = s2n_cert_chain_and_key_new().into_result()?;
             Ok(CertificateChain {
@@ -222,10 +246,10 @@ mod tests {
             .with_system_certs(false)?
             .set_security_policy(&DEFAULT_TLS13)?;
         for cert in certs.into_iter() {
-            server_config.add_cert_chain_and_key_to_store(cert)?;
+            server_config.load_chain(cert)?;
         }
         if let Some(defaults) = defaults {
-            server_config.set_cert_chain_and_key_defaults(defaults)?;
+            server_config.set_default_chains(defaults)?;
         }
 
         let mut client_config = config::Builder::new();
@@ -263,7 +287,7 @@ mod tests {
 
         {
             let mut server = config::Builder::new();
-            server.add_cert_chain_and_key_to_store(cert.clone())?;
+            server.load_chain(cert.clone())?;
 
             // after being added, the reference count should have increased
             assert_eq!(Arc::strong_count(&cert.ptr), 2);
@@ -387,7 +411,7 @@ mod tests {
         let mut config = config::Builder::new();
 
         // library owned certs can not be used with application owned certs
-        config.add_cert_chain_and_key_to_store(application_owned_cert)?;
+        config.load_chain(application_owned_cert)?;
         let err = config
             .load_pem(cert_for_lib.cert(), cert_for_lib.key())
             .err()

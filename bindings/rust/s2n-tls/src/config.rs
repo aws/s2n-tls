@@ -298,11 +298,8 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#abfb875eff7e81b22378e4ae5b313169f)
-    pub fn add_cert_chain_and_key_to_store(
-        &mut self,
-        chain: CertificateChain<'static>,
-    ) -> Result<&mut Self, Error> {
+    /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
+    pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
         // Out of an abudance of caution, we hold a reference to the CertificateChain
         // regardless of whether add_to_store fails or succeeds. We have limited
         // visibility into the failure modes, so this behavior ensures that _if_
@@ -325,8 +322,8 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [s2n_config_set_cert_chain_and_key_defaults](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a30d021a10ad7183c995d6d2a65926272)
-    pub fn set_cert_chain_and_key_defaults(
+    /// Corresponds to [s2n_config_set_cert_chain_and_key_defaults].
+    pub fn set_default_chains(
         &mut self,
         chains: Vec<CertificateChain<'static>>,
     ) -> Result<&mut Self, Error> {

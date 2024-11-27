@@ -124,11 +124,12 @@ pub trait PrivateKeyCallback: 'static + Send + Sync {
 mod tests {
     use super::*;
     use crate::{
+        cert_chain::CertificateChain,
         config, connection, error, security,
         testing::{self, *},
     };
     use core::task::{Poll, Waker};
-    use futures_test::task::new_count_waker;
+    use futures_test::task::{new_count_waker, noop_waker};
     use openssl::{ec::EcKey, ecdsa::EcdsaSig};
 
     type Error = Box<dyn std::error::Error>;
@@ -348,6 +349,50 @@ mod tests {
         assert_eq!(wake_count, POLL_COUNT);
 
         assert_test_error(err, ERROR);
+        Ok(())
+    }
+
+    /// pkey offload should also work with public certs created from
+    /// [CertificateChain::from_public_pems].
+    #[test]
+    fn app_owned_public_cert() -> Result<(), Error> {
+        struct TestPkeyCallback;
+        impl PrivateKeyCallback for TestPkeyCallback {
+            fn handle_operation(
+                &self,
+                conn: &mut connection::Connection,
+                op: PrivateKeyOperation,
+            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+                ecdsa_sign(op, conn, KEY)?;
+                Ok(None)
+            }
+        }
+
+        let public_chain = CertificateChain::from_public_pems(CERT).unwrap();
+
+        let server_config = {
+            let mut config = config::Builder::new();
+            config
+                .set_security_policy(&security::DEFAULT_TLS13)?
+                .load_chain(public_chain)?
+                .set_private_key_callback(TestPkeyCallback)?;
+            config.build()?
+        };
+
+        let client_config = {
+            let mut config = config::Builder::new();
+            config
+                .set_security_policy(&security::DEFAULT_TLS13)?
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+                .trust_pem(CERT)?;
+            config.build()?
+        };
+
+        let mut pair = TestPair::from_configs(&client_config, &server_config);
+        pair.server.set_waker(Some(&noop_waker()))?;
+
+        assert!(pair.handshake().is_ok());
+
         Ok(())
     }
 }
