@@ -368,7 +368,7 @@ mod tests {
             }
         }
 
-        let public_chain = CertificateChain::from_public_pems(CERT).unwrap();
+        let public_chain = CertificateChain::from_public_pem(CERT).unwrap();
 
         let server_config = {
             let mut config = config::Builder::new();

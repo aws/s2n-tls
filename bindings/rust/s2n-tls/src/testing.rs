@@ -138,7 +138,7 @@ impl CertKeyPair {
     }
 
     pub fn into_certificate_chain(&self) -> CertificateChain<'static> {
-        CertificateChain::from_pems(&self.cert, &self.key).unwrap()
+        CertificateChain::from_pem(&self.cert, &self.key).unwrap()
     }
 
     pub fn cert_path(&self) -> &str {

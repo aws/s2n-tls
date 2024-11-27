@@ -39,7 +39,7 @@ impl CertificateChain<'_> {
     ///
     /// This can be used with [crate::config::Builder::load_chain] to share a
     /// single cert across multiple configs.
-    pub fn from_pems(chain: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
+    pub fn from_pem(chain: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
         let mut builder = Self::allocate_owned()?;
         unsafe {
             // SAFETY: manual audit of load_pem_bytes shows that `chain_pem` and
@@ -62,8 +62,8 @@ impl CertificateChain<'_> {
     /// reference counting handled by the rust bindings.
     ///
     /// This method is only used when performing private-key offloading. For standard
-    /// use-cases see [CertificateChain::from_pems].
-    pub fn from_public_pems(chain: &[u8]) -> Result<CertificateChain<'static>, Error> {
+    /// use-cases see [CertificateChain::from_pem].
+    pub fn from_public_pem(chain: &[u8]) -> Result<CertificateChain<'static>, Error> {
         let mut builder = Self::allocate_owned()?;
         unsafe {
             // SAFETY: manual audit of load_public_pem_bytes shows that `chain_pem`

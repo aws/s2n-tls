@@ -283,7 +283,7 @@ impl Builder {
     /// can be loaded.
     ///
     /// For more advanced cert use cases such as sharing certs across configs or
-    /// serving differents certs based on the client SNI, see [Builder::add_to_store].
+    /// serving differents certs based on the client SNI, see [Builder::load_chain].
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
