@@ -70,20 +70,30 @@ S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
     RESULT_ENSURE_REF(s2n_libcrypto);
 
     /* List of supported libcrypto variants we test with */
-    const char *supported_libcrypto[] = {
-        "awslc",
-        "awslc-fips",
-        "awslc-fips-2022",
-        "boringssl",
-        "libressl",
-        "openssl-1.0.2",
-        "openssl-1.0.2-fips",
-        "openssl-1.1.1",
-        "openssl-3.0"
+    const struct {
+        const char *libcrypto;
+        bool is_openssl;
+    } supported_libcrypto[] = {
+        { .libcrypto = "awslc", .is_openssl = false },
+        { .libcrypto = "awslc-fips", .is_openssl = false },
+        { .libcrypto = "awslc-fips-2022", .is_openssl = false },
+        { .libcrypto = "boringssl", .is_openssl = false },
+        { .libcrypto = "libressl", .is_openssl = false },
+        { .libcrypto = "openssl-1.0.2", .is_openssl = true },
+        { .libcrypto = "openssl-1.0.2-fips", .is_openssl = true },
+        { .libcrypto = "openssl-1.1.1", .is_openssl = true },
+        { .libcrypto = "openssl-3.0", .is_openssl = true },
     };
 
     for (size_t i = 0; i < s2n_array_len(supported_libcrypto); i++) {
-        if (strcmp(s2n_libcrypto, supported_libcrypto[i]) == 0) {
+        /* The linked libcryto is one of the known supported libcrypto variants */
+        if (strcmp(s2n_libcrypto, supported_libcrypto[i].libcrypto) == 0) {
+            if (supported_libcrypto[i].is_openssl) {
+                EXPECT_TRUE(s2n_libcrypto_is_openssl());
+            } else {
+                EXPECT_FALSE(s2n_libcrypto_is_openssl());
+            }
+
             return S2N_RESULT_OK;
         }
     }
@@ -160,7 +170,7 @@ int main()
 
     /* Ensure we are testing with supported libcryto variants.
      *
-     * We might need to update s2n_libcrypto_is_openssl() when adding support
+     * We need to update s2n_libcrypto_is_openssl() when adding support
      * for a new libcrypto.
      */
     {
