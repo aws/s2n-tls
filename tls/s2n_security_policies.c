@@ -20,7 +20,6 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-
 /* TODO update the date before merge */
 /* default as of 07/01. Supports TLS 1.3 */
 const struct s2n_security_policy security_policy_20240701 = {
