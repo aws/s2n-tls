@@ -83,7 +83,6 @@ batch:
           TESTS: unit
           GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
-          S2N_NO_PQ: 1
           BUILD_S2N: 'true'
 
     - identifier: s2nUnitOpenSSL3GCC9
@@ -107,7 +106,6 @@ batch:
         image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
         privileged-mode: true
         variables:
-          S2N_NO_PQ: 1
           TESTS: unit
 
     - identifier: s2nUnitAl2
@@ -118,7 +116,6 @@ batch:
         compute-type: BUILD_GENERAL1_SMALL
         variables:
           TESTS: unit
-          S2N_NO_PQ: 1
 
     - identifier: s2nLibcryptoInterningOpenSSL
       buildspec: codebuild/spec/buildspec_ubuntu.yml
@@ -194,7 +191,6 @@ batch:
           BUILD_S2N: 'true'
           GCC_VERSION: '6'
           S2N_LIBCRYPTO: 'libressl'
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitLibressl
 
@@ -207,7 +203,6 @@ batch:
           BUILD_S2N: 'true'
           GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'boringssl'
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitBoringssl
 
