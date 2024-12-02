@@ -432,7 +432,7 @@ where
     stream: &'a mut TlsStream<S, C>,
 }
 
-impl<'a, S, C> Future for ApplyBlinding<'a, S, C>
+impl<S, C> Future for ApplyBlinding<'_, S, C>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
