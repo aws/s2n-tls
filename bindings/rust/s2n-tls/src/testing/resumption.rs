@@ -63,13 +63,14 @@ mod tests {
     }
 
     #[test]
-    fn resume_session() -> Result<(), Box<dyn Error>> {
+    fn resume_tls12_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
 
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
             .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
+            .set_security_policy(&security::TESTING_TLS12)?
             .load_pem(keypair.cert(), keypair.key())?;
         let server_config = server_config_builder.build()?;
 
@@ -83,6 +84,7 @@ mod tests {
             .set_session_ticket_callback(handler.clone())?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_security_policy(&security::TESTING_TLS12)?
             .set_connection_initializer(handler)?;
         let client_config = client_config_builder.build()?;
 

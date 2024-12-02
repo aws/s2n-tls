@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         id: toolchain
@@ -60,7 +60,10 @@ jobs:
 
       - name: Network-enabled integration tests
         working-directory: ${{env.ROOT_PATH}}/integration
-        run: RUST_LOG=TRACE cargo test --features network-tests
+        # no-default-features is used because network tests are hidden behind a
+        # default "negative" feature. This is because we don't want network tests
+        # invoked on the `cargo test --all-features` pattern.
+        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
@@ -87,7 +90,7 @@ jobs:
   harness-interop-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         id: toolchain
@@ -105,7 +108,7 @@ jobs:
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         id: toolchain
@@ -123,7 +126,7 @@ jobs:
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         id: toolchain
@@ -174,7 +177,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -213,7 +216,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -237,7 +240,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -267,7 +270,7 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       # Enforce crate msrv matches rust-toolchain
@@ -283,7 +286,7 @@ jobs:
   pcaps:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
