@@ -118,12 +118,9 @@ where
             return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
-        // IPv6 addresses are enclosed in square brackets within the host of a URI:
-        // https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2
-        //   IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
-        //
-        // These square brackets aren't part of the domain itself, so they are trimmed off to ensure
-        // that the proper server name is provided to s2n-tls-tokio.
+        // IPv6 addresses are enclosed in square brackets within the host of a URI (e.g.
+        // `https://[::1:2:3:4]/`). These square brackets aren't part of the domain itself, so they
+        // are trimmed off to provide the proper server name to s2n-tls-tokio (e.g. `::1:2:3:4`).
         let mut domain = req.host().unwrap_or("");
         if let Some(trimmed) = domain.strip_prefix('[') {
             if let Some(trimmed) = trimmed.strip_suffix(']') {
