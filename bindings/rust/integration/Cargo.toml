@@ -6,11 +6,13 @@ edition = "2021"
 publish = false
 
 [features]
-default = ["pq"]
+default = ["pq", "no-network-tests"]
 
 # Network tests are useful but relatively slow and inherently flaky. So they are
-# behind this feature flag.
-network-tests = []
+# behind this feature flag. This is specified as a "negative" feature because 
+# many of our CI jobs use `cargo test --all-features`, and we don't want those
+# to run these tests
+no-network-tests = []
 
 # Not all libcryptos support PQ capabilities. Tests relying on PQ functionality
 # can be disabled by turning off this feature.
