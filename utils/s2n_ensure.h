@@ -120,6 +120,9 @@ void *s2n_ensure_memmove_trace(void *to, const void *from, size_t size);
 #define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
 #define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
 
+/**
+ * If `a` is true, then `b` must be true.
+ */
 #define S2N_IMPLIES(a, b) (!(a) || (b))
 /**
  * If and only if (iff) is a biconditional logical connective between statements a and b.

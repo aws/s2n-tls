@@ -37,7 +37,9 @@ struct s2n_blob {
      */
     uint32_t allocated;
 
-    /* Can this blob be resized */
+    /* An allocated blob (e.g.`s2n_alloc`) is always growable. A "reference"
+     * blob (from `s2n_init`) is never growable.
+     */
     unsigned growable : 1;
 };
 
