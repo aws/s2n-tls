@@ -126,9 +126,20 @@ where
             return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
-        // Attempt to negotiate HTTP/2.
+        // Attempt to negotiate HTTP/2 by including it in the ALPN. Other supported HTTP versions
+        // are also included to prevent the server from rejecting the TLS connection due to an
+        // unsupported ALPN:
+        //
+        // https://datatracker.ietf.org/doc/html/rfc7301#section-3.2
+        //    In the event that the server supports no
+        //    protocols that the client advertises, then the server SHALL respond
+        //    with a fatal "no_application_protocol" alert.
         let builder = connection::ModifiedBuilder::new(self.conn_builder.clone(), |conn| {
-            conn.set_application_protocol_preference([b"h2"])
+            conn.set_application_protocol_preference([
+                b"h2".to_vec(),
+                b"http/1.1".to_vec(),
+                b"http/1.0".to_vec(),
+            ])
         });
 
         let host = req.host().unwrap_or("").to_owned();
