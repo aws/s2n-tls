@@ -42,8 +42,8 @@ where
     /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
     /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
     ///
-    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by overriding
-    /// the ALPN extension. Any ALPN values configured on `conn_builder` with APIs like
+    /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
+    /// configured on `conn_builder` with APIs like
     /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
     pub fn new(conn_builder: Builder) -> HttpsConnector<HttpConnector, Builder> {
         let mut http = HttpConnector::new();
@@ -82,8 +82,8 @@ where
     ///
     /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
     ///
-    /// Note that the HttpsConnector will automatically attempt to negotiate HTTP/2 by overriding
-    /// the ALPN extension. Any ALPN values configured on `conn_builder` with APIs like
+    /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
+    /// configured on `conn_builder` with APIs like
     /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
     pub fn new_with_http(http: Http, conn_builder: Builder) -> HttpsConnector<Http, Builder> {
         Self { http, conn_builder }
@@ -126,9 +126,9 @@ where
             return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
-        // Attempt to negotiate HTTP/2 by including it in the ALPN. Other supported HTTP versions
-        // are also included to prevent the server from rejecting the TLS connection due to an
-        // unsupported ALPN:
+        // Attempt to negotiate HTTP/2 by including it in the ALPN extension. Other supported HTTP
+        // versions are also included to prevent the server from rejecting the TLS connection if
+        // HTTP/2 isn't supported:
         //
         // https://datatracker.ietf.org/doc/html/rfc7301#section-3.2
         //    In the event that the server supports no
