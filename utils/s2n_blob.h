@@ -30,7 +30,10 @@ struct s2n_blob {
     /* The amount of memory allocated for this blob (i.e. the amount of memory
      * which needs to be freed when the blob is cleaned up). If this blob was
      * created with s2n_blob_init(), this value is 0. If s2n_alloc() was called,
-     * this value will be greater than 0.
+     * this value will be greater than or equal to size.
+     * 
+     * size < allocated implies that an allocated blob is being reused to store 
+     * a smalled amount of data.
      */
     uint32_t allocated;
 
