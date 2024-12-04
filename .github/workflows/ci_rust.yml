@@ -220,6 +220,8 @@ jobs:
   # memory leaks.
   asan-unit-tests:
     runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -230,7 +232,6 @@ jobs:
             --profile minimal \
             --component rust-src \
             --target x86_64-unknown-linux-gnu
-          rustup override set ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
       
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
