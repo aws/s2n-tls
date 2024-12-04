@@ -16,8 +16,6 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
-VALGRIND_TESTS=$(SRCS:.c=.valgrind)
-PEDANTIC_VALGRIND_TESTS:=$(SRCS:.c=.pedantic_valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 # Users can specify a subset of tests to be run, otherwise run all tests.
@@ -54,51 +52,6 @@ $(UNIT_TESTS)::
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	./$@
 endif
-
-$(VALGRIND_TESTS)::
-	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	S2N_VALGRIND=1 \
-	valgrind \
-		--leak-check=full \
-		--leak-resolution=high \
-		--trace-children=yes \
-		--run-libc-freeres=no \
-		-q --error-exitcode=123 \
-		--error-limit=no \
-		--num-callers=40 \
-		--undef-value-errors=no \
-		--log-fd=2 \
-		--suppressions=valgrind.suppressions \
-	./$(@:.valgrind=)
-
-$(PEDANTIC_VALGRIND_TESTS)::
-	@${CC} ${CFLAGS} -o $(@:.pedantic_valgrind=) $(@:.pedantic_valgrind=.c) ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	S2N_VALGRIND=1 \
-	valgrind \
-		--leak-check=full \
-		--leak-resolution=high \
-		--trace-children=yes \
-		--run-libc-freeres=yes \
-		-q --error-exitcode=123 \
-		--error-limit=no \
-		--num-callers=40 \
-		--undef-value-errors=no \
-		--show-leak-kinds=all \
-		--errors-for-leak-kinds=all \
-		--suppressions=valgrind.suppressions \
-	./$(@:.pedantic_valgrind=)
-
-.PHONY : valgrind
-valgrind: $(VALGRIND_TESTS)
-
-# https://github.com/aws/s2n-tls/issues/3758
-# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
-.PHONY : pedantic_valgrind
-pedantic_valgrind: $(PEDANTIC_VALGRIND_TESTS)
 
 .PHONY : clean
 clean: decruft

@@ -19,6 +19,7 @@ s2n-tls = { version = "=0.3.7", path = "../s2n-tls" }
 tokio = { version = "1", features = ["net", "time"] }
 
 [dev-dependencies]
+s2n-tls = { path = "../s2n-tls", features = ["unstable-testing"] }
 clap = { version = "3", features = ["derive"] }
 rand = { version = "0.8" }
 tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-multi-thread", "test-util", "time"] }
