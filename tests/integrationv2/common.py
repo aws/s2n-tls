@@ -111,7 +111,16 @@ class Cert(object):
             self.algorithm = 'RSAPSS'
 
     def compatible_with_cipher(self, cipher):
-        return (self.algorithm == cipher.algorithm) or (cipher.algorithm == 'ANY')
+        if self.algorithm == cipher.algorithm:
+            return True
+        if cipher.algorithm == 'ANY':
+            return True
+        if self.algorithm == 'RSAPSS':
+            if cipher.algorithm != 'RSA':
+                return False
+            if 'ECDHE' in cipher.name:
+                return True
+        return False
 
     def compatible_with_curve(self, curve):
         if self.algorithm != 'EC':
@@ -442,7 +451,7 @@ class Signatures(object):
 
     RSA_PSS_PSS_SHA256 = Signature(
         'rsa_pss_pss_sha256',
-        min_protocol=Protocols.TLS13,
+        min_protocol=Protocols.TLS12,
         sig_type='RSA-PSS-PSS',
         sig_digest='SHA256')
 

@@ -148,22 +148,24 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # TLS 1.3 is unsupported for openssl-1.0
+        # RSA-PSS is unsupported for openssl-1.0
         # libressl and boringssl are disabled because of configuration issues
         # see https://github.com/aws/s2n-tls/issues/3250
-        TLS_13_UNSUPPORTED_LIBCRYPTOS = {
+        PSS_UNSUPPORTED_LIBCRYPTOS = {
             "libressl",
             "boringssl",
             "openssl-1.0"
         }
-
-        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
-        if protocol == Protocols.TLS13:
-            current_libcrypto = get_flag(S2N_PROVIDER_VERSION)
-            for unsupported_lc in TLS_13_UNSUPPORTED_LIBCRYPTOS:
-                # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
-                if unsupported_lc in current_libcrypto:
-                    return False
+        pss_is_unsupported = any([
+            # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in PSS_UNSUPPORTED_LIBCRYPTOS
+        ])
+        if pss_is_unsupported:
+            if protocol == Protocols.TLS13:
+                return False
+            if with_cert and with_cert.algorithm == 'RSAPSS':
+                return False
 
         # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
         if all([
