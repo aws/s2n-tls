@@ -23,8 +23,6 @@ mod tests {
 
     #[test]
     fn handshake_default_tls13() {
-        let arced = Arc::new(5);
-        std::mem::forget(arced);
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         assert!(TestPair::handshake_with_config(&config).is_ok());
     }
