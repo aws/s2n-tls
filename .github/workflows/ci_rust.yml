@@ -236,6 +236,7 @@ jobs:
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run Unit Tests under ASAN
+        working-directory: ${{env.ROOT_PATH}}
         run: RUSTFLAGS=-Zsanitizer=address cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
 
   rustfmt:
