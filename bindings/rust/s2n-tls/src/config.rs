@@ -279,7 +279,7 @@ impl Builder {
     }
 
     /// Associate a `certificate` and corresponding `private_key` with a config.
-    /// Using this method, at most one config per auth type (ECDSA, RSA, RSA-PSS)
+    /// Using this method, at most one certificate per auth type (ECDSA, RSA, RSA-PSS)
     /// can be loaded.
     ///
     /// For more advanced cert use cases such as sharing certs across configs or

@@ -13,7 +13,7 @@ use std::{
 ///
 /// [CertificateChain] is internally reference counted. The reference counted `T`
 /// must have a drop implementation.
-struct CertificateChainHandle(pub NonNull<s2n_cert_chain_and_key>);
+struct CertificateChainHandle(NonNull<s2n_cert_chain_and_key>);
 
 impl Drop for CertificateChainHandle {
     fn drop(&mut self) {
@@ -257,8 +257,8 @@ mod tests {
             .with_system_certs(false)?
             .set_security_policy(&DEFAULT_TLS13)?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
-        for tipe in types {
-            client_config.trust_pem(tipe.get().cert())?;
+        for t in types {
+            client_config.trust_pem(t.get().cert())?;
         }
         Ok(TestPair::from_configs(
             &client_config.build()?,
@@ -301,12 +301,11 @@ mod tests {
 
     #[test]
     fn cert_is_dropped() {
-        let weak_ref;
-        {
+        let weak_ref = {
             let cert = SniTestCerts::AlligatorEcdsa.get().into_certificate_chain();
-            weak_ref = Arc::downgrade(&cert.ptr);
             assert_eq!(Arc::strong_count(&cert.ptr), 1);
-        }
+            Arc::downgrade(&cert.ptr)
+        };
         assert_eq!(weak_ref.strong_count(), 0);
         assert!(weak_ref.upgrade().is_none());
     }
