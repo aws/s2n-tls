@@ -22,10 +22,6 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-        fi
       # Install musl libc
       - git clone --depth=1 https://git.musl-libc.org/git/musl $MUSL_DIR
       - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
