@@ -236,9 +236,11 @@ jobs:
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # asan expects a binary at /usr/bin/llvm-symbolizer but GHA runners include
-      # multiple explicit binaries. /usr/bin/llvm-symbolizer-13, etc
-      # This script will find the latest symbolizer and use it as the "base"
-      # llvm-symbolizer binary.
+      # multiple versioned binaries, like /usr/bin/llvm-symbolizer-13. This step
+      # finds the latest symbolizer and use it as the "base" llvm-symbolizer binary.
+      #
+      # llvm-symbolizer is necessary to get nice stack traces from asan errors. 
+      # Otherwise the stack trace just contains a hex address like "0x55bc6a28a9b6"
       - name: set llvm symbolizer
         run: |
           sudo ln -s $(find /usr/bin/ -maxdepth 1 -name "llvm-symbolizer-*" | sort -V | tail -n 1) /usr/bin/llvm-symbolizer
