@@ -236,11 +236,7 @@ jobs:
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run Unit Tests under ASAN
-        run: RUSTFLAGS=-Zsanitizer=address \
-          cargo test \
-          -Zbuild-std \
-          --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml \
-          --target x86_64-unknown-linux-gnu
+        run: RUSTFLAGS=-Zsanitizer=address cargo test -Zbuild-std --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml --target x86_64-unknown-linux-gnu
 
   rustfmt:
     runs-on: ubuntu-latest
