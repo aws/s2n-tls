@@ -48,6 +48,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <openssl/engine.h>
+/* LibreSSL requires <openssl/rand.h> include.
+ * https://github.com/aws/s2n-tls/issues/153#issuecomment-129651643
+ */
 #include <openssl/rand.h>
 #include <pthread.h>
 #include <stdint.h>
