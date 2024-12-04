@@ -22,7 +22,7 @@ jobs:
 
       - name: Cache
         id: cache
-        uses: actions/cache@v2.1.4
+        uses: actions/cache@v4.1.2
         continue-on-error: true
         with:
           path: ${{ env.CPPCHECK_INSTALL_DIR }}
