@@ -18,6 +18,12 @@ struct CertificateChainHandle {
     is_owned: bool,
 }
 
+// # Safety
+//
+// s2n_cert_chain_and_key objects can be sent across threads.
+unsafe impl Send for CertificateChainHandle {}
+unsafe impl Sync for CertificateChainHandle {}
+
 impl CertificateChainHandle {
     fn from_owned(cert: NonNull<s2n_cert_chain_and_key>) -> Self {
         Self {
@@ -168,12 +174,6 @@ impl CertificateChain<'_> {
     }
 }
 
-// # Safety
-//
-// s2n_cert_chain_and_key objects can be sent across threads.
-unsafe impl Send for CertificateChain<'_> {}
-unsafe impl Sync for CertificateChain<'_> {}
-
 pub struct CertificateChainIter<'a> {
     idx: u32,
     len: usize,
@@ -238,7 +238,7 @@ unsafe impl Send for Certificate<'_> {}
 mod tests {
     use crate::{
         config,
-        error::ErrorType,
+        error::{ErrorSource, ErrorType},
         security::DEFAULT_TLS13,
         testing::{InsecureAcceptAllCertificatesHandler, SniTestCerts, TestPair},
     };
@@ -349,6 +349,28 @@ mod tests {
     }
 
     #[test]
+    fn too_many_certs_in_default() -> Result<(), crate::error::Error> {
+        // 3 certs in the maximum allowed, 4 should error.
+        let certs = vec![
+            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
+            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
+            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
+            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
+        ];
+
+        let mut config = config::Builder::new();
+        let err = config.set_default_chains(certs.clone()).err().unwrap();
+        assert_eq!(err.kind(), ErrorType::UsageError);
+        assert_eq!(err.source(), ErrorSource::Bindings);
+
+        // The config should not hold a reference when the error was detected
+        // in the bindings
+        assert_eq!(Arc::strong_count(&certs[0].ptr), 1);
+
+        Ok(())
+    }
+
+    #[test]
     fn default_selection() -> Result<(), crate::error::Error> {
         let alligator_cert = SniTestCerts::AlligatorRsa.get().into_certificate_chain();
         let beaver_cert = SniTestCerts::BeaverRsa.get().into_certificate_chain();
@@ -433,5 +455,12 @@ mod tests {
         assert_eq!(err.name(), "S2N_ERR_CERT_OWNERSHIP");
 
         Ok(())
+    }
+
+    // ensure the certificates are send and sync
+    #[test]
+    fn certificate_send_sync_test() {
+        fn assert_send_sync<T: 'static + Send + Sync>() {}
+        assert_send_sync::<CertificateChain<'static>>();
     }
 }

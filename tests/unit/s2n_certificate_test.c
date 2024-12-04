@@ -1055,5 +1055,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(len, 2);
     };
 
+    /* C and Rust constants should match */
+    {
+        /* The rust bindings have a separate definition of cert type count, which
+         * must be kept in sync with the C library. If this test ever fails, 
+         * CERT_TYPE_COUNT in config.rs must be updated. 
+         */
+        EXPECT_EQUAL(S2N_CERT_TYPE_COUNT, 3);
+    }
+
     END_TEST();
 }

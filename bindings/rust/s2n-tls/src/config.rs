@@ -7,7 +7,7 @@ use crate::{
     callbacks::*,
     cert_chain::CertificateChain,
     enums::*,
-    error::{Error, Fallible},
+    error::{Error, ErrorType, Fallible},
     security,
 };
 use core::{convert::TryInto, ptr::NonNull};
@@ -300,16 +300,7 @@ impl Builder {
 
     /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
     pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
-        // Out of an abudance of caution, we hold a reference to the CertificateChain
-        // regardless of whether add_to_store fails or succeeds. We have limited
-        // visibility into the failure modes, so this behavior ensures that _if_
-        // the C library held the reference despite the failure, it would continue
-        // to be valid memory.
-        self.context_mut()
-            .application_owned_certs
-            .push(chain.clone());
-
-        unsafe {
+        let add_result = unsafe {
             s2n_config_add_cert_chain_and_key_to_store(
                 self.as_mut_ptr(),
                 // SAFETY: audit of add_to_store shows that the certificate chain
@@ -317,34 +308,62 @@ impl Builder {
                 chain.as_ptr() as *mut _,
             )
             .into_result()
-        }?;
+        };
+
+        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // regardless of whether add_to_store fails or succeeds. We have limited
+        // visibility into the failure modes, so this behavior ensures that _if_
+        // the C library held the reference despite the failure, it would continue
+        // to be valid memory.
+        self.context_mut()
+            .application_owned_certs
+            .push(chain);
+
+        add_result?;
 
         Ok(self)
     }
 
     /// Corresponds to [s2n_config_set_cert_chain_and_key_defaults].
-    pub fn set_default_chains(
+    pub fn set_default_chains<T: IntoIterator<Item = CertificateChain<'static>>>(
         &mut self,
-        chains: Vec<CertificateChain<'static>>,
+        chains: T,
     ) -> Result<&mut Self, Error> {
-        self.context_mut()
-            .application_owned_certs
-            .extend(chains.clone());
+        // Must match S2N_CERT_TYPE_COUNT in s2n_certificate.h
+        const CERT_TYPE_COUNT: usize = 3;
 
-        let raw_certs: Vec<*mut s2n_cert_chain_and_key> = chains
-            .into_iter()
-            .map(|cert| cert.as_ptr() as *mut _)
-            .collect();
+        let mut pointer_array = [std::ptr::null_mut(); CERT_TYPE_COUNT];
+        let mut pointer_array_length = 0;
+        for (index, mut chain) in chains.into_iter().enumerate() {
+            if index >= CERT_TYPE_COUNT {
+                // drop the reference counts that we previously had taken
+                for _ in 0..CERT_TYPE_COUNT {
+                    self.context_mut().application_owned_certs.pop();
+                }
+
+                return Err(Error::bindings(
+                    ErrorType::UsageError,
+                    "InvalidInput",
+                    "A single default can be specified for RSA, ECDSA, and RSA-PSS auth types, but more than 3 certs were supplied",
+                ));
+            }
+
+            pointer_array[index] = chain.as_mut_ptr();
+            pointer_array_length += 1;
+
+            self.context_mut().application_owned_certs.push(chain);
+        }
 
         unsafe {
             s2n_config_set_cert_chain_and_key_defaults(
                 self.as_mut_ptr(),
                 // SAFETY: manual inspection of set_defaults shows that certificates
                 // are not mutated. https://github.com/aws/s2n-tls/issues/4140
-                raw_certs.as_ptr() as *mut _,
-                raw_certs.len() as u32,
-            );
-        }
+                pointer_array.as_mut_ptr(),
+                pointer_array_length as u32,
+            )
+            .into_result()
+        }?;
 
         Ok(self)
     }
