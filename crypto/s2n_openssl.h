@@ -56,6 +56,7 @@
     #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
 #endif
 
+bool s2n_libcrypto_is_openssl();
 bool s2n_libcrypto_is_awslc();
 bool s2n_libcrypto_is_boringssl();
 bool s2n_libcrypto_is_libressl();
