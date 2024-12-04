@@ -13,13 +13,34 @@ use std::{
 ///
 /// [CertificateChain] is internally reference counted. The reference counted `T`
 /// must have a drop implementation.
-struct CertificateChainHandle(NonNull<s2n_cert_chain_and_key>);
+struct CertificateChainHandle {
+    cert: NonNull<s2n_cert_chain_and_key>,
+    is_owned: bool,
+}
+
+impl CertificateChainHandle {
+    fn from_owned(cert: NonNull<s2n_cert_chain_and_key>) -> Self {
+        Self {
+            cert,
+            is_owned: true,
+        }
+    }
+
+    fn from_reference(cert: NonNull<s2n_cert_chain_and_key>) -> Self {
+        Self {
+            cert,
+            is_owned: false,
+        }
+    }
+}
 
 impl Drop for CertificateChainHandle {
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
-        unsafe {
-            let _ = s2n_cert_chain_and_key_free(self.0.as_ptr()).into_result();
+        if self.is_owned {
+            unsafe {
+                let _ = s2n_cert_chain_and_key_free(self.cert.as_ptr()).into_result();
+            }
         }
     }
 }
@@ -86,7 +107,7 @@ impl CertificateChain<'_> {
         unsafe {
             let ptr = s2n_cert_chain_and_key_new().into_result()?;
             Ok(CertificateChain {
-                ptr: Arc::new(CertificateChainHandle(ptr)),
+                ptr: Arc::new(CertificateChainHandle::from_owned(ptr)),
                 _lifetime: PhantomData,
             })
         }
@@ -97,15 +118,7 @@ impl CertificateChain<'_> {
     pub(crate) unsafe fn from_ptr_reference<'a>(
         ptr: NonNull<s2n_cert_chain_and_key>,
     ) -> CertificateChain<'a> {
-        let handle = Arc::new(CertificateChainHandle(ptr));
-
-        // When this CertificateChain goes out of scope, the data must not be
-        // freed. We manually increment the reference count to allow for the
-        // "reference" held by the external struct.
-        let clone_to_increment_refcount = Arc::clone(&handle);
-        std::mem::forget(clone_to_increment_refcount);
-        // `handle` + owning struct = 2
-        debug_assert_eq!(Arc::strong_count(&handle), 2);
+        let handle = Arc::new(CertificateChainHandle::from_reference(ptr));
 
         CertificateChain {
             ptr: handle,
@@ -147,11 +160,11 @@ impl CertificateChain<'_> {
     }
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_cert_chain_and_key {
-        self.ptr.0.as_ptr()
+        self.ptr.cert.as_ptr()
     }
 
     pub(crate) fn as_ptr(&self) -> *const s2n_cert_chain_and_key {
-        self.ptr.0.as_ptr() as *const _
+        self.ptr.cert.as_ptr() as *const _
     }
 }
 
