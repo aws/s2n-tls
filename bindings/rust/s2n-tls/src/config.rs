@@ -315,9 +315,7 @@ impl Builder {
         // visibility into the failure modes, so this behavior ensures that _if_
         // the C library held the reference despite the failure, it would continue
         // to be valid memory.
-        self.context_mut()
-            .application_owned_certs
-            .push(chain);
+        self.context_mut().application_owned_certs.push(chain);
 
         add_result?;
 
@@ -334,8 +332,9 @@ impl Builder {
 
         let mut pointer_array = [std::ptr::null_mut(); CERT_TYPE_COUNT];
         let mut pointer_array_length = 0;
-        for (index, mut chain) in chains.into_iter().enumerate() {
-            if index >= CERT_TYPE_COUNT {
+        
+        for mut chain in chains.into_iter() {
+            if pointer_array_length >= CERT_TYPE_COUNT {
                 // drop the reference counts that we previously had taken
                 for _ in 0..CERT_TYPE_COUNT {
                     self.context_mut().application_owned_certs.pop();
@@ -344,11 +343,12 @@ impl Builder {
                 return Err(Error::bindings(
                     ErrorType::UsageError,
                     "InvalidInput",
-                    "A single default can be specified for RSA, ECDSA, and RSA-PSS auth types, but more than 3 certs were supplied",
+                    "A single default can be specified for RSA, ECDSA, 
+                    and RSA-PSS auth types, but more than 3 certs were supplied",
                 ));
             }
 
-            pointer_array[index] = chain.as_mut_ptr();
+            pointer_array[pointer_array_length] = chain.as_mut_ptr();
             pointer_array_length += 1;
 
             self.context_mut().application_owned_certs.push(chain);
