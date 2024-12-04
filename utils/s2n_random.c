@@ -552,7 +552,7 @@ static int s2n_rand_init_cb_impl(void)
     return S2N_SUCCESS;
 }
 
-bool s2n_supports_custom_rand()
+bool s2n_supports_custom_rand(void)
 {
 #if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE)
     return false;

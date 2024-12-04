@@ -49,7 +49,7 @@
 #define MAX_REPEATED_OUTPUT            4
 
 bool s2n_libcrypto_is_fips(void);
-bool s2n_libcrypto_is_openssl();
+bool s2n_libcrypto_is_openssl(void);
 S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device);
 S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device);
 S2N_RESULT s2n_rand_set_urandom_for_test();

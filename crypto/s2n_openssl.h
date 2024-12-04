@@ -50,7 +50,7 @@
     #define RESULT_EVP_CTX_INIT(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
 
-bool s2n_libcrypto_is_openssl();
+bool s2n_libcrypto_is_openssl(void);
 bool s2n_libcrypto_is_awslc();
 bool s2n_libcrypto_is_boringssl();
 bool s2n_libcrypto_is_libressl();
