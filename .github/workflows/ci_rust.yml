@@ -235,8 +235,13 @@ jobs:
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: check llvm symbolizer
-        run: find / -name llvm-symbolizer*
+      # asan expects a binary at /usr/bin/llvm-symbolizer but GHA runners include
+      # multiple explicit binaries. /usr/bin/llvm-symbolizer-13, etc
+      # This script will find the latest symbolizer and use it as the "base"
+      # llvm-symbolizer binary.
+      - name: set llvm symbolizer
+        run: |
+          sudo ln -s $(find /usr/bin/ -maxdepth 1 -name "llvm-symbolizer-*" | sort -V | tail -n 1) /usr/bin/llvm-symbolizer
 
       - name: Run Unit Tests under ASAN
         run: |
