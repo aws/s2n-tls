@@ -235,6 +235,9 @@ jobs:
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
+      - name: check llvm symbolizer
+        run: find / -name llvm-symbolizer*
+
       - name: Run Unit Tests under ASAN
         run: |
           RUSTDOCFLAGS=-Zsanitizer=address \
