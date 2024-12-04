@@ -246,9 +246,10 @@ jobs:
           sudo ln -s $(find /usr/bin/ -maxdepth 1 -name "llvm-symbolizer-*" | sort -V | tail -n 1) /usr/bin/llvm-symbolizer
 
       - name: Run Unit Tests under ASAN
+        env:
+          RUSTDOCFLAGS: -Zsanitizer=address
+          RUSTFLAGS: -Zsanitizer=address
         run: |
-          RUSTDOCFLAGS=-Zsanitizer=address \
-          RUSTFLAGS=-Zsanitizer=address \
           cargo test \
             -Zbuild-std \
             --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml \
