@@ -226,17 +226,21 @@ jobs:
       - name: Install Rust toolchain
         id: toolchain
         run: |
-          rustup toolchain install ${{env.RUST_NIGHTLY_TOOLCHAIN }} \
+          rustup toolchain install nightly \
             --profile minimal \
             --component rust-src \
             --target x86_64-unknown-linux-gnu
-          rustup override set ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
       
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run Unit Tests under ASAN
-        run: RUSTFLAGS=-Zsanitizer=address cargo test -Zbuild-std --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml --target x86_64-unknown-linux-gnu
+        run: |
+          RUSTFLAGS=-Zsanitizer=address \
+            cargo +nightly test \
+            -Zbuild-std \
+            --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml \
+            --target x86_64-unknown-linux-gnu
 
   rustfmt:
     runs-on: ubuntu-latest
