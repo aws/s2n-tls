@@ -3,7 +3,7 @@
 
 use crate::{
     callbacks::VerifyHostNameCallback,
-    cert_chain::CertificateChain,
+    cert_chain::{self, CertificateChain},
     config::{self, *},
     connection,
     enums::{self, Blinding},
@@ -138,7 +138,9 @@ impl CertKeyPair {
     }
 
     pub fn into_certificate_chain(&self) -> CertificateChain<'static> {
-        CertificateChain::from_pem(&self.cert, &self.key).unwrap()
+        let mut chain = cert_chain::Builder::new().unwrap();
+        chain.load_pem(&self.cert, &self.key).unwrap();
+        chain.build().unwrap()
     }
 
     pub fn cert_path(&self) -> &str {

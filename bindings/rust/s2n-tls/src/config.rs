@@ -332,8 +332,8 @@ impl Builder {
 
         let mut pointer_array = [std::ptr::null_mut(); CERT_TYPE_COUNT];
         let mut pointer_array_length = 0;
-        
-        for mut chain in chains.into_iter() {
+
+        for chain in chains.into_iter() {
             if pointer_array_length >= CERT_TYPE_COUNT {
                 // drop the reference counts that we previously had taken
                 for _ in 0..CERT_TYPE_COUNT {
@@ -348,7 +348,9 @@ impl Builder {
                 ));
             }
 
-            pointer_array[pointer_array_length] = chain.as_mut_ptr();
+            // SAFETY: manual inspection of set_defaults shows that certificates
+            // are not mutated. https://github.com/aws/s2n-tls/issues/4140
+            pointer_array[pointer_array_length] = chain.as_ptr() as *mut _;
             pointer_array_length += 1;
 
             self.context_mut().application_owned_certs.push(chain);
@@ -357,8 +359,6 @@ impl Builder {
         unsafe {
             s2n_config_set_cert_chain_and_key_defaults(
                 self.as_mut_ptr(),
-                // SAFETY: manual inspection of set_defaults shows that certificates
-                // are not mutated. https://github.com/aws/s2n-tls/issues/4140
                 pointer_array.as_mut_ptr(),
                 pointer_array_length as u32,
             )

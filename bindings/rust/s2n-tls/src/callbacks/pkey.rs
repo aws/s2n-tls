@@ -368,7 +368,11 @@ mod tests {
             }
         }
 
-        let public_chain = CertificateChain::from_public_pem(CERT).unwrap();
+        let public_chain = {
+            let mut chain = crate::cert_chain::Builder::new()?;
+            chain.load_public_pem(CERT)?;
+            chain.build()?
+        };
 
         let server_config = {
             let mut config = config::Builder::new();

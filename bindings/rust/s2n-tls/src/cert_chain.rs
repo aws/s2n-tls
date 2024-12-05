@@ -51,29 +51,28 @@ impl Drop for CertificateChainHandle {
     }
 }
 
-/// A CertificateChain represents a chain of X.509 certificates.
-///
-/// Certificate chains are internally reference counted and are cheaply cloneable.
-#[derive(Clone)]
-pub struct CertificateChain<'a> {
-    ptr: Arc<CertificateChainHandle>,
-    _lifetime: PhantomData<&'a s2n_cert_chain_and_key>,
+pub struct Builder {
+    cert: CertificateChain<'static>,
 }
 
-impl CertificateChain<'_> {
-    /// Corresponds to [s2n_cert_chain_and_key_load_pem_bytes], but with reference
-    /// counting handled by the rust bindings.
+impl Builder {
+    pub fn new() -> Result<Self, Error> {
+        Ok(Self {
+            cert: CertificateChain::allocate_owned()?,
+        })
+    }
+
+    /// Corresponds to [s2n_cert_chain_and_key_load_pem_bytes]
     ///
     /// This can be used with [crate::config::Builder::load_chain] to share a
     /// single cert across multiple configs.
-    pub fn from_pem(chain: &[u8], key: &[u8]) -> Result<CertificateChain<'static>, Error> {
-        let mut builder = Self::allocate_owned()?;
+    pub fn load_pem(&mut self, chain: &[u8], key: &[u8]) -> Result<&mut Self, Error> {
         unsafe {
             // SAFETY: manual audit of load_pem_bytes shows that `chain_pem` and
             // `private_key_pem` are not modified.
             // https://github.com/aws/s2n-tls/issues/4140
             s2n_cert_chain_and_key_load_pem_bytes(
-                builder.as_mut_ptr(),
+                self.cert.as_mut_ptr(),
                 chain.as_ptr() as *mut _,
                 chain.len() as u32,
                 key.as_ptr() as *mut _,
@@ -82,31 +81,64 @@ impl CertificateChain<'_> {
             .into_result()
         }?;
 
-        Ok(builder)
+        Ok(self)
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_load_public_pem_bytes], but with
-    /// reference counting handled by the rust bindings.
+    /// Corresponds to [s2n_cert_chain_and_key_load_public_pem_bytes].
     ///
     /// This method is only used when performing private-key offloading. For standard
     /// use-cases see [CertificateChain::from_pem].
-    pub fn from_public_pem(chain: &[u8]) -> Result<CertificateChain<'static>, Error> {
-        let mut builder = Self::allocate_owned()?;
+    pub fn load_public_pem(&mut self, chain: &[u8]) -> Result<&mut Self, Error> {
         unsafe {
             // SAFETY: manual audit of load_public_pem_bytes shows that `chain_pem`
             // is not modified
             // https://github.com/aws/s2n-tls/issues/4140
             s2n_cert_chain_and_key_load_public_pem_bytes(
-                builder.as_mut_ptr(),
+                self.cert.as_mut_ptr(),
                 chain.as_ptr() as *mut _,
                 chain.len() as u32,
             )
             .into_result()
         }?;
 
-        Ok(builder)
+        Ok(self)
     }
 
+    /// Corresponds to [s2n_cert_chain_and_key_set_ocsp_data].
+    pub fn set_ocsp_data(&mut self, data: &[u8]) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_cert_chain_and_key_set_ocsp_data(
+                self.cert.as_mut_ptr(),
+                data.as_ptr(),
+                data.len() as u32,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Return an immutable, internally-reference counted CertificateChain.
+    pub fn build(self) -> Result<CertificateChain<'static>, Error> {
+        // This method is currently infalliable, but returning a result allows
+        // us to add validation in the future.
+        Ok(self.cert)
+    }
+}
+
+/// A CertificateChain represents a chain of X.509 certificates.
+///
+/// Certificate chains are internally reference counted and are cheaply cloneable.
+//
+// SAFETY: it is important that no CertificateChain methods operate on mutable
+// references. Because CertificateChains can be shared across threads, it is not
+// safe to mutate CertificateChains.
+#[derive(Clone)]
+pub struct CertificateChain<'a> {
+    ptr: Arc<CertificateChainHandle>,
+    _lifetime: PhantomData<&'a s2n_cert_chain_and_key>,
+}
+
+impl CertificateChain<'_> {
     /// This allocates a new certificate chain from s2n.
     pub(crate) fn allocate_owned() -> Result<CertificateChain<'static>, Error> {
         crate::init::init();
@@ -166,6 +198,9 @@ impl CertificateChain<'_> {
     }
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_cert_chain_and_key {
+        // this private method is only safe to use if the CertificateChain is
+        // not shared across multiple threads
+        debug_assert_eq!(Arc::strong_count(&self.ptr), 1);
         self.ptr.cert.as_ptr()
     }
 
