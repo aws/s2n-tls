@@ -39,25 +39,6 @@ static S2N_RESULT s2n_test_load_certificate(struct s2n_cert_chain_and_key **chai
     return S2N_RESULT_OK;
 }
 
-static bool s2n_test_is_valid(struct s2n_cert_chain_and_key *chain, uint8_t version)
-{
-    const s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(chain);
-    if (cert_type == S2N_PKEY_TYPE_RSA_PSS) {
-        /* RSA-PSS certificates were introduced in TLS1.3, but must also be
-         * supported in TLS1.2. They are not supported for earlier versions.
-         *
-         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
-         *= type=test
-         *# -  Implementations that advertise support for RSASSA-PSS (which is
-         *#    mandatory in TLS 1.3) MUST be prepared to accept a signature using
-         *#    that scheme even when TLS 1.2 is negotiated.  In TLS 1.2,
-         *#    RSASSA-PSS is used with RSA cipher suites.
-         */
-        return (version >= S2N_TLS12);
-    }
-    return true;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -67,11 +48,28 @@ int main(int argc, char **argv)
     }
 
     const uint8_t test_versions[] = { S2N_TLS13, S2N_TLS12, S2N_TLS11, S2N_TLS10 };
-    const char *test_certs[][2] = {
-        { S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN, S2N_RSA_2048_PKCS1_SHA256_CERT_KEY },
-        { S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY },
-        { S2N_ECDSA_P512_CERT_CHAIN, S2N_ECDSA_P512_KEY },
-        { S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY },
+    struct {
+        const char *cert;
+        const char *key;
+        uint8_t min_version;
+    } test_certs[] = {
+        {
+                .cert = S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN,
+                .key = S2N_RSA_2048_PKCS1_SHA256_CERT_KEY,
+        },
+        {
+                .cert = S2N_ECDSA_P384_PKCS1_CERT_CHAIN,
+                .key = S2N_ECDSA_P384_PKCS1_KEY,
+        },
+        {
+                .cert = S2N_ECDSA_P512_CERT_CHAIN,
+                .key = S2N_ECDSA_P512_KEY,
+        },
+        {
+                .cert = S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
+                .key = S2N_RSA_PSS_2048_SHA256_LEAF_KEY,
+                .min_version = S2N_TLS12,
+        },
     };
 
     for (size_t cert_i = 0; cert_i < s2n_array_len(test_certs); cert_i++) {
@@ -79,10 +77,11 @@ int main(int argc, char **argv)
                 s2n_cert_chain_and_key_ptr_free);
         char pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         EXPECT_OK(s2n_test_load_certificate(&chain, pem,
-                test_certs[cert_i][0], test_certs[cert_i][1]));
+                test_certs[cert_i].cert, test_certs[cert_i].key));
 
         for (size_t version_i = 0; version_i < s2n_array_len(test_versions); version_i++) {
             uint8_t version = test_versions[version_i];
+            bool expect_success = (version >= test_certs[cert_i].min_version);
 
             /* We intentionally use the default policies.
              * The default policies should support all certificate types.
@@ -127,12 +126,12 @@ int main(int argc, char **argv)
             }
 
             const char *error_message = "Handshake failed";
-            if (!s2n_test_is_valid(chain, version)) {
+            if (!expect_success) {
                 error_message = "Handshake unexpectedly succeeded";
             }
-            if (handshake_success != s2n_test_is_valid(chain, version)) {
+            if (handshake_success != expect_success) {
                 fprintf(stderr, "%s version=%i cert=%s\n",
-                        error_message, version, test_certs[cert_i][0]);
+                        error_message, version, test_certs[cert_i].cert);
                 FAIL_MSG(error_message);
             }
         }
