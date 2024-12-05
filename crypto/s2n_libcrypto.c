@@ -117,7 +117,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
  * ABI compatible forks of OpenSSL, detecting OpenSSL is done by checking the
  * absence of other known libcrypto variants.
  */
-bool s2n_libcrypto_is_openssl()
+bool s2n_libcrypto_is_openssl(void)
 {
     bool is_other_libcrypto_variant =
             s2n_libcrypto_is_boringssl() || s2n_libcrypto_is_libressl() || s2n_libcrypto_is_awslc();
