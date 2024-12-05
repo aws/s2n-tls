@@ -14,7 +14,6 @@
  */
 
 #include <openssl/dh.h>
-#include <openssl/engine.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_dhe.h"
@@ -26,7 +25,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 const char reference_entropy_hex[] = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
                                      "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
                                      "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -70,6 +68,12 @@ int main(int argc, char **argv)
     uint64_t bytes_used = 0;
 
     BEGIN_TEST();
+
+    if (!s2n_supports_custom_rand()) {
+        /* Skip when custom rand is not supported */
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -137,14 +141,3 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
-
-#else
-
-int main(int argc, char **argv)
-{
-    BEGIN_TEST();
-
-    END_TEST();
-}
-
-#endif
