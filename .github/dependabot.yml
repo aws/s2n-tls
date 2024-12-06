@@ -10,19 +10,27 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: "daily"
-    # GHA version updates are relatively safe, so batch them all together into a
-    # single PR.
     groups:
-      gha-updates:
+      all-gha-updates:
         patterns:
           - "*"
 
-  # Maintain dependencies for cargo
+  # restricted-MSRV, so don't do batch updates
   - package-ecosystem: "cargo"
     directories:
       - "/bindings/rust"
+    schedule:
+      interval: "daily"
+
+  # permissive-MSRV, batch updates are acceptable
+  - package-ecosystem: "cargo"
+    directories:
       - "/bindings/rust-examples"
       - "/tests/pcap"
       - "/tests/regression"
     schedule:
       interval: "daily"
+    groups:
+      all-cargo-updates:
+        patterns:
+          - "*"
