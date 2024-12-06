@@ -48,7 +48,15 @@ where
 {
     fn connected(&self) -> Connected {
         match self {
-            MaybeHttpsStream::Https(stream) => stream.inner().get_ref().connected(),
+            MaybeHttpsStream::Https(stream) => {
+                let connected = stream.inner().get_ref().connected();
+                let conn = stream.inner().as_ref();
+                match conn.application_protocol() {
+                    // Inform hyper that HTTP/2 was negotiated in the ALPN.
+                    Some(b"h2") => connected.negotiated_h2(),
+                    _ => connected,
+                }
+            }
         }
     }
 }
