@@ -138,7 +138,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: ~/openssl-102/install
           key: ${{ runner.os }}-openssl-102
