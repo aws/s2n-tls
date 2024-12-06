@@ -48,116 +48,7 @@ batch:
         variables:
           TESTS: sidetrail
 
-    - identifier: s2nValgrindOpenSSL3
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: 9
-          S2N_LIBCRYPTO: openssl-3.0
-          BUILD_S2N: true
-
-    - identifier: s2nValgrindOpenSSL102Gcc6Fips
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: 6
-          S2N_LIBCRYPTO: openssl-1.0.2-fips
-          BUILD_S2N: true
-
-    - identifier: s2nValgrindOpenSSL111Gcc9
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: 9
-          S2N_LIBCRYPTO: openssl-1.1.1
-          BUILD_S2N: true
-
-    - identifier: s2nValgrindOpenssl102
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'openssl-1.0.2'
-          BUILD_S2N: 'true'
-
-    - identifier: s2nValgrindAwslc
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'awslc'
-          BUILD_S2N: 'true'
-
-    - identifier: s2nValgrindAwslcFips
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: valgrind
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'awslc-fips'
-          BUILD_S2N: 'true'
-
-    - identifier: s2nAsanOpenSSL111Coverage
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: asan
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'openssl-1.1.1'
-          BUILD_S2N: 'true'
-          S2N_COVERAGE: 'true'
-
-    - identifier: s2nAsanOpenssl3
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: asan
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'openssl-3.0'
-          BUILD_S2N: 'true'
-
-    - identifier: s2nAsanOpenssl102
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: asan
-          GCC_VERSION: '6'
-          S2N_LIBCRYPTO: 'openssl-1.0.2'
-          BUILD_S2N: 'true'
-
-    - identifier: s2nUnitOpenssl111Gcc9
+    - identifier: s2nUnitNoPQ
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
@@ -169,8 +60,21 @@ batch:
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           BUILD_S2N: 'true'
 
+    - identifier: s2nUnitOpenSSL3GCC9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        privileged-mode: true
+        variables:
+          BUILD_S2N: true
+          GCC_VERSION: 9
+          S2N_COVERAGE: true
+          S2N_LIBCRYPTO: openssl-3.0
+          TESTS: unit
+      
     - identifier: s2nUnitAl2Arm
-      buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         type: ARM_CONTAINER
         compute-type: BUILD_GENERAL1_LARGE
@@ -180,7 +84,7 @@ batch:
           TESTS: unit
 
     - identifier: s2nUnitAl2
-      buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         privileged-mode: true
@@ -209,16 +113,6 @@ batch:
           BUILD_S2N: 'true'
           S2N_LIBCRYPTO: awslc
 
-    - identifier: s2nExecLeak
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
-        variables:
-          TESTS: exec_leak
-          BUILD_S2N: 'true'
-
     - identifier: s2nUnitCRT
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
@@ -239,7 +133,18 @@ batch:
           TESTS: sharedandstatic
           # must use the libcrypto that's actually installed on the system
           S2N_LIBCRYPTO: openssl-1.1.1
-
+  
+    - identifier: s2nDynamicLoad
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        privileged-mode: true
+        variables:
+          TESTS: dynamicload
+          GCC_VERSION: '9'
+          S2N_LIBCRYPTO: openssl-1.1.1
+  
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -251,22 +156,6 @@ batch:
           S2N_LIBCRYPTO: openssl-1.1.1
           TESTS: unit
       identifier: s2nUnitOpenSSL111Gcc6
-
-    - identifier: s2nUnitCoverage
-      buildspec: codebuild/spec/buildspec_unit_coverage.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-
-    - identifier: 32BitBuildAndUnit
-      buildspec: codebuild/spec/buildspec_32bit_cross_compile.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
 
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
@@ -283,7 +172,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
@@ -291,30 +180,3 @@ batch:
           S2N_LIBCRYPTO: 'boringssl'
           TESTS: unit
       identifier: s2nUnitBoringssl
-
-    # Fuzz tests
-    - identifier: s2nFuzzerOpenSSL111Coverage
-      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: aws/codebuild/standard:5.0
-        variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-          LATEST_CLANG: true
-          TESTS: fuzz
-          FUZZ_TIMEOUT_SEC: 60
-          FUZZ_COVERAGE: true
-
-    - identifier: s2nFuzzerOpenSSL102FIPS
-      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2-fips
-          LATEST_CLANG: true
-          TESTS: fuzz
-          FUZZ_TIMEOUT_SEC: 60
-
