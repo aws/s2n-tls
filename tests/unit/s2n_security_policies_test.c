@@ -151,9 +151,12 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
                 int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
                 int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
+                if (max == S2N_UNKNOWN_PROTOCOL_VERSION) {
+                    max = S2N_TLS13;
+                }
                 s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
 
-                if (min == S2N_TLS13 || max >= S2N_TLS13) {
+                if (min <= S2N_TLS13 && max >= S2N_TLS13) {
                     has_tls_13_sig_alg = true;
                 }
 
@@ -825,8 +828,8 @@ int main(int argc, char **argv)
                     }
                 }
 
-                /* If scheme will be used for pre-tls1.3 */
-                if (min_version < S2N_TLS13) {
+                /* If scheme will be used for legacy versions */
+                if (min_version < S2N_TLS12) {
                     EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
                 }
             }

@@ -181,7 +181,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
@@ -191,7 +191,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
@@ -201,7 +201,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 /* Chosen based on AWS server recommendations as of 05/24.
