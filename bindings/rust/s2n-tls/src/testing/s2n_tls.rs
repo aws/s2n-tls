@@ -5,6 +5,7 @@
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
+        cert_chain::CertificateChain,
         enums::ClientAuthType,
         error::ErrorType,
         testing::{self, client_hello::*, Error, Result, *},
@@ -111,6 +112,89 @@ mod tests {
         server.set_config(config.clone())?;
         assert_eq!(config.test_get_refcount()?, 2);
         assert!(server.config().is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn config_builder_fails_when_mixing_ownership() {
+        let first_prefix = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tests/pems/rsa_4096_sha512_client_"
+        );
+        let first_keypair = CertKeyPair::from(first_prefix, "cert", "key", "cert");
+        let second_prefix = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tests/pems/rsa_4096_sha256_client_"
+        );
+        let second_keypair = CertKeyPair::from(second_prefix, "cert", "key", "cert");
+
+        let mut cert_chain = CertificateChain::new().unwrap();
+        cert_chain
+            .load_pem(first_keypair.cert(), first_keypair.key())
+            .expect("Unable to load pem into cert chain");
+
+        let mut builder = Builder::new();
+        builder
+            .add_cert_chain(cert_chain)
+            .expect("Unable to add cert chain to builder");
+
+        // load_pem and add_cert_chain cannot mix on the builder due to ownership so we should get an error
+        let result = builder.load_pem(second_keypair.cert(), second_keypair.key());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn config_builder_accepts_multiple_cert_chains() {
+        let first_prefix = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tests/pems/rsa_4096_sha512_client_"
+        );
+        let first_keypair = CertKeyPair::from(first_prefix, "cert", "key", "cert");
+        let second_prefix = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tests/pems/rsa_4096_sha256_client_"
+        );
+        let second_keypair = CertKeyPair::from(second_prefix, "cert", "key", "cert");
+
+        let mut first_cert_chain = CertificateChain::new().unwrap();
+        first_cert_chain
+            .load_pem(first_keypair.cert(), first_keypair.key())
+            .expect("Unable to load pem into cert chain");
+        let mut second_cert_chain = CertificateChain::new().unwrap();
+        second_cert_chain
+            .load_pem(second_keypair.cert(), second_keypair.key())
+            .expect("Unable to load pem into cert chain");
+
+        let mut builder = Builder::new();
+
+        assert!(builder.add_cert_chain(first_cert_chain).is_ok());
+        assert!(builder.add_cert_chain(second_cert_chain).is_ok());
+        let _ = builder
+            .build()
+            .expect("Failed to build config with multiple cert chains");
+    }
+
+    #[test]
+    fn cert_chain_sharable_by_configs() -> Result<(), Error> {
+        let keypair = CertKeyPair::default();
+        let mut cert_chain = CertificateChain::new().unwrap();
+        cert_chain
+            .load_pem(keypair.cert(), keypair.key())
+            .expect("Unable to load pem into cert chain");
+        let cloned_cert_chain = cert_chain.clone();
+
+        let mut first_builder = Builder::new();
+        first_builder
+            .add_cert_chain(cert_chain)
+            .expect("Failed to add cert chain to first config");
+        let mut second_builder = Builder::new();
+        second_builder
+            .add_cert_chain(cloned_cert_chain)
+            .expect("Failed to add cert chain to second config");
+
+        first_builder.build().expect("Unable to build first config");
+        second_builder.build().expect("Unable to build second config");
+
         Ok(())
     }
 

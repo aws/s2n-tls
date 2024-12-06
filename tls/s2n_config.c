@@ -723,6 +723,99 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     return 0;
 }
 
+/* Only used in the Rust bindings for cleanup */
+int s2n_config_get_cert_chains(struct s2n_config *config,
+        struct s2n_cert_chain_and_key ***cert_chains,
+        uint32_t *chain_count) 
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(cert_chains);
+    POSIX_ENSURE_REF(chain_count);
+    *chain_count = 0;
+    *cert_chains = NULL;
+    uint32_t total_possible_chains = 0;
+    
+    /* Count all the certs to know how much max memory to allocate */ 
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
+            total_possible_chains++;
+        }
+    }
+    if (config->domain_name_to_cert_map != NULL) {
+        uint32_t domain_count = 0;
+        POSIX_GUARD_RESULT(s2n_map_size(config->domain_name_to_cert_map, &domain_count));
+        total_possible_chains += (domain_count * S2N_CERT_TYPE_COUNT);
+    }
+
+    if (total_possible_chains == 0) {
+        return S2N_SUCCESS;
+    }
+
+    /* Use a union to ensure proper alignment (casting gives error saying increases required alignment from 1 to 8 ) */
+    union {
+        struct s2n_cert_chain_and_key **chains;
+        uint8_t *data;
+    } aligned_chains;
+
+    /* Allocate memory for the array of pointers */
+    DEFER_CLEANUP(struct s2n_blob allocator = {0}, s2n_free);
+    POSIX_GUARD(s2n_alloc(&allocator, sizeof(struct s2n_cert_chain_and_key*) * total_possible_chains));
+    aligned_chains.data = allocator.data;
+
+    uint32_t cert_index = 0;
+
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
+            aligned_chains.chains[cert_index++] = config->default_certs_by_type.certs[i];
+        }
+    }
+    if (config->domain_name_to_cert_map != NULL) {
+        struct s2n_map_iterator iter = {0};
+        POSIX_GUARD_RESULT(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+
+        while (s2n_map_iterator_has_next(&iter)) {
+            struct s2n_blob value = {0};
+            POSIX_GUARD_RESULT(s2n_map_iterator_next(&iter, &value));
+            
+            struct certs_by_type *domain_certs = (void *)value.data;
+            for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+                if (domain_certs->certs[i] != NULL) {
+                    bool duplicate = false;
+                    for (uint32_t j = 0; j < cert_index; j++) {
+                        if (aligned_chains.chains[j] == domain_certs->certs[i]) {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!duplicate) {
+                        aligned_chains.chains[cert_index++] = domain_certs->certs[i];
+                    }
+                }
+            }
+        }
+    }
+
+    *cert_chains = aligned_chains.chains;
+    *chain_count = cert_index;
+
+    /* Prevent double free of the memory */
+    allocator.data = NULL;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_free_config_cert_chains(struct s2n_cert_chain_and_key ***cert_chains, uint32_t chain_count)
+{
+    POSIX_ENSURE_REF(cert_chains);
+    if (*cert_chains != NULL) {
+        POSIX_GUARD(s2n_free_object((uint8_t **)cert_chains, sizeof(struct s2n_cert_chain_and_key *) * chain_count));
+        *cert_chains = NULL;
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);

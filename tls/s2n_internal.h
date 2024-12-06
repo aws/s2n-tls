@@ -59,3 +59,19 @@ S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
  * is still waiting for encryption.
  */
 S2N_PRIVATE_API int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked);
+
+/*
+ * Gets all the s2n_cert_chain_and_key set on the config
+ * 
+ * This method is only useful for the Rust bindings that need to iterate over
+ * the cert chains for cleanup
+ */
+S2N_PRIVATE_API int s2n_config_get_cert_chains(struct s2n_config *config,
+        struct s2n_cert_chain_and_key ***cert_chains, uint32_t *chain_count);
+
+/*
+ * Cleanup for memory needed for s2n_config_get_cert_chains
+ *
+ * This method is only used by the Rust bindings
+ */
+S2N_PRIVATE_API int s2n_free_config_cert_chains(struct s2n_cert_chain_and_key ***cert_chains, uint32_t chain_count);
