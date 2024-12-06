@@ -26,7 +26,7 @@ fi
 
 FUZZCOV_SOURCES="api bin crypto error stuffer tls utils"
 
-printf "Calculating total s2n coverage... "
+printf "Calculating total s2n coverage... \n"
 
 # The llvm-profdata merge command warns that the profraws were created from different binaries (which is true) but
 # works fine for what we care about (the s2n library). Therefore, for user clarity all output is suppressed.
@@ -39,5 +39,8 @@ llvm-cov export -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/li
 
 genhtml s2n_fuzz_cov.info --branch-coverage -q -o fuzz_coverage_report
 
-S2N_COV=`grep -Eo '[0-9]*\.[0-9]*\%' s2n_fuzz_coverage.txt | tail -1`
-printf "total s2n coverage from fuzz tests: %s\n" $S2N_COV
+S2N_COV=`grep -Eo '[0-9]*\.[0-9]*\%' s2n_fuzz_coverage.txt | tail -3`
+LINE_COV=$(echo $S2N_COV | cut -d' ' -f1)
+FUNC_COV=$(echo $S2N_COV | cut -d' ' -f2)
+BRANCH_COV=$(echo $S2N_COV | cut -d' ' -f3)
+printf "Coverage Report:\nLine coverage: %s\nFunction coverage: %s\nBranch coverage: %s\n" "$LINE_COV" "$FUNC_COV" "$BRANCH_COV"

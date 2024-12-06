@@ -49,7 +49,7 @@ ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=$(nproc)
-LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
+LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${BUILD_DIR_PATH}/lib/lib${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${BUILD_DIR_PATH}/lib/libglobal_overrides.so"

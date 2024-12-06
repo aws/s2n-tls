@@ -14,11 +14,6 @@
 version: 0.2
 
 env:
-  compute-type:
-    - BUILD_GENERAL1_LARGE
-  image:
-    - 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-  privileged-mode: true
   variables:
     CC: "/usr/bin/clang"
     CXX: "/usr/bin/clang++"
@@ -34,12 +29,11 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      #TODO: change fuzz timeout back to 27000
       - |
         cmake . -Bbuild \
         -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
         -DS2N_FUZZ_TEST=on \
-        -DFUZZ_TIMEOUT_SEC=60 \
+        -DFUZZ_TIMEOUT_SEC=27000 \
         -DCOVERAGE=on \
         -DBUILD_SHARED_LIBS=ON
       - cmake --build ./build -- -j $(nproc)
@@ -47,13 +41,12 @@ phases:
     on-failure: ABORT
     commands:
       # -L: Restrict tests to labels matching the pattern 'fuzz'
-      # -R: Run the single fuzz test defined in ${FUZZ_TESTS}
       # --timeout: override ctest's default timeout of 1500
-      - cmake --build build/ --target test -- ARGS="-L fuzz -R ${FUZZ_TESTS} --output-on-failure -j $(nproc) --timeout 28800"
+      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure -j $(nproc) --timeout 28800"
       - ./tests/fuzz/calcTotalCov.sh
 
 artifacts:
-# upload all files in the coverage_report directory
-files:
-  - '**/*'
-base-directory: fuzz_coverage_report
+  # upload all files in the fuzz_coverage_report directory
+  files:
+    - '**/*'
+  base-directory: fuzz_coverage_report
