@@ -33,7 +33,7 @@ struct s2n_blob {
      * this value will be greater than or equal to size.
      * 
      * size < allocated implies that an allocated blob is being reused to store 
-     * a smalled amount of data.
+     * a smaller amount of data.
      */
     uint32_t allocated;
 
