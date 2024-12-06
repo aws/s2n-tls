@@ -11,7 +11,6 @@ use tokio::{io::AsyncWriteExt, net::TcpListener};
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/kangaroo-chain.pem");
 const DEFAULT_KEY: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/kangaroo-key.pem");
 
-
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(short, long, requires = "key", default_value_t = String::from(DEFAULT_CERT))]

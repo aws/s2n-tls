@@ -22,7 +22,8 @@ struct Cli {
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let mut config = s2n_tls::config::Config::builder();
-    let ca: Vec<u8> = std::fs::read(env!("CARGO_MANIFEST_DIR").to_owned() + "/../certs/ca-cert.pem")?;
+    let ca: Vec<u8> =
+        std::fs::read(env!("CARGO_MANIFEST_DIR").to_owned() + "/../certs/ca-cert.pem")?;
     config.set_security_policy(&DEFAULT_TLS13)?;
     config.trust_pem(&ca)?;
 

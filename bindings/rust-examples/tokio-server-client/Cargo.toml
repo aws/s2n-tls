@@ -7,7 +7,7 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-s2n-tls-tokio = { path = "../../rust/s2n-tls-tokio" }
 s2n-tls = { path = "../../rust/s2n-tls" }
+s2n-tls-tokio = { path = "../../rust/s2n-tls-tokio" }
 tokio = { version = "1", features = ["full"] }
+clap = { version = "4", features = ["derive"] }

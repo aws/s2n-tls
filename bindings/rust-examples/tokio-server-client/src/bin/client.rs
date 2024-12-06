@@ -7,7 +7,7 @@ use s2n_tls_tokio::TlsConnector;
 use std::{error::Error, fs};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
-/// NOTE: this certificate is to be used for demonstration purposes only!
+/// NOTE: this ca is to be used for demonstration purposes only!
 const DEFAULT_CA: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/ca-cert.pem");
 
 #[derive(Parser, Debug)]
