@@ -10,6 +10,12 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: "daily"
+    # GHA version updates are relatively safe, so batch them all together into a
+    # single PR.
+    groups:
+      gha-updates:
+        patterns:
+          - "*"
 
   # Maintain dependencies for cargo
   - package-ecosystem: "cargo"
