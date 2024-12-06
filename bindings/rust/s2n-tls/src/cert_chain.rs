@@ -197,9 +197,10 @@ impl CertificateChain<'_> {
         self.len() == 0
     }
 
-    pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_cert_chain_and_key {
-        // this private method is only safe to use if the CertificateChain is
-        // not shared across multiple threads
+    /// SAFETY: Only one instance of `CertificateChain` may exist when this method
+    /// is called. s2n_cert_chain_and_key is not thread-safe, so it is not safe
+    /// to mutate the certificate chain if references are held across multiple  threads.
+    pub(crate) unsafe fn as_mut_ptr(&mut self) -> *mut s2n_cert_chain_and_key {
         debug_assert_eq!(Arc::strong_count(&self.ptr), 1);
         self.ptr.cert.as_ptr()
     }
@@ -385,13 +386,10 @@ mod tests {
 
     #[test]
     fn too_many_certs_in_default() -> Result<(), crate::error::Error> {
-        // 3 certs in the maximum allowed, 4 should error.
-        let certs = vec![
-            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
-            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
-            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
-            SniTestCerts::AlligatorRsa.get().into_certificate_chain(),
-        ];
+        // 5 certs in the maximum allowed, 6 should error.
+        const FAILING_NUMBER: usize = 6;
+        let certs = vec![SniTestCerts::AlligatorRsa.get().into_certificate_chain(); FAILING_NUMBER];
+        assert_eq!(Arc::strong_count(&certs[0].ptr), FAILING_NUMBER);
 
         let mut config = config::Builder::new();
         let err = config.set_default_chains(certs.clone()).err().unwrap();
@@ -400,7 +398,7 @@ mod tests {
 
         // The config should not hold a reference when the error was detected
         // in the bindings
-        assert_eq!(Arc::strong_count(&certs[0].ptr), 1);
+        assert_eq!(Arc::strong_count(&certs[0].ptr), FAILING_NUMBER);
 
         Ok(())
     }

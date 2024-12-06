@@ -300,7 +300,12 @@ impl Builder {
 
     /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
     pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
-        let add_result = unsafe {
+        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // regardless of whether add_to_store fails or succeeds. We have limited
+        // visibility into the failure modes, so this behavior ensures that _if_
+        // the C library held the reference despite the failure, it would continue
+        // to be valid memory.
+        let result = unsafe {
             s2n_config_add_cert_chain_and_key_to_store(
                 self.as_mut_ptr(),
                 // SAFETY: audit of add_to_store shows that the certificate chain
@@ -309,15 +314,8 @@ impl Builder {
             )
             .into_result()
         };
-
-        // Out of an abudance of caution, we hold a reference to the CertificateChain
-        // regardless of whether add_to_store fails or succeeds. We have limited
-        // visibility into the failure modes, so this behavior ensures that _if_
-        // the C library held the reference despite the failure, it would continue
-        // to be valid memory.
         self.context_mut().application_owned_certs.push(chain);
-
-        add_result?;
+        result?;
 
         Ok(self)
     }
@@ -327,19 +325,18 @@ impl Builder {
         &mut self,
         chains: T,
     ) -> Result<&mut Self, Error> {
-        // Must match S2N_CERT_TYPE_COUNT in s2n_certificate.h
-        const CERT_TYPE_COUNT: usize = 3;
+        // Must be greater than or equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h,
+        // and small enough that stack allocating an array of this length is safe.
+        const CHAINS_MAX_COUNT: usize = 5;
 
-        let mut pointer_array = [std::ptr::null_mut(); CERT_TYPE_COUNT];
-        let mut pointer_array_length = 0;
+        let mut chain_arrays: [Option<CertificateChain<'static>>; CHAINS_MAX_COUNT] =
+            [None, None, None, None, None];
+        let mut pointer_array = [std::ptr::null_mut(); CHAINS_MAX_COUNT];
+        let mut cert_chain_count = 0;
 
         for chain in chains.into_iter() {
-            if pointer_array_length >= CERT_TYPE_COUNT {
+            if cert_chain_count >= CHAINS_MAX_COUNT {
                 // drop the reference counts that we previously had taken
-                for _ in 0..CERT_TYPE_COUNT {
-                    self.context_mut().application_owned_certs.pop();
-                }
-
                 return Err(Error::bindings(
                     ErrorType::UsageError,
                     "InvalidInput",
@@ -350,17 +347,23 @@ impl Builder {
 
             // SAFETY: manual inspection of set_defaults shows that certificates
             // are not mutated. https://github.com/aws/s2n-tls/issues/4140
-            pointer_array[pointer_array_length] = chain.as_ptr() as *mut _;
-            pointer_array_length += 1;
+            pointer_array[cert_chain_count] = chain.as_ptr() as *mut _;
+            chain_arrays[cert_chain_count] = Some(chain);
 
-            self.context_mut().application_owned_certs.push(chain);
+            cert_chain_count += 1;
         }
+
+        let collected_chains = chain_arrays.into_iter().take(cert_chain_count).flatten();
+
+        self.context_mut()
+            .application_owned_certs
+            .extend(collected_chains);
 
         unsafe {
             s2n_config_set_cert_chain_and_key_defaults(
                 self.as_mut_ptr(),
                 pointer_array.as_mut_ptr(),
-                pointer_array_length as u32,
+                cert_chain_count as u32,
             )
             .into_result()
         }?;

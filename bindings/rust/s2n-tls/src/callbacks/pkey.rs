@@ -124,7 +124,6 @@ pub trait PrivateKeyCallback: 'static + Send + Sync {
 mod tests {
     use super::*;
     use crate::{
-        cert_chain::CertificateChain,
         config, connection, error, security,
         testing::{self, *},
     };
