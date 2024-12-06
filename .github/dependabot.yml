@@ -15,13 +15,6 @@ updates:
         patterns:
           - "*"
 
-  # restricted-MSRV, so don't do batch updates
-  - package-ecosystem: "cargo"
-    directories:
-      - "/bindings/rust"
-    schedule:
-      interval: "daily"
-
   # permissive-MSRV, batch updates are acceptable
   - package-ecosystem: "cargo"
     directories:
@@ -34,3 +27,10 @@ updates:
       all-cargo-updates:
         patterns:
           - "*"
+
+  # restricted-MSRV, so don't do batch updates
+  - package-ecosystem: "cargo"
+    directories:
+      - "/bindings/rust"
+    schedule:
+      interval: "daily"
