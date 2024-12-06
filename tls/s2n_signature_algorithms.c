@@ -76,8 +76,6 @@ static S2N_RESULT s2n_signature_scheme_validate_for_recv(struct s2n_connection *
     if (conn->actual_protocol_version >= S2N_TLS13) {
         RESULT_ENSURE_NE(scheme->hash_alg, S2N_HASH_SHA1);
         RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA);
-    } else {
-        RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
     return S2N_RESULT_OK;
