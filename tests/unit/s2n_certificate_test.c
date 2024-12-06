@@ -1055,13 +1055,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(len, 2);
     };
 
-    /* C and Rust constants should match */
+    /* cert type count is less than 5 */
     {
-        /* The rust bindings have a separate definition of cert type count, which
-         * must be kept in sync with the C library. If this test ever fails, 
-         * CERT_TYPE_COUNT in config.rs must be updated. 
+        /* The rust bindings have constant - CHAINS_MAX_COUNT - which be 
+         * greather than or equal to CERT_TYPE_COUNT. If this test fails, 
+         * CHAINS_MAX_COUNT in config.rs must be updated. 
          */
-        EXPECT_EQUAL(S2N_CERT_TYPE_COUNT, 3);
+        EXPECT_TRUE(S2N_CERT_TYPE_COUNT <= 5);
     }
 
     END_TEST();
