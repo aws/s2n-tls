@@ -24,36 +24,20 @@ if [ "$#" -ne "0" ]; then
     usage
 fi
 
-if [[ -z "$S2N_ROOT" ]]; then
-    S2N_ROOT=../..
-fi
+FUZZCOV_SOURCES="api bin crypto error stuffer tls utils"
 
-FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
+printf "Calculating total s2n coverage... "
 
+# The llvm-profdata merge command warns that the profraws were created from different binaries (which is true) but
+# works fine for what we care about (the s2n library). Therefore, for user clarity all output is suppressed.
+llvm-profdata merge -sparse tests/fuzz/profiles/*/*.profdata -o tests/fuzz/profiles/merged_fuzz.profdata > /dev/null 2>&1
 
-# Outputs fuzz coverage results if the FUZZ_COVERAGE environment variable is set
-# Total coverage is overlayed on source code in s2n_cov.html and coverage statistics are available in s2n_cov.txt
-# If using LLVM version 9 or greater, coverage is output in LCOV format instead of HTML
-# All files are stored in the s2n coverage directory
-if [[ "$FUZZ_COVERAGE" == "true" ]]; then
+llvm-cov report -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} > s2n_fuzz_coverage.txt
 
-    printf "Calculating total s2n coverage... "
+# convert coverage information to html format
+llvm-cov export -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > s2n_fuzz_cov.info
 
-    # The llvm-profdata merge command warns that the profraws were created from different binaries (which is true) but
-    # works fine for what we care about (the s2n library). Therefore, for user clarity all output is suppressed.
-    llvm-profdata merge -sparse ./profiles/*/*.profdata -o ./profiles/s2n_cov.profdata > /dev/null 2>&1
-    llvm-cov report -instr-profile=./profiles/s2n_cov.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} > ${COVERAGE_DIR}/fuzz/s2n_cov.txt
+genhtml s2n_fuzz_cov.info --branch-coverage -q -o fuzz_coverage_report
 
-    # Use LCOV format instead of HTML if the LLVM version we're using supports it
-    if [[ $(grep -Eo "[0-9]*" <<< `llvm-cov --version` | head -1) > 8 ]]; then
-        llvm-cov export -instr-profile=./profiles/s2n_cov.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > ${COVERAGE_DIR}/fuzz/s2n_cov.info
-        genhtml -q -o ${COVERAGE_DIR}/html/overall_fuzz_coverage ${COVERAGE_DIR}/fuzz/s2n_cov.info
-    else
-        llvm-cov show -instr-profile=./profiles/s2n_cov.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -use-color -format=html > ${COVERAGE_DIR}/fuzz/s2n_cov.html
-    fi
-    # Generate coverage report compatible with codecov.io
-    llvm-cov show -instr-profile=./profiles/s2n_cov.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} > ${COVERAGE_DIR}/fuzz/codecov.txt
-
-    S2N_COV=`grep -Eo '[0-9]*\.[0-9]*\%' ${COVERAGE_DIR}/fuzz/s2n_cov.txt | tail -1`
-    printf "total s2n coverage from fuzz tests: %s\n" $S2N_COV
-fi
+S2N_COV=`grep -Eo '[0-9]*\.[0-9]*\%' s2n_fuzz_coverage.txt | tail -1`
+printf "total s2n coverage from fuzz tests: %s\n" $S2N_COV

@@ -246,7 +246,7 @@ if (COVERAGE)
     # on LLVM compilers. GCC would fail with "unrecognized compile options"
     # on -fprofile-instr-generate -fcoverage-mapping flags.
     if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
-        message(FATAL_ERROR "This project requires clang for coverage support")
+        message(FATAL_ERROR "This project requires clang for coverage support. You are currently using " ${CMAKE_C_COMPILER_ID})
     endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
@@ -696,6 +696,12 @@ if (BUILD_TESTING)
             set(ARTIFACT_UPLOAD_LOC "none")
         endif()
 
+        if(COVERAGE)
+            set(FUZZ_COVERAGE "true")
+        else()
+            set(FUZZ_COVERAGE "false")
+        endif()
+
         # Build LD_PRELOAD shared libraries
         file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
         foreach(SRC ${LIBRARY_SRCS})
@@ -732,6 +738,8 @@ if (BUILD_TESTING)
                     ${BUILD_DIR_PATH} 
                     ${CORPUS_UPLOAD_LOC} 
                     ${ARTIFACT_UPLOAD_LOC}
+                    ${FUZZ_COVERAGE}
+                    ${CMAKE_CURRENT_SOURCE_DIR}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
             )
             set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")

@@ -18,11 +18,11 @@
 set -e
 
 usage() {
-    echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC"
+    echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC BUILD_DIR_PATH CORPUS_UPLOAD_LOC ARTIFACT_UPLOAD_LOC FUZZ_COVERAGE"
     exit 1
 }
 
-if [ "$#" -ne "5" ]; then
+if [ "$#" -ne "7" ]; then
     usage
 fi
 
@@ -31,6 +31,9 @@ FUZZ_TIMEOUT_SEC=$2
 BUILD_DIR_PATH=$3
 CORPUS_UPLOAD_LOC=$4
 ARTIFACT_UPLOAD_LOC=$5
+FUZZ_COVERAGE=$6
+S2N_ROOT=$7
+
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
@@ -106,6 +109,7 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     mkdir -p "./profiles/${TEST_NAME}"
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" \
+    env LD_PRELOAD="$LD_PRELOAD_" \
     ${BUILD_DIR_PATH}/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
     > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
@@ -129,16 +133,16 @@ declare -i TARGET_COV=0
 # If using LLVM version 9 or greater, coverage is output in LCOV format instead of HTML
 # All files are stored in the s2n coverage directory
 if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-    mkdir -p ${COVERAGE_DIR}/fuzz
+    mkdir -p coverage/fuzz
     llvm-profdata merge -sparse ./profiles/${TEST_NAME}/*.profraw -o ./profiles/${TEST_NAME}/${TEST_NAME}.profdata
-    llvm-cov report -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -show-functions > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.txt
+    llvm-cov report -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -show-functions > coverage/fuzz/${TEST_NAME}_cov.txt
 
     # Use LCOV format instead of HTML if the LLVM version we're using supports it
     if [[ $(grep -Eo "[0-9]*" <<< `llvm-cov --version` | head -1) -gt 8 ]]; then
-        llvm-cov export -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.info
-        genhtml -q -o ${COVERAGE_DIR}/html/${TEST_NAME} ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.info
+        llvm-cov export -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > coverage/fuzz/${TEST_NAME}_cov.info
+        genhtml -q -o coverage/html/${TEST_NAME} coverage/fuzz/${TEST_NAME}_cov.info
     else
-        llvm-cov show -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -use-color -format=html > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.html
+        llvm-cov show -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -use-color -format=html > coverage/fuzz/${TEST_NAME}_cov.html
     fi
 
     # Extract target functions from test source
@@ -149,8 +153,8 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     then
         for TARGET in ${TARGET_FUNCS}
         do
-            TARGET_TOTAL+=`sed -n "s/^.*${TARGET} .*% *\([0-9]*\) .*$/\1/p" ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.txt`
-            TARGET_COV+=`sed -n "s/^.*${TARGET} .*% *[0-9]* *\([0-9]*\) .*$/\1/p" ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.txt`
+            TARGET_TOTAL+=`sed -n "s/^.*${TARGET} .*% *\([0-9]*\) .*$/\1/p" coverage/fuzz/${TEST_NAME}_cov.txt`
+            TARGET_COV+=`sed -n "s/^.*${TARGET} .*% *[0-9]* *\([0-9]*\) .*$/\1/p" coverage/fuzz/${TEST_NAME}_cov.txt`
         done
     fi
 fi
