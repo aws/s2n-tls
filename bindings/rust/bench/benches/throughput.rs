@@ -1,9 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#[cfg(feature = "openssl")]
 use bench::OpenSslConnection;
-#[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
     harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
@@ -26,25 +24,20 @@ fn bench_throughput_for_library<T>(
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-    let client_config = T::Config::make_config(Mode::Client, crypto_config, HandshakeType::default());
-    let server_config = T::Config::make_config(Mode::Server, crypto_config, HandshakeType::default());
+    let client_config =
+        T::Config::make_config(Mode::Client, crypto_config, HandshakeType::default()).unwrap();
+    let server_config =
+        T::Config::make_config(Mode::Server, crypto_config, HandshakeType::default()).unwrap();
 
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
             || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
-                if let (Ok(client_config), Ok(server_config)) =
-                    (client_config.as_ref(), server_config.as_ref())
-                {
-                    let connected_buffer = ConnectedBuffer::default();
-                    let client =
-                        T::new_from_config(client_config, connected_buffer.clone_inverse())?;
-                    let server = T::new_from_config(server_config, connected_buffer)?;
-                    let mut conn_pair = TlsConnPair::wrap(client, server);
-                    conn_pair.handshake()?;
-                    Ok(conn_pair)
-                } else {
-                    Err("invalid configs".into())
-                }
+                let connected_buffer = ConnectedBuffer::default();
+                let client = T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
+                let server = T::new_from_config(&server_config, connected_buffer)?;
+                let mut conn_pair = TlsConnPair::wrap(client, server);
+                conn_pair.handshake()?;
+                Ok(conn_pair)
             },
             |conn_pair| {
                 if let Ok(conn_pair) = conn_pair {
@@ -68,13 +61,11 @@ pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
             &mut shared_buf,
             cipher_suite,
         );
-        #[cfg(feature = "rustls")]
         bench_throughput_for_library::<RustlsConnection>(
             &mut bench_group,
             &mut shared_buf,
             cipher_suite,
         );
-        #[cfg(feature = "openssl")]
         bench_throughput_for_library::<OpenSslConnection>(
             &mut bench_group,
             &mut shared_buf,
