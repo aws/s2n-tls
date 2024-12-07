@@ -325,18 +325,16 @@ impl Builder {
         &mut self,
         chains: T,
     ) -> Result<&mut Self, Error> {
-        // Must be greater than or equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h,
-        // and small enough that stack allocating an array of this length is safe.
-        const CHAINS_MAX_COUNT: usize = 5;
+        // Must be equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h.
+        const CHAINS_MAX_COUNT: usize = 3;
 
         let mut chain_arrays: [Option<CertificateChain<'static>>; CHAINS_MAX_COUNT] =
-            [None, None, None, None, None];
+            [None, None, None];
         let mut pointer_array = [std::ptr::null_mut(); CHAINS_MAX_COUNT];
         let mut cert_chain_count = 0;
 
         for chain in chains.into_iter() {
             if cert_chain_count >= CHAINS_MAX_COUNT {
-                // drop the reference counts that we previously had taken
                 return Err(Error::bindings(
                     ErrorType::UsageError,
                     "InvalidInput",
