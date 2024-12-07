@@ -1022,9 +1022,11 @@ mod tests {
                     // Perform the pkey operation with the selected cert / key pair.
                     let op = this.op.take().unwrap();
                     let opt_ptr = op.as_ptr();
-                    let chain_ptr = conn.selected_cert().unwrap().as_mut_ptr();
+                    let chain_ptr = conn.selected_cert().unwrap().as_ptr();
                     unsafe {
-                        let key_ptr = s2n_cert_chain_and_key_get_private_key(chain_ptr)
+                        // SAFETY, mut cast: get_private_key does not modify the
+                        // chain, and it is invalid to modify key through `key_ptr`
+                        let key_ptr = s2n_cert_chain_and_key_get_private_key(chain_ptr as *mut _)
                             .into_result()?
                             .as_ptr();
                         s2n_async_pkey_op_perform(opt_ptr, key_ptr).into_result()?;
