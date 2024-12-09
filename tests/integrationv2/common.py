@@ -113,11 +113,15 @@ class Cert(object):
     def compatible_with_cipher(self, cipher):
         if self.algorithm == cipher.algorithm:
             return True
+        # TLS1.3 cipher suites do not specify auth method, so allow any auth method
         if cipher.algorithm == 'ANY':
             return True
         if self.algorithm == 'RSAPSS':
+            # RSA-PSS certs can only be used by ciphers with RSA auth
             if cipher.algorithm != 'RSA':
                 return False
+            # RSA-PSS certs do not support RSA key exchange, only RSA auth
+            # "DHE" here is intended to capture both "DHE" and "ECDHE"
             if 'DHE' in cipher.name:
                 return True
         return False
