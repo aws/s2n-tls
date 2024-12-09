@@ -252,7 +252,7 @@ pub struct Certificate<'a> {
     certificate: NonNull<s2n_cert>,
 }
 
-impl<'a> Certificate<'a> {
+impl Certificate<'_> {
     pub fn der(&self) -> Result<&[u8], Error> {
         unsafe {
             let mut buffer = ptr::null();
