@@ -10,13 +10,27 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: "daily"
+    groups:
+      all-gha-updates:
+        patterns:
+          - "*"
 
-  # Maintain dependencies for cargo
+  # permissive-MSRV, batch updates are acceptable
   - package-ecosystem: "cargo"
     directories:
-      - "/bindings/rust"
       - "/bindings/rust-examples"
       - "/tests/pcap"
       - "/tests/regression"
+    schedule:
+      interval: "daily"
+    groups:
+      all-cargo-updates:
+        patterns:
+          - "*"
+
+  # restricted-MSRV, so don't do batch updates
+  - package-ecosystem: "cargo"
+    directories:
+      - "/bindings/rust"
     schedule:
       interval: "daily"
