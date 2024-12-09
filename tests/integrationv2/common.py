@@ -118,7 +118,7 @@ class Cert(object):
         if self.algorithm == 'RSAPSS':
             if cipher.algorithm != 'RSA':
                 return False
-            if 'ECDHE' in cipher.name:
+            if 'DHE' in cipher.name:
                 return True
         return False
 
