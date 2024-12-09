@@ -39,7 +39,7 @@ fi
 if [ "$IS_FIPS" == "1" ]; then
   AWSLC_VERSION=AWS-LC-FIPS-1.0.3
 else
-  AWSLC_VERSION=v1.36.0
+  AWSLC_VERSION=v1.40.0
 fi
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"

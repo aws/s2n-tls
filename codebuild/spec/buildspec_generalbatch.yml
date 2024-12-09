@@ -180,7 +180,7 @@ batch:
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
-          GCC_VERSION: '6'
+          GCC_VERSION: '9'
           TESTS: crt
       identifier: s2nUnitCRT
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
