@@ -11,7 +11,7 @@ on:
 env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-01-01
+  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
   ROOT_PATH: bindings/rust
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
@@ -35,7 +35,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required for generate.sh to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 
@@ -138,7 +138,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/openssl-102/install
           key: ${{ runner.os }}-openssl-102
@@ -190,7 +190,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 
@@ -212,6 +212,48 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: |
           cargo test --tests --all-features
+
+  # Run the rust unit tests under address sanitizer.
+  #
+  # Rust is generally memory safe, but our bindings contain a large amount of unsafe
+  # code. Additionally, "safe" code doesn't guarentee that the code is free of 
+  # memory leaks.
+  asan-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install ${{env.RUST_NIGHTLY_TOOLCHAIN }} \
+            --profile minimal \
+            --component rust-src \
+            --target x86_64-unknown-linux-gnu
+          rustup override set ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
+      
+      - name: Generate
+        run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
+
+      # asan expects a binary at /usr/bin/llvm-symbolizer but GHA runners include
+      # multiple versioned binaries, like /usr/bin/llvm-symbolizer-13. This step
+      # finds the latest symbolizer and use it as the "base" llvm-symbolizer binary.
+      #
+      # llvm-symbolizer is necessary to get nice stack traces from asan errors. 
+      # Otherwise the stack trace just contains a hex address like "0x55bc6a28a9b6"
+      - name: set llvm symbolizer
+        run: |
+          sudo ln -s $(find /usr/bin/ -maxdepth 1 -name "llvm-symbolizer-*" | sort -V | tail -n 1) /usr/bin/llvm-symbolizer
+
+      - name: Run Unit Tests under ASAN
+        env:
+          RUSTDOCFLAGS: -Zsanitizer=address
+          RUSTFLAGS: -Zsanitizer=address
+        run: |
+          cargo test \
+            -Zbuild-std \
+            --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml \
+            --target x86_64-unknown-linux-gnu
 
   rustfmt:
     runs-on: ubuntu-latest

@@ -5,8 +5,9 @@
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
     callbacks::*,
+    cert_chain::CertificateChain,
     enums::*,
-    error::{Error, Fallible},
+    error::{Error, ErrorType, Fallible},
     security,
 };
 use core::{convert::TryInto, ptr::NonNull};
@@ -277,6 +278,12 @@ impl Builder {
         Ok(self)
     }
 
+    /// Associate a `certificate` and corresponding `private_key` with a config.
+    /// Using this method, at most one certificate per auth type (ECDSA, RSA, RSA-PSS)
+    /// can be loaded.
+    ///
+    /// For more advanced cert use cases such as sharing certs across configs or
+    /// serving differents certs based on the client SNI, see [Builder::load_chain].
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
@@ -288,6 +295,77 @@ impl Builder {
             )
             .into_result()
         }?;
+        Ok(self)
+    }
+
+    /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
+    pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
+        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // regardless of whether add_to_store fails or succeeds. We have limited
+        // visibility into the failure modes, so this behavior ensures that _if_
+        // the C library held the reference despite the failure, it would continue
+        // to be valid memory.
+        let result = unsafe {
+            s2n_config_add_cert_chain_and_key_to_store(
+                self.as_mut_ptr(),
+                // SAFETY: audit of add_to_store shows that the certificate chain
+                // is not mutated. https://github.com/aws/s2n-tls/issues/4140
+                chain.as_ptr() as *mut _,
+            )
+            .into_result()
+        };
+        self.context_mut().application_owned_certs.push(chain);
+        result?;
+
+        Ok(self)
+    }
+
+    /// Corresponds to [s2n_config_set_cert_chain_and_key_defaults].
+    pub fn set_default_chains<T: IntoIterator<Item = CertificateChain<'static>>>(
+        &mut self,
+        chains: T,
+    ) -> Result<&mut Self, Error> {
+        // Must be equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h.
+        const CHAINS_MAX_COUNT: usize = 3;
+
+        let mut chain_arrays: [Option<CertificateChain<'static>>; CHAINS_MAX_COUNT] =
+            [None, None, None];
+        let mut pointer_array = [std::ptr::null_mut(); CHAINS_MAX_COUNT];
+        let mut cert_chain_count = 0;
+
+        for chain in chains.into_iter() {
+            if cert_chain_count >= CHAINS_MAX_COUNT {
+                return Err(Error::bindings(
+                    ErrorType::UsageError,
+                    "InvalidInput",
+                    "A single default can be specified for RSA, ECDSA, 
+                    and RSA-PSS auth types, but more than 3 certs were supplied",
+                ));
+            }
+
+            // SAFETY: manual inspection of set_defaults shows that certificates
+            // are not mutated. https://github.com/aws/s2n-tls/issues/4140
+            pointer_array[cert_chain_count] = chain.as_ptr() as *mut _;
+            chain_arrays[cert_chain_count] = Some(chain);
+
+            cert_chain_count += 1;
+        }
+
+        let collected_chains = chain_arrays.into_iter().take(cert_chain_count).flatten();
+
+        self.context_mut()
+            .application_owned_certs
+            .extend(collected_chains);
+
+        unsafe {
+            s2n_config_set_cert_chain_and_key_defaults(
+                self.as_mut_ptr(),
+                pointer_array.as_mut_ptr(),
+                cert_chain_count as u32,
+            )
+            .into_result()
+        }?;
+
         Ok(self)
     }
 
@@ -811,6 +889,16 @@ impl Default for Builder {
 
 pub(crate) struct Context {
     refcount: AtomicUsize,
+    /// This is a container for reference counts.
+    ///
+    /// In the bindings, application owned certificate chains are reference counted.
+    /// The C library is not aware of the reference counts, so a naive implementation
+    /// would result in certs being prematurely freed because the "reference"
+    /// held by the C library wouldn't be accounted for.
+    ///
+    /// Storing the CertificateChains in this Vec ensures that reference counts
+    /// behave as expected when stored in an s2n-tls config.
+    application_owned_certs: Vec<CertificateChain<'static>>,
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
@@ -830,6 +918,7 @@ impl Default for Context {
 
         Self {
             refcount,
+            application_owned_certs: Vec::new(),
             client_hello_callback: None,
             private_key_callback: None,
             verify_host_callback: None,
