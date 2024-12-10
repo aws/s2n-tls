@@ -72,8 +72,12 @@ impl ClientHelloCallback for AnimalConfigResolver {
 }
 
 fn server_config(animal: &str) -> s2n_tls::config::Config {
-    let cert_path = format!("{}/certs/{}-chain.pem", env!("CARGO_MANIFEST_DIR"), animal);
-    let key_path = format!("{}/certs/{}-key.pem", env!("CARGO_MANIFEST_DIR"), animal);
+    let cert_path = format!(
+        "{}/../certs/{}-chain.pem",
+        env!("CARGO_MANIFEST_DIR"),
+        animal
+    );
+    let key_path = format!("{}/../certs/{}-key.pem", env!("CARGO_MANIFEST_DIR"), animal);
     let cert = std::fs::read(cert_path).unwrap();
     let key = std::fs::read(key_path).unwrap();
     let mut config = s2n_tls::config::Builder::new();
