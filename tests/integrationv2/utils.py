@@ -72,9 +72,8 @@ def invalid_test_parameters(*args, **kwargs):
     # Always consider S2N
     providers.append(S2N)
 
-    # Only TLS1.3 supports RSA-PSS-PSS certificates
-    # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
-    if protocol and protocol is not Protocols.TLS13:
+    # Older versions do not support RSA-PSS-PSS certificates
+    if protocol and protocol < Protocols.TLS12:
         if client_certificate and client_certificate.algorithm == 'RSAPSS':
             return True
         if certificate and certificate.algorithm == 'RSAPSS':
