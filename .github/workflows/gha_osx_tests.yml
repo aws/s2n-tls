@@ -2,6 +2,8 @@
 name: macOS build and test S2n
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
