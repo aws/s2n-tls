@@ -38,7 +38,7 @@ struct s2n_blob {
     uint32_t allocated;
 
     /* An allocated blob (e.g.`s2n_alloc`) is always growable. A "reference"
-     * blob (from `s2n_init`) is never growable.
+     * blob (from `s2n_blob_init`) is never growable.
      * 
      * This field is necessary to distinguish zero-sized allocated blobs from 
      * zero-sized "reference" blobs. Zero-sized allocated blobs can not be
