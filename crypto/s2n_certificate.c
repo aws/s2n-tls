@@ -47,45 +47,30 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
     struct s2n_cert **insert = &cert_chain_out->head;
     uint32_t chain_size = 0;
-    do {
-        struct s2n_cert *new_node = NULL;
+    while (s2n_stuffer_pem_has_certificate(chain_in_stuffer)) {
+        int result = s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer);
+        POSIX_ENSURE(result == S2N_SUCCESS, S2N_ERR_INVALID_PEM);
 
-        if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
-            if (chain_size == 0) {
-                POSIX_BAIL(S2N_ERR_NO_CERTIFICATE_IN_PEM);
-            }
-            break;
-        }
-        struct s2n_blob mem = { 0 };
+        DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         POSIX_GUARD(s2n_blob_zero(&mem));
-        new_node = (struct s2n_cert *) (void *) mem.data;
 
-        if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)) != S2N_SUCCESS) {
-            POSIX_GUARD(s2n_free(&mem));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-        if (s2n_stuffer_read(&cert_out_stuffer, &new_node->raw) != S2N_SUCCESS) {
-            POSIX_GUARD(s2n_free(&mem));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+        POSIX_GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
+        POSIX_GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
+        ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
         /* Additional 3 bytes for the length field in the protocol */
         chain_size += new_node->raw.size + 3;
         new_node->next = NULL;
         *insert = new_node;
         insert = &new_node->next;
-    } while (s2n_stuffer_data_available(chain_in_stuffer));
+    };
 
-    /* Leftover data at this point means one of two things:
-     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
-     * Be conservative and fail instead of using a partial chain.
-     */
-    S2N_ERROR_IF(s2n_stuffer_data_available(chain_in_stuffer) > 0, S2N_ERR_INVALID_PEM);
-
+    POSIX_ENSURE(chain_size > 0, S2N_ERR_NO_CERTIFICATE_IN_PEM);
     cert_chain_out->chain_size = chain_size;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_cert_chain_and_key_set_cert_chain_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key, struct s2n_stuffer *chain_in_stuffer)
