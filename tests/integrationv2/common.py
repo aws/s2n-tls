@@ -111,7 +111,20 @@ class Cert(object):
             self.algorithm = 'RSAPSS'
 
     def compatible_with_cipher(self, cipher):
-        return (self.algorithm == cipher.algorithm) or (cipher.algorithm == 'ANY')
+        if self.algorithm == cipher.algorithm:
+            return True
+        # TLS1.3 cipher suites do not specify auth method, so allow any auth method
+        if cipher.algorithm == 'ANY':
+            return True
+        if self.algorithm == 'RSAPSS':
+            # RSA-PSS certs can only be used by ciphers with RSA auth
+            if cipher.algorithm != 'RSA':
+                return False
+            # RSA-PSS certs do not support RSA key exchange, only RSA auth
+            # "DHE" here is intended to capture both "DHE" and "ECDHE"
+            if 'DHE' in cipher.name:
+                return True
+        return False
 
     def compatible_with_curve(self, curve):
         if self.algorithm != 'EC':
@@ -442,7 +455,7 @@ class Signatures(object):
 
     RSA_PSS_PSS_SHA256 = Signature(
         'rsa_pss_pss_sha256',
-        min_protocol=Protocols.TLS13,
+        min_protocol=Protocols.TLS12,
         sig_type='RSA-PSS-PSS',
         sig_digest='SHA256')
 

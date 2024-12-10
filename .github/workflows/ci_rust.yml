@@ -35,7 +35,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required for generate.sh to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 
@@ -138,7 +138,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/openssl-102/install
           key: ${{ runner.os }}-openssl-102
@@ -190,7 +190,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 
