@@ -48,7 +48,7 @@ struct s2n_stuffer {
     /* Was this stuffer alloc()'d?
      * This field controls whether the stuffer "owns" the blob. If the stuffer
      * was allocated, then `blob` must be freed when the stuffer is freed. If the
-     * stuffer was not allocated, then the blob must not be freed, even if the 
+     * stuffer was not allocated, then the blob must not be freed by the stuffer, even if the 
      * blob itself is allocated. */
     unsigned int alloced : 1;
 
