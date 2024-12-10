@@ -11,10 +11,8 @@ phases:
       - yum update -y; yum upgrade -y
   pre_build:
     commands:
-      # (Re)Install nix
-      - sh <(curl -L https://nixos.org/nix/install) --no-daemon
-      # Make sure nix exists in the PATH
-      - export PATH=$HOME/.nix-profile/bin:$PATH
+      # Nix is installed, but intentionally not setup for root, fix that
+      - cp -aR /home/nix/.nix-profile ~/; chown -R root /root/.nix-profile; export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
       - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
       # Populate the store from the nix cache
