@@ -30,11 +30,21 @@ struct s2n_blob {
     /* The amount of memory allocated for this blob (i.e. the amount of memory
      * which needs to be freed when the blob is cleaned up). If this blob was
      * created with s2n_blob_init(), this value is 0. If s2n_alloc() was called,
-     * this value will be greater than 0.
+     * this value will be greater than or equal to size.
+     * 
+     * size < allocated implies that an allocated blob is being reused to store 
+     * a smaller amount of data.
      */
     uint32_t allocated;
 
-    /* Can this blob be resized */
+    /* An allocated blob (e.g.`s2n_alloc`) is always growable. A "reference"
+     * blob (from `s2n_blob_init`) is never growable.
+     * 
+     * This field is necessary to distinguish zero-sized allocated blobs from 
+     * zero-sized "reference" blobs. Zero-sized allocated blobs can not be
+     * constructed with s2n_alloc or s2n_realloc, but they are directly initialized
+     * in s2n_free_object.
+     */
     unsigned growable : 1;
 };
 
