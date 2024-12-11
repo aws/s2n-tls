@@ -8,7 +8,7 @@ All benchmarks are run in an idealized environment, using only a single thread a
 
 ```
 # generate rust bindings
-../generate.sh
+../generate.sh --skip-tests
 
 # run all benchmarks
 cargo bench
@@ -36,37 +36,6 @@ Throughput benchmarks measure round-trip throughput with the client and server c
 
 To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`, which profiles each benchmark for 5 seconds and stores the resulting flamegraph in `target/criterion/[bench-name]/[lib-name]/profile/flamegraph.svg`.
 
-## Memory benchmarks
-
-To run all memory benchmarks, run `scripts/bench-memory.sh`. Graphs of memory usage will be generated in `images/`.
-
-Memory benchmark data is generated using the `memory` binary. Command line arguments can be given to `cargo run` or to the built executable located at `target/release/memory`. The usage is as follows:
-
-```
-memory [(pair|client|server)] [(s2n-tls|rustls|openssl)] [--reuse-config (true|false)] [--shrink-buffers (true|false)]
-```
-
-- `(pair|client|server)`: target to memory bench, defaults to `server`
-- `(s2n-tls|rustls|openssl)`: library to be benched, if unset benches all libraries
-- `--reuse-config`: if `true` (default), reuse configs between connections
-- `--shrink-buffers`: if `true` (default), shrink buffers owned by connections
-
-To view a callgraph of memory usage, use [KCachegrind](https://github.com/KDE/kcachegrind) on `xtree.out` generated from memory benching:
-
-```
-kcachegrind target/memory/<params>/<target>/<library>/xtree.out
-```
-
-To view a flamegraph of memory usage, use [heaptrack](https://github.com/KDE/heaptrack) with `heaptrack_gui` also installed. Run heaptrack with the `memory` executable and target/library options:
-
-```
-heaptrack target/release/memory (pair|client|server) (s2n-tls|rustls|openssl)
-```
-
-## Historical benchmarks
-
-To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
-
 ## PKI Structure
 ```
    ┌────root──────┐
@@ -87,21 +56,6 @@ To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old
 The last version benched is v1.3.16, since before that, the s2n-tls Rust bindings have a different API and would thus require a different bench harness to test.
 
 v1.3.30-1.3.37 are not benched because of dependency issues when generating the Rust bindings. However, versions before and after are benched, so the overall trend in performance can still be seen without the data from these versions.
-
-### Sample output
-
-Because these benches take a longer time to generate (>30 min), we include the results from historical benching (as of v1.3.47) here.
-
-Notes:
-- Two sets of parameters for the handshake couldn't be benched before 1.3.40, since security policies that negotiated those policies as their top choice did not exist before then.
-- There is no data from 1.3.30 to 1.3.37 because those versions have a dependency issue that cause the Rust bindings not to build. However, there is data before and after that period, so the performance for those versions can be inferred via interpolation.
-- The improvement in throughput in 1.3.28 was most likely caused by the addition of LTO to the default Rust bindings build.
-- Since the benches are run over a long time, noise on the machine can cause variability, and background processes can cause spikes.
-- The variability can be seen with throughput especially because it is calculated as the inverse of time taken.
-
-![historical-perf-handshake](images/historical-perf-handshake.svg)
-
-![historical-perf-throughput](images/historical-perf-throughput.svg)
 
 ## Implementation details
 
