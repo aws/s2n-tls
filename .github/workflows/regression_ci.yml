@@ -3,16 +3,21 @@
 name: Performance Regression Test
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches:
       - main
     paths-ignore:
       - tests/regression/**
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 jobs:
   regression-test:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event_name == 'pull_request' }}
     steps:
       # Checkout the code from the pull request branch
       - name: Checkout code
