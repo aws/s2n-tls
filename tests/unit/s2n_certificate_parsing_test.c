@@ -251,6 +251,23 @@ int main(int argc, char **argv)
                 "--" BEGIN_CERT "--" CERTIFICATE_3 "--" END_CERT "--" ,
         },
         {
+            .name = "non-certificate data",
+            .input =
+                "this is not a certificate\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                "\n"
+                "this is not a certificate either\n"
+                "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "not a certificate\n"
+                "not a certificate" BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n",
+        },
+        {
             .name = "comments",
             .input =
                 "# cert1"
@@ -303,6 +320,50 @@ int main(int argc, char **argv)
                 BEGIN_CERT_LINE "\n"
                 CERTIFICATE_3 "\n"
                 END_CERT_LINE "\n",
+        },
+        {
+            .name = "trailing comment",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n"
+                "# trailing comment \n"
+        },
+        {
+            .name = "trailing whitespace",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n"
+                "\n"
+                "\n",
+        },
+        {
+            .name = "trailing non-certificate data",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_2 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_3 "\n"
+                END_CERT_LINE "\n"
+                "this is not a certificate\n"
+                "neither is this",
         },
     };
     /* clang-format on */
@@ -420,6 +481,32 @@ int main(int argc, char **argv)
                 CERTIFICATE_1 "\n"
                 END_CERT_LINE "\n"
         },
+        {
+            .name = "multiple certs: trailing marker",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+        },
+        {
+            .name = "multiple certs: trailing partial certificate",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                "MIIBljCCATygAwIBAg\n"
+        },
+        {
+            .name = "multiple certs: missing end marker",
+            .input =
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+                END_CERT_LINE "\n"
+                BEGIN_CERT_LINE "\n"
+                CERTIFICATE_1 "\n"
+        },
     };
     /* clang-format on */
 
@@ -434,6 +521,42 @@ int main(int argc, char **argv)
 
         struct s2n_cert_chain *cert_chain = chain_and_key->cert_chain;
         if (s2n_create_cert_chain_from_stuffer(cert_chain, &test_input) == S2N_SUCCESS) {
+            fprintf(stderr, "Successfully parsed invalid cert chain \"%s\"\n", test_case->name);
+            FAIL_MSG("Successfully parsed invalid cert chain");
+        };
+    }
+
+    /* Any case that is invalid for a single certificate should also be invalid
+     * for a certificate chain.
+     * We do not want to rely solely on our test for 0-length chains.
+     */
+    const char *valid_cert_chain = test_cases[0].input;
+    for (size_t i = 0; i < s2n_array_len(bad_test_cases); i++) {
+        const struct s2n_test_case *test_case = &bad_test_cases[i];
+
+        /* The extra character is for an extra newline */
+        size_t test_input_size = strlen(test_case->input) + strlen(valid_cert_chain) + 1;
+
+        DEFER_CLEANUP(struct s2n_stuffer test_input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test_input, test_input_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_str(&test_input, valid_cert_chain));
+
+        /* Sanity check: valid chain is valid */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *good_chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        struct s2n_cert_chain *good_chain = good_chain_and_key->cert_chain;
+        EXPECT_SUCCESS(s2n_create_cert_chain_from_stuffer(good_chain, &test_input));
+
+        /* Add the invalid input to the end of the proven valid chain */
+        EXPECT_SUCCESS(s2n_stuffer_write_char(&test_input, '\n'));
+        EXPECT_SUCCESS(s2n_stuffer_write_str(&test_input, test_case->input));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&test_input));
+
+        /* Test: valid chain + invalid test case is sill invalid */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *bad_chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        struct s2n_cert_chain *bad_chain = bad_chain_and_key->cert_chain;
+        if (s2n_create_cert_chain_from_stuffer(bad_chain, &test_input) == S2N_SUCCESS) {
             fprintf(stderr, "Successfully parsed invalid cert chain \"%s\"\n", test_case->name);
             FAIL_MSG("Successfully parsed invalid cert chain");
         };
