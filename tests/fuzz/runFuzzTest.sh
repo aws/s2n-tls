@@ -18,21 +18,19 @@
 set -e
 
 usage() {
-    echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC BUILD_DIR_PATH CORPUS_UPLOAD_LOC ARTIFACT_UPLOAD_LOC FUZZ_COVERAGE"
+    echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC CORPUS_UPLOAD_LOC ARTIFACT_UPLOAD_LOC S2N_ROOT"
     exit 1
 }
 
-if [ "$#" -ne "7" ]; then
+if [ "$#" -ne "5" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
-BUILD_DIR_PATH=$3
-CORPUS_UPLOAD_LOC=$4
-ARTIFACT_UPLOAD_LOC=$5
-FUZZ_COVERAGE=$6
-S2N_ROOT=$7
+CORPUS_UPLOAD_LOC=$3
+ARTIFACT_UPLOAD_LOC=$4
+S2N_ROOT=$5
 
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
@@ -49,10 +47,10 @@ ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=$(nproc)
-LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
+LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
-TEST_SPECIFIC_OVERRIDES="${BUILD_DIR_PATH}/lib/lib${TEST_NAME}_overrides.so"
-GLOBAL_OVERRIDES="${BUILD_DIR_PATH}/lib/libglobal_overrides.so"
+TEST_SPECIFIC_OVERRIDES="${S2N_ROOT}/build/lib/lib${TEST_NAME}_overrides.so"
+GLOBAL_OVERRIDES="${S2N_ROOT}/build/lib/libglobal_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
@@ -104,19 +102,10 @@ else
     cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 fi
 
-# Setup and clean profile structure if FUZZ_COVERAGE is enabled, otherwise run as normal
-if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-    mkdir -p "./profiles/${TEST_NAME}"
-    rm -f ./profiles/${TEST_NAME}/*.profraw
-    LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" \
-    env LD_PRELOAD="$LD_PRELOAD_" \
-    ${BUILD_DIR_PATH}/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
-    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
-else
-    env LD_PRELOAD="$LD_PRELOAD_" \
-    ${BUILD_DIR_PATH}/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
-    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
-fi
+# Run fuzz test executable and store results to an output file
+env LD_PRELOAD="$LD_PRELOAD_" \
+${S2N_ROOT}/build/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
+> ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 
 TEST_INFO=$(
     grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | \
@@ -124,68 +113,19 @@ TEST_INFO=$(
 )
 TESTS_PER_SEC=$(echo "$TEST_INFO" | cut -d ' ' -f 3)
 FEATURE_COVERAGE=`grep -o "ft: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
-TARGET_FUNCS=''
-declare -i TARGET_TOTAL=0
-declare -i TARGET_COV=0
-
-# Outputs fuzz coverage results if the FUZZ_COVERAGE environment variable is set
-# Coverage is overlayed on source code in ${TEST_NAME}_cov.html, and coverage statistics are available in ${TEST_NAME}_cov.txt
-# If using LLVM version 9 or greater, coverage is output in LCOV format instead of HTML
-# All files are stored in the s2n coverage directory
-if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-    mkdir -p coverage/fuzz
-    llvm-profdata merge -sparse ./profiles/${TEST_NAME}/*.profraw -o ./profiles/${TEST_NAME}/${TEST_NAME}.profdata
-    llvm-cov report -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -show-functions > coverage/fuzz/${TEST_NAME}_cov.txt
-
-    # Use LCOV format instead of HTML if the LLVM version we're using supports it
-    if [[ $(grep -Eo "[0-9]*" <<< `llvm-cov --version` | head -1) -gt 8 ]]; then
-        llvm-cov export -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > coverage/fuzz/${TEST_NAME}_cov.info
-        genhtml -q -o coverage/html/${TEST_NAME} coverage/fuzz/${TEST_NAME}_cov.info
-    else
-        llvm-cov show -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${BUILD_DIR_PATH}/lib/libs2n.so ${FUZZCOV_SOURCES} -use-color -format=html > coverage/fuzz/${TEST_NAME}_cov.html
-    fi
-
-    # Extract target functions from test source
-    TARGET_FUNCS=`grep -Pzo "(?<=/\* Target Functions: )[\w\s]*" ${TEST_NAME}.c | tr -d "\0"`
-
-    # Find line coverage statistics for target functions
-    if [[ ! -z "$TARGET_FUNCS" ]];
-    then
-        for TARGET in ${TARGET_FUNCS}
-        do
-            TARGET_TOTAL+=`sed -n "s/^.*${TARGET} .*% *\([0-9]*\) .*$/\1/p" coverage/fuzz/${TEST_NAME}_cov.txt`
-            TARGET_COV+=`sed -n "s/^.*${TARGET} .*% *[0-9]* *\([0-9]*\) .*$/\1/p" coverage/fuzz/${TEST_NAME}_cov.txt`
-        done
-    fi
-fi
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
-    printf "\033[32;1mPASSED\033[0m %s" "$TEST_INFO"
-
-    # Output target function coverage percentage if target functions are defined and fuzzing coverage is enabled
-    # Otherwise, print number of features covered
-    if [[ "$FUZZ_COVERAGE" == "true" && ! -z "$TARGET_FUNCS" && "$EXPECTED_TEST_FAILURE" != 1 && "$TARGET_TOTAL" != 0 ]];
-    then
-        printf ", %6.2f%% target coverage" "$(( 10000 * ($TARGET_TOTAL - $TARGET_COV) / $TARGET_TOTAL ))e-2"
-    else
-        printf ", %5d features covered" $FEATURE_COVERAGE
-    fi
-
     if [ $EXPECTED_TEST_FAILURE == 1 ];
     then
         # Clean up LibFuzzer corpus files if the test is negative.
-        printf "\n"
         rm -f leak-* crash-*
     else
         # TEMP_CORPUS_DIR may contain many new inputs that only covers a small set of new branches. 
         # Instead of copying all new inputs to the corpus directory,  only copy back minimum number of new inputs that reach new branches.
-        ${BUILD_DIR_PATH}/bin/${TEST_NAME} -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" \
-        > ${TEST_NAME}_results.txt 2>&1
-
-        # Print number of new files and branches found in new Inputs (if any)
-        RESULTS=`grep -Eo "[0-9]+ new files .*$" ${TEST_NAME}_results.txt | tail -1`
-        printf ", ${RESULTS}\n"
+        ${S2N_ROOT}/build/bin/${TEST_NAME} \
+            -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" \
+            > ${TEST_NAME}_results.txt 2>&1
 
         if [ "$TESTS_PER_SEC" -lt $MIN_TEST_PER_SEC ]; then
             printf "\033[33;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
