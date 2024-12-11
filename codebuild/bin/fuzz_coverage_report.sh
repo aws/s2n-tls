@@ -24,8 +24,36 @@ if [ "$#" -ne "0" ]; then
     usage
 fi
 
+FUZZ_TEST_DIR="tests/fuzz"
 FUZZCOV_SOURCES="api bin crypto error stuffer tls utils"
 
+# generate coverage report for each fuzz test
+printf "Generating coverage reports... \n"
+
+mkdir -p coverage/fuzz
+for FUZZ_TEST in "$FUZZ_TEST_DIR"/*.c; do
+    # extract file name without extension
+    TEST_NAME=$(basename "$FUZZ_TEST")
+    TEST_NAME="${TEST_NAME%.*}"
+
+    llvm-profdata merge \
+        -sparse tests/fuzz/profiles/${TEST_NAME}/*.profraw \
+        -o tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata
+
+    llvm-cov report \
+        -instr-profile=tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
+        -show-functions \
+        > coverage/fuzz/${TEST_NAME}_cov.txt
+
+    llvm-cov export \
+        -instr-profile=tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
+        -format=lcov \
+        > coverage/fuzz/${TEST_NAME}_cov.info
+
+    genhtml -q -o coverage/html/${TEST_NAME} coverage/fuzz/${TEST_NAME}_cov.info > /dev/null 2>&1
+done
+
+# merge all coverage reports into a single report that shows total s2n coverage
 printf "Calculating total s2n coverage... \n"
 
 # The llvm-profdata merge command warns that the profraws were created from different binaries (which is true) but
@@ -38,9 +66,3 @@ llvm-cov report -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/li
 llvm-cov export -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > s2n_fuzz_cov.info
 
 genhtml s2n_fuzz_cov.info --branch-coverage -q -o fuzz_coverage_report
-
-S2N_COV=`grep -Eo '[0-9]*\.[0-9]*\%' s2n_fuzz_coverage.txt | tail -3`
-LINE_COV=$(echo $S2N_COV | cut -d' ' -f1)
-FUNC_COV=$(echo $S2N_COV | cut -d' ' -f2)
-BRANCH_COV=$(echo $S2N_COV | cut -d' ' -f3)
-printf "Coverage Report:\nLine coverage: %s\nFunction coverage: %s\nBranch coverage: %s\n" "$LINE_COV" "$FUNC_COV" "$BRANCH_COV"

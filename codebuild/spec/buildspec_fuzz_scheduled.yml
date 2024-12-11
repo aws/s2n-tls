@@ -33,17 +33,18 @@ phases:
         cmake . -Bbuild \
         -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
         -DS2N_FUZZ_TEST=on \
-        -DFUZZ_TIMEOUT_SEC=27000 \
         -DCOVERAGE=on \
-        -DBUILD_SHARED_LIBS=ON
+        -DBUILD_SHARED_LIBS=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
     commands:
+      - ./codebuild/bin/fuzz_corpus_download.sh
       # -L: Restrict tests to labels matching the pattern 'fuzz'
       # --timeout: override ctest's default timeout of 1500
       - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure -j $(nproc) --timeout 28800"
-      - ./tests/fuzz/calcTotalCov.sh
+      - ./codebuild/bin/fuzz_corpus_upload.sh
+      - ./codebuild/bin/fuzz_coverage_report.sh
 
 artifacts:
   # upload all files in the fuzz_coverage_report directory

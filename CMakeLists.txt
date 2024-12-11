@@ -667,7 +667,6 @@ if (BUILD_TESTING)
     if(S2N_FUZZ_TEST)
         message(STATUS "Fuzz build enabled")
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
-        set(BUILD_DIR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         file(GLOB TESTLIB_SRC "tests/testlib/*.c")
@@ -682,24 +681,6 @@ if (BUILD_TESTING)
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
             set(FUZZ_TIMEOUT_SEC 60)
-        endif()
-
-        if(DEFINED ENV{CORPUS_UPLOAD_LOC})
-            set(CORPUS_UPLOAD_LOC $ENV{CORPUS_UPLOAD_LOC})
-        else()
-            set(CORPUS_UPLOAD_LOC "none")
-        endif()
-
-        if(DEFINED ENV{ARTIFACT_UPLOAD_LOC})
-            set(ARTIFACT_UPLOAD_LOC $ENV{ARTIFACT_UPLOAD_LOC})
-        else()
-            set(ARTIFACT_UPLOAD_LOC "none")
-        endif()
-
-        if(COVERAGE)
-            set(FUZZ_COVERAGE "true")
-        else()
-            set(FUZZ_COVERAGE "false")
         endif()
 
         # Build LD_PRELOAD shared libraries
@@ -735,10 +716,6 @@ if (BUILD_TESTING)
                     bash ${SCRIPT_PATH} 
                     ${TEST_NAME} 
                     ${FUZZ_TIMEOUT_SEC} 
-                    ${BUILD_DIR_PATH} 
-                    ${CORPUS_UPLOAD_LOC} 
-                    ${ARTIFACT_UPLOAD_LOC}
-                    ${FUZZ_COVERAGE}
                     ${CMAKE_CURRENT_SOURCE_DIR}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
             )
