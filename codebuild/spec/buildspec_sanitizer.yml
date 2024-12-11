@@ -63,7 +63,7 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
-    - identifier: clang_openssl_1_0_2-fips
+    - identifier: clang_openssl_1_0_2_fips
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
@@ -93,7 +93,7 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: gcc
-    - identifier: gcc_openssl_1_0_2-fips
+    - identifier: gcc_openssl_1_0_2_fips
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
