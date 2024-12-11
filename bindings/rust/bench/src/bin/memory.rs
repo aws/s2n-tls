@@ -108,7 +108,7 @@ fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
             )?;
             conn_pair = TlsConnPair::wrap(client_conn, server_conn);
         } else {
-            conn_pair = TlsConnPair::<T, T>::new(
+            conn_pair = TlsConnPair::<T, T>::from_configs(
                 CryptoConfig::default(),
                 HandshakeType::default(),
                 buffers.pop().unwrap(),
