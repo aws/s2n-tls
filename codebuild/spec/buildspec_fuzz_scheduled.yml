@@ -44,7 +44,7 @@ phases:
       - |
         LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" \
         cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure -j $(nproc) --timeout 28800"
-      - ./tests/fuzz/calcTotalCov.sh
+      - ./tests/fuzz/generate_fuzz_coverage.sh
 
 artifacts:
   # upload all files in the fuzz_coverage_report directory
