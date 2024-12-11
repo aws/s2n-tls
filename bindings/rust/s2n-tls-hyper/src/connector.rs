@@ -12,6 +12,7 @@ use s2n_tls::{config::Config, connection};
 use s2n_tls_tokio::TlsConnector;
 use std::{
     future::Future,
+    marker::PhantomData,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -24,49 +25,101 @@ use tower_service::Service;
 /// which sends and receives requests over TCP. The `HttpsConnector` struct wraps an HTTP connector,
 /// and uses it to negotiate TLS when the HTTPS scheme is in use.
 #[derive(Clone)]
-pub struct HttpsConnector<Http, Builder = Config> {
+pub struct HttpsConnector<Http, ConnBuilder = Config> {
     http: Http,
-    conn_builder: Builder,
+    conn_builder: ConnBuilder,
 }
 
-impl<Builder> HttpsConnector<HttpConnector, Builder>
+impl<ConnBuilder> HttpsConnector<HttpConnector, ConnBuilder>
 where
-    Builder: connection::Builder,
-    <Builder as connection::Builder>::Output: Unpin,
+    ConnBuilder: connection::Builder,
+    <ConnBuilder as connection::Builder>::Output: Unpin,
 {
-    /// Creates a new `HttpsConnector`.
+    /// Creates a new `HttpsConnector` with the default configuration. Use `HttpsConnector::builder`
+    /// instead to configure an `HttpsConnector`.
+    ///
+    /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
+    /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
+    ///
+    /// ```
+    /// use s2n_tls_hyper::connector::HttpsConnector;
+    /// use s2n_tls::config::Config;
+    ///
+    /// // Create a new HttpsConnector.
+    /// let connector = HttpsConnector::new(Config::default());
+    /// ```
+    ///
+    /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
+    /// configured on `conn_builder` with APIs like
+    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
+    pub fn new(conn_builder: ConnBuilder) -> HttpsConnector<HttpConnector, ConnBuilder> {
+        HttpsConnector::builder().build(conn_builder)
+    }
+}
+
+impl<HttpConnector, ConnBuilder> HttpsConnector<HttpConnector, ConnBuilder>
+where
+    ConnBuilder: connection::Builder,
+    <ConnBuilder as connection::Builder>::Output: Unpin,
+{
+    /// Creates a `Builder` to configure a new `HttpsConnector`.
+    ///
+    /// ```
+    /// use s2n_tls_hyper::connector::HttpsConnector;
+    /// use s2n_tls::config::Config;
+    ///
+    /// // Create and configure a builder.
+    /// let builder = HttpsConnector::builder();
+    ///
+    /// // Build a new HttpsConnector.
+    /// let connector = builder.build(Config::default());
+    /// ```
+    pub fn builder() -> Builder<HttpConnector, ConnBuilder> {
+        Builder {
+            http: PhantomData,
+            conn_builder: PhantomData,
+        }
+    }
+}
+
+/// Builder used to configure an `HttpsConnector`. Create a new Builder with
+/// `HttpsConnector::builder`.
+pub struct Builder<Http, ConnBuilder> {
+    http: PhantomData<Http>,
+    conn_builder: PhantomData<ConnBuilder>,
+}
+
+impl<ConnBuilder> Builder<HttpConnector, ConnBuilder> {
+    /// Builds a new `HttpsConnector`.
     ///
     /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
     /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
     ///
     /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
-    /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
+    /// existing HTTP connector, use `Builder::build_with_http()`.
     ///
     /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
     /// configured on `conn_builder` with APIs like
     /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
-    pub fn new(conn_builder: Builder) -> HttpsConnector<HttpConnector, Builder> {
+    pub fn build(self, conn_builder: ConnBuilder) -> HttpsConnector<HttpConnector, ConnBuilder> {
         let mut http = HttpConnector::new();
 
         // By default, the `HttpConnector` only allows the HTTP URI scheme to be used. To negotiate
         // HTTP over TLS via the HTTPS scheme, `enforce_http` must be disabled.
         http.enforce_http(false);
 
-        Self { http, conn_builder }
+        self.build_with_http(http, conn_builder)
     }
 }
 
-impl<Http, Builder> HttpsConnector<Http, Builder>
-where
-    Builder: connection::Builder,
-    <Builder as connection::Builder>::Output: Unpin,
-{
-    /// Creates a new `HttpsConnector`.
+impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
+    /// Builds a new `HttpsConnector`.
     ///
     /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
     /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
     ///
-    /// This API allows an `HttpsConnector` to be constructed with an existing HTTP connector, as follows:
+    /// This API allows an `HttpsConnector` to be constructed with an existing HTTP connector, as
+    /// follows:
     /// ```
     /// use s2n_tls_hyper::connector::HttpsConnector;
     /// use s2n_tls::config::Config;
@@ -77,16 +130,21 @@ where
     /// // Ensure that the HTTP connector permits the HTTPS scheme.
     /// http.enforce_http(false);
     ///
-    /// let connector = HttpsConnector::new_with_http(http, Config::default());
+    /// let connector = HttpsConnector::builder()
+    ///     .build_with_http(http, Config::default());
     /// ```
     ///
-    /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
+    /// `Builder::build()` can be used to create the HTTP connector automatically.
     ///
     /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
     /// configured on `conn_builder` with APIs like
     /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
-    pub fn new_with_http(http: Http, conn_builder: Builder) -> HttpsConnector<Http, Builder> {
-        Self { http, conn_builder }
+    pub fn build_with_http(
+        self,
+        http: Http,
+        conn_builder: ConnBuilder,
+    ) -> HttpsConnector<Http, ConnBuilder> {
+        HttpsConnector { http, conn_builder }
     }
 }
 
@@ -96,19 +154,22 @@ where
 // https://docs.rs/hyper-util/latest/hyper_util/client/legacy/connect/trait.Connect.html
 //
 // The hyper compatibility traits for `Service::Response` are implemented in `MaybeHttpsStream`.
-impl<Http, Builder> Service<Uri> for HttpsConnector<Http, Builder>
+impl<Http, ConnBuilder> Service<Uri> for HttpsConnector<Http, ConnBuilder>
 where
     Http: Service<Uri>,
     Http::Response: Read + Write + Connection + Unpin + Send + 'static,
     Http::Future: Send + 'static,
     Http::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    Builder: connection::Builder + Send + Sync + 'static,
-    <Builder as connection::Builder>::Output: Unpin + Send,
+    ConnBuilder: connection::Builder + Send + Sync + 'static,
+    <ConnBuilder as connection::Builder>::Output: Unpin + Send,
 {
-    type Response = MaybeHttpsStream<Http::Response, Builder>;
+    type Response = MaybeHttpsStream<Http::Response, ConnBuilder>;
     type Error = Error;
     type Future = Pin<
-        Box<dyn Future<Output = Result<MaybeHttpsStream<Http::Response, Builder>, Error>> + Send>,
+        Box<
+            dyn Future<Output = Result<MaybeHttpsStream<Http::Response, ConnBuilder>, Error>>
+                + Send,
+        >,
     >;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -179,6 +240,21 @@ mod tests {
     use http_body_util::Empty;
     use hyper_util::{client::legacy::Client, rt::TokioExecutor};
     use std::{error::Error as StdError, str::FromStr};
+
+    #[tokio::test]
+    async fn connector_creation() {
+        let config = Config::default();
+        let connector_from_new = HttpsConnector::new(config.clone());
+        let _assert_type: HttpsConnector<HttpConnector, Config> = connector_from_new;
+
+        let connector_from_build = HttpsConnector::builder().build(config.clone());
+        let _assert_type: HttpsConnector<HttpConnector, Config> = connector_from_build;
+
+        let http: u32 = 10;
+        let connect_from_build_with_http =
+            HttpsConnector::builder().build_with_http(http, config.clone());
+        let _assert_type: HttpsConnector<u32, Config> = connect_from_build_with_http;
+    }
 
     #[tokio::test]
     async fn test_unsecure_http() -> Result<(), Box<dyn StdError>> {
