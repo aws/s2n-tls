@@ -177,10 +177,10 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         privileged-mode: true
         variables:
-          GCC_VERSION: '6'
+          GCC_VERSION: '13'
           TESTS: crt
       identifier: s2nUnitCRT
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
