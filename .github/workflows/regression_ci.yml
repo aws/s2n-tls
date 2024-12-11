@@ -17,7 +17,7 @@ on:
 jobs:
   regression-test:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event_name == 'pull_request' }}
     steps:
       # Checkout the code from the pull request branch
       - name: Checkout code
