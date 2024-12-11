@@ -101,11 +101,6 @@ else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
 
-# Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
-if(S2N_FIPS)
-    add_definitions(-DS2N_TEST_IN_FIPS_MODE)
-endif()
-
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${API_UNSTABLE_HEADERS}
@@ -469,6 +464,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 if (BUILD_TESTING)
     enable_testing()
 
+    # FIPS mode is optional for Openssl and must be deliberately configured
+    if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl" AND $ENV{S2N_LIBCRYPTO} MATCHES "fips")
+        set(TEST_FIPS_MODES true false)
+        message(STATUS "Building against $ENV{S2N_LIBCRYPTO}: will test FIPS modes")
+    else()
+        set(TEST_FIPS_MODES false)
+    endif()
+
     ############################################################################
     ################### build testlib (utility library) ########################
     ############################################################################
@@ -562,8 +565,14 @@ if (BUILD_TESTING)
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
+    foreach(fips_mode ${TEST_FIPS_MODES})
         # NAME_WE: name without extension
         get_filename_component(test_case_name ${test_case} NAME_WE)
+
+        if(fips_mode)
+            set(test_case_name ${test_case_name}+fips)
+            set(target_compile_definitions(${test_case_name} PRIVATE S2N_TEST_IN_FIPS_MODE))
+        endif()
 
         add_executable(${test_case_name} ${test_case})
         target_link_libraries(${test_case_name} PRIVATE testss2n)
@@ -592,6 +601,7 @@ if (BUILD_TESTING)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
         set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 
+    endforeach(fips_mode)
     endforeach(test_case)
 
     ############################################################################
