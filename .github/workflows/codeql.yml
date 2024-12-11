@@ -2,13 +2,11 @@ name: "CodeQL - Python"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
     paths-ignore:
       - '**/tests/integration/*'
   pull_request:
-    branches: [ "main" ]
-    paths-ignore:
-      - '**/tests/integration/*'
+    branches: [main]
   schedule:
     - cron: "1 18 * * 0"
   merge_group:
