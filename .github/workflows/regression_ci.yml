@@ -10,6 +10,9 @@ on:
       - main
     paths-ignore:
       - tests/regression/**
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 jobs:
   regression-test:
