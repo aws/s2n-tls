@@ -465,7 +465,7 @@ if (BUILD_TESTING)
     enable_testing()
 
     # FIPS mode is optional for Openssl and must be deliberately configured
-    if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl" AND $ENV{S2N_LIBCRYPTO} MATCHES "fips")
+    if ("$ENV{S2N_LIBCRYPTO}" MATCHES "openssl" AND "$ENV{S2N_LIBCRYPTO}" MATCHES "fips")
         set(TEST_FIPS_MODES true false)
         message(STATUS "Building against $ENV{S2N_LIBCRYPTO}: will test FIPS modes")
     else()
