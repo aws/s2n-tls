@@ -14,10 +14,10 @@ jobs:
       contents: read  # This is required for actions/checkout
       id-token: write # This is required for requesting the JWT
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -37,7 +37,7 @@ jobs:
         run: cargo criterion --message-format json > criterion_output.log
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.1
+        uses: aws-actions/configure-aws-credentials@v4.0.2
         with:
           role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
           role-session-name: s2ntlsghabenchsession
