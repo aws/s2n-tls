@@ -36,33 +36,40 @@ for FUZZ_TEST in "$FUZZ_TEST_DIR"/*.c; do
     TEST_NAME=$(basename "$FUZZ_TEST")
     TEST_NAME="${TEST_NAME%.*}"
 
+    # merge multiple .profraw files into a single .profdata file
     llvm-profdata merge \
         -sparse tests/fuzz/profiles/${TEST_NAME}/*.profraw \
         -o tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata
 
+    # generate a coverage report in text format
     llvm-cov report \
         -instr-profile=tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
         -show-functions \
         > coverage/fuzz/${TEST_NAME}_cov.txt
 
+    # exports coverage data in LCOV format
     llvm-cov export \
         -instr-profile=tests/fuzz/profiles/${TEST_NAME}/${TEST_NAME}.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
         -format=lcov \
         > coverage/fuzz/${TEST_NAME}_cov.info
 
+    # convert to HTML format
     genhtml -q -o coverage/html/${TEST_NAME} coverage/fuzz/${TEST_NAME}_cov.info > /dev/null 2>&1
 done
 
 # merge all coverage reports into a single report that shows total s2n coverage
 printf "Calculating total s2n coverage... \n"
+llvm-profdata merge \
+    -sparse tests/fuzz/profiles/*/*.profdata \
+    -o tests/fuzz/profiles/merged_fuzz.profdata
 
-# The llvm-profdata merge command warns that the profraws were created from different binaries (which is true) but
-# works fine for what we care about (the s2n library). Therefore, for user clarity all output is suppressed.
-llvm-profdata merge -sparse tests/fuzz/profiles/*/*.profdata -o tests/fuzz/profiles/merged_fuzz.profdata > /dev/null 2>&1
+llvm-cov report \ 
+    -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
+    > s2n_fuzz_coverage.txt
 
-llvm-cov report -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} > s2n_fuzz_coverage.txt
-
-# convert coverage information to html format
-llvm-cov export -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > s2n_fuzz_cov.info
-
+llvm-cov export \ 
+    -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \ 
+    -format=lcov \ 
+    > s2n_fuzz_cov.info
+    
 genhtml s2n_fuzz_cov.info --branch-coverage -q -o fuzz_coverage_report
