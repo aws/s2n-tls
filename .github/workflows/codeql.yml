@@ -2,13 +2,9 @@ name: "CodeQL - Python"
 
 on:
   push:
-    branches: [ "main" ]
-    paths-ignore:
-      - '**/tests/integration/*'
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
-    paths-ignore:
-      - '**/tests/integration/*'
+    branches: [main]
   schedule:
     - cron: "1 18 * * 0"
   merge_group:
@@ -49,3 +45,24 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+
+  # This is a very simple Action that will act as a substitute required status
+  # check for Code Scanning once you have merge-queue enabled. It will force
+  # Code Scanning to pass at the Pull Request and allow you to skip it in your
+  # repo's merge group. https://github.com/Eldrick19/code-scanning-status-checker
+  check_codeql_status:
+    name: Check CodeQL Status
+    needs: analyze
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+    - name: Check CodeQL Status
+      uses: eldrick19/code-scanning-status-checker@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        pr_number: ${{ github.event.pull_request.number }}
+        repo: ${{ github.repository }}
