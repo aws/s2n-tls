@@ -63,13 +63,13 @@ llvm-profdata merge \
     -sparse tests/fuzz/profiles/*/*.profdata \
     -o tests/fuzz/profiles/merged_fuzz.profdata
 
-llvm-cov report \ 
+llvm-cov report \
     -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
     > s2n_fuzz_coverage.txt
 
-llvm-cov export \ 
-    -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \ 
-    -format=lcov \ 
+llvm-cov export \
+    -instr-profile=tests/fuzz/profiles/merged_fuzz.profdata build/lib/libs2n.so ${FUZZCOV_SOURCES} \
+    -format=lcov \
     > s2n_fuzz_cov.info
     
-genhtml s2n_fuzz_cov.info --branch-coverage -q -o fuzz_coverage_report
+genhtml s2n_fuzz_cov.info --branch-coverage -q -o coverage/fuzz/total_fuzz_coverage
