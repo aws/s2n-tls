@@ -50,4 +50,4 @@ artifacts:
   # upload all files in the fuzz_coverage_report directory
   files:
     - '**/*'
-  base-directory: coverage/fuzz/fuzz_coverage_report
+  base-directory: coverage/fuzz/total_fuzz_coverage
