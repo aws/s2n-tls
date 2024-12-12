@@ -54,7 +54,7 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 ```
 
-Next, run fuzz tests. This will generate `.info` files for each fuzz test containing coverage information. 
+Next, run fuzz tests. This generates `.info` files for each fuzz test containing coverage information. 
 ```
 cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
 ```
