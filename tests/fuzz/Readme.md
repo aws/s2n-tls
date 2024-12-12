@@ -29,23 +29,43 @@ cmake --build build/ --target test -- ARGS="-L fuzz -R s2n_client_fuzz_test --ou
     2. If the test ends with `*_negative_test.c` the test is expected to fail in some way or return a non-zero integer (hereafter referred to as a "Negative test").
 2. Strive to be deterministic (Eg. shouldn't depend on the time or on the output of a RNG). Each test should either always pass if a Positive Test, or always fail if a Negative Test.
 3. If a Positive Fuzz test, it should have a non-empty corpus directory with inputs that have a relatively high branch coverage.
-4. Have a function `int s2n_fuzz_init(int *argc, char **argv[])` that will perform any initialization that will be run only once at startup.
-5. Have a function `int s2n_fuzz_test(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
-5. Optionally add a function `void s2n_fuzz_cleanup()` which cleans up any global state.
-6. Call `S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)` at the bottom of the test to initialize the fuzz target
+4. If a Positive Fuzz test, define target functions for the test by adding following lines to your test below the copyright notice:
+> /* Target Functions: function1 function2 function3 */
+5. Have a function `int s2n_fuzz_init(int *argc, char **argv[])` that will perform any initialization that will be run only once at startup.
+6. Have a function `int s2n_fuzz_test(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
+7. Optionally add a function `void s2n_fuzz_cleanup()` which cleans up any global state.
+8. Call `S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)` at the bottom of the test to initialize the fuzz target
 
 ## Fuzz Test Coverage
-To generate coverage reports for fuzz tests, simply set the FUZZ_COVERAGE environment variable to any non-null value and run `make fuzz`. This will report the target function coverage and overall S2N coverage when running the tests. In order to define target functions for a fuzz test, simply add the following line to your fuzz test below the copyright notice:
+To generate coverage reports for fuzz tests, s2n-tls needs to be compiled with the following options:
+```
+cmake . -Bbuild \
+-DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+-DS2N_FUZZ_TEST=on \
+-DCOVERAGE=on \
+-DBUILD_SHARED_LIBS=on
 
-> /* Target Functions: function1 function2 function3 */
+cmake --build ./build -- -j $(nproc)
+```
 
-As the tests run, more detailed coverage reports are placed in the following directory:
+If you see an error that says `This project requires clang for coverage support. You are currently using X`, set the C compiler environment variable to use Clang:
+```
+export CC=/usr/bin/clang
+export CXX=/usr/bin/clang++
+```
 
-> s2n/coverage/fuzz
+Next, run fuzz tests. This will generate `.info` files for each fuzz test containing coverage information. 
+```
+cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
+```
 
-Each test outputs an HTML file which displays line by line coverage statistics and a .txt report which gives per-function coverage statistics in human-readable ASCII. After all fuzz tests have ran, a matching pair of coverage reports is generated for the total coverage of S2N by the entire set of tests performed.
+The `.info` files contain raw coverage data.  To convert them into HTML format, run the following script from the root of s2n-tls. This generates HTML files showing line-by-line coverage statistics for each fuzz test, as well as total coverage report for s2n-tls across all tests.
+```
+./codebuild/bin/fuzz_coverage_report.sh
+```
 
-Currently, this option isn't enabled for cmake build. See [#4748](https://github.com/aws/s2n-tls/issues/4748).
+You will see coverage reports placed in the following directory:
+> s2n-tls/tests/fuzz/coverage
 
 ## Fuzz Test Directory Structure
 For a test with name `$TEST_NAME`, its files should be laid out with the following structure:
