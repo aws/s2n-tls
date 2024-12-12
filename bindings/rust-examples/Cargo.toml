@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "client-hello-config-resolution",
+    "client-hello-config-resolution", "tokio-server-client",
 ]
 resolver = "2"
 
