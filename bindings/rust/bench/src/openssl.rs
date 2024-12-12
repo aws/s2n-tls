@@ -4,7 +4,8 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsConnection, TlsBenchConfig,
+        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
+        TlsConnection,
     },
     PemType::*,
 };
@@ -43,7 +44,6 @@ pub struct OpenSslConfig {
 }
 
 impl TlsBenchConfig for OpenSslConfig {
-
     fn make_config(
         mode: Mode,
         crypto_config: CryptoConfig,
@@ -147,7 +147,6 @@ impl TlsConnection for OpenSslConnection {
             (b'a' + patch - 1) as char
         )
     }
-
 
     fn new_from_config(
         config: &Self::Config,
