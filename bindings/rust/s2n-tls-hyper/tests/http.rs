@@ -4,7 +4,7 @@
 use crate::common::InsecureAcceptAllCertificatesHandler;
 use bytes::Bytes;
 use common::echo::serve_echo;
-use http::{Method, Request, Uri};
+use http::{Method, Request, Uri, Version};
 use http_body_util::{BodyExt, Empty, Full};
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use s2n_tls::{
@@ -213,5 +213,120 @@ async fn error_matching() -> Result<(), Box<dyn Error + Send + Sync>> {
     assert_eq!(s2n_tls_error.name(), "S2N_ERR_CERT_UNTRUSTED");
 
     server_task.abort();
+    Ok(())
+}
+
+#[tokio::test]
+async fn ipv6() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let config = {
+        // The localhost IPv6 certificate contains ::1 in the SAN extension. s2n-tls will not
+        // successfully validate the certificate unless the sever name is properly formatted, and
+        // matches this identity.
+        let localhost_ipv6_cert: &[u8] = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../certs/cert_localhost_ipv6.pem"
+        ));
+        let localhost_ipv6_key: &[u8] = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../certs/key_localhost_ipv6.pem"
+        ));
+
+        let mut builder = config::Config::builder();
+        builder.load_pem(localhost_ipv6_cert, localhost_ipv6_key)?;
+        builder.trust_pem(localhost_ipv6_cert)?;
+        builder.build()?
+    };
+
+    // Listen for IPv6 connections.
+    let listener = TcpListener::bind("[::1]:0").await?;
+    let addr = listener.local_addr()?;
+
+    let mut tasks = tokio::task::JoinSet::new();
+    tasks.spawn(serve_echo(listener, config.clone()));
+
+    tasks.spawn(async move {
+        let connector = HttpsConnector::new(config);
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
+
+        // Connect to the localhost IPv6 address. s2n-tls hostname verification should ensure that
+        // the certificate contains the `::1` identity (without square brackets).
+        let uri = Uri::from_str(format!("https://[::1]:{}", addr.port()).as_str())?;
+        let response = client.get(uri).await?;
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    });
+
+    while let Some(res) = tasks.join_next().await {
+        res.unwrap()?;
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn http2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    for expected_http_version in [Version::HTTP_11, Version::HTTP_2] {
+        let server_config = {
+            let mut builder = common::config()?;
+            if expected_http_version == Version::HTTP_2 {
+                builder.set_application_protocol_preference(["h2"])?;
+            }
+            builder.build()?
+        };
+
+        common::echo::make_echo_request(server_config.clone(), |port| async move {
+            let connector = HttpsConnector::new(common::config()?.build()?);
+            let client: Client<_, Empty<Bytes>> =
+                Client::builder(TokioExecutor::new()).build(connector);
+
+            let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+            let response = client.get(uri).await?;
+            assert_eq!(response.status(), 200);
+
+            // Ensure that HTTP/2 is negotiated when supported by the server.
+            assert_eq!(response.version(), expected_http_version);
+
+            Ok(())
+        })
+        .await?;
+    }
+
+    Ok(())
+}
+
+/// Ensure that HTTP/2 is negotiated, regardless of any pre-configured ALPN values.
+#[tokio::test]
+async fn config_alpn_ignored() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let server_config = {
+        let mut builder = common::config()?;
+        builder.set_application_protocol_preference(["h2"])?;
+        builder.build()?
+    };
+
+    common::echo::make_echo_request(server_config, |port| async move {
+        let client_config = {
+            let mut builder = common::config()?;
+            // Set an arbitrary non-HTTP/2 ALPN value.
+            builder.set_application_protocol_preference([b"http/1.1"])?;
+            builder.build()?
+        };
+
+        let connector = HttpsConnector::new(client_config);
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
+
+        let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+        let response = client.get(uri).await?;
+        assert_eq!(response.status(), 200);
+
+        // Ensure that HTTP/2 was negotiated.
+        assert_eq!(response.version(), Version::HTTP_2);
+
+        Ok(())
+    })
+    .await?;
+
     Ok(())
 }
