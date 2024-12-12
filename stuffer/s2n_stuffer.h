@@ -45,7 +45,11 @@ struct s2n_stuffer {
     uint32_t write_cursor;
     uint32_t high_water_mark;
 
-    /* Was this stuffer alloc()'d ? */
+    /* Was this stuffer alloc()'d?
+     * This field controls whether the stuffer "owns" the blob. If the stuffer
+     * was allocated, then `blob` must be freed when the stuffer is freed. If the
+     * stuffer was not allocated, then the blob must not be freed by the stuffer, even if the 
+     * blob itself is allocated. */
     unsigned int alloced : 1;
 
     /* Is this stuffer growable? */
