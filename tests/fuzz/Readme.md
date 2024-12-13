@@ -50,12 +50,6 @@ cmake . -Bbuild \
 cmake --build ./build -- -j $(nproc)
 ```
 
-If you see an error that says `This project requires clang for coverage support. You are currently using X`, set the C compiler environment variable to use Clang:
-```
-export CC=/usr/bin/clang
-export CXX=/usr/bin/clang++
-```
-
 Next, run fuzz tests. This generates `.info` files for each fuzz test containing coverage information. 
 ```
 cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"

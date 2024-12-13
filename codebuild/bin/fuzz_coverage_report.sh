@@ -16,7 +16,7 @@
 set -e
 
 usage() {
-    echo "Usage: calcTotalCov.sh"
+    echo "Usage: fuzz_coverage_report.sh"
     exit 1
 }
 

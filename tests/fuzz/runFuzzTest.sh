@@ -41,9 +41,6 @@ else
     EXPECTED_TEST_FAILURE=0
 fi
 
-ASAN_OPTIONS+="symbolize=1"
-LSAN_OPTIONS+="log_threads=1"
-UBSAN_OPTIONS+="print_stacktrace=1"
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${S2N_ROOT}/build/lib/lib${TEST_NAME}_overrides.so"

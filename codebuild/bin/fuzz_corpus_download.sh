@@ -13,11 +13,6 @@
 # permissions and limitations under the License.
 #
 
-# Clean the environment before copying corpuses from the S3 bucket.
-# The LD variables may interfere with certificate validation when communicating with AWS S3.
-unset LD_PRELOAD
-unset LD_LIBRARY_PATH
-
 for FUZZ_TEST in tests/fuzz/*.c; do
     # extract file name without extension
     TEST_NAME=$(basename "$FUZZ_TEST")

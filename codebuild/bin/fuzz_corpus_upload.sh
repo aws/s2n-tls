@@ -13,17 +13,12 @@
 # permissions and limitations under the License.
 #
 
-# Clean the environment before copying corpuses to the S3 bucket.
-# The LD variables may interfere with certificate validation when communicating with AWS S3.
-unset LD_PRELOAD
-unset LD_LIBRARY_PATH
-
 for FUZZ_TEST in tests/fuzz/*.c; do
     # extract file name without extension
     TEST_NAME=$(basename "$FUZZ_TEST")
     TEST_NAME="${TEST_NAME%.*}"
     
-    # Store generated corpus files in the S3 bucket.
+    # Upload generated corpus files to the S3 bucket.
     zip -r ./tests/fuzz/corpus/${TEST_NAME}.zip ./tests/fuzz/corpus/${TEST_NAME}/ > /dev/null 2>&1
     aws s3 cp ./tests/fuzz/corpus/${TEST_NAME}.zip s3://s2n-tls-fuzz-corpus/${TEST_NAME}/corpus.zip
 done
