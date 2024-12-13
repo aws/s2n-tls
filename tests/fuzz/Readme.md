@@ -37,6 +37,8 @@ cmake --build build/ --target test -- ARGS="-L fuzz -R s2n_client_fuzz_test --ou
 8. Call `S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)` at the bottom of the test to initialize the fuzz target
 
 ## Fuzz Test Coverage
+We run fuzz tests daily, with corpus files that are continuously being improved. Current coverage information can be view [here](https://dx1inn44oyl7n.cloudfront.net/fuzz-coverage-report/index.html).
+
 To generate coverage reports for fuzz tests, s2n-tls needs to be compiled with the following options:
 ```
 cmake . -Bbuild \
@@ -82,9 +84,7 @@ For a test with name `$TEST_NAME`, its files should be laid out with the followi
 # Corpus
 A Corpus is a directory of "interesting" inputs that result in a good branch/code coverage. These inputs will be permuted in random ways and checked to see if this permutation results in greater branch coverage or in a failure (Segfault, Memory Leak, Buffer Overflow, Non-zero return code, etc). If the permutation results in greater branch coverage, then it will be added to the Corpus directory. If a Memory leak or a Crash is detected, that file will **not** be added to the corpus for that test, and will instead be written to the current directory (`s2n/tests/fuzz/crash-*` or `s2n/tests/fuzz/leak-*`). These files will be automatically deleted for any Negative Fuzz tests that are expected to crash or leak memory so as to not clutter the directory.
 
-To continuously improve corpus inputs, we have a scheduled job that runs every day for approximately 8 hours. These tests begin with corpus files stored in an S3 bucket. At the end of each run, the existing corpus files are replaced with updated ones, potentially increasing branch coverage over time. This process allows for gradual and automated enhancement of the corpus.
-
-To enable this, two environment variables must be defined: `CORPUS_UPLOAD_LOC` and `ARTIFACT_UPLOAD_LOC`. `CORPUS_UPLOAD_LOC` specifies where corpus files are stored, while `ARTIFACT_UPLOAD_LOC`defines where output logs from fuzzing are saved, which can be used for debugging if a new bug is detected during fuzzing.
+To continuously improve corpus inputs, we have a scheduled job that runs every day for approximately 8 hours. These tests begin with corpus files stored in an S3 bucket. At the end of each run, the existing corpus files are replaced with updated ones, potentially increasing coverage over time. This process allows for gradual and automated enhancement of the corpus.
 
 # LD_PRELOAD
 The `LD_PRELOAD` directory contains function overrides for each Fuzz test that will be used **instead** of the original functions defined elsewhere. These function overrides will only be used during fuzz tests, and will not effect the rest of the s2n codebase when not fuzzing. Using `LD_PRELOAD` instead of C Preprocessor `#ifdef`'s is preferable in the following ways:
