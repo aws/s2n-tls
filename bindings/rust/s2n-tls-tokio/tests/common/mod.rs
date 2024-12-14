@@ -5,7 +5,7 @@ use s2n_tls::{
     config,
     connection::Builder,
     error::Error,
-    security::{DEFAULT, DEFAULT_TLS13},
+    security::{DEFAULT_TLS13, TESTING_TLS12},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::time::Duration;
@@ -20,22 +20,16 @@ mod time;
 pub use time::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
-pub static CERT_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/cert.pem"
-));
-pub static KEY_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/key.pem"
-));
+pub static CERT_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
+pub static KEY_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
 pub static RSA_CERT_PEM: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/cert_rsa.pem"
+    "/../certs/cert_rsa.pem"
 ));
-pub static RSA_KEY_PEM: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/certs/key_rsa.pem"
-));
+pub static RSA_KEY_PEM: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key_rsa.pem"));
 
 pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
 pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);
@@ -67,14 +61,15 @@ pub fn server_config() -> Result<config::Builder, Error> {
 
 pub fn client_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-    builder.set_security_policy(&DEFAULT)?;
+    builder.set_security_policy(&TESTING_TLS12)?;
     builder.trust_pem(RSA_CERT_PEM)?;
     Ok(builder)
 }
 
 pub fn server_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-    builder.set_security_policy(&DEFAULT)?;
+    builder.set_security_policy(&TESTING_TLS12)?;
+
     builder.load_pem(RSA_CERT_PEM, RSA_KEY_PEM)?;
     Ok(builder)
 }

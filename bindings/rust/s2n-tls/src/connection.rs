@@ -650,8 +650,18 @@ impl Connection {
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
+    ///
+    /// poll_flush can only flush data that s2n-tls has already encrypted and
+    /// buffered for sending. poll_send may need to be called again to fully send
+    /// all data. See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md)
+    /// for more details.
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
-        self.poll_send(&[0; 0]).map_ok(|_| self)
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_flush(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
     }
 
     /// Gets the number of bytes that are currently available in the buffer to be read.
@@ -962,6 +972,34 @@ impl Connection {
         }
     }
 
+    pub fn kem_name(&self) -> Option<&str> {
+        let name_bytes = {
+            let name = unsafe { s2n_connection_get_kem_name(self.connection.as_ptr()) };
+            if name.is_null() {
+                return None;
+            }
+            name
+        };
+
+        let name_str = unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: kem_name has a static lifetime because it lives on a const
+            //         struct s2n_kem with file scope.
+            const_str!(name_bytes)
+        };
+
+        match name_str {
+            Ok("NONE") => None,
+            Ok(name) => Some(name),
+            Err(_) => {
+                // Unreachable: This would indicate a non-utf-8 string literal in
+                // the s2n-tls C codebase.
+                None
+            }
+        }
+    }
+
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         unsafe {
@@ -1060,13 +1098,10 @@ impl Connection {
     // chain, so the lifetime is independent of the connection.
     pub fn peer_cert_chain(&self) -> Result<CertificateChain<'static>, Error> {
         unsafe {
-            let mut chain = CertificateChain::new()?;
-            s2n_connection_get_peer_cert_chain(
-                self.connection.as_ptr(),
-                chain.as_mut_ptr().as_ptr(),
-            )
-            .into_result()
-            .map(|_| ())?;
+            let mut chain = CertificateChain::allocate_owned()?;
+            s2n_connection_get_peer_cert_chain(self.connection.as_ptr(), chain.as_mut_ptr())
+                .into_result()
+                .map(|_| ())?;
             Ok(chain)
         }
     }

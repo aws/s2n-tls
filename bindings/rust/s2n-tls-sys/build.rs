@@ -85,9 +85,14 @@ fn build_vendored() {
 
     build.files(include!("./files.rs"));
 
-    if env("PROFILE") == "release" {
-        // fortify source is only available in release mode
-        build.define("_FORTIFY_SOURCE", "2");
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html
+    // * OPT_LEVEL, DEBUG — values of the corresponding variables for the profile currently being built.
+    // * PROFILE — release for release builds, debug for other builds. This is determined based on if
+    //   the profile inherits from the dev or release profile. Using this environment variable is not
+    //   recommended. Using other environment variables like OPT_LEVEL provide a more correct view of
+    //   the actual settings being used.
+    if env("OPT_LEVEL") != "0" {
+        build.define("S2N_BUILD_RELEASE", "1");
         build.define("NDEBUG", "1");
 
         // build s2n-tls with LTO if supported
@@ -166,6 +171,8 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
     };
 
     build
+        .flag("-include")
+        .flag("lib/utils/s2n_prelude.h")
         .flag("-std=c11")
         .flag("-fgnu89-inline")
         // make sure the stack is non-executable
@@ -173,8 +180,7 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
         .flag_if_supported("-z now")
         .flag_if_supported("-z noexecstack")
         // we use some deprecated libcrypto features so don't warn here
-        .flag_if_supported("-Wno-deprecated-declarations")
-        .define("_POSIX_C_SOURCE", "200112L");
+        .flag_if_supported("-Wno-deprecated-declarations");
 
     build
 }

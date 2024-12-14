@@ -51,7 +51,7 @@ cat <<EOF > build/detect_exec_leak_finish.c
 
 int main() {
     s2n_init();
-    s2n_cleanup();
+    s2n_cleanup_final();
 
     /* close std* file descriptors so valgrind output is less noisy */
     fclose(stdin);

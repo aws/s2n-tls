@@ -13,6 +13,11 @@
  * permissions and limitations under the License.
  */
 
+#ifndef _S2N_PRELUDE_INCLUDED
+    /* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
+    #error "Expected s2n_prelude.h to be included as part of the compiler flags"
+#endif
+
 #include <strings.h>
 #include <time.h>
 
@@ -244,12 +249,6 @@ int s2n_config_defaults_init(void)
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
 
     return S2N_SUCCESS;
-}
-
-S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
-{
-    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
-    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)

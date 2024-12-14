@@ -12,6 +12,12 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
+
+#ifndef _S2N_PRELUDE_INCLUDED
+    /* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
+    #error "Expected s2n_prelude.h to be included as part of the compiler flags"
+#endif
+
 #define _GNU_SOURCE
 #include <ctype.h>
 #include <openssl/crypto.h>
@@ -57,6 +63,43 @@ S2N_RESULT s2n_test_lowercase_copy(const char *input, char *destination, size_t 
     }
 
     return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
+{
+    RESULT_ENSURE_REF(s2n_libcrypto);
+
+    /* List of supported libcrypto variants we test with */
+    const struct {
+        const char *libcrypto;
+        bool is_openssl;
+    } supported_libcrypto[] = {
+        { .libcrypto = "awslc", .is_openssl = false },
+        { .libcrypto = "awslc-fips", .is_openssl = false },
+        { .libcrypto = "awslc-fips-2022", .is_openssl = false },
+        { .libcrypto = "boringssl", .is_openssl = false },
+        { .libcrypto = "libressl", .is_openssl = false },
+        { .libcrypto = "openssl-1.0.2", .is_openssl = true },
+        { .libcrypto = "openssl-1.0.2-fips", .is_openssl = true },
+        { .libcrypto = "openssl-1.1.1", .is_openssl = true },
+        { .libcrypto = "openssl-3.0", .is_openssl = true },
+    };
+
+    for (size_t i = 0; i < s2n_array_len(supported_libcrypto); i++) {
+        /* The linked libcryto is one of the known supported libcrypto variants */
+        if (strcmp(s2n_libcrypto, supported_libcrypto[i].libcrypto) == 0) {
+            if (supported_libcrypto[i].is_openssl) {
+                EXPECT_TRUE(s2n_libcrypto_is_openssl());
+            } else {
+                EXPECT_FALSE(s2n_libcrypto_is_openssl());
+            }
+
+            return S2N_RESULT_OK;
+        }
+    }
+
+    /* Testing with an unexpected libcrypto. */
+    return S2N_RESULT_ERROR;
 }
 
 int main()
@@ -123,6 +166,15 @@ int main()
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
             EXPECT_NOT_NULL(strstr(ssleay_version_text, version));
         }
+    };
+
+    /* Ensure we are testing with supported libcryto variants.
+     *
+     * We need to update s2n_libcrypto_is_openssl() when adding support
+     * for a new libcrypto.
+     */
+    {
+        EXPECT_OK(s2n_check_supported_libcrypto(s2n_libcrypto));
     };
 
     END_TEST();

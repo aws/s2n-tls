@@ -7,12 +7,12 @@ use s2n_tls_tokio::TlsConnector;
 use std::{error::Error, fs};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
-/// NOTE: this certificate is to be used for demonstration purposes only!
-const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
+/// NOTE: this ca is to be used for demonstration purposes only!
+const DEFAULT_CA: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/ca-cert.pem");
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[clap(short, long, default_value_t = String::from(DEFAULT_CERT))]
+    #[clap(short, long, default_value_t = String::from(DEFAULT_CA))]
     trust: String,
     addr: String,
 }
@@ -29,7 +29,7 @@ async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Box<dyn Error>> 
 
     // Connect to the server.
     let stream = TcpStream::connect(addr).await?;
-    let tls = client.connect("localhost", stream).await?;
+    let tls = client.connect("www.kangaroo.com", stream).await?;
     println!("{:#?}", tls);
 
     // Split the stream.

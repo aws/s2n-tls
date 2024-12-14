@@ -4,8 +4,8 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection,
-        ViewIO,
+        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
+        TlsConnection,
     },
     PemType::*,
 };

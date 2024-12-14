@@ -41,6 +41,10 @@ where
     ///
     /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
     /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
+    ///
+    /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
+    /// configured on `conn_builder` with APIs like
+    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
     pub fn new(conn_builder: Builder) -> HttpsConnector<HttpConnector, Builder> {
         let mut http = HttpConnector::new();
 
@@ -77,6 +81,10 @@ where
     /// ```
     ///
     /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
+    ///
+    /// Note that s2n-tls-hyper will override the ALPN extension to negotiate HTTP. Any ALPN values
+    /// configured on `conn_builder` with APIs like
+    /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
     pub fn new_with_http(http: Http, conn_builder: Builder) -> HttpsConnector<Http, Builder> {
         Self { http, conn_builder }
     }
@@ -118,8 +126,33 @@ where
             return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
-        let builder = self.conn_builder.clone();
-        let host = req.host().unwrap_or("").to_owned();
+        // Attempt to negotiate HTTP/2 by including it in the ALPN extension. Other supported HTTP
+        // versions are also included to prevent the server from rejecting the TLS connection if
+        // HTTP/2 isn't supported:
+        //
+        // https://datatracker.ietf.org/doc/html/rfc7301#section-3.2
+        //    In the event that the server supports no
+        //    protocols that the client advertises, then the server SHALL respond
+        //    with a fatal "no_application_protocol" alert.
+        let builder = connection::ModifiedBuilder::new(self.conn_builder.clone(), |conn| {
+            conn.set_application_protocol_preference([
+                b"h2".to_vec(),
+                b"http/1.1".to_vec(),
+                b"http/1.0".to_vec(),
+            ])
+        });
+
+        // IPv6 addresses are enclosed in square brackets within the host of a URI (e.g.
+        // `https://[::1:2:3:4]/`). These square brackets aren't part of the domain itself, so they
+        // are trimmed off to provide the proper server name to s2n-tls-tokio (e.g. `::1:2:3:4`).
+        let mut domain = req.host().unwrap_or("");
+        if let Some(trimmed) = domain.strip_prefix('[') {
+            if let Some(trimmed) = trimmed.strip_suffix(']') {
+                domain = trimmed;
+            }
+        }
+        let domain = domain.to_owned();
+
         let call = self.http.call(req);
         Box::pin(async move {
             // `HttpsConnector` wraps an HTTP connector that also implements `Service<Uri>`.
@@ -130,7 +163,7 @@ where
 
             let connector = TlsConnector::new(builder);
             let tls = connector
-                .connect(&host, tcp)
+                .connect(&domain, tcp)
                 .await
                 .map_err(Error::TlsError)?;
 
