@@ -5,12 +5,7 @@ mod io;
 pub use io::{LocalDataBuffer, ViewIO};
 
 use io::TestPairIO;
-use std::{
-    error::Error,
-    fmt::Debug,
-    fs::read_to_string,
-    rc::Rc,
-};
+use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
 use strum::EnumIter;
 
 #[derive(Clone, Copy, EnumIter)]
