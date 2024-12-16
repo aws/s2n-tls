@@ -119,7 +119,7 @@ pub struct Builder<Http, ConnBuilder> {
 }
 
 impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
-    /// Allows communication with insecure HTTP endpoints in addition to secure HTTPS endpoints.
+    /// If enabled, allows communication with insecure HTTP endpoints in addition to secure HTTPS endpoints (default: false).
     pub fn with_insecure_http(&mut self, enabled: bool) -> &mut Self {
         self.insecure_http = enabled;
         self
