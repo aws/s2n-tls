@@ -120,8 +120,8 @@ pub struct Builder<Http, ConnBuilder> {
 
 impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
     /// Allows communication with insecure HTTP endpoints in addition to secure HTTPS endpoints.
-    pub fn with_insecure_http(&mut self) -> &mut Self {
-        self.insecure_http = true;
+    pub fn with_insecure_http(&mut self, enabled: bool) -> &mut Self {
+        self.insecure_http = enabled;
         self
     }
 
@@ -271,6 +271,15 @@ mod tests {
 
         // Ensure that the error can produce a valid message
         assert!(!error.to_string().is_empty());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn default_builder() -> Result<(), Box<dyn StdError>> {
+        // Ensure that insecure HTTP is disabled by default.
+        let connector = HttpsConnector::builder(Config::default()).build();
+        assert!(!connector.insecure_http);
 
         Ok(())
     }

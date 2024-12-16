@@ -360,9 +360,7 @@ async fn insecure_http() -> Result<(), Box<dyn Error + Send + Sync>> {
             let connector = {
                 let config = common::config()?.build()?;
                 let mut builder = HttpsConnector::builder(config);
-                if enable_insecure_http {
-                    builder.with_insecure_http();
-                }
+                builder.with_insecure_http(enable_insecure_http);
                 builder.build()
             };
 
@@ -376,7 +374,7 @@ async fn insecure_http() -> Result<(), Box<dyn Error + Send + Sync>> {
                 let response = response.unwrap();
                 assert_eq!(response.status(), 200);
             } else {
-                // By default, insecure HTTP is disabled, and the request should error.
+                // If insecure HTTP is disabled, the request should error.
                 let error = response.unwrap_err();
 
                 // Ensure an InvalidScheme error is produced.
