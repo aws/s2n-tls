@@ -1,0 +1,19 @@
+[package]
+name = "async-pkey-offload"
+version.workspace = true
+authors.workspace = true
+publish.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+aws-config = "1.5.8"
+aws-sdk-kms = "1.47.0"
+clap = { version = "4", features = ["derive"] }
+pin-project = "1.1.6"
+rcgen = "0.13.1"
+s2n-tls = { path = "../../rust/s2n-tls" }
+s2n-tls-tokio = { path = "../../rust/s2n-tls-tokio" }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.41"
+yasna = "0.5.2"
