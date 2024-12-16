@@ -4,8 +4,8 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
-        TlsConnection,
+        CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection,
+        ViewIO,
     },
     PemType::*,
 };
@@ -26,8 +26,7 @@ pub struct SessionTicketStorage {
 }
 
 pub struct OpenSslConnection {
-    connected_buffer: ConnectedBuffer,
-    connection: SslStream<ConnectedBuffer>,
+    connection: SslStream<ViewIO>,
 }
 
 impl Drop for OpenSslConnection {
@@ -148,10 +147,7 @@ impl TlsConnection for OpenSslConnection {
         )
     }
 
-    fn new_from_config(
-        config: &Self::Config,
-        connected_buffer: ConnectedBuffer,
-    ) -> Result<Self, Box<dyn Error>> {
+    fn new_from_config(config: &Self::Config, io: ViewIO) -> Result<Self, Box<dyn Error>> {
         // check if there is a session ticket available
         // a session ticket will only be available if the Config was created
         // with session resumption enabled
@@ -170,11 +166,8 @@ impl TlsConnection for OpenSslConnection {
             unsafe { connection.set_session(ticket)? };
         }
 
-        let connection = SslStream::new(connection, connected_buffer.clone())?;
-        Ok(Self {
-            connected_buffer,
-            connection,
-        })
+        let connection = SslStream::new(connection, io)?;
+        Ok(Self { connection })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
@@ -239,20 +232,6 @@ impl TlsConnection for OpenSslConnection {
             read_offset += self.connection.read(&mut data[read_offset..data_len])?
         }
         Ok(())
-    }
-
-    /// With OpenSSL's API, not possible after connection initialization:
-    /// In order to shrink buffers owned by the connection, config has to built
-    /// with `builder.set_mode(SslMode::RELEASE_BUFFERS);`, which tells the
-    /// connection to release buffers only when it's idle
-    fn shrink_connection_buffers(&mut self) {}
-
-    fn shrink_connected_buffer(&mut self) {
-        self.connected_buffer.shrink();
-    }
-
-    fn connected_buffer(&self) -> &ConnectedBuffer {
-        &self.connected_buffer
     }
 
     fn resumed_connection(&self) -> bool {

@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
-    Mode, OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
     PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use pprof::criterion::{Output, PProfProfiler};
-use std::error::Error;
 use strum::IntoEnumIterator;
 
 fn bench_handshake_for_library<T>(
@@ -33,19 +32,9 @@ fn bench_handshake_for_library<T>(
     // only include negotiation and not config/connection initialization
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
-                let connected_buffer = ConnectedBuffer::default();
-                let client = T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
-                let server = T::new_from_config(&server_config, connected_buffer)?;
-                Ok(TlsConnPair::wrap(client, server))
-            },
+            || -> TlsConnPair<T, T> { TlsConnPair::from_configs(&client_config, &server_config) },
             |conn_pair| {
-                // harnesses with certain parameters fail to initialize for
-                // some past versions of s2n-tls, but missing data can be
-                // visually interpolated in the historical performance graph
-                if let Ok(conn_pair) = conn_pair {
-                    let _ = conn_pair.handshake();
-                }
+                conn_pair.handshake().unwrap();
             },
             BatchSize::SmallInput,
         )
