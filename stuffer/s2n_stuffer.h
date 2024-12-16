@@ -45,7 +45,11 @@ struct s2n_stuffer {
     uint32_t write_cursor;
     uint32_t high_water_mark;
 
-    /* Was this stuffer alloc()'d ? */
+    /* Was this stuffer alloc()'d?
+     * This field controls whether the stuffer "owns" the blob. If the stuffer
+     * was allocated, then `blob` must be freed when the stuffer is freed. If the
+     * stuffer was not allocated, then the blob must not be freed by the stuffer, even if the 
+     * blob itself is allocated. */
     unsigned int alloced : 1;
 
     /* Is this stuffer growable? */
@@ -208,8 +212,9 @@ int S2N_RESULT_MUST_USE s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const c
 /* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
 int S2N_RESULT_MUST_USE s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type);
 
-/* Read a certificate  from a PEM encoded stuffer to an ASN1/DER encoded one */
+/* Read a certificate from a PEM encoded stuffer to an ASN1/DER encoded one */
 int S2N_RESULT_MUST_USE s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+bool s2n_stuffer_pem_has_certificate(struct s2n_stuffer *pem);
 
 /* Read a CRL from a PEM encoded stuffer to an ASN1/DER encoded one */
 int S2N_RESULT_MUST_USE s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
