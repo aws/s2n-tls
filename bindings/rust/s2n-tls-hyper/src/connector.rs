@@ -27,6 +27,7 @@ use tower_service::Service;
 pub struct HttpsConnector<Http, ConnBuilder = Config> {
     http: Http,
     conn_builder: ConnBuilder,
+    insecure_http: bool,
 }
 
 impl<ConnBuilder> HttpsConnector<HttpConnector, ConnBuilder>
@@ -101,7 +102,11 @@ where
     /// configured on `conn_builder` with APIs like
     /// `s2n_tls::config::Builder::set_application_protocol_preference()` will be ignored.
     pub fn builder_with_http(http: Http, conn_builder: ConnBuilder) -> Builder<Http, ConnBuilder> {
-        Builder { http, conn_builder }
+        Builder {
+            http,
+            conn_builder,
+            insecure_http: false,
+        }
     }
 }
 
@@ -110,14 +115,22 @@ where
 pub struct Builder<Http, ConnBuilder> {
     http: Http,
     conn_builder: ConnBuilder,
+    insecure_http: bool,
 }
 
 impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
+    /// Allows communication with insecure HTTP endpoints in addition to secure HTTPS endpoints.
+    pub fn with_insecure_http(&mut self) -> &mut Self {
+        self.insecure_http = true;
+        self
+    }
+
     /// Builds a new `HttpsConnector`.
     pub fn build(self) -> HttpsConnector<Http, ConnBuilder> {
         HttpsConnector {
             http: self.http,
             conn_builder: self.conn_builder,
+            insecure_http: self.insecure_http,
         }
     }
 }
@@ -155,10 +168,18 @@ where
     }
 
     fn call(&mut self, req: Uri) -> Self::Future {
-        // Currently, the only supported stream type is TLS. If the application attempts to
-        // negotiate HTTP over plain TCP, return an error.
-        if req.scheme() == Some(&http::uri::Scheme::HTTP) {
-            return Box::pin(async move { Err(Error::InvalidScheme) });
+        match req.scheme() {
+            Some(scheme) if scheme == &http::uri::Scheme::HTTPS => (),
+            Some(scheme) if scheme == &http::uri::Scheme::HTTP && self.insecure_http => {
+                let call = self.http.call(req);
+                return Box::pin(async move {
+                    let tcp = call.await.map_err(|e| Error::HttpError(e.into()))?;
+                    Ok(MaybeHttpsStream::Http(tcp))
+                });
+            }
+            _ => {
+                return Box::pin(async move { Err(Error::InvalidScheme) });
+            }
         }
 
         // Attempt to negotiate HTTP/2 by including it in the ALPN extension. Other supported HTTP
@@ -235,15 +256,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_unsecure_http() -> Result<(), Box<dyn StdError>> {
+    async fn test_invalid_scheme() -> Result<(), Box<dyn StdError>> {
         let connector = HttpsConnector::new(Config::default());
         let client: Client<_, Empty<Bytes>> =
             Client::builder(TokioExecutor::new()).build(connector);
 
-        let uri = Uri::from_str("http://www.amazon.com")?;
+        // Attempt to make a request with an arbitrary invalid scheme.
+        let uri = Uri::from_str("notascheme://www.amazon.com")?;
         let error = client.get(uri).await.unwrap_err();
 
-        // Ensure that an InvalidScheme error is returned when HTTP over TCP is attempted.
+        // Ensure that an InvalidScheme error is returned.
         let error = error.source().unwrap().downcast_ref::<Error>().unwrap();
         assert!(matches!(error, Error::InvalidScheme));
 
