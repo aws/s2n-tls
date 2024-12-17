@@ -23,7 +23,7 @@ Client──────────────►│  Public Key   ┼──�
 
 The client will talk to an s2n-tls server. This server only contains the public key in the form of an x509 certificate. The server does _not_ hold a copy of a private key. The only copy of the key is stored in KMS, and it can not be removed from KMS. The advantage of this is that if an attacker were able to compromise the server, they could not steal the private key. 
 
-Because the server does not have a copy of the private key, it must delegate cryptograpic operations to KMS, and return those results to the clients. s2n-tls offers a "pkey offload" feature to accomplish this behavior. This example will use s2n-tls pkey offload functionality along with the AWS SDK to successfully complete a TLS handshake with the client, while never actually holding the private key.
+Because the server does not have a copy of the private key, it must delegate cryptographic operations to KMS, and return those results to the clients. s2n-tls offers a "pkey offload" feature to accomplish this behavior. This example will use s2n-tls pkey offload functionality along with the AWS SDK to successfully complete a TLS handshake with the client, while never actually holding the private key.
 
 ### Running the demo
 You will need to have access to IAM credentials with KMS permissions to create, list, describe, sign, and delete keys.
