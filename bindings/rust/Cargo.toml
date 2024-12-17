@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "integration",
     "s2n-tls",
     "s2n-tls-sys",
     "s2n-tls-tokio"

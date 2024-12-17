@@ -19,9 +19,9 @@ no-network-tests = []
 pq = []
 
 [dependencies]
-s2n-tls = { path = "../s2n-tls", features = ["unstable-testing"]}
-s2n-tls-tokio = { path = "../s2n-tls-tokio" }
-s2n-tls-sys = { path = "../s2n-tls-sys" }
+s2n-tls = { path = "../../s2n-tls", features = ["unstable-testing"]}
+s2n-tls-tokio = { path = "../../s2n-tls-tokio" }
+s2n-tls-sys = { path = "../../s2n-tls-sys" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "test-util"] }
