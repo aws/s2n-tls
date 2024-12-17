@@ -339,7 +339,7 @@ async fn config_alpn_ignored() -> Result<(), Box<dyn Error + Send + Sync>> {
 }
 
 #[tokio::test]
-async fn insecure_http() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn plaintext_http() -> Result<(), Box<dyn Error + Send + Sync>> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
 
@@ -356,11 +356,11 @@ async fn insecure_http() -> Result<(), Box<dyn Error + Send + Sync>> {
     });
 
     tasks.spawn(async move {
-        for enable_insecure_http in [false, true] {
+        for enable_plaintext_http in [false, true] {
             let connector = {
                 let config = common::config()?.build()?;
                 let mut builder = HttpsConnector::builder(config);
-                builder.with_insecure_http(enable_insecure_http);
+                builder.with_plaintext_http(enable_plaintext_http);
                 builder.build()
             };
 
@@ -369,12 +369,12 @@ async fn insecure_http() -> Result<(), Box<dyn Error + Send + Sync>> {
             let uri = Uri::from_str(format!("http://127.0.0.1:{}", addr.port()).as_str())?;
             let response = client.get(uri).await;
 
-            if enable_insecure_http {
-                // If insecure HTTP is enabled, the request should succeed.
+            if enable_plaintext_http {
+                // If plaintext HTTP is enabled, the request should succeed.
                 let response = response.unwrap();
                 assert_eq!(response.status(), 200);
             } else {
-                // If insecure HTTP is disabled, the request should error.
+                // If plaintext HTTP is disabled, the request should error.
                 let error = response.unwrap_err();
 
                 // Ensure an InvalidScheme error is produced.

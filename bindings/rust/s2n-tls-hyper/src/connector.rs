@@ -27,7 +27,7 @@ use tower_service::Service;
 pub struct HttpsConnector<Http, ConnBuilder = Config> {
     http: Http,
     conn_builder: ConnBuilder,
-    insecure_http: bool,
+    plaintext_http: bool,
 }
 
 impl<ConnBuilder> HttpsConnector<HttpConnector, ConnBuilder>
@@ -105,7 +105,7 @@ where
         Builder {
             http,
             conn_builder,
-            insecure_http: false,
+            plaintext_http: false,
         }
     }
 }
@@ -115,13 +115,14 @@ where
 pub struct Builder<Http, ConnBuilder> {
     http: Http,
     conn_builder: ConnBuilder,
-    insecure_http: bool,
+    plaintext_http: bool,
 }
 
 impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
-    /// If enabled, allows communication with insecure HTTP endpoints in addition to secure HTTPS endpoints (default: false).
-    pub fn with_insecure_http(&mut self, enabled: bool) -> &mut Self {
-        self.insecure_http = enabled;
+    /// If enabled, allows communication with plaintext HTTP endpoints in addition to secure HTTPS
+    /// endpoints (default: false).
+    pub fn with_plaintext_http(&mut self, enabled: bool) -> &mut Self {
+        self.plaintext_http = enabled;
         self
     }
 
@@ -130,7 +131,7 @@ impl<Http, ConnBuilder> Builder<Http, ConnBuilder> {
         HttpsConnector {
             http: self.http,
             conn_builder: self.conn_builder,
-            insecure_http: self.insecure_http,
+            plaintext_http: self.plaintext_http,
         }
     }
 }
@@ -170,7 +171,7 @@ where
     fn call(&mut self, req: Uri) -> Self::Future {
         match req.scheme() {
             Some(scheme) if scheme == &http::uri::Scheme::HTTPS => (),
-            Some(scheme) if scheme == &http::uri::Scheme::HTTP && self.insecure_http => {
+            Some(scheme) if scheme == &http::uri::Scheme::HTTP && self.plaintext_http => {
                 let call = self.http.call(req);
                 return Box::pin(async move {
                     let tcp = call.await.map_err(|e| Error::HttpError(e.into()))?;
@@ -277,9 +278,9 @@ mod tests {
 
     #[tokio::test]
     async fn default_builder() -> Result<(), Box<dyn StdError>> {
-        // Ensure that insecure HTTP is disabled by default.
+        // Ensure that plaintext HTTP is disabled by default.
         let connector = HttpsConnector::builder(Config::default()).build();
-        assert!(!connector.insecure_http);
+        assert!(!connector.plaintext_http);
 
         Ok(())
     }
