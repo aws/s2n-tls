@@ -20,6 +20,7 @@ pq = []
 
 [dependencies]
 s2n-tls = { path = "../../s2n-tls", features = ["unstable-testing"]}
+s2n-tls-hyper = { path = "../s2n-tls-hyper" }
 s2n-tls-tokio = { path = "../../s2n-tls-tokio" }
 s2n-tls-sys = { path = "../../s2n-tls-sys" }
 
