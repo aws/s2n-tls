@@ -3,8 +3,8 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsBenchConfig, TlsConnection,
+        read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
+        TlsConnection, ViewIO,
     },
     PemType::{self, *},
     SigType,
@@ -32,7 +32,9 @@ use std::{
 };
 
 pub struct RustlsConnection {
-    connected_buffer: ConnectedBuffer,
+    // the rustls connection has to own the io view, because it is passed as an
+    // argument to read/write rather than being part of the connection configuration
+    io: ViewIO,
     connection: Connection,
 }
 
@@ -74,7 +76,7 @@ impl RustlsConfig {
             rustls_pemfile::read_one(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
                 .unwrap();
         if let Some(rustls_pemfile::Item::Pkcs8Key(pkcs_8_key)) = key {
-            return pkcs_8_key.into();
+            pkcs_8_key.into()
         } else {
             // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
             panic!("unexpected key type: {:?}", key);
@@ -168,10 +170,7 @@ impl TlsConnection for RustlsConnection {
         "rustls".to_string()
     }
 
-    fn new_from_config(
-        config: &Self::Config,
-        connected_buffer: ConnectedBuffer,
-    ) -> Result<Self, Box<dyn Error>> {
+    fn new_from_config(config: &Self::Config, io: ViewIO) -> Result<Self, Box<dyn Error>> {
         let connection = match config {
             RustlsConfig::Client(config) => Connection::Client(ClientConnection::new(
                 config.clone(),
@@ -182,14 +181,11 @@ impl TlsConnection for RustlsConnection {
             }
         };
 
-        Ok(Self {
-            connected_buffer,
-            connection,
-        })
+        Ok(Self { io, connection })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        Self::ignore_block(self.connection.complete_io(&mut self.connected_buffer))?;
+        Self::ignore_block(self.connection.complete_io(&mut self.io))?;
         Ok(())
     }
 
@@ -220,7 +216,7 @@ impl TlsConnection for RustlsConnection {
                 .writer()
                 .write(&data[write_offset..data.len()])?;
             self.connection.writer().flush()?;
-            self.connection.complete_io(&mut self.connected_buffer)?;
+            self.connection.complete_io(&mut self.io)?;
         }
         Ok(())
     }
@@ -229,7 +225,7 @@ impl TlsConnection for RustlsConnection {
         let data_len = data.len();
         let mut read_offset = 0;
         while read_offset < data.len() {
-            self.connection.complete_io(&mut self.connected_buffer)?;
+            self.connection.complete_io(&mut self.io)?;
             read_offset += Self::ignore_block(
                 self.connection
                     .reader()
@@ -237,18 +233,6 @@ impl TlsConnection for RustlsConnection {
             )?;
         }
         Ok(())
-    }
-
-    fn shrink_connection_buffers(&mut self) {
-        self.connection.set_buffer_limit(Some(1));
-    }
-
-    fn shrink_connected_buffer(&mut self) {
-        self.connected_buffer.shrink();
-    }
-
-    fn connected_buffer(&self) -> &ConnectedBuffer {
-        &self.connected_buffer
     }
 
     fn resumed_connection(&self) -> bool {
