@@ -49,6 +49,11 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
+      # Test the standard workspace
+      - name: Standard Workspace Tests
+        working-directory: ${{env.ROOT_PATH}}/standard
+        run: cargo test
+
       - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
