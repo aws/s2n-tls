@@ -52,7 +52,7 @@ cargo publish --dry-run --allow-dirty
 cargo publish --dry-run --allow-dirty --all-features
 popd
 
-pushd integration
+pushd standard/integration
 cargo run
 popd
 

@@ -49,6 +49,11 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
+      # Test the standard workspace
+      - name: Standard Workspace Tests
+        working-directory: ${{env.ROOT_PATH}}/standard
+        run: cargo test
+
       - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
@@ -59,7 +64,7 @@ jobs:
         run: cargo test --features unstable-renegotiate
 
       - name: Network-enabled integration tests
-        working-directory: ${{env.ROOT_PATH}}/integration
+        working-directory: ${{env.ROOT_PATH}}/standard/integration
         # no-default-features is used because network tests are hidden behind a
         # default "negative" feature. This is because we don't want network tests
         # invoked on the `cargo test --all-features` pattern.
@@ -83,7 +88,7 @@ jobs:
 
           cd ${{env.ROOT_PATH}}
           ./generate.sh
-          ldd target/debug/integration | grep libs2n.so
+          ldd standard/target/debug/integration | grep libs2n.so
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
   # openssl

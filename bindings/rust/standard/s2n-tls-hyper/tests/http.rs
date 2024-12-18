@@ -231,11 +231,11 @@ async fn ipv6() -> Result<(), Box<dyn Error + Send + Sync>> {
         // matches this identity.
         let localhost_ipv6_cert: &[u8] = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../certs/cert_localhost_ipv6.pem"
+            "/../../certs/cert_localhost_ipv6.pem"
         ));
         let localhost_ipv6_key: &[u8] = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../certs/key_localhost_ipv6.pem"
+            "/../../certs/key_localhost_ipv6.pem"
         ));
 
         let mut builder = config::Config::builder();
