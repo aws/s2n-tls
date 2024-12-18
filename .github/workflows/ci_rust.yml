@@ -83,7 +83,7 @@ jobs:
 
           cd ${{env.ROOT_PATH}}
           ./generate.sh
-          ldd target/debug/integration | grep libs2n.so
+          ldd standard/target/debug/integration | grep libs2n.so
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
   # openssl
