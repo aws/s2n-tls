@@ -14,7 +14,7 @@ openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
 criterion = "0.5"
-pprof = { version = "0.12", features = ["criterion", "flamegraph"] }
+pprof = { version = "0.14", features = ["criterion", "flamegraph"] }
 # env_logger and log are used to enable logging for rustls, which can help with
 # debugging interop failures
 env_logger = "0.10"
