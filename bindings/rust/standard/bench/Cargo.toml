@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-s2n-tls = { path = "../s2n-tls" }
+s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3"
 libc = "0.2"
 strum = { version = "0.25", features = ["derive"] }

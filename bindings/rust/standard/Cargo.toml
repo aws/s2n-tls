@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "bench",
     "integration",
     "s2n-tls-hyper"
 ]
