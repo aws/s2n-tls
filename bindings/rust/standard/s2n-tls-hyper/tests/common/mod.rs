@@ -7,8 +7,8 @@ pub mod echo;
 
 /// NOTE: this certificate and key are used for testing purposes only!
 pub const CERT_PEM: &[u8] =
-    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../certs/cert.pem"));
-pub const KEY_PEM: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../certs/key.pem"));
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
+pub const KEY_PEM: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
 
 pub fn config() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
