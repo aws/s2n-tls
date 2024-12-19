@@ -12,7 +12,7 @@ env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
   RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
-  ROOT_PATH: bindings/rust
+  ROOT_PATH: bindings/rust/extended
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
 
