@@ -110,7 +110,7 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: bench tests
-        working-directory: ${{env.standard_PATH}}/bench
+        working-directory: ${{env.STANDARD_PATH}}/bench
         run: cargo test
 
   s2n-tls-binding-examples:
