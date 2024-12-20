@@ -12,7 +12,10 @@ env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
   RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
+  # Extended support MSRV
   ROOT_PATH: bindings/rust/extended
+  # Standard support MSRV
+  STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
 
@@ -51,7 +54,7 @@ jobs:
 
       # Test the standard workspace
       - name: Standard Workspace Tests
-        working-directory: ${{env.ROOT_PATH}}/standard
+        working-directory: ${{env.STANDARD_PATH}}
         run: cargo test
 
       - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
@@ -107,7 +110,7 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: bench tests
-        working-directory: ${{env.ROOT_PATH}}/bench
+        working-directory: ${{env.standard_PATH}}/bench
         run: cargo test
 
   s2n-tls-binding-examples:
