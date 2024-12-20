@@ -12,7 +12,10 @@ env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
   RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
-  ROOT_PATH: bindings/rust
+  # Extended support MSRV
+  ROOT_PATH: bindings/rust/extended
+  # Standard support MSRV
+  STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
 
@@ -49,6 +52,11 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
+      # Test the standard workspace
+      - name: Standard Workspace Tests
+        working-directory: ${{env.STANDARD_PATH}}
+        run: cargo test
+
       - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
@@ -59,7 +67,7 @@ jobs:
         run: cargo test --features unstable-renegotiate
 
       - name: Network-enabled integration tests
-        working-directory: ${{env.ROOT_PATH}}/integration
+        working-directory: ${{env.STANDARD_PATH}}/integration
         # no-default-features is used because network tests are hidden behind a
         # default "negative" feature. This is because we don't want network tests
         # invoked on the `cargo test --all-features` pattern.
@@ -83,7 +91,9 @@ jobs:
 
           cd ${{env.ROOT_PATH}}
           ./generate.sh
-          ldd target/debug/integration | grep libs2n.so
+          # Relative paths
+          cd ../../..
+          ldd ${{env.STANDARD_PATH}}/target/debug/integration | grep libs2n.so
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
   # openssl
@@ -102,7 +112,7 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: bench tests
-        working-directory: ${{env.ROOT_PATH}}/bench
+        working-directory: ${{env.STANDARD_PATH}}/bench
         run: cargo test
 
   s2n-tls-binding-examples:
