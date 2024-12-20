@@ -91,6 +91,8 @@ jobs:
 
           cd ${{env.ROOT_PATH}}
           ./generate.sh
+          # Relative paths
+          cd ../../..
           ldd ${{env.STANDARD_PATH}}/target/debug/integration | grep libs2n.so
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
