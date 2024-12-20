@@ -142,8 +142,6 @@ int main()
     /* Test for PQ */
     {
         const struct s2n_kem_preferences test_kem_prefs = {
-            .kem_count = 0,
-            .kems = NULL,
             .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
             .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
         };

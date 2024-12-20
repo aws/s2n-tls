@@ -23,7 +23,6 @@
 #include "tls/extensions/s2n_client_cert_status_request.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_client_max_frag_len.h"
-#include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_psk.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/extensions/s2n_client_sct_list.h"
@@ -74,7 +73,6 @@ static const s2n_extension_type *const client_hello_extensions[] = {
     &s2n_client_max_frag_len_extension,
     &s2n_client_session_ticket_extension,
     &s2n_client_ec_point_format_extension,
-    &s2n_client_pq_kem_extension,
     &s2n_client_renegotiation_info_extension,
     &s2n_client_cookie_extension,
     &s2n_quic_transport_parameters_extension,

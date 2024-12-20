@@ -58,11 +58,6 @@
 #define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 0xCC, 0xA9
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCC, 0xAA
 
-/* TLS 1.2 hybrid post-quantum definitions from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
-#define TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x0C
-#define TLS_EXTENSION_PQ_KEM_PARAMETERS             0xFE01
-#define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3        28
-
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
  * https://github.com/open-quantum-safe/oqs-provider/blob/main/oqs-template/oqs-kem-info.md and

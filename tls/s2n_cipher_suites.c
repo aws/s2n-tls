@@ -712,23 +712,6 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
     .minimum_required_tls_version = S2N_TLS12,
 };
 
-/* From https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
-
-struct s2n_cipher_suite s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x0C */ {
-    .available = 0,
-    .name = "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
-    .iana_name = "TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384",
-    .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
-    .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
-    .auth_method = S2N_AUTHENTICATION_RSA,
-    .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_gcm },
-    .num_record_algs = 1,
-    .sslv3_record_alg = NULL,
-    .prf_alg = S2N_HMAC_SHA384,
-    .minimum_required_tls_version = S2N_TLS12,
-};
-
 struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .available = 0,
     .name = "TLS_AES_128_GCM_SHA256",
@@ -817,7 +800,6 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 };
 
 /* All supported ciphers. Exposed for integration testing. */
@@ -863,7 +845,6 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_test_all_tls12 = {
@@ -1027,12 +1008,6 @@ int s2n_cipher_suites_init(void)
                 cur_suite->record_alg = cur_suite->all_record_algs[j];
                 break;
             }
-        }
-
-        /* Mark PQ cipher suites as unavailable if PQ is disabled */
-        if (s2n_kex_includes(cur_suite->key_exchange_alg, &s2n_kem) && !s2n_pq_is_enabled()) {
-            cur_suite->available = 0;
-            cur_suite->record_alg = NULL;
         }
 
         /* Initialize SSLv3 cipher suite if SSLv3 utilizes a different record algorithm */
@@ -1321,10 +1296,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             if (!kex_supported) {
                 continue;
             }
-            /* If the kex is not configured correctly continue to the next candidate */
-            if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
-                continue;
-            }
 
             /**
              *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
@@ -1404,17 +1375,5 @@ bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher)
         return true;
     }
 
-    return false;
-}
-
-bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher)
-{
-    if (!cipher) {
-        return false;
-    }
-
-    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
-        return true;
-    }
     return false;
 }

@@ -31,10 +31,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_suite test_cipher_with_null_kex = test_cipher;
         test_cipher_with_null_kex.key_exchange_alg = NULL;
 
-        /* Null cipher suite kex - possible with tls1.3 cipher suites */
-        EXPECT_ERROR(s2n_configure_kex(NULL, &conn));
-        EXPECT_ERROR(s2n_configure_kex(&test_cipher_with_null_kex, NULL));
-
         /* Null kex -- possible with tls1.3 cipher suites */
         bool is_ephemeral = false;
         EXPECT_ERROR(s2n_kex_is_ephemeral(NULL, &is_ephemeral));
@@ -52,23 +48,9 @@ int main(int argc, char **argv)
         /* True if same kex */
         EXPECT_TRUE(s2n_kex_includes(NULL, NULL));
         EXPECT_TRUE(s2n_kex_includes(&s2n_rsa, &s2n_rsa));
-        EXPECT_TRUE(s2n_kex_includes(&s2n_hybrid_ecdhe_kem, &s2n_hybrid_ecdhe_kem));
 
         /* False if different kex */
         EXPECT_FALSE(s2n_kex_includes(&s2n_rsa, &s2n_dhe));
-        EXPECT_FALSE(s2n_kex_includes(&s2n_kem, &s2n_ecdhe));
-
-        /* True if hybrid that contains */
-        EXPECT_TRUE(s2n_kex_includes(&s2n_hybrid_ecdhe_kem, &s2n_ecdhe));
-        EXPECT_TRUE(s2n_kex_includes(&s2n_hybrid_ecdhe_kem, &s2n_kem));
-
-        /* False if hybrid "contains" relationship reversed */
-        EXPECT_FALSE(s2n_kex_includes(&s2n_ecdhe, &s2n_hybrid_ecdhe_kem));
-        EXPECT_FALSE(s2n_kex_includes(&s2n_kem, &s2n_hybrid_ecdhe_kem));
-
-        /* False if hybrid that does not contain */
-        EXPECT_FALSE(s2n_kex_includes(&s2n_hybrid_ecdhe_kem, &s2n_rsa));
-        EXPECT_FALSE(s2n_kex_includes(&s2n_hybrid_ecdhe_kem, &s2n_dhe));
 
         /* False if one kex null */
         EXPECT_FALSE(s2n_kex_includes(&s2n_rsa, NULL));
