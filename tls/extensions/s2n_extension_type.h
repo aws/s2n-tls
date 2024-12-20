@@ -49,7 +49,6 @@ typedef struct {
 
 static const uint16_t s2n_supported_extensions[] = {
     TLS_EXTENSION_RENEGOTIATION_INFO,
-    TLS_EXTENSION_PQ_KEM_PARAMETERS,
     TLS_EXTENSION_SERVER_NAME,
     TLS_EXTENSION_MAX_FRAG_LEN,
     TLS_EXTENSION_STATUS_REQUEST,

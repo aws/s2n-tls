@@ -102,10 +102,6 @@ int main(int argc, char *const *argv)
     if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
         printf("pq:\n");
         printf("- revision: %i\n", policy->kem_preferences->tls13_pq_hybrid_draft_revision);
-        printf("- kems:\n");
-        for (size_t i = 0; i < policy->kem_preferences->kem_count; i++) {
-            printf("-- %s\n", policy->kem_preferences->kems[i]->name);
-        }
         printf("- kem groups:\n");
         for (size_t i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {
             printf("-- %s\n", policy->kem_preferences->tls13_kem_groups[i]->name);
