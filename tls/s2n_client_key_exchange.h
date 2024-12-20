@@ -21,14 +21,10 @@
 int s2n_dhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key);
 int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key);
 int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key);
-int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key);
-int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key);
 
 int s2n_dhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key);
 int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key);
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key);
-int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key);
-int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key);
 
 int s2n_dhe_client_key_external(struct s2n_connection *conn, struct s2n_blob *shared_key);
 int s2n_ecdhe_client_key_external(struct s2n_connection *conn, struct s2n_blob *shared_key);
