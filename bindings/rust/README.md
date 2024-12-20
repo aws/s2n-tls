@@ -34,4 +34,3 @@ The current MSRV for `s2n-tls`, `s2n-tls-sys` and `s2n-tls-tokio` is [1.63.0](ht
 
 We will maintain a rolling MSRV (minimum supported rust version) policy of at least 6 months. The current s2n-quic version is not guaranteed to build on Rust versions earlier than the MSRV.
 
-The current MSRV for the standard workspace is [1.74.0](https://releases.rs/docs/1.74.0/)
