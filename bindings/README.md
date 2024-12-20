@@ -25,7 +25,7 @@ See [s2n-tls-sys](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls
 
 ## Minimum Supported Rust Version (MSRV)
 
-There are three workspaces, with slightly different MSRV policies, to keep broad support for the bindings, while allowing newer MSRV for integrations, like `s2n-tls-hyper`.
+There are two rust bindings workspaces that have different MSRV policies. Crates in `standard` maintain a rolling MSRV policy of at least 6 months. Crates in `extended` maintain an older MSRV for increased support.
 
 ### Extended
 
