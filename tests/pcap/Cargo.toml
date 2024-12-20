@@ -23,5 +23,5 @@ rtshark = "2.9.0"
 
 [dev-dependencies]
 # We want to test against the latest, local version of s2n
-s2n-tls-sys = { path = "../../bindings/rust/s2n-tls-sys" }
-s2n-tls = { path = "../../bindings/rust/s2n-tls", features = ["unstable-fingerprint"] }
+s2n-tls-sys = { path = "../../bindings/rust/extended/s2n-tls-sys" }
+s2n-tls = { path = "../../bindings/rust/extended/s2n-tls", features = ["unstable-fingerprint"] }
