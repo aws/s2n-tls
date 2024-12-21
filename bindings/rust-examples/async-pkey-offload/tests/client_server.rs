@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use async_pkey_offload::{create_self_signed_cert, get_key, KmsAsymmetricKey, DEMO_DOMAIN, DEMO_REGION};
 use aws_config::{BehaviorVersion, Region};
 use aws_sdk_kms::Client;
