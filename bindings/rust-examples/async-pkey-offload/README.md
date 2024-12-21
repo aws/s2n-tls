@@ -1,13 +1,11 @@
 # PKey Offload with KMS
 
-This example shows how to use s2n-tls pkey offload functionality to create TLS connections with a private key that is stored in KMS
+This example shows how to use s2n-tls pkey offload functionality to create TLS connections with a private key that is stored in KMS.
 
 It will
 1. generate an asymmetric key in KMS
 2. create a public (self-signed) x509 certificate corresponding to the private key in KMS
 3. handle TLS connections for that certificate, offloading all private key operations to KMS
-
-If you are looking for a simpler example, you should start with the basic [tokio server & client](../tokio-server-client/Readme.md) instead.
 
 ```
                       server (s2n-tls)                  KMS      
@@ -49,7 +47,7 @@ test handshake ... ok
 You can clean up the test resources by running `cargo run --bin delete_demo_keys`.
 
 ### Self Signed Cert Generation
-The example will use a self signed cert with an asymmetric key that is stored in KMS. First we generate a private key in KMS. This will be the private key of the certificate. We use `rcgen` and it's associated `KeyPair::from_remote` functionality to actually generate the cert. Below you can see what the certificate looked like when I ran it on my own machine.
+The example will use a self signed cert with an asymmetric key that is stored in KMS. First we generate a private key in KMS. This will be the private key of the certificate. We use [rcgen](https://github.com/rustls/rcgen) and its associated [KeyPair::from_remote](https://docs.rs/rcgen/latest/rcgen/trait.RemoteKeyPair.html) functionality to actually generate the cert. Below you can see what the certificate looked like when I ran it on my own machine.
 
 ```
 Certificate:

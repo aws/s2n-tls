@@ -29,8 +29,8 @@ async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let self_signed_cert = create_self_signed_cert(kms_key.clone())?;
-    // closures are `move`, so we need another copy for the client.
-    let client_cert_copy = self_signed_cert.clone();
+    // async blocks are marked `move`, so we need another copy
+    let cert_copy = self_signed_cert.clone();
 
     // Bind to an address and listen for connections.
     // ":0" can be used to automatically assign a port.
@@ -73,7 +73,7 @@ async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
     let client = tokio::spawn(async move {
         let mut client_config = s2n_tls::config::Config::builder();
         client_config.set_security_policy(&security::DEFAULT_TLS13)?;
-        client_config.trust_pem(client_cert_copy.as_bytes())?;
+        client_config.trust_pem(cert_copy.as_bytes())?;
 
         // Create the TlsConnector based on the configuration.
         let client = TlsConnector::new(client_config.build()?);
