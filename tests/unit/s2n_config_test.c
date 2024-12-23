@@ -16,6 +16,7 @@
 #include "tls/s2n_config.h"
 
 #include <stdlib.h>
+#include <testlib/s2n_sslv2_client_hello.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
@@ -27,6 +28,7 @@
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
@@ -1229,6 +1231,45 @@ int main(int argc, char **argv)
              */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
+        }
+    }
+
+    /* Checks that servers don't use a config before the client hello callback is executed on a
+     * SSLv2-formatted client hello.
+     *
+     * Parsing SSLv2 hellos uses a different code path and need to be tested separately.
+     */
+    {
+        uint8_t sslv2_client_hello[] = {
+            SSLv2_CLIENT_HELLO_PREFIX,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+        };
+
+        struct s2n_blob client_hello = {
+            .data = sslv2_client_hello,
+            .size = sizeof(sslv2_client_hello),
+            .allocated = 0,
+            .growable = 0
+        };
+
+        /* Checks that the handshake gets as far as the client hello callback with a NULL config */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->config = NULL;
+
+            /* Record version and protocol version are in the header for SSLv2 */
+            server_conn->client_hello_version = S2N_SSLv2;
+            server_conn->client_protocol_version = S2N_TLS12;
+
+            /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
+             * client hello callback. Therefore, we can assert that if we hit this error, we
+             * have gotten as far as the client hello callback without dereferencing the config.
+             */
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
         }
     }
 
