@@ -16,21 +16,21 @@ mkdir -p s2n-tls-sys/src/features
 # we copy the C sources into the `lib` directory so they get published in the
 # actual crate artifact.
 cp -r \
-  ../../api \
-  ../../crypto \
-  ../../error \
-  ../../stuffer \
-  ../../tls \
-  ../../utils \
+  ../../../api \
+  ../../../crypto \
+  ../../../error \
+  ../../../stuffer \
+  ../../../tls \
+  ../../../utils \
   s2n-tls-sys/lib/
 
 cp -r \
-  ../../tests/features \
+  ../../../tests/features \
   s2n-tls-sys/lib/tests/
 
 cp -r \
-  ../../CMakeLists.txt \
-  ../../cmake \
+  ../../../CMakeLists.txt \
+  ../../../cmake \
   s2n-tls-sys/lib/
 
 # generate the bindings modules from the copied sources
@@ -52,7 +52,7 @@ cargo publish --dry-run --allow-dirty
 cargo publish --dry-run --allow-dirty --all-features
 popd
 
-pushd integration
+pushd ../standard/integration
 cargo run
 popd
 
