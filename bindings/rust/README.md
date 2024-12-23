@@ -28,7 +28,7 @@ There are two rust bindings workspaces that have different MSRV policies. Crates
 
 ### Extended
 
-Crates in the `extended` workspace currently have support an "extended" MSRV of [1.63.0](https://releases.rs/docs/1.63.0/). This is a temporary state. Customers must not rely on `s2n-tls` crates maintaining this level of stability. We expect to revert back to the mentioned standard policy shortly.
+Crates in the `extended` workspace currently support an "extended" MSRV of [1.63.0](https://releases.rs/docs/1.63.0/). This is a temporary state. Customers must not rely on `s2n-tls` crates maintaining this level of stability. We expect to revert back to the mentioned standard policy shortly.
 
 ### Standard
 
