@@ -32,5 +32,5 @@ Crates in the `extended` workspace currently have support an "extended" MSRV of 
 
 ### Standard
 
-We will maintain a rolling MSRV (minimum supported rust version) policy of at least 6 months. The current s2n-quic version is not guaranteed to build on Rust versions earlier than the MSRV.
+We will maintain a rolling MSRV (minimum supported rust version) policy of at least 6 months. The current s2n-tls version is not guaranteed to build on Rust versions earlier than the MSRV.
 
