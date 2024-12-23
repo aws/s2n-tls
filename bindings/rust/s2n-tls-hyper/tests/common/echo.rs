@@ -11,7 +11,7 @@ use s2n_tls_tokio::TlsAcceptor;
 use std::{error::Error, future::Future};
 use tokio::net::TcpListener;
 
-async fn echo(
+pub async fn echo(
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
     Ok(Response::new(req.into_body().boxed()))

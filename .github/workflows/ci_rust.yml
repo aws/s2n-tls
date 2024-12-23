@@ -35,7 +35,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required for generate.sh to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 
@@ -190,7 +190,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '>=1.18'
 

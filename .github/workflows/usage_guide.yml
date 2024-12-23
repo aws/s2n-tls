@@ -6,6 +6,9 @@ on:
   pull_request:
     branches:
       - main
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 env:
   CDN: https://d3fqnyekunr9xg.cloudfront.net
@@ -66,7 +69,7 @@ jobs:
           echo "URL=$URL" >> $GITHUB_OUTPUT
 
       - name: Output mdbook url
-        uses: ouzi-dev/commit-status-updater@v2.0.1
+        uses: ouzi-dev/commit-status-updater@v2
         if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
         with:
           name: "book / url"

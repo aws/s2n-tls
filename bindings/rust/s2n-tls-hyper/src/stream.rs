@@ -15,11 +15,8 @@ use std::{
 };
 
 /// `MaybeHttpsStream` is a wrapper over a hyper TCP stream, `Transport`, allowing for TLS to be
-/// negotiated over the TCP stream.
-///
-/// While not currently implemented, the `MaybeHttpsStream` enum will provide an `Http` type
-/// corresponding to the plain TCP stream, allowing for HTTP to be negotiated in addition to HTTPS
-/// when the HTTP scheme is used.
+/// negotiated over the TCP stream via the `Https` type. The `Http` type bypasses TLS to optionally
+/// allow for communication with HTTP endpoints over plain TCP.
 ///
 /// This struct is used to implement `tower_service::Service` for `HttpsConnector`, and shouldn't
 /// need to be used directly.
@@ -38,6 +35,7 @@ where
     // traits to tokio's. This allows the `Read` and `Write` implementations for `MaybeHttpsStream`
     // to simply call the `TokioIo` `poll` functions.
     Https(TokioIo<TlsStream<TokioIo<Transport>, Builder::Output>>),
+    Http(Transport),
 }
 
 impl<Transport, Builder> HyperConnection for MaybeHttpsStream<Transport, Builder>
@@ -48,7 +46,16 @@ where
 {
     fn connected(&self) -> Connected {
         match self {
-            MaybeHttpsStream::Https(stream) => stream.inner().get_ref().connected(),
+            Self::Https(stream) => {
+                let connected = stream.inner().get_ref().connected();
+                let conn = stream.inner().as_ref();
+                match conn.application_protocol() {
+                    // Inform hyper that HTTP/2 was negotiated in the ALPN.
+                    Some(b"h2") => connected.negotiated_h2(),
+                    _ => connected,
+                }
+            }
+            Self::Http(stream) => stream.connected(),
         }
     }
 }
@@ -66,6 +73,7 @@ where
     ) -> Poll<Result<(), Error>> {
         match Pin::get_mut(self) {
             Self::Https(stream) => Pin::new(stream).poll_read(cx, buf),
+            Self::Http(stream) => Pin::new(stream).poll_read(cx, buf),
         }
     }
 }
@@ -83,18 +91,21 @@ where
     ) -> Poll<Result<usize, Error>> {
         match Pin::get_mut(self) {
             Self::Https(stream) => Pin::new(stream).poll_write(cx, buf),
+            Self::Http(stream) => Pin::new(stream).poll_write(cx, buf),
         }
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         match Pin::get_mut(self) {
-            MaybeHttpsStream::Https(stream) => Pin::new(stream).poll_flush(cx),
+            Self::Https(stream) => Pin::new(stream).poll_flush(cx),
+            Self::Http(stream) => Pin::new(stream).poll_flush(cx),
         }
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         match Pin::get_mut(self) {
-            MaybeHttpsStream::Https(stream) => Pin::new(stream).poll_shutdown(cx),
+            Self::Https(stream) => Pin::new(stream).poll_shutdown(cx),
+            Self::Http(stream) => Pin::new(stream).poll_shutdown(cx),
         }
     }
 }

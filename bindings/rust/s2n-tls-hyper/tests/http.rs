@@ -1,21 +1,28 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::common::InsecureAcceptAllCertificatesHandler;
+use crate::common::{echo::echo, InsecureAcceptAllCertificatesHandler};
 use bytes::Bytes;
 use common::echo::serve_echo;
-use http::{Method, Request, Uri};
+use http::{Method, Request, Uri, Version};
 use http_body_util::{BodyExt, Empty, Full};
-use hyper_util::{client::legacy::Client, rt::TokioExecutor};
+use hyper::service::service_fn;
+use hyper_util::{
+    client::legacy::Client,
+    rt::{TokioExecutor, TokioIo},
+};
 use s2n_tls::{
     callbacks::{ClientHelloCallback, ConnectionFuture},
     config,
     connection::Connection,
     security::DEFAULT_TLS13,
 };
-use s2n_tls_hyper::connector::HttpsConnector;
+use s2n_tls_hyper::{connector::HttpsConnector, error};
 use std::{error::Error, pin::Pin, str::FromStr};
-use tokio::{net::TcpListener, task::JoinHandle};
+use tokio::{
+    net::TcpListener,
+    task::{JoinHandle, JoinSet},
+};
 
 pub mod common;
 
@@ -254,6 +261,132 @@ async fn ipv6() -> Result<(), Box<dyn Error + Send + Sync>> {
         let uri = Uri::from_str(format!("https://[::1]:{}", addr.port()).as_str())?;
         let response = client.get(uri).await?;
         assert_eq!(response.status(), 200);
+
+        Ok(())
+    });
+
+    while let Some(res) = tasks.join_next().await {
+        res.unwrap()?;
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn http2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    for expected_http_version in [Version::HTTP_11, Version::HTTP_2] {
+        let server_config = {
+            let mut builder = common::config()?;
+            if expected_http_version == Version::HTTP_2 {
+                builder.set_application_protocol_preference(["h2"])?;
+            }
+            builder.build()?
+        };
+
+        common::echo::make_echo_request(server_config.clone(), |port| async move {
+            let connector = HttpsConnector::new(common::config()?.build()?);
+            let client: Client<_, Empty<Bytes>> =
+                Client::builder(TokioExecutor::new()).build(connector);
+
+            let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+            let response = client.get(uri).await?;
+            assert_eq!(response.status(), 200);
+
+            // Ensure that HTTP/2 is negotiated when supported by the server.
+            assert_eq!(response.version(), expected_http_version);
+
+            Ok(())
+        })
+        .await?;
+    }
+
+    Ok(())
+}
+
+/// Ensure that HTTP/2 is negotiated, regardless of any pre-configured ALPN values.
+#[tokio::test]
+async fn config_alpn_ignored() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let server_config = {
+        let mut builder = common::config()?;
+        builder.set_application_protocol_preference(["h2"])?;
+        builder.build()?
+    };
+
+    common::echo::make_echo_request(server_config, |port| async move {
+        let client_config = {
+            let mut builder = common::config()?;
+            // Set an arbitrary non-HTTP/2 ALPN value.
+            builder.set_application_protocol_preference([b"http/1.1"])?;
+            builder.build()?
+        };
+
+        let connector = HttpsConnector::new(client_config);
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
+
+        let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
+        let response = client.get(uri).await?;
+        assert_eq!(response.status(), 200);
+
+        // Ensure that HTTP/2 was negotiated.
+        assert_eq!(response.version(), Version::HTTP_2);
+
+        Ok(())
+    })
+    .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn plaintext_http() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+
+    let mut tasks: JoinSet<Result<(), Box<dyn Error + Send + Sync>>> = JoinSet::new();
+    tasks.spawn(async move {
+        // Listen for HTTP requests on a plain TCP stream.
+        let (tcp_stream, _) = listener.accept().await.unwrap();
+        let server = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new());
+        server
+            .serve_connection(TokioIo::new(tcp_stream), service_fn(echo))
+            .await?;
+
+        Ok(())
+    });
+
+    tasks.spawn(async move {
+        for enable_plaintext_http in [false, true] {
+            let connector = {
+                let config = common::config()?.build()?;
+                let mut builder = HttpsConnector::builder(config);
+                builder.with_plaintext_http(enable_plaintext_http);
+                builder.build()
+            };
+
+            let client: Client<_, Empty<Bytes>> =
+                Client::builder(TokioExecutor::new()).build(connector);
+            let uri = Uri::from_str(format!("http://127.0.0.1:{}", addr.port()).as_str())?;
+            let response = client.get(uri).await;
+
+            if enable_plaintext_http {
+                // If plaintext HTTP is enabled, the request should succeed.
+                let response = response.unwrap();
+                assert_eq!(response.status(), 200);
+            } else {
+                // If plaintext HTTP is disabled, the request should error.
+                let error = response.unwrap_err();
+
+                // Ensure an InvalidScheme error is produced.
+                let error = error
+                    .source()
+                    .unwrap()
+                    .downcast_ref::<error::Error>()
+                    .unwrap();
+                assert!(matches!(error, error::Error::InvalidScheme));
+                assert!(!error.to_string().is_empty());
+            }
+        }
 
         Ok(())
     });
