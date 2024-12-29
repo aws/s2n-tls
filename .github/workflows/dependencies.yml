@@ -18,7 +18,7 @@ on:
     - cron: "0 18 * * *"
 
 env:
-  ROOT_PATH: bindings/rust
+  ROOT_PATH: bindings/rust/extended
 
 jobs:
   audit:
