@@ -36,7 +36,6 @@ S2N_API __attribute__((deprecated)) int s2n_enable_tls13();
 /* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
 extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 
-bool s2n_use_default_tls13_config();
 bool s2n_is_tls13_fully_supported();
 int s2n_get_highest_fully_supported_tls_version();
 int s2n_enable_tls13_in_test();

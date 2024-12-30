@@ -20,13 +20,6 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_tls.h"
 
-bool s2n_use_default_tls13_config_flag = false;
-
-bool s2n_use_default_tls13_config()
-{
-    return s2n_use_default_tls13_config_flag;
-}
-
 bool s2n_is_tls13_fully_supported()
 {
     /* Older versions of Openssl (eg 1.0.2) do not support RSA PSS, which is required for TLS 1.3. */
@@ -58,7 +51,6 @@ int s2n_enable_tls13()
 int s2n_enable_tls13_in_test()
 {
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = true;
     return S2N_SUCCESS;
 }
 
@@ -72,7 +64,6 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_use_default_tls13_config_flag = false;
     return S2N_SUCCESS;
 }
 
@@ -85,7 +76,6 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = false;
     return S2N_SUCCESS;
 }
 
