@@ -58,7 +58,7 @@ EXPECTED_RESULTS = {
          "kem": None,
          "kem_group": None},
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.PQ_TLS_1_3_2023_06_01):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+        {"cipher": "ECDHE-RSA-AES128-GCM-SHA256",
          "kem": None,
          "kem_group": None},
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_TLS_1_0_2018_10):
