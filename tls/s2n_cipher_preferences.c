@@ -1585,7 +1585,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .allow_chacha20_boosting = false,
 };
 
-
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2021_08[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -1606,24 +1605,26 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2021_08 = {
     .allow_chacha20_boosting = false,
 };
 
-struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2020_12[] = {
-        S2N_TLS13_CIPHER_SUITES_20190801,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+/* Same as cipher_preferences_kms_pq_tls_1_0_2020_07, but with TLS 1.3 appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_24[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
 };
 
-const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2020_12 = {
-        .count = s2n_array_len(cipher_suites_pq_tls_1_0_2020_12),
-        .suites = cipher_suites_pq_tls_1_0_2020_12,
-        .allow_chacha20_boosting = false,
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_24 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_24),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_24,
+    .allow_chacha20_boosting = false,
 };
 
 /* Same as 2021_05_26 except:

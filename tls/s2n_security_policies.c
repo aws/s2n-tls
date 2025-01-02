@@ -590,7 +590,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06 = {
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
@@ -610,7 +610,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26 = {
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24 = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2023_01,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
@@ -640,7 +640,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_08 = {
 /* Same as security_policy_pq_tls_1_0_2021_05_24, but with TLS 1.2 as minimum */
 const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_09 = {
     .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
@@ -687,7 +687,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_08 = {
 /* Same as security_policy_pq_tls_1_2_2023_04_09, but with updated KEM prefs */
 const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_09 = {
     .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
