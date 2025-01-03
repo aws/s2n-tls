@@ -44,7 +44,6 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     /* There are only a few valid formats for session tickets; this ensures the
      * format version is at or below S2N_SERIALIZED_FORMAT_TLS12_V3, which will
      * keep the test checking mostly valid paths. */
-    randval = randval % S2N_SERIALIZED_FORMAT_TLS12_V3;
     POSIX_GUARD(s2n_stuffer_write_uint8(&fuzzed_ticket, randval));
     /* We have to put the write cursor back */
     POSIX_GUARD(s2n_stuffer_skip_write(&fuzzed_ticket, len - 1));
