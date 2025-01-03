@@ -446,7 +446,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     }
 
     if (conn->client_hello_version == S2N_SSLv2) {
-        POSIX_GUARD(s2n_sslv2_client_hello_recv(conn));
+        POSIX_GUARD(s2n_sslv2_client_hello_parse(conn));
         return S2N_SUCCESS;
     }
 
@@ -594,8 +594,13 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
-    POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data,
-            client_hello->cipher_suites.size / 2));
+    if (conn->client_hello_version == S2N_SSLv2) {
+        POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
+                client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
+    } else {
+        POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data,
+                client_hello->cipher_suites.size / 2));
+    }
 
     /* Check if this is the second client hello in a hello retry handshake */
     if (s2n_is_hello_retry_handshake(conn) && conn->handshake.message_number > 0) {
@@ -685,9 +690,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         }
     }
 
-    if (conn->client_hello_version != S2N_SSLv2) {
-        POSIX_GUARD(s2n_process_client_hello(conn));
-    }
+    POSIX_GUARD(s2n_process_client_hello(conn));
 
     return 0;
 }
@@ -821,7 +824,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
  * Alternatively, the TLS1.0 RFC includes a more modern description of the format:
  * https://tools.ietf.org/rfc/rfc2246 Appendix E.1
  */
-int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
+int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
     client_hello->sslv2 = true;
@@ -830,15 +833,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
     POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
     struct s2n_stuffer *in = &in_stuffer;
-
-    const struct s2n_security_policy *security_policy = NULL;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-
-    if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
-        POSIX_GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-    }
-    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
     /* We start 5 bytes into the record */
     uint16_t cipher_suites_length = 0;
@@ -857,14 +851,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     POSIX_ENSURE_REF(client_hello->cipher_suites.data);
-
-    /* Find potential certificate matches before we choose the cipher. */
-    POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
-
-    POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
-            client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
-    POSIX_GUARD_RESULT(s2n_signature_algorithm_select(conn));
-    POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, session_id_length), session_id_length));
