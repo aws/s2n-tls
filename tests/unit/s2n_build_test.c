@@ -80,7 +80,6 @@ S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
         { .libcrypto = "boringssl", .is_openssl = false },
         { .libcrypto = "libressl", .is_openssl = false },
         { .libcrypto = "openssl-1.0.2", .is_openssl = true },
-        { .libcrypto = "openssl-1.0.2-fips", .is_openssl = true },
         { .libcrypto = "openssl-1.1.1", .is_openssl = true },
         { .libcrypto = "openssl-3.0", .is_openssl = true },
     };
