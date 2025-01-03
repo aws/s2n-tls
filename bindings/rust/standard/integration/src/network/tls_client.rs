@@ -46,36 +46,15 @@ mod kms_pq {
     // supports ML-KEM.
     #[test_log::test(tokio::test)]
     async fn pq_handshake() -> Result<(), Box<dyn std::error::Error>> {
-        let policy = Policy::from_version("KMS-PQ-TLS-1-0-2020-07")?;
+        let policy = Policy::from_version("PQ-TLS-1-2-2023-10-09")?;
         let tls = handshake_with_domain(DOMAIN, &policy).await?;
 
         assert_eq!(
             tls.as_ref().cipher_suite()?,
-            "ECDHE-KYBER-RSA-AES256-GCM-SHA384"
+            "TLS_AES_256_GCM_SHA384"
         );
-        assert_eq!(tls.as_ref().kem_name(), Some("kyber512r3"));
+        assert_eq!(tls.as_ref().kem_group_name(), Some("x25519_kyber-512-r3"));
 
-        Ok(())
-    }
-
-    // We want to confirm that non-supported kyber drafts successfully fall
-    // back to a full handshake.
-    #[test_log::test(tokio::test)]
-    async fn early_draft_falls_back_to_classical() -> Result<(), Box<dyn std::error::Error>> {
-        const EARLY_DRAFT_PQ_POLICIES: &[&str] = &[
-            "KMS-PQ-TLS-1-0-2019-06",
-            "PQ-SIKE-TEST-TLS-1-0-2019-11",
-            "KMS-PQ-TLS-1-0-2020-02",
-            "PQ-SIKE-TEST-TLS-1-0-2020-02",
-        ];
-
-        for security_policy in EARLY_DRAFT_PQ_POLICIES {
-            let policy = Policy::from_version(security_policy)?;
-            let tls = handshake_with_domain(DOMAIN, &policy).await?;
-
-            assert_eq!(tls.as_ref().cipher_suite()?, "ECDHE-RSA-AES256-GCM-SHA384");
-            assert_eq!(tls.as_ref().kem_name(), None);
-        }
         Ok(())
     }
 }

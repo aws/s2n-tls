@@ -318,18 +318,6 @@ class Ciphers(object):
 
     KMS_TLS_1_0_2018_10 = Cipher(
         "KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False, s2n=True)
-    KMS_PQ_TLS_1_0_2019_06 = Cipher(
-        "KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False, s2n=True, pq=True)
-    KMS_PQ_TLS_1_0_2020_02 = Cipher(
-        "KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
-    KMS_PQ_TLS_1_0_2020_07 = Cipher(
-        "KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher(
-        "PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher(
-        "PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_TLS_1_0_2020_12 = Cipher(
-        "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2023_01 = Cipher(
         "PQ-TLS-1-0-2023-01-24", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_3_2023_06_01 = Cipher(

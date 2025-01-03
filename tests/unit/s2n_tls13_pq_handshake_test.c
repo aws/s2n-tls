@@ -333,8 +333,6 @@ int main()
     };
 
     const struct s2n_kem_preferences kyber_test_prefs_draft0 = {
-        .kem_count = 0,
-        .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
         .tls13_kem_groups = kyber_test_groups,
         .tls13_pq_hybrid_draft_revision = 0
@@ -349,8 +347,6 @@ int main()
     };
 
     const struct s2n_kem_preferences kyber_test_prefs_draft5 = {
-        .kem_count = 0,
-        .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
         .tls13_kem_groups = kyber_test_groups,
         .tls13_pq_hybrid_draft_revision = 5
@@ -370,8 +366,6 @@ int main()
     };
 
     const struct s2n_kem_preferences kyber768_test_prefs = {
-        .kem_count = 0,
-        .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber768_test_kem_groups),
         .tls13_kem_groups = kyber768_test_kem_groups,
         .tls13_pq_hybrid_draft_revision = 5,
@@ -391,8 +385,6 @@ int main()
     };
 
     const struct s2n_kem_preferences kyber1024_test_prefs = {
-        .kem_count = 0,
-        .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber1024_test_kem_groups),
         .tls13_kem_groups = kyber1024_test_kem_groups,
         .tls13_pq_hybrid_draft_revision = 5,
@@ -412,8 +404,6 @@ int main()
     };
 
     const struct s2n_kem_preferences mlkem768_test_prefs = {
-        .kem_count = 0,
-        .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(mlkem768_test_groups),
         .tls13_kem_groups = mlkem768_test_groups,
         .tls13_pq_hybrid_draft_revision = 5
@@ -428,10 +418,10 @@ int main()
     };
 
     const struct s2n_security_policy ecc_retry_policy = {
-        .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
-        .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
-        .kem_preferences = security_policy_pq_tls_1_0_2020_12.kem_preferences,
-        .signature_preferences = security_policy_pq_tls_1_0_2020_12.signature_preferences,
+        .minimum_protocol_version = security_policy_pq_tls_1_2_2024_10_09.minimum_protocol_version,
+        .cipher_preferences = security_policy_pq_tls_1_2_2024_10_09.cipher_preferences,
+        .kem_preferences = security_policy_pq_tls_1_2_2024_10_09.kem_preferences,
+        .signature_preferences = security_policy_pq_tls_1_2_2024_10_09.signature_preferences,
         .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
     };
 
@@ -459,8 +449,6 @@ int main()
         }
 
         const struct s2n_kem_preferences singleton_test_pref = {
-            .kem_count = 0,
-            .kems = NULL,
             .tls13_kem_group_count = 1,
             .tls13_kem_groups = &kem_group,
             .tls13_pq_hybrid_draft_revision = 5
@@ -509,30 +497,6 @@ int main()
                 .len_prefix_expected = false,
         },
         /* Server and Client both support PQ and TLS 1.3 */
-        {
-                .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
-                .server_policy = &security_policy_pq_tls_1_1_2021_05_21,
-                .expected_kem_group = &s2n_x25519_kyber_512_r3,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_22,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_22,
-                .expected_kem_group = &s2n_x25519_kyber_512_r3,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_23,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_23,
-                .expected_kem_group = &s2n_x25519_kyber_512_r3,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
@@ -590,7 +554,7 @@ int main()
          * ECC on hello retry.
          */
         {
-                .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
                 .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
@@ -634,8 +598,8 @@ int main()
         /* Server supports all KEM groups; client sends a PQ key share and an EC key
          * share; server chooses to negotiate client's first choice PQ without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
@@ -646,7 +610,7 @@ int main()
          * client sends a PQ share and an EC share; server chooses to negotiate PQ
          * without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &kyber_test_policy_draft0,
                 .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
@@ -658,7 +622,7 @@ int main()
          * client sends a PQ share and an EC share; server chooses to negotiate PQ
          * without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &kyber_test_policy_draft5,
                 .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
@@ -669,7 +633,7 @@ int main()
         /* Server does not support PQ; client sends a PQ key share and an EC key share;
          * server should negotiate EC without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
@@ -692,7 +656,7 @@ int main()
          * EC should be negotiated without HRR */
         {
                 .client_policy = &security_policy_test_all_tls13,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = false,
@@ -703,7 +667,7 @@ int main()
          * EC should be negotiated after exchanging HRR */
         {
                 .client_policy = &security_policy_test_tls13_retry,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = true,

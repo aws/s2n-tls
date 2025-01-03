@@ -1000,6 +1000,34 @@ impl Connection {
         }
     }
 
+    pub fn kem_group_name(&self) -> Option<&str> {
+        let name_bytes = {
+            let name = unsafe { s2n_connection_get_kem_group_name(self.connection.as_ptr()) };
+            if name.is_null() {
+                return None;
+            }
+            name
+        };
+
+        let name_str = unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: kem_name has a static lifetime because it lives on a const
+            //         struct s2n_kem with file scope.
+            const_str!(name_bytes)
+        };
+
+        match name_str {
+            Ok("NONE") => None,
+            Ok(name) => Some(name),
+            Err(_) => {
+                // Unreachable: This would indicate a non-utf-8 string literal in
+                // the s2n-tls C codebase.
+                None
+            }
+        }
+    }
+
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         unsafe {

@@ -33,9 +33,6 @@ const uint8_t TEST_SHARED_SECRET[] = { 4, 4, 4, 4 };
 #define TEST_CIPHERTEXT_LENGTH 5
 const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 
-static const uint8_t kyber_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 };
-static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
-
 int alloc_test_kem_params(struct s2n_kem_params *kem_params)
 {
     POSIX_GUARD(s2n_alloc(&(kem_params->private_key), TEST_PRIVATE_KEY_LENGTH));
@@ -125,16 +122,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
     };
     {
-        const struct s2n_iana_to_kem *compatible_params = NULL;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cipher_suite_to_kem(classic_ecdhe_iana, &compatible_params), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_NULL(compatible_params);
-
-        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
-        EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 1);
-        EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
-    };
-    {
         /* Tests for s2n_kem_free() */
         EXPECT_SUCCESS(s2n_kem_free(NULL));
 
@@ -167,34 +154,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(assert_kem_params_free(&kem_group_params.kem_params));
         EXPECT_NULL(kem_group_params.ecc_params.evp_pkey);
     };
-    {
-        /* Happy case(s) for s2n_get_kem_from_extension_id() */
-
-        /* The kem_extensions and kems arrays should be kept in sync with each other */
-        kem_extension_size kem_extensions[] = {
-            TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
-        };
-
-        const struct s2n_kem *kems[] = {
-            &s2n_kyber_512_r3,
-        };
-
-        for (size_t i = 0; i < s2n_array_len(kems); i++) {
-            kem_extension_size kem_id = kem_extensions[i];
-            const struct s2n_kem *returned_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_get_kem_from_extension_id(kem_id, &returned_kem));
-            EXPECT_NOT_NULL(returned_kem);
-            EXPECT_EQUAL(kems[i], returned_kem);
-        }
-    };
-    {
-        /* Failure cases for s2n_get_kem_from_extension_id() */
-        const struct s2n_kem *returned_kem = NULL;
-        kem_extension_size non_existent_kem_id = 65535;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    };
-
     /* If KEM tests depend on len_prefix, test with both possible values */
     for (int len_prefixed = 0; len_prefixed < 2; len_prefixed++) {
         {
