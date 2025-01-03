@@ -302,15 +302,22 @@ int main(int argc, char **argv)
     /* s2n_generate_ticket_lifetime */
     {
         uint32_t min_lifetime = 0;
+        struct s2n_config *config = NULL;
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
 
         /* Test: encrypt + decrypt key has shortest lifetime */
         conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
@@ -318,7 +325,7 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
@@ -337,7 +344,7 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
