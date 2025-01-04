@@ -18,12 +18,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
     )
-
-    fips_mode = config.getoption('fips-mode', 0)
-    if fips_mode == 1:
+    provider_version = config.getoption('provider-version', None)
+    if "fips" in provider_version:
         set_flag(S2N_FIPS_MODE, True)
-
-    set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
+    set_flag(S2N_PROVIDER_VERSION, provider_version)
 
 
 def pytest_collection_modifyitems(config, items):
