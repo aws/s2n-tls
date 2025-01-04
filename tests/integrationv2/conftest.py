@@ -6,8 +6,6 @@ from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 def pytest_addoption(parser):
     parser.addoption("--provider-version", action="store", dest="provider-version",
                      default=None, type=str, help="Set the version of the TLS provider")
-    parser.addoption("--fips-mode", action="store", dest="fips-mode",
-                     default=False, type=int, help="S2N is running in FIPS mode")
 
 
 def pytest_configure(config):
