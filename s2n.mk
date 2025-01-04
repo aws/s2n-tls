@@ -68,11 +68,6 @@ ifeq ($(NO_INLINE), 1)
 DEFAULT_CFLAGS += -fno-inline
 endif
 
-# Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
-ifdef S2N_TEST_IN_FIPS_MODE
-    DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
-endif
-
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION

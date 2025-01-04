@@ -54,13 +54,8 @@ int num_suites;
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-#ifdef S2N_TEST_IN_FIPS_MODE
-    test_suites = cipher_preferences_test_all_fips.suites;
-    num_suites = cipher_preferences_test_all_fips.count;
-#else
     test_suites = cipher_preferences_test_all.suites;
     num_suites = cipher_preferences_test_all.count;
-#endif
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);

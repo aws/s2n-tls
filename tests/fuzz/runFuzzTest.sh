@@ -56,12 +56,6 @@ else
     export LD_PRELOAD_="$GLOBAL_OVERRIDES"
 fi
 
-FIPS_TEST_MSG=""
-if [ -n "${S2N_TEST_IN_FIPS_MODE}" ];
-then
-    FIPS_TEST_MSG=" FIPS test"
-fi
-
 if [ ! -d "./corpus/${TEST_NAME}" ];
 then
   printf "\033[33;1mWARNING!\033[0m ./corpus/${TEST_NAME} directory does not exist, feature coverage may be below minimum.\n\n"

@@ -70,7 +70,6 @@ bool s2n_use_color_in_output = true;
         fprintf(stdout, "Running %-50s ... ", __FILE__);          \
         fflush(stdout);                                           \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true)); \
-        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                   \
         EXPECT_SUCCESS(s2n_enable_atexit());                      \
     } while (0)
 
@@ -215,24 +214,6 @@ bool s2n_use_color_in_output = true;
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 #define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
-#ifdef S2N_TEST_IN_FIPS_MODE
-#include <openssl/err.h>
-
-#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE() \
-    do { \
-        if (FIPS_mode_set(1) == 0) { \
-            unsigned long fips_rc = ERR_get_error(); \
-            char ssl_error_buf[256]; \
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
-            return 1; \
-        } \
-        printf("s2n entered FIPS mode\n"); \
-    } while (0)
-
-#else
-#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE()
-#endif
-
 /* Ensures fuzz test input length is greater than or equal to the minimum needed for the test */
 #define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return S2N_SUCCESS;} while (0)
 
@@ -266,7 +247,6 @@ void s2n_test__fuzz_cleanup() \
 } \
 int LLVMFuzzerInitialize(int *argc, char **argv[]) \
 { \
-    S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE(); \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
     EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup)); \
     if (!fuzz_init) { \
