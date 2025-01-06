@@ -14,13 +14,7 @@ PQ_ENABLED_FLAG = "PQ key exchange enabled"
 
 CIPHERS = [
     None,  # `None` will default to the appropriate `test_all` cipher preference in the S2N client provider
-    Ciphers.KMS_PQ_TLS_1_0_2019_06,
-    Ciphers.KMS_PQ_TLS_1_0_2020_02,
-    Ciphers.KMS_PQ_TLS_1_0_2020_07,
-    Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
-    Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02,
     Ciphers.KMS_TLS_1_0_2018_10,
-    Ciphers.PQ_TLS_1_0_2020_12,
     Ciphers.PQ_TLS_1_3_2023_06_01,
 ]
 
@@ -33,109 +27,9 @@ KEM_GROUPS = [
 
 EXPECTED_RESULTS = {
     # The tuple keys have the form (client_{cipher, kem_group}, server_{cipher, kem_group})
-    (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    (Ciphers.KMS_PQ_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
-            "kem": "kyber512r3", "kem_group": None},
-
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_TLS_1_0_2018_10):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_02, Ciphers.KMS_TLS_1_0_2018_10):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_TLS_1_0_2018_10):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_PQ_TLS_1_0_2019_06):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-    (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": None, "kem_group": None},
-
-    # The expected kem_group string for this case purposefully excludes a curve;
-    # depending on how s2n was compiled, the curve may be either x25519 or one
-    # of the NIST curves.
-    (Ciphers.PQ_TLS_1_0_2020_12, Ciphers.PQ_TLS_1_0_2020_12):
-        {"cipher": "TLS_AES_256_GCM_SHA384",
-            "kem": None, "kem_group": "_kyber-512-r3"},
-    (Ciphers.PQ_TLS_1_0_2020_12, Ciphers.PQ_TLS_1_0_2023_01):
-        {"cipher": "TLS_AES_256_GCM_SHA384",
-            "kem": None, "kem_group": "_kyber-512-r3"},
     (Ciphers.PQ_TLS_1_0_2023_01, Ciphers.PQ_TLS_1_0_2023_01):
         {"cipher": "TLS_AES_256_GCM_SHA384",
             "kem": None, "kem_group": "_kyber-512-r3"},
-    (Ciphers.PQ_TLS_1_0_2023_01, Ciphers.PQ_TLS_1_0_2020_12):
-        {"cipher": "TLS_AES_256_GCM_SHA384",
-            "kem": None, "kem_group": "_kyber-512-r3"},
-    (Ciphers.PQ_TLS_1_0_2020_12, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
-            "kem": "kyber512r3", "kem_group": None},
-    (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.PQ_TLS_1_0_2020_12):
-        {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
-            "kem": "kyber512r3", "kem_group": None},
-    (Ciphers.PQ_TLS_1_0_2020_12, KemGroups.P256_KYBER512R3):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp256r1_kyber-512-r3"},
-    (KemGroups.P256_KYBER512R3, Ciphers.PQ_TLS_1_0_2020_12):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp256r1_kyber-512-r3"},
-    (KemGroups.P256_KYBER512R3, Ciphers.PQ_TLS_1_0_2023_01):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp256r1_kyber-512-r3"},
-    (KemGroups.P256_KYBER512R3, Ciphers.PQ_TLS_1_3_2023_06_01):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp256r1_kyber-512-r3"},
     (KemGroups.P384_KYBER768R3, Ciphers.PQ_TLS_1_3_2023_06_01):
         {"cipher": "AES256_GCM_SHA384", "kem": None,
             "kem_group": "secp384r1_kyber-768-r3"},
@@ -150,6 +44,22 @@ EXPECTED_RESULTS = {
         {"cipher": "TLS_AES_256_GCM_SHA384",
          "kem": None,
          "kem_group": "SecP256r1Kyber768Draft00"},
+    (Ciphers.PQ_TLS_1_3_2023_06_01, Ciphers.PQ_TLS_1_3_2023_06_01):
+        {"cipher": "TLS_AES_256_GCM_SHA384",
+         "kem": None,
+         "kem_group": "SecP256r1Kyber768Draft00"},
+    (Ciphers.PQ_TLS_1_3_2023_06_01, Ciphers.KMS_TLS_1_0_2018_10):
+        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+         "kem": None,
+         "kem_group": None},
+    (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.PQ_TLS_1_3_2023_06_01):
+        {"cipher": "ECDHE-RSA-AES128-GCM-SHA256",
+         "kem": None,
+         "kem_group": None},
+    (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_TLS_1_0_2018_10):
+        {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+         "kem": None,
+         "kem_group": None},
 }
 
 """
@@ -224,22 +134,6 @@ def test_nothing():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, certificate, client_cipher, server_cipher, provider,
                                    other_provider):
-    # Incorrect cipher is negotiated when both ciphers are PQ_TLS_1_0_2020_12 with
-    # openssl 1.0.2, boringssl, and libressl libcryptos
-    if all([
-        client_cipher == Ciphers.PQ_TLS_1_0_2020_12,
-        server_cipher == Ciphers.PQ_TLS_1_0_2020_12,
-        any([
-            libcrypto in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in [
-                "boringssl",
-                "libressl",
-                "openssl-1.0.2"
-            ]
-        ])
-    ]):
-        pytest.skip()
-
     port = next(available_ports)
 
     client_options = ProviderOptions(
@@ -359,7 +253,7 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_0_2020_12], ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
 def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem_group):
     # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
@@ -401,7 +295,7 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_0_2020_12], ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
 def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem_group):
     # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
