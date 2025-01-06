@@ -44,12 +44,12 @@ mod tests {
 
         // PQ is supported
         {
-            let policy = Policy::from_version("KMS-PQ-TLS-1-0-2020-07")?;
+            let policy = Policy::from_version("default_pq")?;
             let config = build_config(&policy)?;
             let mut pair = TestPair::from_config(&config);
 
             pair.handshake().unwrap();
-            assert_eq!(pair.client.kem_name(), Some("kyber512r3"));
+            assert_eq!(pair.client.kem_group_name(), Some("X25519MLKEM768"));
         }
 
         Ok(())

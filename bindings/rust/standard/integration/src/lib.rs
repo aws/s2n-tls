@@ -16,11 +16,11 @@ mod tests {
     #[cfg(feature = "pq")]
     #[test]
     fn pq_sanity_check() -> Result<(), Box<dyn std::error::Error>> {
-        let config = testing::build_config(&Policy::from_version("KMS-PQ-TLS-1-0-2020-07")?)?;
+        let config = testing::build_config(&Policy::from_version("default_pq")?)?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
 
-        if pair.client.kem_name().is_none() {
+        if pair.client.kem_group_name().is_none() {
             panic!(
                 "PQ tests are enabled, but PQ functionality is unavailable. \
                 Are you sure that the libcrypto supports PQ?"
