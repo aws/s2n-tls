@@ -92,6 +92,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
+            uint64_t wall_clock_time_stamp = 0;
+            EXPECT_OK(s2n_config_wall_clock(config, &wall_clock_time_stamp));
+
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -116,8 +119,9 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
             uint32_t key_lifetime_in_secs =
-                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS;
+                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
@@ -307,6 +311,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
 
+        uint64_t wall_clock_time_stamp = 0;
+        EXPECT_OK(s2n_config_wall_clock(config, &wall_clock_time_stamp));
+
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -318,7 +325,7 @@ int main(int argc, char **argv)
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2) / ONE_SEC_IN_NANOS);
+        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
         conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
@@ -346,6 +353,17 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
+
+        /* Test: PSK Keying Material has shortest lifetime */
+        DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+        EXPECT_NOT_NULL(chosen_psk);
+        chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+        chosen_psk->keying_material_expiration = one_week_in_nanos / 2;
+        conn->psk_params.chosen_psk = chosen_psk;
+
+        EXPECT_OK(s2n_config_wall_clock(config, &wall_clock_time_stamp));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
+        EXPECT_EQUAL(min_lifetime, (uint32_t) (one_week_in_nanos / 2 - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
