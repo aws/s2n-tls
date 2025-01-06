@@ -61,7 +61,7 @@ The `.info` files contain raw coverage data.  To convert them into HTML format, 
 ```
 
 You will see coverage reports placed in the following directory:
-> s2n-tls/tests/fuzz/coverage
+> s2n-tls/coverage/fuzz/total_fuzz_coverage
 
 ## Fuzz Test Directory Structure
 For a test with name `$TEST_NAME`, its files should be laid out with the following structure:
