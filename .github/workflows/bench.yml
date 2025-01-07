@@ -1,6 +1,8 @@
 name: Benchmarking
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   schedule:
