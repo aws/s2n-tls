@@ -205,7 +205,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, stru
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
     uint32_t key_session_and_keying_material_min_lifetime = key_and_session_min_lifetime;
     if (conn->psk_params.chosen_psk != NULL) {
-        key_session_and_keying_material_min_lifetime = MIN(key_session_and_keying_material_min_lifetime, (uint32_t) (conn->psk_params.chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS);
+        key_session_and_keying_material_min_lifetime = MIN(key_and_session_min_lifetime, (uint32_t) (conn->psk_params.chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS);
     }
     /** 
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
