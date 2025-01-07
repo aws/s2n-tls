@@ -93,7 +93,6 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      **/
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
     struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
     if (!conn->config->use_tickets || s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, key, &to))) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));

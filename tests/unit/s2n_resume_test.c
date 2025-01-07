@@ -1293,6 +1293,16 @@ int main(int argc, char **argv)
 
     /* s2n_resume_encrypt/decrypt_session_ticket */
     {
+        /* Check error is thrown when no ticket key is available */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &conn->client_ticket_to_decrypt),
+                    S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+        }
+
         /* Check error is thrown when stuffer is out of memory for the ticket */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1307,7 +1317,6 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer output = { 0 };
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
             EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_STUFFER_IS_FULL);
         }
 

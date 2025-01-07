@@ -31,8 +31,6 @@ static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct
 
     /* Create a valid resumption psk identity */
     struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    /* No keys loaded by the user or the keys are either in decrypt-only or expired state */
-    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
     output->blob.size = s2n_stuffer_data_available(output);
 

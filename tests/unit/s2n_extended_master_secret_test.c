@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 
             /* Encrypt the ticket with EMS data */
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -92,7 +91,6 @@ int main(int argc, char **argv)
 
             /* Encrypt the ticket without EMS data */
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -131,7 +129,6 @@ int main(int argc, char **argv)
 
             /* Encrypt the ticket with EMS data */
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
