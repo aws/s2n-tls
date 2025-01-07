@@ -678,8 +678,10 @@ if (BUILD_TESTING)
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
-        # Set default values for fuzzing if not defined
-        if(NOT DEFINED FUZZ_TIMEOUT_SEC)
+        # Set default values for fuzzing
+        if(DEFINED ENV{FUZZ_TIMEOUT_SEC})
+            set(FUZZ_TIMEOUT_SEC $ENV{FUZZ_TIMEOUT_SEC})    
+        else()
             set(FUZZ_TIMEOUT_SEC 60)
         endif()
 
