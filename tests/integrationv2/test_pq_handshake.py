@@ -26,39 +26,34 @@ KEM_GROUPS = [
 ]
 
 EXPECTED_RESULTS = {
-    # The tuple keys have the form (client_{cipher, kem_group}, server_{cipher, kem_group})
+    # The tuple keys have the form:
+    # (client_{cipher, kem_group}, server_{cipher, kem_group}): {"cipher": {expected_cipher}, "kem_group": {expected_kem_group}}
     (Ciphers.PQ_TLS_1_0_2023_01, Ciphers.PQ_TLS_1_0_2023_01):
         {"cipher": "TLS_AES_256_GCM_SHA384",
-            "kem": None, "kem_group": "_kyber-512-r3"},
+         "kem_group": "_kyber-512-r3"},
     (KemGroups.P384_KYBER768R3, Ciphers.PQ_TLS_1_3_2023_06_01):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp384r1_kyber-768-r3"},
+        {"cipher": "AES256_GCM_SHA384",
+         "kem_group": "secp384r1_kyber-768-r3"},
     (KemGroups.P521_KYBER1024R3, Ciphers.PQ_TLS_1_3_2023_06_01):
-        {"cipher": "AES256_GCM_SHA384", "kem": None,
-            "kem_group": "secp521r1_kyber-1024-r3"},
+        {"cipher": "AES256_GCM_SHA384",
+         "kem_group": "secp521r1_kyber-1024-r3"},
     (Ciphers.PQ_TLS_1_3_2023_06_01, KemGroups.X25519Kyber768Draft00):
         {"cipher": "TLS_AES_256_GCM_SHA384",
-         "kem": None,
          "kem_group": "X25519Kyber768Draft00"},
     (Ciphers.PQ_TLS_1_3_2023_06_01, KemGroups.SecP256r1Kyber768Draft00):
         {"cipher": "TLS_AES_256_GCM_SHA384",
-         "kem": None,
          "kem_group": "SecP256r1Kyber768Draft00"},
     (Ciphers.PQ_TLS_1_3_2023_06_01, Ciphers.PQ_TLS_1_3_2023_06_01):
         {"cipher": "TLS_AES_256_GCM_SHA384",
-         "kem": None,
          "kem_group": "SecP256r1Kyber768Draft00"},
     (Ciphers.PQ_TLS_1_3_2023_06_01, Ciphers.KMS_TLS_1_0_2018_10):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-         "kem": None,
          "kem_group": None},
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.PQ_TLS_1_3_2023_06_01):
         {"cipher": "ECDHE-RSA-AES128-GCM-SHA256",
-         "kem": None,
          "kem_group": None},
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_TLS_1_0_2018_10):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-         "kem": None,
          "kem_group": None},
 }
 
@@ -95,16 +90,12 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
     if expected_result is not None:
         assert to_bytes(
             ("Cipher negotiated: " + expected_result['cipher'])) in s2n_results.stdout
-        if expected_result['kem']:
-            assert to_bytes(
-                ("KEM: " + expected_result['kem'])) in s2n_results.stdout
-            assert to_bytes(PQ_ENABLED_FLAG) in s2n_results.stdout
         if expected_result['kem_group']:
             # Purposefully leave off the "KEM Group: " prefix in order to perform partial matches
             # without specifying the curve.
             assert to_bytes(expected_result['kem_group']) in s2n_results.stdout
             assert to_bytes(PQ_ENABLED_FLAG) in s2n_results.stdout
-        if not expected_result['kem'] and not expected_result['kem_group']:
+        if not expected_result['kem_group']:
             assert to_bytes(PQ_ENABLED_FLAG) not in s2n_results.stdout
             assert to_bytes("Curve:") in s2n_results.stdout
 
@@ -161,7 +152,7 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, certificate, clien
         # If PQ is not enabled in s2n, we expect classic handshakes to be negotiated.
         # Leave the expected cipher blank, as there are multiple possibilities - the
         # important thing is that kem and kem_group are NONE.
-        expected_result = {"cipher": "", "kem": None, "kem_group": None}
+        expected_result = {"cipher": "",  "kem_group": None}
 
     # Client and server are both s2n; can make meaningful assertions about negotiation for both
     for results in client.get_results():
