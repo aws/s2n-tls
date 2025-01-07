@@ -82,8 +82,7 @@ static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct
     RESULT_CHECKED_MEMCPY(conn->tls13_ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
 
     /* Create a valid resumption psk identity */
-    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
     output->blob.size = s2n_stuffer_data_available(output);
 
     return S2N_RESULT_OK;
