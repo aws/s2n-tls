@@ -972,6 +972,7 @@ impl Connection {
         }
     }
 
+    #[deprecated = "PQ TLS 1.2 KEM Names are no longer supported. Use kem_group_name() to retrieve PQ TLS 1.3 Group name."]
     pub fn kem_name(&self) -> Option<&str> {
         let name_bytes = {
             let name = unsafe { s2n_connection_get_kem_name(self.connection.as_ptr()) };

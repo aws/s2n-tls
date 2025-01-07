@@ -28,18 +28,18 @@ mod tests {
     }
 
     #[test]
-    fn kem_name_retrieval() -> Result<(), Error> {
+    fn kem_group_name_retrieval() -> Result<(), Error> {
         // PQ isn't supported
         {
             let policy = Policy::from_version("20240501")?;
             let config = build_config(&policy)?;
             let mut pair = TestPair::from_config(&config);
 
-            // before negotiation, kem_name is none
-            assert!(pair.client.kem_name().is_none());
+            // before negotiation, kem_group_name is none
+            assert!(pair.client.kem_group_name().is_none());
 
             pair.handshake().unwrap();
-            assert!(pair.client.kem_name().is_none());
+            assert!(pair.client.kem_group_name().is_none());
         }
 
         // PQ is supported
