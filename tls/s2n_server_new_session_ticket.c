@@ -193,6 +193,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, struct s2n_ticket_key *key, uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(key);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
     uint64_t now = 0;
