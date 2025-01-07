@@ -365,6 +365,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(min_lifetime, (uint32_t) (one_week_in_nanos / 2 - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     };
 
     /* s2n_generate_ticket_nonce */
