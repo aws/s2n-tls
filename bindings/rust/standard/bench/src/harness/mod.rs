@@ -1,10 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-
 mod io;
-pub use io::{LocalDataBuffer, ViewIO};
+pub use io::{LocalDataBuffer, TestPairIO, ViewIO};
 
-use io::TestPairIO;
 use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
 use strum::EnumIter;
 
@@ -157,7 +155,11 @@ pub trait TlsConnection: Sized {
     fn name() -> String;
 
     /// Make connection from existing config and buffer
-    fn new_from_config(config: &Self::Config, io: ViewIO) -> Result<Self, Box<dyn Error>>;
+    fn new_from_config(
+        mode: Mode,
+        config: &Self::Config,
+        io: &TestPairIO,
+    ) -> Result<Self, Box<dyn Error>>;
 
     /// Run one handshake step: receive msgs from other connection, process, and send new msgs
     fn handshake(&mut self) -> Result<(), Box<dyn Error>>;
@@ -255,14 +257,25 @@ where
             server_tx_stream: Rc::pin(Default::default()),
             client_tx_stream: Rc::pin(Default::default()),
         };
-        let client = C::new_from_config(client_config, io.client_view()).unwrap();
-        let server = S::new_from_config(server_config, io.server_view()).unwrap();
+        let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
+        let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
         Self { client, server, io }
     }
 
-    /// Take back ownership of individual connections in the TlsConnPair
-    pub fn split(self) -> (C, S) {
-        (self.client, self.server)
+    pub fn client(&self) -> &C {
+        &self.client
+    }
+
+    pub fn client_mut(&mut self) -> &mut C {
+        &mut self.client
+    }
+
+    pub fn server(&self) -> &S {
+        &self.server
+    }
+
+    pub fn server_mut(&mut self) -> &mut S {
+        &mut self.server
     }
 
     /// Run handshake on connections
@@ -386,8 +399,7 @@ mod tests {
             TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
                 .unwrap();
         conn_pair.handshake().unwrap();
-        let (_, server) = conn_pair.split();
-        assert!(server.resumed_connection());
+        assert!(conn_pair.server().resumed_connection());
     }
 
     #[test]

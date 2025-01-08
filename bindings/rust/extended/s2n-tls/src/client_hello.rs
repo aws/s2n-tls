@@ -22,6 +22,7 @@ use std::fmt;
 pub struct ClientHello(s2n_client_hello);
 
 impl ClientHello {
+    /// Corresponds to [s2n_client_hello_parse_message].
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
         crate::init::init();
         let handle = unsafe {
@@ -56,6 +57,8 @@ impl ClientHello {
         &self.0 as *const s2n_client_hello as *mut s2n_client_hello
     }
 
+    /// Corresponds to [s2n_client_hello_get_session_id], but also
+    /// calls [s2n_client_hello_get_session_id_length].
     pub fn session_id(&self) -> Result<Vec<u8>, Error> {
         let mut session_id_length = 0;
         unsafe {
@@ -77,6 +80,8 @@ impl ClientHello {
         Ok(session_id)
     }
 
+    /// Corresponds to [s2n_client_hello_get_server_name], but also
+    /// calls [s2n_client_hello_get_server_name_length].
     pub fn server_name(&self) -> Result<Vec<u8>, Error> {
         let mut server_name_length = 0;
         unsafe {
@@ -98,6 +103,8 @@ impl ClientHello {
         Ok(server_name)
     }
 
+    /// Corresponds to [s2n_client_hello_get_raw_message], but also
+    /// calls [s2n_client_hello_get_raw_message_length].
     pub fn raw_message(&self) -> Result<Vec<u8>, Error> {
         let message_length =
             unsafe { s2n_client_hello_get_raw_message_length(self.deref_mut_ptr()).into_result()? };
@@ -116,6 +123,7 @@ impl ClientHello {
 }
 
 impl Drop for ClientHello {
+    /// Corresponds to [s2n_client_hello_free].
     fn drop(&mut self) {
         let mut client_hello: *mut s2n_client_hello = &mut self.0;
         // ignore failures. There isn't anything to be done to handle them, but

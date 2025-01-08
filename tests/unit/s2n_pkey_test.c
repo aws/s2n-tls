@@ -13,158 +13,223 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_pkey.h"
+
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+struct s2n_test_pkeys {
+    struct s2n_pkey pub_key;
+    struct s2n_pkey *priv_key;
+    bool supported;
+};
+
+S2N_RESULT s2n_test_pkeys_init(struct s2n_test_pkeys *pkeys,
+        const char *cert_chain_file, const char *private_key_file)
+{
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+            s2n_cert_chain_and_key_ptr_free);
+    RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            cert_chain_file, private_key_file));
+
+    /* Take ownership of the private key */
+    pkeys->priv_key = chain_and_key->private_key;
+    chain_and_key->private_key = NULL;
+
+    /* We parse the public key when we create the cert chain and key,
+     * BUT we don't actually store it anywhere. So recreate it.
+     */
+    s2n_pkey_type type = 0;
+    RESULT_GUARD(s2n_asn1der_to_public_key_and_type(&pkeys->pub_key, &type,
+            &chain_and_key->cert_chain->head->raw));
+
+    pkeys->supported = true;
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_test_pkeys_wipe(struct s2n_test_pkeys *pkeys)
+{
+    if (!pkeys) {
+        return S2N_RESULT_OK;
+    }
+    RESULT_GUARD_POSIX(s2n_pkey_free(&pkeys->pub_key));
+    RESULT_GUARD_POSIX(s2n_pkey_free(pkeys->priv_key));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &pkeys->priv_key, sizeof(struct s2n_pkey)));
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    /* Test each combination of s2n_pkey_types to validate that only keys of
-     * the same type can be compared */
+    DEFER_CLEANUP(struct s2n_test_pkeys ecdsa_pkeys = { 0 }, s2n_test_pkeys_wipe);
+    EXPECT_OK(s2n_test_pkeys_init(&ecdsa_pkeys,
+            S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+    DEFER_CLEANUP(struct s2n_test_pkeys rsa_pkeys = { 0 }, s2n_test_pkeys_wipe);
+    EXPECT_OK(s2n_test_pkeys_init(&rsa_pkeys,
+            S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN, S2N_RSA_2048_PKCS1_SHA256_CERT_KEY));
+
+    DEFER_CLEANUP(struct s2n_test_pkeys rsa_pss_pkeys = { 0 }, s2n_test_pkeys_wipe);
+    if (s2n_is_rsa_pss_certs_supported()) {
+        EXPECT_OK(s2n_test_pkeys_init(&rsa_pss_pkeys,
+                S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
+    }
+
+    struct s2n_test_pkeys test_pkeys[] = { ecdsa_pkeys, rsa_pkeys, rsa_pss_pkeys };
+
+    /* Test s2n_pkey_match */
     {
-        struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        char rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        char rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        char ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        char rsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        char rsa_pss_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        char ecdsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        DEFER_CLEANUP(struct s2n_test_pkeys other_ecdsa_pkeys = { 0 }, s2n_test_pkeys_wipe);
+        EXPECT_OK(s2n_test_pkeys_init(&other_ecdsa_pkeys,
+                S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
 
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, rsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_CERT, rsa_pss_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, ecdsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_KEY, rsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_KEY, rsa_pss_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, ecdsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        DEFER_CLEANUP(struct s2n_test_pkeys other_rsa_pkeys = { 0 }, s2n_test_pkeys_wipe);
+        EXPECT_OK(s2n_test_pkeys_init(&other_rsa_pkeys,
+                S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
-        /* Keys of the same type can be compared */
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, rsa_private_key_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
+        DEFER_CLEANUP(struct s2n_test_pkeys other_rsa_pss_pkeys = { 0 }, s2n_test_pkeys_wipe);
         if (s2n_is_rsa_pss_certs_supported()) {
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_SUCCESS(
-                    s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_private_key_pem));
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            EXPECT_OK(s2n_test_pkeys_init(&other_rsa_pss_pkeys,
+                    S2N_RSA_PSS_2048_SHA256_CA_CERT, S2N_RSA_PSS_2048_SHA256_CA_KEY));
         }
 
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, ecdsa_private_key_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        struct s2n_test_pkeys other_pkeys[] = {
+            other_ecdsa_pkeys, other_rsa_pkeys, other_rsa_pss_pkeys
+        };
 
-        /* Keys of different types cannot be compared */
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, ecdsa_private_key_pem),
-                S2N_ERR_KEY_MISMATCH);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        for (size_t pkey_i = 0; pkey_i < s2n_array_len(test_pkeys); pkey_i++) {
+            if (!test_pkeys[pkey_i].supported) {
+                continue;
+            }
 
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, rsa_private_key_pem),
-                S2N_ERR_KEY_MISMATCH);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            EXPECT_SUCCESS(s2n_pkey_match(
+                    &test_pkeys[pkey_i].pub_key,
+                    test_pkeys[pkey_i].priv_key));
 
-        if (s2n_is_rsa_pss_certs_supported()) {
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, rsa_pss_private_key_pem),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            for (size_t other_i = 0; other_i < s2n_array_len(other_pkeys); other_i++) {
+                if (!other_pkeys[other_i].supported) {
+                    continue;
+                }
 
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, rsa_private_key_pem),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, ecdsa_private_key_pem),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, rsa_pss_private_key_pem),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_pkey_match(&test_pkeys[pkey_i].pub_key, other_pkeys[other_i].priv_key),
+                        S2N_ERR_KEY_MISMATCH);
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_pkey_match(&other_pkeys[other_i].pub_key, test_pkeys[pkey_i].priv_key),
+                        S2N_ERR_KEY_MISMATCH);
+            }
         }
     };
 
-    /* Test the same as above but with non null terminated chain and key and
-     * api that accepts length  */
+    /* Test s2n_pkey_size */
     {
-        struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        uint8_t rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        uint8_t rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        uint8_t ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        uint8_t rsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        uint8_t rsa_pss_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
-        uint8_t ecdsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        /* Compare to known values */
+        uint32_t expected_sizes[] = { 104, 256, 256 };
+        EXPECT_EQUAL(s2n_array_len(test_pkeys), s2n_array_len(expected_sizes));
 
-        uint32_t rsa_cert_chain_len = 0;
-        uint32_t rsa_pss_cert_chain_len = 0;
-        uint32_t ecdsa_cert_chain_len = 0;
-        uint32_t rsa_private_key_len = 0;
-        uint32_t rsa_pss_private_key_len = 0;
-        uint32_t ecdsa_private_key_len = 0;
+        for (size_t i = 0; i < s2n_array_len(test_pkeys); i++) {
+            if (!test_pkeys[i].supported) {
+                continue;
+            }
 
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_CERT_CHAIN, rsa_cert_chain_pem, &rsa_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_PSS_2048_SHA256_CA_CERT, rsa_pss_cert_chain_pem, &rsa_pss_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, ecdsa_cert_chain_pem, &ecdsa_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_KEY, rsa_private_key_pem, &rsa_private_key_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_PSS_2048_SHA256_CA_KEY, rsa_pss_private_key_pem, &rsa_pss_private_key_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, ecdsa_private_key_pem, &ecdsa_private_key_len, S2N_MAX_TEST_PEM_SIZE));
+            uint32_t pub_size = 0;
+            EXPECT_OK(s2n_pkey_size(&test_pkeys[i].pub_key, &pub_size));
+            EXPECT_EQUAL(pub_size, expected_sizes[i]);
 
-        /* Keys of the same type can be compared */
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, rsa_private_key_pem, rsa_private_key_len));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
-        if (s2n_is_rsa_pss_certs_supported()) {
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_SUCCESS(
-                    s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len));
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            uint32_t priv_size = 0;
+            EXPECT_OK(s2n_pkey_size(test_pkeys[i].priv_key, &priv_size));
+            EXPECT_EQUAL(priv_size, expected_sizes[i]);
         }
+    };
 
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    /* Test: s2n_pkey_encrypt / s2n_pkey_decrypt */
+    {
+        struct s2n_blob in = { 0 }, out = { 0 };
 
-        /* Keys of different types cannot be compared */
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len),
-                S2N_ERR_KEY_MISMATCH);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, rsa_private_key_pem, rsa_private_key_len),
-                S2N_ERR_KEY_MISMATCH);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
-        if (s2n_is_rsa_pss_certs_supported()) {
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        /* Test: not supported for ECDSA */
+        {
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+                    s2n_pkey_encrypt(ecdsa_pkeys.priv_key, &in, &out),
+                    S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_pkey_decrypt(&ecdsa_pkeys.pub_key, &in, &out),
+                    S2N_ERR_UNIMPLEMENTED);
+        };
 
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, rsa_private_key_pem, rsa_private_key_len),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        /* Test: not supported for RSA-PSS */
+        if (rsa_pss_pkeys.supported) {
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_pkey_encrypt(rsa_pss_pkeys.priv_key, &in, &out),
+                    S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_pkey_decrypt(&rsa_pss_pkeys.pub_key, &in, &out),
+                    S2N_ERR_UNIMPLEMENTED);
+        };
 
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        /* Test: supported for RSA */
+        {
+            uint8_t message_bytes[] = "hello world";
+            struct s2n_blob message = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&message, message_bytes, sizeof(message_bytes)));
 
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len),
-                    S2N_ERR_KEY_MISMATCH);
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        }
+            const char ciphertext_hex[] =
+                    "38 ab 9c 83 57 17 13 46 3d 5b 6f c6 44 30 8e 40 78 ac d2 "
+                    "c5 69 98 8b 99 51 14 23 c6 af 98 67 6f 58 d5 28 9e 23 12 "
+                    "6f 5b 73 56 d9 f9 b2 10 4f d6 53 5c 70 a5 a6 c6 a2 53 83 "
+                    "7d ec 3b 7c c0 ff 6a 30 8d 98 a3 6c be c6 e3 b4 4d b6 3d "
+                    "cc 94 67 f8 24 9a 91 13 52 57 02 0c d9 5a 00 98 1f ff df "
+                    "5e 47 e0 ca 15 87 f0 92 1e 95 af ef 49 b2 6b f2 b6 be d5 "
+                    "3b 65 d3 94 92 f5 c1 f0 65 56 20 85 7f 18 95 a5 d9 e7 6c "
+                    "43 07 dd 5d 03 60 ac 4d c5 a0 c8 3d f9 99 24 fc 30 8f c2 "
+                    "66 9d df 5c 80 90 a7 c5 7a 37 ee be 1d 30 a7 a3 67 73 ae "
+                    "7d ee 64 37 22 77 9a a5 0d 47 f0 a5 50 ee 85 82 2e 88 32 "
+                    "e9 0b bc 25 5f 09 b7 d3 13 58 88 84 9d 07 03 5e 37 6b af "
+                    "08 56 14 fd 64 58 29 5b 81 a5 72 72 62 5d c1 72 bb 13 76 "
+                    "b6 17 96 7b d9 87 ec 49 71 dc 33 3e b2 f5 76 54 ad 13 ed "
+                    "23 1c 34 53 d1 12 03 be f6";
+            S2N_BLOB_FROM_HEX(ciphertext, ciphertext_hex);
+
+            /* Test: decryption works for known good value */
+            {
+                DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&output, message.size));
+
+                EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &ciphertext, &output));
+                EXPECT_BYTEARRAY_EQUAL(output.data, message.data, message.size);
+            };
+
+            /* Test: decryption works for result of encryption */
+            {
+                DEFER_CLEANUP(struct s2n_blob encrypt_out = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&encrypt_out, ciphertext.size));
+                EXPECT_SUCCESS(s2n_pkey_encrypt(&rsa_pkeys.pub_key, &message, &encrypt_out));
+
+                DEFER_CLEANUP(struct s2n_blob decrypt_out = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&decrypt_out, message.size));
+                EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &encrypt_out, &decrypt_out));
+                EXPECT_BYTEARRAY_EQUAL(decrypt_out.data, message.data, message.size);
+            };
+
+            /* Test: decryption does not fail for invalid ciphertexts
+             *
+             * To protect against Bleichenbacher oracles, we return random
+             * data instead of erroring when decryption fails. That ensures that
+             * all errors in the ciphertext are treated the same.
+             */
+            for (size_t i = 0; i < ciphertext.size; i++) {
+                DEFER_CLEANUP(struct s2n_blob input = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_dup(&ciphertext, &input));
+                input.data[i]++;
+
+                DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&output, message.size));
+
+                EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &input, &output));
+                EXPECT_BYTEARRAY_NOT_EQUAL(output.data, message.data, message.size);
+            }
+        };
     };
 
     END_TEST();

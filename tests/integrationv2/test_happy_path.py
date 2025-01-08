@@ -1,14 +1,24 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-import platform
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS
+from configuration import (
+    available_ports,
+    ALL_TEST_CIPHERS,
+    ALL_TEST_CURVES,
+    ALL_TEST_CERTS,
+    PROTOCOLS,
+)
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from utils import (
+    invalid_test_parameters,
+    get_parameter_name,
+    get_expected_s2n_version,
+    to_bytes,
+)
 
 
 @pytest.mark.flaky(reruns=5, reruns_delay=2)
@@ -18,7 +28,14 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
+def test_s2n_server_happy_path(
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+):
     port = next(available_ports)
 
     # s2nd can receive large amounts of data because all the data is
@@ -35,7 +52,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
-        protocol=protocol
+        protocol=protocol,
     )
 
     server_options = copy.copy(client_options)
@@ -61,13 +78,17 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # the stdout reliably.
     for server_results in server.get_results():
         server_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in server_results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in server_results.stdout
+        )
         assert random_bytes in server_results.stdout
 
         if provider is not S2N:
-            assert to_bytes("Cipher negotiated: {}".format(
-                cipher.name)) in server_results.stdout
+            assert (
+                to_bytes("Cipher negotiated: {}".format(cipher.name))
+                in server_results.stdout
+            )
 
 
 @pytest.mark.flaky(reruns=5, reruns_delay=2)
@@ -77,7 +98,14 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
+def test_s2n_client_happy_path(
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+):
     port = next(available_ports)
 
     # We can only send 4096 - 1 (\n at the end) bytes here because of the
@@ -109,8 +137,9 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(provider, server_options,
-                             timeout=5, kill_marker=kill_marker)
+    server = managed_process(
+        provider, server_options, timeout=5, kill_marker=kill_marker
+    )
     client = managed_process(S2N, client_options, timeout=5)
 
     expected_version = get_expected_s2n_version(protocol, provider)
@@ -119,8 +148,10 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     # the stdout reliably.
     for client_results in client.get_results():
         client_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in client_results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in client_results.stdout
+        )
 
     # The server will be one of all supported providers. We
     # just want to make sure there was no exception and that
@@ -129,4 +160,5 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character.
         assert any(
-            [random_bytes[1:] in stream for stream in server_results.output_streams()])
+            [random_bytes[1:] in stream for stream in server_results.output_streams()]
+        )

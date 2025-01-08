@@ -22,7 +22,9 @@ function libcrypto_alias {
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
-libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 #No need to alias gnutls because it is included in common_packages (see flake.nix).
 
@@ -48,7 +50,7 @@ function build {(set -e
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
-    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
         $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
 )}

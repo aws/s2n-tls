@@ -88,14 +88,14 @@ fn main() {
     }
 
     // generate a cargo.toml that defines the correct features
-    let features_definition_token = unstable_headers
+    let mut features_definition_token = unstable_headers
         .iter()
         .map(|(header_name, _header)| format!("unstable-{header_name} = []"))
-        .collect::<Vec<String>>()
-        .join("\n");
+        .collect::<Vec<String>>();
+    features_definition_token.sort();
     let cargo_template = out_dir.join("templates/Cargo.template");
     let cargo_template = read_to_string(cargo_template).expect("unable to read cargo template");
-    let cargo_toml = cargo_template.replace(FEATURE_TOKEN_PLACEHOLDER, &features_definition_token);
+    let cargo_toml = cargo_template.replace(FEATURE_TOKEN_PLACEHOLDER, &(features_definition_token.join("\n")));
     fs::write(out_dir.join("Cargo.toml"), cargo_toml).unwrap();
 
     // generate a features.rs that includes the correct modules
@@ -125,6 +125,10 @@ const PRELUDE: &str = r#"
 #![allow(unused_imports, non_camel_case_types)]
 
 use libc::{iovec, FILE, off_t};
+// specify that aws-lc-rs is used, so that the rust compiler will link in the appropriate
+// libcrypto artifact.
+#[cfg(not(s2n_tls_external_build))]
+extern crate aws_lc_rs as _;
 "#;
 
 fn base_builder() -> bindgen::Builder {

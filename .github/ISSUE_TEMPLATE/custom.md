@@ -17,6 +17,10 @@ AWS Security via our [vulnerability reporting page](http://aws.amazon.com/securi
 
 A short description of what the problem is and why we need to fix it. Add reproduction steps if necessary.
 
+### Need By Date:
+
+Do you have a date that you need this issue resolved by? What is the reason for that date, and what are the consequences of missing it? Any additional information you can provide to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by the requested date.
+
 ### Solution:
 
 A description of the possible solution in terms of S2N architecture. Highlight and explain any potentially controversial design decisions taken.

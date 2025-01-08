@@ -24,6 +24,8 @@ void s2n_hash_reset_harness()
     /* Non-deterministic inputs. */
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
 
+    assert(s2n_result_is_ok(s2n_hash_algorithms_init()));
+
     /* Operation under verification. */
     if (s2n_hash_reset(state) == S2N_SUCCESS)
     {

@@ -68,11 +68,6 @@ ifeq ($(NO_INLINE), 1)
 DEFAULT_CFLAGS += -fno-inline
 endif
 
-# Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
-ifdef S2N_TEST_IN_FIPS_MODE
-    DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
-endif
-
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION
@@ -139,7 +134,7 @@ bindir ?= $(exec_prefix)/bin
 libdir ?= $(exec_prefix)/lib64
 includedir ?= $(exec_prefix)/include
 
-feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/GLOBAL.flags) $(shell cat $(S2N_ROOT)/tests/features/$(1).flags) -c -o tmp.o $(S2N_ROOT)/tests/features/$(1).c > /dev/null 2>&1 && echo "-D$(1)"; rm tmp.o > /dev/null 2>&1)
+feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/GLOBAL.flags) $(shell cat $(S2N_ROOT)/tests/features/$(1).flags) -c -o tmp.o $(S2N_ROOT)/tests/features/$(1).c > /dev/null 2>&1 && echo "-D$(1)=1"; rm tmp.o > /dev/null 2>&1)
 
 FEATURES := $(notdir $(patsubst %.c,%,$(wildcard $(S2N_ROOT)/tests/features/*.c)))
 SUPPORTED_FEATURES := $(foreach feature,$(FEATURES),$(call feature_probe,$(feature)))

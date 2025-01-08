@@ -111,6 +111,7 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u)
 
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
 {
+    POSIX_ENSURE(u < (1 << 24), S2N_ERR_INTEGER_OVERFLOW);
     return s2n_stuffer_write_network_order(stuffer, u, SIZEOF_UINT24);
 }
 

@@ -5,21 +5,27 @@ import platform
 import pytest
 import re
 
-from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS
+from configuration import (
+    available_ports,
+    TLS13_CIPHERS,
+    ALL_TEST_CURVES,
+    MINIMAL_TEST_CERTS,
+)
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from utils import (
+    invalid_test_parameters,
+    get_parameter_name,
+    get_expected_s2n_version,
+    to_bytes,
+)
 
 PADDING_SIZE_SMALL = 250
 PADDING_SIZE_MEDIUM = 1000
 PADDING_SIZE_MAX = 1 << 14
 
-PADDING_SIZES = [
-    PADDING_SIZE_SMALL,
-    PADDING_SIZE_MEDIUM,
-    PADDING_SIZE_MAX
-]
+PADDING_SIZES = [PADDING_SIZE_SMALL, PADDING_SIZE_MEDIUM, PADDING_SIZE_MAX]
 
 # arbitrarily large payload size
 PAYLOAD_SIZE = 1024
@@ -36,7 +42,7 @@ def strip_string_of_bytes(s: str) -> str:
 
 def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
     # record_size_bytes is in the form XX XX where X is a hex digit
-    size_in_hex = record_size_bytes.replace(' ', '')
+    size_in_hex = record_size_bytes.replace(" ", "")
     size = int(size_in_hex, 16)
     # record includes 16 bytes of aead tag
     return size - 16
@@ -45,11 +51,9 @@ def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
 def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_size: int):
     number_of_app_data_records = 0
 
-    records_written = re.findall(
-        OPENSSL_RECORD_WRITTEN_PATTERN, openssl_output)
+    records_written = re.findall(OPENSSL_RECORD_WRITTEN_PATTERN, openssl_output)
     for record_prefix in records_written:
-        app_data_header = re.search(
-            OPENSSL_APP_DATA_HEADER_PATTERN, record_prefix)
+        app_data_header = re.search(OPENSSL_APP_DATA_HEADER_PATTERN, record_prefix)
         if app_data_header:
             size_bytes = app_data_header.group(RECORD_SIZE_GROUP)
             size = get_payload_size_from_openssl_trace(size_bytes)
@@ -81,8 +85,15 @@ def test_nothing():
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
-def test_s2n_server_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
-                                           padding_size):
+def test_s2n_server_handles_padded_records(
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,
+):
     port = next(available_ports)
 
     random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -95,7 +106,7 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
         data_to_send=random_bytes,
         insecure=True,
         protocol=protocol,
-        extra_flags=['-record_padding', padding_size]
+        extra_flags=["-record_padding", padding_size],
     )
 
     server_options = copy.copy(client_options)
@@ -110,7 +121,8 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
     for client_results in openssl.get_results():
         client_results.assert_success()
         assert_openssl_records_are_padded_correctly(
-            str(client_results.stdout), padding_size)
+            str(client_results.stdout), padding_size
+        )
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
@@ -119,14 +131,20 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
         # verify that the payload was correctly received by the server
         assert random_bytes in server_results.stdout
         # verify that the version was correctly negotiated
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in server_results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in server_results.stdout
+        )
         # verify that the cipher was correctly negotiated
-        assert to_bytes("Cipher negotiated: {}".format(
-            cipher.name)) in server_results.stdout
+        assert (
+            to_bytes("Cipher negotiated: {}".format(cipher.name))
+            in server_results.stdout
+        )
 
 
-@pytest.mark.flaky(reruns=5, reruns_delay=2, condition=platform.machine().startswith("aarch"))
+@pytest.mark.flaky(
+    reruns=5, reruns_delay=2, condition=platform.machine().startswith("aarch")
+)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -135,8 +153,15 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
-def test_s2n_client_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
-                                           padding_size):
+def test_s2n_client_handles_padded_records(
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,
+):
     port = next(available_ports)
 
     client_random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -152,7 +177,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
         insecure=True,
         protocol=protocol,
         data_to_send=server_random_bytes,
-        extra_flags=['-record_padding', padding_size]
+        extra_flags=["-record_padding", padding_size],
     )
 
     client_options = copy.copy(server_options)
@@ -161,24 +186,41 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
     client_options.data_to_send = client_random_bytes
 
     # openssl will send its response after it has received s2nc's record
-    openssl = managed_process(provider, server_options,
-                              timeout=5, send_marker=strip_string_of_bytes(str(client_random_bytes)))
+    openssl = managed_process(
+        provider,
+        server_options,
+        timeout=5,
+        send_marker=strip_string_of_bytes(str(client_random_bytes)),
+    )
 
     # s2nc will wait until it has received the server's response before closing
-    s2nc = managed_process(S2N, client_options, timeout=5,
-                           close_marker=strip_string_of_bytes(str(server_random_bytes)))
+    s2nc = managed_process(
+        S2N,
+        client_options,
+        timeout=5,
+        close_marker=strip_string_of_bytes(str(server_random_bytes)),
+        expect_stderr=True,
+    )
 
     expected_version = get_expected_s2n_version(protocol, provider)
     for client_results in s2nc.get_results():
+        # Aware of I/O issues causing this testcase to sometimes fail with a non zero exit status
+        # https://github.com/aws/s2n-tls/issues/5130
+        client_results.expect_nonzero_exit = True
         client_results.assert_success()
         # assert that the client has received server's application payload
         assert server_random_bytes in client_results.stdout
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in client_results.stdout
-        assert to_bytes("Cipher negotiated: {}".format(
-            cipher.name)) in client_results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in client_results.stdout
+        )
+        assert (
+            to_bytes("Cipher negotiated: {}".format(cipher.name))
+            in client_results.stdout
+        )
 
     for server_results in openssl.get_results():
         server_results.assert_success()
         assert_openssl_records_are_padded_correctly(
-            str(server_results.stdout), padding_size)
+            str(server_results.stdout), padding_size
+        )

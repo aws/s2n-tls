@@ -23,6 +23,7 @@ pub mod enums;
 pub mod fingerprint;
 pub mod init;
 pub mod pool;
+pub mod psk;
 #[cfg(feature = "unstable-renegotiate")]
 pub mod renegotiate;
 pub mod security;

@@ -28,7 +28,7 @@ const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
  * They are useful to validate that the results of the low level implementation
  * never change and match the results of the EVP implementation.
  */
-const char *expected_result_hex[S2N_HASH_SENTINEL] = {
+const char *expected_result_hex[S2N_HASH_ALGS_COUNT] = {
     [S2N_HASH_NONE] = "",
     [S2N_HASH_MD5] = "f5d589043253ca6ae54124c31be43701",
     [S2N_HASH_SHA1] = "ccf8abd6b03ef5054a4f257e7c712e17f965272d",
@@ -104,11 +104,6 @@ S2N_RESULT s2n_hash_test(s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
         RESULT_ENSURE_EQ(hash_state.currently_in_hash, 0);
         RESULT_ENSURE_EQ(hash_state.is_ready_for_input, false);
 
-        /* Allow MD5 when necessary */
-        if (s2n_is_in_fips_mode() && (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1)) {
-            RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hash_state));
-        }
-
         RESULT_GUARD_POSIX(s2n_hash_init(&hash_state, hash_alg));
         RESULT_ENSURE_EQ(hash_state.currently_in_hash, 0);
         RESULT_ENSURE_EQ(hash_state.is_ready_for_input, true);
@@ -139,8 +134,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Calculate digests when not in FIPS mode. They must match. */
-    for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+    for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
         struct s2n_blob actual_result = { 0 };
         uint8_t actual_result_data[OUTPUT_DATA_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));

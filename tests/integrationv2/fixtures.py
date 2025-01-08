@@ -4,15 +4,15 @@ import os
 import pytest
 import subprocess
 
-from global_flags import get_flag
 from processes import ManagedProcess
 from providers import Provider, S2N
 
 from common import ProviderOptions
+from conftest import PATH_CONFIGURATION_KEY
 
 
 @pytest.fixture
-def managed_process():
+def managed_process(request: pytest.FixtureRequest):
     """
     Generic process manager. This could be used to launch any process as a background
     task and cleanup when finished.
@@ -22,11 +22,39 @@ def managed_process():
     allows cleanup after a test, even if a failure occurred.
     """
     processes = []
+    # Indicates whether a launch was aborted. If so, non-graceful shutdown is allowed
+    aborted = False
 
-    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None,
-            expect_stderr=None, kill_marker=None, send_with_newline=None):
+    def _fn(
+        provider_class: Provider,
+        options: ProviderOptions,
+        timeout=5,
+        send_marker=None,
+        close_marker=None,
+        expect_stderr=None,
+        kill_marker=None,
+        send_with_newline=None,
+    ):
+        best_effort_mode = request.config.getoption("--best-effort-NOT-FOR-CI")
+        if best_effort_mode:
+            # modify the `aborted` field in the generator object
+            nonlocal aborted
+            available_providers = request.config.stash[PATH_CONFIGURATION_KEY]
+            if provider_class not in available_providers:
+                aborted = True
+                pytest.skip(f"{provider_class} is not available")
+
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
+
+        if (
+            best_effort_mode
+            and provider_class is S2N
+            and not (cmd_line[0] == "s2nc" or cmd_line[0] == "s2nd")
+        ):
+            aborted = True
+            pytest.skip("s2nc_head or s2nd_head not supported for best-effort")
+
         # The process will default to send markers in the providers.py file
         # if not specified by a test.
         if send_marker is not None:
@@ -46,7 +74,7 @@ def managed_process():
             env_overrides=options.env_overrides,
             expect_stderr=expect_stderr,
             kill_marker=kill_marker,
-            send_with_newline=send_with_newline
+            send_with_newline=send_with_newline,
         )
 
         processes.append(p)
@@ -55,19 +83,23 @@ def managed_process():
             with provider._provider_ready_condition:
                 # Don't continue processing until the provider has indicated it is ready.
                 provider._provider_ready_condition.wait_for(
-                    provider.is_provider_ready, timeout)
+                    provider.is_provider_ready, timeout
+                )
         return p
 
     try:
         yield _fn
-    except Exception as e:
+    except Exception as _:
         # The ManagedProcess already prints information to stdout, so there
         # is nothing to capture here.
         pass
     finally:
         # Whether the processes succeeded or not, clean then up.
         for p in processes:
-            p.join()
+            if aborted:
+                p.kill()
+            else:
+                p.join()
 
 
 def _swap_mtu(device, new_mtu):
@@ -76,13 +108,14 @@ def _swap_mtu(device, new_mtu):
     Return the original MTU so it can be reset later.
     """
     cmd = ["ip", "link", "show", device]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(
+        cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     mtu = 65536
     for line in p.stdout.readlines():
         s = line.decode("utf-8")
-        pieces = s.split(' ')
-        if len(pieces) >= 4 and pieces[3] == 'mtu':
+        pieces = s.split(" ")
+        if len(pieces) >= 4 and pieces[3] == "mtu":
             mtu = int(pieces[4])
 
     p.wait()
@@ -92,7 +125,7 @@ def _swap_mtu(device, new_mtu):
     return int(mtu)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def custom_mtu():
     """
     This fixture will swap the loopback's MTU from the default
@@ -106,6 +139,6 @@ def custom_mtu():
     if os.geteuid() != 0:
         pytest.skip("Test needs root privileges to modify lo MTU")
 
-    original_mtu = _swap_mtu('lo', 1500)
+    original_mtu = _swap_mtu("lo", 1500)
     yield
-    _swap_mtu('lo', original_mtu)
+    _swap_mtu("lo", original_mtu)

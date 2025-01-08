@@ -28,28 +28,32 @@ mod tests {
     }
 
     #[test]
-    fn kem_name_retrieval() -> Result<(), Error> {
+    fn kem_group_name_retrieval() -> Result<(), Error> {
         // PQ isn't supported
         {
             let policy = Policy::from_version("20240501")?;
             let config = build_config(&policy)?;
             let mut pair = TestPair::from_config(&config);
 
-            // before negotiation, kem_name is none
-            assert!(pair.client.kem_name().is_none());
+            // before negotiation, kem_group_name is none
+            assert!(pair.client.kem_group_name().is_none());
 
             pair.handshake().unwrap();
-            assert!(pair.client.kem_name().is_none());
+            assert!(pair.client.kem_group_name().is_none());
         }
 
         // PQ is supported
         {
-            let policy = Policy::from_version("KMS-PQ-TLS-1-0-2020-07")?;
+            let policy = Policy::from_version("default_pq")?;
             let config = build_config(&policy)?;
             let mut pair = TestPair::from_config(&config);
 
             pair.handshake().unwrap();
-            assert_eq!(pair.client.kem_name(), Some("kyber512r3"));
+            assert_eq!(pair.client.kem_group_name(), Some("X25519MLKEM768"));
+            assert_eq!(
+                pair.client.selected_key_exchange_group(),
+                Some("X25519MLKEM768")
+            );
         }
 
         Ok(())
@@ -115,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn connnection_waker() {
+    fn connection_waker() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         assert_eq!(config.test_get_refcount().unwrap(), 1);
 

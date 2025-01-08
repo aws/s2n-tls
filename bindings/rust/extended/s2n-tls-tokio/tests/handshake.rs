@@ -16,6 +16,7 @@ use tokio::time;
 
 pub mod common;
 
+#[allow(deprecated)]
 #[tokio::test]
 async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
     let (server_stream, client_stream) = common::get_streams().await?;
@@ -34,6 +35,10 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
         // Cipher suite may change, so just makes sure we can retrieve it.
         assert!(tls.as_ref().cipher_suite().is_ok());
         assert!(tls.as_ref().selected_curve().is_ok());
+        assert_eq!(
+            tls.as_ref().selected_curve().ok(),
+            tls.as_ref().selected_key_exchange_group(),
+        );
     }
 
     Ok(())
@@ -62,7 +67,7 @@ async fn handshake_with_pool_multithread() -> Result<(), Box<dyn std::error::Err
         let server = server.clone();
         tasks.push_back(tokio::spawn(async move {
             // Start each handshake at a randomly determined time
-            let rand = rand::thread_rng().gen_range(0..50);
+            let rand = rand::rng().random_range(0..50);
             time::sleep(Duration::from_millis(rand)).await;
 
             let (server_stream, client_stream) = common::get_streams().await.unwrap();

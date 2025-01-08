@@ -22,6 +22,7 @@ HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
@@ -43,7 +44,5 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
-
-UNWINDSET += s2n_stuffer_read_base64.19:$(MAX_BLOB_SIZE)
 
 include ../Makefile.common

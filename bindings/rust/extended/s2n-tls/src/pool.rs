@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn non_generic_pool() -> Result<(), Box<dyn std::error::Error>> {
         let config_pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
-        // Note the unweildy type parameters on PooledConnection here.
+        // Note the unwieldy type parameters on PooledConnection here.
         let _: PooledConnection<ConfigPoolRef> = PooledConnection::new(&config_pool)?;
         // To avoid specifying the generic type parameters on PooledConnection,
         // the pool can be converted to an Arc<dyn Pool>.

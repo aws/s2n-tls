@@ -4,7 +4,7 @@ s2n-tls supports post-quantum key exchange for TLS1.3. Currently, only [Kyber](h
 
 Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum Kyber key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.
 
-Careful: if an s2n-tls server is configured to support post-quantum key exchange, the server will require that any client that advertises support ultimately uses post-quantum key exchange. That will result in a retry and an extra round trip if the client does not intially provide a post-quantum key share.
+Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rational behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.
 
 ## Requirements
 
@@ -104,3 +104,6 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 |  Version   | "default_pq" |
 |------------|--------------|
 |  v1.5.0   |   20240730   |
+
+## Visibility
+Call `s2n_connection_get_kem_group_name` to determine if a TLS handshake negotiated PQ key exchange.
