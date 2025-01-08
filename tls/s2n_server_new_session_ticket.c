@@ -193,26 +193,32 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, struct s2n_ticket_key *key, uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(key);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
     uint64_t now = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
 
+    uint64_t ticket_key_age_in_nanos = now - key->intro_timestamp;
+
     uint32_t key_lifetime_in_secs =
-            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos + key->intro_timestamp - now) / ONE_SEC_IN_NANOS;
+            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
-    uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
-    uint32_t key_session_and_keying_material_min_lifetime = key_and_session_min_lifetime;
-    if (conn->psk_params.chosen_psk != NULL) {
-        key_session_and_keying_material_min_lifetime = MIN(key_and_session_min_lifetime, (uint32_t) (conn->psk_params.chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS);
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    uint32_t psk_keying_material_lifetime_in_secs = UINT32_MAX;
+    if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+        psk_keying_material_lifetime_in_secs = (uint32_t) (chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS;
     }
+
+    uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
+    uint32_t key_session_and_psk_keying_material_min_lifetime = MIN(key_and_session_min_lifetime, psk_keying_material_lifetime_in_secs);
     /** 
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      **/
-    *ticket_lifetime = MIN(key_session_and_keying_material_min_lifetime, ONE_WEEK_IN_SEC);
+    *ticket_lifetime = MIN(key_session_and_psk_keying_material_min_lifetime, ONE_WEEK_IN_SEC);
 
     return S2N_RESULT_OK;
 }
