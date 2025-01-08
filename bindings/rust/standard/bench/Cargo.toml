@@ -1,0 +1,37 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+s2n-tls = { path = "../../extended/s2n-tls" }
+errno = "0.3"
+libc = "0.2"
+strum = { version = "0.25", features = ["derive"] }
+rustls = { version = "0.23" }
+rustls-pemfile = { version = "2" }
+openssl = { version = "0.10", features = ["vendored"] }
+
+[dev-dependencies]
+criterion = "0.5"
+pprof = { version = "0.14", features = ["criterion", "flamegraph"] }
+# env_logger and log are used to enable logging for rustls, which can help with
+# debugging interop failures
+env_logger = "0.10"
+log = "0.4"
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[[bench]]
+name = "resumption"
+harness = false
+
+[[bench]]
+name = "connection_creation"
+harness = false

@@ -1,0 +1,48 @@
+[package]
+name = "s2n-tls-sys"
+description = "A C99 implementation of the TLS/SSL protocols"
+version = "0.3.9"
+authors = ["AWS s2n"]
+edition = "2021"
+rust-version = "1.63.0"
+links = "s2n-tls"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+include = [
+  "build.rs",
+  "Cargo.toml",
+  "files.rs",
+  "lib/**/*.c",
+  "lib/**/*.h",
+  "lib/**/*.S",
+  "lib/CMakeLists.txt",
+  "lib/**/*.cmake",
+  "lib/**/*.flags", # for feature probes
+  "src/**/*.rs",
+  "tests/**/*.rs",
+]
+
+[features]
+default = []
+# preserve the cmake feature in case any consumers had it enabled before
+cmake = []
+quic = []
+fips = ["aws-lc-rs/fips"]
+pq = []
+internal = []
+stacktrace = []
+<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
+# e.g. something like
+# unstable-foo = []
+
+[dependencies]
+aws-lc-rs = { version = "1" }
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1.0.100", features = ["parallel"] }
+
+[dev-dependencies]
+home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
+regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
+zeroize = "=1.7.0" # newer versions require rust 1.72, see https://github.com/aws/s2n-tls/issues/4518
