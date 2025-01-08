@@ -6,8 +6,6 @@ from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 def pytest_addoption(parser):
     parser.addoption("--provider-version", action="store", dest="provider-version",
                      default=None, type=str, help="Set the version of the TLS provider")
-    parser.addoption("--fips-mode", action="store", dest="fips-mode",
-                     default=False, type=int, help="S2N is running in FIPS mode")
 
 
 def pytest_configure(config):
@@ -18,12 +16,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
     )
-
-    fips_mode = config.getoption('fips-mode', 0)
-    if fips_mode == 1:
+    provider_version = config.getoption('provider-version', None)
+    if "fips" in provider_version:
         set_flag(S2N_FIPS_MODE, True)
-
-    set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
+    set_flag(S2N_PROVIDER_VERSION, provider_version)
 
 
 def pytest_collection_modifyitems(config, items):
