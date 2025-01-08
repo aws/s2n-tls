@@ -14,11 +14,11 @@
 # permissions and limitations under the License.
 #
 set -eu
-source codebuild/bin/s2n_setup_env.sh
 
 export CTEST_OUTPUT_ON_FAILURE=1
+export S2N_LIBCRYPTO=openssl-3.4
 BREWINSTLLPATH=$(brew --prefix openssl@3)
-OPENSSL_3_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@3/3.0.0?"}"
+OPENSSL_3_INSTALL_DIR="${BREWINSTLLPATH:-"/opt/homebrew/Cellar/openssl@3/3?"}"
 
 echo "Using OpenSSL at $OPENSSL_3_INSTALL_DIR"
 # Build with debug symbols and a specific OpenSSL version
