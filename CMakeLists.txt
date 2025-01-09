@@ -101,11 +101,6 @@ else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
 
-# Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
-if(S2N_FIPS)
-    add_definitions(-DS2N_TEST_IN_FIPS_MODE)
-endif()
-
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${API_UNSTABLE_HEADERS}
@@ -246,7 +241,7 @@ if (COVERAGE)
     # on LLVM compilers. GCC would fail with "unrecognized compile options"
     # on -fprofile-instr-generate -fcoverage-mapping flags.
     if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
-        message(FATAL_ERROR "This project requires clang for coverage support")
+        message(FATAL_ERROR "This project requires clang for coverage support. You are currently using " ${CMAKE_C_COMPILER_ID})
     endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
@@ -640,7 +635,7 @@ if (BUILD_TESTING)
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-                        --fips-mode=0 ${test_file_path}
+                        ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
                 )
             else()
@@ -667,7 +662,6 @@ if (BUILD_TESTING)
     if(S2N_FUZZ_TEST)
         message(STATUS "Fuzz build enabled")
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
-        set(BUILD_DIR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         file(GLOB TESTLIB_SRC "tests/testlib/*.c")
@@ -679,21 +673,11 @@ if (BUILD_TESTING)
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
-        # Set default values for fuzzing if not defined
-        if(NOT DEFINED FUZZ_TIMEOUT_SEC)
+        # Set default values for fuzzing
+        if(DEFINED ENV{FUZZ_TIMEOUT_SEC})
+            set(FUZZ_TIMEOUT_SEC $ENV{FUZZ_TIMEOUT_SEC})    
+        else()
             set(FUZZ_TIMEOUT_SEC 60)
-        endif()
-
-        if(DEFINED ENV{CORPUS_UPLOAD_LOC})
-            set(CORPUS_UPLOAD_LOC $ENV{CORPUS_UPLOAD_LOC})
-        else()
-            set(CORPUS_UPLOAD_LOC "none")
-        endif()
-
-        if(DEFINED ENV{ARTIFACT_UPLOAD_LOC})
-            set(ARTIFACT_UPLOAD_LOC $ENV{ARTIFACT_UPLOAD_LOC})
-        else()
-            set(ARTIFACT_UPLOAD_LOC "none")
         endif()
 
         # Build LD_PRELOAD shared libraries
@@ -729,9 +713,7 @@ if (BUILD_TESTING)
                     bash ${SCRIPT_PATH} 
                     ${TEST_NAME} 
                     ${FUZZ_TIMEOUT_SEC} 
-                    ${BUILD_DIR_PATH} 
-                    ${CORPUS_UPLOAD_LOC} 
-                    ${ARTIFACT_UPLOAD_LOC}
+                    ${CMAKE_CURRENT_SOURCE_DIR}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
             )
             set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")

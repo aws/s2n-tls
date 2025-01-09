@@ -1,0 +1,40 @@
+[package]
+name = "integration"
+version = "0.1.0"
+authors = ["AWS s2n"]
+edition = "2021"
+publish = false
+
+[features]
+default = ["pq", "no-network-tests"]
+
+# Network tests are useful but relatively slow and inherently flaky. So they are
+# behind this feature flag. This is specified as a "negative" feature because 
+# many of our CI jobs use `cargo test --all-features`, and we don't want those
+# to run these tests
+no-network-tests = []
+
+# Not all libcryptos support PQ capabilities. Tests relying on PQ functionality
+# can be disabled by turning off this feature.
+pq = []
+
+[dependencies]
+s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing"]}
+s2n-tls-hyper = { path = "../s2n-tls-hyper" }
+s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
+s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "test-util"] }
+
+tracing = "0.1"
+tracing-subscriber = "0.3"
+# TODO: Unpin when s2n-tls MSRV >= 1.71, https://github.com/aws/s2n-tls/issues/4893
+test-log = { version = "=0.2.14", default-features = false, features = ["trace"]}
+test-log-macros = "=0.2.14"
+
+http = "1.1"
+http-body-util = "0.1"
+bytes = "1.8"
+hyper = "1.5"
+hyper-util = "0.1"

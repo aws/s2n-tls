@@ -8,11 +8,12 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - tests/regression/**
   merge_group:
     types: [checks_requested]
     branches: [main]
+
+env:
+  ROOT_PATH: bindings/rust/extended
 
 jobs:
   regression-test:
@@ -54,7 +55,7 @@ jobs:
 
       # Generate bindings for main branch
       - name: Generate bindings (mainline)
-        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # Run performance tests using Valgrind for main branch
       - name: Run scalar performance test (mainline)
@@ -68,7 +69,7 @@ jobs:
 
       # Generate bindings for PR branch
       - name: Generate bindings (PR branch)
-        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # Run performance tests using Valgrind for PR branch
       - name: Run scalar performance test (PR branch)
