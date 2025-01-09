@@ -100,12 +100,11 @@ int s2n_server_nst_send(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    if (!s2n_server_sending_nst(conn)) {
-        POSIX_BAIL(S2N_ERR_SENDING_NST);
-    }
-
     uint32_t lifetime_hint_in_secs = 0;
     POSIX_GUARD_RESULT(s2n_generate_ticket_lifetime(conn, key_intro_time, conn->ticket_fields.current_time, &lifetime_hint_in_secs));
+
+    /* Don't send the nst if its lifetime is expired. */
+    POSIX_ENSURE_NE(lifetime_hint_in_secs, 0);
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
