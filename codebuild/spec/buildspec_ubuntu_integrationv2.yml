@@ -28,6 +28,10 @@ phases:
         fi
   build:
     commands:
+      # e.g. awslc-fips-2022_gcc6
+      - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
+      # e.g. "test_cross_compatibility test_client_authentication"
+      - echo "CI Configuration - the integ tests are $INTEGV2_TEST"
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
