@@ -7,7 +7,6 @@ edition = "2021"
 rust-version = "1.74.0"
 repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
-publish = false
 
 [features]
 default = []
