@@ -1,0 +1,27 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+version: 0.2
+
+# CMAKE_PREFIX_PATH: specifies the libcrypto that will be interned and linked with libs2n
+# OPENSSL_ROOT_DIR: specifies the libcrypto that will be used as the openssl client
+#                   for the sslv2 client hello test.
+
+phases:
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . \
+          -B build \
+          -D CMAKE_C_COMPILER=clang \
+          -D CMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+          -D S2N_INTERN_LIBCRYPTO=ON \
+          -D OPENSSL_ROOT_DIR=/home/ubuntu/workspace/ossl-1-0-2-install
+      - cmake --build ./build -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      # make sure that sslv2 client hello test was built and discovered by ctest
+      - ctest --test-dir build -N | grep s2n_sslv2_client_hello_handshake
+      - CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test ARGS="--output-on-failure"

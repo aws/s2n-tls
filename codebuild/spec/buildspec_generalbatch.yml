@@ -99,6 +99,14 @@ batch:
           COMPILER: 'clang-18'
           S2N_LIBCRYPTO: 'awslc'
       identifier: s2nUnitAwslcClang18
+    - identifier: sslv2_client_hello_test
+      buildspec: codebuild/spec/buildspec_sslv2_client_hello.yml
+      env:
+        compute-type: BUILD_GENERAL1_MEDIUM
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc'
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE

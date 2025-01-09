@@ -590,6 +590,37 @@ if (BUILD_TESTING)
     endforeach(test_case)
 
     ############################################################################
+    #################   sslv2 formatted client hello test    ###################
+    ############################################################################
+
+    add_executable(s2n_sslv2_client_hello_handshake tests/integration_c/test_sslv2_handshake.c)
+    
+    find_package(OpenSSL REQUIRED)
+    if(OpenSSL_VERSION VERSION_GREATER "1.0.2")
+        message(FATAL_ERROR "OpenSSL version must not exceed 1.0.2. Found version: ${OpenSSL_VERSION}")
+    endif()
+    
+    # There are two libcryptos (and two headers) in the build tree. We need the sslv2
+    # test to use the <openssl_1_0_2>/openssl/ssl.h header. However the <awslc>/openssl/ssh.h
+    # header is universally preferred because it was added through the global include_directories
+    # command. Therefore we first have to "clear" that global setting, allowing 
+    # openssl_1_0_2 header to be found before the aws lc header.
+    set_target_properties(s2n_sslv2_client_hello_handshake PROPERTIES INCLUDE_DIRECTORIES "")
+
+    target_link_libraries(s2n_sslv2_client_hello_handshake 
+        OpenSSL::SSL 
+        OpenSSL::Crypto
+        ${PROJECT_NAME}
+        testss2n
+    )
+
+    add_test(
+        NAME s2n_sslv2_client_hello_handshake
+        COMMAND s2n_sslv2_client_hello_handshake 
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration_c
+    )
+
+    ############################################################################
     ######################### build utility binaries ###########################
     ############################################################################
 
