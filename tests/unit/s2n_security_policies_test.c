@@ -581,6 +581,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(config->security_policy));
         EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
         EXPECT_EQUAL(config->security_policy->minimum_protocol_version, S2N_TLS13);
+
+        s2n_config_free(config);
     }
 
     /* Test that null fails */
