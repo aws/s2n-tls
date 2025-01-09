@@ -17,6 +17,7 @@ pub enum OperationType {
     Sign(SignatureAlgorithm, HashAlgorithm),
 }
 
+/// Corresponds to [s2n_async_pkey_op].
 pub struct PrivateKeyOperation {
     raw: NonNull<s2n_async_pkey_op>,
     kind: OperationType,
@@ -66,11 +67,15 @@ impl PrivateKeyOperation {
     }
 
     /// Do we need to sign or decrypt with the private key?
+    ///
+    /// Corresponds to [s2n_async_pkey_op_get_op_type].
     pub fn kind(&self) -> Result<&OperationType, Error> {
         Ok(&self.kind)
     }
 
     /// The size of the slice returned by [`input()`]
+    ///
+    /// Corresponds to [s2n_async_pkey_op_get_input_size].
     pub fn input_size(&self) -> Result<usize, Error> {
         let mut size = 0;
         unsafe { s2n_async_pkey_op_get_input_size(self.as_ptr(), &mut size) }.into_result()?;
@@ -81,6 +86,8 @@ impl PrivateKeyOperation {
     ///
     /// If this is an [`OperationType::Sign`] operation, then this input has
     /// already been hashed and is the resultant digest.
+    ///
+    /// Corresponds to [s2n_async_pkey_op_get_input].
     pub fn input(&self, buf: &mut [u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut u8;
@@ -89,6 +96,9 @@ impl PrivateKeyOperation {
     }
 
     /// Sets the output of the operation
+    ///
+    /// Corresponds to [s2n_async_pkey_op_set_output],
+    /// but also automatically calls [s2n_async_pkey_op_apply].
     pub fn set_output(self, conn: &mut Connection, buf: &[u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr();
@@ -105,6 +115,7 @@ impl PrivateKeyOperation {
 }
 
 impl Drop for PrivateKeyOperation {
+    /// Corresponds to [s2n_async_pkey_op_free].
     fn drop(&mut self) {
         unsafe {
             let _ = s2n_async_pkey_op_free(self.raw.as_ptr());
