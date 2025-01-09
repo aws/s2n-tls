@@ -200,6 +200,8 @@ extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025;
 
 extern const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10;
 extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;

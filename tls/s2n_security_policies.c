@@ -417,6 +417,30 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha2
     },
 };
 
+/* FIPS 140-3 compliant version of security_policy_cloudfront_tls_1_2_2021 */
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2025,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20230317,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_3_2025,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -1267,6 +1291,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "CloudFront-TLS-1-2-2019", .security_policy = &security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2021", .security_policy = &security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2021-Chacha20-Boosted", .security_policy = &security_policy_cloudfront_tls_1_2_2021_chacha20_boosted, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2025", .security_policy = &security_policy_cloudfront_tls_1_2_2025, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-3-2025", .security_policy = &security_policy_cloudfront_tls_1_3_2025, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Legacy (TLS 1.2) policies */
     { .version = "CloudFront-SSL-v-3-Legacy", .security_policy = &security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2014-Legacy", .security_policy = &security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
