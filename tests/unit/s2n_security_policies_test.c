@@ -565,24 +565,22 @@ int main(int argc, char **argv)
 
     /* Test CloudFront security policies */
     {
-        struct s2n_config *config = s2n_config_new();
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-2-2025", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_OK(s2n_test_security_policies_compatible(security_policy, "default_fips", rsa_chain_and_key));
+        EXPECT_OK(s2n_test_security_policies_compatible(security_policy, "default_fips", ecdsa_chain_and_key));
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "CloudFront-TLS-1-2-2025"));
-        EXPECT_EQUAL(0, config->security_policy->kem_preferences->kem_count);
-        EXPECT_TRUE(s2n_ecc_is_extension_required(config->security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(config->security_policy));
-        EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
-        EXPECT_OK(s2n_test_security_policies_compatible(config->security_policy, "default_fips", rsa_chain_and_key));
-        EXPECT_OK(s2n_test_security_policies_compatible(config->security_policy, "default_fips", ecdsa_chain_and_key));
-
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "CloudFront-TLS-1-3-2025"));
-        EXPECT_EQUAL(0, config->security_policy->kem_preferences->kem_count);
-        EXPECT_TRUE(s2n_ecc_is_extension_required(config->security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(config->security_policy));
-        EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
-        EXPECT_EQUAL(config->security_policy->minimum_protocol_version, S2N_TLS13);
-
-        s2n_config_free(config);
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-3-2025", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_EQUAL(security_policy->minimum_protocol_version, S2N_TLS13);
     }
 
     /* Test that null fails */
