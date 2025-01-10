@@ -323,7 +323,7 @@ int main(int argc, char **argv)
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
         struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, wall_clock_time_stamp, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, wall_clock_time_stamp, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, wall_clock_time_stamp, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
         /* Test: PSK Keying Material has shortest lifetime */
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
         conn->psk_params.chosen_psk = chosen_psk;
 
         EXPECT_OK(s2n_config_wall_clock(config, &wall_clock_time_stamp));
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, wall_clock_time_stamp, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, (uint32_t) (one_week_in_nanos / 2 - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));

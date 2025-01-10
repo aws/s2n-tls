@@ -116,6 +116,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
 
     /* Get the time */
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
+    ticket_fields->current_time = current_time;
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
@@ -495,7 +496,7 @@ S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn)
     RESULT_ENSURE(conn->session_id_len <= S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&to, &entry));
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &to));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &to, NULL));
 
     /* Store to the cache */
     conn->config->cache_store(conn, conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
@@ -815,7 +816,7 @@ static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to)
+S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to, uint64_t *key_intro_time)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(to);
@@ -885,6 +886,11 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
     RESULT_GUARD_POSIX(s2n_blob_init(&state_blob, state_blob_data, state_blob_size));
 
     RESULT_GUARD_POSIX(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
+
+    /* Store this key timestamp for session ticket logic */
+    if (key_intro_time) {
+        *key_intro_time = key->intro_timestamp;
+    }
 
     return S2N_RESULT_OK;
 }
