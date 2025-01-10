@@ -1297,8 +1297,8 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt),
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &conn->client_ticket_to_decrypt),
                     S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
         }
 
@@ -1315,7 +1315,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             struct s2n_stuffer output = { 0 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, &output), S2N_ERR_STUFFER_IS_FULL);
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_STUFFER_IS_FULL);
         }
 
         /* Check encrypted data can be decrypted correctly for TLS12 */
@@ -1337,7 +1338,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &conn->client_ticket_to_decrypt));
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
@@ -1374,7 +1376,8 @@ int main(int argc, char **argv)
             /* This secret is smaller than the maximum secret length */
             EXPECT_TRUE(conn->tls13_ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
 
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
@@ -1410,7 +1413,8 @@ int main(int argc, char **argv)
             /* This secret is equal to the maximum secret length */
             EXPECT_EQUAL(conn->tls13_ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
 
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
@@ -1438,7 +1442,8 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->handshake.handshake_type = NEGOTIATED;
 
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &conn->client_ticket_to_decrypt));
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Modify the version number of the ticket */
@@ -1470,7 +1475,8 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer valid_ticket = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&valid_ticket, 0));
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &valid_ticket));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &valid_ticket));
             uint32_t ticket_size = s2n_stuffer_data_available(&valid_ticket);
 
             /* Copy ticket so that we don't modify the original ticket */
@@ -1521,7 +1527,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, &output), S2N_ERR_KEY_CHECK);
+            struct s2n_ticket_key *zeroed_key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, zeroed_key, &output), S2N_ERR_KEY_CHECK);
         };
 
         /* Check session ticket is correct when using early data with TLS1.3. */
@@ -1548,7 +1555,8 @@ int main(int argc, char **argv)
             conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
 
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
