@@ -31,6 +31,7 @@ impl SessionTicket {
         &self.0 as *const s2n_session_ticket as *mut s2n_session_ticket
     }
 
+    /// Corresponds to [s2n_session_ticket_get_lifetime].
     pub fn lifetime(&self) -> Result<Duration, Error> {
         let mut lifetime = 0;
         unsafe {
@@ -39,6 +40,7 @@ impl SessionTicket {
         Ok(Duration::new(lifetime.into(), 0))
     }
 
+    /// Corresponds to [s2n_session_ticket_get_data_len].
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> Result<usize, Error> {
         let mut data_len = 0;
@@ -48,6 +50,7 @@ impl SessionTicket {
         Ok(data_len)
     }
 
+    /// Corresponds to [s2n_session_ticket_get_data].
     pub fn data(&self, output: &mut [u8]) -> Result<(), Error> {
         unsafe {
             s2n_session_ticket_get_data(self.deref_mut_ptr(), output.len(), output.as_mut_ptr())

@@ -41,6 +41,7 @@ impl CertificateChainHandle {
 }
 
 impl Drop for CertificateChainHandle {
+    /// Corresponds to [s2n_cert_chain_and_key_free].
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
         if self.is_owned {
@@ -140,6 +141,8 @@ pub struct CertificateChain<'a> {
 
 impl CertificateChain<'_> {
     /// This allocates a new certificate chain from s2n.
+    ///
+    /// Corresponds to [s2n_cert_chain_and_key_new].
     pub(crate) fn allocate_owned() -> Result<CertificateChain<'static>, Error> {
         crate::init::init();
         unsafe {
@@ -178,6 +181,8 @@ impl CertificateChain<'_> {
     ///
     /// Note that the underyling API currently traverses a linked list, so this is a relatively
     /// expensive API to call.
+    ///
+    /// Corresponds to [s2n_cert_chain_get_length].
     pub fn len(&self) -> usize {
         let mut length: u32 = 0;
         let res = unsafe { s2n_cert_chain_get_length(self.as_ptr(), &mut length).into_result() };
@@ -219,6 +224,7 @@ pub struct CertificateChainIter<'a> {
 impl<'a> Iterator for CertificateChainIter<'a> {
     type Item = Result<Certificate<'a>, Error>;
 
+    /// Corresponds to [s2n_cert_chain_get_cert].
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
         // u32 fits into usize on platforms we support.
@@ -253,6 +259,7 @@ pub struct Certificate<'a> {
 }
 
 impl Certificate<'_> {
+    /// Corresponds to [s2n_cert_get_der].
     pub fn der(&self) -> Result<&[u8], Error> {
         unsafe {
             let mut buffer = ptr::null();
