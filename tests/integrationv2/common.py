@@ -574,7 +574,7 @@ class ProviderOptions(object):
         # Boolean whether to use a resumption ticket
         self.use_session_ticket = use_session_ticket
 
-        # Boolean whether to allow insecure certificates
+        # Boolean whether to disable x509 verification
         self.insecure = insecure
 
         # Which protocol to use with this provider
