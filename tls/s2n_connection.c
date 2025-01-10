@@ -158,7 +158,6 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
-    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
     POSIX_GUARD(s2n_free(&conn->handshake_params.client_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
@@ -986,11 +985,8 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->kex_params.kem_params.kem) {
-        return "NONE";
-    }
-
-    return conn->kex_params.kem_params.kem->name;
+    /* PQ TLS 1.2 KEMs are no longer supported. Only PQ TLS 1.3 KemGroups are supported. */
+    return "NONE";
 }
 
 const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)

@@ -1308,7 +1308,7 @@ int main(int argc, char **argv)
             /* Force the HRR path */
             const struct s2n_security_policy security_policy_test_tls13_retry_with_pq = {
                 .minimum_protocol_version = S2N_TLS11,
-                .cipher_preferences = &cipher_preferences_pq_tls_1_1_2021_05_21,
+                .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_2021_06,
                 .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &ecc_preferences_for_retry,
@@ -1317,7 +1317,7 @@ int main(int argc, char **argv)
 
             /* Setup all extensions */
             uint8_t apn[] = "https";
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-1-2021-05-21"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-2-2023-10-07"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
             EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_4096));
@@ -1347,11 +1347,6 @@ int main(int argc, char **argv)
 
                 /* The cookie is a special case and only appears AFTER the retry */
                 if (iana == TLS_EXTENSION_COOKIE) {
-                    continue;
-                }
-
-                /* No pq extension if pq not enabled for the build */
-                if (iana == TLS_EXTENSION_PQ_KEM_PARAMETERS && !s2n_pq_is_enabled()) {
                     continue;
                 }
 

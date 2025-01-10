@@ -37,9 +37,7 @@ struct s2n_kex_parameters {
     struct s2n_kem_group_params server_kem_group_params;
     struct s2n_kem_group_params client_kem_group_params;
     const struct s2n_kem_group *mutually_supported_kem_groups[S2N_KEM_GROUPS_COUNT];
-    struct s2n_kem_params kem_params;
     struct s2n_blob client_key_exchange_message;
-    struct s2n_blob client_pq_kem_extension;
 };
 
 struct s2n_tls12_secrets {

@@ -33,7 +33,7 @@
 #define S2N_MAX_POSSIBLE_RECORD_ALGS 2
 
 /* Kept up-to-date by s2n_cipher_suite_test */
-#define S2N_CIPHER_SUITE_COUNT 37
+#define S2N_CIPHER_SUITE_COUNT 36
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
@@ -170,4 +170,3 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
 int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
 bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher);
-bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher);

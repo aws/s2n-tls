@@ -39,45 +39,6 @@ typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *shared_key);
 
-static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
-        s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(kex_method);
-    POSIX_ENSURE_REF(stuffer_action);
-
-    struct s2n_stuffer *io = &conn->handshake.io;
-    const struct s2n_kex *hybrid_kex_0 = conn->secure->cipher_suite->key_exchange_alg->hybrid[0];
-    const struct s2n_kex *hybrid_kex_1 = conn->secure->cipher_suite->key_exchange_alg->hybrid[1];
-
-    /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
-    struct s2n_blob *client_key_exchange_message = &conn->kex_params.client_key_exchange_message;
-    client_key_exchange_message->data = stuffer_action(io, 0);
-    POSIX_ENSURE_REF(client_key_exchange_message->data);
-    const uint32_t start_cursor = *cursor;
-
-    DEFER_CLEANUP(struct s2n_blob shared_key_0 = { 0 }, s2n_free);
-    POSIX_GUARD_RESULT(kex_method(hybrid_kex_0, conn, &shared_key_0));
-
-    struct s2n_blob *shared_key_1 = &(conn->kex_params.kem_params.shared_secret);
-    POSIX_GUARD_RESULT(kex_method(hybrid_kex_1, conn, shared_key_1));
-
-    const uint32_t end_cursor = *cursor;
-    POSIX_ENSURE_GTE(end_cursor, start_cursor);
-    client_key_exchange_message->size = end_cursor - start_cursor;
-
-    POSIX_GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1->size));
-    struct s2n_stuffer stuffer_combiner = { 0 };
-    POSIX_GUARD(s2n_stuffer_init(&stuffer_combiner, combined_shared_key));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, shared_key_1));
-
-    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
-
-    return 0;
-}
-
 static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     POSIX_ENSURE_REF(conn);
@@ -198,33 +159,6 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     return 0;
 }
 
-int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
-{
-    /* s2n_kem_recv_ciphertext() writes the KEM shared secret directly to
-     * conn->kex_params.kem_params. However, the calling function
-     * likely expects *shared_key to point to the shared secret. We 
-     * can't reassign *shared_key to point to kem_params.shared_secret,
-     * because that would require us to take struct s2n_blob **shared_key
-     * as the argument, but we can't (easily) change the function signature
-     * because it has to be consistent with what is defined in s2n_kex.
-     *
-     * So, we assert that the caller already has *shared_key pointing
-     * to kem_params.shared_secret. */
-    POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
-    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed. */
-
-    POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
-
-    return 0;
-}
-
-int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
-{
-    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_recv, &conn->handshake.io.read_cursor,
-            &s2n_stuffer_raw_read);
-}
-
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -296,34 +230,6 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     /* We don't need the key any more, so free it */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
     return 0;
-}
-
-int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
-{
-    /* s2n_kem_send_ciphertext() writes the KEM shared secret directly to
-     * conn->kex_params.kem_params. However, the calling function
-     * likely expects *shared_key to point to the shared secret. We
-     * can't reassign *shared_key to point to kem_params.shared_secret,
-     * because that would require us to take struct s2n_blob **shared_key
-     * as the argument, but we can't (easily) change the function signature
-     * because it has to be consistent with what is defined in s2n_kex.
-     *
-     * So, we assert that the caller already has *shared_key pointing
-     * to kem_params.shared_secret. */
-    POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
-
-    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed */
-
-    POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
-
-    return 0;
-}
-
-int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
-{
-    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_send, &conn->handshake.io.write_cursor,
-            s2n_stuffer_raw_write);
 }
 
 int s2n_client_key_send(struct s2n_connection *conn)

@@ -23,17 +23,9 @@ int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
         struct s2n_kex_raw_server_data *raw_server_data);
 int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify,
         struct s2n_kex_raw_server_data *raw_server_data);
-int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify,
-        struct s2n_kex_raw_server_data *raw_server_data);
-int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *total_data_to_verify,
-        struct s2n_kex_raw_server_data *raw_server_data);
 
 int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data);
 int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data);
-int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data);
-int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data);
 
 int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
 int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
-int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
-int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);

@@ -50,7 +50,6 @@ typedef uint16_t kem_ciphertext_key_size;
 struct s2n_kem {
     const char *name;
     int kem_nid;
-    const kem_extension_size kem_extension_id;
     const kem_public_key_size public_key_length;
     const kem_private_key_size private_key_length;
     const kem_shared_secret_size shared_secret_key_length;
@@ -117,17 +116,8 @@ extern const struct s2n_kem_group s2n_x25519_kyber_768_r3;
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
 S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);
-int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
-        struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list[],
-        const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem);
-int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
-        const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems,
-        const struct s2n_kem **chosen_kem);
 int s2n_kem_free(struct s2n_kem_params *kem_params);
 int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params);
-int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
-        const struct s2n_iana_to_kem **supported_params);
-int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem);
 int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
