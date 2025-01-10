@@ -1246,12 +1246,8 @@ int main(int argc, char **argv)
             SSLv2_CLIENT_HELLO_CHALLENGE,
         };
 
-        struct s2n_blob client_hello = {
-            .data = sslv2_client_hello,
-            .size = sizeof(sslv2_client_hello),
-            .allocated = 0,
-            .growable = 0
-        };
+        struct s2n_blob client_hello = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&client_hello, sslv2_client_hello, sizeof(sslv2_client_hello)));
 
         /* Checks that the handshake gets as far as the client hello callback with a NULL config */
         {

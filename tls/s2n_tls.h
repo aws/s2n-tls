@@ -27,7 +27,6 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *more);
 S2N_RESULT s2n_client_hello_request_validate(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn);
 int s2n_client_hello_send(struct s2n_connection *conn);
-int s2n_parse_client_hello(struct s2n_connection *conn);
 int s2n_client_hello_recv(struct s2n_connection *conn);
 int s2n_establish_session(struct s2n_connection *conn);
 int s2n_sslv2_client_hello_parse(struct s2n_connection *conn);
