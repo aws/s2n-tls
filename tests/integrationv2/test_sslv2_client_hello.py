@@ -13,6 +13,8 @@ from utils import (
     to_bytes,
 )
 
+SSLV2_CLIENT_HELLO_MARKER = "Warning: deprecated SSLv2-style ClientHello"
+
 
 @pytest.mark.flaky(reruns=5, reruns_delay=2)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -76,6 +78,7 @@ def test_s2n_server_sslv2_client_hello(managed_process, protocol):
     # the stdout reliably.
     for server_results in server.get_results():
         server_results.assert_success()
+        assert SSLV2_CLIENT_HELLO_MARKER in server_results.stdout
         assert (
             to_bytes("Actual protocol version: {}".format(protocol))
             in server_results.stdout
