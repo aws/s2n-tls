@@ -103,6 +103,8 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2025;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_3_2025;
 
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy;

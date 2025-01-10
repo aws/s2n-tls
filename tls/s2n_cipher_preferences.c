@@ -1490,6 +1490,32 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_c
     .allow_chacha20_boosting = true,
 };
 
+/* FIPS 140-3 compliant version of cipher_preferences_cloudfront_tls_1_2_2021 */
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2025[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2025 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2025),
+    .suites = cipher_suites_cloudfront_tls_1_2_2025,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_3_2025[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_3_2025 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_3_2025),
+    .suites = cipher_suites_cloudfront_tls_1_3_2025,
+    .allow_chacha20_boosting = false,
+};
+
 /* Based on cipher_preferences_cloudfront_tls_1_0_2016, but with ordering changed and AES256-SHA256, DES-CBC3-SHA, and
  * RC4-MD5 added for compatibility. */
 struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_ssl_v3[] = {
