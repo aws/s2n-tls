@@ -569,23 +569,6 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (fips_mode) {
-#ifndef S2N_INTERN_LIBCRYPTO
-    #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-        if (FIPS_mode_set(1) == 0) {
-            unsigned long fips_rc = ERR_get_error();
-            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
-            exit(1);
-        }
-        printf("s2nc entered FIPS mode\n");
-    #else
-        fprintf(stderr, "Error entering FIPS mode. s2nc was not built against a FIPS-capable libcrypto.\n");
-        exit(1);
-    #endif
-#endif
-    }
-
     if (prefer_low_latency && prefer_throughput) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
         exit(1);
@@ -593,6 +576,16 @@ int main(int argc, char *const *argv)
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
     printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
+
+    if (fips_mode) {
+        s2n_fips_mode mode = 0;
+        GUARD_EXIT(s2n_get_fips_mode(&mode), "Unable to retrieve FIPS mode");
+        if (mode != S2N_FIPS_MODE_ENABLED) {
+            fprintf(stderr, "FIPS mode not enabled: libcrypto does not support FIPS\n");
+            exit(1);
+        }
+        printf("s2nc entered FIPS mode\n");
+    }
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
