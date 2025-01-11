@@ -78,7 +78,6 @@ struct s2n_session_ticket {
 };
 
 struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN]);
-struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config);
 S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to, uint64_t *key_intro_time);
 S2N_RESULT s2n_resume_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
 S2N_RESULT s2n_resume_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from);

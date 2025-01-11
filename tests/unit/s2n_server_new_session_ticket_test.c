@@ -33,6 +33,8 @@
 
 #define MAX_TEST_SESSION_SIZE 300
 
+struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config);
+
 #define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
 static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
 {
