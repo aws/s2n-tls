@@ -255,6 +255,10 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
     }
 
+    if (s2n_connection_get_client_hello_version(conn) == S2N_SSLv2) {
+        fprintf(stdout, "Warning: deprecated SSLv2-style ClientHello");
+    }
+
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
     GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");

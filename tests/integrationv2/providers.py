@@ -602,12 +602,16 @@ class JavaSSL(Provider):
             cmd_line.extend([self.options.trust_store])
         elif self.options.cert:
             cmd_line.extend([self.options.cert])
+        if self.options.cipher.iana_standard_name is not None:
+            cmd_line.extend([self.options.cipher.iana_standard_name])
 
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
+        # SSLv2ClientHello is a "protocol" for Java TLS, so we append it next to
+        # the existing protocol.
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
 
-        if self.options.cipher.iana_standard_name is not None:
-            cmd_line.extend([self.options.cipher.iana_standard_name])
 
         # Clients are always ready to connect
         self.set_provider_ready()
