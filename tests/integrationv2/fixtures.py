@@ -55,8 +55,8 @@ def managed_process(path_configuration):
 
     def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None,
             expect_stderr=None, kill_marker=None, send_with_newline=None):
-        if path_configuration is not None:
-            # we are in best-effort mode
+        best_effort_mode = path_configuration is not None
+        if best_effort_mode:
             # modify the `aborted` field in the generator object
             nonlocal aborted
 
@@ -67,7 +67,7 @@ def managed_process(path_configuration):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
 
-        if path_configuration is not None and provider_class is S2N:
+        if best_effort_mode and provider_class is S2N:
             if cmd_line[0] == "s2nc" or cmd_line[0] == "s2nd":
                 cmd_line[0] = f"{path_configuration[S2N]}/{cmd_line[0]}"
             else: # "s2nc_head" or "s2nd_head"
