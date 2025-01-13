@@ -8,29 +8,18 @@ from common import Certificates, Ciphers, Curves, Protocols, ProviderOptions, da
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, JavaSSL
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     to_bytes,
 )
 
 SSLV2_CLIENT_HELLO_MARKER = "Warning: deprecated SSLv2-style ClientHello"
 
 
-@pytest.mark.flaky(reruns=5, reruns_delay=2)
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize(
-    # TLS 1.3 finally drops support for SSLv2 Client Hellos, and can not be negotiated
-    # SSLv2 logic entails different protocol parsing, so make sure we are negotiating
-    # the correct protocols.
-    "protocol",
-    [
-        Protocols.TLS12,
-        Protocols.TLS11,
-        Protocols.TLS10,
-    ],
-    ids=get_parameter_name,
-)
-def test_s2n_server_sslv2_client_hello(managed_process, protocol):
+def test_s2n_server_sslv2_client_hello(managed_process):
+    # TLS 1.3: not supported by SSLv2 ClientHellos
+    # TLS 1.2: supported
+    # TLS 1.0 - TLS 1.1: not supported by Java
+    TEST_PROTOCOL = Protocols.TLS12
+
     port = next(available_ports)
 
     # s2nd can receive large amounts of data because all the data is
@@ -43,15 +32,15 @@ def test_s2n_server_sslv2_client_hello(managed_process, protocol):
     certificate = Certificates.RSA_2048_SHA256
 
     client_options = ProviderOptions(
-        mode=Provider.ServerMode,
+        mode=Provider.ClientMode,
         port=port,
-        # The cipher must use RSA key exchange. ECDHE is not supported with 
+        # The cipher must use RSA key exchange. ECDHE is not supported with
         # SSLv2 formatted client hellos.
         cipher=Ciphers.AES256_SHA256,
         cert=certificate.cert,
         data_to_send=random_bytes,
         insecure=True,
-        protocol=protocol,
+        protocol=TEST_PROTOCOL,
         extra_flags="SSLv2Hello",
     )
 
@@ -61,7 +50,6 @@ def test_s2n_server_sslv2_client_hello(managed_process, protocol):
     server_options.key = certificate.key
     server_options.cert = certificate.cert
     server_options.extra_flags = None
-
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -80,7 +68,7 @@ def test_s2n_server_sslv2_client_hello(managed_process, protocol):
         server_results.assert_success()
         assert SSLV2_CLIENT_HELLO_MARKER in server_results.stdout
         assert (
-            to_bytes("Actual protocol version: {}".format(protocol))
+            to_bytes("Actual protocol version: {}".format(TEST_PROTOCOL.value))
             in server_results.stdout
         )
         assert random_bytes in server_results.stdout
