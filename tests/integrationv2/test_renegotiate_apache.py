@@ -5,7 +5,7 @@ import tempfile
 
 from configuration import ALL_TEST_CURVES
 from common import ProviderOptions
-from fixtures import managed_process, path_configuration  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY

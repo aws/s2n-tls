@@ -7,7 +7,7 @@ from enum import Enum, auto
 
 from configuration import available_ports
 from common import ProviderOptions, Protocols, random_str
-from fixtures import managed_process, path_configuration  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
