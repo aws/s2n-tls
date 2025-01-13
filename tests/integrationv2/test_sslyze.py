@@ -7,7 +7,7 @@ from enum import Enum, auto
 
 from configuration import available_ports, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Curves
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process, path_configuration  # lgtm [py/unused-import]
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
 from global_flags import get_flag, S2N_PROVIDER_VERSION
@@ -22,7 +22,7 @@ PROTOCOLS_TO_TEST = [
     Protocols.TLS13
 ]
 
-SSLYZE_SCANS_TO_TEST = {
+SSLYZE_SCANS_TO_TEST = [
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.SESSION_RESUMPTION,
     sslyze.ScanCommand.TLS_COMPRESSION,
@@ -31,7 +31,7 @@ SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.HEARTBLEED,
     sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
     sslyze.ScanCommand.SESSION_RENEGOTIATION
-}
+]
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {

@@ -1,11 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import pytest
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
-def pytest_addoption(parser):
-    parser.addoption("--provider-version", action="store", dest="provider-version",
-                     default=None, type=str, help="Set the version of the TLS provider")
+def pytest_addoption(parser: pytest.Parser):
+    parser.addoption(
+        "--provider-version",
+        action="store",
+        dest="provider-version",
+        default=None,
+        type=str,
+        help="Set the version of the TLS provider",
+    )
+    parser.addoption(
+        "--best-effort",
+        action="store_true",
+        default=False,
+        help="""If enabled, run as many tests are possible 
+        for the discovered providers, and skip any providers 
+        that aren't available""",
+    )
 
 
 def pytest_configure(config):
