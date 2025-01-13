@@ -332,6 +332,8 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
 
     /* Come back to the ticket lifetime field and write the data */
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
+    /* Don't send the nst if its lifetime is expired. */
+    RESULT_ENSURE_NE(ticket_lifetime_in_secs, 0);
     output->write_cursor = ticket_lifetime_write_cursor;
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
     output->write_cursor = ticket_size_write_cursor;

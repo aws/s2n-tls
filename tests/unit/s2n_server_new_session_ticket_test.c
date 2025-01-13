@@ -1007,6 +1007,38 @@ int main(int argc, char **argv)
             EXPECT_TICKETS_SENT(conn, 1);
         };
 
+        /* Send a session ticket with zero lifetime */
+        {
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            /* Set tickets_to_send to 1, so that s2n_tls13_server_nst_send() attempts to send the nst */
+            conn->tickets_to_send = 1;
+            conn->config->session_state_lifetime_in_nanos = 0;
+            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
+
+            /* Setup io */
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 0);
+
+            /* Check no record was written */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        };
+
         /* Sends one new session ticket */
         {
             struct s2n_config *config = NULL;
