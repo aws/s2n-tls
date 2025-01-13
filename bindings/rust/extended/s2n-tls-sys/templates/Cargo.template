@@ -36,8 +36,8 @@ stacktrace = []
 # unstable-foo = []
 
 [dependencies]
-aws-lc-rs = { version = "1" }
-libc = "0.2"
+aws-lc-rs = { version = "1.6.4" }
+libc = "0.2.121"
 
 [build-dependencies]
 cc = { version = "1.0.100", features = ["parallel"] }
