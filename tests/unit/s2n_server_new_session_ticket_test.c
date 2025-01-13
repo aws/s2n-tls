@@ -446,7 +446,7 @@ int main(int argc, char **argv)
         struct s2n_blob nonce = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
 
-        struct s2n_blob *output = &conn->tls13_ticket_fields.session_secret;
+        struct s2n_blob *output = &conn->ticket_fields.session_secret;
         EXPECT_SUCCESS(s2n_generate_session_secret(conn, &nonce, output));
         EXPECT_EQUAL(output->size, expected_session_secret.size);
         EXPECT_BYTEARRAY_EQUAL(output->data, expected_session_secret.data, expected_session_secret.size);

@@ -76,10 +76,10 @@ static int mock_time(void *data, uint64_t *nanoseconds)
 
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
-    conn->tls13_ticket_fields = (struct s2n_ticket_fields){ 0 };
+    conn->ticket_fields = (struct s2n_ticket_fields){ 0 };
     uint8_t test_secret_data[] = "test secret";
-    RESULT_GUARD_POSIX(s2n_alloc(&conn->tls13_ticket_fields.session_secret, sizeof(test_secret_data)));
-    RESULT_CHECKED_MEMCPY(conn->tls13_ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
+    RESULT_GUARD_POSIX(s2n_alloc(&conn->ticket_fields.session_secret, sizeof(test_secret_data)));
+    RESULT_CHECKED_MEMCPY(conn->ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
 
     /* Create a valid resumption psk identity */
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output, NULL));

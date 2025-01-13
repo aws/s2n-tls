@@ -176,7 +176,7 @@ int main(int argc, char **argv)
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
-            EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, secret_size));
+            EXPECT_SUCCESS(s2n_realloc(&conn->ticket_fields.session_secret, secret_size));
 
             /* Result matches constant */
             size_t actual_size = 0;
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
-            EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, secret_size));
+            EXPECT_SUCCESS(s2n_realloc(&conn->ticket_fields.session_secret, secret_size));
 
             /* Result matches constant */
             size_t actual_size = 0;
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
-            EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
+            EXPECT_SUCCESS(s2n_alloc(&conn->ticket_fields.session_secret, secret_size));
 
             /* Result matches constants */
             size_t actual_size = 0;
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
-            EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
+            EXPECT_SUCCESS(s2n_alloc(&conn->ticket_fields.session_secret, secret_size));
 
             /* Set early data fields */
             const uint8_t data[] = "test data";
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
                 /* Set non-zero length secret */
                 uint8_t secret_size = 0;
                 EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
-                EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
+                EXPECT_SUCCESS(s2n_alloc(&conn->ticket_fields.session_secret, secret_size));
                 int session_length = s2n_connection_get_session_length(conn);
                 EXPECT_NOT_EQUAL(session_length, 0);
 
@@ -473,8 +473,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
 
@@ -496,11 +496,11 @@ int main(int argc, char **argv)
 
             uint32_t ticket_age_add = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_age_add));
-            EXPECT_EQUAL(ticket_age_add, conn->tls13_ticket_fields.ticket_age_add);
+            EXPECT_EQUAL(ticket_age_add, conn->ticket_fields.ticket_age_add);
 
             uint8_t secret_len = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &secret_len));
-            EXPECT_EQUAL(secret_len, conn->tls13_ticket_fields.session_secret.size);
+            EXPECT_EQUAL(secret_len, conn->ticket_fields.session_secret.size);
 
             uint8_t session_secret[S2N_TLS_SECRET_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, session_secret, secret_len));
@@ -531,8 +531,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
             /* New expiration time */
             {
@@ -612,8 +612,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
             /* Write ticket without early data. Save size for comparison. */
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 0));
@@ -687,10 +687,10 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-                conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-                EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+                conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+                EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
-                EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, test_cases[i].secret_size));
+                EXPECT_SUCCESS(s2n_realloc(&conn->ticket_fields.session_secret, test_cases[i].secret_size));
                 if (test_cases[i].success) {
                     EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
                 } else {
@@ -1137,8 +1137,8 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-                conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
-                EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+                conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
+                EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
                 /* Initialize client ticket */
                 uint8_t client_ticket[] = { CLIENT_TICKET };
@@ -1194,8 +1194,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Initialize client ticket */
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
             uint8_t client_ticket[] = { CLIENT_TICKET };
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
@@ -1368,11 +1368,11 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->ticket_fields.session_secret));
 
             /* This secret is smaller than the maximum secret length */
-            EXPECT_TRUE(conn->tls13_ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
+            EXPECT_TRUE(conn->ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output, NULL));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
@@ -1404,11 +1404,11 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->ticket_fields.session_secret));
 
             /* This secret is equal to the maximum secret length */
-            EXPECT_EQUAL(conn->tls13_ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
+            EXPECT_EQUAL(conn->ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output, NULL));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
@@ -1545,8 +1545,8 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
+            conn->ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->ticket_fields.session_secret));
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &output, NULL));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));

@@ -112,7 +112,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_ENSURE_REF(conn->secure);
 
     uint64_t current_time = 0;
-    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
+    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
 
     /* Get the time */
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));

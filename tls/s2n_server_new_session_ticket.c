@@ -281,7 +281,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
 
-    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
+    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
 
     uint64_t key_intro_time = 0;
 
@@ -328,7 +328,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     uint32_t ticket_size_write_cursor = output->write_cursor;
 
     /* Come back to the ticket lifetime field and write the data */
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key_intro_time, conn->tls13_ticket_fields.current_time, &ticket_lifetime_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
     output->write_cursor = ticket_lifetime_write_cursor;
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
     output->write_cursor = ticket_size_write_cursor;
@@ -365,7 +365,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     if (!conn->config->use_tickets) {
         return S2N_RESULT_OK;
     }
-    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
+    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
 
     /* Handle `ticket_lifetime` field */
     uint32_t ticket_lifetime = 0;
