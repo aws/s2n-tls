@@ -28,6 +28,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+static s2n_result s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time, uint64_t current_time, uint32_t *ticket_lifetime);
+
 /*
  * The maximum size of the NewSessionTicket message, not taking into account the
  * ticket itself.
@@ -79,8 +81,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     struct s2n_blob entry = { 0 };
     POSIX_GUARD(s2n_blob_init(&entry, data, sizeof(data)));
     struct s2n_stuffer to = { 0 };
-    uint32_t lifetime_hint_in_secs =
-            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
+    uint64_t key_intro_time = 0;
 
     /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
      * its mind mid-handshake or if there are no valid encrypt keys currently available. 
@@ -92,7 +93,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# NewSessionTicket handshake message.
      **/
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    if (!conn->config->use_tickets || s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, &to, NULL))) {
+    if (!conn->config->use_tickets || s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, &to, &key_intro_time))) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
@@ -102,6 +103,9 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     if (!s2n_server_sending_nst(conn)) {
         POSIX_BAIL(S2N_ERR_SENDING_NST);
     }
+
+    uint32_t lifetime_hint_in_secs = 0;
+    POSIX_GUARD_RESULT(s2n_generate_ticket_lifetime(conn, key_intro_time, conn->ticket_fields.current_time, &lifetime_hint_in_secs));
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));

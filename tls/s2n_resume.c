@@ -66,18 +66,19 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
-    uint64_t now = 0;
-
     S2N_ERROR_IF(s2n_stuffer_space_remaining(to) < S2N_TLS12_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_IS_FULL);
 
     /* Get the time */
-    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
+    uint64_t current_time = 0;
+    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
+    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &current_time));
+    ticket_fields->current_time = current_time;
 
     /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, s2n_resume_protocol_version(conn)));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
-    POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
+    POSIX_GUARD(s2n_stuffer_write_uint64(to, ticket_fields->current_time));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->ems_negotiated));
 

@@ -23,12 +23,15 @@
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
-#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES         S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
-#define S2N_TICKET_KEY_NAME_LOCATION                    S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_VERSION_SIZE
-#define ONE_SEC_DELAY                                   1
+#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS  (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
+#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS
+#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES          S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
+#define S2N_TICKET_KEY_NAME_LOCATION                     S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_VERSION_SIZE
+#define ONE_SEC_DELAY                                    1
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
+
+struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config);
 
 /**
  * This function is used to "skip" time in unit tests. It will mock the system
@@ -221,6 +224,7 @@ int main(int argc, char **argv)
         /* A newly created connection should not be considered resumed */
         EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
         EXPECT_FALSE(s2n_connection_is_session_resumed(client_conn));
+
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
@@ -233,9 +237,11 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
-        /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(server_config);
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
+        /* Verify the lifetime hint from the server */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -391,8 +397,11 @@ int main(int argc, char **argv)
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(server_config);
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
         /* Verify that the new NST is encrypted using second ST */
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
@@ -510,8 +519,11 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(server_config);
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -581,8 +593,11 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(server_config);
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -648,8 +663,11 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
+        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(server_config);
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -820,8 +838,13 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
+        struct s2n_ticket_key *key = NULL;
+        /* Directly get the ticket key that is used to encrypt the NST */
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &key));
+        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -910,8 +933,14 @@ int main(int argc, char **argv)
             } else {
                 failures += 1;
             }
+
+            struct s2n_ticket_key *key = NULL;
+            /* Directly get the ticket key that is used to encrypt the NST */
+            EXPECT_OK(s2n_set_get(server_config->ticket_keys, 1, (void **) &key));
+            uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
+
             /* Verify the lifetime hint from the server */
-            EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+            EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -981,7 +1010,7 @@ int main(int argc, char **argv)
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), 86400 + 18000);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
