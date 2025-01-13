@@ -35,11 +35,13 @@ usage() {
     echo "    example: start_codebuild.sh pr/1111"
     echo "    example: start_codebuild.sh test_branch"
     echo "    example: start_codebuild.sh 1234abcd"
-    exit 1
 }
 
 if [ "$#" -ne "1" ]; then
     usage
+    # Return instead of exit so we can `source` this script
+    # in order to get access to BUILDS.
+    return 1
 fi
 SOURCE_VERSION=$1
 

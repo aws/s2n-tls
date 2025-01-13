@@ -128,3 +128,38 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
+        
+  validate_start_codebuild_script:
+    name: validate start_codebuild.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: pause
+        run: "sleep 120"
+      - name: retrieve statuses
+        id: get_statuses
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{repo}/commits/{ref}/statuses?per_page=100
+          repo: ${{ github.repository }}
+          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: check start_codebuild.sh against statuses
+        id: github_builds
+        run: |
+            from_github=$(
+                jq '.[] | .description' <<< '${{ steps.get_statuses.outputs.data }}' \
+                    | grep "for project" \
+                    | sed -r "s/^.*?for project (.*?)\"$/\1/" \
+                    | sort -u
+            )
+            echo builds from github statuses:
+            echo "$from_github"
+            from_file=$(
+                source codebuild/bin/start_codebuild.sh > /dev/null \
+                || printf "%s\n" "${BUILDS[@]}" | cut -d" " -f1 | sort -u
+            )
+            echo builds from start_codebuild.sh:
+            echo "$from_file"
+            diff <(echo "$from_github") <(echo "$from_file")

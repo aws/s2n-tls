@@ -402,7 +402,7 @@ if (S2N_INTERN_LIBCRYPTO)
           # copy the static version of libcrypto
           cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
-          bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
+          bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{if ($3) print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
           ${CMAKE_OBJCOPY} --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
           rm -rf s2n_libcrypto &&
