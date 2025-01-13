@@ -231,8 +231,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero") \
     ERR_ENTRY(S2N_ERR_TICKET_KEY_NOT_UNIQUE, "Cannot add session ticket key because it was added before") \
     ERR_ENTRY(S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys") \
-    ERR_ENTRY(S2N_ERR_TICKET_LIFETIME_CALCULATION_FAILED, "Error in session ticket key lifetime calculation") \
-    ERR_ENTRY(S2N_ERR_TICKET_LIFETIME_EXPIRED, "The session ticket has expired") \
     ERR_ENTRY(S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY, "No key in encrypt-decrypt state is available to encrypt session ticket") \
     ERR_ENTRY(S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED, "Failed to select a key from keys in encrypt-decrypt state") \
     ERR_ENTRY(S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND, "Key used in already assigned session ticket not found for decryption") \
