@@ -33,8 +33,6 @@
 
 #define MAX_TEST_SESSION_SIZE 300
 
-struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config);
-
 #define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
 static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
 {
@@ -121,7 +119,8 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+            struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
             uint32_t key_lifetime_in_secs =
                     (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
@@ -324,7 +323,8 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
-        struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+        uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+        struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, wall_clock_time_stamp, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS);
 
