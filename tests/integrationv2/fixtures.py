@@ -11,6 +11,7 @@ from providers import Provider, S2N
 from common import ProviderOptions
 from conftest import PATH_CONFIGURATION_KEY
 
+
 @pytest.fixture
 def managed_process(request: pytest.FixtureRequest):
     """
