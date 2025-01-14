@@ -260,9 +260,20 @@ where
         Self { client, server, io }
     }
 
-    /// Take back ownership of individual connections in the TlsConnPair
-    pub fn split(self) -> (C, S) {
-        (self.client, self.server)
+    pub fn client(&self) -> &C {
+        &self.client
+    }
+
+    pub fn client_mut(&mut self) -> &mut C {
+        &mut self.client
+    }
+
+    pub fn server(&self) -> &S {
+        &self.server
+    }
+
+    pub fn server_mut(&mut self) -> &mut S {
+        &mut self.server
     }
 
     /// Run handshake on connections
@@ -386,8 +397,7 @@ mod tests {
             TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
                 .unwrap();
         conn_pair.handshake().unwrap();
-        let (_, server) = conn_pair.split();
-        assert!(server.resumed_connection());
+        assert!(conn_pair.server().resumed_connection());
     }
 
     #[test]
