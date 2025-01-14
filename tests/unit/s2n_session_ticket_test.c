@@ -235,8 +235,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -397,8 +397,8 @@ int main(int argc, char **argv)
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -521,8 +521,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -597,8 +597,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -669,8 +669,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -847,8 +847,8 @@ int main(int argc, char **argv)
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Directly get the ticket key that is used to encrypt the NST */
-        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1)/sizeof(uint8_t)));
+        uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+        EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, sizeof(ticket_key_name1) / sizeof(uint8_t)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
@@ -944,8 +944,8 @@ int main(int argc, char **argv)
             }
 
             /* Directly get the ticket key that is used to encrypt the NST */
-            uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
-            EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2)/sizeof(uint8_t)));
+            uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+            EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, sizeof(ticket_key_name2) / sizeof(uint8_t)));
             struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
             uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
