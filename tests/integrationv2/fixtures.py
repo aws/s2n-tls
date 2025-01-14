@@ -41,6 +41,7 @@ def managed_process(request: pytest.FixtureRequest):
         cmd_line = provider.get_cmd_line()
 
         if best_effort_mode and provider_class is S2N and not (cmd_line[0] == "s2nc" or cmd_line[0] == "s2nd"):
+            aborted = True
             pytest.skip("s2nc_head or s2nd_head not supported for best-effort")
 
         # The process will default to send markers in the providers.py file
