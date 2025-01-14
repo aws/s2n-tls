@@ -46,11 +46,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            # lgtm [py/init-calls-subclass]
-            self.cmd_line = self.setup_server()
+            self.cmd_line = self.setup_server()  # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            # lgtm [py/init-calls-subclass]
-            self.cmd_line = self.setup_client()
+            self.cmd_line = self.setup_client()  # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -142,8 +140,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -337,6 +334,8 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
+    _version = get_flag(S2N_PROVIDER_VERSION)
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
@@ -391,7 +390,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return get_flag(S2N_PROVIDER_VERSION)
+        return cls._version
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -405,15 +404,13 @@ class OpenSSL(Provider):
         return True
 
     def _is_openssl_11(self) -> None:
-        result = subprocess.run(["openssl", "version"],
-                                shell=False, capture_output=True, text=True)
+        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
         version_str = result.stdout.split(" ")
         project = version_str[0]
         version = version_str[1]
         print(f"openssl version: {project} version: {version}")
         if (project != "OpenSSL" or version[0:3] != "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {
-                                    version}, expected 1.1.x.")
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
@@ -706,8 +703,7 @@ class GnuTLS(Provider):
         Provider.__init__(self, options)
 
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
@@ -779,15 +775,13 @@ class GnuTLS(Provider):
     def create_priority_str(self):
         priority_str = "NONE"
 
-        protocol_to_priority_str = self.protocol_to_priority_str(
-            self.options.protocol)
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
         if protocol_to_priority_str:
             priority_str += ":+" + protocol_to_priority_str
         else:
             priority_str += ":+VERS-ALL"
 
-        cipher_to_priority_str = self.cipher_to_priority_str(
-            self.options.cipher)
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
         if cipher_to_priority_str:
             priority_str += ":+" + cipher_to_priority_str
         else:
@@ -799,8 +793,7 @@ class GnuTLS(Provider):
         else:
             priority_str += ":+GROUP-ALL"
 
-        sigalg_to_priority_str = self.sigalg_to_priority_str(
-            self.options.signature_algorithm)
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
         if sigalg_to_priority_str:
             priority_str += ":+" + sigalg_to_priority_str
         else:
