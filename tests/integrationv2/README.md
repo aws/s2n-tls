@@ -17,7 +17,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # run pytest
 # -x: exit on the first failure
 # -rpfs: print a (r)eport with (p)assing, (f)ailed, and (s)kipped tests.
-uv run pytest --provider-version <LINKED_LIBCRYPTO> --best-effort -x -rpfs -n auto
+uv run pytest --provider-version <LINKED_LIBCRYPTO> --best-effort-NOT-FOR-CI -x -rpfs -n auto
 ```
 
 ## Run all tests

@@ -27,7 +27,6 @@ def path_configuration():
             pytest.fail(f"unable to locate {binary}")
     os.environ['PATH'] += os.pathsep + expected_location
     providers.add(S2N)
-    print(sys.path)
 
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
@@ -52,6 +51,8 @@ def pytest_configure(config: pytest.Config):
     """
     pytest hook that adds the function to deselect tests if the parameters
     don't makes sense.
+
+    This is executed once per pytest session on process startup.
     """
     config.addinivalue_line(
         "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
