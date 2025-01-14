@@ -85,18 +85,18 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     RESULT_ENSURE_MUT(ticket_lifetime);
 
     uint64_t ticket_key_age_in_nanos = current_time - key_intro_time;
+    uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
 
-    uint32_t key_lifetime_in_secs =
-            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
+    uint32_t key_lifetime_in_secs = (key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
-    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
-    uint32_t psk_keying_material_lifetime_in_secs = UINT32_MAX;
-    if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        psk_keying_material_lifetime_in_secs = (uint32_t) (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
-    }
 
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
-    uint32_t key_session_and_psk_keying_material_min_lifetime = MIN(key_and_session_min_lifetime, psk_keying_material_lifetime_in_secs);
+    uint32_t key_session_and_psk_keying_material_min_lifetime = key_and_session_min_lifetime;
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+        uint32_t psk_keying_material_lifetime_in_secs = (uint32_t) (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
+        key_session_and_psk_keying_material_min_lifetime = MIN(key_session_and_psk_keying_material_min_lifetime, psk_keying_material_lifetime_in_secs);
+    }
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
