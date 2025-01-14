@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
-import sys
 import pytest
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from providers import S2N, JavaSSL
@@ -9,7 +8,7 @@ from providers import S2N, JavaSSL
 PATH_CONFIGURATION_KEY = pytest.StashKey()
 
 
-def path_configuration():
+def available_providers():
     """
     1. determine available providers
     2. modify PATH to make the providers available
@@ -59,7 +58,7 @@ def pytest_configure(config: pytest.Config):
     )
 
     if config.getoption("--best-effort-NOT-FOR-CI"):
-        config.stash[PATH_CONFIGURATION_KEY] = path_configuration()
+        config.stash[PATH_CONFIGURATION_KEY] = available_providers()
 
     provider_version = config.getoption('provider-version', None)
     if "fips" in provider_version:
