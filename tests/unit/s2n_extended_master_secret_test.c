@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket, NULL));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket without EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket, NULL));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket, NULL));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
