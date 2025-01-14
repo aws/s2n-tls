@@ -24,7 +24,10 @@ on:
 
 jobs:
   run_cbmc_proofs:
-    runs-on: cbmc_ubuntu-latest_64-core
+    #runs-on: cbmc_ubuntu-latest_64-core
+    runs-on:
+      - codebuild-AL2nodejs-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:large
     name: run_cbmc_proofs
     permissions:
       contents: read
