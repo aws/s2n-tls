@@ -57,6 +57,9 @@ bool s2n_libcrypto_is_fips(void)
 int s2n_fips_init(void)
 {
     s2n_fips_mode_enabled = s2n_libcrypto_is_fips();
+#if defined(OPENSSL_FIPS)
+    POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
+#endif
     return S2N_SUCCESS;
 }
 
