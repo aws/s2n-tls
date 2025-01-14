@@ -1,10 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-import pytest
 
 from configuration import available_ports
-from common import Certificates, Ciphers, Curves, Protocols, ProviderOptions, data_bytes
+from common import Certificates, Ciphers, Protocols, ProviderOptions, data_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, JavaSSL
 from utils import (
