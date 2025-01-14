@@ -1634,34 +1634,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02 = 
     .allow_chacha20_boosting = false,
 };
 
-struct s2n_cipher_suite *cipher_suites_pq_sike_test_tls_1_0_2019_11[] = {
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_dhe_rsa_with_aes_256_cbc_sha,
-    &s2n_dhe_rsa_with_aes_128_cbc_sha,
-};
-
-/* Previously included only SIKE round 1 (for integration tests) */
-const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11 = {
-    .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
-    .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
-    .allow_chacha20_boosting = false,
-};
-
-/* Previously included SIKE round 1 and round 2 (for integration tests). The cipher suite list
- * is the same as in cipher_preferences_pq_sike_test_tls_1_0_2019_11. */
-const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02 = {
-    .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
-    .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
-    .allow_chacha20_boosting = false,
-};
-
 /* Includes Kyber PQ algorithm */
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2020_07[] = {
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
