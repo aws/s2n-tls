@@ -410,7 +410,7 @@ class OpenSSL(Provider):
         version = version_str[1]
         print(f"openssl version: {project} version: {version}")
         if (project != "OpenSSL" or version[0:3] != "1.1"):
-            pytest.fail(f"Openssl version returned {version}, expected 1.1.x.")
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
