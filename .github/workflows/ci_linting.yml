@@ -154,12 +154,19 @@ jobs:
                     | sed -r "s/^.*?for project (.*?)\"$/\1/" \
                     | sort -u
             )
+            if [ -z "$from_github" ]; then
+                echo "No codebuild job statuses!"
+                echo "You may need to kick off the codebuild jobs with" \
+                    "./codebuild/bin/start_codebuild.sh and then retry."
+                exit 1
+            fi
             echo builds from github statuses:
-            echo "$from_github"
+            printf "$from_github\n\n"
             from_file=$(
                 source codebuild/bin/start_codebuild.sh > /dev/null \
                 || printf "%s\n" "${BUILDS[@]}" | cut -d" " -f1 | sort -u
             )
             echo builds from start_codebuild.sh:
-            echo "$from_file"
+            printf "$from_file\n\n"
+            echo "diff output:"
             diff <(echo "$from_github") <(echo "$from_file")
