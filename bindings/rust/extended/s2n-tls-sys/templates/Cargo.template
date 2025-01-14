@@ -36,7 +36,9 @@ stacktrace = []
 # unstable-foo = []
 
 [dependencies]
+# aws-lc-rs 1.6.4 adds DEP_AWS_LC environment variables which are required to build s2n-tls-sys.
 aws-lc-rs = { version = "1.6.4" }
+# A minimum libc version of 0.2.121 is required by aws-lc-sys 0.24.0.
 libc = "0.2.121"
 
 [build-dependencies]
