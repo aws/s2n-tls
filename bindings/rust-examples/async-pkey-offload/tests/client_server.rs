@@ -1,7 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use async_pkey_offload::{create_self_signed_cert, get_key, KmsAsymmetricKey, DEMO_DOMAIN, DEMO_REGION};
+use async_pkey_offload::{
+    create_self_signed_cert, get_key, KmsAsymmetricKey, DEMO_DOMAIN, DEMO_REGION,
+};
 use aws_config::{BehaviorVersion, Region};
 use aws_sdk_kms::Client;
 use s2n_tls::security;
@@ -43,35 +45,36 @@ async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
         .map(|x| x.to_string())
         .unwrap_or_else(|_| "UNKNOWN".to_owned());
 
-    let server_loop: JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> = tokio::spawn(async move {
-        let mut server_config = s2n_tls::config::Config::builder();
-        server_config.set_security_policy(&security::DEFAULT_TLS13)?;
-        server_config.load_public_pem(self_signed_cert.as_bytes())?;
-        server_config.set_private_key_callback(kms_key)?;
+    let server_loop: JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> =
+        tokio::spawn(async move {
+            let mut server_config = s2n_tls::config::Config::builder();
+            server_config.set_security_policy(&security::DEFAULT_TLS13)?;
+            server_config.load_public_pem(self_signed_cert.as_bytes())?;
+            server_config.set_private_key_callback(kms_key)?;
 
-        let server = TlsAcceptor::new(server_config.build()?);
+            let server = TlsAcceptor::new(server_config.build()?);
 
-        loop {
-            let (stream, _peer_addr) = listener.accept().await?;
+            loop {
+                let (stream, _peer_addr) = listener.accept().await?;
 
-            let server = server.clone();
-            tokio::spawn(async move {
-                let mut tls = server.accept(stream).await.unwrap();
+                let server = server.clone();
+                tokio::spawn(async move {
+                    let mut tls = server.accept(stream).await.unwrap();
 
-                // server writes message to client
-                tls.write_all(MESSAGE).await.unwrap();
+                    // server writes message to client
+                    tls.write_all(MESSAGE).await.unwrap();
 
-                // server waits for client to initiate shutdown
-                let read = tls.read(&mut [0]).await.unwrap();
-                assert_eq!(read, 0);
+                    // server waits for client to initiate shutdown
+                    let read = tls.read(&mut [0]).await.unwrap();
+                    assert_eq!(read, 0);
 
-                // server completes shutdown
-                tls.shutdown().await.unwrap();
+                    // server completes shutdown
+                    tls.shutdown().await.unwrap();
 
-                Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-            });
-        }
-    });
+                    Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+                });
+            }
+        });
 
     let client = tokio::spawn(async move {
         let mut client_config = s2n_tls::config::Config::builder();

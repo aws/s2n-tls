@@ -23,16 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if demo_key_ids.is_empty() {
         // no keys to delete, can immediately return
-        return Ok(())
+        return Ok(());
     }
-    
+
     for k in demo_key_ids {
-            println!("scheduling {:?} for deletion", k);
-            client
-                .schedule_key_deletion()
-                .key_id(k)
-                .send()
-                .await?;
+        println!("scheduling {:?} for deletion", k);
+        client.schedule_key_deletion().key_id(k).send().await?;
     }
 
     Ok(())

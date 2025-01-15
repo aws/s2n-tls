@@ -25,7 +25,7 @@ pub const DEMO_REGION: &str = "us-west-2";
 pub const DEMO_DOMAIN: &str = "async-pkey.demo.s2n";
 
 /// Return a list of available demo keys.
-/// 
+///
 /// There might be multiple keys if a pending deletion is manually cancelled.
 pub async fn get_demo_keys(client: &Client) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let key_list = client.list_keys().send().await?;
@@ -36,7 +36,7 @@ pub async fn get_demo_keys(client: &Client) -> Result<Vec<String>, Box<dyn std::
 
     let key_list = match key_list.keys {
         Some(list) => list,
-        None => return Ok(Vec::new())
+        None => return Ok(Vec::new()),
     };
 
     let mut matching_keys = Vec::new();
@@ -66,7 +66,7 @@ pub async fn get_demo_keys(client: &Client) -> Result<Vec<String>, Box<dyn std::
 
 /// Get a key from KMS, returning an existing key if found, or creating a new one.
 ///
-/// It will return the first key where 
+/// It will return the first key where
 /// - it is not scheduled for deletion
 /// - the key description matches [KEY_DESCRIPTION]
 pub async fn get_key(client: &Client) -> Result<String, Box<dyn std::error::Error>> {
