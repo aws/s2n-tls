@@ -227,11 +227,11 @@ impl s2n_tls::callbacks::PrivateKeyCallback for KmsAsymmetricKey {
             OperationType::Sign(Self::EXPECTED_SIG, hash_algorithm) => Ok(hash_algorithm),
 
             // errors
-            OperationType::Sign(_, _) => Err(s2n_tls::error::Error::application(
-                "RSA signatures can not be used with EC keys".into(),
+            OperationType::Sign(s, _) => Err(s2n_tls::error::Error::application(
+                format!("Unsupported signature type: {:?}", s).into(),
             )),
             OperationType::Decrypt => Err(s2n_tls::error::Error::application(
-                "Decrypt can not be used with EC keys".into(),
+                "Decrypt operation not supported".into(),
             )),
             _ => Err(s2n_tls::error::Error::application(
                 format!("Unrecognized operation type: {:?}", operation.kind()).into(),
