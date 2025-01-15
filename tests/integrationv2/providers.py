@@ -610,7 +610,6 @@ class JavaSSL(Provider):
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
-
         # Clients are always ready to connect
         self.set_provider_ready()
 
