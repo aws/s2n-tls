@@ -10,7 +10,7 @@ from utils import (
     to_bytes,
 )
 
-SSLV2_CLIENT_HELLO_MARKER = "Warning: deprecated SSLv2-style ClientHello"
+SSLV2_CLIENT_HELLO_MARKER = b"Warning: deprecated SSLv2-style ClientHello"
 
 
 def test_s2n_server_sslv2_client_hello(managed_process):
@@ -40,7 +40,7 @@ def test_s2n_server_sslv2_client_hello(managed_process):
         data_to_send=random_bytes,
         insecure=True,
         protocol=TEST_PROTOCOL,
-        extra_flags="SSLv2Hello",
+        extra_flags=["SSLv2Hello"],
     )
 
     server_options = copy.copy(client_options)
