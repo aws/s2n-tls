@@ -10,8 +10,6 @@ from utils import (
     to_bytes,
 )
 
-SSLV2_CLIENT_HELLO_MARKER = b"Warning: deprecated SSLv2-style ClientHello"
-
 
 def test_s2n_server_sslv2_client_hello(managed_process):
     # TLS 1.3: not supported by SSLv2 ClientHellos
@@ -65,9 +63,12 @@ def test_s2n_server_sslv2_client_hello(managed_process):
     # the stdout reliably.
     for server_results in server.get_results():
         server_results.assert_success()
-        assert SSLV2_CLIENT_HELLO_MARKER in server_results.stdout
         assert (
-            to_bytes("Actual protocol version: {}".format(TEST_PROTOCOL.value))
+            to_bytes(f"Client hello version: {Protocols.SSLv2.value}")
+            in server_results.stdout
+        )
+        assert (
+            to_bytes(f"Actual protocol version: {TEST_PROTOCOL.value}")
             in server_results.stdout
         )
         assert random_bytes in server_results.stdout

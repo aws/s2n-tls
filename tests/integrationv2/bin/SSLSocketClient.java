@@ -20,6 +20,8 @@ public class SSLSocketClient {
         int port = Integer.parseInt(args[0]);
         String certificatePath = args[1];
         String[] cipher = new String[] {args[2]};
+        // We assume that args[3] is the intended protocol to negotiated, like "TLS1.3"
+        // or "TLS1.2". args[4] is optional, and if included it's value must be "SSLv2Hello".
         String[] protocolList = Arrays.copyOfRange(args, 3, args.length);
         for (int i = 0; i < protocolList.length; i++) {
             protocolList[i] = sslProtocols(protocolList[i]);
@@ -95,11 +97,11 @@ public class SSLSocketClient {
                 return "TLSv1.1";
             case "TLS1.0":
                 return "TLSv1.0";
+            // This "protocol" forces the ClientHello message to use SSLv2 format.
+            case "SSLv2Hello":
+                return "SSLv2Hello";
         }
 
-        // "Protocols" are other used for other configuration, outside of explicit
-        // TLS versions. If the protocol is not a recognized TLS version, pass it
-        // through.
-        return s2nProtocol;
+        throw new RuntimeException("unrecognized protocol version:" + s2nProtocol);
     }
 }
