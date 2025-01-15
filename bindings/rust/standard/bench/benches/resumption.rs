@@ -45,19 +45,18 @@ where
         bench_group.bench_function(format!("{:?}-{}", handshake, T::name()), |b| {
             b.iter_batched_ref(
                 || {
-                    let pair = TlsConnPair::<T, T>::new_bench_pair(
+                    let mut pair = TlsConnPair::<T, T>::new_bench_pair(
                         CryptoConfig::new(CipherSuite::default(), KXGroup::default(), sig_type),
                         handshake,
                     )
                     .unwrap();
-                    let (mut c, s) = pair.split();
-                    c.handshake().unwrap();
-                    s
+                    pair.client_mut().handshake().unwrap();
+                    pair
                 },
-                |server| {
+                |pair| {
                     // this represents the work that the server does during the
                     // first RTT
-                    server.handshake().unwrap()
+                    pair.server_mut().handshake().unwrap();
                 },
                 BatchSize::SmallInput,
             )

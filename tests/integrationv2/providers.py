@@ -334,8 +334,6 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
-    _version = get_flag(S2N_PROVIDER_VERSION)
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
@@ -390,7 +388,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return cls._version
+        return get_flag(S2N_PROVIDER_VERSION)
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
