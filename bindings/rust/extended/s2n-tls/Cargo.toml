@@ -20,7 +20,8 @@ unstable-testing = []
 
 [dependencies]
 errno = { version = "0.3" }
-libc = "0.2"
+# A minimum libc version of 0.2.121 is required by aws-lc-sys 0.14.0.
+libc = "0.2.121"
 s2n-tls-sys = { version = "=0.3.9", path = "../s2n-tls-sys", features = ["internal"] }
 pin-project-lite = "0.2"
 hex = "0.4"
