@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use async_pkey_offload::{DEMO_REGION, KEY_DESCRIPTION};
+use async_pkey_offload::{get_demo_keys, DEMO_REGION};
 use aws_config::{BehaviorVersion, Region};
 use aws_sdk_kms::Client;
 
@@ -19,44 +19,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::new(&shared_config);
 
-    // list all KMS keys
-    let key_list = client.list_keys().send().await?;
-    if key_list.truncated {
-        // assumption: key list should be small enough to not require pagination
-        return Err("key list should not be truncated".into());
-    }
+    let demo_key_ids = get_demo_keys(&client).await?;
 
-    let keys = match key_list.keys {
-        Some(keys) => keys,
+    if demo_key_ids.is_empty() {
         // no keys to delete, can immediately return
-        None => return Ok(()),
-    };
-
-    for k in keys {
-        let describe_output = client
-            .describe_key()
-            .key_id(k.key_id().unwrap())
-            .send()
-            .await?;
-
-        let metadata = match describe_output.key_metadata {
-            Some(metadata) => metadata,
-            None => continue,
-        };
-
-        // this key is already scheduled for deletion
-        if metadata.deletion_date.is_some() {
-            continue;
-        }
-
-        if metadata.description() == Some(KEY_DESCRIPTION) {
-            println!("scheduling {:?} for deletion", k.key_id().unwrap());
+        return Ok(())
+    }
+    
+    for k in demo_key_ids {
+            println!("scheduling {:?} for deletion", k);
             client
                 .schedule_key_deletion()
-                .key_id(k.key_id().unwrap())
+                .key_id(k)
                 .send()
                 .await?;
-        }
     }
 
     Ok(())

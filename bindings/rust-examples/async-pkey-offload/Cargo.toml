@@ -12,8 +12,8 @@ aws-sdk-kms = "1.47.0"
 clap = { version = "4", features = ["derive"] }
 pin-project = "1.1.6"
 rcgen = "0.13.1"
-s2n-tls = { path = "../../rust/s2n-tls" }
-s2n-tls-tokio = { path = "../../rust/s2n-tls-tokio" }
+s2n-tls = { path = "../../rust/extended/s2n-tls" }
+s2n-tls-tokio = { path = "../../rust/extended/s2n-tls-tokio" }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1.41"
 yasna = "0.5.2"

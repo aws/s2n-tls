@@ -24,36 +24,55 @@ pub const KEY_DESCRIPTION: &str = "KMS Asymmetric Key for s2n-tls pkey offload d
 pub const DEMO_REGION: &str = "us-west-2";
 pub const DEMO_DOMAIN: &str = "async-pkey.demo.s2n";
 
-/// Get a key from KMS, returning an existing key if found, or creating a new one.
-///
-/// It will return the first key where 
-/// - it is not scheduled for deletion
-/// - the key decription matches [KEY_DESCRIPTION]
-pub async fn get_key(client: &Client) -> Result<String, Box<dyn std::error::Error>> {
-    // list all KMS keys
+/// Return a list of available demo keys.
+/// 
+/// There might be multiple keys if a pending deletion is manually cancelled.
+pub async fn get_demo_keys(client: &Client) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let key_list = client.list_keys().send().await?;
     if key_list.truncated {
         // assumption: key list should be small enough to not require pagination
         return Err("key list should not be truncated".into());
     }
 
-    if let Some(keys) = key_list.keys {
-        for k in keys {
-            let description = client
-                .describe_key()
-                .key_id(k.key_id.unwrap())
-                .send()
-                .await?;
-            if let Some(metadata) = description.key_metadata {
-                if metadata.deletion_date().is_some() {
-                    continue
-                }
-                if metadata.description == Some(KEY_DESCRIPTION.into()) {
-                    println!("reusing existing key");
-                    return Ok(metadata.key_id);
-                }
-            }
+    let key_list = match key_list.keys {
+        Some(list) => list,
+        None => return Ok(Vec::new())
+    };
+
+    let mut matching_keys = Vec::new();
+    for k in key_list {
+        let describe_output = client
+            .describe_key()
+            .key_id(k.key_id().unwrap())
+            .send()
+            .await?;
+
+        let metadata = match describe_output.key_metadata {
+            Some(metadata) => metadata,
+            None => continue,
+        };
+
+        // this key is already scheduled for deletion
+        if metadata.deletion_date.is_some() {
+            continue;
         }
+
+        if metadata.description() == Some(KEY_DESCRIPTION) {
+            matching_keys.push(k.key_id().unwrap().to_owned());
+        }
+    }
+    Ok(matching_keys)
+}
+
+/// Get a key from KMS, returning an existing key if found, or creating a new one.
+///
+/// It will return the first key where 
+/// - it is not scheduled for deletion
+/// - the key description matches [KEY_DESCRIPTION]
+pub async fn get_key(client: &Client) -> Result<String, Box<dyn std::error::Error>> {
+    let mut demo_keys = get_demo_keys(client).await?;
+    if let Some(key_id) = demo_keys.pop() {
+        return Ok(key_id);
     }
 
     // no keys were found, so create one.
@@ -105,7 +124,7 @@ impl KmsAsymmetricKey {
         // > When you use the HTTP API or the AWS CLI, the value is Base64-encoded.
         // > Otherwise, it is not Base64-encoded.
         // https://docs.aws.amazon.com/kms/latest/developerguide/download-public-key.html
-        // Note that the rust sdk seems to handle seem common encoding tasks for
+        // Note that the rust sdk seems to handle common encoding tasks for
         // us, so `encoded_public_key` is binary, not base64 encoded.
         let encoded_public_key = public_key_output.public_key.unwrap().into_inner();
         let raw_public_key = extract_ex_public_key(&encoded_public_key)?;
