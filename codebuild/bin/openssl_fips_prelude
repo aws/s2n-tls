@@ -1,0 +1,22 @@
+# Copied from the docs:
+# https://docs.openssl.org/master/man7/fips_module/#making-all-applications-use-the-fips-module-by-default
+# This prelude is copied and pasted at the top of the openssl.cfg file.
+
+config_diagnostics = 1
+openssl_conf = openssl_init
+
+.include FIPS_CONFIG_PATH
+
+[openssl_init]
+providers = provider_sect
+alg_section = algorithm_sect
+
+[provider_sect]
+fips = fips_sect
+base = base_sect
+
+[base_sect]
+activate = 1
+
+[algorithm_sect]
+default_properties = fips=yes

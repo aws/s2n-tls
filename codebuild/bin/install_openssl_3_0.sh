@@ -17,11 +17,15 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_openssl_3_0.sh build_dir install_dir os_name"
+    echo "install_openssl_3_0.sh build_dir install_dir os_name [fips]"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -eq "3" ]; then
+    FIPS=false
+elif [ "$#" -eq "4" ] && [ "$4" = "fips" ]; then
+    FIPS=true
+else
     usage
 fi
 
@@ -29,15 +33,28 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=3.0.7
+prelude=$(cat codebuild/bin/openssl_fips_prelude)
+
+# Only some versions of Openssl-3 are FIPS validated.
+# The list can be found at https://openssl-library.org/source/
+if $FIPS; then
+    RELEASE=3.0.9
+else
+    RELEASE=3.0.7
+fi
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
-curl --retry 3 -L https://github.com/openssl/openssl/archive/refs/tags/openssl-${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
+curl --retry 3 -L --output OpenSSL_${RELEASE}.zip \
+    https://github.com/openssl/openssl/archive/refs/tags/openssl-${RELEASE}.zip
 unzip OpenSSL_${RELEASE}.zip
 cd openssl-openssl-${RELEASE}
 
-CONFIGURE="./Configure "
+if $FIPS; then
+    CONFIGURE="./Configure enable-fips"
+else
+    CONFIGURE="./Configure"
+fi
 
 mkdir -p $INSTALL_DIR
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
@@ -53,10 +70,23 @@ make -j $JOBS test
 make -j $JOBS install
 
 popd
+pushd $INSTALL_DIR
 
 # sym-link lib -> lib64 since codebuild assumes /lib path
-pushd $INSTALL_DIR
 ln -s lib64 lib
+
+# Openssl3 uses the openssl config file to enable fips
+# See https://docs.openssl.org/master/man7/fips_module/#making-all-applications-use-the-fips-module-by-default
+if $FIPS; then
+    config_dir=$(LD_LIBRARY_PATH=lib ./bin/openssl version -d | sed -r "s/OPENSSLDIR: \"(.*?)\"/\1/")
+    config="$config_dir"/openssl.cnf
+    fips_config="$config_dir"/fipsmodule.cnf
+    prelude=$(echo "$prelude" | sed "s,FIPS_CONFIG_PATH,$fips_config,")
+    old_contents=$(cat $config)
+    echo "$prelude" > $config
+    echo "$old_contents" >> $config
+fi
+
 popd
 
 exit 0
