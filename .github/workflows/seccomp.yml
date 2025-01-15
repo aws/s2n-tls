@@ -1,5 +1,7 @@
 name: seccomp
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
@@ -20,10 +22,10 @@ jobs:
           sudo apt install libseccomp-dev
           # For aws-lc
           sudo apt install clang golang
-          
+
       - name: checkout s2n-tls
         uses: actions/checkout@v4
-        
+
       - name: checkout aws-lc
         uses: actions/checkout@v4
         with:
