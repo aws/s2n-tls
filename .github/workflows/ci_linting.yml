@@ -1,6 +1,8 @@
 ---
 name: Linters
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
@@ -128,3 +130,45 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
+        
+  validate_start_codebuild_script:
+    name: validate start_codebuild.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: pause
+        run: "sleep 120"
+      - name: retrieve statuses
+        id: get_statuses
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{repo}/commits/{ref}/statuses?per_page=100
+          repo: ${{ github.repository }}
+          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: check start_codebuild.sh against statuses
+        id: github_builds
+        run: |
+            from_github=$(
+                jq '.[] | .description' <<< '${{ steps.get_statuses.outputs.data }}' \
+                    | grep "for project" \
+                    | sed -r "s/^.*?for project (.*?)\"$/\1/" \
+                    | sort -u
+            )
+            if [ -z "$from_github" ]; then
+                echo "No codebuild job statuses!"
+                echo "You may need to kick off the codebuild jobs with" \
+                    "./codebuild/bin/start_codebuild.sh and then retry."
+                exit 1
+            fi
+            echo builds from github statuses:
+            printf "$from_github\n\n"
+            from_file=$(
+                source codebuild/bin/start_codebuild.sh > /dev/null \
+                || printf "%s\n" "${BUILDS[@]}" | cut -d" " -f1 | sort -u
+            )
+            echo builds from start_codebuild.sh:
+            printf "$from_file\n\n"
+            echo "diff output:"
+            diff <(echo "$from_github") <(echo "$from_file")

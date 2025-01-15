@@ -30,19 +30,14 @@ static bool s2n_fips_mode_enabled = false;
  *
  * This method indicates the state of the libcrypto, NOT the state
  * of s2n-tls and should ONLY be called during library initialization (i.e.
- * s2n_init()). For example, if s2n-tls is using Openssl and FIPS_mode_set(1)
- * is called after s2n_init() is called, then this method will return true
- * while s2n_is_in_fips_mode() will return false and s2n-tls will not operate
+ * s2n_init()). This distinction is important because in the past,
+ * if s2n-tls was using Openssl-1.0.2-fips and FIPS_mode_set(1)
+ * was called after s2n_init() was called, then this method would return true
+ * while s2n_is_in_fips_mode() would return false and s2n-tls would not operate
  * in FIPS mode.
  *
  * For AWS-LC, the FIPS_mode() method is always defined. If AWS-LC was built to
  * support FIPS, FIPS_mode() always returns 1.
- *
- * For OpenSSL, OPENSSL_FIPS is defined if the libcrypto was built to support
- * FIPS. The FIPS_mode() method is only present if OPENSSL_FIPS is defined, and
- * only returns 1 if FIPS_mode_set(1) was used to enable FIPS mode.
- * Applications wanting to enable FIPS mode with OpenSSL must call
- * FIPS_mode_set(1) prior to calling s2n_init().
  */
 bool s2n_libcrypto_is_fips(void)
 {
@@ -57,6 +52,9 @@ bool s2n_libcrypto_is_fips(void)
 int s2n_fips_init(void)
 {
     s2n_fips_mode_enabled = s2n_libcrypto_is_fips();
+#if defined(OPENSSL_FIPS)
+    POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
+#endif
     return S2N_SUCCESS;
 }
 

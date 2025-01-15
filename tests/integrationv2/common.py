@@ -51,7 +51,12 @@ class AvailablePorts(object):
     """
 
     def __init__(self, low=8000, high=30000):
-        worker_count = int(os.getenv('PYTEST_XDIST_WORKER_COUNT'))
+        worker_count = 1
+        # If pytest is being run in parallel, worker processes will have
+        # the WORKER_COUNT variable set.
+        parallel_workers = os.getenv('PYTEST_XDIST_WORKER_COUNT')
+        if parallel_workers is not None:
+            worker_count = int(parallel_workers)
         chunk_size = int((high - low) / worker_count)
 
         # If xdist is being used, parse the workerid from the envvar. This can
@@ -318,18 +323,6 @@ class Ciphers(object):
 
     KMS_TLS_1_0_2018_10 = Cipher(
         "KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False, s2n=True)
-    KMS_PQ_TLS_1_0_2019_06 = Cipher(
-        "KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False, s2n=True, pq=True)
-    KMS_PQ_TLS_1_0_2020_02 = Cipher(
-        "KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
-    KMS_PQ_TLS_1_0_2020_07 = Cipher(
-        "KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher(
-        "PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher(
-        "PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_TLS_1_0_2020_12 = Cipher(
-        "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2023_01 = Cipher(
         "PQ-TLS-1-0-2023-01-24", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_3_2023_06_01 = Cipher(
