@@ -51,7 +51,12 @@ class AvailablePorts(object):
     """
 
     def __init__(self, low=8000, high=30000):
-        worker_count = int(os.getenv('PYTEST_XDIST_WORKER_COUNT'))
+        worker_count = 1
+        # If pytest is being run in parallel, worker processes will have
+        # the WORKER_COUNT variable set.
+        parallel_workers = os.getenv('PYTEST_XDIST_WORKER_COUNT')
+        if parallel_workers is not None:
+            worker_count = int(parallel_workers)
         chunk_size = int((high - low) / worker_count)
 
         # If xdist is being used, parse the workerid from the envvar. This can

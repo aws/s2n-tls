@@ -7,8 +7,6 @@ Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_di
 
 An application can override s2n-tls’s internal memory management by calling `s2n_mem_set_callbacks()` before calling `s2n_init()`.
 
-If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling `FIPS_mode_set(1)`) before calling `s2n_init()`.
-
 ## Teardown
 ### Thread-local Memory
 We recommend calling `s2n_cleanup()` from every thread created after `s2n_init()` to ensure there are no memory leaks. s2n-tls has thread-local memory that it attempts to clean up automatically at thread-exit. However, this is done using pthread destructors and may not work if you are using a threads library other than pthreads.
