@@ -175,16 +175,13 @@ int main(int argc, char **argv)
     /* Test Deprecated Security Policies */
     {
         /* Ensure that every policy in the deprecated list has been removed from the supported policies list */
-        for (size_t i = 0; i < deprecrated_security_policies_len; i++) {
+        for (size_t i = 0; i < deprecated_security_policies_len; i++) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version(deprecated_security_policies[i], &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
         }
 
-        /* Ensure that each policy that's been deprecated actually returns a deprecated error when requested. */
+        /* Spot check a few deprecated security policies to ensure S2N_ERR_DEPRECATED_SECURITY_POLICY is returned as expected. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
-
-        /* Add list length check so that when new policies are deprecated, they are added to this test. */
-        EXPECT_EQUAL(deprecrated_security_policies_len, 2);
     }
 
     /* Test common known good cipher suites for expected configuration */

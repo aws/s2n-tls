@@ -1347,8 +1347,7 @@ const char *deprecated_security_policies[] = {
     "PQ-SIKE-TEST-TLS-1-0-2019-11",
     "PQ-SIKE-TEST-TLS-1-0-2020-02",
 };
-
-const size_t deprecrated_security_policies_len = s2n_array_len(deprecated_security_policies);
+const size_t deprecated_security_policies_len = s2n_array_len(deprecated_security_policies);
 
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
 {
@@ -1362,7 +1361,7 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
         }
     }
 
-    for (size_t i = 0; i < deprecrated_security_policies_len; i++) {
+    for (size_t i = 0; i < deprecated_security_policies_len; i++) {
         if (!strcasecmp(version, deprecated_security_policies[i])) {
             POSIX_BAIL(S2N_ERR_DEPRECATED_SECURITY_POLICY);
         }

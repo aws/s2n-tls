@@ -8,6 +8,10 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
 
+## Deprecation of Security Policies
+
+s2n-tls may deprecate Security Policies. This may happen if any of the underlying algorithms contained in a Policy are no longer supported that may result in a behavior change for existing users of that policy. For example, Security Policies containing implementations of older draft post-quantum algorithms may be deprecated once new Security Policies with the standardized versions of those post-quantum algorithms are added to s2n-tls. If a Security Policy is deprecated, users will receive a `S2N_ERR_DEPRECATED_SECURITY_POLICY` error when requesting a Security Policy that has been deprecated.
+
 ### SSL 3.0, TLS 1.0, and TLS 1.1
 s2n-tls supports older versions, but their use is not recommended.
 
