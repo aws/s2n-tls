@@ -20,8 +20,8 @@ public class SSLSocketClient {
         int port = Integer.parseInt(args[0]);
         String certificatePath = args[1];
         String[] cipher = new String[] {args[2]};
-        // We assume that args[3] is the intended protocol to negotiated, like "TLS1.3"
-        // or "TLS1.2". args[4] is optional, and if included it's value must be "SSLv2Hello".
+        // We assume that args[3] is the intended protocol to negotiate, like "TLS1.3"
+        // or "TLS1.2". args[4] is optional, and if included its value must be "SSLv2Hello".
         String[] protocolList = Arrays.copyOfRange(args, 3, args.length);
         for (int i = 0; i < protocolList.length; i++) {
             protocolList[i] = sslProtocols(protocolList[i]);
