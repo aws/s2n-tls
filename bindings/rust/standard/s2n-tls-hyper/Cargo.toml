@@ -7,7 +7,6 @@ edition = "2021"
 rust-version = "1.74.0"
 repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
-publish = false
 
 [features]
 default = []
@@ -15,8 +14,12 @@ default = []
 [dependencies]
 s2n-tls = { version = "=0.3.9", path = "../../extended/s2n-tls" }
 s2n-tls-tokio = { version = "=0.3.9", path = "../../extended/s2n-tls-tokio" }
-hyper = { version = "1" }
-hyper-util = { version = "0.1", features = ["client-legacy", "tokio", "http1", "http2"] }
+# A minimum hyper version of 1.3 is required by hyper-util 0.1.4:
+# https://github.com/hyperium/hyper-util/blob/3f6a92ecd019b8d534d2945564d3ab8a92ff1f41/Cargo.toml#L34
+hyper = { version = "1.3" }
+# s2n-tls-hyper depends on hyper-util functionality added in 0.1.4:
+# https://github.com/hyperium/hyper-util/commit/7bae87f0fd1109e3ef48b449f63d045d67efba73
+hyper-util = { version = "0.1.4", features = ["client-legacy", "tokio", "http1", "http2"] }
 tower-service = { version = "0.3" }
 http = { version = "1" }
 
