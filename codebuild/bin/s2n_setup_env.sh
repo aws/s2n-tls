@@ -42,7 +42,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${OPENSSL_3_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2}"
 : "${OQS_OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/oqs_openssl-1.1.1}"
-: "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2-fips}"
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
 : "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
@@ -99,7 +98,6 @@ export SCAN_BUILD_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_3_0_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
-export OPENSSL_1_0_2_FIPS_INSTALL_DIR
 export OQS_OPENSSL_1_1_1_INSTALL_DIR
 export BORINGSSL_INSTALL_DIR
 export AWSLC_INSTALL_DIR
@@ -128,22 +126,10 @@ if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DI
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then
-    export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ;
-    export S2N_TEST_IN_FIPS_MODE=1 ;
-fi
 if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then export LIBCRYPTO_ROOT=$BORINGSSL_INSTALL_DIR ; fi
-
 if [[ "$S2N_LIBCRYPTO" == "awslc" ]]; then export LIBCRYPTO_ROOT=$AWSLC_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then
-  export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ;
-  export S2N_TEST_IN_FIPS_MODE=1 ;
-fi
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then
-  export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR
-  export S2N_TEST_IN_FIPS_MODE=1
-fi
-
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
 if [[ -n "${LIBCRYPTO_ROOT:-}" ]]; then

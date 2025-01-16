@@ -33,4 +33,4 @@ phases:
     on-failure: ABORT
     commands:
       # -L: Restrict tests to names matching the pattern 'fuzz'
-      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
+      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure -j $(nproc)"
