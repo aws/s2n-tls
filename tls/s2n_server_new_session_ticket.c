@@ -273,14 +273,18 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
 
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
+    uint32_t ticket_lifetime_in_secs = 0;
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
+    if (ticket_lifetime_in_secs == 0) {
+        return S2N_RESULT_ERROR;
+    }
+
     /* Write message type because session resumption in TLS13 is a post-handshake message */
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, TLS_SERVER_NEW_SESSION_TICKET));
 
     struct s2n_stuffer_reservation message_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
-    uint32_t ticket_lifetime_in_secs = 0;
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
