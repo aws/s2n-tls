@@ -33,10 +33,12 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-prelude=$(cat codebuild/bin/openssl_fips_prelude)
+config=$(cat codebuild/bin/s2n_fips_openssl.cnf)
 
 # Only some versions of Openssl-3 are FIPS validated.
 # The list can be found at https://openssl-library.org/source/
+# Maintain separate release versions so that we can change the non-FIPS version
+# without worrying about whether or not the new version is FIPS validated.
 if $FIPS; then
     RELEASE=3.0.9
 else
@@ -70,23 +72,23 @@ make -j $JOBS test
 make -j $JOBS install
 
 popd
-pushd $INSTALL_DIR
 
 # sym-link lib -> lib64 since codebuild assumes /lib path
+pushd $INSTALL_DIR
 ln -s lib64 lib
+popd
 
 # Openssl3 uses the openssl config file to enable fips
 # See https://docs.openssl.org/master/man7/fips_module/#making-all-applications-use-the-fips-module-by-default
 if $FIPS; then
-    config_dir=$(LD_LIBRARY_PATH=lib ./bin/openssl version -d | sed -r "s/OPENSSLDIR: \"(.*?)\"/\1/")
-    config="$config_dir"/openssl.cnf
-    fips_config="$config_dir"/fipsmodule.cnf
-    prelude=$(echo "$prelude" | sed "s,FIPS_CONFIG_PATH,$fips_config,")
-    old_contents=$(cat $config)
-    echo "$prelude" > $config
-    echo "$old_contents" >> $config
+    # We assume that the configs are in the /ssl directory of $INSTALL_DIR
+    pushd $INSTALL_DIR
+    config_path=./ssl/openssl.cnf
+    # We need an absolute path for the fips config
+    fips_config_path=$(pwd)/ssl/fipsmodule.cnf
+    config=$(echo "$config" | sed "s,S2N_FIPS_CONFIG_PATH,$fips_config_path,")
+    echo "$config" > $config_path
+    popd
 fi
-
-popd
 
 exit 0
