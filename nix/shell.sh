@@ -22,6 +22,7 @@ function libcrypto_alias {
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl34 "${OPENSSL_3_4_INSTALL_DIR}/bin/openssl"
 libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 #No need to alias gnutls because it is included in common_packages (see flake.nix).
