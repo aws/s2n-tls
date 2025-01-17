@@ -164,6 +164,11 @@ int main(int argc, char **argv)
             continue;
         }
 
+        if (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1) {
+            /* MD5 is only used for <TLS1.2, which does not support ECDSA */
+            continue;
+        }
+
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
         EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
 
