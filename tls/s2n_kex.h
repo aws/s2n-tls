@@ -23,10 +23,8 @@
 
 struct s2n_kex {
     bool is_ephemeral;
-    const struct s2n_kex *hybrid[2];
 
     S2N_RESULT (*connection_supported)(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported);
-    S2N_RESULT (*configure_connection)(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
     int (*server_key_recv_read_data)(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *kex_data);
     int (*server_key_recv_parse_data)(struct s2n_connection *conn, struct s2n_kex_raw_server_data *kex_data);
     int (*server_key_send)(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
@@ -35,15 +33,12 @@ struct s2n_kex {
     int (*prf)(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 };
 
-extern const struct s2n_kex s2n_kem;
 extern const struct s2n_kex s2n_rsa;
 extern const struct s2n_kex s2n_dhe;
 extern const struct s2n_kex s2n_ecdhe;
-extern const struct s2n_kex s2n_hybrid_ecdhe_kem;
 extern const struct s2n_kex s2n_tls13_kex;
 
 S2N_RESULT s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported);
-S2N_RESULT s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
 S2N_RESULT s2n_kex_is_ephemeral(const struct s2n_kex *kex, bool *is_ephemeral);
 
 S2N_RESULT s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify,

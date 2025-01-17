@@ -88,7 +88,6 @@ struct s2n_security_policy_selection {
     const char *version;
     const struct s2n_security_policy *security_policy;
     unsigned ecc_extension_required : 1;
-    unsigned pq_kem_extension_required : 1;
     unsigned supports_tls13 : 1;
 };
 
@@ -159,20 +158,8 @@ extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13;
 
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12;
-extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20;
-extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_25;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26;
+extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24; /* Used by unit tests. */
+extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26; /* Used by AWS CRT SDK */
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24;
 extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_07;
 extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_08;
@@ -216,10 +203,9 @@ int s2n_security_policies_init();
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy);
-bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
-int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
+int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
 S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
         const char **version);
