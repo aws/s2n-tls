@@ -255,6 +255,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_EXTENSION, "Illegal use of a known, supported extension") \
     ERR_ENTRY(S2N_ERR_MISSING_EXTENSION, "Mandatory extension not received") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_EXTENSION, "Extension block contains two or more extensions of the same type") \
+    ERR_ENTRY(S2N_ERR_DEPRECATED_SECURITY_POLICY, "Deprecated security policy. Please choose a different security policy.") \
     ERR_ENTRY(S2N_ERR_INVALID_SECURITY_POLICY, "Invalid security policy") \
     ERR_ENTRY(S2N_ERR_INVALID_KEM_PREFERENCES, "Invalid kem preferences version") \
     ERR_ENTRY(S2N_ERR_INVALID_PARSED_EXTENSIONS, "Invalid parsed extension data") \
