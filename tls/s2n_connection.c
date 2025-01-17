@@ -266,7 +266,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->our_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->peer_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
-    POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
+    POSIX_GUARD(s2n_free(&conn->ticket_fields.session_secret));
     POSIX_GUARD(s2n_stuffer_free(&conn->buffer_in));
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
     POSIX_GUARD(s2n_stuffer_free(&conn->out));
@@ -529,7 +529,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->our_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->peer_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
-    POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
+    POSIX_GUARD(s2n_free(&conn->ticket_fields.session_secret));
     POSIX_GUARD(s2n_free(&conn->cookie));
 
     /* Allocate memory for handling handshakes */
