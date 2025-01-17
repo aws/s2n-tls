@@ -36,12 +36,13 @@ stacktrace = []
 # unstable-foo = []
 
 [dependencies]
-# aws-lc-rs 1.6.4 adds DEP_AWS_LC environment variables which are required to build s2n-tls-sys:
+# aws-lc-rs 1.12.0 specifies a minimum version for aws-lc-sys and aws-lc-fips-sys that include
+# DEP_AWS_LC environment variables, which are required to build s2n-tls-sys:
 # https://github.com/aws/aws-lc-rs/pull/335
-aws-lc-rs = { version = "1.6.4" }
-# aws-lc-rs 1.6.4 depends on aws-lc-sys 0.14.0, which requires libc 0.2.121:
-# https://github.com/aws/aws-lc-rs/blob/2298ca861234d4f43aecef2c7d7e822c60bc488a/aws-lc-sys/Cargo.toml#L65
-libc = "0.2.121"
+aws-lc-rs = { version = "1.12.0" }
+# cc 1.0.100 depends on jobserver 0.1.30, which requires libc 0.2.87:
+# https://github.com/rust-lang/jobserver-rs/blob/4ac8212169e06f427ccd4da985cf023a483fc6a6/Cargo.toml#L16
+libc = "0.2.87"
 
 [build-dependencies]
 cc = { version = "1.0.100", features = ["parallel"] }
