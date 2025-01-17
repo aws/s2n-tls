@@ -1237,7 +1237,7 @@ int main(int argc, char **argv)
     /* Checks that servers don't use a config before the client hello callback is executed on a
      * SSLv2-formatted client hello.
      *
-     * Parsing SSLv2 hellos uses a different code path and need to be tested separately.
+     * Parsing SSLv2 hellos uses a different code path and needs to be tested separately.
      */
     {
         uint8_t sslv2_client_hello[] = {
