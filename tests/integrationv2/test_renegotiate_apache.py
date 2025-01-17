@@ -15,9 +15,11 @@ from test_renegotiate import TEST_PROTOCOLS, S2N_RENEG_OPTION, S2N_RENEG_ACCEPT
 APACHE_SERVER_IP = "127.0.0.1"
 APACHE_SERVER_PORT = 7777
 
-APACHE_SERVER_CERT = TEST_CERT_DIRECTORY + "apache_server_cert.pem"
-APACHE_CLIENT_CERT = TEST_CERT_DIRECTORY + "apache_client_cert.pem"
-APACHE_CLIENT_KEY = TEST_CERT_DIRECTORY + "apache_client_key.pem"
+# cd ../pems; ./gen_self_signed_cert.sh --cn 'localhost' --key-type rsa --prefix apache_server
+APACHE_SERVER_CERT = TEST_CERT_DIRECTORY + "apache_server_rsa_cert.pem"
+# cd ../pems; ./gen_self_signed_cert.sh --cn 'localhost' --key-type rsa --prefix apache_client
+APACHE_CLIENT_CERT = TEST_CERT_DIRECTORY + "apache_client_rsa_cert.pem"
+APACHE_CLIENT_KEY = TEST_CERT_DIRECTORY + "apache_client_rsa_key.pem"
 
 CHANGE_CIPHER_SUITE_ENDPOINT = "/change_cipher_suite/"
 MUTUAL_AUTH_ENDPOINT = "/mutual_auth/"
