@@ -45,6 +45,12 @@ batch:
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
+    - identifier: clang_awslc_fips_2022
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc-fips-2022
+          COMPILER: clang
     - identifier: clang_openssl_3_0
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -68,6 +74,12 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
+          COMPILER: gcc
+    - identifier: gcc_awslc_fips_2022
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc-fips-2022
           COMPILER: gcc
     - identifier: gcc_openssl_3_0
       env:
