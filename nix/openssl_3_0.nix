@@ -9,7 +9,7 @@ pkgs.stdenv.mkDerivation rec {
     sha256 = "sha256-8eECfrnmbUr4ETGhi98LgXUX8T5914JBKxkMr4xtbRg=";
   };
 
-  buildInputs = [ pkgs.gnumake pkgs.perl538 ];
+  buildInputs = [ pkgs.gnumake pkgs.perl536 ];
 
   patchPhase = ''
     substitute ./Configure ./Configure --replace /usr/bin/env ${pkgs.coreutils}/bin/env
