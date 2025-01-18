@@ -51,6 +51,3 @@ struct s2n_evp_hmac_state {
  */
 #define S2N_EVP_PKEY_CTX_set_signature_md(ctx, md) \
     EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD *) (uintptr_t) md)
-
-int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
-S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);

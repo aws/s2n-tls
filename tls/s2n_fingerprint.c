@@ -38,7 +38,6 @@ static S2N_RESULT s2n_fingerprint_init(struct s2n_fingerprint *fingerprint,
     const struct s2n_fingerprint_method *method = fingerprint->method;
     RESULT_ENSURE_REF(method);
     RESULT_GUARD_POSIX(s2n_hash_new(&fingerprint->hash));
-    s2n_hash_allow_md5_for_fips(&fingerprint->hash);
     RESULT_GUARD_POSIX(s2n_hash_init(&fingerprint->hash, method->hash));
     return S2N_RESULT_OK;
 }
