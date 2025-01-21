@@ -21,18 +21,18 @@
         "type": "github"
       }
     },
-    "awslcfips": {
+    "awslc-fips": {
       "inputs": {
         "flake-utils": "flake-utils_2",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1736900177,
-        "narHash": "sha256-n9EkoC2tIAYV7eOZoqV5oEwUUr3KLAba4L2u3vDk2MU=",
+        "lastModified": 1737496455,
+        "narHash": "sha256-zBJjsmqOnELGamZjN0GN/5EokgEF3DQOva27r6BMYsE=",
         "owner": "dougch",
         "repo": "aws-lc",
-        "rev": "5fde68f999e276b08d2be8325bff5556a15b7aff",
+        "rev": "ab74281ab92c7fd82819e51c19cdc61624431dd7",
         "type": "github"
       },
       "original": {
@@ -61,7 +61,7 @@
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
-          "awslcfips",
+          "awslc-fips",
           "nix",
           "nixpkgs"
         ]
@@ -128,20 +128,20 @@
     "git-hooks-nix": {
       "inputs": {
         "flake-compat": [
-          "awslcfips",
+          "awslc-fips",
           "nix"
         ],
         "gitignore": [
-          "awslcfips",
+          "awslc-fips",
           "nix"
         ],
         "nixpkgs": [
-          "awslcfips",
+          "awslc-fips",
           "nix",
           "nixpkgs"
         ],
         "nixpkgs-stable": [
-          "awslcfips",
+          "awslc-fips",
           "nix",
           "nixpkgs"
         ]
@@ -366,16 +366,16 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1736867362,
-        "narHash": "sha256-i/UJ5I7HoqmFMwZEH6vAvBxOrjjOJNU739lnZnhUln8=",
+        "lastModified": 1688392541,
+        "narHash": "sha256-lHrKvEkCPTUO+7tPfjIcb7Trk6k31rz18vkyqmkeJfY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9c6b49aeac36e2ed73a8c472f1546f6d9cf1addc",
+        "rev": "ea4c80b39be4c09702b0cb3b42eab59e2ba4f24b",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.11",
+        "ref": "nixos-22.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -415,7 +415,7 @@
     "root": {
       "inputs": {
         "awslc": "awslc",
-        "awslcfips": "awslcfips",
+        "awslc-fips": "awslc-fips",
         "flake-utils": "flake-utils_3",
         "nix": "nix_3",
         "nixpkgs": "nixpkgs_6"

@@ -4,14 +4,14 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
   # TODO: https://github.com/aws/aws-lc/pull/830
   inputs.awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
-  inputs.awslcfips.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
+  inputs.awslc-fips.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
 
-  outputs = { self, nix, nixpkgs, awslc, awslcfips, flake-utils }:
+  outputs = { self, nix, nixpkgs, awslc, awslc-fips, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips = awslcfips.packages.${system}.aws-lc-fips;
+        aws-lc-fips = awslc-fips.packages.${system}.aws-lc-fips;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
         # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
@@ -174,11 +174,11 @@
               source ${writeScript ./nix/shell.sh}
             '';
           });
-        devShells.awslcfips = devShells.default.overrideAttrs
+        devShells.awslc-fips = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake aws-lc-fips ];
-            S2N_LIBCRYPTO = "awslcfips";
+            S2N_LIBCRYPTO = "awslc-fips";
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
