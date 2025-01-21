@@ -296,10 +296,9 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     struct s2n_stuffer_reservation message_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
-    uint32_t ticket_lifetime_in_secs = 0;
-    /* key_intro_time is not yet retrieved, so skip this part and write it when the data is available */
-    uint32_t ticket_lifetime_write_cursor = output->write_cursor;
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(output, sizeof(ticket_lifetime_in_secs)));
+    /* key_intro_time is not yet retrieved, so skip session ticket lifetime calculation and write it when the data is available */
+    struct s2n_stuffer_reservation ticket_lifetime_reservation = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint32(output, &ticket_lifetime_reservation));
 
     /* Get random data to use as ticket_age_add value */
     uint8_t data[sizeof(uint32_t)] = { 0 };
@@ -330,15 +329,13 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(output, &ticket_size));
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
-    uint32_t ticket_size_write_cursor = output->write_cursor;
 
     /* Come back to the ticket lifetime field and write the data */
+    uint32_t ticket_lifetime_in_secs = 0;
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
     /* Don't send the nst if its lifetime is expired. */
     RESULT_ENSURE_NE(ticket_lifetime_in_secs, 0);
-    output->write_cursor = ticket_lifetime_write_cursor;
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
-    output->write_cursor = ticket_size_write_cursor;
+    RESULT_GUARD_POSIX(s2n_stuffer_write_reservation(&ticket_lifetime_reservation, ticket_lifetime_in_secs));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
 

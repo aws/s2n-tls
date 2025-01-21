@@ -119,6 +119,11 @@ int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
     return s2n_stuffer_reserve(stuffer, reservation, SIZEOF_UINT24);
 }
 
+int s2n_stuffer_reserve_uint32(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
+{
+    return s2n_stuffer_reserve(stuffer, reservation, SIZEOF_UINT32);
+}
+
 int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     POSIX_ENSURE_REF(u);

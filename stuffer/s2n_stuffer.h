@@ -35,6 +35,7 @@
 #define SIZEOF_IN_BITS(t) (sizeof(t) * CHAR_BIT)
 
 #define SIZEOF_UINT24 3
+#define SIZEOF_UINT32 4 
 
 struct s2n_stuffer {
     /* The data for the s2n_stuffer */
@@ -143,6 +144,7 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint32(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 int S2N_RESULT_MUST_USE s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, const uint32_t value);
 /* Reservations are primarily intended to handle the variable-length vector type
  * defined in the RFC: https://tools.ietf.org/html/rfc8446#section-3.4
