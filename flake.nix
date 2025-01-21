@@ -189,7 +189,6 @@
             '';
           });
 
-
         # Used to backup the devShell to s3 for caching.
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
