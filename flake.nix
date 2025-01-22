@@ -121,7 +121,6 @@
             buildInputs = [ pkgs.cmake openssl_1_1_1 ];
             S2N_LIBCRYPTO = "openssl-1.1.1";
             # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
@@ -136,7 +135,6 @@
             buildInputs = [ pkgs.cmake libressl ];
             S2N_LIBCRYPTO = "libressl";
             # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
@@ -151,7 +149,6 @@
             buildInputs = [ pkgs.cmake openssl_1_0_2 ];
             S2N_LIBCRYPTO = "openssl-1.0.2";
             # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
@@ -166,7 +163,6 @@
             buildInputs = [ pkgs.cmake aws-lc ];
             S2N_LIBCRYPTO = "awslc";
             # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
@@ -180,7 +176,6 @@
             buildInputs = [ pkgs.cmake aws-lc-fips ];
             S2N_LIBCRYPTO = "awslc-fips";
             # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
