@@ -309,7 +309,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+        uint64_t key_intro_time = 0;
+        EXPECT_OK(s2n_config_wall_clock(config, &key_intro_time));
+
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         uint64_t current_time = 0;
@@ -320,17 +322,15 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
-        uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-        struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, current_time, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key->intro_timestamp - current_time) / ONE_SEC_IN_NANOS);
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key_intro_time - current_time) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
         conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos * 2;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
         /* Test: PSK Keying Material has shortest lifetime */
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
         chosen_psk->keying_material_expiration = one_week_in_nanos / 2 + current_time;
         conn->psk_params.chosen_psk = chosen_psk;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
