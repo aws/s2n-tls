@@ -92,9 +92,6 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            uint64_t wall_clock_time_stamp = 0;
-            EXPECT_OK(s2n_config_wall_clock(config, &wall_clock_time_stamp));
-
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -122,7 +119,7 @@ int main(int argc, char **argv)
             uint8_t ticket_key_name[16] = "2016.07.26.15\0";
             struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
             uint32_t key_lifetime_in_secs =
-                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - wall_clock_time_stamp) / ONE_SEC_IN_NANOS;
+                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - conn->ticket_fields.current_time) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
@@ -360,11 +357,11 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(chosen_psk);
         chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
         /* Set PSK to expire in a week after the current time */
-        chosen_psk->keying_material_expiration = one_week_in_nanos + current_time;
+        chosen_psk->keying_material_expiration = one_week_in_nanos / 2 + current_time;
         conn->psk_params.chosen_psk = chosen_psk;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, current_time, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
+        EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -856,6 +853,22 @@ int main(int argc, char **argv)
                     S2N_TLS12_TICKET_SIZE_IN_BYTES);
         };
 
+        /* s2n_server_nst_send sends a session ticket with zero lifetime */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            conn->config->session_state_lifetime_in_nanos = 0;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_nst_send(conn), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
+        };
+
         /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists
          *
          *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
@@ -1026,13 +1039,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
-            s2n_blocked_status blocked = 0;
-            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
-            EXPECT_TICKETS_SENT(conn, 0);
-
-            /* Check no record was written */
-            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));

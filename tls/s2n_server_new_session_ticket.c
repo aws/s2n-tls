@@ -93,19 +93,19 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
 
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
-    uint32_t key_session_and_psk_keying_material_min_lifetime = key_and_session_min_lifetime;
+    uint32_t min_lifetime = key_and_session_min_lifetime;
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
     if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
         RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, current_time);
-        uint32_t psk_keying_material_lifetime_in_secs = (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
-        key_session_and_psk_keying_material_min_lifetime = MIN(key_session_and_psk_keying_material_min_lifetime, psk_keying_material_lifetime_in_secs);
+        uint32_t psk_lifetime = (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
+        min_lifetime = MIN(min_lifetime, psk_lifetime);
     }
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      **/
-    *ticket_lifetime = MIN(key_session_and_psk_keying_material_min_lifetime, ONE_WEEK_IN_SEC);
+    *ticket_lifetime = MIN(min_lifetime, ONE_WEEK_IN_SEC);
 
     return S2N_RESULT_OK;
 }
@@ -143,7 +143,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &lifetime_hint_in_secs));
 
     /* Don't send the nst if its lifetime is expired. */
-    POSIX_ENSURE_NE(lifetime_hint_in_secs, 0);
+    POSIX_ENSURE(lifetime_hint_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
@@ -334,7 +334,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     uint32_t ticket_lifetime_in_secs = 0;
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
     /* Don't send the nst if its lifetime is expired. */
-    RESULT_ENSURE_NE(ticket_lifetime_in_secs, 0);
+    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
     RESULT_GUARD_POSIX(s2n_stuffer_write_reservation(&ticket_lifetime_reservation, ticket_lifetime_in_secs));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
