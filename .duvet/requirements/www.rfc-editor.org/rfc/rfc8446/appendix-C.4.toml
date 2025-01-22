@@ -1,15 +1,15 @@
 target = "https://www.rfc-editor.org/rfc/rfc8446#appendix-C.4"
 
-# C.4.  Client Tracking Prevention
+# Client Tracking Prevention
 #
-# Clients SHOULD NOT reuse a ticket for multiple connections.  Reuse of
-# a ticket allows passive observers to correlate different connections.
-# Servers that issue tickets SHOULD offer at least as many tickets as
-# the number of connections that a client might use; for example, a web
-# browser using HTTP/1.1 [RFC7230] might open six connections to a
-# server.  Servers SHOULD issue new tickets with every connection.
-# This ensures that clients are always able to use a new ticket when
-# creating a new connection.
+#    Clients SHOULD NOT reuse a ticket for multiple connections.  Reuse of
+#    a ticket allows passive observers to correlate different connections.
+#    Servers that issue tickets SHOULD offer at least as many tickets as
+#    the number of connections that a client might use; for example, a web
+#    browser using HTTP/1.1 [RFC7230] might open six connections to a
+#    server.  Servers SHOULD issue new tickets with every connection.
+#    This ensures that clients are always able to use a new ticket when
+#    creating a new connection.
 
 [[spec]]
 level = "SHOULD"
