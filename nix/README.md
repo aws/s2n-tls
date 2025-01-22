@@ -31,7 +31,25 @@ separate from the buildPhase, configurePhase and checkPhase.
 
 ### Specific libcrypto
 
-By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
+By default, the development shell uses Openssl-3. To enter a development shell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, awslc-fips, openssl111, openssl102, and libressl. See `flake.nix` in the root directory for more specifics.
+
+There are helper aliases in the development shell to help you use the binaries associated with different libcryptos, information about these is printed out when you enter a development shell, e.g.:
+
+```
+$ nix develop .#awslc-fips
+Libcrypto binary /nix/store/g4xnh7h1yk783d8r47fdirdq39yimnl0-openssl-1.0.2/bin/openssl available as openssl102
+Libcrypto binary /nix/store/6sqmgyq2m5kshfysgwn3j4k1jr74ij3r-openssl-1.1.1/bin/openssl available as openssl111
+Libcrypto binary /nix/store/j4nwg83rqgv70p3i740krbk3g041fg43-openssl-3.0.7/bin/openssl available as openssl30
+Libcrypto binary /nix/store/64bg46k428bzwmazx05935rnql21zp3l-aws-lc/bin/bssl available as bssl
+Libcrypto binary /nix/store/bv0gsw3rrv5b5s17lsyfv2v77wk9rvda-aws-lc-fips/bin/bssl available as fipsbssl
+Libcrypto binary /nix/store/c88smradwsi0sc1gcimmlpkgk4v978al-libressl-3.6.1/bin/openssl available as libressl
+```
+
+If you wanted to query the version of openssl30, you would type `openssl30 version` in your development shell:
+```
+[nix awslc-fips]$ openssl30 version
+OpenSSL 3.0.7 1 Nov 2022 (Library: OpenSSL 3.0.7 1 Nov 2022)
+```
 
 ### Configure and build
 
