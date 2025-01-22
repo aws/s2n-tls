@@ -36,7 +36,7 @@ batch:
             - openssl-1.1.1_gcc9
             - openssl-3.0
           INTEGV2_TEST:
-            - "test_dynamic_record_sizes test_sslyze"
+            - "test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
 
 env:
   variables:

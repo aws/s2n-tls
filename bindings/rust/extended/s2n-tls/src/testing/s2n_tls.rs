@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn connnection_waker() {
+    fn connection_waker() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         assert_eq!(config.test_get_refcount().unwrap(), 1);
 

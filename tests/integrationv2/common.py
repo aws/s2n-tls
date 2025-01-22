@@ -217,6 +217,7 @@ class Protocols(object):
     TLS11 = Protocol("TLS1.1", 32)
     TLS10 = Protocol("TLS1.0", 31)
     SSLv3 = Protocol("SSLv3", 30)
+    SSLv2 = Protocol("SSLv2", 20)
 
 
 class Cipher(object):
@@ -567,7 +568,7 @@ class ProviderOptions(object):
         # Boolean whether to use a resumption ticket
         self.use_session_ticket = use_session_ticket
 
-        # Boolean whether to allow insecure certificates
+        # Boolean whether to disable x509 verification
         self.insecure = insecure
 
         # Which protocol to use with this provider

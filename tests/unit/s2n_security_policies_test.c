@@ -172,6 +172,18 @@ int main(int argc, char **argv)
 
     const struct s2n_security_policy *security_policy = NULL;
 
+    /* Test Deprecated Security Policies */
+    {
+        /* Ensure that every policy in the deprecated list has been removed from the supported policies list */
+        for (size_t i = 0; i < deprecated_security_policies_len; i++) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version(deprecated_security_policies[i], &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+        }
+
+        /* Spot check a few deprecated security policies to ensure S2N_ERR_DEPRECATED_SECURITY_POLICY is returned as expected. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+    }
+
     /* Test common known good cipher suites for expected configuration */
     {
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &security_policy));
@@ -237,24 +249,6 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-
-        security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy));
-        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-
-        security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy));
-        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
@@ -482,8 +476,6 @@ int main(int argc, char **argv)
             "KMS-PQ-TLS-1-0-2019-06",
             "KMS-PQ-TLS-1-0-2020-02",
             "KMS-PQ-TLS-1-0-2020-07",
-            "PQ-SIKE-TEST-TLS-1-0-2019-11",
-            "PQ-SIKE-TEST-TLS-1-0-2020-02",
             "KMS-FIPS-TLS-1-2-2018-10",
             "20140601",
             "20141001",

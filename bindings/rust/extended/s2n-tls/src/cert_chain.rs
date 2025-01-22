@@ -41,6 +41,7 @@ impl CertificateChainHandle {
 }
 
 impl Drop for CertificateChainHandle {
+    /// Corresponds to [s2n_cert_chain_and_key_free].
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
         if self.is_owned {
@@ -119,7 +120,7 @@ impl Builder {
 
     /// Return an immutable, internally-reference counted CertificateChain.
     pub fn build(self) -> Result<CertificateChain<'static>, Error> {
-        // This method is currently infalliable, but returning a result allows
+        // This method is currently infallible, but returning a result allows
         // us to add validation in the future.
         Ok(self.cert)
     }
@@ -127,7 +128,7 @@ impl Builder {
 
 /// A CertificateChain represents a chain of X.509 certificates.
 ///
-/// Certificate chains are internally reference counted and are cheaply cloneable.
+/// Certificate chains are internally reference counted and are cheaply clone-able.
 //
 // SAFETY: it is important that no CertificateChain methods operate on mutable
 // references. Because CertificateChains can be shared across threads, it is not
@@ -140,6 +141,8 @@ pub struct CertificateChain<'a> {
 
 impl CertificateChain<'_> {
     /// This allocates a new certificate chain from s2n.
+    ///
+    /// Corresponds to [s2n_cert_chain_and_key_new].
     pub(crate) fn allocate_owned() -> Result<CertificateChain<'static>, Error> {
         crate::init::init();
         unsafe {
@@ -176,8 +179,10 @@ impl CertificateChain<'_> {
 
     /// Return the length of this certificate chain.
     ///
-    /// Note that the underyling API currently traverses a linked list, so this is a relatively
+    /// Note that the underlying API currently traverses a linked list, so this is a relatively
     /// expensive API to call.
+    ///
+    /// Corresponds to [s2n_cert_chain_get_length].
     pub fn len(&self) -> usize {
         let mut length: u32 = 0;
         let res = unsafe { s2n_cert_chain_get_length(self.as_ptr(), &mut length).into_result() };
@@ -191,7 +196,7 @@ impl CertificateChain<'_> {
 
     /// Check if the certificate chain has any certificates.
     ///
-    /// Note that the underyling API currently traverses a linked list, so this is a relatively
+    /// Note that the underlying API currently traverses a linked list, so this is a relatively
     /// expensive API to call.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -219,6 +224,7 @@ pub struct CertificateChainIter<'a> {
 impl<'a> Iterator for CertificateChainIter<'a> {
     type Item = Result<Certificate<'a>, Error>;
 
+    /// Corresponds to [s2n_cert_chain_get_cert].
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
         // u32 fits into usize on platforms we support.
@@ -253,6 +259,7 @@ pub struct Certificate<'a> {
 }
 
 impl Certificate<'_> {
+    /// Corresponds to [s2n_cert_get_der].
     pub fn der(&self) -> Result<&[u8], Error> {
         unsafe {
             let mut buffer = ptr::null();
