@@ -46,13 +46,14 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
     POSIX_ENSURE_REF(hashes);
 
+    /* MD5 and SHA1 are not permitted in FIPS mode, but an exception is made in
+     * order to continue to support TLS1.0 and TLS1.1. NIST SP 800-52r1 approves
+     * their continued use for the signature check in the CertificateVerify message
+     * and the PRF when negotiating TLS1.0 or TLS1.1 (see footnotes 15 and 20,
+     * and section 3.3.2)
+     */
+
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
-        /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
-         * since MD5 is not permitted in FIPS mode. This check will not be used as
-         * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
-         * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
-         * as per NIST Special Publication 800-52 Revision 1.
-         */
         POSIX_GUARD(s2n_hash_update(&hashes->md5, data->data, data->size));
     }
 
@@ -65,11 +66,6 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
                     && s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
 
     if (md5_sha1_required) {
-        /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 
-         * the handshake hashes. This will only be used for the signature check in the
-         * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
-         * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
-         * 3.3.2) */
         POSIX_GUARD(s2n_hash_update(&hashes->md5_sha1, data->data, data->size));
     }
 
