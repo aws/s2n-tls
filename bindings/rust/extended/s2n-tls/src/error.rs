@@ -175,7 +175,7 @@ impl Error {
         Self(Context::Application(error))
     }
 
-    /// An error occured while running bindings code.
+    /// An error occurred while running bindings code.
     pub(crate) const fn bindings(
         kind: ErrorType,
         name: &'static str,

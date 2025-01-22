@@ -301,7 +301,7 @@ impl Builder {
     /// can be loaded.
     ///
     /// For more advanced cert use cases such as sharing certs across configs or
-    /// serving differents certs based on the client SNI, see [Builder::load_chain].
+    /// serving different certs based on the client SNI, see [Builder::load_chain].
     ///
     /// Corresponds to [s2n_config_add_cert_chain_and_key].
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
@@ -320,7 +320,7 @@ impl Builder {
 
     /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
     pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
-        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // Out of an abundance of caution, we hold a reference to the CertificateChain
         // regardless of whether add_to_store fails or succeeds. We have limited
         // visibility into the failure modes, so this behavior ensures that _if_
         // the C library held the reference despite the failure, it would continue
