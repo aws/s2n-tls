@@ -1,0 +1,74 @@
+'$schema' = "https://awslabs.github.io/duvet/config/v0.4.0.json"
+
+[[source]]
+pattern = "api/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "bin/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "crypto/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "error/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "stuffer/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "tests/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "tls/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+[[source]]
+pattern = "utils/**/*.[ch]"
+comment-style = { meta = "*=", content = "*#" }
+
+# The Transport Layer Security (TLS) Protocol Version 1.2
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc5246"
+
+# HMAC-based Extract-and-Expand Key Derivation Function (HKDF)
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc5869"
+
+# The Transport Layer Security (TLS) Protocol Version 1.3
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc8446"
+
+# Example Handshake Traces for TLS 1.3
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc8448"
+
+# Transport Layer Security (TLS) Session Hash and Extended Master Secret Extension
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc7627"
+
+# Transport Layer Security (TLS) Renegotiation Indication Extension
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc5746"
+
+# Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS)
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc4492"
+
+# # Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS) Versions 1.2 and Earlier
+[[specification]]
+source = "https://www.rfc-editor.org/rfc/rfc8422"
+
+[report.html]
+enabled = true
+issue-link = "https://github.com/aws/s2n-tls/issues"
+blob-link = "https://github.com/aws/s2n-tls/blob/${{ BLOB || GITHUB_SHA || 'main' }}"
+
+# Enable snapshots to prevent requirement coverage regressions
+[report.snapshot]
+enabled = true
