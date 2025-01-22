@@ -164,11 +164,6 @@ int main(int argc, char **argv)
             continue;
         }
 
-        if (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1) {
-            /* MD5 is only used for <TLS1.2, which does not support ECDSA */
-            continue;
-        }
-
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
         EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
 
@@ -178,12 +173,33 @@ int main(int argc, char **argv)
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
 
-        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature));
-        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature));
+        /* Not all hash algorithms are supported for EVP ECDSA signing.
+         * See s2n_evp_signing_validate_hash_alg.
+         */
+        bool hash_is_md5 = (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1);
+        bool hash_is_supported = !(hash_is_md5 && s2n_is_in_fips_mode());
+
+        int sign_result = s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature);
+        if (hash_is_supported) {
+            EXPECT_SUCCESS(sign_result);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(sign_result, S2N_ERR_HASH_INVALID_ALGORITHM);
+        }
+
+        int verify_result = s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature);
+        if (hash_is_supported) {
+            EXPECT_SUCCESS(verify_result);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(verify_result, S2N_ERR_HASH_INVALID_ALGORITHM);
+        }
 
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
     }
+
+    /* Re-initialize hashes for remaining tests */
+    EXPECT_SUCCESS(s2n_hash_init(&hash_one, S2N_HASH_SHA512));
+    EXPECT_SUCCESS(s2n_hash_init(&hash_two, S2N_HASH_SHA512));
 
     /* Mismatched public/private key should fail verification */
     EXPECT_OK(s2n_pkey_size(&unmatched_priv_key, &maximum_signature_length));
