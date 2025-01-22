@@ -31,6 +31,7 @@ jobs:
       - name: Run duvet action
         uses: ./s2n-quic/.github/actions/duvet
         with:
+          duvet-version: 0.3.0 # Pin until we fix parsing issues
           s2n-quic-dir: ./s2n-quic
           report-script: compliance/generate_report.sh
           role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
