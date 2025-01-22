@@ -748,7 +748,7 @@ mod tests {
         pair.handshake().expect("Initial handshake");
         pair.send_renegotiate_request()
             .expect("Server sends request");
-        // s2n-tls doesn't fail when it rejects renegotiatation, it just sends
+        // s2n-tls doesn't fail when it rejects renegotiation, it just sends
         // a warning alert. The peer chooses how to handle that alert.
         // The openssl server receives the alert on its next read.
         // Openssl considers the alert an error.

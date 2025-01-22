@@ -164,7 +164,7 @@ impl Drop for Fingerprint<'_> {
 ///
 /// The `Builder` can build a new [Fingerprint] as soon as the old [Fingerprint]
 /// goes out of scope. The [Fingerprint] implementation of [`Self::drop()`] ensures that this
-/// is safe by reseting the underlying C structure.
+/// is safe by resetting the underlying C structure.
 ///
 /// See the below example:
 /// ```no_run

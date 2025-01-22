@@ -466,7 +466,7 @@ impl Connection {
         Ok(self)
     }
 
-    /// Connections prefering low latency will be encrypted using small record sizes that
+    /// Connections preferring low latency will be encrypted using small record sizes that
     /// can be decrypted sooner by the recipient.
     ///
     /// Corresponds to [s2n_connection_prefer_low_latency].
@@ -475,7 +475,7 @@ impl Connection {
         Ok(self)
     }
 
-    /// Connections prefering throughput will use large record sizes that minimize overhead.
+    /// Connections preferring throughput will use large record sizes that minimize overhead.
     ///
     /// Corresponds to [s2n_connection_prefer_throughput].
     pub fn prefer_throughput(&mut self) -> Result<&mut Self, Error> {
@@ -672,7 +672,7 @@ impl Connection {
     /// 0 bytes returned indicates EOF due to connection closure.
     ///
     /// Safety: this function is always safe to call, and additionally:
-    /// 1. It will never deinitialize any bytes in `buf`.
+    /// 1. It will never uninitialize any bytes in `buf`.
     /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
     ///    will have been initialized by this function.
     ///
@@ -737,7 +737,7 @@ impl Connection {
 
     /// Attempts a graceful shutdown of the write side of a TLS connection.
     ///
-    /// Unlike Self::poll_shutdown, no reponse from the peer is necessary.
+    /// Unlike Self::poll_shutdown, no response from the peer is necessary.
     /// If using TLS1.3, the connection can continue to be used for reading afterwards.
     ///
     /// Corresponds to [s2n_shutdown_send].
@@ -834,7 +834,7 @@ impl Connection {
 
         if let Some(waker) = waker {
             if let Some(prev_waker) = ctx.waker.as_mut() {
-                // only replace the Waker if they dont reference the same task
+                // only replace the Waker if they don't reference the same task
                 if !prev_waker.will_wake(waker) {
                     prev_waker.clone_from(waker);
                 }
