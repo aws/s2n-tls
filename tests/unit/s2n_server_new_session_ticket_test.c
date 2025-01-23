@@ -352,16 +352,23 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
+        /* Test: Server Keying Material has shortest lifetime with no PSK */
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, ONE_WEEK_IN_SEC / 2));
+
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
+
         /* Test: PSK Keying Material has shortest lifetime */
         DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
         EXPECT_NOT_NULL(chosen_psk);
         chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
-        /* Set PSK to expire in a week after the current time */
-        chosen_psk->keying_material_expiration = one_week_in_nanos / 2 + current_time;
+        /* Set PSK to expire in one third of a week after the current time */
+        chosen_psk->keying_material_expiration = one_week_in_nanos / 3 + current_time;
         conn->psk_params.chosen_psk = chosen_psk;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
+        EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 3);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));

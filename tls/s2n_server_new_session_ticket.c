@@ -94,11 +94,17 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
 
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
     uint32_t min_lifetime = key_and_session_min_lifetime;
-    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
-    if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, current_time);
-        uint32_t psk_lifetime = (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
-        min_lifetime = MIN(min_lifetime, psk_lifetime);
+    /* PSK and server keying material lifetimes are only relevant to TLS1.3 */
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+        if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, current_time);
+            uint32_t psk_lifetime = (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
+            /* PSK keying material lifetime is always shorter than server keying material lifetime */
+            min_lifetime = MIN(min_lifetime, psk_lifetime);
+        } else {
+            min_lifetime = MIN(min_lifetime , conn->server_keying_material_lifetime);
+        }
     }
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
