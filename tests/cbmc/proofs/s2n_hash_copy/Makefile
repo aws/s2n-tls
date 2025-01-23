@@ -28,7 +28,6 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
-PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_evp.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
