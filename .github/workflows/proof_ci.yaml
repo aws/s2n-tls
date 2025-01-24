@@ -26,7 +26,7 @@ jobs:
   run_cbmc_proofs:
     runs-on:
       - codebuild-GitHubRunner-${{ github.run_id }}-${{ github.run_attempt }}
-      - instance-size:2xlarge
+      - instance-size:large
     name: run_cbmc_proofs
     # The default timeout is 360 minutes
     timeout-minutes: 60
@@ -42,7 +42,9 @@ jobs:
       - name: install yq
         shell: bash
         run: |
+          cat /etc/os-release
           apt update
+          apt search yq
           apt install -y yq
       - name: Parse config file
         run: |
