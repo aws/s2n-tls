@@ -24,7 +24,9 @@ on:
 
 jobs:
   run_cbmc_proofs:
-    runs-on: cbmc_ubuntu-latest_64-core
+    runs-on:
+      - codebuild-GitHubRunner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:2xlarge
     name: run_cbmc_proofs
     # The default timeout is 360 minutes
     timeout-minutes: 60
@@ -37,6 +39,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+      - name: install yq
+        shell: bash
+        run: |
+          apt update
+          apt install -y yq
       - name: Parse config file
         run: |
           CONFIG_FILE='.github/workflows/proof_ci_resources/config.yaml'
