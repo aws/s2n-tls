@@ -62,6 +62,15 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
             POSIX_GUARD(s2n_connection_get_session(conn, mem.data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
 
+            /**
+             *= https://datatracker.ietf.org/doc/html/rfc5077#section-3.3
+             *# A client SHOULD delete the ticket and associated state when the time expires.
+             *  The client doesn't write the ticket into the connection if the ST lifetime has expired.
+            **/
+            if (session_lifetime == 0) {
+                return S2N_SUCCESS;
+            }
+
             struct s2n_session_ticket ticket = { .ticket_data = mem, .session_lifetime = session_lifetime };
 
             POSIX_ENSURE(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket) >= S2N_SUCCESS,
@@ -103,7 +112,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
             /* PSK keying material lifetime is always shorter than server keying material lifetime */
             min_lifetime = MIN(min_lifetime, psk_lifetime);
         } else {
-            min_lifetime = MIN(min_lifetime , conn->server_keying_material_lifetime);
+            min_lifetime = MIN(min_lifetime, conn->server_keying_material_lifetime);
         }
     }
     /**
@@ -147,9 +156,6 @@ int s2n_server_nst_send(struct s2n_connection *conn)
 
     uint32_t lifetime_hint_in_secs = 0;
     POSIX_GUARD_RESULT(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &lifetime_hint_in_secs));
-
-    /* Don't send the nst if its lifetime is expired. */
-    POSIX_ENSURE(lifetime_hint_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));

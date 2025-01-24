@@ -860,22 +860,6 @@ int main(int argc, char **argv)
                     S2N_TLS12_TICKET_SIZE_IN_BYTES);
         };
 
-        /* s2n_server_nst_send sends a session ticket with zero lifetime */
-        {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            conn->session_ticket_status = S2N_NEW_TICKET;
-            conn->config->session_state_lifetime_in_nanos = 0;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_nst_send(conn), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
-        };
-
         /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists
          *
          *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
