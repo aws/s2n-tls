@@ -352,14 +352,14 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
-        /* Test: Server Keying Material has shortest lifetime with no PSK */
+        /* Test: Server Keying Material has the shortest lifetime with no PSK */
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, ONE_WEEK_IN_SEC / 2));
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
 
-        /* Test: PSK Keying Material has shortest lifetime */
+        /* Test: PSK Keying Material has the shortest lifetime */
         DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
         EXPECT_NOT_NULL(chosen_psk);
         chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
