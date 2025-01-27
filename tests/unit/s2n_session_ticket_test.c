@@ -1227,59 +1227,6 @@ int main(int argc, char **argv)
         };
     };
 
-    /* Test when nst lifetime is zero. */
-    {
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(client_config, mock_time, NULL));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
-
-        /* Client will use session ticket callback when nst is received */
-        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(client_config, s2n_test_session_ticket_callback, NULL));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        /* Intentionally makes the lifetime of nst expired */
-        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, 0));
-
-        /* Add one ST key */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), now / ONE_SEC_IN_NANOS));
-
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        /* Record previous cb session data */
-        uint8_t session_data[S2N_TLS12_SESSION_SIZE * 2] = { 0 };
-        POSIX_CHECKED_MEMCPY(&session_data, &cb_session_data, cb_session_data_len);
-        size_t session_data_len = cb_session_data_len;
-
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-        /* The session_ticket_cb shouldn't be called when nst lifetime is zero,
-         * so cb_session_data and cb_session_data_len shouldn't change.
-         */
-        EXPECT_EQUAL(cb_session_data_len, session_data_len);
-        EXPECT_BYTEARRAY_EQUAL(cb_session_data, session_data, cb_session_data_len);
-        EXPECT_EQUAL(0, s2n_connection_get_session_ticket_lifetime_hint(client_conn));
-
-        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-    };
-
     /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.2
      */

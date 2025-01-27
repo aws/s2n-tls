@@ -62,15 +62,6 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
             POSIX_GUARD(s2n_connection_get_session(conn, mem.data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
 
-            /* The client doesn't write the ticket into the connection if the NST lifetime has expired.
-             * 
-             *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
-             *# A client SHOULD delete the ticket and associated state when the time expires.
-            **/
-            if (session_lifetime == 0) {
-                return S2N_SUCCESS;
-            }
-
             struct s2n_session_ticket ticket = { .ticket_data = mem, .session_lifetime = session_lifetime };
 
             POSIX_ENSURE(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket) >= S2N_SUCCESS,
