@@ -152,10 +152,6 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 
         struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
-        /* FIPS specifically allows MD5 for the legacy PRF */
-        if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
-            POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
-        }
         POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
@@ -188,11 +184,6 @@ static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.md);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey);
-
-    /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
-    if (s2n_is_in_fips_mode()) {
-        POSIX_GUARD(s2n_digest_allow_md5_for_fips(&ws->p_hash.evp_hmac.evp_digest));
-    }
 
     POSIX_GUARD_OSSL(EVP_DigestSignInit(ws->p_hash.evp_hmac.evp_digest.ctx, NULL, ws->p_hash.evp_hmac.evp_digest.md, NULL, ws->p_hash.evp_hmac.ctx.evp_pkey),
             S2N_ERR_P_HASH_INIT_FAILED);

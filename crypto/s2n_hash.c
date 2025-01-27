@@ -113,8 +113,6 @@ bool s2n_hash_is_available(s2n_hash_algorithm alg)
     switch (alg) {
         case S2N_HASH_MD5:
         case S2N_HASH_MD5_SHA1:
-            /* return false if in FIPS mode, as MD5 algs are not available in FIPS mode. */
-            return !s2n_is_in_fips_mode();
         case S2N_HASH_NONE:
         case S2N_HASH_SHA1:
         case S2N_HASH_SHA224:
@@ -301,20 +299,6 @@ static int s2n_evp_hash_new(struct s2n_hash_state *state)
     return S2N_SUCCESS;
 }
 
-static int s2n_evp_hash_allow_md5_for_fips(struct s2n_hash_state *state)
-{
-    /* This is only to be used for s2n_hash_states that will require MD5 to be used
-     * to comply with the TLS 1.0 and 1.1 RFC's for the PRF. MD5 cannot be used
-     * outside of the TLS 1.0 and 1.1 PRF when in FIPS mode. When needed, this must
-     * be called prior to s2n_hash_init().
-     */
-    POSIX_GUARD(s2n_digest_allow_md5_for_fips(&state->digest.high_level.evp));
-    if (s2n_use_custom_md5_sha1()) {
-        POSIX_GUARD(s2n_digest_allow_md5_for_fips(&state->digest.high_level.evp_md5_secondary));
-    }
-    return S2N_SUCCESS;
-}
-
 static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
     POSIX_ENSURE_REF(state->digest.high_level.evp.ctx);
@@ -419,30 +403,14 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
         POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_COPY_FAILED);
     }
 
-    bool is_md5_allowed_for_fips = false;
-    POSIX_GUARD_RESULT(s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp, &is_md5_allowed_for_fips));
-    if (is_md5_allowed_for_fips && (from->alg == S2N_HASH_MD5 || from->alg == S2N_HASH_MD5_SHA1)) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(to));
-    }
     return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
-    int reset_md5_for_fips = 0;
-    bool is_md5_allowed_for_fips = false;
-    POSIX_GUARD_RESULT(s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp, &is_md5_allowed_for_fips));
-    if ((state->alg == S2N_HASH_MD5 || state->alg == S2N_HASH_MD5_SHA1) && is_md5_allowed_for_fips) {
-        reset_md5_for_fips = 1;
-    }
-
     POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
     if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
         POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
-    }
-
-    if (reset_md5_for_fips) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(state));
     }
 
     /* hash_init resets the ready_for_input and currently_in_hash fields. */
@@ -465,7 +433,6 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 
 static const struct s2n_hash s2n_low_level_hash = {
     .alloc = &s2n_low_level_hash_new,
-    .allow_md5_for_fips = NULL,
     .init = &s2n_low_level_hash_init,
     .update = &s2n_low_level_hash_update,
     .digest = &s2n_low_level_hash_digest,
@@ -476,7 +443,6 @@ static const struct s2n_hash s2n_low_level_hash = {
 
 static const struct s2n_hash s2n_evp_hash = {
     .alloc = &s2n_evp_hash_new,
-    .allow_md5_for_fips = &s2n_evp_hash_allow_md5_for_fips,
     .init = &s2n_evp_hash_init,
     .update = &s2n_evp_hash_update,
     .digest = &s2n_evp_hash_digest,
@@ -514,19 +480,6 @@ S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state)
     return S2N_RESULT_OK;
 }
 
-int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
-{
-    POSIX_ENSURE_REF(state);
-    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
-     * When in FIPS mode, the EVP API's must be used for hashes.
-     */
-    POSIX_GUARD(s2n_hash_set_impl(state));
-
-    POSIX_ENSURE_REF(state->hash_impl->allow_md5_for_fips);
-
-    return state->hash_impl->allow_md5_for_fips(state);
-}
-
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
     POSIX_ENSURE_REF(state);
@@ -535,15 +488,8 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
      */
     POSIX_GUARD(s2n_hash_set_impl(state));
 
-    bool is_md5_allowed_for_fips = false;
-    POSIX_GUARD_RESULT(s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp, &is_md5_allowed_for_fips));
-
-    if (s2n_hash_is_available(alg) || ((alg == S2N_HASH_MD5 || alg == S2N_HASH_MD5_SHA1) && is_md5_allowed_for_fips)) {
-        /* s2n will continue to initialize an "unavailable" hash when s2n is in FIPS mode and
-         * FIPS is forcing the hash to be made available.
-         */
+    if (s2n_hash_is_available(alg)) {
         POSIX_ENSURE_REF(state->hash_impl->init);
-
         return state->hash_impl->init(state, alg);
     } else {
         POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);

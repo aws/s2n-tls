@@ -22,7 +22,7 @@ PROTOCOLS_TO_TEST = [
     Protocols.TLS13
 ]
 
-SSLYZE_SCANS_TO_TEST = {
+SSLYZE_SCANS_TO_TEST = [
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.SESSION_RESUMPTION,
     sslyze.ScanCommand.TLS_COMPRESSION,
@@ -31,7 +31,7 @@ SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.HEARTBLEED,
     sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
     sslyze.ScanCommand.SESSION_RENEGOTIATION
-}
+]
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {
@@ -227,11 +227,6 @@ def invalid_sslyze_scan_parameters(*args, **kwargs):
             sslyze.ScanCommand.SESSION_RENEGOTIATION
         ]:
             return True
-    # BUG_IN_SSLYZE error for session resumption scan with openssl 1.0.2 fips
-    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
-        if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
-            return True
-
     return invalid_test_parameters(*args, **kwargs)
 
 
@@ -313,11 +308,6 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
         # SSLyze curves scan errors when given ECDSA certs
         if "ECDSA" in certificate.name:
             return True
-
-        # SSLyze curves scan fails to validate with openssl 1.0.2 fips
-        if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
-            return True
-
     return invalid_test_parameters(*args, **kwargs)
 
 

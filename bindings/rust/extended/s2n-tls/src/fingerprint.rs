@@ -35,14 +35,14 @@ pub struct Fingerprint<'a>(&'a mut Builder);
 impl Fingerprint<'_> {
     /// Size of the fingerprint hash.
     ///
-    /// See s2n_fingerprint_get_hash_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    /// Corresponds to [s2n_fingerprint_get_hash_size].
     pub fn hash_size(&self) -> Result<usize, Error> {
         self.0.hash_size()
     }
 
     /// Calculate the fingerprint hash string.
     ///
-    /// See s2n_fingerprint_get_hash in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    /// Corresponds to [s2n_fingerprint_get_hash].
     pub fn hash(&mut self) -> Result<&str, Error> {
         if self.0.hash.is_empty() {
             let mut output_size = 0;
@@ -63,7 +63,7 @@ impl Fingerprint<'_> {
 
     /// Size of the raw fingerprint string.
     ///
-    /// See s2n_fingerprint_get_raw_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    /// Corresponds to [s2n_fingerprint_get_raw_size].
     ///
     /// The size of the raw fingerprint string can't be known without calculating
     /// the fingerprint for a given ClientHello, so either [Fingerprint::hash()]
@@ -76,7 +76,7 @@ impl Fingerprint<'_> {
 
     /// Calculate the raw fingerprint string.
     ///
-    /// See s2n_fingerprint_get_raw in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    /// Corresponds to [s2n_fingerprint_get_raw].
     ///
     /// The size of the raw fingerprint string can't be known without calculating
     /// the fingerprint for a given ClientHello. Before calling this method, you
@@ -147,6 +147,8 @@ impl Fingerprint<'_> {
 
 impl Drop for Fingerprint<'_> {
     /// Resets the underlying [Builder] for the next fingerprint.
+    ///   
+    /// Corresponds to [s2n_fingerprint_wipe].
     fn drop(&mut self) {
         unsafe {
             s2n_fingerprint_wipe(self.0.ptr.as_ptr())
@@ -162,7 +164,7 @@ impl Drop for Fingerprint<'_> {
 ///
 /// The `Builder` can build a new [Fingerprint] as soon as the old [Fingerprint]
 /// goes out of scope. The [Fingerprint] implementation of [`Self::drop()`] ensures that this
-/// is safe by reseting the underlying C structure.
+/// is safe by resetting the underlying C structure.
 ///
 /// See the below example:
 /// ```no_run
@@ -205,7 +207,9 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// Creates a reusable [Builder].
+    /// Creates a reusable [Builder].    
+    ///
+    /// Corresponds to [s2n_fingerprint_new].
     pub fn new(method: FingerprintType) -> Result<Self, Error> {
         crate::init::init();
         let ptr = unsafe { s2n_fingerprint_new(method.into()).into_result() }?;
@@ -228,7 +232,7 @@ impl Builder {
 
     /// Size of the fingerprint hash.
     ///
-    /// See s2n_fingerprint_get_hash_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    /// Corresponds to [s2n_fingerprint_get_hash_size].
     pub fn hash_size(&self) -> Result<usize, Error> {
         Self::ptr_hash_size(&self.ptr)
     }
@@ -250,6 +254,8 @@ impl Builder {
     }
 
     /// Creates a fingerprint operation for a given [ClientHello].
+    ///
+    /// Corresponds to [s2n_fingerprint_set_client_hello].
     pub fn build<'a>(&'a mut self, client_hello: &ClientHello) -> Result<Fingerprint<'a>, Error> {
         unsafe {
             s2n_fingerprint_set_client_hello(self.ptr.as_ptr(), client_hello.deref_mut_ptr())
@@ -261,6 +267,8 @@ impl Builder {
 
 impl Drop for Builder {
     /// Frees the memory associated with this [Builder].
+    ///
+    /// Corresponds to [s2n_fingerprint_free].
     fn drop(&mut self) {
         let mut ptr: *mut s2n_fingerprint = unsafe { self.ptr.as_mut() };
         unsafe {
@@ -295,6 +303,8 @@ impl ClientHello {
     /// // ErrorType::UsageError if the string doesn't have enough capacity
     /// client_hello.fingerprint_string(FingerprintType::JA3, &mut string).unwrap();
     /// ```
+    ///
+    /// Corresponds to [s2n_client_hello_get_fingerprint_hash].
     #[deprecated = "Users should prefer the Fingerprint::hash() method"]
     pub fn fingerprint_hash(
         &self,
@@ -327,6 +337,8 @@ impl ClientHello {
     /// `fingerprint_string` will try to calculate the fingerprint and store the
     /// resulting string in `output`. If `output` does not have sufficient
     /// capacity an Error of `ErrorType::UsageError` will be returned.
+    ///
+    /// Corresponds to [s2n_client_hello_get_fingerprint_string].
     #[deprecated = "Users should prefer the Fingerprint::raw() method"]
     pub fn fingerprint_string(
         &self,

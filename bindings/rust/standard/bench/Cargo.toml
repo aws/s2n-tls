@@ -2,6 +2,7 @@
 name = "bench"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls" }

@@ -118,7 +118,7 @@ use std::task::Poll::{self, Pending, Ready};
 
 /// How to handle a renegotiation request.
 ///
-/// See s2n_renegotiate_response in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+/// Corresponds to [s2n_renegotiate_response].
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum RenegotiateResponse {
     Ignore,
@@ -151,7 +151,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// Returning "None" will result in the C callback returning an error,
     /// canceling the connection.
     ///
-    /// See s2n_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// See [s2n_renegotiate_request_cb].
     //
     // This method returns Option instead of Result because the callback has no mechanism
     // for surfacing errors to the application, so Result would be somewhat deceptive.
@@ -198,7 +198,7 @@ impl Connection {
 
     /// Reset the connection so that it can be renegotiated.
     ///
-    /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// Corresponds to [s2n_renegotiate_wipe].
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
     ///  - Methods to set the file descriptors: not currently supported by rust bindings
     ///  - Methods to set the send callback:
@@ -292,7 +292,7 @@ impl Connection {
     /// of bytes received is returned as the second element of the returned pair,
     /// and the data is written to `buf`.
     ///
-    /// See s2n_renegotiate in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// Corresponds to [s2n_renegotiate].
     pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
@@ -303,6 +303,8 @@ impl Connection {
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
+    ///
+    /// Corresponds to [s2n_send].
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         if self.is_renegotiating() {
             return Ready(Err(Error::bindings(
@@ -377,7 +379,7 @@ impl Connection {
 impl config::Builder {
     /// Sets a method to be called when the client receives a request to renegotiate.
     ///
-    /// See s2n_config_set_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// Corresponds to [s2n_config_set_renegotiate_request_cb].
     pub fn set_renegotiate_callback<T: 'static + RenegotiateCallback>(
         &mut self,
         handler: T,
@@ -746,7 +748,7 @@ mod tests {
         pair.handshake().expect("Initial handshake");
         pair.send_renegotiate_request()
             .expect("Server sends request");
-        // s2n-tls doesn't fail when it rejects renegotiatation, it just sends
+        // s2n-tls doesn't fail when it rejects renegotiation, it just sends
         // a warning alert. The peer chooses how to handle that alert.
         // The openssl server receives the alert on its next read.
         // Openssl considers the alert an error.
