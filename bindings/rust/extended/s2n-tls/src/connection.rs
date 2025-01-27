@@ -11,6 +11,7 @@ use crate::{
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
+    external_psk::ExternalPsk,
     security,
 };
 
@@ -1317,6 +1318,46 @@ impl Connection {
     /// Corresponds to [s2n_connection_is_session_resumed].
     pub fn resumed(&self) -> bool {
         unsafe { s2n_connection_is_session_resumed(self.connection.as_ptr()) == 1 }
+    }
+
+    /// Append an external psk to a connection.
+    ///
+    /// This may be called repeatedly to support multiple PSKs. If working with
+    /// large numbers of PSKs, consider using a [`PskSelectionCallback`].
+    ///
+    /// Corresponds to [`s2n_connection_append_psk`].
+    pub fn append_psk(&mut self, psk: &ExternalPsk) -> Result<(), Error> {
+        unsafe {
+            // SAFETY: *mut cast - s2n-tls does not treat the pointer as mutable.
+            s2n_connection_append_psk(self.as_ptr(), psk.as_s2n_ptr() as *mut _).into_result()?
+        };
+        Ok(())
+    }
+
+    /// Corresponds to [`s2n_connection_get_negotiated_psk_identity_length`].
+    pub fn negotiated_psk_identity_length(&self) -> Result<usize, Error> {
+        let mut length = 0;
+        unsafe {
+            s2n_connection_get_negotiated_psk_identity_length(self.connection.as_ptr(), &mut length)
+                .into_result()?
+        };
+        Ok(length as usize)
+    }
+
+    /// Retrieve the negotiated psk identity. Use [`Connection::negotiated_psk_identity_length`]
+    /// to retrieve the length of the psk identity.
+    ///
+    /// Corresponds to [`s2n_connection_get_negotiated_psk_identity`].
+    pub fn negotiated_psk_identity(&self, destination: &mut [u8]) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_get_negotiated_psk_identity(
+                self.connection.as_ptr(),
+                destination.as_mut_ptr(),
+                destination.len() as u16,
+            )
+            .into_result()?;
+        }
+        Ok(())
     }
 
     /// Associates an arbitrary application context with the Connection to be later retrieved via

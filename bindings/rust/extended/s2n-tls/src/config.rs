@@ -8,9 +8,11 @@ use crate::{
     cert_chain::CertificateChain,
     enums::*,
     error::{Error, ErrorType, Fallible},
+    foreign_types::S2NRef,
     security,
 };
 use core::{convert::TryInto, ptr::NonNull};
+use external_psk::OfferedPskListRef;
 use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
@@ -673,6 +675,42 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn set_psk_selection_callback<T: PskSelectionCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn psk_selection_cb(
+            conn_ptr: *mut s2n_connection,
+            _context: *mut ::libc::c_void,
+            psk_list_ptr: *mut s2n_offered_psk_list,
+        ) -> libc::c_int {
+            let psk_list = OfferedPskListRef::from_s2n_ptr_mut(psk_list_ptr);
+            let psk_cursor = match OfferedPskCursor::new(psk_list) {
+                Ok(cursor) => cursor,
+                Err(_) => return CallbackResult::Failure.into(),
+            };
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.psk_selection_callback.as_ref();
+                callback.map(|c| c.select_psk(conn, psk_cursor))
+            });
+            CallbackResult::Success.into()
+        }
+
+        let handler = Box::new(handler);
+        let context = self.config.context_mut();
+        context.psk_selection_callback = Some(handler);
+
+        unsafe {
+            s2n_config_set_psk_selection_callback(
+                self.as_mut_ptr(),
+                Some(psk_selection_cb),
+                self.config.context_mut() as *mut Context as *mut c_void,
+            )
+            .into_result()?
+        };
+        Ok(self)
+    }
+
     /// Set a callback function triggered by operations requiring the private key.
     ///
     /// See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#private-key-operation-related-calls
@@ -882,6 +920,12 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [`s2n_config_set_psk_mode`].
+    pub fn set_psk_mode(&mut self, mode: PskMode) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_psk_mode(self.as_mut_ptr(), mode.into()).into_result()? };
+        Ok(self)
+    }
+
     /// Sets a configurable blinding delay instead of the default
     ///
     /// Corresponds to [s2n_config_set_max_blinding_delay].
@@ -964,6 +1008,7 @@ pub(crate) struct Context {
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     pub(crate) session_ticket_callback: Option<Box<dyn SessionTicketCallback>>,
+    pub(crate) psk_selection_callback: Option<Box<dyn PskSelectionCallback>>,
     pub(crate) connection_initializer: Option<Box<dyn ConnectionInitializer>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
@@ -984,6 +1029,7 @@ impl Default for Context {
             private_key_callback: None,
             verify_host_callback: None,
             session_ticket_callback: None,
+            psk_selection_callback: None,
             connection_initializer: None,
             wall_clock: None,
             monotonic_clock: None,

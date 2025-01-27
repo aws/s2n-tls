@@ -229,6 +229,36 @@ impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
     }
 }
 
+pub enum PskMode {
+    Resumption,
+    External,
+}
+
+impl From<PskMode> for s2n_psk_mode::Type {
+    fn from(input: PskMode) -> Self {
+        match input {
+            PskMode::Resumption => s2n_psk_mode::RESUMPTION,
+            PskMode::External => s2n_psk_mode::EXTERNAL,
+        }
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum PskHmac {
+    SHA256,
+    SHA384,
+}
+
+impl From<PskHmac> for s2n_psk_hmac::Type {
+    fn from(input: PskHmac) -> Self {
+        match input {
+            PskHmac::SHA256 => s2n_psk_hmac::SHA256,
+            PskHmac::SHA384 => s2n_psk_hmac::SHA384,
+        }
+    }
+}
+
 /// Corresponds to [s2n_serialization_version].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]

@@ -19,8 +19,10 @@ pub mod client_hello;
 pub mod config;
 pub mod connection;
 pub mod enums;
+pub mod external_psk;
 #[cfg(feature = "unstable-fingerprint")]
 pub mod fingerprint;
+pub(crate) mod foreign_types;
 pub mod init;
 pub mod pool;
 #[cfg(feature = "unstable-renegotiate")]
