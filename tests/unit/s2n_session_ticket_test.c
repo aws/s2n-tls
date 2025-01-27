@@ -1262,11 +1262,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Verify that the session ticket is recorded in client connection.
-         * The session_ticket_callback shouldn't be called, so cb_session_data and cb_session_data_len shouldn't change.
+        /* The session_ticket_cb shouldn't be called when nst lifetime is zero,
+         * so cb_session_data and cb_session_data_len shouldn't change.
          */
         EXPECT_EQUAL(cb_session_data_len, session_data_len);
-        EXPECT_BYTEARRAY_EQUAL(cb_session_data, cb_session_data, cb_session_data_len);
+        EXPECT_BYTEARRAY_EQUAL(cb_session_data, session_data, cb_session_data_len);
         EXPECT_EQUAL(0, s2n_connection_get_session_ticket_lifetime_hint(client_conn));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));

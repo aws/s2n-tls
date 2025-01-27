@@ -62,10 +62,10 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
             POSIX_GUARD(s2n_connection_get_session(conn, mem.data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
 
-            /**
-             *= https://datatracker.ietf.org/doc/html/rfc5077#section-3.3
+            /* The client doesn't write the ticket into the connection if the NST lifetime has expired.
+             * 
+             *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
              *# A client SHOULD delete the ticket and associated state when the time expires.
-             *  The client doesn't write the ticket into the connection if the ST lifetime has expired.
             **/
             if (session_lifetime == 0) {
                 return S2N_SUCCESS;
@@ -345,7 +345,10 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Come back to the ticket lifetime field and write the data */
     uint32_t ticket_lifetime_in_secs = 0;
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
-    /* Don't send the nst if its lifetime is expired. */
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
+     *# The value of zero indicates that the ticket should be discarded immediately.
+     **/
     RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
     RESULT_GUARD_POSIX(s2n_stuffer_write_reservation(&ticket_lifetime_reservation, ticket_lifetime_in_secs));
 
