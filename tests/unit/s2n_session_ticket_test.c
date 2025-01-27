@@ -834,6 +834,7 @@ int main(int argc, char **argv)
         uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
         EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name1, s2n_array_len(ticket_key_name1)));
         struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
+        EXPECT_NOT_NULL(key);
         uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
         /* Verify the lifetime hint from the server */
@@ -931,6 +932,7 @@ int main(int argc, char **argv)
             uint8_t selected_ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
             EXPECT_NOT_NULL(memcpy(selected_ticket_key_name, ticket_key_name2, s2n_array_len(ticket_key_name2)));
             struct s2n_ticket_key *key = s2n_find_ticket_key(server_config, selected_ticket_key_name);
+            EXPECT_NOT_NULL(key);
             uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - key->intro_timestamp;
 
             /* Verify the lifetime hint from the server */

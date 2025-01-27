@@ -118,6 +118,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
             uint8_t ticket_key_name[16] = "2016.07.26.15\0";
             struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
+            EXPECT_NOT_NULL(key);
             uint32_t key_lifetime_in_secs =
                     (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - conn->ticket_fields.current_time) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
