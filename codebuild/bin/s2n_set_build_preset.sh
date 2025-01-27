@@ -49,6 +49,10 @@ case "${S2N_BUILD_PRESET-default}" in
         : "${S2N_LIBCRYPTO:=openssl-1.0.2}"
         : "${GCC_VERSION:=6}"
         ;;
+    "openssl-1.0.2-fips")
+        : "${S2N_LIBCRYPTO:=openssl-1.0.2-fips}"
+        : "${GCC_VERSION:=6}"
+        ;;
     "openssl-1.1.1_gcc4-8")
         : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
         : "${GCC_VERSION:=4.8}"

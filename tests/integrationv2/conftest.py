@@ -61,7 +61,9 @@ def pytest_configure(config: pytest.Config):
         config.stash[PATH_CONFIGURATION_KEY] = available_providers()
 
     provider_version = config.getoption('provider-version', None)
-    if "fips" in provider_version:
+    # By default, any libcrypto with "fips" in its name should be in fips mode.
+    # However, s2n-tls no longer supports fips mode with openssl-1.0.2-fips.
+    if "fips" in provider_version and "openssl-1.0.2-fips" not in provider_version:
         set_flag(S2N_FIPS_MODE, True)
     set_flag(S2N_PROVIDER_VERSION, provider_version)
 
