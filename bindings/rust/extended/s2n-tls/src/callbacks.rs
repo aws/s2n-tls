@@ -59,8 +59,7 @@ where
     let mut conn = ManuallyDrop::new(Connection::from_raw(raw));
     let config = conn.config().expect("config should not be null");
     let context = config.context();
-    let r = action(&mut conn, context);
-    r
+    action(&mut conn, context)
 }
 
 /// A trait for the callback used to verify host name(s) during X509
@@ -104,12 +103,7 @@ pub(crate) unsafe fn verify_host(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        callbacks::with_context,
-        config::{Config, Context},
-        connection::{Builder, Connection},
-        enums::Mode,
-    };
+    use crate::{callbacks::with_context, config::Config, connection::Builder, enums::Mode};
 
     // The temporary connection created in `with_context` should never be freed,
     // even if customer code panics.
