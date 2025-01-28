@@ -53,7 +53,7 @@ where
     let raw = NonNull::new(conn_ptr).expect("connection should not be null");
     // Since this is a callback, it receives a pointer to the connection
     // but doesn't own that connection or control its lifecycle.
-    // Do not drop / free the connection. 
+    // Do not drop / free the connection.
     // We must make the connection `ManuallyDrop` before `action`, otherwise a panic
     // in `action` would cause the unwind mechanism to drop the connection.
     let mut conn = ManuallyDrop::new(Connection::from_raw(raw));
@@ -104,6 +104,42 @@ pub(crate) unsafe fn verify_host(
 
 #[cfg(test)]
 mod tests {
-    // if a customer 
-    fn panic_is_graceful()
+    use crate::{
+        callbacks::with_context,
+        config::{Config, Context},
+        connection::{Builder, Connection},
+        enums::Mode,
+    };
+
+    // The temporary connection created in `with_context` should never be freed,
+    // even if customer code panics.
+    #[test]
+    fn panic_does_not_free_connection() -> Result<(), crate::error::Error> {
+        fn immediate_panic(_conn: &mut Connection, _context: &mut Context) {
+            panic!("a panic in customer code");
+        }
+
+        let config = Config::new();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+        let mut connection = config.build_connection(Mode::Server)?;
+
+        // 1 connection + 1 self reference
+        assert_eq!(config.test_get_refcount()?, 2);
+
+        let conn_ptr = connection.as_ptr();
+        let unwind_result = std::panic::catch_unwind(|| {
+            unsafe { with_context(conn_ptr, immediate_panic) };
+        });
+
+        // a panic happened
+        assert!(unwind_result.is_err());
+
+        // the connection hasn't been freed yet
+        assert_eq!(config.test_get_refcount()?, 2);
+
+        drop(connection);
+        assert_eq!(config.test_get_refcount()?, 1);
+
+        Ok(())
+    }
 }
