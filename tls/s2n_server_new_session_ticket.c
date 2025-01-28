@@ -87,14 +87,14 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     /* Calculate ticket key age */
     RESULT_ENSURE_GTE(current_time, key_intro_time);
     uint64_t ticket_key_age_in_nanos = current_time - key_intro_time;
-    
+
     /* Calculate remaining key lifetime */
     uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
     RESULT_ENSURE_GTE(key_lifetime_in_nanos, ticket_key_age_in_nanos);
     uint32_t key_lifetime_in_secs = (key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
 
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
-    
+
     /* Min of remaining key lifetime and session */
     uint32_t min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
 
