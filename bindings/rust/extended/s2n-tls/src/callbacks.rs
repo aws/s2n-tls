@@ -48,7 +48,7 @@ pub use pkey::*;
 /// callbacks were configured through the Rust bindings.
 pub(crate) unsafe fn with_context<F, T>(conn_ptr: *mut s2n_connection, action: F) -> T
 where
-    F: FnOnce(&mut Connection, &mut Context) -> T,
+    F: FnOnce(&mut Connection, &Context) -> T,
 {
     let raw = NonNull::new(conn_ptr).expect("connection should not be null");
     // Since this is a callback, it receives a pointer to the connection
@@ -57,8 +57,8 @@ where
     // We must make the connection `ManuallyDrop` before `action`, otherwise a panic
     // in `action` would cause the unwind mechanism to drop the connection.
     let mut conn = ManuallyDrop::new(Connection::from_raw(raw));
-    let mut config = conn.config().expect("config should not be null");
-    let context = config.context_mut();
+    let config = conn.config().expect("config should not be null");
+    let context = config.context();
     let r = action(&mut conn, context);
     r
 }
@@ -115,12 +115,7 @@ mod tests {
     // even if customer code panics.
     #[test]
     fn panic_does_not_free_connection() -> Result<(), crate::error::Error> {
-        fn immediate_panic(_conn: &mut Connection, _context: &mut Context) {
-            panic!("a panic in customer code");
-        }
-
         let config = Config::new();
-        assert_eq!(config.test_get_refcount().unwrap(), 1);
         let mut connection = config.build_connection(Mode::Server)?;
 
         // 1 connection + 1 self reference
@@ -128,7 +123,11 @@ mod tests {
 
         let conn_ptr = connection.as_ptr();
         let unwind_result = std::panic::catch_unwind(|| {
-            unsafe { with_context(conn_ptr, immediate_panic) };
+            unsafe {
+                with_context(conn_ptr, |_conn, _context| {
+                    panic!("force unwind");
+                })
+            };
         });
 
         // a panic happened
