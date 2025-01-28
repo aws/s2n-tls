@@ -51,14 +51,15 @@ where
     F: FnOnce(&mut Connection, &mut Context) -> T,
 {
     let raw = NonNull::new(conn_ptr).expect("connection should not be null");
-    let mut conn = Connection::from_raw(raw);
+    // Since this is a callback, it receives a pointer to the connection
+    // but doesn't own that connection or control its lifecycle.
+    // Do not drop / free the connection. 
+    // We must make the connection `ManuallyDrop` before `action`, otherwise a panic
+    // in `action` would cause the unwind mechanism to drop the connection.
+    let mut conn = ManuallyDrop::new(Connection::from_raw(raw));
     let mut config = conn.config().expect("config should not be null");
     let context = config.context_mut();
     let r = action(&mut conn, context);
-    // Since this is a callback, it receives a pointer to the connection
-    // but doesn't own that connection or control its lifecycle.
-    // Do not drop / free the connection.
-    let _ = ManuallyDrop::new(conn);
     r
 }
 
@@ -99,4 +100,10 @@ pub(crate) unsafe fn verify_host(
         Ok(host_name_str) => handler.verify_host_name(host_name_str) as u8,
         Err(_) => 0, // If the host name can't be parsed, fail closed.
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // if a customer 
+    fn panic_is_graceful()
 }
