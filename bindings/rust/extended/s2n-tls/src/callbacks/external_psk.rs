@@ -119,7 +119,10 @@ impl<'callback> OfferedPskCursor<'callback> {
     }
 
     /// Choose the currently selected PSK to negotiate with.
-    pub fn choose_current_psk(self) -> Result<(), crate::error::Error> {
+    ///
+    /// If no offered PSK is acceptable, implementors can return from the callback
+    /// without calling this function to reject the connection.
+    pub fn choose_current_psk(&mut self) -> Result<(), crate::error::Error> {
         self.list.choose_psk(&self.psk)
     }
 
@@ -142,7 +145,7 @@ pub trait PskSelectionCallback: 'static + Send + Sync {
     /// Before calling [OfferedPskCursor::choose_current_psk], implementors must
     /// first append the corresponding [crate::external_psk::ExternalPsk] to the
     /// connection using [Connection::append_psk].
-    fn select_psk(&self, connection: &mut Connection, psk_cursor: OfferedPskCursor);
+    fn select_psk(&self, connection: &mut Connection, psk_cursor: &mut OfferedPskCursor);
 }
 
 #[cfg(test)]
@@ -156,10 +159,23 @@ mod tests {
     };
 
     use crate::{
-        config::Config, external_psk::ExternalPsk, security::DEFAULT_TLS13, testing::TestPair,
+        config::Config,
+        error::{ErrorSource, ErrorType},
+        external_psk::ExternalPsk,
+        security::DEFAULT_TLS13,
+        testing::TestPair,
     };
 
-    use super::PskSelectionCallback;
+    use super::*;
+
+    fn test_psk(id: u8) -> Result<(Identity, ExternalPsk), crate::error::Error> {
+        let identity = vec![id];
+        let mut psk = ExternalPsk::builder()?;
+        psk.with_identity(&identity)?
+            .with_secret(&[id + 1; 16])?
+            .with_hmac(crate::enums::PskHmac::SHA384)?;
+        Ok((identity, psk.build()?))
+    }
 
     type Identity = Vec<u8>;
 
@@ -175,12 +191,8 @@ mod tests {
         fn new() -> Result<Self, crate::error::Error> {
             let mut store = HashMap::new();
             for i in 0..Self::SIZE {
-                let identity = vec![i];
-                let mut psk = ExternalPsk::builder()?;
-                psk.with_identity(&identity)?
-                    .with_secret(&[i + 1; 16])?
-                    .with_hmac(crate::enums::PskHmac::SHA384)?;
-                store.insert(identity, psk.build()?);
+                let (identity, psk) = test_psk(i)?;
+                store.insert(identity, psk);
             }
             Ok(Self {
                 store: Arc::new(store),
@@ -190,11 +202,7 @@ mod tests {
     }
 
     impl PskSelectionCallback for PskStore {
-        fn select_psk(
-            &self,
-            connection: &mut crate::connection::Connection,
-            mut psk_cursor: super::OfferedPskCursor,
-        ) {
+        fn select_psk(&self, connection: &mut Connection, psk_cursor: &mut OfferedPskCursor) {
             self.invoked.store(true, atomic::Ordering::Relaxed);
 
             let mut identities = Vec::new();
@@ -236,6 +244,63 @@ mod tests {
         }
         assert!(test_pair.handshake().is_ok());
         assert!(client_psks.invoked.load(atomic::Ordering::Relaxed));
+        Ok(())
+    }
+
+    #[derive(Clone)]
+    struct ImmediateSelect(Arc<AtomicBool>);
+
+    impl PskSelectionCallback for ImmediateSelect {
+        fn select_psk(&self, _connection: &mut Connection, psk_cursor: &mut OfferedPskCursor) {
+            self.0.store(true, atomic::Ordering::Relaxed);
+            let err = psk_cursor.choose_current_psk().unwrap_err();
+            assert_eq!(err.kind(), ErrorType::InternalError);
+            assert_eq!(err.source(), ErrorSource::Library);
+        }
+    }
+
+    #[test]
+    // If choose_current_psk is called when there isn't a current psk, s2n-tls
+    // should return a well formed error.
+    fn choose_empty_psk() -> Result<(), crate::error::Error> {
+        let selector = ImmediateSelect(Arc::new(AtomicBool::new(false)));
+        let selector_handle = selector.clone();
+        let mut config = Config::builder();
+        config.set_security_policy(&DEFAULT_TLS13)?;
+        config.set_psk_selection_callback(selector)?;
+
+        let mut test_pair = TestPair::from_config(&config.build()?);
+        test_pair.client.append_psk(&test_psk(1).unwrap().1)?;
+        assert!(test_pair.handshake().is_err());
+        assert!(selector_handle.0.load(atomic::Ordering::Relaxed));
+        Ok(())
+    }
+
+    #[derive(Clone)]
+    struct NeverSelect(Arc<AtomicBool>);
+
+    impl PskSelectionCallback for NeverSelect {
+        fn select_psk(&self, _connection: &mut Connection, _psk_cursor: &mut OfferedPskCursor) {
+            self.0.store(true, atomic::Ordering::Relaxed);
+            // return without calling cursor.choose_current_psk
+        }
+    }
+
+    #[test]
+    // If choose_current_psk isn't called, then the handshake should fail gracefully.
+    fn no_chosen_psk() -> Result<(), crate::error::Error> {
+        let selector = NeverSelect(Arc::new(AtomicBool::new(false)));
+        let selector_handle = selector.clone();
+        let mut config = Config::builder();
+        config.set_security_policy(&DEFAULT_TLS13)?;
+        config.set_psk_selection_callback(selector)?;
+
+        let mut test_pair = TestPair::from_config(&config.build()?);
+        test_pair.client.append_psk(&test_psk(1).unwrap().1)?;
+        let err = test_pair.handshake().unwrap_err();
+        assert_eq!(err.kind(), ErrorType::ProtocolError);
+        assert_eq!(err.source(), ErrorSource::Library);
+        assert!(selector_handle.0.load(atomic::Ordering::Relaxed));
         Ok(())
     }
 }

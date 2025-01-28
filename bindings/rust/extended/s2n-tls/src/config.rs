@@ -685,13 +685,13 @@ impl Builder {
             psk_list_ptr: *mut s2n_offered_psk_list,
         ) -> libc::c_int {
             let psk_list = OfferedPskListRef::from_s2n_ptr_mut(psk_list_ptr);
-            let psk_cursor = match OfferedPskCursor::new(psk_list) {
+            let mut psk_cursor = match OfferedPskCursor::new(psk_list) {
                 Ok(cursor) => cursor,
                 Err(_) => return CallbackResult::Failure.into(),
             };
             with_context(conn_ptr, |conn, context| {
                 let callback = context.psk_selection_callback.as_ref();
-                callback.map(|c| c.select_psk(conn, psk_cursor))
+                callback.map(|c| c.select_psk(conn, &mut psk_cursor))
             });
             CallbackResult::Success.into()
         }
