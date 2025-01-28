@@ -69,10 +69,8 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     S2N_ERROR_IF(s2n_stuffer_space_remaining(to) < S2N_TLS12_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_IS_FULL);
 
     /* Get the time */
-    uint64_t current_time = 0;
     struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
-    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &current_time));
-    ticket_fields->current_time = current_time;
+    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &ticket_fields->current_time));
 
     /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
@@ -112,22 +110,20 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
 
-    uint64_t current_time = 0;
     struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
 
     /* Get the time */
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
-    ticket_fields->current_time = current_time;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &ticket_fields->current_time));
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, current_time));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, ticket_fields->current_time));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
     RESULT_ENSURE_INCLUSIVE_RANGE(1, ticket_fields->session_secret.size, UINT8_MAX);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
-    RESULT_GUARD(s2n_tls13_serialize_keying_material_expiration(conn, current_time, out));
+    RESULT_GUARD(s2n_tls13_serialize_keying_material_expiration(conn, ticket_fields->current_time, out));
 
     uint32_t server_max_early_data = 0;
     RESULT_GUARD(s2n_early_data_get_server_max_size(conn, &server_max_early_data));
@@ -888,7 +884,6 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
 
     RESULT_GUARD_POSIX(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
-    /* Store this key timestamp for session ticket logic */
     conn->ticket_fields.key_intro_time = key->intro_timestamp;
 
     return S2N_RESULT_OK;

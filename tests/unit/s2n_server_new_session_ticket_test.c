@@ -340,7 +340,7 @@ int main(int argc, char **argv)
         uint64_t one_week_in_nanos = one_week_in_sec * one_sec_in_nanos;
         conn->config->encrypt_decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
-        conn->config->session_state_lifetime_in_nanos = one_week_in_nanos * 2;
+        conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
@@ -1005,28 +1005,27 @@ int main(int argc, char **argv)
 
         /* Send a session ticket with zero lifetime */
         {
-            struct s2n_config *config = NULL;
-            struct s2n_connection *conn = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_NOT_NULL(config = s2n_config_new());
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
             /* Set tickets_to_send to 1, so that s2n_tls13_server_nst_send() attempts to send the nst */
             conn->tickets_to_send = 1;
+
+            /* Intentionally set the ticket lifetime to be zero */
             conn->config->session_state_lifetime_in_nanos = 0;
             EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             /* Setup io */
-            struct s2n_stuffer stuffer = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
-
-            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
         };
 
         /* Sends one new session ticket */
