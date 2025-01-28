@@ -55,9 +55,6 @@ macro_rules! define_owned_type {
             ptr: std::ptr::NonNull<$inner_type>,
         }
 
-        unsafe impl Send for $struct_name {}
-        unsafe impl Sync for $struct_name {}
-
         impl $struct_name {
             pub fn from_s2n_ptr(ptr: std::ptr::NonNull<$inner_type>) -> Self {
                 Self { ptr }

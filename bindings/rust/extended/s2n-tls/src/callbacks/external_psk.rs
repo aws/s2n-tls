@@ -58,7 +58,15 @@ impl OfferedPskRef {
             )
             .into_result()?
         };
-        Ok(unsafe { std::slice::from_raw_parts(identity_buffer, size as usize) })
+        Ok(unsafe {
+            // SAFETY: valid, aligned, non-null -> If the s2n-tls API didn't fail
+            //         (which we check for) then data will be non-null, valid for
+            //         reads, and aligned.
+            // SAFETY: the memory is not mutated -> For the life of the PSK Selection
+            //         callback, nothing else is mutating the wire buffer which
+            //         is the backing memory of the identities.
+            std::slice::from_raw_parts(identity_buffer, size as usize)
+        })
     }
 }
 

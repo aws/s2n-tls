@@ -139,6 +139,16 @@ crate::foreign_types::define_owned_type!(
     s2n_psk
 );
 
+/// # Safety
+///
+/// Safety: ExternalPsk objects can be sent across threads
+unsafe impl Send for ExternalPsk {}
+
+/// # Safety
+///
+/// Safety: There are no methods that mutate the ExternalPsk.
+unsafe impl Sync for ExternalPsk {}
+
 impl ExternalPsk {
     fn allocate() -> Result<Self, crate::error::Error> {
         let psk = unsafe { s2n_external_psk_new().into_result() }?;
