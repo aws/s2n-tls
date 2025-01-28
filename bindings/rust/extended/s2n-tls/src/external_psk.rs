@@ -152,11 +152,9 @@ impl ExternalPsk {
 
 impl Drop for ExternalPsk {
     fn drop(&mut self) {
-        let mut external_psk = self.as_s2n_ptr_mut();
-
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
-        let _ = unsafe { s2n_psk_free(std::ptr::addr_of_mut!(external_psk)).into_result() };
+        let _ = unsafe { s2n_psk_free(&mut self.as_s2n_ptr_mut()).into_result() };
     }
 }
 

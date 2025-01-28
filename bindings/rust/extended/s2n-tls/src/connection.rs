@@ -1353,7 +1353,7 @@ impl Connection {
             s2n_connection_get_negotiated_psk_identity(
                 self.connection.as_ptr(),
                 destination.as_mut_ptr(),
-                destination.len() as u16,
+                destination.len().min(u16::MAX as usize) as u16,
             )
             .into_result()?;
         }

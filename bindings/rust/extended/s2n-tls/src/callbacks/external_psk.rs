@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{ops::Deref, ptr::addr_of_mut};
+use std::{
+    ops::Deref,
+    ptr::{self},
+};
 
 use s2n_tls_sys::*;
 
@@ -44,13 +47,13 @@ crate::foreign_types::define_ref_type!(
 
 impl OfferedPskRef {
     pub fn identity(&self) -> Result<&[u8], crate::error::Error> {
-        let mut identity_buffer: *mut u8 = std::ptr::null::<u8>() as *mut u8;
+        let mut identity_buffer = ptr::null_mut::<u8>();
         let mut size = 0;
         unsafe {
             s2n_offered_psk_get_identity(
                 // SAFETY: s2n-tls does not treat the pointer as mutable
                 self.as_s2n_ptr() as *mut _,
-                addr_of_mut!(identity_buffer),
+                &mut identity_buffer,
                 &mut size,
             )
             .into_result()?
@@ -145,7 +148,7 @@ pub trait PskSelectionCallback: 'static + Send + Sync {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::{HashMap, VecDeque},
+        collections::HashMap,
         sync::{
             atomic::{self, AtomicBool},
             Arc,
@@ -192,23 +195,22 @@ mod tests {
             connection: &mut crate::connection::Connection,
             mut psk_cursor: super::OfferedPskCursor,
         ) {
-            self.invoked.store(true, atomic::Ordering::SeqCst);
+            self.invoked.store(true, atomic::Ordering::Relaxed);
 
-            let mut identities = VecDeque::new();
+            let mut identities = Vec::new();
             while let Some(psk) = psk_cursor.advance().unwrap() {
-                identities.push_back(psk.identity().unwrap().to_owned());
+                identities.push(psk.identity().unwrap().to_owned());
             }
-
-            assert_eq!(identities.len(), Self::SIZE as usize);
 
             // after resetting the cursor, we should observe all of the same identities
             psk_cursor.rewind().unwrap();
-
+            let mut identities_after_rewind = Vec::new();
             while let Some(psk) = psk_cursor.advance().unwrap() {
-                let expected = identities.pop_front();
-                assert_eq!(expected.unwrap(), psk.identity().unwrap());
+                identities_after_rewind.push(psk.identity().unwrap().to_owned());
             }
-            assert!(identities.is_empty());
+
+            assert_eq!(identities.len(), Self::SIZE as usize);
+            assert_eq!(identities, identities_after_rewind);
 
             psk_cursor.rewind().unwrap();
             let chosen = psk_cursor.advance().unwrap().unwrap();
@@ -233,7 +235,7 @@ mod tests {
             test_pair.client.append_psk(psk)?;
         }
         assert!(test_pair.handshake().is_ok());
-        assert!(client_psks.invoked.load(atomic::Ordering::SeqCst));
+        assert!(client_psks.invoked.load(atomic::Ordering::Relaxed));
         Ok(())
     }
 }

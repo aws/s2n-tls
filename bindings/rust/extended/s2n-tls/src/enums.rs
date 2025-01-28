@@ -229,6 +229,8 @@ impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
     }
 }
 
+#[non_exhaustive]
+#[derive(Debug)]
 pub enum PskMode {
     Resumption,
     External,

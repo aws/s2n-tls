@@ -78,7 +78,7 @@ macro_rules! define_owned_type {
 
 // This opaque definition is borrowed from the foreign-types crate
 // https://github.com/sfackler/foreign-types/blob/393f6ab5a5dc66b8a8e2d6d880b1ff80b6a7edc2/foreign-types-shared/src/lib.rs#L14
-// This type acts as if it owns a *mutable pointer to a zero sized type, where
+// This type acts as if it owns a mutable pointer to a zero sized type, where
 // that type may implement un-synchronized interior mutability.
 #[derive(Debug)]
 pub(crate) struct Opaque(PhantomData<UnsafeCell<*mut ()>>);
