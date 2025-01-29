@@ -1,6 +1,6 @@
 This example demonstrates how to use s2n-tls with the [hyper](https://hyper.rs/) HTTP library.
 
-The server example demonstrates how to use s2n-tls with the [hyper-util server](https://docs.rs/hyper-util/latest/hyper_util/server/conn/auto/struct.Builder.html). The client example demonstrates how to use s2n-tls with the [legacy hyper-util client](https://docs.rs/hyper-util/latest/hyper_util/client/legacy/struct.Builder.html), via the [s2n-tls-hyper](../../rust/standard/s2n-tls-hyper) compatibility crate.
+The server example demonstrates how to use s2n-tls with the [hyper-util server](https://docs.rs/hyper-util/latest/hyper_util/server/conn/auto/struct.Builder.html). The client example demonstrates how to use s2n-tls with the [hyper-util client](https://docs.rs/hyper-util/latest/hyper_util/client/legacy/struct.Builder.html), via the [s2n-tls-hyper](../../rust/standard/s2n-tls-hyper) compatibility crate.
 
 Start the example server as follows:
 ```
