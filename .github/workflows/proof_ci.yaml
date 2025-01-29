@@ -94,7 +94,9 @@ jobs:
       - name: Install CBMC ${{ env.CBMC_VERSION }}
         if: ${{ env.CBMC_VERSION != 'latest' }}
         shell: bash
+        # CMBC.deb has a dependency on bash-completion
         run: |
+          sudo apt install -y bash-completion
           curl -o cbmc.deb -L \
             https://github.com/diffblue/cbmc/releases/download/cbmc-${{ env.CBMC_VERSION }}/ubuntu-20.04-cbmc-${{ env.CBMC_VERSION }}-Linux.deb
           sudo dpkg -i ./cbmc.deb
