@@ -831,7 +831,7 @@ int main(int argc, char **argv)
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         struct s2n_ticket_fields *ticket_fields = &server_conn->ticket_fields;
-        uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - ticket_fields->key_intro_time;
+        uint64_t ticket_key_age_in_nanos = ticket_fields->current_time - ticket_fields->key_intro_time;
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
@@ -925,7 +925,7 @@ int main(int argc, char **argv)
             }
 
             struct s2n_ticket_fields *ticket_fields = &server_conn->ticket_fields;
-            uint64_t ticket_key_age_in_nanos = server_conn->ticket_fields.current_time - ticket_fields->key_intro_time;
+            uint64_t ticket_key_age_in_nanos = ticket_fields->current_time - ticket_fields->key_intro_time;
 
             /* Verify the lifetime hint from the server */
             EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), (S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS);
