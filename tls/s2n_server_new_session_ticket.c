@@ -72,13 +72,8 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-/**
- *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
- *# Indicates the lifetime in seconds as a 32-bit
- *# unsigned integer in network byte order from the time of ticket
- *# issuance.
- **/
-static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time, uint64_t current_time, uint32_t *ticket_lifetime)
+static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time,
+    uint64_t current_time, uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
@@ -91,12 +86,12 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     /* Calculate remaining key lifetime */
     uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
     RESULT_ENSURE_GTE(key_lifetime_in_nanos, ticket_key_age_in_nanos);
-    uint32_t key_lifetime_in_secs = (key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
+    uint32_t remaining_key_lifetime = (key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
 
-    uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t session_lifetime = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
 
     /* Min of remaining key lifetime and session */
-    uint32_t min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
+    uint32_t min_lifetime = MIN(remaining_key_lifetime, session_lifetime);
 
     /* In TLS1.3 we take into account keying material lifetime */
     if (conn->actual_protocol_version == S2N_TLS13) {
@@ -336,8 +331,15 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
 
-    /* Come back to the ticket lifetime field and write the data */
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
+    *# Indicates the lifetime in seconds as a 32-bit
+    *# unsigned integer in network byte order from the time of ticket
+    *# issuance.
+    **/
     uint32_t ticket_lifetime_in_secs = 0;
+
+    /* Come back to the ticket lifetime field and write the data */
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1

@@ -121,7 +121,7 @@ int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
 
 int s2n_stuffer_reserve_uint32(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
 {
-    return s2n_stuffer_reserve(stuffer, reservation, SIZEOF_UINT32);
+    return s2n_stuffer_reserve(stuffer, reservation, sizeof(uint32_t));
 }
 
 int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u)
