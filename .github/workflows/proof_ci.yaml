@@ -12,6 +12,16 @@ on:
   merge_group:
     types: [checks_requested]
     branches: [main]
+env:
+  CBMC: "6.2.0"
+  CBMC: latest
+  KISSAT_TAG: latest
+  LITANI_VERSION: latest
+  Z3_VERSION: "4.13.0"
+  BITWUZLA_VERSION: "0.5.0"
+  PROOFS_DIR-dir: tests/cbmc/proofs
+  RUN_CBMC_PROOFS_COMMAND: ./run-cbmc-proofs.py
+
 
 # USAGE
 #
@@ -37,13 +47,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-      - name: Parse config file
-        run: |
-          CONFIG_FILE='.github/workflows/proof_ci_resources/config.yaml'
-          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version z3-version bitwuzla-version proofs-dir run-cbmc-proofs-command; do
-            VAR=$(echo $setting | tr "[:lower:]" "[:upper:]" | tr - _)
-            echo "${VAR}"=$(yq .$setting $CONFIG_FILE) >> $GITHUB_ENV
-          done
       - name: Ensure CBMC, CBMC viewer, Litani, Z3, Bitwuzla versions have been specified
         shell: bash
         run: |
