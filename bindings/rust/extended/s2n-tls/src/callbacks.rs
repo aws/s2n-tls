@@ -48,12 +48,12 @@ pub use pkey::*;
 /// callbacks were configured through the Rust bindings.
 pub(crate) unsafe fn with_context<F, T>(conn_ptr: *mut s2n_connection, action: F) -> T
 where
-    F: FnOnce(&mut Connection, &mut Context) -> T,
+    F: FnOnce(&mut Connection, &Context) -> T,
 {
     let raw = NonNull::new(conn_ptr).expect("connection should not be null");
     let mut conn = Connection::from_raw(raw);
-    let mut config = conn.config().expect("config should not be null");
-    let context = config.context_mut();
+    let config = conn.config().expect("config should not be null");
+    let context = config.context();
     let r = action(&mut conn, context);
     // Since this is a callback, it receives a pointer to the connection
     // but doesn't own that connection or control its lifecycle.
