@@ -13,8 +13,8 @@ on:
     types: [checks_requested]
     branches: [main]
 env:
-  CBMC: "6.2.0"
-  CBMC: latest
+  CBMC_VERSION: "6.2.0"
+  CBMC_VIEWER_VERSION: latest
   KISSAT_TAG: latest
   LITANI_VERSION: latest
   Z3_VERSION: "4.13.0"
