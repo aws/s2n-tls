@@ -411,6 +411,8 @@ jobs:
           cargo +${{env.RUST_NIGHTLY_TOOLCHAIN}} minimal-versions check --direct --ignore-private
           cargo +${{env.RUST_NIGHTLY_TOOLCHAIN}} minimal-versions check --direct --ignore-private --all-features
 
+  # compare generated s2n-tls-sys/Cargo.toml with the existing one to check if it's up-to-date
+  # unstable features might be updated in the future, new Cargo.toml should be committed in this case
   check-generated-cargo-toml:
     runs-on: ubuntu-latest
     steps:
@@ -425,7 +427,7 @@ jobs:
       - uses: camshaft/rust-cache@v1
 
       - name: Generate
-        run: ${{env.ROOT_PATH}}/generate.sh
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Compare Cargo
         working-directory: ${{env.ROOT_PATH}}/s2n-tls-sys
