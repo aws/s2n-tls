@@ -48,7 +48,7 @@ pub use pkey::*;
 /// callbacks were configured through the Rust bindings.
 pub(crate) unsafe fn with_context<F, T>(conn_ptr: *mut s2n_connection, action: F) -> T
 where
-    F: FnOnce(&mut Connection, &Context) -> T,
+    F: FnOnce(&mut Connection, &mut Context) -> T,
 {
     let raw = NonNull::new(conn_ptr).expect("connection should not be null");
     // Since this is a callback, it receives a pointer to the connection
@@ -57,8 +57,8 @@ where
     // We must make the connection `ManuallyDrop` before `action`, otherwise a panic
     // in `action` would cause the unwind mechanism to drop the connection.
     let mut conn = ManuallyDrop::new(Connection::from_raw(raw));
-    let config = conn.config().expect("config should not be null");
-    let context = config.context();
+    let mut config = conn.config().expect("config should not be null");
+    let context = config.context_mut();
     action(&mut conn, context)
 }
 
