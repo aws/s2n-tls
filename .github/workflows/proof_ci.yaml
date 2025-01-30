@@ -214,7 +214,7 @@ jobs:
           EXTERNAL_SAT_SOLVER: kissat
         working-directory: ${{ env.PROOFS_DIR }}
         run: |
-          cd $(dirname (find . -name \*run-cbmc-proofs.py))
+          cd $(dirname $(find . -name \*run-cbmc-proofs.py))
           pwd
           ls -al
           ${{ env.RUN_CBMC_PROOFS_COMMAND }}
