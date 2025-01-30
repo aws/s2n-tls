@@ -114,13 +114,22 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint24(&output, &message_size));
             EXPECT_EQUAL(message_size, s2n_stuffer_data_available(&output));
 
+            uint64_t now = 0;
+            POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
+
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
             uint8_t ticket_key_name[16] = "2016.07.26.15\0";
             struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
             EXPECT_NOT_NULL(key);
-            uint32_t key_lifetime_in_secs =
-                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS + key->intro_timestamp - conn->ticket_fields.current_time) / ONE_SEC_IN_NANOS;
+
+            EXPECT_TRUE(now > key->intro_timestamp);
+            uint64_t key_age_in_nanos = now - key->intro_timestamp;
+
+            uint64_t key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
+
+            EXPECT_TRUE(key_lifetime_in_nanos > key_age_in_nanos);
+            uint32_t key_lifetime_in_secs = (key_lifetime_in_nanos - key_age_in_nanos) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
@@ -183,6 +192,24 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_config_free(config));
+        };
+
+        /* no valid ticket key */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            /* Set up output stuffer */
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &output), S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
         };
 
         /** ticket_age_add values do not repeat after sending multiple new session tickets
@@ -313,17 +340,17 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
         uint64_t key_intro_time = ONE_HOUR_IN_NANOS / 2;
-        uint64_t current_time = ONE_HOUR_IN_NANOS;
+        uint64_t now = ONE_HOUR_IN_NANOS;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key_intro_time - current_time) / ONE_SEC_IN_NANOS);
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, now, &min_lifetime));
+        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2 + key_intro_time - now) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
         conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, now, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
@@ -342,14 +369,14 @@ int main(int argc, char **argv)
         conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, now, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
         /* Test: Server Keying Material has the shortest lifetime with no PSK */
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, ONE_WEEK_IN_SEC / 2));
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, now, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 2);
 
         /* Test: PSK Keying Material has the shortest lifetime */
@@ -357,10 +384,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(chosen_psk);
         chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
         /* Set PSK to expire in one third of a week after the current time */
-        chosen_psk->keying_material_expiration = one_week_in_nanos / 3 + current_time;
+        chosen_psk->keying_material_expiration = one_week_in_nanos / 3 + now;
         conn->psk_params.chosen_psk = chosen_psk;
 
-        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, current_time, &min_lifetime));
+        EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, now, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC / 3);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -442,7 +469,7 @@ int main(int argc, char **argv)
         struct s2n_blob nonce = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
 
-        struct s2n_blob *output = &conn->ticket_fields.session_secret;
+        struct s2n_blob *output = &conn->tls13_ticket_fields.session_secret;
         EXPECT_SUCCESS(s2n_generate_session_secret(conn, &nonce, output));
         EXPECT_EQUAL(output->size, expected_session_secret.size);
         EXPECT_BYTEARRAY_EQUAL(output->data, expected_session_secret.data, expected_session_secret.size);
@@ -883,6 +910,35 @@ int main(int argc, char **argv)
             EXPECT_TRUE(ticket_len == 0);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
         };
+
+
+        /* Server sends a zero-length ticket when lifetime generation fails. */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->session_ticket_status = S2N_NEW_TICKET;
+
+            /* Make key lifetime expired, so the lifetime generation will fail  */
+            conn->config->encrypt_decrypt_key_lifetime_in_nanos = 0;
+            conn->config->decrypt_key_lifetime_in_nanos = 0;
+
+            EXPECT_SUCCESS(s2n_server_nst_send(conn));
+            EXPECT_TICKETS_SENT(conn, 0);
+
+            uint32_t lifetime = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&conn->handshake.io, &lifetime));
+            EXPECT_TRUE(lifetime == 0);
+
+            uint16_t ticket_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
+            EXPECT_TRUE(ticket_len == 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
+        };
     }
 
     /* s2n_tls13_server_nst_send */
@@ -1003,7 +1059,7 @@ int main(int argc, char **argv)
             EXPECT_TICKETS_SENT(conn, 1);
         };
 
-        /* Send a session ticket with zero lifetime */
+        /* Server shouldn't send the session ticket if nst lifetime is zero. */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
@@ -1018,14 +1074,17 @@ int main(int argc, char **argv)
             /* Set tickets_to_send to 1, so that s2n_tls13_server_nst_send() attempts to send the nst */
             conn->tickets_to_send = 1;
 
-            /* Intentionally set the ticket lifetime to be zero */
+            /* Set the ticket lifetime to be zero */
             conn->config->session_state_lifetime_in_nanos = 0;
             EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             /* Setup io */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
+
+            EXPECT_TICKETS_SENT(conn, 0);
         };
 
         /* Sends one new session ticket */

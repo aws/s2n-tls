@@ -366,7 +366,7 @@ struct s2n_connection {
     s2n_session_ticket_status session_ticket_status;
     struct s2n_blob client_ticket;
     uint32_t ticket_lifetime_hint;
-    struct s2n_ticket_fields ticket_fields;
+    struct s2n_ticket_fields tls13_ticket_fields;
 
     /* Session ticket extension from client to attempt to decrypt as the server. */
     uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];

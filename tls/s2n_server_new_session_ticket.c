@@ -73,15 +73,15 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
 }
 
 static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time,
-    uint64_t current_time, uint32_t *ticket_lifetime)
+        uint64_t key_retrieval_time, uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
     /* Calculate ticket key age */
-    RESULT_ENSURE_GTE(current_time, key_intro_time);
-    uint64_t ticket_key_age_in_nanos = current_time - key_intro_time;
+    RESULT_ENSURE_GTE(key_retrieval_time, key_intro_time);
+    uint64_t ticket_key_age_in_nanos = key_retrieval_time - key_intro_time;
 
     /* Calculate remaining key lifetime */
     uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
@@ -98,8 +98,8 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
         uint32_t key_material_lifetime = conn->server_keying_material_lifetime;
         struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
         if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, current_time);
-            key_material_lifetime = (chosen_psk->keying_material_expiration - current_time) / ONE_SEC_IN_NANOS;
+            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, key_retrieval_time);
+            key_material_lifetime = (chosen_psk->keying_material_expiration - key_retrieval_time) / ONE_SEC_IN_NANOS;
         }
         min_lifetime = MIN(min_lifetime, key_material_lifetime);
     }
@@ -114,6 +114,14 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     return S2N_RESULT_OK;
 }
 
+static int s2n_server_zero_length_nst_send(struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
+
+    return S2N_SUCCESS;
+}
+
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
     uint16_t session_ticket_len = S2N_TLS12_TICKET_SIZE_IN_BYTES;
@@ -121,6 +129,26 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     struct s2n_blob entry = { 0 };
     POSIX_GUARD(s2n_blob_init(&entry, data, sizeof(data)));
     struct s2n_stuffer to = { 0 };
+
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+
+    /* Send a zero-length ticket if there is no valid ticket key. */
+    if (key == NULL) {
+        POSIX_GUARD(s2n_server_zero_length_nst_send(conn));
+
+        return S2N_SUCCESS;
+    }
+
+    /* Using realtime to measure key_retrieval_time provides sufficient timing precision */
+    uint64_t key_retrieval_time = 0;
+    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &key_retrieval_time));
+
+    uint32_t lifetime_hint_in_secs = 0;
+    bool lifetime_result = s2n_result_is_error(s2n_generate_ticket_lifetime(conn,
+        key->intro_timestamp, key_retrieval_time, &lifetime_hint_in_secs));
+
+    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
+    bool resume_encrypt_result = s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, key, &to));
 
     /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
      * its mind mid-handshake or if there are no valid encrypt keys currently available. 
@@ -131,10 +159,8 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# ServerHello, then it sends a zero-length ticket in the
      *# NewSessionTicket handshake message.
      **/
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    if (!conn->config->use_tickets || s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, &to))) {
-        POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
-        POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
+    if (!conn->config->use_tickets || lifetime_result || resume_encrypt_result) {
+        POSIX_GUARD(s2n_server_zero_length_nst_send(conn));
 
         return S2N_SUCCESS;
     }
@@ -142,9 +168,6 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     if (!s2n_server_sending_nst(conn)) {
         POSIX_BAIL(S2N_ERR_SENDING_NST);
     }
-
-    uint32_t lifetime_hint_in_secs = 0;
-    POSIX_GUARD_RESULT(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &lifetime_hint_in_secs));
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
@@ -289,7 +312,14 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
 
-    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+
+    /* Using realtime to measure key_retrieval_time provides sufficient timing precision */
+    uint64_t key_retrieval_time = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &key_retrieval_time));
+
+    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Write message type because session resumption in TLS13 is a post-handshake message */
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, TLS_SERVER_NEW_SESSION_TICKET));
@@ -297,9 +327,15 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     struct s2n_stuffer_reservation message_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
-    /* key_intro_time is not yet retrieved, so skip session ticket lifetime calculation and write it when the data is available */
-    struct s2n_stuffer_reservation ticket_lifetime_reservation = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint32(output, &ticket_lifetime_reservation));
+    uint32_t ticket_lifetime_in_secs = 0;
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, key_retrieval_time, &ticket_lifetime_in_secs));
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
+     *# The value of zero indicates that the ticket should be discarded immediately.
+     **/
+    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
     uint8_t data[sizeof(uint32_t)] = { 0 };
@@ -328,25 +364,8 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Write ticket */
     struct s2n_stuffer_reservation ticket_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(output, &ticket_size));
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
-
-    /**
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
-    *# Indicates the lifetime in seconds as a 32-bit
-    *# unsigned integer in network byte order from the time of ticket
-    *# issuance.
-    **/
-    uint32_t ticket_lifetime_in_secs = 0;
-
-    /* Come back to the ticket lifetime field and write the data */
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, conn->ticket_fields.key_intro_time, conn->ticket_fields.current_time, &ticket_lifetime_in_secs));
-    /**
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
-     *# The value of zero indicates that the ticket should be discarded immediately.
-     **/
-    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
-    RESULT_GUARD_POSIX(s2n_stuffer_write_reservation(&ticket_lifetime_reservation, ticket_lifetime_in_secs));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
 
@@ -380,7 +399,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     if (!conn->config->use_tickets) {
         return S2N_RESULT_OK;
     }
-    struct s2n_ticket_fields *ticket_fields = &conn->ticket_fields;
+    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Handle `ticket_lifetime` field */
     uint32_t ticket_lifetime = 0;

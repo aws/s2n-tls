@@ -49,8 +49,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
-            /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
+            /* Encrypt the ticket without EMS data */
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -88,8 +91,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket without EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -125,8 +131,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
-            /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
+            /* Encrypt the ticket without EMS data */
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));

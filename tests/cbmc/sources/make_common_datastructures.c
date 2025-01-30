@@ -801,7 +801,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     s2n_connection->verify_host_fn       = malloc(sizeof(*(s2n_connection->verify_host_fn))); /* Function pointer. */
     s2n_connection->data_for_verify_host = malloc(sizeof(*(s2n_connection->data_for_verify_host)));
     cbmc_populate_s2n_blob(&(s2n_connection->client_ticket));
-    cbmc_populate_s2n_ticket_fields(&(s2n_connection->ticket_fields));
+    cbmc_populate_s2n_ticket_fields(&(s2n_connection->tls13_ticket_fields));
     cbmc_populate_s2n_stuffer(&(s2n_connection->client_ticket_to_decrypt));
     cbmc_populate_s2n_blob(&(s2n_connection->application_protocols_overridden));
     cbmc_populate_s2n_blob(&(s2n_connection->cookie));
