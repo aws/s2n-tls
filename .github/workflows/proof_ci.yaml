@@ -109,6 +109,7 @@ jobs:
           CBMC_VIEWER_REL="https://api.github.com/repos/model-checking/cbmc-viewer/releases/latest"
           CBMC_VIEWER_VERSION=$(curl -s $CBMC_VIEWER_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r .name | sed  's/viewer-//')
           sudo pip3 install cbmc-viewer==$CBMC_VIEWER_VERSION
+          pipx ensurepath
       - name: Install CBMC viewer ${{ env.CBMC_VIEWER_VERSION }}
         if: ${{ env.CBMC_VIEWER_VERSION != 'latest' }}
         shell: bash
@@ -212,7 +213,12 @@ jobs:
         env:
           EXTERNAL_SAT_SOLVER: kissat
         working-directory: ${{ env.PROOFS_DIR }}
-        run: ${{ env.RUN_CBMC_PROOFS_COMMAND }}
+        run: |
+          echo "Running some tshooting commands"
+          whoami
+          pwd
+          find . -name \*run-cbmc-proofs.py
+          ${{ env.RUN_CBMC_PROOFS_COMMAND }}
       - name: Check repository visibility
         shell: bash
         run: |
