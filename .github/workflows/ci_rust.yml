@@ -438,5 +438,7 @@ jobs:
       - name: Failure
         if: steps.diff.outcome != 'success'
         run: |
-          echo "Please update the Cargo.toml in s2n-tls-sys"
+          echo "A mismatch between the existing s2n-tls-sys/Cargo.toml and the Cargo.toml generated \
+          from s2n-tls-sys/templates/Cargo.template has been found. Please ensure that the committed \
+          Cargo.toml is up-to-date by regenerating it with ${{env.ROOT_PATH}}/generate.sh"
           exit 1
