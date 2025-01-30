@@ -19,7 +19,7 @@ env:
   LITANI_VERSION: latest
   Z3_VERSION: "4.13.0"
   BITWUZLA_VERSION: "0.5.0"
-  PROOFS_DIR-dir: tests/cbmc/proofs
+  PROOFS_DIR-dir: ./tests/cbmc/proofs
   RUN_CBMC_PROOFS_COMMAND: ./run-cbmc-proofs.py
 
 
