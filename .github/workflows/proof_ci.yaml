@@ -36,7 +36,7 @@ jobs:
   run_cbmc_proofs:
     runs-on:
       - codebuild-GitHubRunner-${{ github.run_id }}-${{ github.run_attempt }}
-      - instance-size:large
+      - instance-size:2xlarge
     name: run_cbmc_proofs
     permissions:
       contents: read
