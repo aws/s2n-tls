@@ -212,11 +212,9 @@ jobs:
         shell: bash
         env:
           EXTERNAL_SAT_SOLVER: kissat
-        working-directory: ${{ env.PROOFS_DIR }}
         run: |
           cd $(dirname $(find . -name \*run-cbmc-proofs.py))
-          pwd
-          ls -al
+          export PATH=/root/.local/bin:$PATH
           ${{ env.RUN_CBMC_PROOFS_COMMAND }}
       - name: Check repository visibility
         shell: bash
