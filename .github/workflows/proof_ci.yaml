@@ -13,14 +13,16 @@ on:
     types: [checks_requested]
     branches: [main]
 env:
+  BITWUZLA_VERSION: "0.5.0"
+  CADICAL_TAG: latest
   CBMC_VERSION: "6.2.0"
   CBMC_VIEWER_VERSION: latest
   KISSAT_TAG: latest
   LITANI_VERSION: latest
-  Z3_VERSION: "4.13.0"
-  BITWUZLA_VERSION: "0.5.0"
   PROOFS_DIR-dir: ./tests/cbmc/proofs
+  REPO_VISIBILITY: public
   RUN_CBMC_PROOFS_COMMAND: ./run-cbmc-proofs.py
+  Z3_VERSION: "4.13.0"
 
 
 # USAGE
@@ -216,11 +218,6 @@ jobs:
           cd $(dirname $(find . -name \*run-cbmc-proofs.py))
           export PATH=/root/.local/bin:$PATH
           ${{ env.RUN_CBMC_PROOFS_COMMAND }}
-      - name: Check repository visibility
-        shell: bash
-        run: |
-          VIZ="${{ fromJson(toJson(github.event.repository)).visibility }}";
-          echo "REPO_VISIBILITY=${VIZ}" | tee -a "${GITHUB_ENV}";
       - name: Set name for zip artifact with CBMC proof results
         id: artifact
         if: ${{ env.REPO_VISIBILITY == 'public' }}
