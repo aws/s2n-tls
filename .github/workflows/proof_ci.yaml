@@ -214,10 +214,9 @@ jobs:
           EXTERNAL_SAT_SOLVER: kissat
         working-directory: ${{ env.PROOFS_DIR }}
         run: |
-          echo "Running some tshooting commands"
-          whoami
+          cd $(dirname (find . -name \*run-cbmc-proofs.py))
           pwd
-          find . -name \*run-cbmc-proofs.py
+          ls -al
           ${{ env.RUN_CBMC_PROOFS_COMMAND }}
       - name: Check repository visibility
         shell: bash
