@@ -155,10 +155,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     //
     // This method returns Option instead of Result because the callback has no mechanism
     // for surfacing errors to the application, so Result would be somewhat deceptive.
-    fn on_renegotiate_request(
-        &self,
-        connection: &mut Connection,
-    ) -> Option<RenegotiateResponse>;
+    fn on_renegotiate_request(&self, connection: &mut Connection) -> Option<RenegotiateResponse>;
 
     /// A callback that triggers after the connection is wiped for renegotiation.
     ///
@@ -717,10 +714,7 @@ mod tests {
     fn error_callback() -> Result<(), Box<dyn Error>> {
         struct ErrorRenegotiateCallback {}
         impl RenegotiateCallback for ErrorRenegotiateCallback {
-            fn on_renegotiate_request(
-                &self,
-                _: &mut Connection,
-            ) -> Option<RenegotiateResponse> {
+            fn on_renegotiate_request(&self, _: &mut Connection) -> Option<RenegotiateResponse> {
                 None
             }
         }
