@@ -13,3 +13,8 @@ Connect to the server with the example client as follows:
 ```
 cargo run --bin client -- --body "some text to send to the server"
 ```
+
+The example client simply sends a GET request to the server, and can be configured to use a different server address:
+```
+cargo run --bin client -- --addr www.amazon.com
+```
