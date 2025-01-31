@@ -20,6 +20,29 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv run pytest --provider-version <LINKED_LIBCRYPTO> --best-effort-NOT-FOR-CI -x -rpfs -n auto
 ```
 
+## Architecture
+```
+ ┌────────────────────────────────────────────────────────────┐
+ │                                                            │
+ │                      Pytest Process                        │
+ │      Managed                                Managed        │
+ │    Process (s2n)                          Process (Ossl)   │
+ │     │       ▲                             │        ▲       │
+ └─────┼───────┼─────────────────────────────┼────────┼───────┘
+       │       │                             │        │        
+     STDIN   STDOUT                        STDIN    STDOUT     
+       │       │                             │        │        
+       │       │                             │        │        
+    ┌──▼───────┼───┐                      ┌──▼────────┼────┐   
+    │    s2nc      │◄────────TLS─────────►│  openssl server│   
+    └──────────────┘  ▲                   └────────────────┘   
+                      │                           ▲            
+                      │                           │            
+                localhost/socket                  │            
+                                               process         
+```
+The integration test harness relies on client and server executables. It coordinates these through stdin/stdout.
+
 ## Run all tests
 
 The fastest way to run the integrationv2 tests is to run `make` from the S2N root directory.
