@@ -911,7 +911,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
         };
 
-
         /* Server sends a zero-length ticket when lifetime generation fails. */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);

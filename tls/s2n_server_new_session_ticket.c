@@ -145,7 +145,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
 
     uint32_t lifetime_hint_in_secs = 0;
     bool lifetime_result = s2n_result_is_error(s2n_generate_ticket_lifetime(conn,
-        key->intro_timestamp, key_retrieval_time, &lifetime_hint_in_secs));
+            key->intro_timestamp, key_retrieval_time, &lifetime_hint_in_secs));
 
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
     bool resume_encrypt_result = s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, key, &to));

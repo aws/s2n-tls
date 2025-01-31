@@ -820,7 +820,7 @@ static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket
 }
 
 S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn,
-    struct s2n_ticket_key *key, struct s2n_stuffer *to)
+        struct s2n_ticket_key *key, struct s2n_stuffer *to)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(key);
