@@ -60,6 +60,8 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn);
 int s2n_tls13_cert_verify_recv(struct s2n_connection *conn);
 int s2n_tls13_cert_verify_send(struct s2n_connection *conn);
 int s2n_server_nst_send(struct s2n_connection *conn);
+S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_hint_in_secs,
+    struct s2n_blob *session_ticket);
 int s2n_server_nst_recv(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output);

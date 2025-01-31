@@ -1081,7 +1081,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_ZERO_LIFETIME_TICKET);
 
             EXPECT_TICKETS_SENT(conn, 0);
         };

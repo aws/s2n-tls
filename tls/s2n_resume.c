@@ -498,7 +498,6 @@ S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn)
 
     struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
     RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
-
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &to));
 
     /* Store to the cache */

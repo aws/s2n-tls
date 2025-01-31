@@ -114,41 +114,15 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     return S2N_RESULT_OK;
 }
 
-static int s2n_server_zero_length_nst_send(struct s2n_connection *conn)
-{
-    POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
-    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
-
-    return S2N_SUCCESS;
-}
-
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
-    uint16_t session_ticket_len = S2N_TLS12_TICKET_SIZE_IN_BYTES;
+    POSIX_ENSURE_REF(conn);
+
     uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob entry = { 0 };
-    POSIX_GUARD(s2n_blob_init(&entry, data, sizeof(data)));
-    struct s2n_stuffer to = { 0 };
-
-    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-
-    /* Send a zero-length ticket if there is no valid ticket key. */
-    if (key == NULL) {
-        POSIX_GUARD(s2n_server_zero_length_nst_send(conn));
-
-        return S2N_SUCCESS;
-    }
-
-    /* Using realtime to measure key_retrieval_time provides sufficient timing precision */
-    uint64_t key_retrieval_time = 0;
-    POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &key_retrieval_time));
+    struct s2n_blob session_ticket = { 0 };
+    POSIX_GUARD(s2n_blob_init(&session_ticket, data, sizeof(data)));
 
     uint32_t lifetime_hint_in_secs = 0;
-    bool lifetime_result = s2n_result_is_error(s2n_generate_ticket_lifetime(conn,
-            key->intro_timestamp, key_retrieval_time, &lifetime_hint_in_secs));
-
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    bool resume_encrypt_result = s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, key, &to));
 
     /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
      * its mind mid-handshake or if there are no valid encrypt keys currently available. 
@@ -159,26 +133,43 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# ServerHello, then it sends a zero-length ticket in the
      *# NewSessionTicket handshake message.
      **/
-    if (!conn->config->use_tickets || lifetime_result || resume_encrypt_result) {
-        POSIX_GUARD(s2n_server_zero_length_nst_send(conn));
-
+    if (s2n_result_is_error(s2n_server_nst_write(conn, &lifetime_hint_in_secs, &session_ticket))) {
+        POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
+        POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
         return S2N_SUCCESS;
     }
 
-    if (!s2n_server_sending_nst(conn)) {
-        POSIX_BAIL(S2N_ERR_SENDING_NST);
-    }
-
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
-    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
-
-    POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket.size));
+    POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &session_ticket));
 
     /* For parity with TLS1.3, track the single ticket sent.
      * This simplifies s2n_connection_get_tickets_sent.
      */
     conn->tickets_sent++;
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_hint_in_secs,
+    struct s2n_blob *session_ticket)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE(s2n_server_sending_nst(conn), S2N_ERR_SENDING_NST);
+
+    struct s2n_stuffer output = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&output, session_ticket));
+
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE_REF(key);
+
+    uint64_t key_retrieval_time = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &key_retrieval_time));
+
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp,
+        key_retrieval_time, lifetime_hint_in_secs));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &output));
+
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
@@ -330,11 +321,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     uint32_t ticket_lifetime_in_secs = 0;
     RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, key_retrieval_time, &ticket_lifetime_in_secs));
 
-    /**
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
-     *# The value of zero indicates that the ticket should be discarded immediately.
-     **/
-    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_SESSION_TICKET_LIFETIME_EXPIRED);
+    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_ZERO_LIFETIME_TICKET);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
