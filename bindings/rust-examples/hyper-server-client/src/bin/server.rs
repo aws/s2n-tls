@@ -22,7 +22,7 @@ pub const KEY_PEM: &[u8] = include_bytes!(concat!(
 
 #[derive(Parser)]
 struct Args {
-    #[clap(short, long, default_value = "localhost:1142")]
+    #[clap(short, long, default_value = "localhost:8888")]
     addr: String,
 }
 

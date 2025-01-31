@@ -13,7 +13,7 @@ const CA: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/
 
 #[derive(Parser)]
 struct Args {
-    #[clap(short, long, default_value = "localhost:1142")]
+    #[clap(short, long, default_value = "localhost:8888")]
     addr: String,
     #[clap(short, long, default_value = "")]
     body: String,
