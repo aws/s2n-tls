@@ -52,7 +52,8 @@ int main(int argc, char **argv)
      * where size % 3 == 0, 1, 2
      */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&entropy, 50));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, 50));
+    /* +1 to give space for the null terminator written by EVP_EncodeBlock */
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, 50 + 1));
 
     for (size_t i = entropy.blob.size; i > 0; i--) {
         EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
