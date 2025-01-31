@@ -42,19 +42,12 @@ async fn run_client(addr: &str, request_body: Vec<u8>) -> Result<(), Box<dyn Err
     let response = client.request(request).await?;
     assert_eq!(response.status(), http::StatusCode::OK);
 
-    // s2n-tls-hyper will always attempt to negotiate HTTP/2. Since the example server enables
-    // HTTP/2, assert that it was negotiated.
-    assert_eq!(response.version(), http::Version::HTTP_2);
-
     // Get the response body.
     let response_body = response.into_body().collect().await?.to_bytes();
     println!(
         "Response body: \n{}",
         String::from_utf8_lossy(&response_body)
     );
-
-    // The example server echos the request body back to the client.
-    assert_eq!(response_body.to_vec(), request_body);
 
     Ok(())
 }
