@@ -93,14 +93,16 @@ impl Config {
     /// Retrieve a mutable reference to the [`Context`] stored on the config.
     ///
     /// Corresponds to [s2n_config_get_ctx].
-    pub(crate) fn context_mut(&mut self) -> &mut Context {
+    ///
+    /// SAFETY: There must only ever by mutable reference to `Context` alive at
+    ///         any time. Configs can be shared across threads, so this method is
+    ///         almost certainly not correct for your usecase.
+    unsafe fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &mut *(ctx as *mut Context)
-        }
+        s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+            .into_result()
+            .unwrap();
+        &mut *(ctx as *mut Context)
     }
 
     #[cfg(test)]
@@ -135,7 +137,7 @@ impl Clone for Config {
 impl Drop for Config {
     /// Corresponds to [s2n_config_free].
     fn drop(&mut self) {
-        let context = self.context_mut();
+        let context = self.context();
         let count = context.refcount.fetch_sub(1, Ordering::Release);
         debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
@@ -158,13 +160,15 @@ impl Drop for Config {
         // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1637
         std::sync::atomic::fence(Ordering::Acquire);
 
-        unsafe {
-            // This is the last instance so free the context.
-            let context = Box::from_raw(context);
-            drop(context);
+        // This is the last instance so free the context.
+        let context = unsafe {
+            // SAFETY: The reference count is verified to be 1, so this is the
+            // last instance of the config, and the only reference to the context.
+            Box::from_raw(self.context_mut())
+        };
+        drop(context);
 
-            let _ = s2n_config_free(self.0.as_ptr()).into_result();
-        }
+        let _ = unsafe { s2n_config_free(self.0.as_ptr()).into_result() };
     }
 }
 
