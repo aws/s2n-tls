@@ -306,7 +306,7 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
-      - uses: SebRollen/toml-action@v1
+      - uses: SebRollen/toml-action@v1.2.0
         id: read_toml
         with:
           file: '${{env.ROOT_PATH}}/rust-toolchain.toml'
@@ -334,7 +334,7 @@ jobs:
         with:
           submodules: true
 
-      - uses: SebRollen/toml-action@v1
+      - uses: SebRollen/toml-action@v1.2.0
         id: read_toml
         with:
           file: '${{env.ROOT_PATH}}/rust-toolchain.toml'
