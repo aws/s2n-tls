@@ -822,8 +822,9 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn,
         struct s2n_ticket_key *key, struct s2n_stuffer *to)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(key);
     RESULT_ENSURE_REF(to);
+
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
     /* Generate unique per-ticket encryption key */
     struct s2n_unique_ticket_key ticket_key = { 0 };

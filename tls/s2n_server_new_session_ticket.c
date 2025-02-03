@@ -73,15 +73,18 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
 }
 
 static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time,
-        uint64_t key_retrieval_time, uint32_t *ticket_lifetime)
+        uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
+    uint64_t now = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
+
     /* Calculate ticket key age */
-    RESULT_ENSURE_GTE(key_retrieval_time, key_intro_time);
-    uint64_t ticket_key_age_in_nanos = key_retrieval_time - key_intro_time;
+    RESULT_ENSURE_GTE(now, key_intro_time);
+    uint64_t ticket_key_age_in_nanos = now - key_intro_time;
 
     /* Calculate remaining key lifetime */
     uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
@@ -97,9 +100,10 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     if (conn->actual_protocol_version == S2N_TLS13) {
         uint32_t key_material_lifetime = conn->server_keying_material_lifetime;
         struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
-        if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, key_retrieval_time);
-            key_material_lifetime = (chosen_psk->keying_material_expiration - key_retrieval_time) / ONE_SEC_IN_NANOS;
+        if (chosen_psk) {
+            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, now);
+            uint32_t psk_key_material_lifetime = (chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS;
+            key_material_lifetime = MIN(key_material_lifetime, psk_key_material_lifetime);
         }
         min_lifetime = MIN(min_lifetime, key_material_lifetime);
     }
@@ -160,13 +164,9 @@ S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_
     RESULT_GUARD_POSIX(s2n_stuffer_init(&output, session_ticket));
 
     struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
-    uint64_t key_retrieval_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &key_retrieval_time));
-
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp,
-        key_retrieval_time, lifetime_hint_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, lifetime_hint_in_secs));
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &output));
 
     return S2N_RESULT_OK;
@@ -306,10 +306,6 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
     RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
-    /* Using realtime to measure key_retrieval_time provides sufficient timing precision */
-    uint64_t key_retrieval_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &key_retrieval_time));
-
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Write message type because session resumption in TLS13 is a post-handshake message */
@@ -319,7 +315,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
     uint32_t ticket_lifetime_in_secs = 0;
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, key_retrieval_time, &ticket_lifetime_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, &ticket_lifetime_in_secs));
 
     RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_ZERO_LIFETIME_TICKET);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
