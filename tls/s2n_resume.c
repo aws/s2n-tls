@@ -645,7 +645,7 @@ S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config)
         RESULT_GUARD(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
-        if (key_intro_time < now
+        if (key_intro_time <= now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
             return S2N_RESULT_OK;
         }

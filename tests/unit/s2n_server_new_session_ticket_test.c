@@ -85,10 +85,9 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
 }
 
 uint64_t mock_current_time = 0;
-
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
-    *nanoseconds = *(&mock_current_time);
+    *nanoseconds = mock_current_time;
     return S2N_SUCCESS;
 }
 
@@ -144,6 +143,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -166,23 +167,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint24(&output, &message_size));
             EXPECT_EQUAL(message_size, s2n_stuffer_data_available(&output));
 
-            uint64_t now = 0;
-            POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
-
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-            uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-            struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, ticket_key_name);
-            EXPECT_NOT_NULL(key);
 
-            EXPECT_TRUE(now > key->intro_timestamp);
-            uint64_t key_age_in_nanos = now - key->intro_timestamp;
-
-            uint64_t key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
-
-            EXPECT_TRUE(key_lifetime_in_nanos > key_age_in_nanos);
-            uint32_t key_lifetime_in_secs = (key_lifetime_in_nanos - key_age_in_nanos) / ONE_SEC_IN_NANOS;
-            EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
+            EXPECT_EQUAL(ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
             /* Skipping random data */
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, sizeof(uint32_t)));
