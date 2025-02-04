@@ -25,8 +25,8 @@
 
 #define ONE_HOUR_IN_NANOS 3600000000000
 
-#define BASE_LIFETIME_IN_NANOS    (ONE_HOUR_IN_NANOS * 2)
-#define REDUCED_LIFETIME_IN_NANOS (BASE_LIFETIME_IN_NANOS / 4)
+#define BASE_LIFETIME_IN_NANOS    ONE_HOUR_IN_NANOS
+#define REDUCED_LIFETIME_IN_NANOS (BASE_LIFETIME_IN_NANOS / 2)
 #define BASE_LIFETIME_IN_SECS     (BASE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 #define REDUCED_LIFETIME_IN_SECS  (REDUCED_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 
@@ -92,40 +92,43 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-static int s2n_test_add_psk(struct s2n_connection *conn)
+static S2N_RESULT s2n_test_add_psk(struct s2n_connection *conn)
 {
     struct s2n_psk *chosen_psk = s2n_test_psk_new(conn);
-    EXPECT_NOT_NULL(chosen_psk);
+    RESULT_ENSURE_REF(chosen_psk);
 
     uint64_t lifetime_in_nanos = BASE_LIFETIME_IN_NANOS;
     chosen_psk->keying_material_expiration = lifetime_in_nanos + mock_current_time;
     conn->psk_params.chosen_psk = chosen_psk;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_test_init_ticket_key_lifetime(struct s2n_connection *conn, uint64_t *key_intro_time)
+static S2N_RESULT s2n_test_init_ticket_lifetime(struct s2n_connection *conn, uint64_t *key_intro_time)
 {
-    mock_current_time = ONE_HOUR_IN_NANOS;
+    mock_current_time = 0;
     *key_intro_time = mock_current_time;
-    EXPECT_SUCCESS(s2n_config_set_wall_clock(conn->config, mock_time, NULL));
+    RESULT_GUARD_POSIX(s2n_config_set_wall_clock(conn->config, mock_time, NULL));
 
-    /* Use TLS1.3 by default to test set up */
+    /* Use TLS1.3 by default to include psk test set up */
     conn->actual_protocol_version = S2N_TLS13;
 
     conn->config->encrypt_decrypt_key_lifetime_in_nanos = BASE_LIFETIME_IN_NANOS / 2;
     conn->config->decrypt_key_lifetime_in_nanos = BASE_LIFETIME_IN_NANOS / 2;
     conn->config->session_state_lifetime_in_nanos = BASE_LIFETIME_IN_NANOS;
-    EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, BASE_LIFETIME_IN_SECS));
+    RESULT_GUARD_POSIX(s2n_connection_set_server_keying_material_lifetime(conn, BASE_LIFETIME_IN_SECS));
 
-    EXPECT_SUCCESS(s2n_test_add_psk(conn));
+    RESULT_GUARD(s2n_test_add_psk(conn));
 
-    /* Test if every variables are set to BASE_LIFETIME_IN_SECS */
+    /* The minimum lifetime is BASE_LIFETIME_IN_SECS.
+     * It will be the reduced value if we decrease one component.
+     */
+    EXPECT_TRUE(REDUCED_LIFETIME_IN_NANOS < BASE_LIFETIME_IN_NANOS);
     uint32_t test_lifetime = 0;
-    EXPECT_OK(s2n_generate_ticket_lifetime(conn, *key_intro_time, &test_lifetime));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, *key_intro_time, &test_lifetime));
     EXPECT_EQUAL(test_lifetime, BASE_LIFETIME_IN_SECS);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int main(int argc, char **argv)
@@ -431,39 +434,24 @@ int main(int argc, char **argv)
 
         /* Test: remaining key lifetime is the shortest */
         {
-            EXPECT_SUCCESS(s2n_test_init_ticket_key_lifetime(conn, &key_intro_time));
-
-            /* Set the ticket age to be half an hour */
-            key_intro_time = key_intro_time / 2;
-
-            conn->actual_protocol_version = S2N_TLS12;
-
-            /* There is no PSK in TLS1.2 */
-            EXPECT_SUCCESS(s2n_psk_free(&conn->psk_params.chosen_psk));
-            conn->psk_params.chosen_psk = NULL;
-
-            uint64_t ticket_key_age = mock_current_time - key_intro_time;
-            uint64_t key_lifetime_in_nanos = config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos;
-            uint32_t remaining_key_lifetime = (key_lifetime_in_nanos - ticket_key_age) / ONE_SEC_IN_NANOS;
+            EXPECT_OK(s2n_test_init_ticket_lifetime(conn, &key_intro_time));
+            mock_current_time = REDUCED_LIFETIME_IN_NANOS;
 
             uint32_t session_ticket_lifetime = 0;
             EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &session_ticket_lifetime));
-            EXPECT_EQUAL(session_ticket_lifetime, remaining_key_lifetime);
+            EXPECT_EQUAL(session_ticket_lifetime, REDUCED_LIFETIME_IN_SECS);
         }
 
         /* Test: connection keying material has the shortest lifetime */
         {
-            EXPECT_SUCCESS(s2n_test_init_ticket_key_lifetime(conn, &key_intro_time));
-
+            EXPECT_OK(s2n_test_init_ticket_lifetime(conn, &key_intro_time));
             EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, REDUCED_LIFETIME_IN_SECS));
-
-            uint32_t server_keying_material_lifetime = conn->server_keying_material_lifetime;
 
             /* When PSK exists */
             {
                 uint32_t session_ticket_lifetime = 0;
                 EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &session_ticket_lifetime));
-                EXPECT_EQUAL(session_ticket_lifetime, server_keying_material_lifetime);
+                EXPECT_EQUAL(session_ticket_lifetime, REDUCED_LIFETIME_IN_SECS);
             }
 
             /* When PSK doesn't exist */
@@ -473,25 +461,19 @@ int main(int argc, char **argv)
 
                 uint32_t session_ticket_lifetime = 0;
                 EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &session_ticket_lifetime));
-                EXPECT_EQUAL(session_ticket_lifetime, server_keying_material_lifetime);
+                EXPECT_EQUAL(session_ticket_lifetime, REDUCED_LIFETIME_IN_SECS);
             }
         }
 
         /* Test: PSK keying material lifetime is the shortest */
         {
-            EXPECT_SUCCESS(s2n_test_init_ticket_key_lifetime(conn, &key_intro_time));
-
-            uint64_t lifetime_in_nanos = REDUCED_LIFETIME_IN_NANOS;
-
+            EXPECT_OK(s2n_test_init_ticket_lifetime(conn, &key_intro_time));
             struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
-            chosen_psk->keying_material_expiration = lifetime_in_nanos + mock_current_time;
+            chosen_psk->keying_material_expiration = REDUCED_LIFETIME_IN_NANOS + mock_current_time;
 
             uint32_t session_ticket_lifetime = 0;
             EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &session_ticket_lifetime));
             EXPECT_EQUAL(session_ticket_lifetime, REDUCED_LIFETIME_IN_SECS);
-
-            EXPECT_SUCCESS(s2n_psk_free(&conn->psk_params.chosen_psk));
-            conn->psk_params.chosen_psk = NULL;
         }
     };
 

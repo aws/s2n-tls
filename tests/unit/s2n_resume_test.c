@@ -1298,7 +1298,6 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-
             EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, NULL, &conn->client_ticket_to_decrypt),
                     S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
         }
@@ -1315,11 +1314,10 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            struct s2n_stuffer output = { 0 };
-
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
             EXPECT_NOT_NULL(key);
 
+            struct s2n_stuffer output = { 0 };
             EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_STUFFER_IS_FULL);
         }
 
@@ -1485,12 +1483,11 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->handshake.handshake_type = NEGOTIATED;
 
-            DEFER_CLEANUP(struct s2n_stuffer valid_ticket = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&valid_ticket, 0));
-
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
             EXPECT_NOT_NULL(key);
 
+            DEFER_CLEANUP(struct s2n_stuffer valid_ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&valid_ticket, 0));
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &valid_ticket));
             uint32_t ticket_size = s2n_stuffer_data_available(&valid_ticket);
 
