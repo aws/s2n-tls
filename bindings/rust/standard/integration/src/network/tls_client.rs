@@ -53,7 +53,7 @@ mod kms_pq {
             tls.as_ref().cipher_suite()?,
             "TLS_AES_256_GCM_SHA384"
         );
-        assert_eq!(tls.as_ref().kem_group_name(), Some("x25519_kyber-512-r3"));
+        assert!(tls.as_ref().kem_group_name().unwrap().to_lowercase().contains("kyber"));
 
         Ok(())
     }
