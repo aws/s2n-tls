@@ -238,8 +238,8 @@ int main(int argc, char **argv)
 
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -375,7 +375,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
-        mock_current_time = mock_current_time + server_config->encrypt_decrypt_key_lifetime_in_nanos;
+        mock_current_time += server_config->encrypt_decrypt_key_lifetime_in_nanos;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, NULL));
 
         uint32_t key_intro_time = mock_current_time / ONE_SEC_IN_NANOS;
@@ -397,10 +397,8 @@ int main(int argc, char **argv)
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
-
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         /* Verify that the new NST is encrypted using second ST */
@@ -449,7 +447,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
-        mock_current_time = mock_current_time + server_config->encrypt_decrypt_key_lifetime_in_nanos;
+        mock_current_time += server_config->encrypt_decrypt_key_lifetime_in_nanos;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, NULL));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -525,7 +523,6 @@ int main(int argc, char **argv)
 
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -599,7 +596,6 @@ int main(int argc, char **argv)
 
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -669,7 +665,6 @@ int main(int argc, char **argv)
 
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -849,7 +844,6 @@ int main(int argc, char **argv)
 
         /* Verify the lifetime hint from the server */
         uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-
         EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS - delay_in_nanos / ONE_SEC_IN_NANOS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -909,8 +903,8 @@ int main(int argc, char **argv)
                     ticket_key1, s2n_array_len(ticket_key1), 0));
 
             /* Add second key when the first key is very close to it's encryption peak */
-            uint64_t key_half_lifetime = server_config->encrypt_decrypt_key_lifetime_in_nanos / 2;
-            mock_current_time += key_half_lifetime;
+            uint64_t delay_in_nanos = server_config->encrypt_decrypt_key_lifetime_in_nanos / 2;
+            mock_current_time += delay_in_nanos;
             EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
                     ticket_key2, s2n_array_len(ticket_key2), 0));
@@ -918,7 +912,7 @@ int main(int argc, char **argv)
             /* Add third key when the second key is very close to it's encryption peak and
             * the first key is about to transition from encrypt-decrypt state to decrypt-only state
             */
-            mock_current_time += key_half_lifetime;
+            mock_current_time += delay_in_nanos;
             EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, s2n_array_len(ticket_key_name3),
                     ticket_key3, s2n_array_len(ticket_key3), 0));
@@ -946,7 +940,7 @@ int main(int argc, char **argv)
 
             /* Verify the lifetime hint from the server */
             uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
-            uint32_t second_key_remaining_lifetime = S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS - (key_half_lifetime / ONE_SEC_IN_NANOS);
+            uint32_t second_key_remaining_lifetime = S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS - (delay_in_nanos / ONE_SEC_IN_NANOS);
             EXPECT_EQUAL(session_ticket_lifetime, second_key_remaining_lifetime);
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));

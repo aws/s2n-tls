@@ -143,6 +143,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
+            mock_current_time = 0;
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
@@ -239,6 +240,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NOT_NULL(conn);
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
