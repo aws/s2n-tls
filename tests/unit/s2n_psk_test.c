@@ -94,12 +94,15 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
 
         uint8_t test_value_1[] = TEST_VALUE_1;
+        uint8_t all_zero_value[] = { 0, 0, 0, 0, 0 };
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_secret(NULL, test_value_1, 1),
                 S2N_ERR_NULL);
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_secret(&psk, NULL, 1),
                 S2N_ERR_NULL);
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_secret(&psk, test_value_1, 0),
+                S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_secret(&psk, all_zero_value, s2n_array_len(all_zero_value)),
                 S2N_ERR_INVALID_ARGUMENT);
 
         EXPECT_SUCCESS(s2n_psk_set_secret(&psk, test_value_1, sizeof(test_value_1)));
@@ -794,22 +797,43 @@ int main(int argc, char **argv)
 
         /* Invalid PSK not added to connection */
         {
-            struct s2n_connection *conn = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
             /* PSK is invalid because it has no identity */
-            DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
-            EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
+            {
+                struct s2n_connection *conn = NULL;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, invalid_psk),
-                    S2N_ERR_INVALID_ARGUMENT);
-            EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
+                DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
+                EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
 
-            /* Successful if identity added to PSK, making it valid */
-            EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, identity_0, sizeof(identity_0)));
-            EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, invalid_psk),
+                        S2N_ERR_INVALID_ARGUMENT);
+                EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+                /* Successful if identity added to PSK, making it valid */
+                EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, identity_0, sizeof(identity_0)));
+                EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            };
+
+            /* PSK is invalid because it has no secret */
+            {
+                struct s2n_connection *conn = NULL;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+                DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
+                EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, identity_0, sizeof(identity_0)));
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, invalid_psk),
+                        S2N_ERR_INVALID_ARGUMENT);
+                EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
+
+                /* Successful if identity added to PSK, making it valid */
+                EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
+                EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            };
         };
 
         /* Huge PSK not added to client connection */
