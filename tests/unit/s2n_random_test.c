@@ -795,7 +795,6 @@ static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_
 
 static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
 {
-    /* s2n_libcrypto_is_fips() is used since we are testing `s2n_init()` */
     if (s2n_supports_custom_rand()) {
         /* Calling RAND_bytes will set a global random method */
         unsigned char rndbytes[16] = { 0 };
