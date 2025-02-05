@@ -71,6 +71,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "s2n_io.h"
 #include "stuffer/s2n_stuffer.h"
@@ -560,9 +561,8 @@ bool s2n_supports_custom_rand(void)
     /* AWS-LC-FIPS supports custom rand unless s2n-tls is in FIPS mode */
     /* OpenSSL-FIPS never supports custom rand, regardless of mode */
     /* OpenSSL non-fips always supports custom rand*/
-    bool openssl_fips = s2n_libcrypto_is_fips() && s2n_libcrypto_is_openssl();
     bool awslc_fips_with_fips_enabled = s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode();
-    return !(openssl_fips || awslc_fips_with_fips_enabled);
+    return !(s2n_libcrypto_is_openssl_fips() || awslc_fips_with_fips_enabled);
 #endif
 }
 
