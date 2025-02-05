@@ -380,7 +380,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
         uint64_t key_intro_time = mock_current_time;
-
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2) / ONE_SEC_IN_NANOS);
 
