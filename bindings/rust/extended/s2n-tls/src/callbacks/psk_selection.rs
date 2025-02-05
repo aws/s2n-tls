@@ -56,7 +56,7 @@ impl Drop for OfferedPsk<'_> {
         let mut s2n_ptr = self.ptr.as_ptr();
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
-        let _ = unsafe { s2n_offered_psk_free(std::ptr::addr_of_mut!(s2n_ptr)).into_result() };
+        let _ = unsafe { s2n_offered_psk_free(&mut s2n_ptr).into_result() };
     }
 }
 
@@ -123,13 +123,13 @@ impl<'callback> OfferedPskListRef<'callback> {
 
 pub struct IdentitySelector<'selector, 'callback> {
     psk: OfferedPsk<'callback>,
-    // it is necessary for 'selector to outlive 'callback, because we want to be able
-    // to create multiple 'selector within the scope of a single 'callback
+    // it is necessary for 'callback to outlive 'selector, because we want to be able
+    // to create multiple 'selector within the scope of a single 'callback.
     list: &'selector mut OfferedPskListRef<'callback>,
 }
 
 impl IdentitySelector<'_, '_> {
-    /// Choose the currently selected PSK to negotiate with.
+    /// Choose the PSK returned from the last call to `next()` to negotiate with.
     ///
     /// If no offered PSK is acceptable, implementors can return from the callback
     /// without calling this function to reject the connection.
@@ -180,7 +180,7 @@ impl OfferedPskSelector<'_, '_> {
     }
 
     /// Reset the cursor, allowing the list to be reread.
-    fn rewind(&mut self) -> Result<(), crate::error::Error> {
+    fn reset(&mut self) -> Result<(), crate::error::Error> {
         self.list.reread()?;
         Ok(())
     }
@@ -193,11 +193,14 @@ impl OfferedPskSelector<'_, '_> {
 ///
 /// Used in conjunction with [crate::config::Builder::set_psk_selection_callback].
 pub trait PskSelectionCallback: 'static + Send + Sync {
-    /// Select a psk using the [OfferedPskCursor].
+    /// Select a psk using the [OfferedPskListRef].
     ///
-    /// Before calling [OfferedPskCursor::choose_current_psk], implementors must
-    /// first append the corresponding [crate::external_psk::ExternalPsk] to the
-    /// connection using [Connection::append_psk].
+    /// Use [`OfferedPskListRef::identities`] to retrieve an iterator over the
+    /// identities that the client has offered.
+    ///
+    /// Before calling [`IdentitySelector::choose_current_psk`], implementors must
+    /// first append the corresponding [`crate::external_psk::ExternalPsk`] to the
+    /// connection using [`Connection::append_psk`].
     fn select_psk(&self, connection: &mut Connection, psk_list: &mut OfferedPskListRef);
 }
 
@@ -321,7 +324,7 @@ mod tests {
     #[test]
     // If choose_current_psk is called when there isn't a current psk, s2n-tls
     // should return a well formed error.
-    fn choose_empty_psk() -> Result<(), crate::error::Error> {
+    fn choose_without_current_psk() -> Result<(), crate::error::Error> {
         #[derive(Clone)]
         struct ImmediateSelect {
             invoked: Arc<AtomicBool>,
@@ -420,7 +423,7 @@ mod tests {
                 // the identities from the iterators should be the same
                 assert_eq!(identities, identities_from_offered_psk);
 
-                offered_psks.rewind().unwrap();
+                offered_psks.reset().unwrap();
                 let psk = offered_psks.advance().unwrap().unwrap();
                 let identity = psk.identity().unwrap();
                 let psk = self.get_by_identity(identity).unwrap();
