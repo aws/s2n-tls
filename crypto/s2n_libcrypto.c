@@ -127,7 +127,7 @@ bool s2n_libcrypto_is_openssl(void)
 
 /* Check if the linked libcrypto is a fips-capable openssl variant.
  *
- * This method does check whether the linked libcrypto has fips mode enabled.
+ * This method does not check whether the linked libcrypto has fips mode enabled.
  */
 bool s2n_libcrypto_is_openssl_fips(void)
 {
