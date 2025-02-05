@@ -170,7 +170,6 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-
             EXPECT_EQUAL(ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
             /* Skipping random data */
@@ -242,16 +241,13 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_NOT_NULL(conn);
-
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             /* Set up output stuffer */
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &output), S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
         };
 
