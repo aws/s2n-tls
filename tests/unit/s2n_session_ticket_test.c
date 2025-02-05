@@ -23,10 +23,11 @@
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
-#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES         S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
-#define S2N_TICKET_KEY_NAME_LOCATION                    S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_VERSION_SIZE
-#define ONE_SEC_DELAY                                   1
+#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS)
+#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS  S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS
+#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES          S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
+#define S2N_TICKET_KEY_NAME_LOCATION                     S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_VERSION_SIZE
+#define ONE_SEC_DELAY                                    1
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
@@ -58,7 +59,11 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
-    *nanoseconds = 1000000000;
+    if (data) {
+        *nanoseconds = *((uint64_t *) data);
+    } else {
+        *nanoseconds = 1000000000;
+    }
     return S2N_SUCCESS;
 }
 
@@ -210,11 +215,11 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
-        /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -304,11 +309,11 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
-        /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -363,16 +368,16 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         /* Add one ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
-        uint64_t mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        mock_current_time += server_config->encrypt_decrypt_key_lifetime_in_nanos;
 
-        /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint32_t key_intro_time = mock_current_time / ONE_SEC_IN_NANOS;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
                 ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
@@ -433,12 +438,14 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         /* Add one ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
-        uint64_t mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        mock_current_time += server_config->encrypt_decrypt_key_lifetime_in_nanos;
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -490,11 +497,11 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
-        /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -511,7 +518,8 @@ int main(int argc, char **argv)
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
+        EXPECT_EQUAL(session_ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -548,18 +556,17 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         /* Add one ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that the key used to encrypt ST expires */
-        uint64_t mock_delay = server_config->decrypt_key_lifetime_in_nanos + server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        mock_current_time += server_config->decrypt_key_lifetime_in_nanos + server_config->encrypt_decrypt_key_lifetime_in_nanos;
 
-        /* Add a second session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
-                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
+                ticket_key2, s2n_array_len(ticket_key2), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -628,11 +635,11 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
-        /* Add a session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -795,12 +802,15 @@ int main(int argc, char **argv)
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
+        uint64_t mock_current_time = 0;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
         /* Add one ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that the first key is close to it's encryption peak */
-        uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        uint64_t delay_in_nanos = server_config->encrypt_decrypt_key_lifetime_in_nanos / 2;
+        mock_current_time += delay_in_nanos;
 
         /* Add two more ST keys */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0));
@@ -821,7 +831,9 @@ int main(int argc, char **argv)
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+        uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
+        uint32_t first_key_remaining_lifetime = S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS - delay_in_nanos / ONE_SEC_IN_NANOS;
+        EXPECT_EQUAL(session_ticket_lifetime, first_key_remaining_lifetime);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -872,21 +884,23 @@ int main(int argc, char **argv)
             /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
             EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
+            uint64_t mock_current_time = 0;
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
+
             /* Add one ST key */
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
                     ticket_key1, s2n_array_len(ticket_key1), 0));
 
             /* Add second key when the first key is very close to it's encryption peak */
-            uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+            uint64_t delay_in_nanos = server_config->encrypt_decrypt_key_lifetime_in_nanos / 2;
+            mock_current_time += delay_in_nanos;
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
                     ticket_key2, s2n_array_len(ticket_key2), 0));
 
             /* Add third key when the second key is very close to it's encryption peak and
             * the first key is about to transition from encrypt-decrypt state to decrypt-only state
             */
-            mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos - ONE_SEC_IN_NANOS;
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+            mock_current_time += delay_in_nanos;
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, s2n_array_len(ticket_key_name3),
                     ticket_key3, s2n_array_len(ticket_key3), 0));
 
@@ -910,8 +924,11 @@ int main(int argc, char **argv)
             } else {
                 failures += 1;
             }
+
             /* Verify the lifetime hint from the server */
-            EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+            uint32_t session_ticket_lifetime = s2n_connection_get_session_ticket_lifetime_hint(client_conn);
+            uint32_t second_key_remaining_lifetime = S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS - (delay_in_nanos / ONE_SEC_IN_NANOS);
+            EXPECT_EQUAL(session_ticket_lifetime, second_key_remaining_lifetime);
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -981,7 +998,7 @@ int main(int argc, char **argv)
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), 86400 + 18000);
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
