@@ -155,7 +155,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
 }
 
 S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_hint_in_secs,
-    struct s2n_blob *session_ticket)
+        struct s2n_blob *session_ticket)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE(s2n_server_sending_nst(conn), S2N_ERR_SENDING_NST);

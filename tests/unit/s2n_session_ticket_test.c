@@ -60,7 +60,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
     if (data) {
-        *nanoseconds = *((uint64_t*) data);
+        *nanoseconds = *((uint64_t *) data);
     } else {
         *nanoseconds = 1000000000;
     }
