@@ -799,8 +799,8 @@ int main(int argc, char **argv)
         {
             /* PSK is invalid because it has no identity */
             {
-                struct s2n_connection *conn = NULL;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
 
                 DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
                 EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
@@ -812,14 +812,12 @@ int main(int argc, char **argv)
                 /* Successful if identity added to PSK, making it valid */
                 EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, identity_0, sizeof(identity_0)));
                 EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
             };
 
             /* PSK is invalid because it has no secret */
             {
-                struct s2n_connection *conn = NULL;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
 
                 DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
                 EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, identity_0, sizeof(identity_0)));
@@ -828,11 +826,9 @@ int main(int argc, char **argv)
                         S2N_ERR_INVALID_ARGUMENT);
                 EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
 
-                /* Successful if identity added to PSK, making it valid */
+                /* Successful if secret added to PSK, making it valid */
                 EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
                 EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
             };
         };
 
