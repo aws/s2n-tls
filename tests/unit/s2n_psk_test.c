@@ -94,7 +94,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
 
         uint8_t test_value_1[] = TEST_VALUE_1;
-        uint8_t all_zero_value[] = { 0, 0, 0, 0, 0 };
+        uint8_t all_zero_value[5] = { 0 };
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_secret(NULL, test_value_1, 1),
                 S2N_ERR_NULL);

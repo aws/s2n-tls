@@ -67,6 +67,7 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
     POSIX_ENSURE_REF(psk);
     POSIX_ENSURE_REF(secret);
     POSIX_ENSURE(secret_size != 0, S2N_ERR_INVALID_ARGUMENT);
+
     /* There are a number of application level errors that might result in an
      * all-zero secret accidentally getting used. Error if that happens.
      */
