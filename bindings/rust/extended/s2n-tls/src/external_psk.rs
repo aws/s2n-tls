@@ -68,8 +68,8 @@ impl Builder {
             )
         })?;
 
-        // These checks would ideally be in the C code, but would be a backwards
-        // incompatible change.
+        // These checks are only in the Rust code. Adding them to C would be a
+        // backwards incompatible change.
         //= https://www.rfc-editor.org/rfc/rfc9257.html#section-6
         //# Each PSK ... MUST be at least 128 bits long
         if secret_length < (128 / 8) {
@@ -77,15 +77,6 @@ impl Builder {
                 ErrorType::UsageError,
                 "invalid psk secret",
                 "PSK secret must be at least 128 bits",
-            ));
-        }
-        // There are a number of application level errors that might result in an
-        // all-zero secret accidentally getting used. Error if that happens.
-        if secret.iter().all(|b| *b == 0) {
-            return Err(Error::bindings(
-                ErrorType::UsageError,
-                "invalid psk secret",
-                "PSK secret must not be all zeros",
             ));
         }
         unsafe {
@@ -174,9 +165,9 @@ mod tests {
 
     use super::*;
 
-    #[test]
     /// `identity`, `secret`, and `hmac` are all required fields. If any of them
     /// aren't set, then `psk.build()` operation should fail.
+    #[test]
     fn build_errors() -> Result<(), crate::error::Error> {
         const PERMUTATIONS: u8 = 0b111;
 
@@ -196,10 +187,10 @@ mod tests {
         Ok(())
     }
 
-    #[test]
     //= https://www.rfc-editor.org/rfc/rfc9257.html#section-6
     //= type=test
     //# Each PSK ... MUST be at least 128 bits long
+    #[test]
     fn psk_secret_must_be_at_least_128_bits() -> Result<(), crate::error::Error> {
         // 120 bit key
         let secret = vec![5; 15];
@@ -225,9 +216,9 @@ mod tests {
         builder.build().unwrap()
     }
 
-    #[test]
     /// A PSK handshake using the basic "append_psk" workflow should complete
     /// successfully, and the correct negotiated psk identity should be returned.
+    #[test]
     fn psk_handshake() -> Result<(), crate::error::Error> {
         let psk = test_psk();
         let mut config = Config::builder();

@@ -4,7 +4,7 @@
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
-    callbacks::*,
+    callbacks::{psk_selection::OfferedPskListRef, *},
     cert_chain::CertificateChain,
     enums::*,
     error::{Error, ErrorType, Fallible},
@@ -12,7 +12,6 @@ use crate::{
     security,
 };
 use core::{convert::TryInto, ptr::NonNull};
-use external_psk::OfferedPskListRef;
 use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
@@ -685,13 +684,9 @@ impl Builder {
             psk_list_ptr: *mut s2n_offered_psk_list,
         ) -> libc::c_int {
             let psk_list = OfferedPskListRef::from_s2n_ptr_mut(psk_list_ptr);
-            let mut psk_cursor = match OfferedPskCursor::new(psk_list) {
-                Ok(cursor) => cursor,
-                Err(_) => return CallbackResult::Failure.into(),
-            };
             with_context(conn_ptr, |conn, context| {
                 let callback = context.psk_selection_callback.as_ref();
-                callback.map(|c| c.select_psk(conn, &mut psk_cursor))
+                callback.map(|c| c.select_psk(conn, psk_list))
             });
             CallbackResult::Success.into()
         }

@@ -23,7 +23,12 @@
 //!         ...
 //!     }
 //! }
-//! define_ref_type!(DogRef, dog_ffi);
+//!
+//! struct DogRef(Opaque);
+//!
+//! impl S2NRef for DogRef {
+//!     type ForeignType = s2n_dog;
+//! }
 //!
 //! impl DogRef {
 //!     fn bark(&self);
@@ -32,7 +37,7 @@
 //! In the above example, `bark` can be done by both `Dog` and `DogRef`, so we
 //! prefer to implement the functionality on DogRef.
 
-use std::{cell::UnsafeCell, marker::PhantomData};
+use std::{ffi::c_void, marker::PhantomData};
 
 /// Define a type that represents ownership of the underlying s2n-tls type.
 ///
@@ -73,41 +78,30 @@ macro_rules! define_owned_type {
     };
 }
 
-// This opaque definition is borrowed from the foreign-types crate
+// This opaque approach is largely borrowed from the foreign-types crate
 // https://github.com/sfackler/foreign-types/blob/393f6ab5a5dc66b8a8e2d6d880b1ff80b6a7edc2/foreign-types-shared/src/lib.rs#L14
-// This type acts as if it owns a mutable pointer to a zero sized type, where
-// that type may implement un-synchronized interior mutability.
+// This type acts as if it owns a mutable pointer to some void type.
 #[derive(Debug)]
-pub(crate) struct Opaque(PhantomData<UnsafeCell<*mut ()>>);
+pub(crate) struct Opaque(PhantomData<*mut c_void>);
 
-/// Define a type that represents a reference to the underlying s2n-tls type. This
-/// type should not have an associated drop implementation.
+/// This trait is used for structs implementing the RefType pattern.
 ///
-/// Ref Types can be used to ergonomically return a reference from a function.
-/// The lifetime of the ref will automatically be tied to the lifetime of the
-/// surrounding function.
-macro_rules! define_ref_type {
-    ($(#[$meta:meta])* $vis:vis $struct_name:ident, $inner_type:ty) => {
-        $(#[$meta])*
-        #[derive(Debug)]
-        $vis struct $struct_name(crate::foreign_types::Opaque);
-
-        impl crate::foreign_types::S2NRef for $struct_name {
-            type ForeignType = $inner_type;
-        }
-    };
-}
-
+/// It allows s2n-tls pointers to be easily retrieved from the reference to the type.
+/// ```no_compile
+/// struct ClientHelloRef(Opaque);
+///
+/// impl S2NRef for ClientHelloRef {
+///     type ForeignType: Size = s2n_tls_sys::s2n_client_hello;
+/// };
+/// ```
 /// SAFETY: both Self and Self::ForeignType must be zero sized.
 pub(crate) trait S2NRef: Sized {
     type ForeignType: Sized;
 
     fn from_s2n_ptr_mut<'a>(ptr: *mut Self::ForeignType) -> &'a mut Self {
+        debug_assert_eq!(std::mem::size_of::<Self>(), 0);
+        debug_assert_eq!(std::mem::size_of::<Self::ForeignType>(), 0);
         unsafe { &mut *(ptr as *mut Self) }
-    }
-
-    fn from_s2n_ptr<'a>(ptr: *const Self::ForeignType) -> &'a Self {
-        unsafe { &*(ptr as *const Self) }
     }
 
     fn as_s2n_ptr_mut(&mut self) -> *mut Self::ForeignType {
@@ -119,4 +113,4 @@ pub(crate) trait S2NRef: Sized {
     }
 }
 
-pub(crate) use {define_owned_type, define_ref_type};
+pub(crate) use define_owned_type;
