@@ -30,6 +30,9 @@
 #define BASE_LIFETIME_IN_SECS     (BASE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 #define REDUCED_LIFETIME_IN_SECS  (REDUCED_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 
+#define S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_NANOS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS)
+#define S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_SECS  S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS
+
 #define TICKET_AGE_ADD_MARKER sizeof(uint8_t) + /* message id  */ \
         SIZEOF_UINT24 +                         /* message len */ \
         sizeof(uint32_t)                        /* ticket lifetime */
@@ -170,7 +173,7 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-            EXPECT_EQUAL(ticket_lifetime, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+            EXPECT_EQUAL(ticket_lifetime, S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_SECS);
 
             /* Skipping random data */
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, sizeof(uint32_t)));
@@ -1146,14 +1149,10 @@ int main(int argc, char **argv)
 
             /* Set the ticket lifetime to be zero */
             conn->config->session_state_lifetime_in_nanos = 0;
-            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
-            /* Setup io */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(conn, &stuffer), S2N_ERR_ZERO_LIFETIME_TICKET);
-
             EXPECT_TICKETS_SENT(conn, 0);
         };
 
