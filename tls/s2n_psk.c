@@ -72,10 +72,7 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
      */
     bool secret_is_all_zero = true;
     for (uint16_t i = 0; i < secret_size; i++) {
-        if (secret[i] != 0) {
-            secret_is_all_zero = false;
-            break;
-        }
+        secret_is_all_zero = secret_is_all_zero && secret[i] == 0;
     }
     POSIX_ENSURE(!secret_is_all_zero, S2N_ERR_INVALID_ARGUMENT);
 
