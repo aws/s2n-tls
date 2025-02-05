@@ -14,15 +14,14 @@ use crate::{
     foreign_types::{Opaque, S2NRef},
 };
 
-struct OfferedPsk<'wire_input> {
+struct OfferedPsk<'callback> {
     ptr: NonNull<s2n_offered_psk>,
     // The `&[u8]` returned from `OfferedPsk::identity` is not owned by the OfferedPsk
-    // struct, but instead is a direct reference to the "wire-data" owned by the
-    // s2n-tls connection.
-    wire_input: PhantomData<&'wire_input [u8]>,
+    // struct, but instead is a reference to the "buffer" member of the OfferedPskListRef
+    wire_input: PhantomData<&'callback [u8]>,
 }
 
-impl<'wire_input> OfferedPsk<'wire_input> {
+impl<'callback> OfferedPsk<'callback> {
     fn allocate() -> Result<Self, crate::error::Error> {
         let ptr = unsafe { s2n_offered_psk_new().into_result() }?;
         Ok(Self {
@@ -32,7 +31,7 @@ impl<'wire_input> OfferedPsk<'wire_input> {
     }
 
     /// Return the identity associated with an offered PSK.
-    pub fn identity(&self) -> Result<&'wire_input [u8], crate::error::Error> {
+    pub fn identity(&self) -> Result<&'callback [u8], crate::error::Error> {
         let mut identity_buffer = ptr::null_mut::<u8>();
         let mut size = 0;
         unsafe {
@@ -63,9 +62,9 @@ impl Drop for OfferedPsk<'_> {
 
 pub struct OfferedPskListRef<'callback> {
     _ptr: Opaque,
-    // When `OfferedPskListRef::next` is called, the "wire-data" owned by the
-    // s2n-tls connection is parsed.
-    buffer: PhantomData<&'callback [u8]>,
+    // s2n_offered_psk_list has a stuffer that refers to the wire_data from
+    // the connection. This stuffer is valid for the lifetime of the callback.
+    wire_input: PhantomData<&'callback [u8]>,
 }
 
 impl S2NRef for OfferedPskListRef<'_> {
