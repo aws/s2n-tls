@@ -94,18 +94,6 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_test_add_psk(struct s2n_connection *conn)
-{
-    struct s2n_psk *chosen_psk = s2n_test_psk_new(conn);
-    RESULT_ENSURE_REF(chosen_psk);
-
-    uint64_t lifetime_in_nanos = BASE_LIFETIME_IN_NANOS;
-    chosen_psk->keying_material_expiration = lifetime_in_nanos + mock_current_time;
-    conn->psk_params.chosen_psk = chosen_psk;
-
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_test_init_ticket_lifetime(struct s2n_connection *conn, uint64_t *key_intro_time)
 {
     mock_current_time = 0;
@@ -120,7 +108,8 @@ static S2N_RESULT s2n_test_init_ticket_lifetime(struct s2n_connection *conn, uin
     conn->config->session_state_lifetime_in_nanos = BASE_LIFETIME_IN_NANOS;
     RESULT_GUARD_POSIX(s2n_connection_set_server_keying_material_lifetime(conn, BASE_LIFETIME_IN_SECS));
 
-    RESULT_GUARD(s2n_test_add_psk(conn));
+    RESULT_GUARD(s2n_append_test_chosen_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
+    conn->psk_params.chosen_psk->keying_material_expiration = BASE_LIFETIME_IN_NANOS + mock_current_time;
 
     /* The minimum lifetime is BASE_LIFETIME_IN_SECS.
      * It will be the reduced value if we decrease one component.
@@ -446,8 +435,7 @@ int main(int argc, char **argv)
 
             /* When PSK doesn't exist */
             {
-                EXPECT_SUCCESS(s2n_psk_free(&conn->psk_params.chosen_psk));
-                conn->psk_params.chosen_psk = NULL;
+                EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
 
                 uint32_t session_ticket_lifetime = 0;
                 EXPECT_OK(s2n_generate_ticket_lifetime(conn, key_intro_time, &session_ticket_lifetime));
