@@ -699,7 +699,7 @@ impl Builder {
             s2n_config_set_psk_selection_callback(
                 self.as_mut_ptr(),
                 Some(psk_selection_cb),
-                self.config.context_mut() as *mut Context as *mut c_void,
+                self.config.context() as *const Context as *mut c_void,
             )
             .into_result()?
         };
