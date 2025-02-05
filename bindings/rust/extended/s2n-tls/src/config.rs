@@ -96,7 +96,7 @@ impl Config {
     ///
     /// SAFETY: There must only ever by mutable reference to `Context` alive at
     ///         any time. Configs can be shared across threads, so this method is
-    ///         almost certainly not correct for your usecase.
+    ///         likely not correct for your usecase.
     unsafe fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
         s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
@@ -338,7 +338,12 @@ impl Builder {
             )
             .into_result()
         };
-        self.context_mut().application_owned_certs.push(chain);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.application_owned_certs.push(chain);
         result?;
 
         Ok(self)
@@ -377,9 +382,12 @@ impl Builder {
 
         let collected_chains = chain_arrays.into_iter().take(cert_chain_count).flatten();
 
-        self.context_mut()
-            .application_owned_certs
-            .extend(collected_chains);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.application_owned_certs.extend(collected_chains);
 
         unsafe {
             s2n_config_set_cert_chain_and_key_defaults(
@@ -551,12 +559,17 @@ impl Builder {
             verify_host(host_name, host_name_len, handler)
         }
 
-        self.context_mut().verify_host_callback = Some(Box::new(handler));
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
                 Some(verify_host_cb_fn),
-                self.context_mut() as *mut Context as *mut c_void,
+                self.config.context() as *const Context as *mut c_void,
             )
             .into_result()?;
         }
@@ -611,7 +624,11 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.client_hello_callback = Some(handler);
 
         unsafe {
@@ -632,7 +649,11 @@ impl Builder {
     ) -> Result<&mut Self, Error> {
         // Store callback in config context
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.connection_initializer = Some(handler);
         Ok(self)
     }
@@ -663,14 +684,18 @@ impl Builder {
 
         // Store callback in context
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.session_ticket_callback = Some(handler);
 
         unsafe {
             s2n_config_set_session_ticket_cb(
                 self.as_mut_ptr(),
                 Some(session_ticket_cb),
-                self.context_mut() as *mut Context as *mut c_void,
+                self.config.context() as *const Context as *mut c_void,
             )
             .into_result()
         }?;
@@ -702,7 +727,11 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.private_key_callback = Some(handler);
 
         unsafe {
@@ -738,13 +767,17 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.wall_clock = Some(handler);
         unsafe {
             s2n_config_set_wall_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.context_mut() as *mut _ as *mut c_void,
+                self.config.context() as *const _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -777,13 +810,17 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.monotonic_clock = Some(handler);
         unsafe {
             s2n_config_set_monotonic_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.context_mut() as *mut _ as *mut c_void,
+                self.config.context() as *const _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -916,17 +953,6 @@ impl Builder {
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
-    }
-
-    /// Retrieve a mutable reference to the [`Context`] stored on the config.
-    pub(crate) fn context_mut(&mut self) -> &mut Context {
-        let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &mut *(ctx as *mut Context)
-        }
     }
 }
 

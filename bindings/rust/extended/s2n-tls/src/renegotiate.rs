@@ -405,7 +405,11 @@ impl config::Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.renegotiate = Some(handler);
         unsafe {
             s2n_config_set_renegotiate_request_cb(
