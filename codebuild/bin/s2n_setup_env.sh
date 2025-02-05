@@ -133,17 +133,9 @@ if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then
     export S2N_TEST_IN_FIPS_MODE=1 ;
 fi
 if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then export LIBCRYPTO_ROOT=$BORINGSSL_INSTALL_DIR ; fi
-
 if [[ "$S2N_LIBCRYPTO" == "awslc" ]]; then export LIBCRYPTO_ROOT=$AWSLC_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then
-  export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ;
-  export S2N_TEST_IN_FIPS_MODE=1 ;
-fi
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then
-  export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR
-  export S2N_TEST_IN_FIPS_MODE=1
-fi
-
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
 if [[ -n "${LIBCRYPTO_ROOT:-}" ]]; then

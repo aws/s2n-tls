@@ -44,7 +44,6 @@ static bool s2n_hash_alg_is_supported(s2n_signature_algorithm sig_alg, s2n_hash_
 static S2N_RESULT s2n_test_hash_init(struct s2n_hash_state *hash_state, s2n_hash_algorithm hash_alg)
 {
     RESULT_GUARD_POSIX(s2n_hash_init(hash_state, hash_alg));
-    RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(hash_state));
     RESULT_GUARD_POSIX(s2n_hash_update(hash_state, input_data, s2n_array_len(input_data)));
     return S2N_RESULT_OK;
 }

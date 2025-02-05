@@ -32,7 +32,6 @@ void s2n_hash_is_available_harness()
     switch (alg) {
         case S2N_HASH_MD5:
         case S2N_HASH_MD5_SHA1:
-            assert(is_available == !s2n_is_in_fips_mode()); break;
         case S2N_HASH_NONE:
         case S2N_HASH_SHA1:
         case S2N_HASH_SHA224:

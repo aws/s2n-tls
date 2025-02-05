@@ -334,8 +334,6 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
-    _version = get_flag(S2N_PROVIDER_VERSION)
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
@@ -390,7 +388,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return cls._version
+        return get_flag(S2N_PROVIDER_VERSION)
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -602,12 +600,15 @@ class JavaSSL(Provider):
             cmd_line.extend([self.options.trust_store])
         elif self.options.cert:
             cmd_line.extend([self.options.cert])
+        if self.options.cipher.iana_standard_name is not None:
+            cmd_line.extend([self.options.cipher.iana_standard_name])
 
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
-
-        if self.options.cipher.iana_standard_name is not None:
-            cmd_line.extend([self.options.cipher.iana_standard_name])
+        # SSLv2ClientHello is a "protocol" for Java TLS, so we append it next to
+        # the existing protocol.
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
 
         # Clients are always ready to connect
         self.set_provider_ready()

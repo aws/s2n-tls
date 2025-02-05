@@ -29,7 +29,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn);
 int s2n_client_hello_send(struct s2n_connection *conn);
 int s2n_client_hello_recv(struct s2n_connection *conn);
 int s2n_establish_session(struct s2n_connection *conn);
-int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
+int s2n_sslv2_client_hello_parse(struct s2n_connection *conn);
 int s2n_server_hello_retry_send(struct s2n_connection *conn);
 int s2n_server_hello_retry_recv(struct s2n_connection *conn);
 int s2n_server_hello_write_message(struct s2n_connection *conn);

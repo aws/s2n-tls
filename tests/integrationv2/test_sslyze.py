@@ -22,7 +22,7 @@ PROTOCOLS_TO_TEST = [
     Protocols.TLS13
 ]
 
-SSLYZE_SCANS_TO_TEST = {
+SSLYZE_SCANS_TO_TEST = [
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.SESSION_RESUMPTION,
     sslyze.ScanCommand.TLS_COMPRESSION,
@@ -31,7 +31,7 @@ SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.HEARTBLEED,
     sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
     sslyze.ScanCommand.SESSION_RENEGOTIATION
-}
+]
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {
