@@ -119,10 +119,10 @@ impl Builder {
     }
 }
 
-/// ExternalPsk represents an out-of-band pre-shared key.
+/// Psk represents an out-of-band pre-shared key.
 ///
 /// If two peers already have some mechanism to securely exchange secrets, then
-/// they can use ExternalPSKs to authenticate rather than certificates.
+/// they can use Psks to authenticate rather than certificates.
 #[derive(Debug)]
 pub struct Psk {
     ptr: NonNull<s2n_psk>,
@@ -130,12 +130,12 @@ pub struct Psk {
 
 /// # Safety
 ///
-/// Safety: ExternalPsk objects can be sent across threads
+/// Safety: Psk objects can be sent across threads
 unsafe impl Send for Psk {}
 
 /// # Safety
 ///
-/// Safety: There are no methods that mutate the ExternalPsk.
+/// Safety: There are no methods that mutate the Psk.
 unsafe impl Sync for Psk {}
 
 impl Psk {
