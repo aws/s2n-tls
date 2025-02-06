@@ -139,6 +139,9 @@ unsafe impl Send for Psk {}
 unsafe impl Sync for Psk {}
 
 impl Psk {
+    /// Allocate a new, uninitialized Psk.
+    ///
+    /// Corresponds to [`s2n_external_psk_new`].
     fn allocate() -> Result<Self, crate::error::Error> {
         let psk = unsafe { s2n_external_psk_new().into_result() }?;
         Ok(Self { ptr: psk })
@@ -158,6 +161,7 @@ impl Psk {
 }
 
 impl Drop for Psk {
+    /// Corresponds to [s2n_psk_free].
     fn drop(&mut self) {
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
