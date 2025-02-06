@@ -5,7 +5,7 @@ import subprocess
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
+from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures, Cert
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from stat import S_IMODE
 
@@ -72,7 +72,7 @@ class Provider(object):
         return None
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(cls, protocol):
         raise NotImplementedError
 
     @classmethod
@@ -93,6 +93,10 @@ class Provider(object):
         with self._provider_ready_condition:
             self._provider_ready = True
             self._provider_ready_condition.notify()
+
+    @classmethod
+    def supports_certificate(cls, cert: Cert):
+        return True
 
 
 class Tcpdump(Provider):
@@ -147,7 +151,7 @@ class S2N(Provider):
         return 's2n is ready'
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def _pss_supported(cls):
         # RSA-PSS is unsupported for openssl-1.0
         # libressl and boringssl are disabled because of configuration issues
         # see https://github.com/aws/s2n-tls/issues/3250
@@ -156,16 +160,22 @@ class S2N(Provider):
             "boringssl",
             "openssl-1.0"
         }
-        pss_is_unsupported = any([
+        for libcrypto in PSS_UNSUPPORTED_LIBCRYPTOS:
             # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
-            libcrypto in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in PSS_UNSUPPORTED_LIBCRYPTOS
-        ])
-        if pss_is_unsupported:
-            if protocol == Protocols.TLS13:
+            if libcrypto in get_flag(S2N_PROVIDER_VERSION):
                 return False
-            if with_cert and with_cert.algorithm == 'RSAPSS':
-                return False
+        return True
+
+    @classmethod
+    def supports_certificate(cls, cert: Cert):
+        if not cls._pss_supported() and cert.algorithm == 'RSAPSS':
+            return False
+        return True
+
+    @classmethod
+    def supports_protocol(cls, protocol):
+        if not cls._pss_supported() and protocol == Protocols.TLS13:
+            return False
 
         # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
         if all([
@@ -391,7 +401,7 @@ class OpenSSL(Provider):
         return get_flag(S2N_PROVIDER_VERSION)
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(cls, protocol):
         if protocol is Protocols.SSLv3:
             return False
 
@@ -552,7 +562,7 @@ class SSLv3Provider(OpenSSL):
         options.env_overrides = override_env_vars
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(cls, protocol):
         if protocol is Protocols.SSLv3:
             return True
         return False
@@ -572,7 +582,7 @@ class JavaSSL(Provider):
         return "Starting handshake"
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(cls, protocol):
         # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
         if protocol is Protocols.SSLv3 or protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
             return False
@@ -879,7 +889,7 @@ class GnuTLS(Provider):
         return cmd_line
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(cls, protocol):
         return GnuTLS.protocol_to_priority_str(protocol) is not None
 
     @classmethod
