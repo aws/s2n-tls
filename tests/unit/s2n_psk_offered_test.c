@@ -330,9 +330,7 @@ int main(int argc, char **argv)
 
             uint8_t *data = NULL;
             uint16_t size = 0;
-            EXPECT_SUCCESS(s2n_offered_psk_get_identity(psk, &data, &size));
-            EXPECT_EQUAL(size, 0);
-            EXPECT_EQUAL(data, NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_get_identity(psk, &data, &size), S2N_ERR_NULL);
         };
 
         /* Valid identity */
