@@ -7,10 +7,6 @@ use crate::{
 };
 use s2n_tls_sys::*;
 
-/// TODO: document builder items
-/// TODO: I still need the visibility
-///       because list ref needs to be pub crate
-
 #[derive(Debug)]
 pub struct Builder {
     psk: ExternalPsk,
