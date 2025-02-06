@@ -144,7 +144,7 @@ jobs:
         with:
           route: GET /repos/{repo}/commits/{ref}/statuses?per_page=100
           repo: ${{ github.repository }}
-          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
+          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha || github.event.after }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: check start_codebuild.sh against statuses
