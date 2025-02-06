@@ -35,7 +35,7 @@ for api in $C_APIS; do
     if [[ "${KNOWN_MISSES[*]}" =~ "$api" ]]; then continue; fi
     CALLS=`grep -ro "$api(" $BINDINGS | wc -l`
     if [ "$CALLS" == 0 ]; then continue; fi
-    DOCS=$(grep -rEo "///.* \[\`?$api\`?\]" $BINDINGS | wc -l)
+    DOCS=`grep -ro "///.* \[$api\]" $BINDINGS | wc -l`
     if [ "$DOCS" == 0 ]; then
       if [ $C_DOCS_FAILED == 0 ]; then
         C_DOCS_FAILED=1
