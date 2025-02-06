@@ -79,20 +79,16 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
 bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
 {
     switch(hmac_alg) {
-    case S2N_HMAC_MD5:
-    case S2N_HMAC_SSLv3_MD5:
-         /* Some libcryptos, such as OpenSSL, disable MD5 by default when in FIPS mode, which is 
-          * required in order to negotiate SSLv3. However, this is supported in AWS-LC. 
-          */ 
-         return !s2n_is_in_fips_mode() || s2n_libcrypto_is_awslc(); 
-    case S2N_HMAC_SSLv3_SHA1:
-    case S2N_HMAC_NONE:
-    case S2N_HMAC_SHA1:
-    case S2N_HMAC_SHA224:
-    case S2N_HMAC_SHA256:
-    case S2N_HMAC_SHA384:
-    case S2N_HMAC_SHA512:
-        return true;
+        case S2N_HMAC_MD5:
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_SSLv3_SHA1:
+        case S2N_HMAC_NONE:
+        case S2N_HMAC_SHA1:
+        case S2N_HMAC_SHA224:
+        case S2N_HMAC_SHA256:
+        case S2N_HMAC_SHA384:
+        case S2N_HMAC_SHA512:
+            return true;
     }
     return false;
 }
