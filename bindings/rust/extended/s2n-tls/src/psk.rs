@@ -32,7 +32,7 @@ impl Builder {
     /// Set the public PSK identity.
     ///
     /// Corresponds to [s2n_psk_set_identity].
-    pub fn with_identity(&mut self, identity: &[u8]) -> Result<&mut Self, crate::error::Error> {
+    pub fn set_identity(&mut self, identity: &[u8]) -> Result<&mut Self, crate::error::Error> {
         let identity_length = identity.len().try_into().map_err(|_| {
             Error::bindings(
                 ErrorType::UsageError,
@@ -41,12 +41,8 @@ impl Builder {
             )
         })?;
         unsafe {
-            s2n_psk_set_identity(
-                self.psk.as_s2n_ptr_mut(),
-                identity.as_ptr(),
-                identity_length,
-            )
-            .into_result()
+            s2n_psk_set_identity(self.psk.ptr.as_ptr(), identity.as_ptr(), identity_length)
+                .into_result()
         }?;
         self.has_identity = true;
         Ok(self)
@@ -57,7 +53,7 @@ impl Builder {
     /// Secrets must be at least 16 bytes.
     ///
     /// Corresponds to [s2n_psk_set_secret].
-    pub fn with_secret(&mut self, secret: &[u8]) -> Result<&mut Self, crate::error::Error> {
+    pub fn set_secret(&mut self, secret: &[u8]) -> Result<&mut Self, crate::error::Error> {
         let secret_length = secret.len().try_into().map_err(|_| {
             Error::bindings(
                 ErrorType::UsageError,
@@ -78,8 +74,7 @@ impl Builder {
             ));
         }
         unsafe {
-            s2n_psk_set_secret(self.psk.as_s2n_ptr_mut(), secret.as_ptr(), secret_length)
-                .into_result()
+            s2n_psk_set_secret(self.psk.ptr.as_ptr(), secret.as_ptr(), secret_length).into_result()
         }?;
         self.has_secret = true;
         Ok(self)
@@ -88,8 +83,8 @@ impl Builder {
     /// Set the HMAC function associated with the PSK.
     ///
     /// Corresponds to [s2n_psk_set_hmac].
-    pub fn with_hmac(&mut self, hmac: PskHmac) -> Result<&mut Self, crate::error::Error> {
-        unsafe { s2n_psk_set_hmac(self.psk.as_s2n_ptr_mut(), hmac.into()).into_result() }?;
+    pub fn set_hmac(&mut self, hmac: PskHmac) -> Result<&mut Self, crate::error::Error> {
+        unsafe { s2n_psk_set_hmac(self.psk.ptr.as_ptr(), hmac.into()).into_result() }?;
         self.has_hmac = true;
         Ok(self)
     }
@@ -125,7 +120,11 @@ impl Builder {
 /// they can use Psks to authenticate rather than certificates.
 #[derive(Debug)]
 pub struct Psk {
-    ptr: NonNull<s2n_psk>,
+    // SAFETY: `ptr.as_ptr()` allows a `*mut s2n_psk` to be returned from `&Psk`.
+    // This is required because all s2n-tls C psk APIs take a mutable pointer.
+    // This is only safe if the `*mut s2n_psk` from `&Psk` is still treated as
+    // logically const by the s2n-tls C library.
+    pub(crate) ptr: NonNull<s2n_psk>,
 }
 
 /// # Safety
@@ -135,7 +134,8 @@ unsafe impl Send for Psk {}
 
 /// # Safety
 ///
-/// Safety: There are no methods that mutate the Psk.
+/// Safety: There are no methods that mutate the Psk through a shared reference
+/// (i.e., no interior mutability is exposed)
 unsafe impl Sync for Psk {}
 
 impl Psk {
@@ -150,14 +150,6 @@ impl Psk {
     pub fn builder() -> Result<Builder, crate::error::Error> {
         Builder::new()
     }
-
-    pub(crate) fn as_s2n_ptr(&self) -> *const s2n_psk {
-        self.ptr.as_ptr() as *const s2n_psk
-    }
-
-    fn as_s2n_ptr_mut(&mut self) -> *mut s2n_psk {
-        self.ptr.as_ptr()
-    }
 }
 
 impl Drop for Psk {
@@ -165,7 +157,7 @@ impl Drop for Psk {
     fn drop(&mut self) {
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
-        let _ = unsafe { s2n_psk_free(&mut self.as_s2n_ptr_mut()).into_result() };
+        let _ = unsafe { s2n_psk_free(&mut self.ptr.as_ptr()).into_result() };
     }
 }
 
@@ -184,13 +176,13 @@ mod tests {
         for permutation in 0..PERMUTATIONS {
             let mut psk = Builder::new()?;
             if permutation & 0b001 != 0 {
-                psk.with_identity(b"Alice")?;
+                psk.set_identity(b"Alice")?;
             }
             if permutation & 0b010 != 0 {
-                psk.with_secret(b"Rabbits don't actually jump. They instead push the world down")?;
+                psk.set_secret(b"Rabbits don't actually jump. They instead push the world down")?;
             }
             if permutation & 0b100 != 0 {
-                psk.with_hmac(PskHmac::SHA384)?;
+                psk.set_hmac(PskHmac::SHA384)?;
             }
             assert!(psk.build().is_err());
         }
@@ -206,7 +198,7 @@ mod tests {
         let secret = vec![5; 15];
 
         let mut psk = Builder::new()?;
-        let err = psk.with_secret(&secret).unwrap_err();
+        let err = psk.set_secret(&secret).unwrap_err();
         assert_eq!(err.source(), ErrorSource::Bindings);
         assert_eq!(err.kind(), ErrorType::UsageError);
         assert_eq!(err.name(), "invalid psk secret");
@@ -218,11 +210,11 @@ mod tests {
 
     fn test_psk() -> Psk {
         let mut builder = Psk::builder().unwrap();
-        builder.with_identity(TEST_PSK_IDENTITY).unwrap();
+        builder.set_identity(TEST_PSK_IDENTITY).unwrap();
         builder
-            .with_secret(b"contrary to popular belief, the moon is yogurt, not cheese")
+            .set_secret(b"contrary to popular belief, the moon is yogurt, not cheese")
             .unwrap();
-        builder.with_hmac(PskHmac::SHA384).unwrap();
+        builder.set_hmac(PskHmac::SHA384).unwrap();
         builder.build().unwrap()
     }
 
