@@ -132,7 +132,7 @@ int main()
     /* Ensure that FIPS mode is enabled only when linked to a fips library */
     s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
     EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
-    if (strstr(s2n_libcrypto, "fips") != NULL) {
+    if (strstr(s2n_libcrypto, "fips") && !strstr(s2n_libcrypto, "1.0.2")) {
         EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_ENABLED);
     } else {
         EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_DISABLED);
