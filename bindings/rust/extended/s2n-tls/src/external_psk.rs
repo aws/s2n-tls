@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::ptr::NonNull;
+
 use crate::{
     enums::PskHmac,
     error::{Error, ErrorType, Fallible},
@@ -9,7 +11,7 @@ use s2n_tls_sys::*;
 
 #[derive(Debug)]
 pub struct Builder {
-    psk: ExternalPsk,
+    psk: Psk,
     has_identity: bool,
     has_secret: bool,
     has_hmac: bool,
@@ -18,7 +20,7 @@ pub struct Builder {
 impl Builder {
     pub fn new() -> Result<Self, crate::error::Error> {
         crate::init::init();
-        let psk = ExternalPsk::allocate()?;
+        let psk = Psk::allocate()?;
         Ok(Self {
             psk,
             has_identity: false,
@@ -92,7 +94,7 @@ impl Builder {
         Ok(self)
     }
 
-    pub fn build(self) -> Result<ExternalPsk, crate::error::Error> {
+    pub fn build(self) -> Result<Psk, crate::error::Error> {
         if !self.has_identity {
             Err(Error::bindings(
                 crate::error::ErrorType::UsageError,
@@ -117,26 +119,26 @@ impl Builder {
     }
 }
 
-crate::foreign_types::define_owned_type!(
-    /// ExternalPsk represents an out-of-band pre-shared key.
-    ///
-    /// If two peers already have some mechanism to securely exchange secrets, then
-    /// they can use ExternalPSKs to authenticate rather than certificates.
-    pub ExternalPsk,
-    s2n_psk
-);
+/// ExternalPsk represents an out-of-band pre-shared key.
+///
+/// If two peers already have some mechanism to securely exchange secrets, then
+/// they can use ExternalPSKs to authenticate rather than certificates.
+#[derive(Debug)]
+pub struct Psk {
+    ptr: NonNull<s2n_psk>,
+}
 
 /// # Safety
 ///
 /// Safety: ExternalPsk objects can be sent across threads
-unsafe impl Send for ExternalPsk {}
+unsafe impl Send for Psk {}
 
 /// # Safety
 ///
 /// Safety: There are no methods that mutate the ExternalPsk.
-unsafe impl Sync for ExternalPsk {}
+unsafe impl Sync for Psk {}
 
-impl ExternalPsk {
+impl Psk {
     fn allocate() -> Result<Self, crate::error::Error> {
         let psk = unsafe { s2n_external_psk_new().into_result() }?;
         Ok(Self { ptr: psk })
@@ -145,9 +147,17 @@ impl ExternalPsk {
     pub fn builder() -> Result<Builder, crate::error::Error> {
         Builder::new()
     }
+
+    pub(crate) fn as_s2n_ptr(&self) -> *const s2n_psk {
+        self.ptr.as_ptr() as *const s2n_psk
+    }
+
+    fn as_s2n_ptr_mut(&mut self) -> *mut s2n_psk {
+        self.ptr.as_ptr()
+    }
 }
 
-impl Drop for ExternalPsk {
+impl Drop for Psk {
     fn drop(&mut self) {
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
@@ -202,8 +212,8 @@ mod tests {
 
     const TEST_PSK_IDENTITY: &[u8] = b"alice";
 
-    fn test_psk() -> ExternalPsk {
-        let mut builder = ExternalPsk::builder().unwrap();
+    fn test_psk() -> Psk {
+        let mut builder = Psk::builder().unwrap();
         builder.with_identity(TEST_PSK_IDENTITY).unwrap();
         builder
             .with_secret(b"contrary to popular belief, the moon is yogurt, not cheese")
