@@ -227,6 +227,11 @@ def invalid_sslyze_scan_parameters(*args, **kwargs):
             sslyze.ScanCommand.SESSION_RENEGOTIATION
         ]:
             return True
+    # BUG_IN_SSLYZE error for session resumption scan with openssl 1.0.2 fips
+    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+        if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
+            return True
+
     return invalid_test_parameters(*args, **kwargs)
 
 
@@ -308,6 +313,11 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
         # SSLyze curves scan errors when given ECDSA certs
         if "ECDSA" in certificate.name:
             return True
+
+        # SSLyze curves scan fails to validate with openssl 1.0.2 fips
+        if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+            return True
+
     return invalid_test_parameters(*args, **kwargs)
 
 

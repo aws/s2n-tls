@@ -447,7 +447,7 @@ if (S2N_INTERN_LIBCRYPTO)
             TARGET ${PROJECT_NAME} POST_BUILD
             DEPENDS libcrypto.symbols
             COMMAND
-                bash -c "${CMAKE_AR} -r lib/libs2n.a s2n_libcrypto/*.o"
+                bash -c "${CMAKE_AR} -r $<TARGET_FILE:${PROJECT_NAME}> s2n_libcrypto/*.o"
             VERBATIM
         )
     endif()

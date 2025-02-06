@@ -306,9 +306,15 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      - uses: SebRollen/toml-action@v1.2.0
+        id: read_toml
+        with:
+          file: '${{env.ROOT_PATH}}/rust-toolchain.toml'
+          field: 'toolchain.channel'
+
       # Enforce that clippy's msrv matches rust-toolchain
       - name: Check MSRV
-        run: grep $(cat ${{env.ROOT_PATH}}/rust-toolchain) ${{env.ROOT_PATH}}/.clippy.toml
+        run: grep "${{steps.read_toml.outputs.value}}" ${{env.ROOT_PATH}}/.clippy.toml
 
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
@@ -327,15 +333,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
+      - uses: SebRollen/toml-action@v1.2.0
+        id: read_toml
+        with:
+          file: '${{env.ROOT_PATH}}/rust-toolchain.toml'
+          field: 'toolchain.channel'
+
       # Enforce crate msrv matches rust-toolchain
       - name: Check MSRV of s2n-tls
-        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls/Cargo.toml
+        run: grep "rust-version = \"${{steps.read_toml.outputs.value}}\"" ${{env.ROOT_PATH}}/s2n-tls/Cargo.toml
 
       - name: Check MSRV of s2n-tls-sys
-        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-sys/templates/Cargo.template
+        run: grep "rust-version = \"${{steps.read_toml.outputs.value}}\"" ${{env.ROOT_PATH}}/s2n-tls-sys/templates/Cargo.template
 
       - name: Check MSRV of s2n-tokio
-        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
+        run: grep "rust-version = \"${{steps.read_toml.outputs.value}}\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
 
   pcaps:
     runs-on: ubuntu-24.04
@@ -410,3 +423,35 @@ jobs:
         run: |
           cargo +${{env.RUST_NIGHTLY_TOOLCHAIN}} minimal-versions check --direct --ignore-private
           cargo +${{env.RUST_NIGHTLY_TOOLCHAIN}} minimal-versions check --direct --ignore-private --all-features
+
+  # compare generated s2n-tls-sys/Cargo.toml with the existing one to check if it's up-to-date
+  # unstable features might be updated in the future, new Cargo.toml should be committed in this case
+  check-generated-cargo-toml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
+
+      - name: Compare Cargo
+        working-directory: ${{env.ROOT_PATH}}/s2n-tls-sys
+        id: diff
+        run: git diff --exit-code Cargo.toml
+        continue-on-error: true
+
+      - name: Failure
+        if: steps.diff.outcome != 'success'
+        run: |
+          echo "A mismatch between the existing s2n-tls-sys/Cargo.toml and the Cargo.toml generated \
+          from s2n-tls-sys/templates/Cargo.template has been found. Please ensure that the committed \
+          Cargo.toml is up-to-date by regenerating it with ${{env.ROOT_PATH}}/generate.sh"
+          exit 1
