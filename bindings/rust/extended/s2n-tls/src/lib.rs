@@ -19,11 +19,11 @@ pub mod client_hello;
 pub mod config;
 pub mod connection;
 pub mod enums;
-pub mod external_psk;
 #[cfg(feature = "unstable-fingerprint")]
 pub mod fingerprint;
 pub mod init;
 pub mod pool;
+pub mod psk;
 #[cfg(feature = "unstable-renegotiate")]
 pub mod renegotiate;
 pub mod security;
