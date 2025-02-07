@@ -72,7 +72,7 @@ def invalid_test_parameters(*args, **kwargs):
     # Always consider S2N
     providers.append(S2N)
 
-    certificates = [certificate_ for certificate_ in [certificate, client_certificate] if certificate_]
+    certificates = [cert for cert in [certificate, client_certificate] if cert]
 
     # Older versions do not support RSA-PSS-PSS certificates
     if protocol and protocol < Protocols.TLS12:
