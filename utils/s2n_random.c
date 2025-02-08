@@ -555,16 +555,12 @@ static int s2n_rand_init_cb_impl(void)
 
 bool s2n_supports_custom_rand(void)
 {
-#if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE)
+#if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE) || defined(OPENSSL_FIPS)
+    /* OpenSSL 1.0.2-fips is excluded to match historical behavior */
+    /* OPENSSL_FIPS is only defined for 1.0.2-fips, not 3.x-fips*/
     return false;
 #else
-    /* AWS-LC-FIPS supports custom rand unless s2n-tls is in FIPS mode */
-    /* OpenSSL-FIPS never supports custom rand, regardless of mode */
-    /* OpenSSL non-fips always supports custom rand */
-    /* other libcryptos never support custom rand */
-    bool awslc_fips_with_fips_enabled = s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode();
-    bool disable_for_fips = s2n_libcrypto_is_openssl_fips() || awslc_fips_with_fips_enabled;
-    return s2n_libcrypto_is_openssl() && !disable_for_fips;
+    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
 #endif
 }
 
