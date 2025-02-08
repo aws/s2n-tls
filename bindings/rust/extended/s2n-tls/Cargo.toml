@@ -32,6 +32,6 @@ futures-test = "0.3"
 # TODO unpin this once fixed - https://github.com/sfackler/rust-openssl/issues/2317
 openssl = "<0.10.67"
 openssl-sys = "0.9"
-foreign-types = "0.3"
+foreign-types = "0.5"
 temp-env = "0.3"
 checkers = "0.6"
