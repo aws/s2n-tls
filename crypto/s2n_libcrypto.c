@@ -125,17 +125,9 @@ bool s2n_libcrypto_is_openssl(void)
     return !is_other_libcrypto_variant;
 }
 
-/* Check if the linked libcrypto is a fips-capable openssl variant.
- *
- * This method does not check whether the linked libcrypto has fips mode enabled.
- */
 bool s2n_libcrypto_is_openssl_fips(void)
 {
-#if defined(OPENSSL_FIPS)
-    return true;
-#else
-    return false;
-#endif
+    return s2n_libcrypto_is_openssl() && s2n_is_in_fips_mode();
 }
 
 bool s2n_libcrypto_is_awslc()
@@ -145,6 +137,11 @@ bool s2n_libcrypto_is_awslc()
 #else
     return false;
 #endif
+}
+
+bool s2n_libcrypto_is_awslc_fips(void)
+{
+    return s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode();
 }
 
 uint64_t s2n_libcrypto_awslc_api_version(void)
