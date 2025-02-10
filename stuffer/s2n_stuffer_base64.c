@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/evp.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include <openssl/evp.h>
 
 bool s2n_is_base64_char(unsigned char c)
 {
@@ -29,7 +29,7 @@ bool s2n_is_base64_char(unsigned char c)
     uint8_t is_plus = c == '+';
     uint8_t is_slash = c == '/';
     uint8_t is_equals = c == '=';
-    
+
     return is_upper | is_lower | is_digit | is_plus | is_slash | is_equals;
 }
 
@@ -43,7 +43,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
 
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, base64_data_size));
     const uint8_t *start_of_base64_data = stuffer->blob.data + stuffer->read_cursor - base64_data_size;
-    
+
     POSIX_GUARD(s2n_stuffer_skip_write(out, binary_output_size));
     uint8_t *start_of_binary_output = out->blob.data + out->write_cursor - binary_output_size;
 
@@ -64,7 +64,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             out->write_cursor -= 1;
         }
     }
-    
+
     return S2N_SUCCESS;
 }
 
@@ -84,7 +84,7 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
 
     POSIX_GUARD(s2n_stuffer_skip_read(in, binary_data_size));
     const uint8_t *start_of_binary_data = in->blob.data + in->read_cursor - binary_data_size;
-    
+
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, base64_output_size));
     uint8_t *start_of_base64_output = stuffer->blob.data + stuffer->write_cursor - base64_output_size;
 
@@ -95,4 +95,3 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
 
     return S2N_SUCCESS;
 }
-
