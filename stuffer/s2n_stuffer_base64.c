@@ -24,12 +24,12 @@ bool s2n_is_base64_char(unsigned char c)
 {
     /* use bitwise operations to minimize branching */
     uint8_t out = 0;
-    out += (c >= 'A') & (c <= 'Z');
-    out += (c >= 'a') & (c <= 'z');
-    out += (c >= '0') & (c <= '9');
-    out += c == '+';
-    out += c == '/';
-    out += c == '=';
+    out ^= (c >= 'A') & (c <= 'Z');
+    out ^= (c >= 'a') & (c <= 'z');
+    out ^= (c >= '0') & (c <= '9');
+    out ^= c == '+';
+    out ^= c == '/';
+    out ^= c == '=';
 
     return out == 1;
 }
