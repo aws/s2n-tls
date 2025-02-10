@@ -3,14 +3,16 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
-    awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
+    #awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
+    awslc.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };
 
   outputs = { self, nix, nixpkgs, awslc, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        aws-lc = awslc.packages.${system}.aws-lc;
+        # Internal variable = input.awslc ...<package name from flake>
+        aws-lc = awslc.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
         # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
