@@ -674,6 +674,10 @@ impl Builder {
         Ok(self)
     }
 
+    /// Set a callback allowing the application to select from the Psks offered
+    /// by the client.
+    ///
+    /// Corresponds to [s2n_config_set_psk_selection_callback].
     pub fn set_psk_selection_callback<T: PskSelectionCallback>(
         &mut self,
         handler: T,
@@ -915,7 +919,7 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [`s2n_config_set_psk_mode`].
+    /// Corresponds to [s2n_config_set_psk_mode].
     pub fn set_psk_mode(&mut self, mode: PskMode) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_psk_mode(self.as_mut_ptr(), mode.into()).into_result()? };
         Ok(self)

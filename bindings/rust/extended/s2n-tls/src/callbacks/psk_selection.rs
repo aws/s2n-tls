@@ -22,6 +22,9 @@ struct OfferedPsk<'callback> {
 }
 
 impl<'callback> OfferedPsk<'callback> {
+    /// Allocate a new, uninitialized Psk.
+    ///
+    /// Corresponds to [s2n_offered_psk_new].
     fn allocate() -> Result<Self, crate::error::Error> {
         let ptr = unsafe { s2n_offered_psk_new().into_result() }?;
         Ok(Self {
@@ -31,6 +34,8 @@ impl<'callback> OfferedPsk<'callback> {
     }
 
     /// Return the identity associated with an offered PSK.
+    ///
+    /// Corresponds to [s2n_offered_psk_get_identity].
     pub fn identity(&self) -> Result<&'callback [u8], crate::error::Error> {
         let mut identity_buffer = ptr::null_mut::<u8>();
         let mut size = 0;
@@ -52,6 +57,7 @@ impl<'callback> OfferedPsk<'callback> {
 }
 
 impl Drop for OfferedPsk<'_> {
+    /// Corresponds to [s2n_offered_psk_free].
     fn drop(&mut self) {
         let mut s2n_ptr = self.ptr.as_ptr();
         // ignore failures. There isn't anything to be done to handle them, but
@@ -99,23 +105,31 @@ impl<'callback> OfferedPskListRef<'callback> {
         })
     }
 
+    /// Corresponds to [s2n_offered_psk_list_has_next].
     fn has_next(&self) -> bool {
         // SAFETY: *mut cast - s2n-tls does not treat the pointer as mutable.
         unsafe { s2n_offered_psk_list_has_next(self.as_s2n_ptr() as *mut _) }
     }
 
+    /// Corresponds to [s2n_offered_psk_list_next].
     fn next(&mut self, psk: &mut OfferedPsk) -> Result<(), crate::error::Error> {
         let psk_ptr = psk.ptr.as_ptr();
         unsafe { s2n_offered_psk_list_next(self.as_s2n_ptr_mut(), psk_ptr).into_result() }?;
         Ok(())
     }
 
+    /// Select the PSK for negotiation.
+    ///
+    /// Corresponds to [s2n_offered_psk_list_choose_psk].
     fn choose_psk(&mut self, psk: &OfferedPsk) -> Result<(), crate::error::Error> {
         let mut_psk = psk.ptr.as_ptr();
         unsafe { s2n_offered_psk_list_choose_psk(self.as_s2n_ptr_mut(), mut_psk).into_result()? };
         Ok(())
     }
 
+    /// Reset the list, allowing entries to be read again.
+    ///
+    /// Corresponds to [s2n_offered_psk_list_reread].
     fn reread(&mut self) -> Result<(), crate::error::Error> {
         unsafe { s2n_offered_psk_list_reread(self.as_s2n_ptr_mut()).into_result() }?;
         Ok(())
