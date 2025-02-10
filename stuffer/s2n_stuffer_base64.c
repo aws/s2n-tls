@@ -50,14 +50,15 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     int res = EVP_DecodeBlock(start_of_binary_output, start_of_base64_data, base64_data_size);
     POSIX_ENSURE(res > 0, S2N_ERR_INVALID_BASE64);
 
-    // > The output will be padded with 0 bits if necessary to ensure that the 
-    // > output is always 3 bytes for every 4 input bytes. This function will 
-    // > return the length of the data decoded or -1 on error.
-    // https://docs.openssl.org/1.1.1/man3/EVP_EncodeInit/
-    // FFFF -> 0x14 0x51 0x45
-    // FFF= -> 0x14 0x51 0x00
-    // FF== -> 0x14 0x00 0x00
-    // F=== -> INVALID
+    /* > The output will be padded with 0 bits if necessary to ensure that the 
+     * > output is always 3 bytes for every 4 input bytes. This function will 
+     * > return the length of the data decoded or -1 on error.
+     * https://docs.openssl.org/1.1.1/man3/EVP_EncodeInit/
+     * FFFF -> 0x14 0x51 0x45
+     * FFF= -> 0x14 0x51 0x00
+     * FF== -> 0x14 0x00 0x00
+     * F=== -> INVALID
+     */
     for (int i = 1; i <= 2; i++) {
         if (stuffer->blob.data[stuffer->read_cursor - i] == '=') {
             out->write_cursor -= 1;
