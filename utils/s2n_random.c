@@ -556,6 +556,8 @@ bool s2n_supports_custom_rand(void)
 {
 #if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE)
     return false;
+#elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
+    return false;
 #else
     return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
 #endif

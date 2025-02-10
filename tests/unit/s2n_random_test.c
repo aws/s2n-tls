@@ -917,6 +917,14 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_libcrypto_is_openssl());
             EXPECT_FALSE(s2n_is_in_fips_mode());
         }
+
+        /* Ensure that disabling the S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE CMake option disables the
+         * custom rand override feature. When the S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED
+         * environment variable is set, this CMake option is expected to be disabled.
+         */
+        if (getenv("S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED")) {
+            EXPECT_FALSE(s2n_supports_custom_rand());
+        }
     };
 
     /* For each test case, creates a child process that runs the test case.
