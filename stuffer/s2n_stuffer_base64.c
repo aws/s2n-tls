@@ -23,14 +23,15 @@
 bool s2n_is_base64_char(unsigned char c)
 {
     /* use bitwise operations to minimize branching */
-    uint8_t is_upper = (c >= 'A') & (c <= 'Z');
-    uint8_t is_lower = (c >= 'a') & (c <= 'z');
-    uint8_t is_digit = (c >= '0') & (c <= '9');
-    uint8_t is_plus = c == '+';
-    uint8_t is_slash = c == '/';
-    uint8_t is_equals = c == '=';
+    uint8_t out = 0;
+    out += (c >= 'A') & (c <= 'Z');
+    out += (c >= 'a') & (c <= 'z');
+    out += (c >= '0') & (c <= '9');
+    out += c == '+';
+    out += c == '/';
+    out += c == '=';
 
-    return is_upper | is_lower | is_digit | is_plus | is_slash | is_equals;
+    return out == 1;
 }
 
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
