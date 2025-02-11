@@ -22,6 +22,18 @@
 
 int main(int argc, char **argv)
 {
+    /* s2n_is_base64_char */
+    {
+        uint8_t valid_b64_chars = 0;
+        for (uint8_t i = 0; i < 255; i++) {
+            if (s2n_is_base64_char(i)) {
+                valid_b64_chars++;
+            }
+        }
+        /* 64 valid characters and 1 padding character */
+        EXPECT_EQUAL(valid_b64_chars, 64 + 1);
+    };
+
     char hello_world[] = "Hello world!";
     uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
     struct s2n_stuffer stuffer = { 0 }, known_data = { 0 }, scratch = { 0 }, entropy = { 0 }, mirror = { 0 };
@@ -68,6 +80,14 @@ int main(int argc, char **argv)
         /* Write i bytes  it, base64 encoded */
         /* Read it back, decoded */
         EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &entropy));
+
+        /* s2n_is_base64_char: should be true for all bytes in the stuffer */
+        while (s2n_stuffer_data_available(&stuffer) > 0) {
+            uint8_t byte = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &byte));
+            EXPECT_TRUE(s2n_is_base64_char(byte));
+        }
+        EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
 
         /* Should be (i / 3) * 4 + a carry  */
         EXPECT_EQUAL((i / 3) * 4 + ((i % 3) ? 4 : 0), s2n_stuffer_data_available(&stuffer));

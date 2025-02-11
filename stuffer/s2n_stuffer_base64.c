@@ -39,25 +39,28 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
 
-    int base64_data_size = s2n_stuffer_data_available(stuffer) / 4 * 4;
-    if (base64_data_size == 0) {
+    int base64_groups = s2n_stuffer_data_available(stuffer) / 4;
+    if (base64_groups == 0) {
         return S2N_SUCCESS;
     }
-    int binary_output_size = base64_data_size / 4 * 3;
+    int base64_data_size = base64_groups * 4;
+    int binary_output_size = base64_groups * 3;
 
+    const uint32_t base64_data_offset = stuffer->read_cursor;
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, base64_data_size));
-    const uint8_t *start_of_base64_data = stuffer->blob.data + stuffer->read_cursor - base64_data_size;
+    const uint8_t *start_of_base64_data = stuffer->blob.data + base64_data_offset;
 
+    const uint32_t binary_output_offset = out->write_cursor;
     POSIX_GUARD(s2n_stuffer_skip_write(out, binary_output_size));
-    uint8_t *start_of_binary_output = out->blob.data + out->write_cursor - binary_output_size;
+    uint8_t *start_of_binary_output = out->blob.data + binary_output_offset;
 
+    /* > This function will return the length of the data decoded or -1 on error.*/
     int res = EVP_DecodeBlock(start_of_binary_output, start_of_base64_data, base64_data_size);
-    POSIX_ENSURE(res >= 0, S2N_ERR_INVALID_BASE64);
+    POSIX_ENSURE(res == binary_output_size, S2N_ERR_INVALID_BASE64);
 
-    /* > The output will be padded with 0 bits if necessary to ensure that the 
-     * > output is always 3 bytes for every 4 input bytes. This function will 
-     * > return the length of the data decoded or -1 on error.
-     * https://docs.openssl.org/1.1.1/man3/EVP_EncodeInit/
+    /* https://docs.openssl.org/1.1.1/man3/EVP_EncodeInit/
+     * > The output will be padded with 0 bits if necessary to ensure that the 
+     * > output is always 3 bytes for every 4 input bytes. 
      * FFFF -> 0x14 0x51 0x45
      * FFF= -> 0x14 0x51 0x00
      * FF== -> 0x14 0x00 0x00
@@ -83,7 +86,6 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
     if (binary_data_size == 0) {
         return S2N_SUCCESS;
     }
-
     int base64_output_size = binary_data_size / 3 * 4;
     /* we will need to add a final padded block */
     if (binary_data_size % 3 != 0) {
@@ -92,11 +94,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
     /* Null terminator is added */
     base64_output_size += 1;
 
+    const uint32_t binary_data_offset = in->read_cursor;
     POSIX_GUARD(s2n_stuffer_skip_read(in, binary_data_size));
-    const uint8_t *start_of_binary_data = in->blob.data + in->read_cursor - binary_data_size;
+    const uint8_t *start_of_binary_data = in->blob.data + binary_data_offset;
 
+    const uint32_t base64_output_offset = stuffer->write_cursor;
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, base64_output_size));
-    uint8_t *start_of_base64_output = stuffer->blob.data + stuffer->write_cursor - base64_output_size;
+    uint8_t *start_of_base64_output = stuffer->blob.data + base64_output_offset;
 
     /* > The length of the data generated without the NUL terminator is returned from the function. */
     int res = EVP_EncodeBlock(start_of_base64_output, start_of_binary_data, binary_data_size);
