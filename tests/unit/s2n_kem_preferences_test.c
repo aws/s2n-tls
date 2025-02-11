@@ -36,8 +36,6 @@ int main(int argc, char **argv)
 
     {
         const struct s2n_kem_preferences test_prefs = {
-            .kem_count = 0,
-            .kems = NULL,
             .tls13_kem_group_count = S2N_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
         };

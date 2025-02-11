@@ -599,9 +599,7 @@ void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_paramet
 	 * If required, these initializations should be done in the proof harness.
 	 */
 	cbmc_populate_s2n_kem_group_params(&(s2n_kex_parameters->server_kem_group_params));
-	cbmc_populate_s2n_kem_params(&(s2n_kex_parameters->kem_params));
 	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_key_exchange_message));
-	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_pq_kem_extension));
 }
 
 void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypto_parameters)
