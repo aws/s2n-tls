@@ -36,6 +36,10 @@ bool s2n_is_base64_char(unsigned char c)
 
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
+    /* We use the base64 decoding implementation from the libcrypto to allow for
+     * sidechannel-resistant base64 decoding. While OpenSSL doesn't support this,
+     * AWS-LC does.
+     */
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
 

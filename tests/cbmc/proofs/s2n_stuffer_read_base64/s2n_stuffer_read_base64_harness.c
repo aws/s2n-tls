@@ -40,8 +40,6 @@ void s2n_stuffer_read_base64_harness()
 
     nondet_s2n_mem_init();
 
-    __CPROVER_assume(stuffer->write_cursor > 2);
-
     if (s2n_stuffer_read_base64(stuffer, out) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_stuffer_validate(out)));
     }
