@@ -125,6 +125,11 @@ bool s2n_libcrypto_is_openssl(void)
     return !is_other_libcrypto_variant;
 }
 
+bool s2n_libcrypto_is_openssl_fips(void)
+{
+    return s2n_libcrypto_is_openssl() && s2n_is_in_fips_mode();
+}
+
 bool s2n_libcrypto_is_awslc()
 {
 #if defined(OPENSSL_IS_AWSLC)
@@ -132,6 +137,11 @@ bool s2n_libcrypto_is_awslc()
 #else
     return false;
 #endif
+}
+
+bool s2n_libcrypto_is_awslc_fips(void)
+{
+    return s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode();
 }
 
 uint64_t s2n_libcrypto_awslc_api_version(void)

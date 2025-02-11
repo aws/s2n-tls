@@ -68,6 +68,15 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
     POSIX_ENSURE_REF(secret);
     POSIX_ENSURE(secret_size != 0, S2N_ERR_INVALID_ARGUMENT);
 
+    /* There are a number of application level errors that might result in an
+     * all-zero secret accidentally getting used. Error if that happens.
+     */
+    bool secret_is_all_zero = true;
+    for (uint16_t i = 0; i < secret_size; i++) {
+        secret_is_all_zero = secret_is_all_zero && secret[i] == 0;
+    }
+    POSIX_ENSURE(!secret_is_all_zero, S2N_ERR_INVALID_ARGUMENT);
+
     POSIX_GUARD(s2n_realloc(&psk->secret, secret_size));
     POSIX_CHECKED_MEMCPY(psk->secret.data, secret, secret_size);
 
@@ -363,6 +372,7 @@ int s2n_offered_psk_free(struct s2n_offered_psk **psk)
 int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size)
 {
     POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(psk->identity.data);
     POSIX_ENSURE_REF(identity);
     POSIX_ENSURE_REF(size);
     *identity = psk->identity.data;

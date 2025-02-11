@@ -36,7 +36,13 @@ batch:
             - openssl-1.1.1_gcc9
             - openssl-3.0
           INTEGV2_TEST:
-            - "test_dynamic_record_sizes test_sslyze"
+            - "test_client_authentication test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
+            - "test_happy_path"
+            - "test_cross_compatibility"
+            - "test_early_data test_well_known_endpoints test_hello_retry_requests test_sni_match test_pq_handshake test_fragmentation test_key_update"
+            - "test_session_resumption test_renegotiate_apache test_buffered_send"
+            - "test_npn test_signature_algorithms"
+            - "test_version_negotiation test_external_psk test_ocsp test_renegotiate test_serialization"
 
 env:
   variables:

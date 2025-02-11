@@ -36,6 +36,15 @@ openssl req  -new -noenc \
         -subj "/C=US/CN=kangaroo" \
         -addext "subjectAltName = DNS:www.kangaroo.com"
 
+echo "generating localhost private key and CSR"
+openssl req -new -noenc \
+        -newkey ec \
+        -pkeyopt ec_paramgen_curve:P-384 \
+        -keyout localhost-key.pem \
+        -out localhost.csr \
+        -subj "/C=US/CN=localhost" \
+        -addext "subjectAltName = DNS:localhost"
+
 echo "generating wombat server certificate and signing it"
 openssl x509 -days 65536 \
         -req -in wombat.csr \
@@ -56,6 +65,16 @@ openssl x509 -days 65536 \
         -out kangaroo-cert.pem \
         -copy_extensions=copyall
 
+echo "generating localhost certificate and signing it"
+openssl x509 -days 65536 \
+        -req -in localhost.csr \
+        -SHA384 \
+        -CA ca-cert.pem \
+        -CAkey ca-key.pem \
+        -CAcreateserial \
+        -out localhost-cert.pem \
+        -copy_extensions=copyall
+
 touch wombat-chain.pem
 cat wombat-cert.pem >> wombat-chain.pem
 cat ca-cert.pem >> wombat-chain.pem
@@ -64,17 +83,24 @@ touch kangaroo-chain.pem
 cat kangaroo-cert.pem >> kangaroo-chain.pem
 cat ca-cert.pem >> kangaroo-chain.pem
 
+touch localhost-chain.pem
+cat localhost-cert.pem >> localhost-chain.pem
+cat ca-cert.pem >> localhost-chain.pem
+
 echo "verifying server certificates"
 openssl verify -CAfile ca-cert.pem wombat-cert.pem
 openssl verify -CAfile ca-cert.pem kangaroo-cert.pem
+openssl verify -CAfile ca-cert.pem localhost-cert.pem
 
 # certificate signing requests are never used after the certs are generated
 rm wombat.csr
 rm kangaroo.csr
+rm localhost.csr
 rm ca-cert.srl
 
 # the private keys of the CA are never needed after signing
 rm ca-key.pem
 rm wombat-cert.pem
 rm kangaroo-cert.pem
+rm localhost-cert.pem
 

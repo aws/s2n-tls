@@ -40,20 +40,21 @@ mod kms_pq {
     const DOMAIN: &str = "kms.us-east-1.amazonaws.com";
 
     // confirm that we successfully negotiate a supported PQ key exchange.
-    //
-    // Note: In the future KMS will deprecate kyber_r3 in favor of ML-KEM.
-    // At that point this test should be updated with a security policy that
-    // supports ML-KEM.
     #[test_log::test(tokio::test)]
     async fn pq_handshake() -> Result<(), Box<dyn std::error::Error>> {
-        let policy = Policy::from_version("PQ-TLS-1-2-2023-10-09")?;
+        let policy = Policy::from_version("PQ-TLS-1-2-2024-10-09")?;
         let tls = handshake_with_domain(DOMAIN, &policy).await?;
 
         assert_eq!(
             tls.as_ref().cipher_suite()?,
             "TLS_AES_256_GCM_SHA384"
         );
-        assert_eq!(tls.as_ref().kem_group_name(), Some("x25519_kyber-512-r3"));
+
+        // As of 2/5/25, some KMS hosts support ML-KEM, while other hosts still only support earlier
+        // draft PQ KEM groups. As such, we currently assert that any KEM group was negotiated.
+        // After ML-KEM is fully supported, this test should be updated to assert that ML-KEM was
+        // negotiated: https://github.com/aws/s2n-tls/issues/5086.
+        let _ = tls.as_ref().kem_group_name().unwrap();
 
         Ok(())
     }

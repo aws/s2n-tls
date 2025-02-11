@@ -93,6 +93,8 @@ struct s2n_security_policy_selection {
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
+extern const char *deprecated_security_policies[];
+extern const size_t deprecated_security_policies_len;
 
 /* Defaults as of 05/24 */
 extern const struct s2n_security_policy security_policy_20240501;
@@ -160,8 +162,6 @@ extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12;
 extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18;
