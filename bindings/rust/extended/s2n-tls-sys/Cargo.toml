@@ -31,7 +31,12 @@ fips = ["aws-lc-rs/fips"]
 pq = []
 internal = []
 stacktrace = []
-<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
+unstable-cleanup = []
+unstable-crl = []
+unstable-fingerprint = []
+unstable-ktls = []
+unstable-npn = []
+unstable-renegotiate = []
 # e.g. something like
 # unstable-foo = []
 

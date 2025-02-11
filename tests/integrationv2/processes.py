@@ -157,6 +157,7 @@ class _processCommunicator(object):
                 ready = selector.select(timeout)
                 self._check_timeout(endtime, orig_timeout, stdout, stderr)
 
+                # (Key, events) tuple represents a single I/O operation
                 for key, events in ready:
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
@@ -178,6 +179,7 @@ class _processCommunicator(object):
                                     print(f'{self.name}: next send_marker is {send_marker}')
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
                         print(f'{self.name}: stdout available')
+                        # 32 KB (32 × 1024 = 32,768 bytes), read 32KB from the file descriptor
                         data = os.read(key.fd, 32768)
                         if not data:
                             selector.unregister(key.fileobj)
@@ -389,12 +391,22 @@ class ManagedProcess(threading.Thread):
             finally:
                 # This data is dumped to stdout so we capture this
                 # information no matter where a test fails.
-                print("Command line: {}".format(" ".join(self.cmd_line)))
-                print("Exit code: {}".format(proc.returncode))
-                print("Stdout: {}".format(
-                    proc_results[0].decode("utf-8", "backslashreplace")))
-                print("Stderr: {}".format(
-                    proc_results[1].decode("utf-8", "backslashreplace")))
+                print("###############################################################")
+                print(f"#######################   {self.cmd_line[0]}   #######################")
+                print("###############################################################")
+
+                print(f"Command line:\n\t{' '.join(self.cmd_line)}")
+                print(f"Exit code:\n\t {proc.returncode}")
+
+                print("##########################################################")
+                print("########################### Stdout #######################")
+                print("##########################################################")
+                print(proc_results[0].decode("utf-8", "backslashreplace"))
+
+                print("#########################################################")
+                print("########################### Stderr #######################")
+                print("#########################################################")
+                print(proc_results[1].decode("utf-8", "backslashreplace"))
 
     def kill(self):
         self.proc.kill()
