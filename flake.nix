@@ -8,7 +8,8 @@
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };
 
-  outputs = { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
+  outputs =
+    { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -190,7 +191,7 @@
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
-          });        # Used to backup the devShell to s3 for caching.
+          }); # Used to backup the devShell to s3 for caching.
         devShells.awslcfips2024 = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {
             # Re-include cmake to update the environment with a new libcrypto.
@@ -202,7 +203,7 @@
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
-          });        # Used to backup the devShell to s3 for caching.
+          }); # Used to backup the devShell to s3 for caching.
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
