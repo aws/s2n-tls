@@ -40,6 +40,9 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
 
     int base64_data_size = s2n_stuffer_data_available(stuffer) / 4 * 4;
+    if (base64_data_size == 0) {
+        return S2N_SUCCESS;
+    }
     int binary_output_size = base64_data_size / 4 * 3;
 
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, base64_data_size));
@@ -49,7 +52,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     uint8_t *start_of_binary_output = out->blob.data + out->write_cursor - binary_output_size;
 
     int res = EVP_DecodeBlock(start_of_binary_output, start_of_base64_data, base64_data_size);
-    POSIX_ENSURE(res > 0, S2N_ERR_INVALID_BASE64);
+    POSIX_ENSURE(res >= 0, S2N_ERR_INVALID_BASE64);
 
     /* > The output will be padded with 0 bits if necessary to ensure that the 
      * > output is always 3 bytes for every 4 input bytes. This function will 
@@ -60,10 +63,12 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
      * FF== -> 0x14 0x00 0x00
      * F=== -> INVALID
      */
-    for (int i = 1; i <= 2; i++) {
-        if (stuffer->blob.data[stuffer->read_cursor - i] == '=') {
-            out->write_cursor -= 1;
-        }
+    /* manually unrolled loop to prevent CBMC errors */
+    if (stuffer->blob.data[stuffer->read_cursor - 1] == '=') {
+        out->write_cursor -= 1;
+    }
+    if (stuffer->blob.data[stuffer->read_cursor - 2] == '=') {
+        out->write_cursor -= 1;
     }
 
     return S2N_SUCCESS;
@@ -75,6 +80,10 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
     POSIX_PRECONDITION(s2n_stuffer_validate(in));
 
     int binary_data_size = s2n_stuffer_data_available(in);
+    if (binary_data_size == 0) {
+        return S2N_SUCCESS;
+    }
+
     int base64_output_size = binary_data_size / 3 * 4;
     /* we will need to add a final padded block */
     if (binary_data_size % 3 != 0) {
