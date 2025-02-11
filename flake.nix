@@ -4,15 +4,17 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
     awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
+    awslcfips2022.url = "github:dougch/aws-lc?ref=nixAWS-LC-FIPS-2.0.17";
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };
 
-  outputs = { self, nix, nixpkgs, awslc, awslcfips2024, flake-utils }:
+  outputs = { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
@@ -176,6 +178,18 @@
               source ${writeScript ./nix/shell.sh}
             '';
           });
+        devShells.awslcfips2022 = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
+            S2N_LIBCRYPTO = "awslc-fips-2022";
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });        # Used to backup the devShell to s3 for caching.
         devShells.awslcfips2024 = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {
             # Re-include cmake to update the environment with a new libcrypto.
