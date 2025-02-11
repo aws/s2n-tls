@@ -187,16 +187,6 @@ int main(int argc, char *argv[])
                 .data = { .call_accept_or_reject = true, .accept = false, .return_success = false },
                 .expected_error = S2N_ERR_CANCELLED
             },
-            {
-                .data = { .call_accept_or_reject = false, .return_success = false },
-                .expected_error = S2N_ERR_CANCELLED
-            },
-
-            /* Error if accept or reject wasn't called from the callback */
-            {
-                .data = { .call_accept_or_reject = false, .return_success = true },
-                .expected_error = S2N_ERR_INVALID_STATE
-            },
         };
         /* clang-format on */
 
@@ -444,6 +434,118 @@ int main(int argc, char *argv[])
 
             EXPECT_EQUAL(data.invoked_count, 1);
         }
+
+        /* Async callback is invoked on the client after receiving the server's certificate */
+        for (int i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+            struct s2n_cert_validation_data data = test_cases[i].data;
+            data.call_accept_or_reject = false;     // async case
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback_self_talk, &data));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            s2n_error expected_error = test_cases[i].expected_error;
+            if (expected_error == S2N_ERR_CANCELLED) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        expected_error);
+                continue;
+            }
+
+            for (int j = 0; j < 3; j++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_ASYNC_BLOCKED);
+            }
+
+            if (test_cases[i].data.accept) {
+                EXPECT_SUCCESS(s2n_cert_validation_accept(&(client_conn->x509_validator.info)));
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            } else {
+                EXPECT_SUCCESS(s2n_cert_validation_reject(&(client_conn->x509_validator.info)));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_CERT_REJECTED);
+            }
+
+            EXPECT_EQUAL(data.invoked_count, 1);
+        }
+
+        /* Async callback is invoked on the server after receiving the client's certificate */
+        for (int i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+
+            struct s2n_cert_validation_data data = test_cases[i].data;
+            data.call_accept_or_reject = false;     // async case
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(server_config,
+                    s2n_test_cert_validation_callback_self_talk_server, &data));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            s2n_error expected_error = test_cases[i].expected_error;
+            if (expected_error == S2N_ERR_CANCELLED) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        expected_error);
+                continue;
+            }
+
+            for (int j = 0; j < 3; j++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_ASYNC_BLOCKED);
+            }
+
+            if (test_cases[i].data.accept) {
+                EXPECT_SUCCESS(s2n_cert_validation_accept(&(server_conn->x509_validator.info)));
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            } else {
+                EXPECT_SUCCESS(s2n_cert_validation_reject(&(server_conn->x509_validator.info)));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_CERT_REJECTED);
+            }
+
+            EXPECT_EQUAL(data.invoked_count, 1);
+        }
+
     }
 
     END_TEST();

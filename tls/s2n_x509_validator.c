@@ -150,6 +150,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
+    validator->info = (struct s2n_cert_validation_info) { 0 };
 
     return 0;
 }
@@ -169,6 +170,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
+    validator->info = (struct s2n_cert_validation_info) { 0 };
 
     return 0;
 }
@@ -763,6 +765,9 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         case AWAITING_CRL_CALLBACK:
             RESULT_GUARD(s2n_crl_handle_lookup_callback_result(validator));
             break;
+        case AWAITING_VALIDATE_CALLBACK:
+            RESULT_GUARD(s2n_handle_cert_validation_callback_result(validator));
+            break;
         default:
             RESULT_BAIL(S2N_ERR_INVALID_CERT_STATE);
     }
@@ -776,7 +781,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_x509_validator_check_root_cert(validator, conn));
     }
 
-    if (conn->actual_protocol_version >= S2N_TLS13) {
+    /* skip this step on the re-entry case */
+    if (validator->state != AWAITING_VALIDATE_CALLBACK && conn->actual_protocol_version >= S2N_TLS13) {
         /* Only process certificate extensions received in the first certificate. Extensions received in all other
          * certificates are ignored.
          *
@@ -789,13 +795,14 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
-    if (conn->config->cert_validation_cb) {
-        struct s2n_cert_validation_info info = { 0 };
-        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
+    /* skip this step on the re-entry case */
+    if (validator->state != AWAITING_VALIDATE_CALLBACK && conn->config->cert_validation_cb) {
+        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &(validator->info), conn->config->cert_validation_ctx) >= S2N_SUCCESS,
                 S2N_ERR_CANCELLED);
-        RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
-        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
+        RESULT_GUARD(s2n_handle_cert_validation_callback_result(validator));
     }
+    /* update state after completing the async validation */
+    validator->state = VALIDATED;
 
     /* retrieve information from leaf cert */
     RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
@@ -958,6 +965,19 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
 {
     return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
+}
+
+S2N_RESULT s2n_handle_cert_validation_callback_result(struct s2n_x509_validator *validator)
+{
+    RESULT_ENSURE_REF(validator);
+
+    if (!validator->info.finished) {
+        validator->state = AWAITING_VALIDATE_CALLBACK;
+        RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
+
+    RESULT_ENSURE(validator->info.accepted, S2N_ERR_CERT_REJECTED);
+    return S2N_RESULT_OK;
 }
 
 int s2n_cert_validation_accept(struct s2n_cert_validation_info *info)

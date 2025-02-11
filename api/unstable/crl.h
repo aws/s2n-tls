@@ -187,12 +187,13 @@ struct s2n_cert_validation_info;
  *
  * If the validation performed in the callback is successful, `s2n_cert_validation_accept()` MUST be called to allow
  * `s2n_negotiate()` to continue the handshake. If the validation is unsuccessful, `s2n_cert_validation_reject()`
- * MUST be called, which will cause `s2n_negotiate()` to error. The behavior of `s2n_negotiate()` is undefined if
+ * MUST be called, which will cause `s2n_negotiate()` to error. The handshake will be paused and return `S2N_ERR_ASYNC_BLOCKED` if
  * neither `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` are called.
  *
  * The `info` parameter is passed to the callback in order to call APIs specific to the cert validation callback, like
- * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument is only valid for the
- * lifetime of the callback, and must not be used after the callback has finished.
+ * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument shares the same
+ * lifetime as `s2n_x509_validator`, and must be updated by `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()`
+ * in order to finish the handshake.
  *
  * After calling `s2n_cert_validation_reject()`, `s2n_negotiate()` will fail with a protocol error indicating that
  * the cert has been rejected from the callback. If more information regarding an application's custom validation
