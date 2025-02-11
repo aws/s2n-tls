@@ -14,7 +14,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
@@ -107,6 +107,7 @@
           OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
           OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
           AWSLC_INSTALL_DIR = "${aws-lc}";
+          AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
           AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
           GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
           LIBRESSL_INSTALL_DIR = "${libressl}";
