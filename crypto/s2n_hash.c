@@ -15,29 +15,22 @@
 
 #include "crypto/s2n_hash.h"
 
-#include "crypto/s2n_fips.h"
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
-static bool s2n_use_custom_md5_sha1()
-{
-#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
-    return false;
-#else
-    return true;
-#endif
-}
-
 static bool s2n_use_evp_impl()
 {
-    return s2n_is_in_fips_mode();
-}
-
-bool s2n_hash_evp_fully_supported()
-{
-    return s2n_use_evp_impl() && !s2n_use_custom_md5_sha1();
+    /* Our current EVP signing implementation requires EVP hashing.
+     *
+     * We could use the EVP hashing impl with legacy signing, but that would
+     * unnecessarily complicate the logic. The only known libcrypto that
+     * doesn't support EVP signing is openssl-1.0.2. Just let legacy
+     * libcryptos use legacy methods.
+     */
+    return s2n_evp_signing_supported();
 }
 
 const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg)
@@ -289,13 +282,8 @@ static int s2n_low_level_hash_free(struct s2n_hash_state *state)
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
     POSIX_ENSURE_REF(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
-    if (s2n_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
-    }
-
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
-
     return S2N_SUCCESS;
 }
 
@@ -308,13 +296,6 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
     state->currently_in_hash = 0;
 
     if (alg == S2N_HASH_NONE) {
-        return S2N_SUCCESS;
-    }
-
-    if (alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx);
-        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
-        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
         return S2N_SUCCESS;
     }
 
@@ -335,12 +316,6 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 
     POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
-
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
-        POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
-    }
-
     return S2N_SUCCESS;
 }
 
@@ -362,23 +337,6 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
     POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
 
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
-
-        uint8_t sha1_digest_size = 0;
-        POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
-
-        unsigned int sha1_primary_digest_size = sha1_digest_size;
-        unsigned int md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
-
-        POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-        POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-
-        POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
-        POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
-        return S2N_SUCCESS;
-    }
-
     POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
     POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
     return S2N_SUCCESS;
@@ -397,21 +355,12 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 
     POSIX_ENSURE_REF(to->digest.high_level.evp.ctx);
     POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
-
-    if (from->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(to->digest.high_level.evp_md5_secondary.ctx);
-        POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_COPY_FAILED);
-    }
-
     return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
     POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
-    }
 
     /* hash_init resets the ready_for_input and currently_in_hash fields. */
     return s2n_evp_hash_init(state, state->alg);
@@ -421,12 +370,6 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 {
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
     state->digest.high_level.evp.ctx = NULL;
-
-    if (s2n_use_custom_md5_sha1()) {
-        S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
-        state->digest.high_level.evp_md5_secondary.ctx = NULL;
-    }
-
     state->is_ready_for_input = 0;
     return S2N_SUCCESS;
 }

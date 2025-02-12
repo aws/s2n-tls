@@ -54,8 +54,6 @@ union s2n_hash_low_level_digest {
 /* The evp_digest stores all OpenSSL structs to be used with OpenSSL's EVP hash API's. */
 struct s2n_hash_evp_digest {
     struct s2n_evp_digest evp;
-    /* Always store a secondary evp_digest to allow resetting a hash_state to MD5_SHA1 from another alg. */
-    struct s2n_evp_digest evp_md5_secondary;
 };
 
 /* s2n_hash_state stores the s2n_hash implementation being used (low-level or EVP),
