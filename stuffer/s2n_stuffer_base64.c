@@ -34,12 +34,12 @@ bool s2n_is_base64_char(unsigned char c)
     return out == 1;
 }
 
+/* We use the base64 decoding implementation from the libcrypto to allow for
+ * sidechannel-resistant base64 decoding. While OpenSSL doesn't support this,
+ * AWS-LC does.
+ */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
-    /* We use the base64 decoding implementation from the libcrypto to allow for
-     * sidechannel-resistant base64 decoding. While OpenSSL doesn't support this,
-     * AWS-LC does.
-     */
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
 
@@ -72,6 +72,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
      * F=== -> INVALID
      */
     /* manually unrolled loop to prevent CBMC errors */
+    POSIX_ENSURE(stuffer->read_cursor >= 2, S2N_ERR_SAFETY);
     if (stuffer->blob.data[stuffer->read_cursor - 1] == '=') {
         out->write_cursor -= 1;
     }
