@@ -25,7 +25,7 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/ec_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
-PROOF_SOURCES += $(PROOF_STUB)/s2n_evp_signing_supported.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_evp_signing_requires_evp_hash.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c

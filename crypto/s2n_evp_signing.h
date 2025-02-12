@@ -20,7 +20,7 @@
 #include "crypto/s2n_signature.h"
 #include "utils/s2n_blob.h"
 
-bool s2n_evp_signing_supported();
+bool s2n_evp_signing_requires_evp_hash();
 S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey);
 int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature);

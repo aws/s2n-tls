@@ -36,7 +36,7 @@ static bool s2n_use_evp_impl()
      * doesn't support EVP signing is openssl-1.0.2. Just let legacy
      * libcryptos use legacy methods.
      */
-    return s2n_evp_signing_supported();
+    return s2n_evp_signing_requires_evp_hash();
 }
 
 S2N_RESULT s2n_hash_algorithms_init()

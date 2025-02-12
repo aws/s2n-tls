@@ -21,6 +21,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    const struct s2n_signature_preferences *all_prefs = &s2n_signature_preferences_all;
+
     /* Test all signature schemes */
     size_t policy_i = 0;
     while (security_policy_selection[policy_i].version != NULL) {
@@ -50,8 +52,48 @@ int main(int argc, char **argv)
                         sig_prefs->signature_schemes[dup_i];
                 EXPECT_NOT_EQUAL(sig_scheme->iana_value, potential_duplicate->iana_value);
             }
+
+            /* Must be included in s2n_signature_preferences_all */
+            bool in_all = false;
+            for (size_t all_i = 0; all_i < all_prefs->count; all_i++) {
+                if (sig_scheme == all_prefs->signature_schemes[all_i]) {
+                    in_all = true;
+                }
+            }
+            EXPECT_TRUE(in_all);
         }
         policy_i++;
+    }
+
+    /* Test: s2n_signature_preferences_all should also include s2n_rsa_pkcs1_md5_sha1
+     *
+     * s2n_rsa_pkcs1_md5_sha1 is the implicit default for pre-TLS1.2 when no signature
+     * schemes are provided. Any code that needs to handle "all signature schemes"
+     * also needs to handle s2n_rsa_pkcs1_md5_sha1. It is not explicitly included
+     * in any security policy, but should still be tracked by s2n_signature_preferences_all.
+     */
+    {
+        bool includes_md5_sha1 = false;
+        for (size_t i = 0; i < all_prefs->count; i++) {
+            if (all_prefs->signature_schemes[i] == &s2n_rsa_pkcs1_md5_sha1) {
+                includes_md5_sha1 = true;
+            }
+        }
+        EXPECT_TRUE(includes_md5_sha1);
+    }
+
+    /* Test: s2n_signature_preferences_all should not include s2n_null_sig_scheme.
+     *
+     * s2n_null_sig_scheme is not a real signature scheme and is just a placeholder.
+     */
+    {
+        bool includes_null = false;
+        for (size_t i = 0; i < all_prefs->count; i++) {
+            if (all_prefs->signature_schemes[i] == &s2n_null_sig_scheme) {
+                includes_null = true;
+            }
+        }
+        EXPECT_FALSE(includes_null);
     }
 
     END_TEST();
