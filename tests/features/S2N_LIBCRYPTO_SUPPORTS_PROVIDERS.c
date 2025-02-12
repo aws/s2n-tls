@@ -28,5 +28,8 @@ int main()
     EVP_MD *md = EVP_MD_fetch(NULL, NULL, NULL);
     EVP_MD_free(md);
 
+    /* Supports property queries for pkey context implicit fetching */
+    EVP_PKEY_CTX *pkey_ctx = EVP_PKEY_CTX_new_from_pkey(NULL, NULL, NULL);
+
     return 0;
 }
