@@ -556,7 +556,7 @@ bool s2n_supports_custom_rand(void)
 {
 #if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE) || defined(OPENSSL_FIPS)
     /* OpenSSL 1.0.2-fips is excluded to match historical behavior */
-    /* OPENSSL_FIPS is only defined for 1.0.2-fips, not 3.x-fips*/
+    /* OPENSSL_FIPS is only defined for 1.0.2-fips, not 3.x-fips */
     return false;
 #else
     return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
