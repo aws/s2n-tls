@@ -71,7 +71,7 @@ void s2n_hmac_free_harness()
 
     /* Cleanup after expected error cases, for memory leak check. */
     if (state != NULL) {
-        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_is_in_fips_mode`,
+        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_supported`,
               since `s2n_hash_free` is a NO-OP in that case. */
         if (!s2n_evp_signing_supported()) {
             S2N_EVP_MD_CTX_FREE(state->inner.digest.high_level.evp.ctx);

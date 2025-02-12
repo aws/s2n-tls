@@ -17,7 +17,6 @@
 
 #include <openssl/crypto.h>
 
-#include "crypto/s2n_evp_signing.h"
 #include "utils/s2n_init.h"
 #include "utils/s2n_safety.h"
 
@@ -65,11 +64,6 @@ int s2n_fips_init(void)
 #if defined(OPENSSL_FIPS) || S2N_OPENSSL_VERSION_AT_LEAST(3, 1, 0)
     POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
 #endif
-
-    /* FIPS requires the use of the FIPS-approved EVP methods */
-    if (s2n_fips_mode_enabled) {
-        POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_FIPS_MODE_UNSUPPORTED);
-    }
 
     /* For now, openssl is only supported for testing */
     if (s2n_libcrypto_is_openssl_fips()) {
