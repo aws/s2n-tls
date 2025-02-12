@@ -444,7 +444,8 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
             struct s2n_cert_validation_data data = test_cases[i].data;
-            data.call_accept_or_reject = false;     // async case
+            /* async case */
+            data.call_accept_or_reject = false;
             EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback_self_talk, &data));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -496,7 +497,8 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
             struct s2n_cert_validation_data data = test_cases[i].data;
-            data.call_accept_or_reject = false;     // async case
+            /* async case */
+            data.call_accept_or_reject = false;
             EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(server_config,
                     s2n_test_cert_validation_callback_self_talk_server, &data));
 
@@ -545,7 +547,6 @@ int main(int argc, char *argv[])
 
             EXPECT_EQUAL(data.invoked_count, 1);
         }
-
     }
 
     END_TEST();

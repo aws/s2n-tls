@@ -150,7 +150,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
-    validator->info = (struct s2n_cert_validation_info) { 0 };
+    validator->info = (struct s2n_cert_validation_info){ 0 };
 
     return 0;
 }
@@ -170,7 +170,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
-    validator->info = (struct s2n_cert_validation_info) { 0 };
+    validator->info = (struct s2n_cert_validation_info){ 0 };
 
     return 0;
 }
@@ -801,8 +801,11 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
                 S2N_ERR_CANCELLED);
         RESULT_GUARD(s2n_handle_cert_validation_callback_result(validator));
     }
+    
     /* update state after completing the async validation */
-    validator->state = VALIDATED;
+    if (validator->state == AWAITING_VALIDATE_CALLBACK) {
+        validator->state = VALIDATED;
+    }
 
     /* retrieve information from leaf cert */
     RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
