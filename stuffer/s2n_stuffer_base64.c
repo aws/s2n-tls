@@ -91,13 +91,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
     if (binary_data_size == 0) {
         return S2N_SUCCESS;
     }
-    
+
     int base64_groups = binary_data_size / 3;
     /* we will need to add a final padded block */
     if (binary_data_size % 3 != 0) {
         base64_groups++;
     }
-    
+
     int base64_output_size = base64_groups * 4;
     /* Null terminator is added */
     base64_output_size += 1;

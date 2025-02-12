@@ -20,18 +20,102 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_random.h"
 
+/* Generated with this python:
+ *
+ * b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+ *
+ * for i in range(0, 256):
+ *     if chr(i) in b64:
+ *         print str(b64.index(chr(i))) + ", ",
+ *      else:
+ *         print "255, ",
+ *
+ *      if (i + 1) % 16 == 0:
+ *          print
+ *
+ * Note that '=' maps to 64.
+ */
+static const uint8_t b64_inverse[256] = { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 62, 255, 255, 255, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 255, 255, 255, 64, 255, 255,
+    255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 255, 255, 255,
+    255, 255, 255, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
+
+bool s2n_is_base64_char_alternate(unsigned char c)
+{
+    return (b64_inverse[*((uint8_t *) (&c))] != 255);
+}
+
 int main(int argc, char **argv)
 {
+    BEGIN_TEST();
+
     /* s2n_is_base64_char */
+    for (uint8_t i = 0; i < 255; i++) {
+        EXPECT_EQUAL(s2n_is_base64_char(i), s2n_is_base64_char_alternate(i));
+    };
+
+    /* safety: s2n_stuffer_read/write_base64 */
     {
-        uint8_t valid_b64_chars = 0;
-        for (uint8_t i = 0; i < 255; i++) {
-            if (s2n_is_base64_char(i)) {
-                valid_b64_chars++;
-            }
+        struct s2n_stuffer a = { 0 };
+        struct s2n_stuffer b = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_write_base64(&a, &b));
+        EXPECT_SUCCESS(s2n_stuffer_read_base64(&a, &b));
+    }
+
+    /* known-value base64 read/write tests using byte strings of `0` */
+    struct {
+        uint8_t bytes;
+        const char *expected;
+    } test_cases[] = {
+        {
+                .bytes = 1,
+                .expected = "AA==",
+        },
+        {
+                .bytes = 2,
+                .expected = "AAA=",
+        },
+        {
+                .bytes = 3,
+                .expected = "AAAA",
+        },
+        {
+                .bytes = 4,
+                .expected = "AAAAAA==",
+        },
+    };
+    for (int i = 0; i < s2n_array_len(test_cases); i++) {
+        DEFER_CLEANUP(struct s2n_stuffer binary = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer base64 = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer mirror = { 0 }, s2n_stuffer_free);
+
+        uint32_t base64_groups = test_cases[i].bytes / 3;
+        if (test_cases[i].bytes % 3 != 0) {
+            base64_groups++;
         }
-        /* 64 valid characters and 1 padding character */
-        EXPECT_EQUAL(valid_b64_chars, 64 + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&binary, test_cases[i].bytes));
+        /* +1 for null terminator */
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&base64, base64_groups * 4 + 1));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, base64_groups * 3));
+
+        for (int b = 0; b < test_cases[i].bytes; b++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&binary, 0));
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_write_base64(&base64, &binary));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&base64), strlen(test_cases[i].expected));
+        EXPECT_BYTEARRAY_EQUAL(base64.blob.data, test_cases[i].expected, strlen(test_cases[i].expected));
+
+        EXPECT_SUCCESS(s2n_stuffer_read_base64(&base64, &mirror));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&mirror), test_cases[i].bytes);
+        EXPECT_BYTEARRAY_EQUAL(binary.blob.data, mirror.blob.data, test_cases[i].bytes);
     };
 
     char hello_world[] = "Hello world!";
@@ -40,9 +124,6 @@ int main(int argc, char **argv)
     uint8_t pad[50];
     struct s2n_blob r = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&r, pad, sizeof(pad)));
-
-    BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));
