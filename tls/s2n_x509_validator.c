@@ -801,7 +801,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
                 S2N_ERR_CANCELLED);
         RESULT_GUARD(s2n_handle_cert_validation_callback_result(validator));
     }
-    
+
     /* update state after completing the async validation */
     if (validator->state == AWAITING_VALIDATE_CALLBACK) {
         validator->state = VALIDATED;
