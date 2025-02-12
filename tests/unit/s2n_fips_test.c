@@ -49,5 +49,20 @@ int main()
         }
     }
 
+    /* Test: FIPS mode not currently supported for openssl outside of tests. */
+    if (s2n_libcrypto_is_openssl_fips()) {
+        /* s2n_fips_init was already called by BEGIN_TEST.
+         * Call it again to confirm that we are allowed to call it repeatedly.
+         */
+        EXPECT_SUCCESS(s2n_fips_init());
+
+        EXPECT_SUCCESS(s2n_in_unit_test_set(false));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_fips_init(), S2N_ERR_FIPS_MODE_UNSUPPORTED);
+        EXPECT_SUCCESS(s2n_in_unit_test_set(true));
+
+        /* Make sure s2n_fips_init still works */
+        EXPECT_SUCCESS(s2n_fips_init());
+    }
+
     END_TEST();
 }

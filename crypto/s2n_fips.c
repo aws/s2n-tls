@@ -45,6 +45,8 @@ bool s2n_libcrypto_is_fips(void)
     if (FIPS_mode() == 1) {
         return true;
     }
+#elif S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
+    return EVP_default_properties_is_fips_enabled(NULL);
 #endif
     return false;
 }
@@ -52,9 +54,22 @@ bool s2n_libcrypto_is_fips(void)
 int s2n_fips_init(void)
 {
     s2n_fips_mode_enabled = s2n_libcrypto_is_fips();
-#if defined(OPENSSL_FIPS)
+
+    /* When using Openssl, ONLY 3.0 currently supports FIPS.
+     * openssl-1.0.2-fips is no longer supported.
+     * openssl > 3.0 will likely have a FIPS 140-3 certificate instead of a
+     * FIPS 140-2 certificate, which will require additional review in order
+     * to properly integrate.
+     */
+#if defined(OPENSSL_FIPS) || S2N_OPENSSL_VERSION_AT_LEAST(3, 1, 0)
     POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
 #endif
+
+    /* For now, openssl is only supported for testing */
+    if (s2n_libcrypto_is_openssl_fips()) {
+        POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_FIPS_MODE_UNSUPPORTED);
+    }
+
     return S2N_SUCCESS;
 }
 
