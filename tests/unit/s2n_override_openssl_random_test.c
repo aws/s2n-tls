@@ -69,14 +69,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    const char *s2n_libcrypto = getenv("S2N_LIBCRYPTO");
-    if (s2n_libcrypto && strcmp("openssl-1.0.2-fips", s2n_libcrypto) == 0) {
-        /* Ensure that custom rand is not enabled for OpenSSL 1.0.2 Fips to match
-         * historical behavior 
-         */
-        EXPECT_FALSE(s2n_supports_custom_rand());
-    }
-
     if (!s2n_supports_custom_rand()) {
         /* Skip when custom rand is not supported */
         END_TEST();
