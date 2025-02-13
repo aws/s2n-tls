@@ -176,8 +176,15 @@ S2N_RESULT s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u);
 S2N_RESULT s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u);
 S2N_RESULT s2n_stuffer_write_uint16_hex(struct s2n_stuffer *stuffer, uint16_t u);
 
-/* Read and write base64 */
+/**
+ * Given base64 data in `stuffer`, write the decoded (binary) data into `out`. 
+ * 
+ * DANGER: If the data to be read is not a multiple of 4, any trailing bytes will
+ * be silently ignored.
+ */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out);
+
+/* Given some binary data in `in`, write the encoded (base64) data to `stuffer`. */
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in);
 
 /* Useful for text manipulation ... */
