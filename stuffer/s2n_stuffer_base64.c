@@ -72,7 +72,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
      * F=== -> INVALID
      */
     /* manually unrolled loop to prevent CBMC errors */
-    POSIX_ENSURE(stuffer->read_cursor >= 2, S2N_ERR_SAFETY);
+    POSIX_ENSURE_GTE(stuffer->read_cursor, 2);
     if (stuffer->blob.data[stuffer->read_cursor - 1] == '=') {
         out->write_cursor -= 1;
     }
