@@ -55,6 +55,9 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));
     conn->handshake_params.server_public_key = public_key;
 
+    /* copy the stuffer back to handshake.io */
+    conn->handshake.io = in;
+
     return 0;
 }
 

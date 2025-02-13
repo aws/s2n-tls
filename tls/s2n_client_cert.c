@@ -146,6 +146,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
     conn->handshake_params.client_public_key = public_key;
 
+    /* copy the stuffer back to handshake.io */
     conn->handshake.io = in;
 
     return S2N_SUCCESS;
