@@ -437,6 +437,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(data.invoked_count, 1);
         }
 
+        /* clang-format off */
         struct {
             const struct s2n_cert_validation_data data;
             const char *version;
@@ -461,6 +462,7 @@ int main(int argc, char *argv[])
                 .version = "20170210"
             },
         };
+        /* clang-format on */
 
         /* Async callback is invoked on the client after receiving the server's certificate */
         for (int i = 0; i < s2n_array_len(async_test_cases); i++) {
@@ -492,6 +494,12 @@ int main(int argc, char *argv[])
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         S2N_ERR_ASYNC_BLOCKED);
             }
+
+            /* Ensure that the server's certificate chain can be retrieved after `S2N_ERR_ASYNC_BLOCKED` */
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *peer_cert_chain = s2n_cert_chain_and_key_new(),
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_NOT_NULL(peer_cert_chain);
+            EXPECT_SUCCESS(s2n_connection_get_peer_cert_chain(client_conn, peer_cert_chain));
 
             struct s2n_cert_validation_info *info = data.info;
             EXPECT_NOT_NULL(info);
@@ -547,6 +555,11 @@ int main(int argc, char *argv[])
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         S2N_ERR_ASYNC_BLOCKED);
             }
+
+            /* Ensure that the client's certificate chain can be retrieved after `S2N_ERR_ASYNC_BLOCKED` */
+            uint8_t *der_cert_chain = 0;
+            uint32_t cert_chain_len = 0;
+            EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(server_conn, &der_cert_chain, &cert_chain_len));
 
             struct s2n_cert_validation_info *info = data.info;
             EXPECT_NOT_NULL(info);

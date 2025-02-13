@@ -755,7 +755,7 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_x509_validator_validate_cert_chain_pre(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+S2N_RESULT s2n_x509_validator_validate_cert_chain_impl(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len)
 {
     RESULT_ENSURE_REF(conn);
@@ -802,7 +802,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
     if (validator->cert_validation_cb_invoked) {
         RESULT_GUARD(s2n_x509_validator_handle_cert_validation_callback_result(validator));
     } else {
-        RESULT_GUARD(s2n_x509_validator_validate_cert_chain_pre(validator, conn, cert_chain_in, cert_chain_len));
+        RESULT_GUARD(s2n_x509_validator_validate_cert_chain_impl(validator, conn, cert_chain_in, cert_chain_len));
 
         if (conn->config->cert_validation_cb) {
             RESULT_ENSURE(conn->config->cert_validation_cb(conn, &(validator->cert_validation_info), conn->config->cert_validation_ctx) >= S2N_SUCCESS,
