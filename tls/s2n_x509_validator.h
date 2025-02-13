@@ -35,7 +35,6 @@ typedef enum {
     AWAITING_CRL_CALLBACK,
     VALIDATED,
     OCSP_VALIDATED,
-    AWAITING_VALIDATE_CALLBACK,
 } validator_state;
 
 /** Return TRUE for trusted, FALSE for untrusted **/
@@ -70,7 +69,8 @@ struct s2n_x509_validator {
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
     struct s2n_array *crl_lookup_list;
-    struct s2n_cert_validation_info info;
+    struct s2n_cert_validation_info cert_validation_info;
+    bool cert_validation_cb_invoked;
 };
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
@@ -136,4 +136,4 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
  */
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
 
-S2N_RESULT s2n_handle_cert_validation_callback_result(struct s2n_x509_validator *validator);
+S2N_RESULT s2n_x509_validator_handle_cert_validation_callback_result(struct s2n_x509_validator *validator);
