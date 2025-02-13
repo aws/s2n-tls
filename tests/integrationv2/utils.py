@@ -72,6 +72,8 @@ def invalid_test_parameters(*args, **kwargs):
     # Always consider S2N
     providers.append(S2N)
 
+    certificates = [cert for cert in [certificate, client_certificate] if cert]
+
     # Older versions do not support RSA-PSS-PSS certificates
     if protocol and protocol < Protocols.TLS12:
         if client_certificate and client_certificate.algorithm == 'RSAPSS':
@@ -82,6 +84,10 @@ def invalid_test_parameters(*args, **kwargs):
     for provider_ in providers:
         if not provider_.supports_protocol(protocol):
             return True
+
+        for certificate_ in certificates:
+            if not provider_.supports_certificate(certificate_):
+                return True
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
@@ -105,10 +111,6 @@ def invalid_test_parameters(*args, **kwargs):
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.
     if certificate is not None:
-        if protocol is not None:
-            for provider_ in providers:
-                if provider_.supports_protocol(protocol, with_cert=certificate) is False:
-                    return True
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
