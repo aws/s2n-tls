@@ -15,6 +15,7 @@
 
 #include "crypto/s2n_openssl.h"
 
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "utils/s2n_random.h"
 
@@ -59,6 +60,11 @@ int main(int argc, char** argv)
      */
     if (strcmp("openssl-1.0.2-fips", env_libcrypto) == 0) {
         EXPECT_FALSE(s2n_supports_custom_rand());
+    }
+
+    /* We expect openssl-3.0 to support providers */
+    if (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3")) {
+        EXPECT_TRUE(s2n_libcrypto_supports_providers());
     }
 
     END_TEST();

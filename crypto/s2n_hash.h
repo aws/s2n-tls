@@ -33,8 +33,8 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
-    /* Don't add any hash algorithms below S2N_HASH_SENTINEL */
-    S2N_HASH_SENTINEL
+    /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
+    S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;
 
 /* The low_level_digest stores all OpenSSL structs that are alg-specific to be used with OpenSSL's low-level hash API's. */
@@ -83,6 +83,8 @@ struct s2n_hash {
     int (*free)(struct s2n_hash_state *state);
 };
 
+S2N_RESULT s2n_hash_algorithms_init();
+S2N_RESULT s2n_hash_algorithms_cleanup();
 bool s2n_hash_evp_fully_supported();
 const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
