@@ -22,7 +22,6 @@
 #include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"

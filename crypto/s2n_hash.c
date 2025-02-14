@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hmac.h"
-#include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 

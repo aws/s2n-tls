@@ -71,6 +71,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "s2n_io.h"
 #include "stuffer/s2n_stuffer.h"

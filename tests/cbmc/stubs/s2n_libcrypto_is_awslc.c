@@ -16,7 +16,6 @@
 #include <cbmc_proof/nondet.h>
 
 #include <stdbool.h>
-#include "crypto/s2n_openssl.h"
 
 static int flag = 0;
 static bool s2n_awslc_flag = 0;

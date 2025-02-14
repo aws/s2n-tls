@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "api/s2n.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"

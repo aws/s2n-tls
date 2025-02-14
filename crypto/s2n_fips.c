@@ -17,6 +17,8 @@
 
 #include <openssl/crypto.h>
 
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl.h"
 #include "utils/s2n_init.h"
 #include "utils/s2n_safety.h"
 

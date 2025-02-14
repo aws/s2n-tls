@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
 
 #include "s2n_test.h"
 #include "utils/s2n_random.h"
