@@ -76,6 +76,7 @@ int s2n_init(void)
     POSIX_GUARD_RESULT(s2n_locking_init());
     POSIX_GUARD(s2n_fips_init());
     POSIX_GUARD_RESULT(s2n_rand_init());
+    POSIX_GUARD_RESULT(s2n_hash_algorithms_init());
     POSIX_GUARD(s2n_cipher_suites_init());
     POSIX_GUARD(s2n_security_policies_init());
     POSIX_GUARD(s2n_config_defaults_init());
@@ -109,6 +110,7 @@ static bool s2n_cleanup_atexit_impl(void)
     s2n_wipe_static_configs();
 
     bool cleaned_up = s2n_result_is_ok(s2n_cipher_suites_cleanup())
+            && s2n_result_is_ok(s2n_hash_algorithms_cleanup())
             && s2n_result_is_ok(s2n_rand_cleanup_thread())
             && s2n_result_is_ok(s2n_rand_cleanup())
             && s2n_result_is_ok(s2n_locking_cleanup())
