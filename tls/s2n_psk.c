@@ -25,8 +25,6 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
-
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
     RESULT_ENSURE_MUT(psk);
@@ -493,8 +491,8 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
 
     /* Setup memory to hold the binder hashes. We potentially need one for
      * every hash algorithm. */
-    uint8_t binder_hashes_data[S2N_HASH_ALG_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    struct s2n_blob binder_hashes[S2N_HASH_ALG_COUNT] = { 0 };
+    uint8_t binder_hashes_data[S2N_HASH_ALGS_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    struct s2n_blob binder_hashes[S2N_HASH_ALGS_COUNT] = { 0 };
 
     struct s2n_stuffer_reservation binder_list_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(out, &binder_list_size));

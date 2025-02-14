@@ -13,19 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+/*
+ * This feature probe checks if the linked libcrypto has "provider" support:
+ * https://docs.openssl.org/3.4/man7/provider/
+ * Fetching algorithms from providers:
+ * https://docs.openssl.org/3.4/man7/ossl-guide-libcrypto-introduction/#algorithm-fetching
+ */
 
-#include "utils/s2n_result.h"
+#include <openssl/evp.h>
 
-bool s2n_libcrypto_is_openssl(void);
-bool s2n_libcrypto_is_openssl_fips(void);
-bool s2n_libcrypto_is_awslc(void);
-bool s2n_libcrypto_is_awslc_fips(void);
-bool s2n_libcrypto_is_boringssl(void);
-bool s2n_libcrypto_is_libressl(void);
+int main()
+{
+    /* Supports fetching hash algorithms */
+    EVP_MD *md = EVP_MD_fetch(NULL, NULL, NULL);
+    EVP_MD_free(md);
 
-uint64_t s2n_libcrypto_awslc_api_version(void);
-S2N_RESULT s2n_libcrypto_validate_runtime(void);
-const char *s2n_libcrypto_get_version_name(void);
-bool s2n_libcrypto_supports_flag_no_check_time(void);
-bool s2n_libcrypto_supports_providers(void);
+    return 0;
+}

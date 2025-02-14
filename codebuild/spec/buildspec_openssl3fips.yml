@@ -32,3 +32,4 @@ phases:
       - export CTEST_PARALLEL_LEVEL=$(nproc)
       # openssl3fips is still a work-in-progress. Not all tests pass.
       - make -C build test -- ARGS="-R 's2n_build_test|s2n_fips_test'"
+      - make -C build test -- ARGS="-R 's2n_hash_test|s2n_hash_all_algs_test|s2n_openssl_test|s2n_init_test'"
