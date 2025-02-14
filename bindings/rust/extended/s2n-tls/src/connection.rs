@@ -1322,7 +1322,8 @@ impl Connection {
 
     /// Append an external psk to a connection.
     ///
-    /// This may be called repeatedly to support multiple PSKs.
+    /// This may be called repeatedly to support multiple PSKs. If working with
+    /// large numbers of PSKs, consider using a [`PskSelectionCallback`].
     ///
     /// Corresponds to [s2n_connection_append_psk].
     pub fn append_psk(&mut self, psk: &Psk) -> Result<(), Error> {
