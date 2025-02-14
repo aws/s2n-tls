@@ -220,11 +220,13 @@ void assert_rc_unchanged_on_evp_pkey_ctx(struct rc_keys_from_evp_pkey_ctx *stora
 void assert_rc_decrement_on_hash_state(struct rc_keys_from_hash_state *storage)
 {
     assert_rc_decrement_on_evp_pkey_ctx(&storage->evp);
+    assert_rc_decrement_on_evp_pkey_ctx(&storage->evp_md5);
 }
 
 void assert_rc_unchanged_on_hash_state(struct rc_keys_from_hash_state *storage)
 {
     assert_rc_unchanged_on_evp_pkey_ctx(&storage->evp);
+    assert_rc_unchanged_on_evp_pkey_ctx(&storage->evp_md5);
 }
 
 void save_abstract_evp_ctx(const EVP_PKEY_CTX *pctx, struct rc_keys_from_evp_pkey_ctx *storage)
@@ -243,12 +245,20 @@ void save_rc_keys_from_hash_state(const struct s2n_hash_state *state, struct rc_
 {
     storage->evp.pkey = NULL;
     storage->evp.pkey_eckey = NULL;
-    storage->evp.pkey_refs = storage->evp.pkey_eckey_refs = 0;
+    storage->evp_md5.pkey = NULL;
+    storage->evp_md5.pkey_eckey = NULL;
+    storage->evp.pkey_refs = storage->evp.pkey_eckey_refs = storage->evp_md5.pkey_refs = storage->evp_md5.pkey_eckey_refs = 0;
 
     if (state) {
         if (state->digest.high_level.evp.ctx) {
             if (state->digest.high_level.evp.ctx->pctx) {
                 save_abstract_evp_ctx(state->digest.high_level.evp.ctx->pctx, &storage->evp);
+            }
+        }
+
+        if (state->digest.high_level.evp_md5_secondary.ctx) {
+            if (state->digest.high_level.evp_md5_secondary.ctx->pctx) {
+                save_abstract_evp_ctx(state->digest.high_level.evp_md5_secondary.ctx->pctx, &storage->evp_md5);
             }
         }
     }
@@ -269,4 +279,5 @@ void free_rc_keys_from_evp_pkey_ctx(struct rc_keys_from_evp_pkey_ctx *pctx)
 void free_rc_keys_from_hash_state(struct rc_keys_from_hash_state *storage)
 {
     free_rc_keys_from_evp_pkey_ctx(&storage->evp);
+    free_rc_keys_from_evp_pkey_ctx(&storage->evp_md5);
 }

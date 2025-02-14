@@ -47,8 +47,13 @@ struct rc_keys_from_evp_pkey_ctx {
     int pkey_eckey_refs;
 };
 
+/**
+ * In the `rc_keys_from_hash_state`, we store two `rc_keys_from_evp_pkey_ctx` objects:
+ * one for the `evp` field and another for `evp_md5_secondary` field.
+ */
 struct rc_keys_from_hash_state {
     struct rc_keys_from_evp_pkey_ctx evp;
+    struct rc_keys_from_evp_pkey_ctx evp_md5;
 };
 
 /**

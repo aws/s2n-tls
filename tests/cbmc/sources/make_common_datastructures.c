@@ -270,6 +270,7 @@ void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
      * If required, this initialization should be done in the validation function.
      */
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp);
+    cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
 }
 
 struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
@@ -299,9 +300,13 @@ void cbmc_populate_s2n_hmac_evp_backup(struct s2n_hmac_evp_backup *backup)
 {
     CBMC_ENSURE_REF(backup);
     cbmc_populate_s2n_evp_digest(&backup->inner.evp);
+    cbmc_populate_s2n_evp_digest(&backup->inner.evp_md5_secondary);
     cbmc_populate_s2n_evp_digest(&backup->inner_just_key.evp);
+    cbmc_populate_s2n_evp_digest(&backup->inner_just_key.evp_md5_secondary);
     cbmc_populate_s2n_evp_digest(&backup->outer.evp);
+    cbmc_populate_s2n_evp_digest(&backup->outer.evp_md5_secondary);
     cbmc_populate_s2n_evp_digest(&backup->outer_just_key.evp);
+    cbmc_populate_s2n_evp_digest(&backup->outer_just_key.evp_md5_secondary);
 }
 
 struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup()

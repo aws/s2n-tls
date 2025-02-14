@@ -16,7 +16,6 @@
 #include "crypto/s2n_evp_signing.h"
 
 #include "crypto/s2n_evp.h"
-#include "crypto/s2n_fips.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
@@ -51,56 +50,16 @@ static S2N_RESULT s2n_evp_pkey_set_rsa_pss_saltlen(EVP_PKEY_CTX *pctx)
 #endif
 }
 
-static bool s2n_evp_md5_sha1_is_supported()
-{
-#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
-    return true;
-#else
-    return false;
-#endif
-}
-
-static bool s2n_evp_md_ctx_set_pkey_ctx_is_supported()
-{
-#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
-    return true;
-#else
-    return false;
-#endif
-}
-
 bool s2n_evp_signing_supported()
 {
-    /* We must use the FIPS-approved EVP APIs in FIPS mode,
-     * but we could also use the EVP APIs outside of FIPS mode.
-     * Only using the EVP APIs in FIPS mode was a choice made to reduce
-     * the impact of adding support for the EVP APIs.
-     * We should consider instead making the EVP APIs the default.
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+    /* We can only use EVP signing if the hash state has an EVP_MD_CTX
+     * that we can pass to the EVP signing methods.
      */
-    if (!s2n_is_in_fips_mode()) {
-        return false;
-    }
-
-    /* Our EVP signing logic is intended to support FIPS 140-3.
-     * FIPS 140-3 does not allow externally calculated digests (except for
-     * signing, but not verifying, with ECDSA).
-     * See https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Digital-Signatures,
-     * and note that "component" tests only exist for ECDSA sign.
-     *
-     * We currently work around that restriction by calling EVP_MD_CTX_set_pkey_ctx,
-     * which lets us set a key on an existing hash state. This is important
-     * when we need to handle signing the TLS1.2 client cert verify message,
-     * which requires signing the entire message transcript. If EVP_MD_CTX_set_pkey_ctx
-     * is unavailable (true for openssl-1.0.2), our current EVP logic will not work.
-     *
-     * FIPS 140-3 is also not possible if EVP_md5_sha1() isn't available
-     * (again true for openssl-1.0.2). In that case, we use two separate hash
-     * states to track the md5 and sha1 parts of the hash separately. That means
-     * that we also have to calculate the digests separately, then combine the
-     * result. We therefore only have an externally calculated digest available
-     * for signing or verifying.
-     */
-    return s2n_evp_md_ctx_set_pkey_ctx_is_supported() && s2n_evp_md5_sha1_is_supported();
+    return s2n_hash_evp_fully_supported();
+#else
+    return false;
+#endif
 }
 
 /* If using EVP signing, override the sign and verify pkey methods.
