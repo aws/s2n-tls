@@ -19,6 +19,7 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"

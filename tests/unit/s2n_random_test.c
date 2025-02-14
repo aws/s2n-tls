@@ -32,6 +32,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
 
