@@ -44,7 +44,7 @@ void s2n_hmac_free_harness()
         assert(state->outer.hash_impl->free != NULL);
         assert(state->outer_just_key.hash_impl->free != NULL);
 
-        if (s2n_evp_signing_supported()) {
+        if (s2n_evp_signing_requires_evp_hash()) {
             assert(state->inner.digest.high_level.evp.ctx == NULL);
             assert_rc_decrement_on_hash_state(&saved_inner_hash_state);
 
@@ -73,7 +73,7 @@ void s2n_hmac_free_harness()
     if (state != NULL) {
         /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_supported`,
               since `s2n_hash_free` is a NO-OP in that case. */
-        if (!s2n_evp_signing_supported()) {
+        if (!s2n_evp_signing_requires_evp_hash()) {
             S2N_EVP_MD_CTX_FREE(state->inner.digest.high_level.evp.ctx);
             S2N_EVP_MD_CTX_FREE(state->inner_just_key.digest.high_level.evp.ctx);
             S2N_EVP_MD_CTX_FREE(state->outer.digest.high_level.evp.ctx);

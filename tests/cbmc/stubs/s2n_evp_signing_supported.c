@@ -18,7 +18,7 @@
 static bool is_set = false;
 static bool is_evp_signing_supported = false;
 
-bool s2n_evp_signing_supported()
+bool s2n_evp_signing_requires_evp_hash()
 {
     if (!is_set) {
         is_evp_signing_supported = nondet_bool();

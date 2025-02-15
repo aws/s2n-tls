@@ -35,7 +35,7 @@ void s2n_hash_free_harness()
     assert(s2n_hash_free(state) == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->hash_impl->free != NULL);
-        if (s2n_evp_signing_supported()) {
+        if (s2n_evp_signing_requires_evp_hash()) {
             assert(state->digest.high_level.evp.ctx == NULL);
             assert_rc_decrement_on_hash_state(&saved_hash_state);
         } else {
@@ -46,9 +46,9 @@ void s2n_hash_free_harness()
 
     /* Cleanup after expected error cases, for memory leak check. */
     if (state != NULL) {
-        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_supported`,
+        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_requires_evp_hash`,
               since `s2n_hash_free` is a NO-OP in that case. */
-        if (!s2n_evp_signing_supported()) {
+        if (!s2n_evp_signing_requires_evp_hash()) {
             S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
         }
 
