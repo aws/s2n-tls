@@ -52,6 +52,11 @@ struct s2n_x509_trust_store {
     unsigned loaded_system_certs : 1;
 };
 
+struct s2n_cert_validation_info {
+    unsigned finished : 1;
+    unsigned accepted : 1;
+};
+
 /**
  * You should have one instance of this per connection.
  */
@@ -64,11 +69,8 @@ struct s2n_x509_validator {
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
     struct s2n_array *crl_lookup_list;
-};
-
-struct s2n_cert_validation_info {
-    unsigned finished : 1;
-    unsigned accepted : 1;
+    struct s2n_cert_validation_info cert_validation_info;
+    bool cert_validation_cb_invoked;
 };
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */

@@ -57,8 +57,12 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn,
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(raw_cert_chain);
 
-    /* There shouldn't already be a client cert chain, but free just in case */
-    RESULT_GUARD_POSIX(s2n_free(&conn->handshake_params.client_cert_chain));
+    /* If a client cert chain has already been stored (e.g. on the re-entry case
+     * of an async callback), no need to store it again.
+     */
+    if (conn->handshake_params.client_cert_chain.size > 0) {
+        return S2N_RESULT_OK;
+    }
 
     /* Earlier versions are a basic copy */
     if (conn->actual_protocol_version < S2N_TLS13) {
@@ -101,23 +105,26 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn,
 
 int s2n_client_cert_recv(struct s2n_connection *conn)
 {
+    /* s2n_client_cert_recv() may be re-entered due to handling an async callback.
+     * We operate on a copy of `handshake.io` to ensure the stuffer is initilized properly on the re-entry case.
+     */
+    struct s2n_stuffer in = conn->handshake.io;
+
     if (conn->actual_protocol_version == S2N_TLS13) {
         uint8_t certificate_request_context_len = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
+        POSIX_GUARD(s2n_stuffer_read_uint8(&in, &certificate_request_context_len));
         S2N_ERROR_IF(certificate_request_context_len != 0, S2N_ERR_BAD_MESSAGE);
     }
 
-    struct s2n_stuffer *in = &conn->handshake.io;
-
     uint32_t cert_chain_size = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint24(in, &cert_chain_size));
-    POSIX_ENSURE(cert_chain_size <= s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    POSIX_GUARD(s2n_stuffer_read_uint24(&in, &cert_chain_size));
+    POSIX_ENSURE(cert_chain_size <= s2n_stuffer_data_available(&in), S2N_ERR_BAD_MESSAGE);
     if (cert_chain_size == 0) {
         POSIX_GUARD(s2n_conn_set_handshake_no_client_cert(conn));
         return S2N_SUCCESS;
     }
 
-    uint8_t *cert_chain_data = s2n_stuffer_raw_read(in, cert_chain_size);
+    uint8_t *cert_chain_data = s2n_stuffer_raw_read(&in, cert_chain_size);
     POSIX_ENSURE_REF(cert_chain_data);
 
     struct s2n_blob cert_chain = { 0 };
@@ -138,6 +145,9 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
     conn->handshake_params.client_public_key = public_key;
+
+    /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
+    conn->handshake.io = in;
 
     return S2N_SUCCESS;
 }
