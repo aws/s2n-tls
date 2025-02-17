@@ -196,8 +196,7 @@ struct s2n_cert_validation_info;
  *
  * The `info` parameter is passed to the callback in order to call APIs specific to the cert validation callback, like
  * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument shares the same lifetime as
- * `s2n_connection`. On the async case, the application should update the `info` struct by calling `s2n_cert_validation_accept()`
- * or `s2n_cert_validation_reject()` outside of the callback.
+ * `s2n_connection`.
  *
  * After calling `s2n_cert_validation_reject()`, `s2n_negotiate()` will fail with a protocol error indicating that
  * the cert has been rejected from the callback. If more information regarding an application's custom validation
