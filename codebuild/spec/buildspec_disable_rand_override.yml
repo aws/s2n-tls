@@ -1,0 +1,52 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    # Select a libcrypto where s2n-tls will override the RAND engine by default.
+    S2N_LIBCRYPTO: "openssl-1.0.2"
+
+phases:
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . -Brand_override_enabled \
+          -DCMAKE_PREFIX_PATH=/usr/local/"${S2N_LIBCRYPTO}" \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - cmake --build ./rand_override_enabled -- -j $(nproc)
+      - |
+        cmake . -Brand_override_disabled \
+          -DCMAKE_PREFIX_PATH=/usr/local/"${S2N_LIBCRYPTO}" \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DS2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=0
+      - cmake --build ./rand_override_disabled -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      - export CTEST_OUTPUT_ON_FAILURE=1
+      - export CTEST_PARALLEL_LEVEL=$(nproc)
+      # Run the s2n-tls tests with the assumption that the RAND engine override feature will be
+      # disabled. This will enable tests that ensure it's disabled.
+      - export S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED=1
+      - make -C rand_override_disabled test
+      # If the RAND engine override is not actually disabled, tests that expect it to be should fail.
+      - echo "The following is a negative test, and is expected to fail."
+      - | 
+        ! make -C rand_override_enabled test -- ARGS="-R 's2n_random_test'"
+      # The tests should succeed without this assumption.
+      - unset S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED
+      - make -C rand_override_enabled test -- ARGS="-R 's2n_random_test'"
