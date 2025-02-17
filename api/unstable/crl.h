@@ -187,17 +187,17 @@ struct s2n_cert_validation_info;
  *
  * When using the validation callback in a synchronous mode, `s2n_cert_validation_accept()` MUST be called to allow
  * `s2n_negotiate()` to continue the handshake. If the validation is unsuccessful, `s2n_cert_validation_reject()`
- * MUST be called, which will cause `s2n_negotiate()` to error. If neither `s2n_cert_validation_accept()` or 
- * `s2n_cert_validation_reject()` are called, the validation can be processed asynchronously.
+ * MUST be called, which will cause `s2n_negotiate()` to error.
  * 
- * To enable the async behavior, `S2N_SUCCESS` must be returned from the validation callback. Then the handshake will 
- * be paused and `s2n_negotiate()` will throw a `S2N_ERR_T_BLOCKED` error. The application should check for this error and
- * check `s2n_blocked_status` is set to `S2N_BLOCKED_ON_APPLICATION_INPUT`.
+ * To use the validation callback asynchronously, return `S2N_SUCCESS` without calling `s2n_cert_validation_accept()`
+ * or `s2n_cert_validation_reject()`. This will pause the handshake, and `s2n_negotiate()` will throw a `S2N_ERR_T_BLOCKED`
+ * error and `s2n_blocked_status` will be set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. Applications should call
+ * `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` to unpause the handshake before retrying `s2n_negotiate()`.
  *
  * The `info` parameter is passed to the callback in order to call APIs specific to the cert validation callback, like
- * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument shares the same
- * lifetime as `s2n_connection`. In order to unpause the handshake, the application should update the `info` parameter
- * by calling `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` before retrying `s2n_negotiate()`.
+ * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument shares the same lifetime as
+ * `s2n_connection`. On the async case, the application should update the `info` struct by calling `s2n_cert_validation_accept()`
+ * or `s2n_cert_validation_reject()` outside of the callback.
  *
  * After calling `s2n_cert_validation_reject()`, `s2n_negotiate()` will fail with a protocol error indicating that
  * the cert has been rejected from the callback. If more information regarding an application's custom validation

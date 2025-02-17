@@ -796,9 +796,23 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain_impl(struct s2n_x509_validator
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_x509_validator_handle_cert_validation_callback_result(struct s2n_x509_validator *validator)
+{
+    RESULT_ENSURE_REF(validator);
+
+    if (!validator->cert_validation_info.finished) {
+        RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
+
+    RESULT_ENSURE(validator->cert_validation_info.accepted, S2N_ERR_CERT_REJECTED);
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out)
 {
+    RESULT_ENSURE_REF(validator);
+
     if (validator->cert_validation_cb_invoked) {
         RESULT_GUARD(s2n_x509_validator_handle_cert_validation_callback_result(validator));
     } else {
@@ -973,18 +987,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
 {
     return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
-}
-
-S2N_RESULT s2n_x509_validator_handle_cert_validation_callback_result(struct s2n_x509_validator *validator)
-{
-    RESULT_ENSURE_REF(validator);
-
-    if (!validator->cert_validation_info.finished) {
-        RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
-    }
-
-    RESULT_ENSURE(validator->cert_validation_info.accepted, S2N_ERR_CERT_REJECTED);
-    return S2N_RESULT_OK;
 }
 
 int s2n_cert_validation_accept(struct s2n_cert_validation_info *info)

@@ -22,7 +22,7 @@
 
 int s2n_server_cert_recv(struct s2n_connection *conn)
 {
-    /* s2n_client_cert_recv() may be re-entered due to handling an async callback.
+    /* s2n_server_cert_recv() may be re-entered due to handling an async callback.
      * We operate on a copy of `handshake.io` to ensure the stuffer is initilized properly on the re-entry case.
      */
     struct s2n_stuffer in = conn->handshake.io;
@@ -55,7 +55,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));
     conn->handshake_params.server_public_key = public_key;
 
-    /* copy the stuffer back to handshake.io */
+    /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
     conn->handshake.io = in;
 
     return 0;

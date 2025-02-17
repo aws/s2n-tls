@@ -135,5 +135,3 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
  * Should be verified before any use of the peer's certificate data.
  */
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
-
-S2N_RESULT s2n_x509_validator_handle_cert_validation_callback_result(struct s2n_x509_validator *validator);

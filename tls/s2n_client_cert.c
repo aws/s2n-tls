@@ -58,7 +58,7 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn,
     RESULT_ENSURE_REF(raw_cert_chain);
 
     /* If a client cert chain has already been stored (e.g. on the re-entry case
-     * of an async callback), no need to read the cert chain again.
+     * of an async callback), no need to store it again.
      */
     if (conn->handshake_params.client_cert_chain.size > 0) {
         return S2N_RESULT_OK;
@@ -146,7 +146,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
     conn->handshake_params.client_public_key = public_key;
 
-    /* copy the stuffer back to handshake.io */
+    /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
     conn->handshake.io = in;
 
     return S2N_SUCCESS;
