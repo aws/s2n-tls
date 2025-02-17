@@ -89,7 +89,7 @@ class _processCommunicator(object):
             self._communication_started = True
 
         return (stdout, stderr)
-
+    
     # Helper function to print out debugging statements
     def get_fd_name(self, proc, fileobj):
         if fileobj == proc.stdout:
@@ -200,7 +200,6 @@ class _processCommunicator(object):
                             print(f"{self.name}:  Unregistering: {fd_name} No Data")
 
                         data_str = str(data)
-                        print(f"raw data read from {self.name}: {data_str}")
 
                         # Prepends n - 1 bytes of previously-seen stdout to the chunk we'll be searching
                         # through, where n is the size of the send_marker we're currently looking for.
@@ -258,9 +257,6 @@ class _processCommunicator(object):
                             selector.unregister(self.proc.stderr)
                             self.proc.kill()
 
-                    # We check every iteration to close stdin immediately once all input has been sent
-                    # and there is no more input data left. This is done to: Ensure Immediate Closure, 
-                    # Avoid Deadlocks and Timely Cleanup
                     if self.proc.stdin and input_data_sent and not input_data:
                         print(f'{self.name}: finished sending')
                         if close_marker:
