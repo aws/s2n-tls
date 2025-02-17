@@ -89,7 +89,7 @@ class _processCommunicator(object):
             self._communication_started = True
 
         return (stdout, stderr)
-    
+
     # Helper function to print out debugging statements
     def get_fd_name(self, proc, fileobj):
         if fileobj == proc.stdout:
