@@ -27,7 +27,7 @@ check_dep(){
 }
 
 clone(){
-    git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --depth 1 $BUILD_DIR
+    git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_BRANCH" --depth 1 $BUILD_DIR
     cd "$BUILD_DIR"
 }
 
@@ -47,7 +47,7 @@ build() {
 }
 
 # main
-if [ "$#" -ne "2" ]; then
+if [ "$#" -ne "3" ]; then
     usage
 fi
 
@@ -58,19 +58,18 @@ check_dep go
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-# Use the script name to determine version
-INSTALLER=$(basename $0)
+VERSION=$3
 
-# Map installer title to specific feature branch/tag:
-case $INSTALLER in
-  "install_awslc_fips_2022.sh")
-    AWSLC_VERSION=AWS-LC-FIPS-2.0.17
+# Map version to a specific feature branch/tag.
+case $VERSION in
+  "2022")
+    AWSLC_BRANCH=AWS-LC-FIPS-2.0.17
     ;;
-  "install_awslc_fips_2024.sh")
-    AWSLC_VERSION=AWS-LC-FIPS-3.0.0
+  "2024")
+    AWSLC_BRANCH=AWS-LC-FIPS-3.0.0
     ;;
   *)
-    echo "Unknown version: $0"
+    echo "Unknown version: $VERSION"
     usage
     ;;
 esac
@@ -78,7 +77,6 @@ esac
 clone
 # Static lib
 build false
-
 # Shared lib
 build true
 
