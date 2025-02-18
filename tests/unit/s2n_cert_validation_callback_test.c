@@ -493,7 +493,7 @@ int main(int argc, char *argv[])
                 struct s2n_cert_validation_info *info = data.info;
                 EXPECT_NOT_NULL(info);
 
-                if (test_cases[test_case_idx].data.accept) {
+                if (async_test_cases[test_case_idx].accept) {
                     EXPECT_SUCCESS(s2n_cert_validation_accept(info));
                     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
                 } else {
@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
                 struct s2n_cert_validation_info *info = data.info;
                 EXPECT_NOT_NULL(info);
 
-                if (test_cases[test_case_idx].data.accept) {
+                if (async_test_cases[test_case_idx].accept) {
                     EXPECT_SUCCESS(s2n_cert_validation_accept(info));
                     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
                 } else {
