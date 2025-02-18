@@ -21,9 +21,9 @@
 #include "utils/s2n_safety.h"
 
 #if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
-static EVP_MD *evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
+static EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
 #else
-static const EVP_MD *evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
+static const EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
 #endif
 
 static bool s2n_use_custom_md5_sha1()
@@ -58,26 +58,26 @@ S2N_RESULT s2n_hash_algorithms_init()
      * the default query string of "fips=yes" will need to be overridden for
      * legacy algorithms.
      */
-    evp_mds[S2N_HASH_MD5] = EVP_MD_fetch(NULL, "MD5", "-fips");
-    evp_mds[S2N_HASH_MD5_SHA1] = EVP_MD_fetch(NULL, "MD5-SHA1", "-fips");
-    evp_mds[S2N_HASH_SHA1] = EVP_MD_fetch(NULL, "SHA1", NULL);
-    evp_mds[S2N_HASH_SHA224] = EVP_MD_fetch(NULL, "SHA224", NULL);
-    evp_mds[S2N_HASH_SHA256] = EVP_MD_fetch(NULL, "SHA256", NULL);
-    evp_mds[S2N_HASH_SHA384] = EVP_MD_fetch(NULL, "SHA384", NULL);
-    evp_mds[S2N_HASH_SHA512] = EVP_MD_fetch(NULL, "SHA512", NULL);
+    s2n_evp_mds[S2N_HASH_MD5] = EVP_MD_fetch(NULL, "MD5", "-fips");
+    s2n_evp_mds[S2N_HASH_MD5_SHA1] = EVP_MD_fetch(NULL, "MD5-SHA1", "-fips");
+    s2n_evp_mds[S2N_HASH_SHA1] = EVP_MD_fetch(NULL, "SHA1", NULL);
+    s2n_evp_mds[S2N_HASH_SHA224] = EVP_MD_fetch(NULL, "SHA224", NULL);
+    s2n_evp_mds[S2N_HASH_SHA256] = EVP_MD_fetch(NULL, "SHA256", NULL);
+    s2n_evp_mds[S2N_HASH_SHA384] = EVP_MD_fetch(NULL, "SHA384", NULL);
+    s2n_evp_mds[S2N_HASH_SHA512] = EVP_MD_fetch(NULL, "SHA512", NULL);
 #else
-    evp_mds[S2N_HASH_MD5] = EVP_md5();
-    evp_mds[S2N_HASH_SHA1] = EVP_sha1();
-    evp_mds[S2N_HASH_SHA224] = EVP_sha224();
-    evp_mds[S2N_HASH_SHA256] = EVP_sha256();
-    evp_mds[S2N_HASH_SHA384] = EVP_sha384();
-    evp_mds[S2N_HASH_SHA512] = EVP_sha512();
+    s2n_evp_mds[S2N_HASH_MD5] = EVP_md5();
+    s2n_evp_mds[S2N_HASH_SHA1] = EVP_sha1();
+    s2n_evp_mds[S2N_HASH_SHA224] = EVP_sha224();
+    s2n_evp_mds[S2N_HASH_SHA256] = EVP_sha256();
+    s2n_evp_mds[S2N_HASH_SHA384] = EVP_sha384();
+    s2n_evp_mds[S2N_HASH_SHA512] = EVP_sha512();
     /* Very old libcryptos like openssl-1.0.2 do not support EVP_MD_md5_sha1().
      * We work around that by manually combining MD5 and SHA1, rather than
      * using the composite algorithm.
      */
     #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
-    evp_mds[S2N_HASH_MD5_SHA1] = EVP_md5_sha1();
+    s2n_evp_mds[S2N_HASH_MD5_SHA1] = EVP_md5_sha1();
     #endif
 #endif
     return S2N_RESULT_OK;
@@ -92,8 +92,8 @@ S2N_RESULT s2n_hash_algorithms_cleanup()
          * > If the reference count drops to 0 then the structure is freed.
          * > If the argument is NULL, nothing is done.
          */
-        EVP_MD_free(evp_mds[i]);
-        evp_mds[i] = NULL;
+        EVP_MD_free(s2n_evp_mds[i]);
+        s2n_evp_mds[i] = NULL;
     }
 #endif
     return S2N_RESULT_OK;
@@ -103,7 +103,7 @@ const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg)
 {
     PTR_ENSURE_GTE(alg, 0);
     PTR_ENSURE_LT(alg, S2N_HASH_ALGS_COUNT);
-    return evp_mds[alg];
+    return s2n_evp_mds[alg];
 }
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
