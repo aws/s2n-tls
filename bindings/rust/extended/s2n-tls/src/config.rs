@@ -97,7 +97,7 @@ impl Config {
     /// SAFETY: There must only ever by mutable reference to `Context` alive at
     ///         any time. Configs can be shared across threads, so this method is
     ///         likely not correct for your usecase.
-    unsafe fn context_mut(&mut self) -> &mut Context {
+    pub(crate) unsafe fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
         s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
             .into_result()
@@ -173,7 +173,7 @@ impl Drop for Config {
 }
 
 pub struct Builder {
-    config: Config,
+    pub(crate) config: Config,
     load_system_certs: bool,
     enable_ocsp: bool,
 }

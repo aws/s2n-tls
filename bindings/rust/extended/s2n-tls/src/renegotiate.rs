@@ -245,8 +245,8 @@ impl Connection {
 
         // We trigger the callback last so that the application can modify any
         // preserved configuration (like the server name or waker) if necessary.
-        if let Some(mut config) = self.config() {
-            if let Some(callback) = config.context_mut().renegotiate.as_mut() {
+        if let Some(config) = self.config() {
+            if let Some(callback) = config.context().renegotiate.as_ref() {
                 callback.on_renegotiate_wipe(self)?;
             }
         }
