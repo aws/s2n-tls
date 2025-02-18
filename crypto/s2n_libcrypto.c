@@ -229,7 +229,7 @@ bool s2n_libcrypto_supports_flag_no_check_time()
 
 bool s2n_libcrypto_supports_providers(void)
 {
-#ifdef S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
+#if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
     return true;
 #else
     return false;
