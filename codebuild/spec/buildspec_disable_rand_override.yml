@@ -18,8 +18,7 @@ env:
   variables:
     # Select a libcrypto where s2n-tls will override the RAND engine by default.
     S2N_LIBCRYPTO: "openssl-1.0.2"
-    CTEST_OUTPUT_ON_FAILURE: true
-    CTEST_PARALLEL_LEVEL: $(nproc)
+    CTEST_OUTPUT_ON_FAILURE: 1
 
 phases:
   build:
@@ -39,6 +38,8 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
+      # CTEST_PARALLEL_LEVEL is set outside of env/variables to ensure that `nproc` is evaluated.
+      - export CTEST_PARALLEL_LEVEL=$(nproc)
       # Run the s2n-tls tests with the assumption that the RAND engine override feature will be
       # disabled. This will enable tests that ensure it's disabled.
       - export S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED=1
