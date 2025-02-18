@@ -15,8 +15,6 @@
 
 #include "s2n_pq.h"
 
-#include "crypto/s2n_openssl.h"
-
 bool s2n_libcrypto_supports_evp_kem()
 {
     /* S2N_LIBCRYPTO_SUPPORTS_EVP_KEM will be auto-detected and #defined if

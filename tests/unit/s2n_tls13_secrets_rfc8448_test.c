@@ -16,6 +16,7 @@
 /* Needed to set up X25519 key shares */
 #include <openssl/evp.h>
 
+#include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
