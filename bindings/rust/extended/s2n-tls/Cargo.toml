@@ -28,9 +28,7 @@ hex = "0.4"
 
 [dev-dependencies]
 futures-test = "0.3"
-# The openssl crate broke MSRV with 0.10.67
-# TODO unpin this once fixed - https://github.com/sfackler/rust-openssl/issues/2317
-openssl = "<0.10.67"
+openssl = "0.10"
 openssl-sys = "0.9"
 foreign-types = "0.3"
 temp-env = "0.3"
