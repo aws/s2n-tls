@@ -165,7 +165,7 @@ endif ()
 if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS=1)
 endif()
 
 if(S2N_LTO)
@@ -197,7 +197,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
 # Match on Release, RelWithDebInfo and MinSizeRel
 # See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
 if(CMAKE_BUILD_TYPE MATCHES Rel)
-    add_definitions(-DS2N_BUILD_RELEASE)
+    add_definitions(-DS2N_BUILD_RELEASE=1)
 endif()
 
 if(NO_STACK_PROTECTOR)
@@ -316,7 +316,7 @@ function(feature_probe_result PROBE_NAME IS_AVAILABLE)
 
     # define the probe if available
     if(NORMALIZED)
-        add_definitions(-D${PROBE_NAME})
+        add_definitions(-D${PROBE_NAME}=1)
     endif()
 endfunction()
 
@@ -426,7 +426,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
-    add_definitions(-DS2N_INTERN_LIBCRYPTO)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO=1)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
