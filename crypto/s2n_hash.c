@@ -356,10 +356,10 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
     if (alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx);
         POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx,
-                s2n_hash_alg_to_evp_md(S2N_HASH_SHA1), NULL),
+                                 s2n_hash_alg_to_evp_md(S2N_HASH_SHA1), NULL),
                 S2N_ERR_HASH_INIT_FAILED);
         POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx,
-                s2n_hash_alg_to_evp_md(S2N_HASH_MD5), NULL),
+                                 s2n_hash_alg_to_evp_md(S2N_HASH_MD5), NULL),
                 S2N_ERR_HASH_INIT_FAILED);
         return S2N_SUCCESS;
     }
