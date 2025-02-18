@@ -4,7 +4,7 @@
 set -eu
 
 usage() {
-    echo "$0 build_dir install_dir"
+    echo "install_awslc_fips_2022.sh build_dir install_dir"
     exit 1
 }
 
@@ -17,3 +17,4 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 
 $CBPATH/install_awslc_fips.sh $BUILD_DIR $INSTALL_DIR 2022
+

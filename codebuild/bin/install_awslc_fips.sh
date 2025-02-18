@@ -4,7 +4,7 @@
 set -eu
 
 usage() {
-    echo "$0 build_dir install_dir"
+    echo "install_awslc_fips.sh build_dir install_dir"
     exit 1
 }
 
@@ -70,3 +70,4 @@ build false
 build true
 
 rm -rf $BUILD_DIR
+

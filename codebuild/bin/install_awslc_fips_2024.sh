@@ -4,7 +4,7 @@
 set -eu
 
 usage() {
-    echo "$0 build_dir install_dir"
+    echo "install_awslc_fips_2024.sh build_dir install_dir"
     exit 1
 }
 
@@ -15,3 +15,4 @@ fi
 CBPATH=$(dirname $0)
 
 $CBPATH/install_awslc_fips.sh $@ 2024
+
