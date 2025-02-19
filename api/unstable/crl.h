@@ -185,12 +185,12 @@ struct s2n_cert_validation_info;
  *  - `s2n_connection_get_peer_cert_chain()`
  *  - `s2n_connection_get_client_cert_chain()`
  *
- * When using the validation callback in a synchronous mode, `s2n_cert_validation_accept()` MUST be called to allow
+ * If the validation performed in the callback is successful, `s2n_cert_validation_accept()` MUST be called to allow
  * `s2n_negotiate()` to continue the handshake. If the validation is unsuccessful, `s2n_cert_validation_reject()`
  * MUST be called, which will cause `s2n_negotiate()` to error.
  * 
  * To use the validation callback asynchronously, return `S2N_SUCCESS` without calling `s2n_cert_validation_accept()`
- * or `s2n_cert_validation_reject()`. This will pause the handshake, and `s2n_negotiate()` will throw a `S2N_ERR_T_BLOCKED`
+ * or `s2n_cert_validation_reject()`. This will pause the handshake, and `s2n_negotiate()` will throw an `S2N_ERR_T_BLOCKED`
  * error and `s2n_blocked_status` will be set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. Applications should call
  * `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` to unpause the handshake before retrying `s2n_negotiate()`.
  *
