@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from common import Protocols
+import subprocess
+from common import Certificates, Protocols
 from providers import S2N
 from global_flags import get_flag, S2N_FIPS_MODE
 
@@ -37,6 +38,13 @@ def get_expected_openssl_version(protocol):
         Protocols.TLS13.value: "TLSv1.3"
     }.get(protocol.value)
 
+def get_openssl_version():
+    result = subprocess.run(
+        ["openssl", "version"], shell=False, capture_output=True, text=True
+    )
+    version_str = result.stdout.split(" ")
+    version_openssl = version_str[1]  # This will return just the version number
+    return version_openssl
 
 def get_expected_gnutls_version(protocol):
     return {
@@ -85,9 +93,22 @@ def invalid_test_parameters(*args, **kwargs):
         if not provider_.supports_protocol(protocol):
             return True
 
-        for certificate_ in certificates:
-            if not provider_.supports_certificate(certificate_):
-                return True
+    # If openSSL is 3.0, we should skip all testcases with certificates/client certificates of 1024
+    if certificate is not None:
+        if get_openssl_version()[0:3] == "3.0" and (
+            certificate is Certificates.RSA_1024_SHA256
+            or certificate is Certificates.RSA_1024_SHA384
+            or certificate is Certificates.RSA_1024_SHA384
+        ):
+            return True
+        
+    if client_certificate is not None:
+        if get_openssl_version()[0:3] == "3.0" and (
+            client_certificate is Certificates.RSA_1024_SHA256
+            or client_certificate is Certificates.RSA_1024_SHA384
+            or client_certificate is Certificates.RSA_1024_SHA384
+        ):
+            return True
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
