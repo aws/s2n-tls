@@ -4,7 +4,7 @@
 set -eu
 
 usage() {
-    echo "install_awslc_fips.sh build_dir install_dir"
+    echo "install_awslc_fips.sh build_dir install_dir version"
     exit 1
 }
 
