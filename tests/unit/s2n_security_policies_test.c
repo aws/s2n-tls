@@ -105,6 +105,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
+
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     if (s2n_is_rsa_pss_certs_supported()) {
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
@@ -1018,6 +1021,28 @@ int main(int argc, char **argv)
                     s2n_test_security_policies_compatible(&security_policy_20240331,
                             "test_all_tls13", ecdsa_chain_and_key),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
+        };
+
+        /* We know of customers that expect to move between the policies in
+         * this section without multi-phased rollouts, so avoid inadvertant
+         * breakage by verifying compatibility.
+         */
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
+
+            /* default_tls13 is currently 20240503 */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
+            /* default_fips is currently 20240502 */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "rfc9151", ecdsa_sha384_chain_and_key));
+
+            /* default_tls13 > 20250211
+             * note this does not require a sha384 key.
+             */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250211", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "default_tls13", ecdsa_chain_and_key));
         };
     };
 

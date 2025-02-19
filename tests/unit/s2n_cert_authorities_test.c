@@ -15,6 +15,7 @@
 
 #include "tls/extensions/s2n_cert_authorities.h"
 
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"

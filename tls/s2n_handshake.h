@@ -158,7 +158,7 @@ struct s2n_handshake {
     /* Hash algorithms required for this handshake. The set of required hashes can be reduced as session parameters are
      * negotiated, i.e. cipher suite and protocol version.
      */
-    uint8_t required_hash_algs[S2N_HASH_SENTINEL];
+    uint8_t required_hash_algs[S2N_HASH_ALGS_COUNT];
 
     /*
      * Data required by the Finished messages.

@@ -13,24 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_hash.h"
+/*
+ * This feature probe checks if the linked libcrypto has "provider" support:
+ * https://docs.openssl.org/3.4/man7/provider/
+ * Fetching algorithms from providers:
+ * https://docs.openssl.org/3.4/man7/ossl-guide-libcrypto-introduction/#algorithm-fetching
+ */
 
-#include <cbmc_proof/make_common_datastructures.h>
+#include <openssl/evp.h>
 
-#include <assert.h>
-
-void s2n_hash_reset_harness()
+int main()
 {
-    /* Non-deterministic inputs. */
-    struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
+    /* Supports fetching hash algorithms */
+    EVP_MD *md = EVP_MD_fetch(NULL, NULL, NULL);
+    EVP_MD_free(md);
 
-    assert(s2n_result_is_ok(s2n_hash_algorithms_init()));
-
-    /* Operation under verification. */
-    if (s2n_hash_reset(state) == S2N_SUCCESS)
-    {
-        /* Post-conditions. */
-        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
-        assert(state->hash_impl->reset != NULL);
-    }
+    return 0;
 }
