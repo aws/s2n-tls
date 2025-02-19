@@ -119,7 +119,7 @@ int main(int argc, char **argv)
         struct s2n_pkey *pkey = rsa_cert_chain->private_key;
 
         for (s2n_signature_algorithm sig_alg = 0; sig_alg <= UINT8_MAX; sig_alg++) {
-            for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+            for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
                 if (s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
                     continue;
                 }
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
             if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
                 continue;
             }
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
             if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
                 continue;
             }
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
             if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
                 continue;
             }
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
             if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
                 continue;
             }

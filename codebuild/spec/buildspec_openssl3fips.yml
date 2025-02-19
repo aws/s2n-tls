@@ -13,6 +13,11 @@
 # limitations under the License.
 
 version: 0.2
+
+env:
+  variables:
+    S2N_LIBCRYPTO: "openssl-3.0-fips"
+    CTEST_OUTPUT_ON_FAILURE: 1
       
 phases:
   build:
@@ -28,7 +33,7 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - export CTEST_OUTPUT_ON_FAILURE=1
       - export CTEST_PARALLEL_LEVEL=$(nproc)
       # openssl3fips is still a work-in-progress. Not all tests pass.
       - make -C build test -- ARGS="-R 's2n_build_test|s2n_fips_test'"
+      - make -C build test -- ARGS="-R 's2n_hash_test|s2n_hash_all_algs_test|s2n_openssl_test|s2n_init_test'"

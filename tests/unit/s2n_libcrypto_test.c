@@ -61,5 +61,10 @@ int main(int argc, char** argv)
         EXPECT_FALSE(s2n_supports_custom_rand());
     }
 
+    /* We expect openssl-3.0 to support providers */
+    if (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3")) {
+        EXPECT_TRUE(s2n_libcrypto_supports_providers());
+    }
+
     END_TEST();
 }
