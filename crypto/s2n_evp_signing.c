@@ -75,29 +75,6 @@ S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg)
-{
-    switch (hash_alg) {
-        case S2N_HASH_NONE:
-        case S2N_HASH_MD5:
-            /* MD5 alone is never supported */
-            RESULT_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-            break;
-        case S2N_HASH_MD5_SHA1:
-            /* Only RSA supports MD5+SHA1.
-             * This should not be a problem, as we only allow MD5+SHA1 when
-             * falling back to TLS1.0 or 1.1, which only support RSA.
-             */
-            RESULT_ENSURE(sig_alg == S2N_SIGNATURE_RSA, S2N_ERR_HASH_INVALID_ALGORITHM);
-            break;
-        default:
-            break;
-    }
-    /* Hash algorithm must be recognized and supported by EVP_MD */
-    RESULT_ENSURE(s2n_hash_alg_to_evp_md(hash_alg) != NULL, S2N_ERR_HASH_INVALID_ALGORITHM);
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
 {
     RESULT_ENSURE_REF(key);
@@ -119,7 +96,6 @@ int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
     POSIX_ENSURE_REF(hash_state);
     POSIX_ENSURE_REF(signature);
     POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
-    POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(priv->pkey, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
@@ -150,7 +126,6 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     POSIX_ENSURE_REF(hash_state);
     POSIX_ENSURE_REF(signature);
     POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
-    POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
     POSIX_GUARD_RESULT(s2n_evp_signing_validate_sig_alg(pub, sig_alg));
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(pub->pkey, NULL), EVP_PKEY_CTX_free_pointer);

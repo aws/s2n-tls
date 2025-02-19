@@ -651,7 +651,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy, &security_policy_test_all);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_all);
-        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_all);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
@@ -755,7 +755,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy, &security_policy_test_all);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_all);
-        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_all);
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls12"));
