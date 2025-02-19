@@ -20,7 +20,6 @@
 #include <sys/socket.h>
 
 #include "crypto/s2n_libcrypto.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "crypto/s2n_pkey.h"
 #include "tls/extensions/s2n_extension_list.h"

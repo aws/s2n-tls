@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
 
 #include "s2n_test.h"
+#include "utils/s2n_random.h"
 
 int main(int argc, char** argv)
 {
@@ -51,6 +52,13 @@ int main(int argc, char** argv)
         /* running with the default libcrypto on path */
     } else {
         FAIL_MSG("Testing with an unexpected libcrypto.");
+    }
+
+    /* Ensure that custom rand is not enabled for OpenSSL 1.0.2 Fips to match
+     * historical behavior 
+     */
+    if (strcmp("openssl-1.0.2-fips", env_libcrypto) == 0) {
+        EXPECT_FALSE(s2n_supports_custom_rand());
     }
 
     END_TEST();

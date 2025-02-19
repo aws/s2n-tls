@@ -17,7 +17,7 @@
 #include <string.h>
 
 #include "api/s2n.h"
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
