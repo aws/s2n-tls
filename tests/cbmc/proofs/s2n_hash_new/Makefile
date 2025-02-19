@@ -27,9 +27,6 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_init
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_reset
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_free
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_init
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_reset
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_free
