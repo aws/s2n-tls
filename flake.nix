@@ -19,6 +19,7 @@
         openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
+        openssl_3_4 = import ./nix/openssl_3_4.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
@@ -100,6 +101,7 @@
           OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
           OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
           OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
+          OPENSSL_3_4_INSTALL_DIR = "${openssl_3_4}";
           AWSLC_INSTALL_DIR = "${aws-lc}";
           GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
           LIBRESSL_INSTALL_DIR = "${libressl}";
@@ -111,6 +113,21 @@
             source ${writeScript ./nix/shell.sh}
           '';
         };
+
+        devShells.openssl34 = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake openssl_3_4 ];
+            S2N_LIBCRYPTO = "openssl-3.4.0";
+            # Integ s_client/server tests expect openssl 1.1.1.
+            # GnuTLS-cli and serv utilities needed for some integration tests.
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });
 
         devShells.openssl111 = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {
