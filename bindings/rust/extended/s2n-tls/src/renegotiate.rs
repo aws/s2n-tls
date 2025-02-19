@@ -41,7 +41,7 @@
 //!
 //! impl RenegotiateCallback for Callback {
 //!     fn on_renegotiate_request(
-//!         &mut self,
+//!         &self,
 //!         conn: &mut Connection,
 //!     ) -> Option<RenegotiateResponse> {
 //!         let response = match conn.server_name() {
@@ -51,7 +51,7 @@
 //!         Some(response)
 //!     }
 //!
-//!     fn on_renegotiate_wipe(&mut self, conn: &mut Connection) -> Result<(), Error> {
+//!     fn on_renegotiate_wipe(&self, conn: &mut Connection) -> Result<(), Error> {
 //!         conn.set_application_protocol_preference(Some("http"))?;
 //!         Ok(())
 //!     }
@@ -155,23 +155,20 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     //
     // This method returns Option instead of Result because the callback has no mechanism
     // for surfacing errors to the application, so Result would be somewhat deceptive.
-    fn on_renegotiate_request(
-        &mut self,
-        connection: &mut Connection,
-    ) -> Option<RenegotiateResponse>;
+    fn on_renegotiate_request(&self, connection: &mut Connection) -> Option<RenegotiateResponse>;
 
     /// A callback that triggers after the connection is wiped for renegotiation.
     ///
     /// Because renegotiation requires wiping the connection, connection-level
     /// configuration will need to be set again via this callback.
     /// See [`Connection::wipe_for_renegotiate()`] for more information.
-    fn on_renegotiate_wipe(&mut self, _connection: &mut Connection) -> Result<(), Error> {
+    fn on_renegotiate_wipe(&self, _connection: &mut Connection) -> Result<(), Error> {
         Ok(())
     }
 }
 
 impl RenegotiateCallback for RenegotiateResponse {
-    fn on_renegotiate_request(&mut self, _conn: &mut Connection) -> Option<RenegotiateResponse> {
+    fn on_renegotiate_request(&self, _conn: &mut Connection) -> Option<RenegotiateResponse> {
         Some(*self)
     }
 }
@@ -248,8 +245,8 @@ impl Connection {
 
         // We trigger the callback last so that the application can modify any
         // preserved configuration (like the server name or waker) if necessary.
-        if let Some(mut config) = self.config() {
-            if let Some(callback) = config.context_mut().renegotiate.as_mut() {
+        if let Some(config) = self.config() {
+            if let Some(callback) = config.context().renegotiate.as_ref() {
                 callback.on_renegotiate_wipe(self)?;
             }
         }
@@ -390,7 +387,7 @@ impl config::Builder {
             response: *mut s2n_renegotiate_response::Type,
         ) -> libc::c_int {
             with_context(conn_ptr, |conn, context| {
-                let callback = context.renegotiate.as_mut();
+                let callback = context.renegotiate.as_ref();
                 if let Some(callback) = callback {
                     if let Some(result) = callback.on_renegotiate_request(conn) {
                         // If the callback indicates renegotiation, schedule it.
@@ -408,7 +405,11 @@ impl config::Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.renegotiate = Some(handler);
         unsafe {
             s2n_config_set_renegotiate_request_cb(
@@ -717,10 +718,7 @@ mod tests {
     fn error_callback() -> Result<(), Box<dyn Error>> {
         struct ErrorRenegotiateCallback {}
         impl RenegotiateCallback for ErrorRenegotiateCallback {
-            fn on_renegotiate_request(
-                &mut self,
-                _: &mut Connection,
-            ) -> Option<RenegotiateResponse> {
+            fn on_renegotiate_request(&self, _: &mut Connection) -> Option<RenegotiateResponse> {
                 None
             }
         }

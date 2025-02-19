@@ -62,7 +62,7 @@ async fn handshake_with_pool_multithread() -> Result<(), Box<dyn std::error::Err
         let server = server.clone();
         tasks.push_back(tokio::spawn(async move {
             // Start each handshake at a randomly determined time
-            let rand = rand::thread_rng().gen_range(0..50);
+            let rand = rand::rng().random_range(0..50);
             time::sleep(Duration::from_millis(rand)).await;
 
             let (server_stream, client_stream) = common::get_streams().await.unwrap();

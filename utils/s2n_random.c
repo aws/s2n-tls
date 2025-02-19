@@ -559,6 +559,8 @@ bool s2n_supports_custom_rand(void)
     /* OpenSSL 1.0.2-fips is excluded to match historical behavior */
     /* OPENSSL_FIPS is only defined for 1.0.2-fips, not 3.x-fips */
     return false;
+#elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
+    return false;
 #else
     return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
 #endif
