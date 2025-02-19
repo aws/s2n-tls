@@ -16,5 +16,5 @@ CBPATH=$(dirname $0)
 BUILD_DIR=$1
 INSTALL_DIR=$2
 
-$CBPATH/install_awslc_fips.sh $BUILD_DIR $INSTALL_DIR 2022
+$CBPATH/install_awslc_fips.sh $@ 2022
 
