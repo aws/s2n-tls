@@ -166,7 +166,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
 
     # s2nc will wait until it has received the server's response before closing
     s2nc = managed_process(S2N, client_options, timeout=5,
-                           close_marker=strip_string_of_bytes(str(server_random_bytes)))
+                           close_marker=strip_string_of_bytes(str(server_random_bytes)), expect_stderr=True, kill_marker=True)
 
     expected_version = get_expected_s2n_version(protocol, provider)
     for client_results in s2nc.get_results():
