@@ -277,3 +277,9 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+    - identifier: DisableRandOverride
+      buildspec: codebuild/spec/buildspec_disable_rand_override.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
