@@ -47,6 +47,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
 : "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
 : "${AWSLC_FIPS_2022_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2022}"
+: "${AWSLC_FIPS_2024_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2024}"
 : "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl}"
 : "${CPPCHECK_INSTALL_DIR:=$TEST_DEPS_DIR/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
