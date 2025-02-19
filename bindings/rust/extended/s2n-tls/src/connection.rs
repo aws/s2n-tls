@@ -7,7 +7,7 @@
 use crate::renegotiate::RenegotiateState;
 use crate::{
     callbacks::*,
-    cert_chain::CertificateChain,
+    cert_chain::{CertificateChain, CertificateChainHandle},
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
@@ -1219,11 +1219,14 @@ impl Connection {
     /// Corresponds to [s2n_connection_get_peer_cert_chain].
     pub fn peer_cert_chain(&self) -> Result<CertificateChain<'static>, Error> {
         unsafe {
-            let mut chain = CertificateChain::allocate_owned()?;
-            s2n_connection_get_peer_cert_chain(self.connection.as_ptr(), chain.as_mut_ptr())
-                .into_result()
-                .map(|_| ())?;
-            Ok(chain)
+            let chain_handle = CertificateChainHandle::allocate()?;
+            s2n_connection_get_peer_cert_chain(
+                self.connection.as_ptr(),
+                chain_handle.cert.as_ptr(),
+            )
+            .into_result()
+            .map(|_| ())?;
+            Ok(CertificateChain::from_allocated(chain_handle))
         }
     }
 
