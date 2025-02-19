@@ -98,7 +98,7 @@ class _processCommunicator(object):
             return "stderr"
         elif fileobj == proc.stdin:
             return "stdin"
-        return "fileobj is not stdout, stderr nor stdin"
+        return "unknown fd"
 
     def _communicate(self, input_data=None, send_marker_list=None, close_marker=None, kill_marker=None,
                      send_with_newline=False, timeout=None):
