@@ -36,12 +36,6 @@
 
 const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
 
-static bool s2n_hash_alg_is_supported(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg)
-{
-    return (hash_alg != S2N_HASH_NONE) && (hash_alg != S2N_HASH_MD5)
-            && (hash_alg != S2N_HASH_MD5_SHA1 || sig_alg == S2N_SIGNATURE_RSA);
-}
-
 static S2N_RESULT s2n_test_hash_init(struct s2n_hash_state *hash_state, s2n_hash_algorithm hash_alg)
 {
     RESULT_GUARD_POSIX(s2n_hash_init(hash_state, hash_alg));
@@ -112,26 +106,18 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
-    /* Test that unsupported hash algs are treated as invalid.
-     * Later tests will ignore unsupported algs, so ensure they are actually invalid. */
-    {
-        /* This pkey should never actually be needed -- any pkey will do */
-        struct s2n_pkey *pkey = rsa_cert_chain->private_key;
-
-        for (s2n_signature_algorithm sig_alg = 0; sig_alg <= UINT8_MAX; sig_alg++) {
-            for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
-                if (s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
-                    continue;
-                }
-
-                s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
-                EXPECT_ERROR_WITH_ERRNO(s2n_test_evp_sign(sig_alg, hash_alg, pkey, &evp_signature),
-                        S2N_ERR_HASH_INVALID_ALGORITHM);
-                EXPECT_ERROR_WITH_ERRNO(s2n_test_evp_verify(sig_alg, hash_alg, pkey, &evp_signature, &evp_signature),
-                        S2N_ERR_HASH_INVALID_ALGORITHM);
-            }
-        }
-    };
+    /* Determining all possible valid combinations of hash algorithms and
+     * signature algorithms is actually surprisingly complicated.
+     *
+     * For example: awslc-fips will fail for MD5+ECDSA. However, that is not
+     * a real problem because there is no valid signature scheme that uses both
+     * MD5 and ECDSA.
+     *
+     * To avoid enumerating all the exceptions, just use the actual supported
+     * signature scheme list as the source of truth.
+     */
+    const struct s2n_signature_preferences *all_sig_schemes =
+            security_policy_test_all.signature_preferences;
 
     /* EVP signing must match RSA signing */
     {
@@ -145,10 +131,12 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
-            if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
+        for (size_t i = 0; i < all_sig_schemes->count; i++) {
+            const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+            if (scheme->sig_alg != sig_alg) {
                 continue;
             }
+            const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
             /* Calculate the signature using EVP methods */
             s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
@@ -183,10 +171,12 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
-            if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
+        for (size_t i = 0; i < all_sig_schemes->count; i++) {
+            const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+            if (scheme->sig_alg != sig_alg) {
                 continue;
             }
+            const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
             /* Calculate the signature using EVP methods */
             s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
@@ -220,10 +210,12 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
-            if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
+        for (size_t i = 0; i < all_sig_schemes->count; i++) {
+            const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+            if (scheme->sig_alg != sig_alg) {
                 continue;
             }
+            const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
             /* Calculate the signature using EVP methods */
             s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
@@ -258,10 +250,12 @@ int main(int argc, char **argv)
         EXPECT_PKEY_USES_EVP_SIGNING(private_key);
         EXPECT_PKEY_USES_EVP_SIGNING(public_key);
 
-        for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
-            if (!s2n_hash_alg_is_supported(sig_alg, hash_alg)) {
+        for (size_t i = 0; i < all_sig_schemes->count; i++) {
+            const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+            if (scheme->sig_alg != sig_alg) {
                 continue;
             }
+            const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
             /* Calculate the signature using EVP methods */
             s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
