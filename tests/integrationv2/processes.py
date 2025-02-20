@@ -90,6 +90,16 @@ class _processCommunicator(object):
 
         return (stdout, stderr)
 
+    # Helper function to print out debugging statements
+    def get_fd_name(self, proc, fileobj):
+        if fileobj == proc.stdout:
+            return "stdout"
+        elif fileobj == proc.stderr:
+            return "stderr"
+        elif fileobj == proc.stdin:
+            return "stdin"
+        return "unknown fd"
+
     def _communicate(self, input_data=None, send_marker_list=None, close_marker=None, kill_marker=None,
                      send_with_newline=False, timeout=None):
         """
@@ -158,7 +168,7 @@ class _processCommunicator(object):
                 self._check_timeout(endtime, orig_timeout, stdout, stderr)
 
                 # (Key, events) tuple represents a single I/O operation
-                for key, events in ready:
+                for key, num_events in ready:
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
                         print(f'{self.name}: stdin available')
@@ -168,21 +178,27 @@ class _processCommunicator(object):
                             input_data_offset += os.write(key.fd, chunk)
                             print(f'{self.name}: sent')
                         except BrokenPipeError:
-                            selector.unregister(key.fileobj)
+                            print(f"{self.name}: Unregistering (stdin) BrokenPipeError")
+                            selector.unregister(self.proc.stdin)
                         else:
                             if input_data_offset >= input_data_len:
-                                selector.unregister(key.fileobj)
+                                print(f"{self.name}: Unregistering (stdin) Input_data_offset >= input_data_len")
+                                selector.unregister(self.proc.stdin)
                                 input_data_sent = True
                                 input_data_offset = 0
                                 if send_marker_list:
                                     send_marker = send_marker_list.pop(0)
                                     print(f'{self.name}: next send_marker is {send_marker}')
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
-                        print(f'{self.name}: stdout available')
+                        fd_name = self.get_fd_name(self.proc, key.fileobj)
+                        print(f'{self.name}: {fd_name} available')
+
                         # 32 KB (32 × 1024 = 32,768 bytes), read 32KB from the file descriptor
                         data = os.read(key.fd, 32768)
                         if not data:
                             selector.unregister(key.fileobj)
+                            print(f"{self.name}:  Unregistering: {fd_name} No Data")
+
                         data_str = str(data)
 
                         # Prepends n - 1 bytes of previously-seen stdout to the chunk we'll be searching
@@ -228,6 +244,7 @@ class _processCommunicator(object):
                         if self.wait_for_marker:
                             print(f'{self.name}: looking for wait_for_marker {self.wait_for_marker} in {data_debug}')
                         if self.wait_for_marker is not None and self.wait_for_marker in data_str:
+                            print(f"{self.name}: Unregistering (stdout + stderr), found wait_for_marker")
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             return None, None
@@ -235,20 +252,19 @@ class _processCommunicator(object):
                         if kill_marker:
                             print(f'{self.name}: looking for kill_marker {kill_marker} in {data}')
                         if kill_marker is not None and kill_marker in data:
+                            print(f"{self.name}: Unregistering (stdout + stderr), found kill_marker")
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             self.proc.kill()
 
-                # If we have finished sending all our input, and have received the
-                # ready-to-send marker, we can close out stdin.
-                if self.proc.stdin and input_data_sent and not input_data:
-                    print(f'{self.name}: finished sending')
-                    if close_marker:
-                        print(f'{self.name}: looking for close_marker {close_marker} in {data_debug}')
-                    if close_marker is None or (close_marker and close_marker in data_str):
-                        print(f'{self.name}: closing stdin')
-                        input_data_sent = None
-                        self.proc.stdin.close()
+                    if self.proc.stdin and input_data_sent and not input_data:
+                        print(f'{self.name}: finished sending')
+                        if close_marker:
+                            print(f'{self.name}: looking for close_marker {close_marker} in {data_debug}')
+                        if close_marker is None or (close_marker and close_marker in data_str):
+                            print(f'{self.name} Found close marker: closing stdin')
+                            input_data_sent = None
+                            self.proc.stdin.close()
 
         self.proc.wait(timeout=self._remaining_time(endtime))
 

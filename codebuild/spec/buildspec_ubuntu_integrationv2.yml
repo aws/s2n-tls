@@ -42,7 +42,7 @@ batch:
             - "test_early_data test_hello_retry_requests test_sni_match test_pq_handshake test_fragmentation test_key_update"
             - "test_session_resumption test_renegotiate_apache test_buffered_send"
             - "test_npn test_signature_algorithms"
-            - "test_version_negotiation test_external_psk test_ocsp test_renegotiate test_serialization"
+            - "test_version_negotiation test_external_psk test_ocsp test_renegotiate test_serialization test_record_padding"
 
 env:
   variables:
