@@ -21,6 +21,12 @@ env:
     CTEST_OUTPUT_ON_FAILURE: 1
 
 phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
   build:
     on-failure: ABORT
     commands:
