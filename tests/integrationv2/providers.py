@@ -344,12 +344,19 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
+    result = subprocess.run(
+        ["openssl", "version"], shell=False, capture_output=True, text=True
+    )
+    version_str = result.stdout.split(" ")
+    # This will return just the version number
+    version_openssl = version_str[1]
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
         # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
-        self._is_openssl_11()
+        self.at_least_openssl_1_1()
 
     @classmethod
     def get_send_marker(cls):
@@ -398,11 +405,17 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return get_flag(S2N_PROVIDER_VERSION)
+        return cls.version_openssl
 
     @classmethod
-    def supports_protocol(cls, protocol):
-        if protocol is Protocols.SSLv3:
+    def supports_protocol(cls, protocol, with_cert=None):
+        if cls.get_version()[0:3] == "1.1" and protocol is Protocols.SSLv3:
+            return False
+        if cls.get_version()[0:3] == "3.0" and (
+            protocol is Protocols.SSLv3
+            or protocol is Protocols.TLS10
+            or protocol is Protocols.TLS11
+        ):
             return False
 
         return True
@@ -411,14 +424,14 @@ class OpenSSL(Provider):
     def supports_cipher(cls, cipher, with_curve=None):
         return True
 
-    def _is_openssl_11(self) -> None:
+    def at_least_openssl_1_1(self) -> None:
         result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
         version_str = result.stdout.split(" ")
         project = version_str[0]
         version = version_str[1]
         print(f"openssl version: {project} version: {version}")
-        if (project != "OpenSSL" or version[0:3] != "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
+        if (project != "OpenSSL" or version[0:3] < "1.1"):
+            raise FileNotFoundError(f"Openssl version returned {version}, expected at least 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']

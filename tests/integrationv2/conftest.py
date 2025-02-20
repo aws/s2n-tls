@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import pytest
+import subprocess
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from providers import S2N, JavaSSL
+from providers import S2N, JavaSSL, OpenSSL
 
 PATH_CONFIGURATION_KEY = pytest.StashKey()
 
@@ -29,6 +30,15 @@ def available_providers():
 
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
+
+    result = subprocess.run(
+        ["openssl", "version"], shell=False, capture_output=True, text=True
+    )
+    version_str = result.stdout.split(" ")
+    project = version_str[0]
+    version = version_str[1]
+    if project == "OpenSSL" and version[0:3] == "3.0":
+        providers.add(OpenSSL)
 
     return providers
 
