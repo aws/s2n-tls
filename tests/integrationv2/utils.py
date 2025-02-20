@@ -1,7 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from common import Protocols
-from providers import S2N
+import subprocess
+from common import Certificates, Protocols
+from providers import OpenSSL, S2N
 from global_flags import get_flag, S2N_FIPS_MODE
 
 
@@ -87,6 +88,24 @@ def invalid_test_parameters(*args, **kwargs):
 
         for certificate_ in certificates:
             if not provider_.supports_certificate(certificate_):
+                return True
+
+    # openSSL 3.0 doesn't support 1024 certificates
+    if provider == OpenSSL or other_provider == OpenSSL:
+        if certificate is not None:
+            if OpenSSL.version_openssl[0:3] == "3.0" and (
+                certificate is Certificates.RSA_1024_SHA256
+                or certificate is Certificates.RSA_1024_SHA384
+                or certificate is Certificates.RSA_1024_SHA384
+            ):
+                return True
+
+        if client_certificate is not None:
+            if OpenSSL.version_openssl[0:3] == "3.0" and (
+                client_certificate is Certificates.RSA_1024_SHA256
+                or client_certificate is Certificates.RSA_1024_SHA384
+                or client_certificate is Certificates.RSA_1024_SHA384
+            ):
                 return True
 
     if cipher is not None:
