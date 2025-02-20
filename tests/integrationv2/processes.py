@@ -156,6 +156,7 @@ class _processCommunicator(object):
 
                 ready = selector.select(timeout)
                 self._check_timeout(endtime, orig_timeout, stdout, stderr)
+                input_view = b""
 
                 # (Key, events) tuple represents a single I/O operation
                 for key, events in ready:
