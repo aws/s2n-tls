@@ -77,17 +77,16 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: checkout
         uses: actions/checkout@v4
-
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
       - name: Install Ruff
-        run: pip install ruff
-
+        run: uv pip install ruff
       - name: Run Ruff formatting check
         id: ruff_format
         run: ruff format --check .
         continue-on-error: true
-
       - name: Check exit code
         if: steps.ruff_format.outcome == 'failure'
         run: |
