@@ -1,6 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import subprocess
 from common import Certificates, Protocols
 from providers import OpenSSL, S2N
 from global_flags import get_flag, S2N_FIPS_MODE
