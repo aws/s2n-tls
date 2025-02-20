@@ -283,3 +283,21 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+    - identifier: s2nMemUsageTest_awslc
+      buildspec: codebuild/spec/buildspec_mem.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc'
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 49
+    - identifier: s2nMemUsageTest_awslcfips
+      buildspec: codebuild/spec/buildspec_mem.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc-fips-2022'
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 52
