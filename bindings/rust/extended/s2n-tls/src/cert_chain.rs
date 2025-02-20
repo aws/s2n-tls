@@ -247,7 +247,7 @@ impl CertificateChain<'_> {
     ///
     /// To set a context on the connection, use [`Builder::set_application_context()`].
     ///
-    /// Corresponds to [s2n_connection_get_ctx].
+    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
     pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
         if let Some(internal_context) = self.cert_handle.internal_context() {
             internal_context.context.downcast_ref()
