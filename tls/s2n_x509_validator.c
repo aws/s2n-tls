@@ -818,7 +818,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_x509_validator_validate_cert_chain_pre_cb(validator, conn, cert_chain_in, cert_chain_len));
 
         if (conn->config->cert_validation_cb) {
-            RESULT_ENSURE(conn->config->cert_validation_cb(conn, &(validator->cert_validation_info), conn->config->cert_validation_ctx) == S2N_SUCCESS,
+            RESULT_ENSURE(conn->config->cert_validation_cb(conn, &(validator->cert_validation_info), conn->config->cert_validation_ctx) >= S2N_SUCCESS,
                     S2N_ERR_CANCELLED);
             validator->cert_validation_cb_invoked = true;
             RESULT_GUARD(s2n_x509_validator_handle_cert_validation_callback_result(validator));
