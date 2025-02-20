@@ -251,7 +251,7 @@ endif()
 
 if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
     message(STATUS "Disabling libcrypto RAND engine override")
-    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE)
+    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE=1)
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs
