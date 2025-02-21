@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::error::{Error, Fallible};
+use crate::error::{Error, ErrorType, Fallible};
 use s2n_tls_sys::*;
 use std::{
     any::Any,
@@ -15,6 +15,7 @@ use std::{
 ///
 /// [CertificateChain] is internally reference counted. The reference counted `T`
 /// must have a drop implementation.
+#[derive(Debug)]
 pub(crate) struct CertificateChainHandle<'a> {
     pub(crate) cert: NonNull<s2n_cert_chain_and_key>,
     is_owned: bool,
@@ -48,21 +49,23 @@ impl CertificateChainHandle<'_> {
         }
     }
 
-    fn internal_context_mut(&mut self) -> Option<&mut InternalContext> {
+    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
+    fn context_mut(&mut self) -> Option<&mut Context> {
         let context = unsafe { s2n_cert_chain_and_key_get_ctx(self.cert.as_ptr()) };
         if context.is_null() {
             None
         } else {
-            Some(unsafe { &mut *(context as *mut InternalContext) })
+            Some(unsafe { &mut *(context as *mut Context) })
         }
     }
 
-    fn internal_context(&self) -> Option<&InternalContext> {
+    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
+    fn context(&self) -> Option<&Context> {
         let context = unsafe { s2n_cert_chain_and_key_get_ctx(self.cert.as_ptr()) };
         if context.is_null() {
             None
         } else {
-            Some(unsafe { &*(context as *const InternalContext) })
+            Some(unsafe { &*(context as *const Context) })
         }
     }
 }
@@ -71,7 +74,7 @@ impl Drop for CertificateChainHandle<'_> {
     /// Corresponds to [s2n_cert_chain_and_key_free].
     fn drop(&mut self) {
         if self.is_owned {
-            if let Some(internal_context) = self.internal_context_mut() {
+            if let Some(internal_context) = self.context_mut() {
                 drop(unsafe { Box::from_raw(internal_context) });
             }
             unsafe {
@@ -87,10 +90,11 @@ impl Drop for CertificateChainHandle<'_> {
 /// We can't directly store the application context on the `s2n_cert_chain_and_key`,
 /// because `*mut dyn Any` is a fat pointer (16 bytes) and can not be stored as
 /// a c_void (8 bytes).
-struct InternalContext {
-    context: Box<dyn Any + Send + Sync>,
+struct Context {
+    application_context: Box<dyn Any + Send + Sync>,
 }
 
+#[derive(Debug)]
 pub struct Builder {
     cert_handle: CertificateChainHandle<'static>,
 }
@@ -167,13 +171,16 @@ impl Builder {
         &mut self,
         app_context: T,
     ) -> Result<&mut Self, Error> {
-        let app_context = Box::new(app_context);
-        match self.cert_handle.internal_context_mut() {
-            // set_application_context was previously called, overwrite the existing value
-            Some(c) => c.context = app_context,
+        match self.cert_handle.context_mut() {
+            Some(_) => Err(Error::bindings(
+                ErrorType::UsageError,
+                "cert builder error",
+                "set_application_context can only be called once",
+            )),
             None => {
-                let internal_context = Box::new(InternalContext {
-                    context: app_context,
+                let app_context = Box::new(app_context);
+                let internal_context = Box::new(Context {
+                    application_context: app_context,
                 });
                 unsafe {
                     s2n_cert_chain_and_key_set_ctx(
@@ -182,9 +189,9 @@ impl Builder {
                     )
                     .into_result()
                 }?;
+                Ok(self)
             }
         }
-        Ok(self)
     }
 
     /// Return an immutable, internally-reference counted CertificateChain.
@@ -249,8 +256,8 @@ impl CertificateChain<'_> {
     ///
     /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
     pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        if let Some(internal_context) = self.cert_handle.internal_context() {
-            internal_context.context.downcast_ref()
+        if let Some(internal_context) = self.cert_handle.context() {
+            internal_context.application_context.downcast_ref()
         } else {
             None
         }
@@ -601,18 +608,16 @@ mod tests {
         Ok(())
     }
 
-    /// When an application context is overridden, it should be properly dropped.
+    /// When an application context is overridden, it should be error.
     #[test]
     fn application_context_override() -> Result<(), S2NError> {
         let initial: Arc<u64> = Arc::new(0xC0FFEE);
-        let initial_handle = Arc::clone(&initial);
         let overridden: Arc<[u8; 6]> = Arc::new(*b"coffee");
 
         let mut builder = Builder::new()?;
         builder.set_application_context(initial)?;
-        assert_eq!(Arc::strong_count(&initial_handle), 2);
-        builder.set_application_context(overridden)?;
-        assert_eq!(Arc::strong_count(&initial_handle), 1);
+        let err = builder.set_application_context(overridden).unwrap_err();
+        assert_eq!(err.kind(), ErrorType::UsageError);
 
         Ok(())
     }
