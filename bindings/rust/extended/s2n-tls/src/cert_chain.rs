@@ -357,13 +357,14 @@ unsafe impl Send for Certificate<'_> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::error::Error as S2NError;
-    use crate::testing::config_builder;
     use crate::{
         config,
-        error::{ErrorSource, ErrorType},
+        error::{Error as S2NError, ErrorSource, ErrorType},
         security::DEFAULT_TLS13,
-        testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, SniTestCerts, TestPair},
+        testing::{
+            config_builder, CertKeyPair, InsecureAcceptAllCertificatesHandler, SniTestCerts,
+            TestPair,
+        },
     };
 
     use super::*;
