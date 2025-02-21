@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
 #include <cbmc_proof/make_common_datastructures.h>
@@ -35,22 +35,17 @@ void s2n_hash_free_harness()
     assert(s2n_hash_free(state) == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->hash_impl->free != NULL);
-        if (s2n_evp_signing_supported()) {
-            assert(state->digest.high_level.evp.ctx == NULL);
-            assert_rc_decrement_on_hash_state(&saved_hash_state);
-        } else {
-            assert_rc_unchanged_on_hash_state(&saved_hash_state);
-        }
+        assert(state->digest.high_level.evp.ctx == NULL);
+        assert(state->digest.high_level.evp_md5_secondary.ctx == NULL);
+        assert_rc_decrement_on_hash_state(&saved_hash_state);
         assert(state->is_ready_for_input == 0);
     }
 
     /* Cleanup after expected error cases, for memory leak check. */
     if (state != NULL) {
-        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_supported`,
-              since `s2n_hash_free` is a NO-OP in that case. */
-        if (!s2n_evp_signing_supported()) {
-            S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
-        }
+        /* 1. `free` leftover EVP_MD_CTX objects */
+        S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
+        S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
 
         /* 2. `free` leftover reference-counted keys (i.e. those with non-zero ref-count),
               since they are not automatically `free`d until their ref count reaches 0. */

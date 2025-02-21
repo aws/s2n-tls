@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
 #include <cbmc_proof/make_common_datastructures.h>
@@ -44,24 +44,21 @@ void s2n_hmac_free_harness()
         assert(state->outer.hash_impl->free != NULL);
         assert(state->outer_just_key.hash_impl->free != NULL);
 
-        if (s2n_evp_signing_supported()) {
-            assert(state->inner.digest.high_level.evp.ctx == NULL);
-            assert_rc_decrement_on_hash_state(&saved_inner_hash_state);
+        assert(state->inner.digest.high_level.evp.ctx == NULL);
+        assert(state->inner.digest.high_level.evp_md5_secondary.ctx == NULL);
+        assert_rc_decrement_on_hash_state(&saved_inner_hash_state);
 
-            assert(state->inner_just_key.digest.high_level.evp.ctx == NULL);
-            assert_rc_decrement_on_hash_state(&saved_inner_just_key_hash_state);
+        assert(state->inner_just_key.digest.high_level.evp.ctx == NULL);
+        assert(state->inner_just_key.digest.high_level.evp_md5_secondary.ctx == NULL);
+        assert_rc_decrement_on_hash_state(&saved_inner_just_key_hash_state);
 
-            assert(state->outer.digest.high_level.evp.ctx == NULL);
-            assert_rc_decrement_on_hash_state(&saved_outer_hash_state);
+        assert(state->outer.digest.high_level.evp.ctx == NULL);
+        assert(state->outer.digest.high_level.evp_md5_secondary.ctx == NULL);
+        assert_rc_decrement_on_hash_state(&saved_outer_hash_state);
 
-            assert(state->outer_just_key.digest.high_level.evp.ctx == NULL);
-            assert_rc_decrement_on_hash_state(&saved_outer_just_key_hash_state);
-        } else {
-            assert_rc_unchanged_on_hash_state(&saved_inner_hash_state);
-            assert_rc_unchanged_on_hash_state(&saved_outer_just_key_hash_state);
-            assert_rc_unchanged_on_hash_state(&saved_outer_hash_state);
-            assert_rc_unchanged_on_hash_state(&saved_outer_just_key_hash_state);
-        }
+        assert(state->outer_just_key.digest.high_level.evp.ctx == NULL);
+        assert(state->outer_just_key.digest.high_level.evp_md5_secondary.ctx == NULL);
+        assert_rc_decrement_on_hash_state(&saved_outer_just_key_hash_state);
 
         assert(state->inner.is_ready_for_input == 0);
         assert(state->inner_just_key.is_ready_for_input == 0);
@@ -71,14 +68,15 @@ void s2n_hmac_free_harness()
 
     /* Cleanup after expected error cases, for memory leak check. */
     if (state != NULL) {
-        /* 1. `free` leftover EVP_MD_CTX objects if `s2n_evp_signing_supported`,
-              since `s2n_hash_free` is a NO-OP in that case. */
-        if (!s2n_evp_signing_supported()) {
-            S2N_EVP_MD_CTX_FREE(state->inner.digest.high_level.evp.ctx);
-            S2N_EVP_MD_CTX_FREE(state->inner_just_key.digest.high_level.evp.ctx);
-            S2N_EVP_MD_CTX_FREE(state->outer.digest.high_level.evp.ctx);
-            S2N_EVP_MD_CTX_FREE(state->outer_just_key.digest.high_level.evp.ctx);
-        }
+        /* 1. `free` leftover EVP_MD_CTX objects */
+        S2N_EVP_MD_CTX_FREE(state->inner.digest.high_level.evp.ctx);
+        S2N_EVP_MD_CTX_FREE(state->inner.digest.high_level.evp_md5_secondary.ctx);
+        S2N_EVP_MD_CTX_FREE(state->inner_just_key.digest.high_level.evp.ctx);
+        S2N_EVP_MD_CTX_FREE(state->inner_just_key.digest.high_level.evp_md5_secondary.ctx);
+        S2N_EVP_MD_CTX_FREE(state->outer.digest.high_level.evp.ctx);
+        S2N_EVP_MD_CTX_FREE(state->outer.digest.high_level.evp_md5_secondary.ctx);
+        S2N_EVP_MD_CTX_FREE(state->outer_just_key.digest.high_level.evp.ctx);
+        S2N_EVP_MD_CTX_FREE(state->outer_just_key.digest.high_level.evp_md5_secondary.ctx);
 
         /* 2. `free` leftover reference-counted keys (i.e. those with non-zero ref-count),
          *    since they are not automatically `free`d until their ref count reaches 0.

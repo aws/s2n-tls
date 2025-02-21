@@ -258,7 +258,7 @@ int main(int argc, char **argv)
             test_scheme.hash_alg = i;
             conn->handshake_params.client_cert_sig_scheme = &test_scheme;
             conn->handshake_params.server_cert_sig_scheme = &test_scheme;
-            if (i <= S2N_HASH_SENTINEL) {
+            if (i <= S2N_HASH_ALGS_COUNT) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
 

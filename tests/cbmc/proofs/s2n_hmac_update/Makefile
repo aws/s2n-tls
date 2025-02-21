@@ -26,7 +26,7 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/md5_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/sha_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
-PROOF_SOURCES += $(PROOF_STUB)/s2n_evp_signing_supported.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hmac.c
@@ -35,7 +35,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_digest
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_digest
 
 UNWINDSET +=
 

@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 
 #define MAX_LIBCRYPTO_NAME_LEN 100
