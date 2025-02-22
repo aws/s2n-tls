@@ -81,10 +81,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
-      - name: Install dependencies
-        run: |
-          cd tests/integrationv2  # Change to the directory containing pyproject.toml
-          pip install .           # Install dependencies from pyproject.toml
       - name: Run Ruff formatting check
         id: ruff_format
         run: |
