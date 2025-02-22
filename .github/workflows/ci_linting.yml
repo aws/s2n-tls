@@ -79,13 +79,16 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
+
       - name: Run Ruff formatting check
+        working-directory: tests/integrationv2  # Set the working directory
         id: ruff_format
         run: ruff format --check .
-        working-directory: tests/integrationv2  # Set the working directory
         continue-on-error: true
+
       - name: Check exit code
         if: steps.ruff_format.outcome == 'failure'
         run: |
