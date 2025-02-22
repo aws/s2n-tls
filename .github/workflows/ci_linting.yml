@@ -81,12 +81,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
-      - name: Install dependencies
-        run: pip install tests/integrationv2
       - name: Run Ruff formatting check
         id: ruff_format
-        run: ruff format --check tests/integrationv2
-      continue-on-error: true
+        run: ruff format --check .
+        working-directory: tests/integrationv2  # Set the working directory
         continue-on-error: true
       - name: Check exit code
         if: steps.ruff_format.outcome == 'failure'
