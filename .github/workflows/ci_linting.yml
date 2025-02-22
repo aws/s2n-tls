@@ -82,10 +82,14 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: pip install .
+        run: |
+          cd tests/integrationv2  # Change to the directory containing pyproject.toml
+          pip install .           # Install dependencies from pyproject.toml
       - name: Run Ruff formatting check
         id: ruff_format
-        run: uv run ruff format --check tests/integrationv2
+        run: |
+          cd tests/integrationv2  # Change to the directory again
+          ruff format --check .    # Run Ruff to check formatting
         continue-on-error: true
       - name: Check exit code
         if: steps.ruff_format.outcome == 'failure'
