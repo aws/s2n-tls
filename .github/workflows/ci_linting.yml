@@ -85,7 +85,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: tests/integrationv2  # Set the working directory
-        run: uv add  # Use uv to add dependencies defined in pyproject.toml
+        run: uv add --requirements pyproject.toml  # Use uv to add dependencies from pyproject.toml
 
       - name: Run Ruff formatting check
         working-directory: tests/integrationv2  # Set the working directory
