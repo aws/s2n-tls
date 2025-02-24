@@ -21,6 +21,7 @@ pub mod connection;
 pub mod enums;
 #[cfg(feature = "unstable-fingerprint")]
 pub mod fingerprint;
+pub(crate) mod foreign_types;
 pub mod init;
 pub mod pool;
 pub mod psk;
