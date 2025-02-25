@@ -34,6 +34,29 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(OPENSSL_IS_AWSLC)
+    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 1
+#else
+    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
+#endif
+
+/* The s2n p_hash implementation is abstracted to allow for separate implementations, using
+ * either s2n's formally verified HMAC or OpenSSL's EVP HMAC, for use by the TLS PRF. */
+struct s2n_p_hash_hmac {
+    int (*alloc)(struct s2n_prf_working_space *ws);
+    int (*init)(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret);
+    int (*update)(struct s2n_prf_working_space *ws, const void *data, uint32_t size);
+    int (*final)(struct s2n_prf_working_space *ws, void *digest, uint32_t size);
+    int (*reset)(struct s2n_prf_working_space *ws);
+    int (*cleanup)(struct s2n_prf_working_space *ws);
+    int (*free)(struct s2n_prf_working_space *ws);
+};
+
+S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message,
+        s2n_hash_algorithm hash_alg, struct s2n_blob *output);
+S2N_RESULT s2n_prf_tls_extended_master_secret(struct s2n_connection *conn,
+        struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash);
+
 S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(key_material);
@@ -114,7 +137,7 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
     return S2N_RESULT_OK;
 }
 
-static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
+static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     POSIX_ENSURE_REF(conn);
@@ -509,7 +532,7 @@ bool s2n_libcrypto_supports_tls_prf()
 #endif
 }
 
-S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     /* We zero the out blob because p_hash works by XOR'ing with the existing
@@ -553,7 +576,7 @@ int CRYPTO_tls1_prf(const EVP_MD *digest,
         const uint8_t *seed1, size_t seed1_len,
         const uint8_t *seed2, size_t seed2_len);
 
-S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     const EVP_MD *digest = NULL;
@@ -601,7 +624,7 @@ S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secre
     return S2N_RESULT_OK;
 }
 #else
-S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
@@ -624,7 +647,7 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
     POSIX_ENSURE(S2N_IMPLIES(seed_c != NULL, seed_b != NULL), S2N_ERR_PRF_INVALID_SEED);
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        POSIX_GUARD(s2n_sslv3_prf(conn, secret, seed_a, seed_b, seed_c, out));
+        POSIX_GUARD(s2n_prf_sslv3(conn, secret, seed_a, seed_b, seed_c, out));
         return S2N_SUCCESS;
     }
 
@@ -632,16 +655,16 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
      * FIPS-validated libcrypto implementation is used instead, if an implementation is provided.
      */
     if (s2n_is_in_fips_mode() && s2n_libcrypto_supports_tls_prf()) {
-        POSIX_GUARD_RESULT(s2n_libcrypto_prf(conn, secret, label, seed_a, seed_b, seed_c, out));
+        POSIX_GUARD_RESULT(s2n_prf_libcrypto(conn, secret, label, seed_a, seed_b, seed_c, out));
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_custom_prf(conn, secret, label, seed_a, seed_b, seed_c, out));
+    POSIX_GUARD_RESULT(s2n_prf_custom(conn, secret, label, seed_a, seed_b, seed_c, out));
 
     return S2N_SUCCESS;
 }
 
-int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+int s2n_prf_tls_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     POSIX_ENSURE_REF(conn);
 
@@ -659,7 +682,7 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
     return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, NULL, &master_secret);
 }
 
-int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+int s2n_prf_hybrid_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     POSIX_ENSURE_REF(conn);
 
@@ -685,7 +708,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
     if (!conn->ems_negotiated) {
-        POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
+        POSIX_GUARD(s2n_prf_tls_master_secret(conn, premaster_secret));
         return S2N_SUCCESS;
     }
 
@@ -708,13 +731,13 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
         POSIX_GUARD(s2n_blob_init(&sha1_digest, sha1_data, sizeof(sha1_data)));
         POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_MD5, &digest));
         POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_SHA1, &sha1_digest));
-        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, &sha1_digest));
+        POSIX_GUARD_RESULT(s2n_prf_tls_extended_master_secret(conn, premaster_secret, &digest, &sha1_digest));
     } else {
         s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
         s2n_hash_algorithm hash_alg = 0;
         POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
         POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, hash_alg, &digest));
-        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, NULL));
+        POSIX_GUARD_RESULT(s2n_prf_tls_extended_master_secret(conn, premaster_secret, &digest, NULL));
     }
     return S2N_SUCCESS;
 }
@@ -728,7 +751,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
  *#                    session_hash)
  *#                    [0..47];
  */
-S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash)
+S2N_RESULT s2n_prf_tls_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -765,7 +788,7 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
     return S2N_RESULT_OK;
 }
 
-static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *hash_workspace, uint8_t *out)
+static int s2n_prf_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *hash_workspace, uint8_t *out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->handshake.hashes);
@@ -808,24 +831,24 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     return 0;
 }
 
-static int s2n_sslv3_client_finished(struct s2n_connection *conn)
+static int s2n_prf_sslv3_client_finished(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
 
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.client_finished);
+    return s2n_prf_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.client_finished);
 }
 
-static int s2n_sslv3_server_finished(struct s2n_connection *conn)
+static int s2n_prf_sslv3_server_finished(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
 
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
+    return s2n_prf_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
 }
 
 int s2n_prf_client_finished(struct s2n_connection *conn)
@@ -842,7 +865,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     struct s2n_blob label = { 0 };
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        return s2n_sslv3_client_finished(conn);
+        return s2n_prf_sslv3_client_finished(conn);
     }
 
     client_finished.data = conn->handshake.client_finished;
@@ -900,7 +923,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     struct s2n_blob label = { 0 };
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        return s2n_sslv3_server_finished(conn);
+        return s2n_prf_sslv3_server_finished(conn);
     }
 
     server_finished.data = conn->handshake.server_finished;
