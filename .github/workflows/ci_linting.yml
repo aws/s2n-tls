@@ -83,10 +83,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install Ruff in tests/integrationv2
-        working-directory: tests/integrationv2
-        run: uv add ruff
-
       - name: Run Ruff formatting check
         working-directory: tests/integrationv2
         id: ruff_format
