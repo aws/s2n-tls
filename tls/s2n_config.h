@@ -31,7 +31,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
 
-#define S2N_MAX_TICKET_KEYS       48
+#define S2N_MAX_TICKET_KEYS 48
 
 /*
  * TLS1.3 does not allow alert messages to be fragmented, and some TLS

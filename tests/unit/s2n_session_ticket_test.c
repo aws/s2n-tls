@@ -780,9 +780,9 @@ int main(int argc, char **argv)
 
     /* Attempting to add more than S2N_MAX_TICKET_KEYS causes failures. */
     {
-        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         uint8_t id = 0;
         uint8_t ticket_key_buf[32] = { 0 };
@@ -790,14 +790,14 @@ int main(int argc, char **argv)
         for (uint8_t i = 0; i < S2N_MAX_TICKET_KEYS; i++) {
             id = i;
             ticket_key_buf[0] = i;
-            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config,
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config,
                     &id, sizeof(id), ticket_key_buf, s2n_array_len(ticket_key_buf), 0));
         }
 
         id = S2N_MAX_TICKET_KEYS;
         ticket_key_buf[0] = S2N_MAX_TICKET_KEYS;
-        EXPECT_FAILURE(s2n_config_add_ticket_crypto_key(server_config,
-                &id, sizeof(id), ticket_key_buf, s2n_array_len(ticket_key_buf), 0));
+        EXPECT_FAILURE(s2n_config_add_ticket_crypto_key(config, &id, sizeof(id),
+                ticket_key_buf, s2n_array_len(ticket_key_buf), 0));
     };
 
     /* Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST. */
