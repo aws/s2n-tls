@@ -347,11 +347,12 @@ class OpenSSL(Provider):
     result = subprocess.run(
         ["openssl", "version"], shell=False, capture_output=True, text=True
     )
-    # Example output of `openssl version`: "OpenSSL 3.0.8 7 Feb 2023\n"
-    version_str = result.stdout.split(" ")
     # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
+    version_str = result.stdout.split(" ")
+    # This will return the name of the provideer (e.g., "OpenSSL")
+    project = version_str[0]
+    # This will return the version number (e.g., "3.0.8")
     version_openssl = version_str[1]
-    # This will return just the version number (e.g., "3.0.8")
 
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
@@ -427,13 +428,9 @@ class OpenSSL(Provider):
         return True
 
     def at_least_openssl_1_1(self) -> None:
-        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
-        version_str = result.stdout.split(" ")
-        project = version_str[0]
-        version = version_str[1]
-        print(f"openssl version: {project} version: {version}")
-        if (project != "OpenSSL" or version[0:3] < "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {version}, expected at least 1.1.x.")
+        print(f"openssl version: {self.project} version: {self.version_openssl}")
+        if (self.project != "OpenSSL" or self.version_openssl < "1.1"):
+            raise FileNotFoundError(f"Openssl version returned {self.version_openssl}, expected at least 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
