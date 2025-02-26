@@ -829,8 +829,6 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
 /* All TLS12 Cipher Suites */
 
 static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
-    &s2n_rsa_with_rc4_128_md5,            /* 0x00,0x04 */
-    &s2n_rsa_with_rc4_128_sha,            /* 0x00,0x05 */
     &s2n_rsa_with_3des_ede_cbc_sha,       /* 0x00,0x0A */
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,   /* 0x00,0x16 */
     &s2n_rsa_with_aes_128_cbc_sha,        /* 0x00,0x2F */
