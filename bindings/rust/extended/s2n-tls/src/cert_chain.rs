@@ -77,8 +77,12 @@ impl Drop for CertificateChainHandle<'_> {
             if let Some(internal_context) = self.context_mut() {
                 drop(unsafe { Box::from_raw(internal_context) });
             }
+            // ignore failures since there's not much we can do about it
             unsafe {
-                // ignore failures since there's not much we can do about it
+                // null the cert chain context out of an abundance of caution
+                let _ = s2n_cert_chain_and_key_set_ctx(self.cert.as_ptr(), std::ptr::null_mut())
+                    .into_result();
+
                 let _ = s2n_cert_chain_and_key_free(self.cert.as_ptr()).into_result();
             }
         }
