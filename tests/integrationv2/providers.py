@@ -347,9 +347,11 @@ class OpenSSL(Provider):
     result = subprocess.run(
         ["openssl", "version"], shell=False, capture_output=True, text=True
     )
+    # Example output of `openssl version`: "OpenSSL 3.0.8 7 Feb 2023\n"
     version_str = result.stdout.split(" ")
-    # This will return just the version number
+    # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
     version_openssl = version_str[1]
+    # This will return just the version number (e.g., "3.0.8")
 
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
