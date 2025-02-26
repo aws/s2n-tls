@@ -26,23 +26,13 @@ static EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
 static const EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
 #endif
 
-static bool s2n_use_custom_md5_sha1()
+bool s2n_hash_use_custom_md5_sha1()
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     return false;
 #else
     return true;
 #endif
-}
-
-/* This is currently only used by s2n_evp_signing
- * to determine whether or not to use EVP signing.
- * Historically we only used EVP signing for FIPS.
- * To avoid a premature behavior change, consider FIPS a requirement.
- */
-bool s2n_hash_evp_fully_supported()
-{
-    return s2n_is_in_fips_mode() && !s2n_use_custom_md5_sha1();
 }
 
 S2N_RESULT s2n_hash_algorithms_init()
@@ -177,7 +167,7 @@ int s2n_hash_is_ready_for_input(struct s2n_hash_state *state)
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
     POSIX_ENSURE_REF(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
-    if (s2n_use_custom_md5_sha1()) {
+    if (s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
     }
 
@@ -199,7 +189,7 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
         return S2N_SUCCESS;
     }
 
-    if (alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
+    if (alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx);
         POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx,
                                  s2n_hash_alg_to_evp_md(S2N_HASH_SHA1), NULL),
@@ -231,7 +221,7 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
     POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
 
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
+    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
         POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
     }
@@ -257,7 +247,7 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
     POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
 
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
+    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
 
         uint8_t sha1_digest_size = 0;
@@ -293,7 +283,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     POSIX_ENSURE_REF(to->digest.high_level.evp.ctx);
     POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
 
-    if (from->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
+    if (from->alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(to->digest.high_level.evp_md5_secondary.ctx);
         POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_COPY_FAILED);
     }
@@ -304,7 +294,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
     POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
-    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
+    if (state->alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
 
@@ -317,7 +307,7 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
     state->digest.high_level.evp.ctx = NULL;
 
-    if (s2n_use_custom_md5_sha1()) {
+    if (s2n_hash_use_custom_md5_sha1()) {
         S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
         state->digest.high_level.evp_md5_secondary.ctx = NULL;
     }

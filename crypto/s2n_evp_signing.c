@@ -74,6 +74,7 @@ static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s
 
 static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm hash_alg)
 {
+    PTR_ENSURE_REF(pkey);
     switch (hash_alg) {
 #if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
         /* For openssl-3.0, pkey methods will do an implicit fetch for the signing
@@ -109,11 +110,11 @@ static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm has
  * to an existing hash state.
  *
  * All that means that "digest-and-sign" requires two things:
- * - An EVP hash state to sign. So we MUST use EVP hashing instead of the legacy
- *   low-level hash implementation for all hash algs.
+ * - A single EVP hash state to sign. So we must not use a custom MD5_SHA1 hash,
+ *   which doesn't produce a single hash state.
  * - EVP_MD_CTX_set_pkey_ctx to exist and to behave as expected. Existence
  *   alone is not sufficient: the method exists in openssl-3.0-fips, but
- *   it cannot be use to setup a hash state for EVP_DigestSignFinal.
+ *   it cannot be used to setup a hash state for EVP_DigestSignFinal.
  *
  * Currently only awslc-fips meets both these requirements. New libcryptos
  * should be assumed not to meet these requirements until proven otherwise.
@@ -124,6 +125,21 @@ int s2n_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
     POSIX_ENSURE_REF(pctx);
     POSIX_ENSURE_REF(hash_state);
     POSIX_ENSURE_REF(signature);
+
+    /* Custom MD5_SHA1 involves combining separate MD5 and SHA1 hashes.
+     * That involves two hash states instead of the single hash state this
+     * method requires.
+     */
+    POSIX_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
+
+    /* Not all implementations of EVP_MD_CTX_set_pkey_ctx behave as required
+     * by this method. Using EVP_MD_CTX_set_pkey_ctx to convert a hash initialized
+     * with EVP_DigestInit to one that can be finalized with EVP_DigestSignFinal
+     * is not entirely standard.
+     *
+     * However, this behavior is known to work with awslc-fips.
+     */
+    POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
     POSIX_ENSURE_REF(ctx);
@@ -141,9 +157,6 @@ int s2n_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
 /* "digest-then-sign" means that we calculate the digest for a hash state,
  * then sign the digest bytes. That is not allowed by FIPS 140-3, but is allowed
  * in all other cases.
- *
- * This version of EVP signing works with either EVP hash states or legacy
- * low-level hash states.
  */
 int s2n_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
@@ -201,6 +214,10 @@ int s2n_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_al
     POSIX_ENSURE_REF(pctx);
     POSIX_ENSURE_REF(hash_state);
     POSIX_ENSURE_REF(signature);
+
+    /* See digest-and-sign requirements */
+    POSIX_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
+    POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
     POSIX_ENSURE_REF(ctx);

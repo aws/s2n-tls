@@ -72,7 +72,7 @@ struct s2n_hash {
 
 S2N_RESULT s2n_hash_algorithms_init();
 S2N_RESULT s2n_hash_algorithms_cleanup();
-bool s2n_hash_evp_fully_supported();
+bool s2n_hash_use_custom_md5_sha1();
 const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
