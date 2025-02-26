@@ -9,5 +9,6 @@ dependencies = [
     "pytest>=8.3.4",
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
+    "ruff>=0.9.7",
     "sslyze>=6.1.0",
 ]
