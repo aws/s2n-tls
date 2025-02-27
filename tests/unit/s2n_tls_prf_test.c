@@ -26,6 +26,16 @@
 
 #define TEST_BLOB_SIZE 64
 
+bool s2n_libcrypto_supports_tls_prf();
+int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret,
+        struct s2n_blob *label, struct s2n_blob *seed_a,
+        struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);
+S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn,
+        struct s2n_blob *message, s2n_hash_algorithm hash_alg, struct s2n_blob *output);
+S2N_RESULT s2n_prf_tls_extended_master_secret(struct s2n_connection *conn,
+        struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash);
+int s2n_prf_tls_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+
 /*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols TLS1.0
  *
@@ -63,7 +73,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob pms = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.version.tls12.rsa_premaster_secret, sizeof(conn->secrets.version.tls12.rsa_premaster_secret)));
-        EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+        EXPECT_SUCCESS(s2n_prf_tls_master_secret(conn, &pms));
         EXPECT_EQUAL(memcmp(conn->secrets.version.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -100,7 +110,7 @@ int main(int argc, char **argv)
          *#                    session_hash)
          *#                    [0..47];
          */
-        EXPECT_OK(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest, NULL));
+        EXPECT_OK(s2n_prf_tls_extended_master_secret(conn, &premaster_secret, &hash_digest, NULL));
         EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -293,20 +303,20 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls12.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
-            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_SUCCESS(s2n_prf_tls_master_secret(conn, &pms));
             EXPECT_EQUAL(memcmp(conn->secrets.version.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
             EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls12.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_tls_prf_master_secret(conn, &pms), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf_tls_master_secret(conn, &pms), S2N_ERR_NULL);
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls12.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
             EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
-            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_SUCCESS(s2n_prf_tls_master_secret(conn, &pms));
             EXPECT_EQUAL(memcmp(conn->secrets.version.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
