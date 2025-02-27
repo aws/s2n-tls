@@ -15,6 +15,54 @@
 FAILED=0
 
 #############################################
+# Grep for command line defines without values
+#############################################
+EMPTY_DEFINES=$(grep -Eon "\-D[^=]+=?" CMakeLists.txt | grep -v =)
+if [ ! -z "${EMPTY_DEFINES}" ]; then
+    FAILED=1
+    printf "\e[1;34mCommand line define is missing value:\e[0m "
+    printf "Compilers SHOULD set a default value of 1 when no default is given, "
+    printf "but that behavior is not required by any official spec. Set a value just in case. "
+    printf "For example: -DS2N_FOO=1 instead of -DS2N_FOO.\n"
+    printf "Found: \n"
+    echo "$EMPTY_DEFINES"
+fi
+
+#############################################
+# Grep for bindings methods without C documentation links.
+#############################################
+BINDINGS="bindings/rust/extended/s2n-tls/src"
+C_APIS=$(grep -rEo "S2N_API( extern)? [^ ]+ [^(]+\(" api | sed -E "s/^.*? \*?(.*?)\(/\1/")
+# Sanity checks
+echo $C_APIS | grep -q "s2n_error_get_type" || { echo "Not detecting APIs" ; exit 1; }
+echo $C_APIS | grep -q "s2n_connection_new" || { echo "Not detecting pointer APIs" ; exit 1; }
+echo $C_APIS | grep -q "s2n_config_set_npn" || { echo "Not detecting unstable APIs" ; exit 1; }
+KNOWN_MISSES=(
+    "s2n_errno_location"
+    "s2n_cert_chain_and_key_get_private_key"
+    "s2n_config_set_ctx"
+    "s2n_client_hello_has_extension"
+    "s2n_async_pkey_op_perform"
+)
+C_DOCS_FAILED=0
+for api in $C_APIS; do
+    if [[ "${KNOWN_MISSES[*]}" =~ "$api" ]]; then continue; fi
+    CALLS=`grep -ro "$api(" $BINDINGS | wc -l`
+    if [ "$CALLS" == 0 ]; then continue; fi
+    DOCS=`grep -ro "///.* \[$api\]" $BINDINGS | wc -l`
+    if [ "$DOCS" == 0 ]; then
+      if [ $C_DOCS_FAILED == 0 ]; then
+        C_DOCS_FAILED=1
+        FAILED=1
+        printf "\e[1;34mRust bindings are missing documentation links:\e[0m "
+        printf "Where possible, the Rust bindings should link to existing documentation. "
+        printf "Links can be written like \"[s2n_connection_new]\".\n"
+      fi
+      echo "- $api"
+    fi
+done
+
+#############################################
 # Grep for any instances of raw memcpy() function. s2n code should instead be
 # using one of the *_ENSURE_MEMCPY macros.
 #############################################

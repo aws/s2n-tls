@@ -105,6 +105,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
+
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     if (s2n_is_rsa_pss_certs_supported()) {
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
@@ -172,6 +175,18 @@ int main(int argc, char **argv)
 
     const struct s2n_security_policy *security_policy = NULL;
 
+    /* Test Deprecated Security Policies */
+    {
+        /* Ensure that every policy in the deprecated list has been removed from the supported policies list */
+        for (size_t i = 0; i < deprecated_security_policies_len; i++) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version(deprecated_security_policies[i], &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+        }
+
+        /* Spot check a few deprecated security policies to ensure S2N_ERR_DEPRECATED_SECURITY_POLICY is returned as expected. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
+    }
+
     /* Test common known good cipher suites for expected configuration */
     {
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &security_policy));
@@ -237,24 +252,6 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-
-        security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy));
-        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-
-        security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy));
-        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
@@ -482,8 +479,6 @@ int main(int argc, char **argv)
             "KMS-PQ-TLS-1-0-2019-06",
             "KMS-PQ-TLS-1-0-2020-02",
             "KMS-PQ-TLS-1-0-2020-07",
-            "PQ-SIKE-TEST-TLS-1-0-2019-11",
-            "PQ-SIKE-TEST-TLS-1-0-2020-02",
             "KMS-FIPS-TLS-1-2-2018-10",
             "20140601",
             "20141001",
@@ -656,7 +651,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy, &security_policy_test_all);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_all);
-        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_all);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
@@ -760,7 +755,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy, &security_policy_test_all);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_all);
-        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_all);
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls12"));
@@ -1026,6 +1021,28 @@ int main(int argc, char **argv)
                     s2n_test_security_policies_compatible(&security_policy_20240331,
                             "test_all_tls13", ecdsa_chain_and_key),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
+        };
+
+        /* We know of customers that expect to move between the policies in
+         * this section without multi-phased rollouts, so avoid inadvertant
+         * breakage by verifying compatibility.
+         */
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
+
+            /* default_tls13 is currently 20240503 */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
+            /* default_fips is currently 20240502 */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "rfc9151", ecdsa_sha384_chain_and_key));
+
+            /* default_tls13 > 20250211
+             * note this does not require a sha384 key.
+             */
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250211", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "default_tls13", ecdsa_chain_and_key));
         };
     };
 

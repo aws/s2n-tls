@@ -31,6 +31,7 @@ updates:
   # restricted-MSRV, so don't do batch updates
   - package-ecosystem: "cargo"
     directories:
-      - "/bindings/rust"
+      - "/bindings/rust/standard"
+      - "/bindings/rust/extended"
     schedule:
       interval: "daily"

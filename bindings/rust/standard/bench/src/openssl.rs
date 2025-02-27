@@ -4,8 +4,8 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection,
-        ViewIO,
+        self, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
+        TlsConnection, ViewIO,
     },
     PemType::*,
 };
@@ -40,6 +40,15 @@ impl Drop for OpenSslConnection {
 pub struct OpenSslConfig {
     config: SslContext,
     session_ticket_storage: SessionTicketStorage,
+}
+
+impl From<SslContext> for OpenSslConfig {
+    fn from(value: SslContext) -> Self {
+        OpenSslConfig {
+            config: value,
+            session_ticket_storage: Default::default(),
+        }
+    }
 }
 
 impl TlsBenchConfig for OpenSslConfig {
@@ -147,7 +156,11 @@ impl TlsConnection for OpenSslConnection {
         )
     }
 
-    fn new_from_config(config: &Self::Config, io: ViewIO) -> Result<Self, Box<dyn Error>> {
+    fn new_from_config(
+        mode: harness::Mode,
+        config: &Self::Config,
+        io: &harness::TestPairIO,
+    ) -> Result<Self, Box<dyn Error>> {
         // check if there is a session ticket available
         // a session ticket will only be available if the Config was created
         // with session resumption enabled
@@ -165,6 +178,11 @@ impl TlsConnection for OpenSslConnection {
         if let Some(ticket) = &maybe_ticket {
             unsafe { connection.set_session(ticket)? };
         }
+
+        let io = match mode {
+            Mode::Client => io.client_view(),
+            Mode::Server => io.server_view(),
+        };
 
         let connection = SslStream::new(connection, io)?;
         Ok(Self { connection })

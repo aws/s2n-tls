@@ -75,28 +75,6 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
     return S2N_SUCCESS;
 }
 
-/* Return 1 if hmac algorithm is available, 0 otherwise. */
-bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
-{
-    switch(hmac_alg) {
-    case S2N_HMAC_MD5:
-    case S2N_HMAC_SSLv3_MD5:
-         /* Some libcryptos, such as OpenSSL, disable MD5 by default when in FIPS mode, which is 
-          * required in order to negotiate SSLv3. However, this is supported in AWS-LC. 
-          */ 
-         return !s2n_is_in_fips_mode() || s2n_libcrypto_is_awslc(); 
-    case S2N_HMAC_SSLv3_SHA1:
-    case S2N_HMAC_NONE:
-    case S2N_HMAC_SHA1:
-    case S2N_HMAC_SHA224:
-    case S2N_HMAC_SHA256:
-    case S2N_HMAC_SHA384:
-    case S2N_HMAC_SHA512:
-        return true;
-    }
-    return false;
-}
-
 static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     for (int i = 0; i < state->xor_pad_size; i++) {
@@ -205,10 +183,6 @@ S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     POSIX_ENSURE_REF(state);
-    if (!s2n_hmac_is_available(alg)) {
-        /* Prevent hmacs from being used if they are not available. */
-        POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
-    }
 
     state->alg = alg;
     POSIX_GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));

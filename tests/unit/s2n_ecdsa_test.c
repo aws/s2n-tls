@@ -55,17 +55,6 @@ int main(int argc, char **argv)
     char *cert_chain_pem = NULL;
     char *private_key_pem = NULL;
 
-    const int supported_hash_algorithms[] = {
-        S2N_HASH_NONE,
-        S2N_HASH_MD5,
-        S2N_HASH_SHA1,
-        S2N_HASH_SHA224,
-        S2N_HASH_SHA256,
-        S2N_HASH_SHA384,
-        S2N_HASH_SHA512,
-        S2N_HASH_MD5_SHA1
-    };
-
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
@@ -156,13 +145,25 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
     EXPECT_SUCCESS(s2n_hash_new(&hash_two));
 
-    for (size_t i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
-        int hash_alg = supported_hash_algorithms[i];
+    /* Determining all possible valid combinations of hash algorithms and
+     * signature algorithms is actually surprisingly complicated.
+     *
+     * For example: awslc-fips will fail for MD5+ECDSA. However, that is not
+     * a real problem because there is no valid signature scheme that uses both
+     * MD5 and ECDSA.
+     *
+     * To avoid enumerating all the exceptions, just use the actual supported
+     * signature scheme list as the source of truth.
+     */
+    const struct s2n_signature_preferences *all_sig_schemes =
+            security_policy_test_all.signature_preferences;
 
-        if (!s2n_hash_is_available(hash_alg) || hash_alg == S2N_HASH_NONE) {
-            /* Skip hash algorithms that are not available. */
+    for (size_t i = 0; i < all_sig_schemes->count; i++) {
+        const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+        if (scheme->sig_alg != S2N_SIGNATURE_ECDSA) {
             continue;
         }
+        const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
         EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
@@ -179,6 +180,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
     }
+
+    /* Re-initialize hashes for remaining tests */
+    EXPECT_SUCCESS(s2n_hash_init(&hash_one, S2N_HASH_SHA512));
+    EXPECT_SUCCESS(s2n_hash_init(&hash_two, S2N_HASH_SHA512));
 
     /* Mismatched public/private key should fail verification */
     EXPECT_OK(s2n_pkey_size(&unmatched_priv_key, &maximum_signature_length));

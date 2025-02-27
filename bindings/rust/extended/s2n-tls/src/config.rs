@@ -21,6 +21,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+/// Corresponds to [s2n_config].
 #[derive(Debug, PartialEq)]
 pub struct Config(NonNull<s2n_config>);
 
@@ -77,6 +78,8 @@ impl Config {
     }
 
     /// Retrieve a reference to the [`Context`] stored on the config.
+    ///
+    /// Corresponds to [s2n_config_get_ctx].
     pub(crate) fn context(&self) -> &Context {
         let mut ctx = core::ptr::null_mut();
         unsafe {
@@ -88,14 +91,18 @@ impl Config {
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the config.
-    pub(crate) fn context_mut(&mut self) -> &mut Context {
+    ///
+    /// Corresponds to [s2n_config_get_ctx].
+    ///
+    /// SAFETY: There must only ever by mutable reference to `Context` alive at
+    ///         any time. Configs can be shared across threads, so this method is
+    ///         likely not correct for your usecase.
+    pub(crate) unsafe fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &mut *(ctx as *mut Context)
-        }
+        s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+            .into_result()
+            .unwrap();
+        &mut *(ctx as *mut Context)
     }
 
     #[cfg(test)]
@@ -128,8 +135,9 @@ impl Clone for Config {
 }
 
 impl Drop for Config {
+    /// Corresponds to [s2n_config_free].
     fn drop(&mut self) {
-        let context = self.context_mut();
+        let context = self.context();
         let count = context.refcount.fetch_sub(1, Ordering::Release);
         debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
@@ -152,18 +160,20 @@ impl Drop for Config {
         // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1637
         std::sync::atomic::fence(Ordering::Acquire);
 
-        unsafe {
-            // This is the last instance so free the context.
-            let context = Box::from_raw(context);
-            drop(context);
+        // This is the last instance so free the context.
+        let context = unsafe {
+            // SAFETY: The reference count is verified to be 1, so this is the
+            // last instance of the config, and the only reference to the context.
+            Box::from_raw(self.context_mut())
+        };
+        drop(context);
 
-            let _ = s2n_config_free(self.0.as_ptr()).into_result();
-        }
+        let _ = unsafe { s2n_config_free(self.0.as_ptr()).into_result() };
     }
 }
 
 pub struct Builder {
-    config: Config,
+    pub(crate) config: Config,
     load_system_certs: bool,
     enable_ocsp: bool,
 }
@@ -176,6 +186,10 @@ impl Builder {
     /// by calling [`Builder::set_security_policy`].
     /// See the s2n-tls usage guide:
     /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+    ///
+    /// Corresponds to [s2n_config_new_minimal],
+    /// but also calls [s2n_config_set_client_hello_cb_mode] to set the client
+    /// hello callback to non-blocking mode.
     pub fn new() -> Self {
         crate::init::init();
         let config = unsafe { s2n_config_new_minimal().into_result() }.unwrap();
@@ -206,11 +220,13 @@ impl Builder {
         }
     }
 
+    /// Corresponds to [s2n_config_set_alert_behavior].
     pub fn set_alert_behavior(&mut self, value: AlertBehavior) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_alert_behavior(self.as_mut_ptr(), value.into()).into_result() }?;
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_set_cipher_preferences].
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_set_cipher_preferences(self.as_mut_ptr(), policy.as_cstr().as_ptr())
@@ -227,6 +243,8 @@ impl Builder {
     /// list is used to negotiate a mutual application protocol with the client. After
     /// the negotiation for the connection has completed, the agreed upon protocol can
     /// be retrieved with s2n_get_application_protocol
+    ///
+    /// Corresponds to [s2n_config_set_protocol_preferences].
     pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
         &mut self,
         protocols: P,
@@ -244,6 +262,7 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_append_protocol_preference].
     pub fn append_application_protocol_preference(
         &mut self,
         protocol: &[u8],
@@ -267,11 +286,14 @@ impl Builder {
     /// # Safety
     /// This functionality will weaken the security of the connections. As such, it should only
     /// be used in development environments where obtaining a valid certificate would not be possible.
+    ///
+    /// Corresponds to [s2n_config_disable_x509_verification].
     pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
         s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()?;
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_add_dhparams].
     pub fn add_dhparams(&mut self, pem: &[u8]) -> Result<&mut Self, Error> {
         let cstring = CString::new(pem).map_err(|_| Error::INVALID_INPUT)?;
         unsafe { s2n_config_add_dhparams(self.as_mut_ptr(), cstring.as_ptr()).into_result() }?;
@@ -283,7 +305,9 @@ impl Builder {
     /// can be loaded.
     ///
     /// For more advanced cert use cases such as sharing certs across configs or
-    /// serving differents certs based on the client SNI, see [Builder::load_chain].
+    /// serving different certs based on the client SNI, see [Builder::load_chain].
+    ///
+    /// Corresponds to [s2n_config_add_cert_chain_and_key].
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
@@ -300,7 +324,7 @@ impl Builder {
 
     /// Corresponds to [s2n_config_add_cert_chain_and_key_to_store].
     pub fn load_chain(&mut self, chain: CertificateChain<'static>) -> Result<&mut Self, Error> {
-        // Out of an abudance of caution, we hold a reference to the CertificateChain
+        // Out of an abundance of caution, we hold a reference to the CertificateChain
         // regardless of whether add_to_store fails or succeeds. We have limited
         // visibility into the failure modes, so this behavior ensures that _if_
         // the C library held the reference despite the failure, it would continue
@@ -314,7 +338,12 @@ impl Builder {
             )
             .into_result()
         };
-        self.context_mut().application_owned_certs.push(chain);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.application_owned_certs.push(chain);
         result?;
 
         Ok(self)
@@ -353,9 +382,12 @@ impl Builder {
 
         let collected_chains = chain_arrays.into_iter().take(cert_chain_count).flatten();
 
-        self.context_mut()
-            .application_owned_certs
-            .extend(collected_chains);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.application_owned_certs.extend(collected_chains);
 
         unsafe {
             s2n_config_set_cert_chain_and_key_defaults(
@@ -369,6 +401,7 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_add_cert_chain].
     pub fn load_public_pem(&mut self, certificate: &[u8]) -> Result<&mut Self, Error> {
         let size: u32 = certificate
             .len()
@@ -379,6 +412,7 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_add_pem_to_trust_store].
     pub fn trust_pem(&mut self, certificate: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
@@ -389,8 +423,9 @@ impl Builder {
 
     /// Adds to the trust store from a CA file or directory containing trusted certificates.
     ///
-    /// NOTE: This function is equivalent to `s2n_config_set_verification_ca_location` except it does
-    /// not automatically enable the client to request OCSP stapling from the server.
+    /// Corresponds to [s2n_config_set_verification_ca_location], except it
+    /// calls [s2n_config_set_status_request_type] with NONE to avoid
+    /// automatically enabling OCSP stapling.
     pub fn trust_location(
         &mut self,
         file: Option<&Path>,
@@ -440,11 +475,14 @@ impl Builder {
     ///
     /// Set to false for increased performance if system certificates are not needed during
     /// certificate validation.
+    ///
+    /// Corresponds to [s2n_config_load_system_certs].
     pub fn with_system_certs(&mut self, load_system_certs: bool) -> Result<&mut Self, Error> {
         self.load_system_certs = load_system_certs;
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_wipe_trust_store].
     pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
         Ok(self)
@@ -453,6 +491,8 @@ impl Builder {
     /// Sets whether or not a client certificate should be required to complete the TLS connection.
     ///
     /// See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls) for more details.
+    ///
+    /// Corresponds to [s2n_config_set_client_auth_type].
     pub fn set_client_auth_type(&mut self, auth_type: ClientAuthType) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type.into()).into_result()
@@ -461,6 +501,8 @@ impl Builder {
     }
 
     /// Clients will request OCSP stapling from the server.
+    ///
+    /// Corresponds to [s2n_config_set_status_request_type].
     pub fn enable_ocsp(&mut self) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::OCSP)
@@ -473,6 +515,8 @@ impl Builder {
     /// Sets the OCSP data for the default certificate chain associated with the Config.
     ///
     /// Servers will send the data in response to OCSP stapling requests from clients.
+    ///
+    /// Corresponds to [s2n_config_set_extension_data] with OCSP_STAPLING.
     //
     // NOTE: this modifies a certificate chain, NOT the Config itself. This is currently safe
     // because the certificate chain is set with s2n_config_add_cert_chain_and_key, which
@@ -500,8 +544,7 @@ impl Builder {
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
     ///
-    /// Corresponds to the underlying C API
-    /// [s2n_config_set_verify_host_callback](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html).
+    /// Corresponds to [s2n_config_set_verify_host_callback].
     pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
@@ -516,12 +559,17 @@ impl Builder {
             verify_host(host_name, host_name_len, handler)
         }
 
-        self.context_mut().verify_host_callback = Some(Box::new(handler));
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because the
+            // Builder owns the only reference to the config.
+            self.config.context_mut()
+        };
+        context.verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
                 Some(verify_host_cb_fn),
-                self.context_mut() as *mut Context as *mut c_void,
+                self.config.context() as *const Context as *mut c_void,
             )
             .into_result()?;
         }
@@ -531,6 +579,8 @@ impl Builder {
     /// # Safety
     /// THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
     /// The `context` pointer must live at least as long as the config
+    ///
+    /// Corresponds to [s2n_config_set_key_log_cb].
     pub unsafe fn set_key_log_callback(
         &mut self,
         callback: s2n_key_log_fn,
@@ -540,17 +590,21 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_set_max_cert_chain_depth].
     pub fn set_max_cert_chain_depth(&mut self, depth: u16) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_max_cert_chain_depth(self.as_mut_ptr(), depth).into_result() }?;
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_set_send_buffer_size].
     pub fn set_send_buffer_size(&mut self, size: u32) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_send_buffer_size(self.as_mut_ptr(), size).into_result() }?;
         Ok(self)
     }
 
     /// Set a custom callback function which is run after parsing the client hello.
+    ///
+    /// Corresponds to [s2n_config_set_client_hello_cb].
     pub fn set_client_hello_callback<T: 'static + ClientHelloCallback>(
         &mut self,
         handler: T,
@@ -570,7 +624,11 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.client_hello_callback = Some(handler);
 
         unsafe {
@@ -591,12 +649,18 @@ impl Builder {
     ) -> Result<&mut Self, Error> {
         // Store callback in config context
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.connection_initializer = Some(handler);
         Ok(self)
     }
 
     /// Sets a custom callback which provides access to session tickets when they arrive
+    ///
+    /// Corresponds to [s2n_config_set_session_ticket_cb].
     pub fn set_session_ticket_callback<T: 'static + SessionTicketCallback>(
         &mut self,
         handler: T,
@@ -620,14 +684,18 @@ impl Builder {
 
         // Store callback in context
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.session_ticket_callback = Some(handler);
 
         unsafe {
             s2n_config_set_session_ticket_cb(
                 self.as_mut_ptr(),
                 Some(session_ticket_cb),
-                self.context_mut() as *mut Context as *mut c_void,
+                self.config.context() as *const Context as *mut c_void,
             )
             .into_result()
         }?;
@@ -637,6 +705,8 @@ impl Builder {
     /// Set a callback function triggered by operations requiring the private key.
     ///
     /// See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#private-key-operation-related-calls
+    ///
+    /// Corresponds to [s2n_config_set_async_pkey_callback].
     pub fn set_private_key_callback<T: 'static + PrivateKeyCallback>(
         &mut self,
         handler: T,
@@ -657,7 +727,11 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.private_key_callback = Some(handler);
 
         unsafe {
@@ -672,6 +746,8 @@ impl Builder {
     /// The wall clock time is the best-guess at the real time, measured since the epoch.
     /// Unlike monotonic time, it CAN move backwards.
     /// It is used by s2n-tls for timestamps.
+    ///
+    /// Corresponds to [s2n_config_set_wall_clock].
     pub fn set_wall_clock<T: 'static + WallClock>(
         &mut self,
         handler: T,
@@ -691,13 +767,17 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.wall_clock = Some(handler);
         unsafe {
             s2n_config_set_wall_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.context_mut() as *mut _ as *mut c_void,
+                self.config.context() as *const _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -709,6 +789,8 @@ impl Builder {
     /// The monotonic time is the time since an arbitrary, unspecified point.
     /// Unlike wall clock time, it MUST never move backwards.
     /// It is used by s2n-tls for timers.
+    ///
+    /// Corresponds to [s2n_config_set_monotonic_clock].
     pub fn set_monotonic_clock<T: 'static + MonotonicClock>(
         &mut self,
         handler: T,
@@ -728,13 +810,17 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.monotonic_clock = Some(handler);
         unsafe {
             s2n_config_set_monotonic_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.context_mut() as *mut _ as *mut c_void,
+                self.config.context() as *const _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -742,6 +828,8 @@ impl Builder {
     }
 
     /// Enable negotiating session tickets in a TLS connection
+    ///
+    /// Corresponds to [s2n_config_set_session_tickets_onoff].
     pub fn enable_session_tickets(&mut self, enable: bool) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), enable.into()).into_result()
@@ -751,6 +839,9 @@ impl Builder {
 
     /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
     /// the Unix epoch (Midnight, January 1st, 1970). The key must be at least 16 bytes.
+    ///
+    /// Corresponds to [s2n_config_add_ticket_crypto_key], but also
+    /// automatically calls [Builder::enable_session_tickets].
     pub fn add_session_ticket_key(
         &mut self,
         key_name: &[u8],
@@ -788,6 +879,8 @@ impl Builder {
 
     // Sets how long a session ticket key will be able to be used for both encryption
     // and decryption of tickets
+    ///
+    /// Corresponds to [s2n_config_set_ticket_encrypt_decrypt_key_lifetime].
     pub fn set_ticket_key_encrypt_decrypt_lifetime(
         &mut self,
         lifetime: Duration,
@@ -803,6 +896,8 @@ impl Builder {
     }
 
     // Sets how long a session ticket key will be able to be used for only decryption
+    ///
+    /// Corresponds to [s2n_config_set_ticket_decrypt_key_lifetime].
     pub fn set_ticket_key_decrypt_lifetime(
         &mut self,
         lifetime: Duration,
@@ -816,6 +911,8 @@ impl Builder {
 
     /// Sets the expected connection serialization version. Must be set
     /// before serializing the connection.
+    ///
+    /// Corresponds to [s2n_config_set_serialization_version].
     pub fn set_serialization_version(
         &mut self,
         version: SerializationVersion,
@@ -827,12 +924,16 @@ impl Builder {
     }
 
     /// Sets a configurable blinding delay instead of the default
+    ///
+    /// Corresponds to [s2n_config_set_max_blinding_delay].
     pub fn set_max_blinding_delay(&mut self, seconds: u32) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_max_blinding_delay(self.as_mut_ptr(), seconds).into_result() }?;
         Ok(self)
     }
 
     /// Requires that session tickets are only used when forward secrecy is possible
+    ///
+    /// Corresponds to [s2n_config_require_ticket_forward_secrecy].
     pub fn require_ticket_forward_secrecy(&mut self, enable: bool) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_require_ticket_forward_secrecy(self.as_mut_ptr(), enable).into_result()
@@ -853,21 +954,11 @@ impl Builder {
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
     }
-
-    /// Retrieve a mutable reference to the [`Context`] stored on the config.
-    pub(crate) fn context_mut(&mut self) -> &mut Context {
-        let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &mut *(ctx as *mut Context)
-        }
-    }
 }
 
 #[cfg(feature = "quic")]
 impl Builder {
+    /// Corresponds to [s2n_config_enable_quic].
     pub fn enable_quic(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_tls_sys::s2n_config_enable_quic(self.as_mut_ptr()).into_result() }?;
         Ok(self)

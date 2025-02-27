@@ -6,7 +6,7 @@ from global_flags import get_flag, S2N_FIPS_MODE
 
 
 def to_bytes(val):
-    return bytes(str(val).encode('utf-8'))
+    return bytes(str(val).encode("utf-8"))
 
 
 def to_string(val: bytes):
@@ -22,7 +22,7 @@ def get_expected_s2n_version(protocol, provider):
     protocol is less than tls12.
     """
     if provider == S2N and protocol != Protocols.TLS13:
-        version = '33'
+        version = "33"
     else:
         version = protocol.value
 
@@ -34,7 +34,7 @@ def get_expected_openssl_version(protocol):
         Protocols.TLS10.value: "TLSv1",
         Protocols.TLS11.value: "TLSv1.1",
         Protocols.TLS12.value: "TLSv1.2",
-        Protocols.TLS13.value: "TLSv1.3"
+        Protocols.TLS13.value: "TLSv1.3",
     }.get(protocol.value)
 
 
@@ -43,7 +43,7 @@ def get_expected_gnutls_version(protocol):
         Protocols.TLS10.value: "TLS1.0",
         Protocols.TLS11.value: "TLS1.1",
         Protocols.TLS12.value: "TLS1.2",
-        Protocols.TLS13.value: "TLS1.3"
+        Protocols.TLS13.value: "TLS1.3",
     }.get(protocol.value)
 
 
@@ -59,29 +59,35 @@ def invalid_test_parameters(*args, **kwargs):
     This function returns True or False, indicating whether a
     test should be "deselected" based on the arguments.
     """
-    protocol = kwargs.get('protocol')
-    provider = kwargs.get('provider')
-    other_provider = kwargs.get('other_provider')
-    certificate = kwargs.get('certificate')
-    client_certificate = kwargs.get('client_certificate')
-    cipher = kwargs.get('cipher')
-    curve = kwargs.get('curve')
-    signature = kwargs.get('signature')
+    protocol = kwargs.get("protocol")
+    provider = kwargs.get("provider")
+    other_provider = kwargs.get("other_provider")
+    certificate = kwargs.get("certificate")
+    client_certificate = kwargs.get("client_certificate")
+    cipher = kwargs.get("cipher")
+    curve = kwargs.get("curve")
+    signature = kwargs.get("signature")
 
     providers = [provider_ for provider_ in [provider, other_provider] if provider_]
     # Always consider S2N
     providers.append(S2N)
 
+    certificates = [cert for cert in [certificate, client_certificate] if cert]
+
     # Older versions do not support RSA-PSS-PSS certificates
     if protocol and protocol < Protocols.TLS12:
-        if client_certificate and client_certificate.algorithm == 'RSAPSS':
+        if client_certificate and client_certificate.algorithm == "RSAPSS":
             return True
-        if certificate and certificate.algorithm == 'RSAPSS':
+        if certificate and certificate.algorithm == "RSAPSS":
             return True
 
     for provider_ in providers:
         if not provider_.supports_protocol(protocol):
             return True
+
+        for certificate_ in certificates:
+            if not provider_.supports_certificate(certificate_):
+                return True
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
@@ -105,10 +111,6 @@ def invalid_test_parameters(*args, **kwargs):
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.
     if certificate is not None:
-        if protocol is not None:
-            for provider_ in providers:
-                if provider_.supports_protocol(protocol, with_cert=certificate) is False:
-                    return True
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 

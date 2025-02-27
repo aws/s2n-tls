@@ -1,6 +1,8 @@
 ---
 name: Linters
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
@@ -72,20 +74,25 @@ jobs:
         run: |
           ./codebuild/bin/run_kwstyle.sh
           ./codebuild/bin/cpp_style_comment_linter.sh
-  pepeight:
+  ruff:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
         uses: actions/checkout@v4
-      - name: Run autopep8
-        id: autopep8
-        uses: peter-evans/autopep8@v2
-        with:
-          args: --diff --exit-code .
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run Ruff formatting check
+        working-directory: tests/integrationv2
+        id: ruff_format
+        run: uv run ruff format --check .
+        continue-on-error: true
+
       - name: Check exit code
-        if: steps.autopep8.outputs.exit-code != 0
+        if: steps.ruff_format.outcome == 'failure'
         run: |
-            echo "Run 'autopep8 --in-place .' to fix"
+            echo "Run 'ruff format .' to fix formatting issues"
             exit 1
   clang-format:
     runs-on: ubuntu-latest
@@ -142,7 +149,7 @@ jobs:
         with:
           route: GET /repos/{repo}/commits/{ref}/statuses?per_page=100
           repo: ${{ github.repository }}
-          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
+          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha || github.event.after }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: check start_codebuild.sh against statuses

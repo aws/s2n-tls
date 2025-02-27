@@ -610,28 +610,6 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
     },
 };
 
-const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = {
-    .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2019_11,
-    .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-    },
-};
-
-const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = {
-    .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2020_02,
-    .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-    },
-};
-
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
@@ -1153,11 +1131,30 @@ const struct s2n_security_policy security_policy_rfc9151 = {
     .certificate_preferences_apply_locally = true,
 };
 
+/*
+ * This security policy is a mix of default_tls13 (20240503) and rfc9151, with
+ * a primary requirement that AES-256 is the ciphersuite chosen. Other
+ * requirements are generally picked to raise minimum thresholds (e.g.,
+ * requiring TLS 1.3) where possible without losing compatibility with modern
+ * default_tls13 clients or servers.
+ */
+const struct s2n_security_policy security_policy_20250211 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_20250211,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_rfc9151,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
     .kem_preferences = &kem_preferences_all,
-    .signature_preferences = &s2n_signature_preferences_20201021,
+    .signature_preferences = &s2n_signature_preferences_all,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
 };
 
@@ -1296,8 +1293,6 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "KMS-PQ-TLS-1-0-2019-06", .security_policy = &security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-PQ-TLS-1-0-2020-02", .security_policy = &security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-PQ-TLS-1-0-2020-07", .security_policy = &security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy = &security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy = &security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-0-2020-12", .security_policy = &security_policy_pq_tls_1_0_2020_12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-1-2021-05-17", .security_policy = &security_policy_pq_tls_1_1_2021_05_17, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-0-2021-05-18", .security_policy = &security_policy_pq_tls_1_0_2021_05_18, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1355,6 +1350,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20210816", .security_policy = &security_policy_20210816, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20210816_GCM", .security_policy = &security_policy_20210816_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240603", .security_policy = &security_policy_20240603, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20250211", .security_policy = &security_policy_20250211, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "rfc9151", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_fips", .security_policy = &security_policy_test_all_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1367,6 +1363,12 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = NULL, .security_policy = NULL, .ecc_extension_required = 0, .pq_kem_extension_required = 0 }
 };
 
+const char *deprecated_security_policies[] = {
+    "PQ-SIKE-TEST-TLS-1-0-2019-11",
+    "PQ-SIKE-TEST-TLS-1-0-2020-02",
+};
+const size_t deprecated_security_policies_len = s2n_array_len(deprecated_security_policies);
+
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
 {
     POSIX_ENSURE_REF(version);
@@ -1376,6 +1378,12 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
         if (!strcasecmp(version, security_policy_selection[i].version)) {
             *security_policy = security_policy_selection[i].security_policy;
             return 0;
+        }
+    }
+
+    for (size_t i = 0; i < deprecated_security_policies_len; i++) {
+        if (!strcasecmp(version, deprecated_security_policies[i])) {
+            POSIX_BAIL(S2N_ERR_DEPRECATED_SECURITY_POLICY);
         }
     }
 

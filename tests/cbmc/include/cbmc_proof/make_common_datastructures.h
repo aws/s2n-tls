@@ -23,6 +23,7 @@
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_libcrypto.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
