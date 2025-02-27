@@ -190,8 +190,7 @@ int main(int argc, char **argv)
     ssize_t mem_per_conn = handshake_diff / (connectionsToUse * 2);
     ssize_t kbs_per_conn = mem_per_conn / 1024;
 
-    if (kbs_per_conn < expected_kbs_per_conn
-            || kbs_per_conn > expected_kbs_per_conn) {
+    if (kbs_per_conn != expected_kbs_per_conn) {
         printf("\nExpected KB per connection: %i\n", expected_kbs_per_conn);
         printf("\nActual KB per connection: %li\n", kbs_per_conn);
         printf("This is a %.2f%% change\n",
