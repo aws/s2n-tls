@@ -32,7 +32,7 @@ batch:
     - identifier: gcc_awslc_fips_2022
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         variables:
           S2N_LIBCRYPTO: awslc-fips-2022
           COMPILER: gcc
