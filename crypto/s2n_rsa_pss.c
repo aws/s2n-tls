@@ -21,7 +21,6 @@
 
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
@@ -107,8 +106,8 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
 
     /* Sign and Verify the Hash of the Random Blob */
     s2n_stack_blob(signature_data, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE);
-    POSIX_GUARD(s2n_rsa_pss_key_sign(priv, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &signature_data));
-    POSIX_GUARD(s2n_rsa_pss_key_verify(pub, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
+    POSIX_GUARD(s2n_pkey_sign(priv, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &signature_data));
+    POSIX_GUARD(s2n_pkey_verify(pub, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
 
     return 0;
 }

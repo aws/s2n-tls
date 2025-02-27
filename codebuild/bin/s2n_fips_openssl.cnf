@@ -56,10 +56,10 @@ alg_section = algorithm_sect
 
 # List of providers to load
 [provider_sect]
-base = base_sect
+default = default_sect
 fips = fips_sect
 
-[base_sect]
+[default_sect]
 activate = 1
 
 [algorithm_sect]
