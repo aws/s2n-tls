@@ -281,7 +281,7 @@ batch:
         privileged-mode: true
         variables:
           S2N_LIBCRYPTO: 'awslc'
-          S2N_EXPECTED_CONNECTION_MEMORY_KB: 49
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 47
     - identifier: s2nMemUsageTest_awslcfips
       buildspec: codebuild/spec/buildspec_mem.yml
       env:
@@ -290,4 +290,4 @@ batch:
         privileged-mode: true
         variables:
           S2N_LIBCRYPTO: 'awslc-fips-2022'
-          S2N_EXPECTED_CONNECTION_MEMORY_KB: 52
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 47
