@@ -86,25 +86,7 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
         for certificate_ in certificates:
-            if not provider_.supports_certificate(certificate_):
-                return True
-
-    # openSSL 3.0 doesn't support 1024 certificates
-    if provider == OpenSSL or other_provider == OpenSSL:
-        if certificate is not None:
-            if OpenSSL.version_openssl[0:3] == "3.0" and (
-                certificate is Certificates.RSA_1024_SHA256
-                or certificate is Certificates.RSA_1024_SHA384
-                or certificate is Certificates.RSA_1024_SHA384
-            ):
-                return True
-
-        if client_certificate is not None:
-            if OpenSSL.version_openssl[0:3] == "3.0" and (
-                client_certificate is Certificates.RSA_1024_SHA256
-                or client_certificate is Certificates.RSA_1024_SHA384
-                or client_certificate is Certificates.RSA_1024_SHA384
-            ):
+            if provider_.supports_certificate(certificate_):
                 return True
 
     if cipher is not None:

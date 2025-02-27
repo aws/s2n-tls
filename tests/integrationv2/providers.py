@@ -5,7 +5,7 @@ import subprocess
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures, Cert
+from common import ProviderOptions, Certificates, Ciphers, Curves, Protocols, Signatures, Cert
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from stat import S_IMODE
 
@@ -350,7 +350,7 @@ class OpenSSL(Provider):
     # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
     version_str = result.stdout.split(" ")
     # This will return the name of the provideer (e.g., "OpenSSL")
-    project = version_str[0]
+    provider = version_str[0]
     # This will return the version number (e.g., "3.0.8")
     version_openssl = version_str[1]
 
@@ -424,13 +424,25 @@ class OpenSSL(Provider):
         return True
 
     @classmethod
+    def supports_certificate(cls, cert: Cert):
+        if cert is not None:
+            if OpenSSL.version_openssl[0:3] == "3.0" and (
+                cert is Certificates.RSA_1024_SHA256
+                or cert is Certificates.RSA_1024_SHA384
+                or cert is Certificates.RSA_1024_SHA512
+            ):
+                return False
+
+        return True
+
+    @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         return True
 
     def at_least_openssl_1_1(self) -> None:
-        print(f"openssl version: {self.project} version: {self.version_openssl}")
-        if (self.project != "OpenSSL" or self.version_openssl < "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {self.version_openssl}, expected at least 1.1.x.")
+        print(f"Openssl version: {OpenSSL.get_version()}")
+        if (OpenSSL.get_version() < "1.1"):
+            raise FileNotFoundError(f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
