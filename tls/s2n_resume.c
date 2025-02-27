@@ -1037,10 +1037,12 @@ int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key
     uint32_t ticket_keys_len = 0;
     POSIX_GUARD_RESULT(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
 
-    /* The ticket key secret must be unique. */
+    /* The ticket key name and secret must both be unique. */
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
         struct s2n_ticket_key *other_key = NULL;
         POSIX_GUARD_RESULT(s2n_array_get(config->ticket_keys, i, (void **) &other_key));
+        POSIX_ENSURE(!s2n_constant_time_equals(key->key_name, other_key->key_name, s2n_array_len(key->key_name)),
+                S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
         POSIX_ENSURE(!s2n_constant_time_equals(key->aes_key, other_key->aes_key, s2n_array_len(key->aes_key)),
                 S2N_ERR_TICKET_KEY_NOT_UNIQUE);
     }

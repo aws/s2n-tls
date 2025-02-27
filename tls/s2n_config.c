@@ -945,9 +945,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     uint8_t name_data[S2N_TICKET_KEY_NAME_LEN] = { 0 };
     POSIX_CHECKED_MEMCPY(name_data, name, name_len);
 
-    /* ensure the ticket name is not already present */
-    POSIX_ENSURE(s2n_find_ticket_key(config, name_data) == NULL, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
-
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN] = { 0 };
     struct s2n_blob out_key = { 0 };
     POSIX_GUARD(s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad)));
