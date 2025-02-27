@@ -33,7 +33,7 @@ mod client_hello;
 pub use client_hello::*;
 
 pub(crate) mod psk_selection;
-pub use psk_selection::PskSelectionCallback;
+pub use psk_selection::*;
 
 mod session_ticket;
 pub use session_ticket::*;
