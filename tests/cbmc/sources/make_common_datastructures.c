@@ -396,8 +396,7 @@ struct s2n_config *cbmc_allocate_s2n_config()
     s2n_config->monotonic_clock_ctx  = malloc(sizeof(*(s2n_config->monotonic_clock_ctx)));
     s2n_config->client_hello_cb      = malloc(sizeof(*(s2n_config->client_hello_cb))); /* Function pointer. */
     s2n_config->client_hello_cb_ctx  = malloc(sizeof(*(s2n_config->client_hello_cb_ctx)));
-    s2n_config->ticket_keys          = cbmc_allocate_s2n_set();
-    s2n_config->ticket_key_hashes    = cbmc_allocate_s2n_set();
+    s2n_config->ticket_keys          = cbmc_allocate_s2n_array();
     s2n_config->cache_store_data     = malloc(sizeof(*(s2n_config->cache_store_data)));
     s2n_config->cache_retrieve_data  = malloc(sizeof(*(s2n_config->cache_retrieve_data)));
     s2n_config->cache_delete_data    = malloc(sizeof(*(s2n_config->cache_delete_data)));

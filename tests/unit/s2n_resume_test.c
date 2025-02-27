@@ -1532,7 +1532,7 @@ int main(int argc, char **argv)
 
             /* Manually zero out key bytes */
             struct s2n_ticket_key *key = NULL;
-            EXPECT_OK(s2n_set_get(config->ticket_keys, 0, (void **) &key));
+            EXPECT_OK(s2n_array_get(config->ticket_keys, 0, (void **) &key));
             EXPECT_NOT_NULL(key);
             POSIX_CHECKED_MEMSET((uint8_t *) key->aes_key, 0, S2N_AES256_KEY_LEN);
 

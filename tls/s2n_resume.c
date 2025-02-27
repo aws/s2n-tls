@@ -637,11 +637,11 @@ S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config)
     RESULT_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
-    RESULT_GUARD(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    RESULT_GUARD(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
 
     for (uint32_t i = ticket_keys_len; i > 0; i--) {
         uint32_t idx = i - 1;
-        RESULT_GUARD(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
+        RESULT_GUARD(s2n_array_get(config->ticket_keys, idx, (void **) &ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
         if (key_intro_time <= now
@@ -668,7 +668,7 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
 
     /* Compute weight of encrypt-decrypt keys */
     for (int i = 0; i < num_encrypt_decrypt_keys; i++) {
-        POSIX_GUARD_RESULT(s2n_set_get(config->ticket_keys, encrypt_decrypt_keys_index[i], (void **) &ticket_key));
+        POSIX_GUARD_RESULT(s2n_array_get(config->ticket_keys, encrypt_decrypt_keys_index[i], (void **) &ticket_key));
 
         uint64_t key_intro_time = ticket_key->intro_timestamp;
         uint64_t key_encryption_peak_time = key_intro_time + (config->encrypt_decrypt_key_lifetime_in_nanos / 2);
@@ -720,11 +720,11 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
-    PTR_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    PTR_GUARD_RESULT(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
 
     for (uint32_t i = ticket_keys_len; i > 0; i--) {
         uint32_t idx = i - 1;
-        PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
+        PTR_GUARD_RESULT(s2n_array_get(config->ticket_keys, idx, (void **) &ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
         /* A key can be used at its intro time (<=) and it can be used up to (<) 
@@ -742,14 +742,14 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     }
 
     if (num_encrypt_decrypt_keys == 1) {
-        PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, encrypt_decrypt_keys_index[0], (void **) &ticket_key));
+        PTR_GUARD_RESULT(s2n_array_get(config->ticket_keys, encrypt_decrypt_keys_index[0], (void **) &ticket_key));
         return ticket_key;
     }
 
     int8_t idx = 0;
     PTR_GUARD_POSIX(idx = s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now));
 
-    PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
+    PTR_GUARD_RESULT(s2n_array_get(config->ticket_keys, idx, (void **) &ticket_key));
     return ticket_key;
 }
 
@@ -764,10 +764,10 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
-    PTR_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    PTR_GUARD_RESULT(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
 
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
-        PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, i, (void **) &ticket_key));
+        PTR_GUARD_RESULT(s2n_array_get(config->ticket_keys, i, (void **) &ticket_key));
 
         if (s2n_constant_time_equals(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN)) {
             /* Check to see if the key has expired */
@@ -1013,10 +1013,9 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     POSIX_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
-    POSIX_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
-
+    POSIX_GUARD_RESULT(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
-        POSIX_GUARD_RESULT(s2n_set_get(config->ticket_keys, i, (void **) &ticket_key));
+        POSIX_GUARD_RESULT(s2n_array_get(config->ticket_keys, i, (void **) &ticket_key));
         if (now >= ticket_key->intro_timestamp
                         + config->encrypt_decrypt_key_lifetime_in_nanos
                         + config->decrypt_key_lifetime_in_nanos) {
@@ -1027,7 +1026,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
 end:
     for (int j = 0; j < num_of_expired_keys; j++) {
-        POSIX_GUARD_RESULT(s2n_set_remove(config->ticket_keys, expired_keys_index[j] - j));
+        POSIX_GUARD_RESULT(s2n_array_remove(config->ticket_keys, expired_keys_index[j] - j));
     }
 
     return 0;
@@ -1035,8 +1034,18 @@ end:
 
 int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key)
 {
-    /* Keys are stored from oldest to newest */
-    POSIX_GUARD_RESULT(s2n_set_add(config->ticket_keys, key));
+    uint32_t ticket_keys_len = 0;
+    POSIX_GUARD_RESULT(s2n_array_num_elements(config->ticket_keys, &ticket_keys_len));
+
+    /* The ticket key secret must be unique. */
+    for (uint32_t i = 0; i < ticket_keys_len; i++) {
+        struct s2n_ticket_key *other_key = NULL;
+        POSIX_GUARD_RESULT(s2n_array_get(config->ticket_keys, i, (void **) &other_key));
+        POSIX_ENSURE(!s2n_constant_time_equals(key->aes_key, other_key->aes_key, s2n_array_len(key->aes_key)),
+                S2N_ERR_TICKET_KEY_NOT_UNIQUE);
+    }
+
+    POSIX_GUARD_RESULT(s2n_array_insert_and_copy(config->ticket_keys, ticket_keys_len, key));
     return S2N_SUCCESS;
 }
 
