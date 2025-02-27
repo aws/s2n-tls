@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "client-hello-config-resolution",
+    "client-hello-config-resolution", 
+    "external-psk",
     "hyper-server-client",
     "tokio-server-client",
 ]
