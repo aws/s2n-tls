@@ -31,13 +31,7 @@ def available_providers():
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
 
-    result = subprocess.run(
-        ["openssl", "version"], shell=False, capture_output=True, text=True
-    )
-    version_str = result.stdout.split(" ")
-    project = version_str[0]
-    version = version_str[1]
-    if project == "OpenSSL" and version[0:3] == "3.0":
+    if OpenSSL.get_provider() == "OpenSSL" and OpenSSL.get_version() == "3.0":
         providers.add(OpenSSL)
 
     return providers

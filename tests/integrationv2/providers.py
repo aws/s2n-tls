@@ -411,6 +411,10 @@ class OpenSSL(Provider):
         return cls.version_openssl
 
     @classmethod
+    def get_provider(cls):
+        return cls.provider
+
+    @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
         if cls.get_version()[0:3] == "1.1" and protocol is Protocols.SSLv3:
             return False
