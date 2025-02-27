@@ -50,9 +50,6 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
-/* A change of more than 5% is significant */
-#define ALLOWED_VARIANCE .05
-
 ssize_t get_vm_data_size()
 {
     long page_size = 0;
@@ -96,8 +93,6 @@ int main(int argc, char **argv)
     }
     const int expected_kbs_per_conn = atoi(env_var);
     EXPECT_TRUE(expected_kbs_per_conn > 1);
-    const int allowed_diff = expected_kbs_per_conn * ALLOWED_VARIANCE;
-    EXPECT_TRUE(allowed_diff > 0);
 
     struct rlimit file_limit;
     EXPECT_SUCCESS(getrlimit(RLIMIT_NOFILE, &file_limit));
@@ -195,8 +190,9 @@ int main(int argc, char **argv)
     ssize_t mem_per_conn = handshake_diff / (connectionsToUse * 2);
     ssize_t kbs_per_conn = mem_per_conn / 1024;
 
-    if (kbs_per_conn < expected_kbs_per_conn - allowed_diff
-            || kbs_per_conn > expected_kbs_per_conn + allowed_diff) {
+    if (kbs_per_conn < expected_kbs_per_conn
+            || kbs_per_conn > expected_kbs_per_conn) {
+        printf("\nExpected KB per connection: %i\n", expected_kbs_per_conn);
         printf("\nActual KB per connection: %li\n", kbs_per_conn);
         printf("This is a %.2f%% change\n",
                 (kbs_per_conn - expected_kbs_per_conn) * 100.0 / expected_kbs_per_conn);
