@@ -40,8 +40,9 @@
     #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
 #endif
 
-/* The s2n p_hash implementation is abstracted to allow for separate implementations, using
- * either s2n's formally verified HMAC or OpenSSL's EVP HMAC, for use by the TLS PRF. */
+/* The s2n p_hash implementation is abstracted to allow for separate implementations.
+ * Currently the only implementation uses s2n-tls's custom HMAC implementation.
+ */
 struct s2n_p_hash_hmac {
     int (*alloc)(struct s2n_prf_working_space *ws);
     int (*init)(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret);
