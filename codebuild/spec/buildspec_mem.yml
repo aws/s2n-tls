@@ -40,6 +40,7 @@ phases:
       # Test for unexpected memory to confirm failure possible
       # Use an unrealistically high number
       - cmake --build build -j $(nproc) --target $S2N_TEST_NAME
-      - echo ">>>> NEGATIVE TEST - EXPECTED TO FAIL <<<<"
+      - echo ">>>> NEGATIVE TESTS - EXPECTED TO FAIL <<<<"
       - |
+        ! S2N_EXPECTED_CONNECTION_MEMORY_KB=3 make -C build test -- ARGS="-R $S2N_TEST_NAME"
         ! S2N_EXPECTED_CONNECTION_MEMORY_KB=500 make -C build test -- ARGS="-R $S2N_TEST_NAME"
