@@ -475,5 +475,4 @@ int main(int argc, char **argv)
     free(private_key_pem);
     free(dhparams_pem);
     END_TEST();
-    return 0;
 }

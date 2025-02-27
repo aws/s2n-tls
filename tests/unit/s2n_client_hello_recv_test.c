@@ -555,5 +555,4 @@ int main(int argc, char **argv)
     free(tls13_cert_chain);
     free(tls13_private_key);
     END_TEST();
-    return 0;
 }

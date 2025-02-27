@@ -85,5 +85,4 @@ int main(int argc, char **argv)
 
     s2n_connection_free(conn);
     END_TEST();
-    return 0;
 }

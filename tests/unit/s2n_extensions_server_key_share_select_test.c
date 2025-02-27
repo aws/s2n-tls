@@ -30,7 +30,6 @@ int main()
     EXPECT_OK(s2n_kem_preferences_groups_available(&kem_preferences_all, &available_groups));
     if (available_groups < 2) {
         END_TEST();
-        return 0;
     }
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
@@ -432,5 +431,4 @@ int main()
         };
     };
     END_TEST();
-    return 0;
 }

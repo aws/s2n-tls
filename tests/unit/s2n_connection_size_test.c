@@ -41,7 +41,6 @@ int main(int argc, char **argv)
     */
     if (is_32_bit_platform()) {
         END_TEST();
-        return 0;
     }
 
     /* Carefully consider any increases to this number. */
