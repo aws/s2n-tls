@@ -86,7 +86,7 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
         for certificate_ in certificates:
-            if provider_.supports_certificate(certificate_):
+            if not provider_.supports_certificate(certificate_):
                 return True
 
     if cipher is not None:
