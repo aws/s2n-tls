@@ -725,7 +725,11 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
         context.psk_selection_callback = Some(handler);
 
         unsafe {
