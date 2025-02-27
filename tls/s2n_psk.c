@@ -25,8 +25,6 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
-
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
     RESULT_ENSURE_MUT(psk);
@@ -67,6 +65,15 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
     POSIX_ENSURE_REF(psk);
     POSIX_ENSURE_REF(secret);
     POSIX_ENSURE(secret_size != 0, S2N_ERR_INVALID_ARGUMENT);
+
+    /* There are a number of application level errors that might result in an
+     * all-zero secret accidentally getting used. Error if that happens.
+     */
+    bool secret_is_all_zero = true;
+    for (uint16_t i = 0; i < secret_size; i++) {
+        secret_is_all_zero = secret_is_all_zero && secret[i] == 0;
+    }
+    POSIX_ENSURE(!secret_is_all_zero, S2N_ERR_INVALID_ARGUMENT);
 
     POSIX_GUARD(s2n_realloc(&psk->secret, secret_size));
     POSIX_CHECKED_MEMCPY(psk->secret.data, secret, secret_size);
@@ -363,6 +370,7 @@ int s2n_offered_psk_free(struct s2n_offered_psk **psk)
 int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size)
 {
     POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(psk->identity.data);
     POSIX_ENSURE_REF(identity);
     POSIX_ENSURE_REF(size);
     *identity = psk->identity.data;
@@ -483,8 +491,8 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
 
     /* Setup memory to hold the binder hashes. We potentially need one for
      * every hash algorithm. */
-    uint8_t binder_hashes_data[S2N_HASH_ALG_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    struct s2n_blob binder_hashes[S2N_HASH_ALG_COUNT] = { 0 };
+    uint8_t binder_hashes_data[S2N_HASH_ALGS_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    struct s2n_blob binder_hashes[S2N_HASH_ALGS_COUNT] = { 0 };
 
     struct s2n_stuffer_reservation binder_list_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(out, &binder_list_size));

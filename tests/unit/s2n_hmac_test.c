@@ -47,8 +47,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&copy));
     EXPECT_SUCCESS(s2n_hmac_new(&cmac));
 
-    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
-        /* Try SSLv3 MD5 */
+    /* Try SSLv3 MD5 */
+    {
         uint8_t hmac_sslv3_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
@@ -80,8 +80,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
     }
 
-    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_SHA1)) {
-        /* Try SSLv3 SHA1 */
+    /* Try SSLv3 SHA1 */
+    {
         uint8_t hmac_sslv3_sha1_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
         EXPECT_EQUAL(hmac_sslv3_sha1_size, 20);
@@ -113,8 +113,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
     }
 
-    if (s2n_hmac_is_available(S2N_HMAC_MD5)) {
-        /* Try MD5 */
+    /* Try MD5 */
+    {
         uint8_t hmac_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
         EXPECT_EQUAL(hmac_md5_size, 16);

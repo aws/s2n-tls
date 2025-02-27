@@ -245,7 +245,7 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .server_key_send = &s2n_hybrid_server_key_send,
     .client_key_recv = &s2n_hybrid_client_key_recv,
     .client_key_send = &s2n_hybrid_client_key_send,
-    .prf = &s2n_hybrid_prf_master_secret,
+    .prf = &s2n_prf_hybrid_master_secret,
 };
 
 /* TLS1.3 key exchange is implemented differently from previous versions and does

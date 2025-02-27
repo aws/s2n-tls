@@ -55,17 +55,6 @@ int main(int argc, char **argv)
     char *cert_chain_pem = NULL;
     char *private_key_pem = NULL;
 
-    const int supported_hash_algorithms[] = {
-        S2N_HASH_NONE,
-        S2N_HASH_MD5,
-        S2N_HASH_SHA1,
-        S2N_HASH_SHA224,
-        S2N_HASH_SHA256,
-        S2N_HASH_SHA384,
-        S2N_HASH_SHA512,
-        S2N_HASH_MD5_SHA1
-    };
-
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
@@ -156,13 +145,25 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
     EXPECT_SUCCESS(s2n_hash_new(&hash_two));
 
-    for (size_t i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
-        int hash_alg = supported_hash_algorithms[i];
+    /* Determining all possible valid combinations of hash algorithms and
+     * signature algorithms is actually surprisingly complicated.
+     *
+     * For example: awslc-fips will fail for MD5+ECDSA. However, that is not
+     * a real problem because there is no valid signature scheme that uses both
+     * MD5 and ECDSA.
+     *
+     * To avoid enumerating all the exceptions, just use the actual supported
+     * signature scheme list as the source of truth.
+     */
+    const struct s2n_signature_preferences *all_sig_schemes =
+            security_policy_test_all.signature_preferences;
 
-        if (!s2n_hash_is_available(hash_alg) || hash_alg == S2N_HASH_NONE) {
-            /* Skip hash algorithms that are not available. */
+    for (size_t i = 0; i < all_sig_schemes->count; i++) {
+        const struct s2n_signature_scheme *scheme = all_sig_schemes->signature_schemes[i];
+        if (scheme->sig_alg != S2N_SIGNATURE_ECDSA) {
             continue;
         }
+        const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
         EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
@@ -173,25 +174,8 @@ int main(int argc, char **argv)
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
 
-        /* Not all hash algorithms are supported for EVP ECDSA signing.
-         * See s2n_evp_signing_validate_hash_alg.
-         */
-        bool hash_is_md5 = (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1);
-        bool hash_is_supported = !(hash_is_md5 && s2n_is_in_fips_mode());
-
-        int sign_result = s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature);
-        if (hash_is_supported) {
-            EXPECT_SUCCESS(sign_result);
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(sign_result, S2N_ERR_HASH_INVALID_ALGORITHM);
-        }
-
-        int verify_result = s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature);
-        if (hash_is_supported) {
-            EXPECT_SUCCESS(verify_result);
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(verify_result, S2N_ERR_HASH_INVALID_ALGORITHM);
-        }
+        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature));
+        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature));
 
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));

@@ -33,23 +33,9 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
-    /* Don't add any hash algorithms below S2N_HASH_SENTINEL */
-    S2N_HASH_SENTINEL
+    /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
+    S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;
-
-/* The low_level_digest stores all OpenSSL structs that are alg-specific to be used with OpenSSL's low-level hash API's. */
-union s2n_hash_low_level_digest {
-    MD5_CTX md5;
-    SHA_CTX sha1;
-    SHA256_CTX sha224;
-    SHA256_CTX sha256;
-    SHA512_CTX sha384;
-    SHA512_CTX sha512;
-    struct {
-        MD5_CTX md5;
-        SHA_CTX sha1;
-    } md5_sha1;
-};
 
 /* The evp_digest stores all OpenSSL structs to be used with OpenSSL's EVP hash API's. */
 struct s2n_hash_evp_digest {
@@ -58,8 +44,8 @@ struct s2n_hash_evp_digest {
     struct s2n_evp_digest evp_md5_secondary;
 };
 
-/* s2n_hash_state stores the s2n_hash implementation being used (low-level or EVP),
- * the hash algorithm being used at the time, and either low_level or high_level (EVP) OpenSSL digest structs.
+/* s2n_hash_state stores the state and a reference to the implementation being used.
+ * Currently only EVP hashing is supported, so the only state are EVP_MD contexts.
  */
 struct s2n_hash_state {
     const struct s2n_hash *hash_impl;
@@ -67,13 +53,12 @@ struct s2n_hash_state {
     uint8_t is_ready_for_input;
     uint64_t currently_in_hash;
     union {
-        union s2n_hash_low_level_digest low_level;
         struct s2n_hash_evp_digest high_level;
     } digest;
 };
 
-/* The s2n hash implementation is abstracted to allow for separate implementations, using
- * either OpenSSL's low-level algorithm-specific API's or OpenSSL's EVP API's.
+/* The s2n hash implementation is abstracted to allow for separate implementations.
+ * Currently the only implementation uses the EVP APIs.
  */
 struct s2n_hash {
     int (*alloc)(struct s2n_hash_state *state);
@@ -85,7 +70,9 @@ struct s2n_hash {
     int (*free)(struct s2n_hash_state *state);
 };
 
-bool s2n_hash_evp_fully_supported();
+S2N_RESULT s2n_hash_algorithms_init();
+S2N_RESULT s2n_hash_algorithms_cleanup();
+bool s2n_hash_use_custom_md5_sha1();
 const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
