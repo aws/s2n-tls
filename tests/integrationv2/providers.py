@@ -416,26 +416,21 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if cls.get_version()[0:3] == "1.1" and protocol is Protocols.SSLv3:
-            return False
-        if cls.get_version()[0:3] == "3.0" and (
-            protocol is Protocols.SSLv3
-            or protocol is Protocols.TLS10
-            or protocol is Protocols.TLS11
-        ):
-            return False
-
-        return True
+        if OpenSSL.get_version()[0:3] == "1.1":
+            return protocol not in (Protocols.SSLv3)
+        elif OpenSSL.get_version()[0:3] == "3.0":
+            return protocol not in (Protocols.SSLv3, Protocols.TLS10, Protocols.TLS11)
+        else:
+            return True
 
     @classmethod
     def supports_certificate(cls, cert: Cert):
-        if cert is not None:
-            if OpenSSL.version_openssl[0:3] == "3.0" and (
-                cert is Certificates.RSA_1024_SHA256
-                or cert is Certificates.RSA_1024_SHA384
-                or cert is Certificates.RSA_1024_SHA512
-            ):
-                return False
+        if OpenSSL.get_version()[0:3] == "3.0":
+            return cert not in (
+                Certificates.RSA_1024_SHA256,
+                Certificates.RSA_1024_SHA384,
+                Certificates.RSA_1024_SHA512,
+            )
 
         return True
 
