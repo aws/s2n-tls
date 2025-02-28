@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import pytest
-import subprocess
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from providers import S2N, JavaSSL, OpenSSL
 
