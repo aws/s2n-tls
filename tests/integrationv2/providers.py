@@ -351,7 +351,7 @@ class OpenSSL(Provider):
     version_str = result.stdout.split(" ")
     # e.g., "OpenSSL"
     provider = version_str[0]
-    # This will return the version number (e.g., "3.0.8")
+    # e.g., "3.0.8"
     version_openssl = version_str[1]
 
     def __init__(self, options: ProviderOptions):
