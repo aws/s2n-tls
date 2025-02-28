@@ -29,7 +29,9 @@ def create_get_request(route):
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("endpoint", [CHANGE_CIPHER_SUITE_ENDPOINT, MUTUAL_AUTH_ENDPOINT])
+@pytest.mark.parametrize(
+    "endpoint", [CHANGE_CIPHER_SUITE_ENDPOINT, MUTUAL_AUTH_ENDPOINT]
+)
 def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint):
     options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -40,7 +42,7 @@ def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint
         trust_store=APACHE_SERVER_CERT,
         cert=APACHE_CLIENT_CERT,
         key=APACHE_CLIENT_KEY,
-        use_client_auth=True
+        use_client_auth=True,
     )
 
     with tempfile.NamedTemporaryFile("w+") as http_request_file:
@@ -48,13 +50,17 @@ def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint
         http_request_file.flush()
         options.extra_flags = ["--send-file", http_request_file.name]
 
-        s2n_client = managed_process(S2N, options, timeout=20, close_marker="You don't have permission")
+        s2n_client = managed_process(
+            S2N, options, timeout=20, close_marker="You don't have permission"
+        )
 
         for results in s2n_client.get_results():
             results.assert_success()
 
             assert b"<title>403 Forbidden</title>" in results.stdout
-            assert b"You don't have permission to access this resource." in results.stdout
+            assert (
+                b"You don't have permission to access this resource." in results.stdout
+            )
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -99,7 +105,7 @@ def test_mutual_auth_endpoint(managed_process, curve, protocol):
         trust_store=APACHE_SERVER_CERT,
         cert=APACHE_CLIENT_CERT,
         key=APACHE_CLIENT_KEY,
-        use_client_auth=True
+        use_client_auth=True,
     )
 
     options.extra_flags = [S2N_RENEG_OPTION, S2N_RENEG_ACCEPT]

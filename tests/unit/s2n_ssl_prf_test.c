@@ -22,8 +22,9 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_prf.h"
 
-/*
+int s2n_prf_tls_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 
+/*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols SSLv3
  *
  * |<9>| INT: PREMASTER SECRET[48]: 03009e8e006a7f1451d32164088a8cba5077d1b819160662a97e90a765cec244b5f8f98fd50cfe8e4fba97994a7a4843
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_SSLv3;
     pms.data = conn->secrets.version.tls12.rsa_premaster_secret;
     pms.size = sizeof(conn->secrets.version.tls12.rsa_premaster_secret);
-    EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+    EXPECT_SUCCESS(s2n_prf_tls_master_secret(conn, &pms));
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {

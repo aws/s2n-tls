@@ -15,6 +15,20 @@
 FAILED=0
 
 #############################################
+# Grep for command line defines without values
+#############################################
+EMPTY_DEFINES=$(grep -Eon "\-D[^=]+=?" CMakeLists.txt | grep -v =)
+if [ ! -z "${EMPTY_DEFINES}" ]; then
+    FAILED=1
+    printf "\e[1;34mCommand line define is missing value:\e[0m "
+    printf "Compilers SHOULD set a default value of 1 when no default is given, "
+    printf "but that behavior is not required by any official spec. Set a value just in case. "
+    printf "For example: -DS2N_FOO=1 instead of -DS2N_FOO.\n"
+    printf "Found: \n"
+    echo "$EMPTY_DEFINES"
+fi
+
+#############################################
 # Grep for bindings methods without C documentation links.
 #############################################
 BINDINGS="bindings/rust/extended/s2n-tls/src"
@@ -74,7 +88,6 @@ KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
