@@ -16,7 +16,8 @@ set -eu
 pushd "$(pwd)"
 
 usage() {
-    echo "install_awslc.sh build_dir install_dir is_fips"
+    echo -e "\tinstall_awslc.sh build_dir install_dir\n"
+    echo -e "\tIf you need FIPS, use the FIPS specific install script.\n"
     exit 1
 }
 
@@ -26,7 +27,6 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-IS_FIPS=$3
 
 if [[ ! -f "$(which clang)" ]]; then
   echo "Could not find clang"
@@ -35,12 +35,9 @@ fi
 
 # These tags represents the latest versions that S2N is compatible
 # with. It prevents our build system from breaking when AWS-LC
-# is updated, last done on 2023-02-22.
-if [ "$IS_FIPS" == "1" ]; then
-  AWSLC_VERSION=AWS-LC-FIPS-1.0.3
-else
-  AWSLC_VERSION=v1.36.0
-fi
+# is updated.
+AWSLC_VERSION=v1.47.0
+
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
 echo "Checking out tag=$AWSLC_VERSION"
