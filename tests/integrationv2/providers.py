@@ -349,7 +349,7 @@ class OpenSSL(Provider):
     )
     # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
     version_str = result.stdout.split(" ")
-    # This will return the name of the provideer (e.g., "OpenSSL")
+    # e.g., "OpenSSL"
     provider = version_str[0]
     # This will return the version number (e.g., "3.0.8")
     version_openssl = version_str[1]
