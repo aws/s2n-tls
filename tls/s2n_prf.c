@@ -40,8 +40,9 @@
     #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
 #endif
 
-/* The s2n p_hash implementation is abstracted to allow for separate implementations, using
- * either s2n's formally verified HMAC or OpenSSL's EVP HMAC, for use by the TLS PRF. */
+/* The s2n p_hash implementation is abstracted to allow for separate implementations.
+ * Currently the only implementation uses s2n-tls's custom HMAC implementation.
+ */
 struct s2n_p_hash_hmac {
     int (*alloc)(struct s2n_prf_working_space *ws);
     int (*init)(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret);
@@ -194,175 +195,9 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
     return 0;
 }
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
-static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
-{
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx = S2N_EVP_MD_CTX_NEW());
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
-{
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.md);
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey);
-
-    POSIX_GUARD_OSSL(EVP_DigestSignInit(ws->p_hash.evp_hmac.evp_digest.ctx, NULL, ws->p_hash.evp_hmac.evp_digest.md, NULL, ws->p_hash.evp_hmac.ctx.evp_pkey),
-            S2N_ERR_P_HASH_INIT_FAILED);
-
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
-{
-    /* Initialize the message digest */
-    POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
-
-    /* Initialize the mac key using the provided secret */
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size));
-
-    /* Initialize the message digest context with the above message digest and mac key */
-    return s2n_evp_pkey_p_hash_digest_init(ws);
-}
-
-static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
-{
-    POSIX_GUARD_OSSL(EVP_DigestSignUpdate(ws->p_hash.evp_hmac.evp_digest.ctx, data, (size_t) size), S2N_ERR_P_HASH_UPDATE_FAILED);
-
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
-{
-    /* EVP_DigestSign API's require size_t data structures */
-    size_t digest_size = size;
-
-    POSIX_GUARD_OSSL(EVP_DigestSignFinal(ws->p_hash.evp_hmac.evp_digest.ctx, (unsigned char *) digest, &digest_size), S2N_ERR_P_HASH_FINAL_FAILED);
-
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_wipe(struct s2n_prf_working_space *ws)
-{
-    POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->p_hash.evp_hmac.evp_digest.ctx), S2N_ERR_P_HASH_WIPE_FAILED);
-
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
-{
-    POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
-
-    /*
-     * On some cleanup paths s2n_evp_pkey_p_hash_reset can be called before s2n_evp_pkey_p_hash_init so there is nothing
-     * to reset.
-     */
-    if (ws->p_hash.evp_hmac.ctx.evp_pkey == NULL) {
-        return S2N_SUCCESS;
-    }
-    return s2n_evp_pkey_p_hash_digest_init(ws);
-}
-
-static int s2n_evp_pkey_p_hash_cleanup(struct s2n_prf_working_space *ws)
-{
-    /* Prepare the workspace md_ctx for the next p_hash */
-    POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
-
-    /* Free mac key - PKEYs cannot be reused */
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey);
-    EVP_PKEY_free(ws->p_hash.evp_hmac.ctx.evp_pkey);
-    ws->p_hash.evp_hmac.ctx.evp_pkey = NULL;
-
-    return 0;
-}
-
-static int s2n_evp_pkey_p_hash_free(struct s2n_prf_working_space *ws)
-{
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
-    S2N_EVP_MD_CTX_FREE(ws->p_hash.evp_hmac.evp_digest.ctx);
-    ws->p_hash.evp_hmac.evp_digest.ctx = NULL;
-
-    return 0;
-}
-
-static const struct s2n_p_hash_hmac s2n_evp_pkey_p_hash_hmac = {
-    .alloc = &s2n_evp_pkey_p_hash_alloc,
-    .init = &s2n_evp_pkey_p_hash_init,
-    .update = &s2n_evp_pkey_p_hash_update,
-    .final = &s2n_evp_pkey_p_hash_final,
-    .reset = &s2n_evp_pkey_p_hash_reset,
-    .cleanup = &s2n_evp_pkey_p_hash_cleanup,
-    .free = &s2n_evp_pkey_p_hash_free,
-};
-#else
-static int s2n_evp_hmac_p_hash_alloc(struct s2n_prf_working_space *ws)
-{
-    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.hmac_ctx = HMAC_CTX_new());
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
-{
-    /* Figure out the correct EVP_MD from s2n_hmac_algorithm  */
-    POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
-
-    /* Initialize the mac and digest */
-    POSIX_GUARD_OSSL(HMAC_Init_ex(ws->p_hash.evp_hmac.ctx.hmac_ctx, secret->data, secret->size, ws->p_hash.evp_hmac.evp_digest.md, NULL), S2N_ERR_P_HASH_INIT_FAILED);
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
-{
-    POSIX_GUARD_OSSL(HMAC_Update(ws->p_hash.evp_hmac.ctx.hmac_ctx, data, (size_t) size), S2N_ERR_P_HASH_UPDATE_FAILED);
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
-{
-    /* HMAC_Final API's require size_t data structures */
-    unsigned int digest_size = size;
-    POSIX_GUARD_OSSL(HMAC_Final(ws->p_hash.evp_hmac.ctx.hmac_ctx, (unsigned char *) digest, &digest_size), S2N_ERR_P_HASH_FINAL_FAILED);
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
-{
-    POSIX_ENSURE_REF(ws);
-    if (ws->p_hash.evp_hmac.evp_digest.md == NULL) {
-        return S2N_SUCCESS;
-    }
-    POSIX_GUARD_OSSL(HMAC_Init_ex(ws->p_hash.evp_hmac.ctx.hmac_ctx, NULL, 0, ws->p_hash.evp_hmac.evp_digest.md, NULL), S2N_ERR_P_HASH_INIT_FAILED);
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
-{
-    /* Prepare the workspace md_ctx for the next p_hash */
-    HMAC_CTX_reset(ws->p_hash.evp_hmac.ctx.hmac_ctx);
-    return S2N_SUCCESS;
-}
-
-static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
-{
-    HMAC_CTX_free(ws->p_hash.evp_hmac.ctx.hmac_ctx);
-    return S2N_SUCCESS;
-}
-
-static const struct s2n_p_hash_hmac s2n_evp_hmac_p_hash_hmac = {
-    .alloc = &s2n_evp_hmac_p_hash_alloc,
-    .init = &s2n_evp_hmac_p_hash_init,
-    .update = &s2n_evp_hmac_p_hash_update,
-    .final = &s2n_evp_hmac_p_hash_final,
-    .reset = &s2n_evp_hmac_p_hash_reset,
-    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
-    .free = &s2n_evp_hmac_p_hash_free,
-};
-#endif /* !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
-
 static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
     POSIX_GUARD(s2n_hmac_new(&ws->p_hash.s2n_hmac));
-
     return s2n_hmac_init(&ws->p_hash.s2n_hmac, S2N_HMAC_NONE, NULL, 0);
 }
 
@@ -412,13 +247,20 @@ static const struct s2n_p_hash_hmac s2n_internal_p_hash_hmac = {
     .free = &s2n_hmac_p_hash_free,
 };
 
+/*
+ * For now, use the internal s2n-tls hmac abstraction.
+ * However, that is a custom implementation of hmac built on hashes.
+ * Ideally we should stop using our custom implementation here and switch
+ * to using a libcrypto implementation. Unfortunately, what each libcrypto
+ * can support varies a lot for HMACs.
+ *
+ * For historical reference, there used to be two other hmac implementations:
+ * https://github.com/aws/s2n-tls/blob/711ee0df658cd7c44088cf7a1b20a9f3cf5296d6/tls/s2n_prf.c#L174-L337
+ * Both implementations have compatibility issues with one or more libcryptos.
+ */
 const struct s2n_p_hash_hmac *s2n_get_hmac_implementation()
 {
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    return s2n_is_in_fips_mode() ? &s2n_evp_hmac_p_hash_hmac : &s2n_internal_p_hash_hmac;
-#else
-    return s2n_is_in_fips_mode() ? &s2n_evp_pkey_p_hash_hmac : &s2n_internal_p_hash_hmac;
-#endif
+    return &s2n_internal_p_hash_hmac;
 }
 
 static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
@@ -428,6 +270,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     POSIX_GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
     const struct s2n_p_hash_hmac *hmac = s2n_get_hmac_implementation();
+    POSIX_ENSURE_REF(hmac);
 
     /* First compute hmac(secret + A(0)) */
     POSIX_GUARD(hmac->init(ws, alg, secret));
@@ -494,6 +337,7 @@ S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
 
     /* Allocate the hmac state */
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->alloc(conn->prf_space));
     return S2N_RESULT_OK;
 }
@@ -504,6 +348,7 @@ S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->prf_space);
 
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->reset(conn->prf_space));
 
     return S2N_RESULT_OK;
@@ -517,6 +362,7 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
     }
 
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->free(conn->prf_space));
 
     RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &conn->prf_space, sizeof(struct s2n_prf_working_space)));
