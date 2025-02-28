@@ -5,7 +5,15 @@ import subprocess
 import pytest
 import threading
 
-from common import ProviderOptions, Certificates, Ciphers, Curves, Protocols, Signatures, Cert
+from common import (
+    ProviderOptions,
+    Certificates,
+    Ciphers,
+    Curves,
+    Protocols,
+    Signatures,
+    Cert,
+)
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from stat import S_IMODE
 
@@ -450,8 +458,10 @@ class OpenSSL(Provider):
 
     def at_least_openssl_1_1(self) -> None:
         print(f"Openssl version: {OpenSSL.get_version()}")
-        if (OpenSSL.get_version() < "1.1"):
-            raise FileNotFoundError(f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x.")
+        if OpenSSL.get_version() < "1.1":
+            raise FileNotFoundError(
+                f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x."
+            )
 
     def setup_client(self):
         cmd_line = ["openssl", "s_client"]
