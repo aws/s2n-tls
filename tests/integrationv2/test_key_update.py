@@ -28,7 +28,9 @@ def test_nothing():
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-def test_s2n_server_key_update(managed_process, cipher, provider, other_provider, protocol):
+def test_s2n_server_key_update(
+    managed_process, cipher, provider, other_provider, protocol
+):
     host = "localhost"
     port = next(available_ports)
 
@@ -55,9 +57,7 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
     server_options.data_to_send = [SERVER_DATA.encode()]
 
-    server = managed_process(
-        S2N, server_options, send_marker=CLIENT_DATA, timeout=30
-    )
+    server = managed_process(S2N, server_options, send_marker=CLIENT_DATA, timeout=30)
     client = managed_process(
         provider,
         client_options,
@@ -82,7 +82,9 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-def test_s2n_client_key_update(managed_process, cipher, provider, other_provider, protocol):
+def test_s2n_client_key_update(
+    managed_process, cipher, provider, other_provider, protocol
+):
     host = "localhost"
     port = next(available_ports)
 
