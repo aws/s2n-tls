@@ -11,7 +11,7 @@ from configuration import (
     PROTOCOLS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
 from utils import (
     invalid_test_parameters,
@@ -29,7 +29,7 @@ from utils import (
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_server_happy_path(
-    managed_process, cipher, provider, curve, protocol, certificate
+    managed_process, cipher, provider, curve, protocol, certificate  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -94,7 +94,7 @@ def test_s2n_server_happy_path(
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_happy_path(
-    managed_process, cipher, provider, curve, protocol, certificate
+    managed_process, cipher, provider, curve, protocol, certificate  # noqa: F811
 ):
     port = next(available_ports)
 

@@ -13,7 +13,7 @@ from common import (
     Certificates,
     pq_enabled,
 )
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL, BoringSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 from global_flags import get_flag, S2N_PROVIDER_VERSION
@@ -149,7 +149,7 @@ def test_nothing():
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_to_s2nd_pq_handshake(
-    managed_process,
+    managed_process,  # noqa: F811
     protocol,
     certificate,
     client_cipher,
@@ -206,7 +206,7 @@ def test_s2nc_to_s2nd_pq_handshake(
     ids=get_parameter_name,
 )
 def test_s2nc_to_awslc_pq_handshake(
-    managed_process, s2n_client_policy, awslc_server_group
+    managed_process, s2n_client_policy, awslc_server_group  # noqa: F811
 ):
     if not pq_enabled():
         pytest.skip("PQ not enabled")
@@ -260,7 +260,7 @@ def test_s2nc_to_awslc_pq_handshake(
     ids=get_parameter_name,
 )
 def test_s2nd_to_awslc_pq_handshake(
-    managed_process, s2n_server_policy, awslc_client_group
+    managed_process, s2n_server_policy, awslc_client_group  # noqa: F811
 ):
     if not pq_enabled():
         pytest.skip("PQ not enabled")
@@ -311,7 +311,7 @@ def test_s2nd_to_awslc_pq_handshake(
     "cipher", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name
 )
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
-def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem_group):
+def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem_group):  # noqa: F811
     # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
     if not pq_enabled():
         return
@@ -357,7 +357,7 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
     "cipher", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name
 )
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
-def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem_group):
+def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem_group):  # noqa: F811
     # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
     if not pq_enabled():
         return

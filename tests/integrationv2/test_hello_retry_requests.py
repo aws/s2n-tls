@@ -11,7 +11,7 @@ from configuration import (
     ALL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes, Curves
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -44,7 +44,7 @@ def test_nothing():
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_s2n_as_client(
-    managed_process, cipher, provider, other_provider, curve, protocol, certificate
+    managed_process, cipher, provider, other_provider, curve, protocol, certificate  # noqa: F811
 ):
     if curve == S2N_DEFAULT_CURVE:
         pytest.skip("No retry if server curve matches client curve")
@@ -109,7 +109,7 @@ def test_hrr_with_s2n_as_client(
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_s2n_as_server(
-    managed_process, cipher, provider, other_provider, curve, protocol, certificate
+    managed_process, cipher, provider, other_provider, curve, protocol, certificate  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -175,7 +175,7 @@ TEST_CURVES = ALL_TEST_CURVES[1:]
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_default_keyshare(
-    managed_process, cipher, provider, other_provider, curve, protocol, certificate
+    managed_process, cipher, provider, other_provider, curve, protocol, certificate  # noqa: F811
 ):
     port = next(available_ports)
 

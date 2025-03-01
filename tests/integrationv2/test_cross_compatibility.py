@@ -11,7 +11,7 @@ from configuration import (
     ALL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -36,7 +36,7 @@ Tests that S2N tickets are backwards-compatible.
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_old_server_new_ticket(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -109,7 +109,7 @@ Tests that S2N tickets are forwards-compatible.
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_new_server_old_ticket(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -184,7 +184,7 @@ server because the Openssl server uses a different ticket key for each session.
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_old_client_new_ticket(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -253,7 +253,7 @@ Tests that S2N tickets are forwards-compatible.
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_new_client_old_ticket(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,

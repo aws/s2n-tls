@@ -5,7 +5,7 @@ import pytest
 
 from configuration import available_ports, ALL_TEST_CIPHERS, PROTOCOLS
 from common import Certificates, ProviderOptions, Protocols, data_bytes, Signatures
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, GnuTLS, OpenSSL
 from utils import (
     invalid_test_parameters,
@@ -58,7 +58,7 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_server(
-    managed_process,
+    managed_process,  # noqa: F811
     provider,
     other_provider,
     protocol,
@@ -114,7 +114,7 @@ def test_client_auth_with_s2n_server(
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_server_using_nonmatching_certs(
-    managed_process,
+    managed_process,  # noqa: F811
     provider,
     other_provider,
     protocol,
@@ -175,7 +175,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_client_no_cert(
-    managed_process, provider, other_provider, protocol, cipher, certificate
+    managed_process, provider, other_provider, protocol, cipher, certificate  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -225,7 +225,7 @@ def test_client_auth_with_s2n_client_no_cert(
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_client_with_cert(
-    managed_process,
+    managed_process,  # noqa: F811
     provider,
     other_provider,
     protocol,
@@ -289,7 +289,7 @@ TLS1.3, even if its security policy would normally allow TLS1.3.
     [Certificates.RSA_2048_PKCS1, Certificates.ECDSA_256],
     ids=get_parameter_name,
 )
-def test_tls_12_client_auth_downgrade(managed_process, certificate):
+def test_tls_12_client_auth_downgrade(managed_process, certificate):  # noqa: F811
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
