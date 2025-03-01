@@ -509,7 +509,13 @@ uses a default certificate if a certificate is not provided as the input.
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
 def test_s2n_client_psk_handshake_failure(
-    managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    protocol,
+    provider,
+    psk_identity,
+    psk_secret,  # noqa: F811
 ):
     port = next(available_ports)
     random_bytes = data_bytes(10)

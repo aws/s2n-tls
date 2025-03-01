@@ -11,7 +11,10 @@ from configuration import (
     PROTOCOLS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import custom_mtu, managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import (
+    custom_mtu,
+    managed_process,
+)  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL, Tcpdump
 from utils import (
     invalid_test_parameters,

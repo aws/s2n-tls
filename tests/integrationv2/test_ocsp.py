@@ -22,7 +22,13 @@ OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
 def test_s2n_client_ocsp_response(
-    managed_process, cipher, provider, other_provider, curve, protocol, certificate  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    other_provider,
+    curve,
+    protocol,
+    certificate,  # noqa: F811
 ):
     if "boringssl" in get_flag(S2N_PROVIDER_VERSION):
         pytest.skip("s2n-tls client with boringssl does not support ocsp")
@@ -86,7 +92,13 @@ def test_s2n_client_ocsp_response(
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
 def test_s2n_server_ocsp_response(
-    managed_process, cipher, provider, other_provider, curve, protocol, certificate  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    other_provider,
+    curve,
+    protocol,
+    certificate,  # noqa: F811
 ):
     port = next(available_ports)
 

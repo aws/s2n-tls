@@ -51,7 +51,13 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_tls13_negotiates_tls12(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -126,7 +132,13 @@ def test_s2nc_tls13_negotiates_tls12(
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nd_tls13_negotiates_tls12(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,  # noqa: F811
 ):
     port = next(available_ports)
 

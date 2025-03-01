@@ -297,7 +297,13 @@ test_session_resumption but with validation that no early data is sent.
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_client_without_early_data(
-    managed_process, tmp_path, cipher, certificate, protocol, provider, other_provider  # noqa: F811
+    managed_process,
+    tmp_path,
+    cipher,
+    certificate,
+    protocol,
+    provider,
+    other_provider,  # noqa: F811
 ):
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA)

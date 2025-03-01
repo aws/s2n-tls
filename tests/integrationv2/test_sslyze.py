@@ -358,7 +358,11 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
     ids=lambda certificate_scan: certificate_scan.name,
 )
 def test_sslyze_certificate_scans(
-    managed_process, protocol, certificate, provider, certificate_scan  # noqa: F811
+    managed_process,
+    protocol,
+    certificate,
+    provider,
+    certificate_scan,  # noqa: F811
 ):
     port = next(available_ports)
 

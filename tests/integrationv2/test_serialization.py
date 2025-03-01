@@ -53,7 +53,11 @@ This prevents one peer from receiving a TCP FIN message and shutting the connect
     "version_change", [Mode.Server, Mode.Client], ids=get_parameter_name
 )
 def test_server_serialization_backwards_compat(
-    managed_process, tmp_path, protocol, mainline_role, version_change  # noqa: F811
+    managed_process,
+    tmp_path,
+    protocol,
+    mainline_role,
+    version_change,  # noqa: F811
 ):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)

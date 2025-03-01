@@ -29,7 +29,12 @@ from utils import (
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_server_happy_path(
-    managed_process, cipher, provider, curve, protocol, certificate  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -94,7 +99,12 @@ def test_s2n_server_happy_path(
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_happy_path(
-    managed_process, cipher, provider, curve, protocol, certificate  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,  # noqa: F811
 ):
     port = next(available_ports)
 

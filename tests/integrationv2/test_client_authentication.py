@@ -175,7 +175,12 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_client_no_cert(
-    managed_process, provider, other_provider, protocol, cipher, certificate  # noqa: F811
+    managed_process,
+    provider,
+    other_provider,
+    protocol,
+    cipher,
+    certificate,  # noqa: F811
 ):
     port = next(available_ports)
 

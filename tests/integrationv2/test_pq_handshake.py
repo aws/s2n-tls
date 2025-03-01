@@ -206,7 +206,9 @@ def test_s2nc_to_s2nd_pq_handshake(
     ids=get_parameter_name,
 )
 def test_s2nc_to_awslc_pq_handshake(
-    managed_process, s2n_client_policy, awslc_server_group  # noqa: F811
+    managed_process,
+    s2n_client_policy,
+    awslc_server_group,  # noqa: F811
 ):
     if not pq_enabled():
         pytest.skip("PQ not enabled")
@@ -260,7 +262,9 @@ def test_s2nc_to_awslc_pq_handshake(
     ids=get_parameter_name,
 )
 def test_s2nd_to_awslc_pq_handshake(
-    managed_process, s2n_server_policy, awslc_client_group  # noqa: F811
+    managed_process,
+    s2n_server_policy,
+    awslc_client_group,  # noqa: F811
 ):
     if not pq_enabled():
         pytest.skip("PQ not enabled")

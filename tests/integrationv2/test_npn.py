@@ -36,7 +36,13 @@ PROTOCOL_LIST_NO_OVERLAP = "spdy"
 
 
 def s2n_client_npn_handshake(
-    managed_process, cipher, curve, certificate, protocol, provider, server_list  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    server_list,  # noqa: F811
 ):
     options = ProviderOptions(
         port=next(available_ports),
@@ -76,7 +82,12 @@ The s2n-tls client successfully negotiates an application protocol using NPN.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_npn(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     s2n_client, server = s2n_client_npn_handshake(
         managed_process,
@@ -112,7 +123,12 @@ The s2n-tls client chooses a server-preferred protocol.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_npn_server_preference(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     s2n_client, server = s2n_client_npn_handshake(
         managed_process,
@@ -148,7 +164,12 @@ The s2n-tls client chooses its preferred protocol since there is no overlap.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_npn_no_overlap(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     s2n_client, server = s2n_client_npn_handshake(
         managed_process,
@@ -173,7 +194,13 @@ def test_s2n_client_npn_no_overlap(
 
 
 def s2n_server_npn_handshake(
-    managed_process, cipher, curve, certificate, protocol, provider, server_list  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    server_list,  # noqa: F811
 ):
     options = ProviderOptions(
         port=next(available_ports),
@@ -213,7 +240,12 @@ The s2n-tls server successfully negotiates an application protocol using NPN.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_server_npn(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     # We only send one protocol on the s2n server
     # due to the fact that it re-purposes the alpn list(which only sends one protocol)
@@ -253,7 +285,12 @@ the client chooses its own protocol.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_server_npn_no_overlap(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     client, s2n_server = s2n_server_npn_handshake(
         managed_process,

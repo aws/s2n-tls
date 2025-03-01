@@ -245,7 +245,12 @@ This tests the default behavior for customers who do not enable renegotiation.
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_ignores_openssl_hello_request(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     (s2n_client, server) = basic_reneg_test(
         managed_process, cipher, curve, certificate, protocol, provider
@@ -277,7 +282,12 @@ Renegotiation request rejected by s2n-tls client.
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_rejects_openssl_hello_request(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     (s2n_client, server) = basic_reneg_test(
         managed_process,
@@ -311,7 +321,12 @@ Renegotiation request accepted by s2n-tls client.
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_openssl(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     (s2n_client, server) = basic_reneg_test(
         managed_process,
@@ -353,7 +368,12 @@ but does require client auth during the second handshake.
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_client_auth_with_openssl(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     # We want to use the same messages to test renegotiation,
     # but with 'R' instead of 'r' to trigger the Openssl renegotiate request.
@@ -413,7 +433,12 @@ The s2n-tls client successfully reads ApplicationData during the renegotiation h
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_app_data_with_openssl(
-    managed_process, cipher, curve, certificate, protocol, provider  # noqa: F811
+    managed_process,
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,  # noqa: F811
 ):
     first_server_app_data = Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode)[0]
     (s2n_client, server) = basic_reneg_test(

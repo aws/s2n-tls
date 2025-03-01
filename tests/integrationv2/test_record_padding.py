@@ -86,7 +86,13 @@ def test_nothing():
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_server_handles_padded_records(
-    managed_process, cipher, provider, curve, protocol, certificate, padding_size  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,  # noqa: F811
 ):
     port = next(available_ports)
 
@@ -148,7 +154,13 @@ def test_s2n_server_handles_padded_records(
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_client_handles_padded_records(
-    managed_process, cipher, provider, curve, protocol, certificate, padding_size  # noqa: F811
+    managed_process,
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,  # noqa: F811
 ):
     port = next(available_ports)
 
