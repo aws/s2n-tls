@@ -244,24 +244,6 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
     return evp_digest;
 }
 
-void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state)
-{
-    CBMC_ENSURE_REF(evp_hmac_state);
-    cbmc_populate_s2n_evp_digest(&(evp_hmac_state->evp_digest));
-    if (s2n_libcrypto_is_awslc() || s2n_libcrypto_is_boringssl()) {
-        evp_hmac_state->ctx.hmac_ctx = malloc(sizeof(*(evp_hmac_state->ctx.hmac_ctx)));
-    } else {
-        evp_hmac_state->ctx.evp_pkey = malloc(sizeof(*(evp_hmac_state->ctx.evp_pkey)));
-    }
-}
-
-struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state()
-{
-    struct s2n_evp_hmac_state *evp_hmac_state = malloc(sizeof(*evp_hmac_state));
-    cbmc_populate_s2n_evp_hmac_state(evp_hmac_state);
-    return evp_hmac_state;
-}
-
 void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
 {
     CBMC_ENSURE_REF(state);
@@ -715,7 +697,6 @@ void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_w
      * If required, this initialization should be done in the validation function.
      */
     cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
-    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.evp_hmac));
 }
 
 struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()
