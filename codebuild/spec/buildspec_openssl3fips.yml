@@ -38,3 +38,4 @@ phases:
       - make -C build test -- ARGS="-R 's2n_build_test|s2n_fips_test'"
       - make -C build test -- ARGS="-R 's2n_hash_test|s2n_hash_all_algs_test|s2n_openssl_test|s2n_init_test'"
       - make -C build test -- ARGS="-R 's2n_evp_signing_test'"
+      - make -C build test -- ARGS="-R 's2n_tls_prf_test|s2n_tls_hybrid_prf_test'"

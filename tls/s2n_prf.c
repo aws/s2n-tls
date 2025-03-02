@@ -24,6 +24,7 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_prf_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
@@ -33,12 +34,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-
-#if defined(OPENSSL_IS_AWSLC)
-    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 1
-#else
-    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
-#endif
 
 /* The s2n p_hash implementation is abstracted to allow for separate implementations.
  * Currently the only implementation uses s2n-tls's custom HMAC implementation.
@@ -369,15 +364,6 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-bool s2n_libcrypto_supports_tls_prf()
-{
-#if S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
-    return true;
-#else
-    return false;
-#endif
-}
-
 S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
@@ -405,78 +391,6 @@ S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, 
     return S2N_RESULT_OK;
 }
 
-#if S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
-
-/* The AWSLC TLS PRF API is exported in all AWSLC versions. However, in the AWSLC FIPS branch, this
- * API is defined in a private header:
- * https://github.com/aws/aws-lc/blob/d251b365b73a6e6acff6ee634aa8f077f23cdea4/crypto/fipsmodule/tls/internal.h#L27
- *
- * AWSLC has committed to this API definition, and the API has been added to a public header in the
- * main branch: https://github.com/aws/aws-lc/pull/1033. As such, this API is forward-declared in
- * order to make it accessible to s2n-tls when linked to AWSLC-FIPS.
- */
-int CRYPTO_tls1_prf(const EVP_MD *digest,
-        uint8_t *out, size_t out_len,
-        const uint8_t *secret, size_t secret_len,
-        const char *label, size_t label_len,
-        const uint8_t *seed1, size_t seed1_len,
-        const uint8_t *seed2, size_t seed2_len);
-
-S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
-        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
-{
-    const EVP_MD *digest = NULL;
-    if (conn->actual_protocol_version < S2N_TLS12) {
-        /* md5_sha1 is a digest that indicates both MD5 and SHA1 should be used in the PRF calculation.
-         * This is needed for pre-TLS12 PRFs.
-         */
-        digest = EVP_md5_sha1();
-    } else {
-        RESULT_GUARD(s2n_hmac_md_from_alg(conn->secure->cipher_suite->prf_alg, &digest));
-    }
-    RESULT_ENSURE_REF(digest);
-
-    DEFER_CLEANUP(struct s2n_stuffer seed_b_stuffer = { 0 }, s2n_stuffer_free);
-    size_t seed_b_len = 0;
-    uint8_t *seed_b_data = NULL;
-
-    if (seed_b != NULL) {
-        struct s2n_blob seed_b_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&seed_b_blob, seed_b->data, seed_b->size));
-        RESULT_GUARD_POSIX(s2n_stuffer_init_written(&seed_b_stuffer, &seed_b_blob));
-
-        if (seed_c != NULL) {
-            /* The AWSLC TLS PRF implementation only provides two seed arguments. If three seeds
-             * were provided, pass in the third seed by concatenating it with the second seed.
-             */
-            RESULT_GUARD_POSIX(s2n_stuffer_alloc(&seed_b_stuffer, seed_b->size + seed_c->size));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&seed_b_stuffer, seed_b->data, seed_b->size));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&seed_b_stuffer, seed_c->data, seed_c->size));
-        }
-
-        seed_b_len = s2n_stuffer_data_available(&seed_b_stuffer);
-        seed_b_data = s2n_stuffer_raw_read(&seed_b_stuffer, seed_b_len);
-        RESULT_ENSURE_REF(seed_b_data);
-    }
-
-    RESULT_GUARD_OSSL(CRYPTO_tls1_prf(digest,
-                              out->data, out->size,
-                              secret->data, secret->size,
-                              (const char *) label->data, label->size,
-                              seed_a->data, seed_a->size,
-                              seed_b_data, seed_b_len),
-            S2N_ERR_PRF_DERIVE);
-
-    return S2N_RESULT_OK;
-}
-#else
-S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
-        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
-{
-    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-#endif /* S2N_LIBCRYPTO_SUPPORTS_TLS_PRF */
-
 int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
@@ -500,7 +414,7 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
     /* By default, s2n-tls uses a custom PRF implementation. When operating in FIPS mode, the
      * FIPS-validated libcrypto implementation is used instead, if an implementation is provided.
      */
-    if (s2n_is_in_fips_mode() && s2n_libcrypto_supports_tls_prf()) {
+    if (s2n_is_in_fips_mode()) {
         POSIX_GUARD_RESULT(s2n_prf_libcrypto(conn, secret, label, seed_a, seed_b, seed_c, out));
         return S2N_SUCCESS;
     }
