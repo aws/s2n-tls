@@ -4,14 +4,14 @@ import copy
 
 from configuration import available_ports
 from common import Certificates, Ciphers, Protocols, ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, JavaSSL
 from utils import (
     to_bytes,
 )
 
 
-def test_s2n_server_sslv2_client_hello(managed_process):
+def test_s2n_server_sslv2_client_hello(managed_process):  # noqa: F811
     # TLS 1.3: not supported by SSLv2 ClientHellos
     # TLS 1.2: supported
     # TLS 1.0 - TLS 1.1: not supported by Java
