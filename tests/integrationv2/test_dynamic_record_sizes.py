@@ -12,7 +12,7 @@ from configuration import (
 )
 from common import ProviderOptions, data_bytes
 from fixtures import (
-    custom_mtu,
+    custom_mtu,  # noqa: F401
     managed_process,  # noqa: F401
 )  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, Tcpdump
