@@ -35,6 +35,8 @@ cp -r \
 
 # generate the bindings modules from the copied sources
 pushd generate
+# Behavior change from https://github.com/rust-lang/rustup/pull/3985
+rustc --version || rustup toolchain install
 cargo run -- ../s2n-tls-sys
 popd
 
