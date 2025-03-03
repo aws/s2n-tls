@@ -5,7 +5,7 @@ import pytest
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Signatures, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import (
     invalid_test_parameters,
@@ -95,7 +95,7 @@ def skip_ciphers(*args, **kwargs):
     ids=lambda val: "client-auth" if val else "no-client-auth",
 )
 def test_s2n_server_signature_algorithms(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     provider,
     other_provider,
@@ -177,7 +177,7 @@ def test_s2n_server_signature_algorithms(
     ids=lambda val: "client-auth" if val else "no-client-auth",
 )
 def test_s2n_client_signature_algorithms(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     provider,
     other_provider,
