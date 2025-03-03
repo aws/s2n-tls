@@ -993,7 +993,6 @@ int main(int argc, char **argv)
     };
 
     END_TEST();
-    return 0;
 }
 
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,

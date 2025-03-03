@@ -1760,5 +1760,4 @@ int main(int argc, char **argv)
     free(cert_chain);
     free(private_key);
     END_TEST();
-    return 0;
 }

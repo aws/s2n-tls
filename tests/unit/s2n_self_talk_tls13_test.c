@@ -181,5 +181,4 @@ int main(int argc, char **argv)
     s2n_disable_tls13_in_test();
 
     END_TEST();
-    return 0;
 }

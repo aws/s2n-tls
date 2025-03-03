@@ -224,5 +224,4 @@ int main(int argc, char **argv)
     free(alligator_cert);
     free(alligator_key);
     END_TEST();
-    return 0;
 }

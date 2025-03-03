@@ -485,5 +485,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
-    return 0;
 }
