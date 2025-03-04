@@ -16,7 +16,7 @@ set -eu
 pushd "$(pwd)"
 
 usage() {
-    echo -e "\tinstall_awslc.sh build_dir install_dir\n"
+    echo -e "\ninstall_awslc.sh build_dir install_dir"
     echo -e "\tIf you need FIPS, use the FIPS specific install script.\n"
     exit 1
 }

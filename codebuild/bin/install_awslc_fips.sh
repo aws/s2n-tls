@@ -4,7 +4,8 @@
 set -eu
 
 usage() {
-    echo "install_awslc_fips.sh build_dir install_dir version"
+    echo -e "\ninstall_awslc_fips.sh build_dir install_dir version"
+    echo -e "\tversion: 2022|2024|next\n"
     exit 1
 }
 
