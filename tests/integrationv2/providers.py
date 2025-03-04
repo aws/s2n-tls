@@ -698,14 +698,6 @@ class BoringSSL(Provider):
                 cmd_line.extend(
                     ["-cipher", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"]
                 )
-            elif self.options.cipher == Ciphers.TLS_AES_128_GCM_256:
-                pytest.skip(
-                    "BoringSSL does not support Cipher {}".format(self.options.cipher)
-                )
-            elif self.options.cipher == Ciphers.TLS_AES_256_GCM_384:
-                pytest.skip(
-                    "BoringSSL does not support Cipher {}".format(self.options.cipher)
-                )
         if self.options.curve is not None:
             if self.options.curve == Curves.P256:
                 cmd_line.extend(["-curves", "P-256"])
