@@ -37,6 +37,7 @@ cp -r \
 pushd generate
 # Behavior change from https://github.com/rust-lang/rustup/pull/3985
 rustc --version || rustup toolchain install
+rustup component add rustfmt
 cargo run -- ../s2n-tls-sys
 popd
 
