@@ -290,4 +290,4 @@ batch:
         privileged-mode: true
         variables:
           S2N_LIBCRYPTO: 'awslc-fips-2022'
-          S2N_EXPECTED_CONNECTION_MEMORY_KB: 47
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 46
