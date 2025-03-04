@@ -4,7 +4,6 @@ import os
 import pytest
 import subprocess
 
-from global_flags import get_flag
 from processes import ManagedProcess
 from providers import Provider, S2N
 
@@ -90,7 +89,7 @@ def managed_process(request: pytest.FixtureRequest):
 
     try:
         yield _fn
-    except Exception as e:
+    except Exception as _:
         # The ManagedProcess already prints information to stdout, so there
         # is nothing to capture here.
         pass
