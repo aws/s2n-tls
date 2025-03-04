@@ -115,7 +115,6 @@
           # Integ s_client/server tests expect openssl 1.1.1.
           shellHook = ''
             echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-            export PATH=${openssl_1_1_1}/bin:$PATH
             export PS1="[nix $S2N_LIBCRYPTO] $PS1"
             source ${writeScript ./nix/shell.sh}
           '';
