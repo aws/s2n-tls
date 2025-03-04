@@ -21,7 +21,7 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
@@ -54,16 +54,12 @@ install_awslc() {
       -DCMAKE_BUILD_TYPE=relwithdebinfo \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
       -DCMAKE_C_COMPILER=$(which clang) \
-      -DCMAKE_CXX_COMPILER=$(which clang++) \
-      -DFIPS="${IS_FIPS}"
+      -DCMAKE_CXX_COMPILER=$(which clang++)
     ninja -j "$(nproc)" -C build install
     ninja -C build clean
 }
 
-if [ "$IS_FIPS" != "1" ]; then
-  install_awslc 0
-fi
-
+install_awslc 0
 install_awslc 1
 
 exit 0
