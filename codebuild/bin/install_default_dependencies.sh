@@ -60,14 +60,14 @@ fi
 
 # Download and Install AWS-LC
 if [[ "$S2N_LIBCRYPTO" == "awslc" && ! -d "$AWSLC_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" "0" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" > /dev/null ;
 fi
 
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
-fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" && ! -d "$AWSLC_FIPS_2022_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc_fips_2022.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" "2022" > /dev/null ;
+fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2024" && ! -d "$AWSLC_FIPS_2024_INSTALL_DIR" ]]; then
+    codebuild/bin/install_awslc_fips_2024.sh "$(mktemp -d)" "$AWSLC_FIPS_2024_INSTALL_DIR" "2024" > /dev/null ;
 fi
 
 if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
