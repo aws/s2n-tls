@@ -55,6 +55,7 @@ cargo publish --dry-run --allow-dirty --all-features
 popd
 
 pushd ../standard/integration
+rustc --version || rustup toolchain install
 cargo run
 popd
 
