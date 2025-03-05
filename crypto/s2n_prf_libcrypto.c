@@ -92,9 +92,9 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
     #include <openssl/core_names.h>
     #include <openssl/kdf.h>
 
-    #define OSSL_PARAM_BLOB(id, blob) \
+    #define S2N_OSSL_PARAM_BLOB(id, blob) \
         OSSL_PARAM_octet_string(id, blob->data, blob->size)
-    #define OSSL_PARAM_STR(id, cstr) \
+    #define S2N_OSSL_PARAM_STR(id, cstr) \
         OSSL_PARAM_utf8_string(id, cstr, 0)
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_KDF_CTX *, EVP_KDF_CTX_free);
@@ -142,8 +142,9 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
 
         const EVP_MD *digest = NULL;
         RESULT_GUARD(s2n_hmac_md_from_alg(prf_alg, &digest));
-        RESULT_ENSURE(digest, S2N_ERR_PRF_INVALID_ALGORITHM);
+        RESULT_ENSURE_REF(digest);
         digest_name = EVP_MD_get0_name(digest);
+        RESULT_ENSURE_REF(digest_name);
     }
 
     /* As an optimization, we should be able to fetch and cache this EVP_KDF*
@@ -163,14 +164,14 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
          * Even the examples in the Openssl documentation cast const strings to
          * non-const void pointers when setting up OSSL_PARAMs.
          */
-        OSSL_PARAM_STR(OSSL_KDF_PARAM_PROPERTIES, (void *) (uintptr_t) fetch_properties),
-        OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),
-        OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SECRET, secret),
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_PROPERTIES, (void *) (uintptr_t) fetch_properties),
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SECRET, secret),
         /* "TLS1-PRF" handles the label like just another seed */
-        OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, label),
-        OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_a),
-        OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_b),
-        OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_c),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, label),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_a),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_b),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, seed_c),
         OSSL_PARAM_END,
     };
 
