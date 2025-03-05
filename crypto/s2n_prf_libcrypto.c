@@ -95,7 +95,7 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
     #define S2N_OSSL_PARAM_BLOB(id, blob) \
         OSSL_PARAM_octet_string(id, blob->data, blob->size)
     #define S2N_OSSL_PARAM_STR(id, cstr) \
-        OSSL_PARAM_utf8_string(id, cstr, 0)
+        OSSL_PARAM_utf8_string(id, cstr, strlen(cstr))
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_KDF_CTX *, EVP_KDF_CTX_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_KDF *, EVP_KDF_free);
@@ -134,7 +134,7 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
     const char *fetch_properties = "-fips";
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        fetch_properties = NULL;
+        fetch_properties = "";
 
         RESULT_ENSURE_REF(conn->secure);
         RESULT_ENSURE_REF(conn->secure->cipher_suite);
