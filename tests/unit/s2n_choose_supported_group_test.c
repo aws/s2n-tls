@@ -319,5 +319,4 @@ int main()
     };
 
     END_TEST();
-    return 0;
 }

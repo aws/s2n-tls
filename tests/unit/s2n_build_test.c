@@ -122,7 +122,6 @@ int main()
 
     if (s2n_libcrypto == NULL || s2n_libcrypto[0] == '\0') {
         END_TEST();
-        return 0;
     }
 
     if (strcmp(s2n_libcrypto, "default") == 0) {
@@ -178,5 +177,4 @@ int main()
     };
 
     END_TEST();
-    return 0;
 }
