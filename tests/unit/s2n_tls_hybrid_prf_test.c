@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/testlib/s2n_nist_kats.h"
@@ -39,6 +40,15 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    if (!s2n_pq_is_enabled()) {
+        /* The hybrid PRF sets a seed too large for the openssl PRF,
+         * but s2n-tls doesn't support PQ with openssl anyway.
+         *
+         * Only run this test in environments where PQ is possible.
+         */
+        END_TEST();
+    }
 
     FILE *kat_file = fopen(KAT_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);
@@ -106,7 +116,7 @@ int main(int argc, char **argv)
 
         EXPECT_MEMCPY_SUCCESS(conn->kex_params.client_key_exchange_message.data, client_key_exchange_message, client_key_exchange_message_length);
 
-        EXPECT_SUCCESS(s2n_hybrid_prf_master_secret(conn, &combined_pms));
+        EXPECT_SUCCESS(s2n_prf_hybrid_master_secret(conn, &combined_pms));
         EXPECT_BYTEARRAY_EQUAL(expected_master_secret, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN);
         EXPECT_SUCCESS(s2n_free(&conn->kex_params.client_key_exchange_message));
         EXPECT_SUCCESS(s2n_connection_free(conn));
