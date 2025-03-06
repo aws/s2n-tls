@@ -33,10 +33,9 @@ if [[ ! -f "$(which clang)" ]]; then
   exit 1
 fi
 
-# These tags represents the latest versions that S2N is compatible
-# with. It prevents our build system from breaking when AWS-LC
-# is updated.
-AWSLC_VERSION=v1.47.0
+# Ask GitHub for the latest release.
+AWSLC_VERSION=$(curl --silent "https://api.github.com/repos/aws/aws-lc/releases/latest" | \
+	grep -Po '"tag_name": "\K.*?(?=")')
 
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
