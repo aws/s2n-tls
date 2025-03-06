@@ -108,30 +108,11 @@ struct s2n_array *cbmc_allocate_s2n_array()
     return array;
 }
 
-bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size)
-{
-    return s2n_array_is_bounded(set->data, max_len, max_element_size);
-}
-
 static int nondet_comparator(const void *a, const void *b)
 {
     __CPROVER_assert(a != NULL, "a is not NULL");
     __CPROVER_assert(b != NULL, "b is not NULL");
     return nondet_int();
-}
-
-void cbmc_populate_s2n_set(struct s2n_set *set)
-{
-    CBMC_ENSURE_REF(set);
-    set->data       = cbmc_allocate_s2n_array();
-    set->comparator = nondet_comparator;
-}
-
-struct s2n_set *cbmc_allocate_s2n_set()
-{
-    struct s2n_set *set = malloc(sizeof(*set));
-    cbmc_populate_s2n_set(set);
-    return set;
 }
 
 void cbmc_populate_s2n_dh_params(struct s2n_dh_params *s2n_dh_params)
