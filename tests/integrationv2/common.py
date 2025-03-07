@@ -512,6 +512,14 @@ class Ciphers(object):
         "PQ-TLS-1-3-2023-06-01", Protocols.TLS12, False, False, s2n=True, pq=True
     )
 
+
+    SECURITY_POLICY_DEFAULT = Cipher(
+        "default", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
+    SECURITY_POLICY_DEFAULT_TLS13 = Cipher(
+        "default_tls13", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
+
     SECURITY_POLICY_20210816 = Cipher(
         "20210816", Protocols.TLS12, False, False, s2n=True, pq=False
     )
