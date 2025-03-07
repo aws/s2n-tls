@@ -115,6 +115,7 @@
           # Integ s_client/server tests expect openssl 1.1.1.
           shellHook = ''
             echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+            export PATH=${openssl_1_1_1}/bin:$PATH
             export PS1="[nix $S2N_LIBCRYPTO] $PS1"
             source ${writeScript ./nix/shell.sh}
           '';
@@ -143,6 +144,7 @@
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
@@ -157,6 +159,7 @@
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
@@ -171,6 +174,7 @@
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
@@ -182,6 +186,7 @@
             S2N_LIBCRYPTO = "awslc-fips-2022";
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
