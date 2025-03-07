@@ -45,7 +45,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2-fips}"
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
-: "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
 : "${AWSLC_FIPS_2022_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2022}"
 : "${AWSLC_FIPS_2024_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2024}"
 : "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl}"

@@ -4,7 +4,8 @@
 set -eu
 
 usage() {
-    echo "install_awslc_fips.sh build_dir install_dir version"
+    echo -e "\ninstall_awslc_fips.sh build_dir install_dir version"
+    echo -e "\tversion: 2022|2024|next\n"
     exit 1
 }
 
@@ -50,12 +51,17 @@ INSTALL_DIR=$2
 VERSION=$3
 
 # Map version to a specific feature branch/tag.
+# Note: since the next FIPS validation will be split off from main
+# building main with FIPS enabled is essentially the next FIPS release.
 case $VERSION in
   "2022")
-    AWSLC_BRANCH=AWS-LC-FIPS-2.0.17
+    AWSLC_BRANCH=fips-2022-11-02
     ;;
   "2024")
-    AWSLC_BRANCH=AWS-LC-FIPS-3.0.0
+    AWSLC_BRANCH=fips-2024-09-27
+    ;;
+  "next")
+    AWSLC_BRANCH=main
     ;;
   *)
     echo "Unknown version: $VERSION"
