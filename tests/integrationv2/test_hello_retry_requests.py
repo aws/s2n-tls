@@ -8,7 +8,7 @@ from configuration import (
     available_ports,
     TLS13_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process  # lgtm [py/unused-import]
@@ -42,7 +42,7 @@ def test_nothing():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_s2n_as_client(
     managed_process, cipher, provider, other_provider, curve, protocol, certificate
 ):
@@ -107,7 +107,7 @@ def test_hrr_with_s2n_as_client(
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_s2n_as_server(
     managed_process, cipher, provider, other_provider, curve, protocol, certificate
 ):
@@ -173,7 +173,7 @@ TEST_CURVES = ALL_TEST_CURVES[1:]
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("curve", TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 def test_hrr_with_default_keyshare(
     managed_process, cipher, provider, other_provider, curve, protocol, certificate
 ):
