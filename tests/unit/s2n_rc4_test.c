@@ -38,11 +38,6 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
-    /* Test FIPS does not support RC4 */
-    if (s2n_is_in_fips_mode()) {
-        EXPECT_FALSE(s2n_rc4.is_available());
-    }
-
     struct s2n_connection *conn = NULL;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
@@ -53,11 +48,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-    if (s2n_is_in_fips_mode()) {
-        /* Skip when FIPS mode is set as FIPS mode does not support RC4 */
-        END_TEST();
-    }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_OK(s2n_get_public_random_data(&r));
