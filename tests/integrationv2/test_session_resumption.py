@@ -14,7 +14,7 @@ from configuration import (
     TLS13_CIPHERS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,
@@ -35,7 +35,7 @@ from utils import (
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_server(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     curve,
     certificate,
@@ -97,7 +97,7 @@ def test_session_resumption_s2n_server(
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_client(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     curve,
     protocol,
@@ -154,7 +154,7 @@ def test_session_resumption_s2n_client(
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_tls13_session_resumption_s2n_server(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -250,7 +250,13 @@ def test_tls13_session_resumption_s2n_server(
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_tls13_session_resumption_s2n_client(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,
 ):
     port = str(next(available_ports))
 
@@ -326,7 +332,7 @@ def test_tls13_session_resumption_s2n_client(
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nd_falls_back_to_full_connection(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -419,7 +425,13 @@ def test_s2nd_falls_back_to_full_connection(
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_session_resumption_s2n_client_tls13_server_not_tls13(
-    managed_process, cipher, curve, protocol, provider, other_provider, certificate
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    protocol,
+    provider,
+    other_provider,
+    certificate,
 ):
     port = next(available_ports)
 

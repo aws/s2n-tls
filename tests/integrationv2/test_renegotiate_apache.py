@@ -5,7 +5,7 @@ import tempfile
 
 from configuration import ALL_TEST_CURVES
 from common import ProviderOptions
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
@@ -32,7 +32,7 @@ def create_get_request(route):
 @pytest.mark.parametrize(
     "endpoint", [CHANGE_CIPHER_SUITE_ENDPOINT, MUTUAL_AUTH_ENDPOINT]
 )
-def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint):
+def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint):  # noqa: F811
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,
@@ -66,7 +66,7 @@ def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
+def test_change_cipher_suite_endpoint(managed_process, curve, protocol):  # noqa: F811
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,
@@ -95,7 +95,7 @@ def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-def test_mutual_auth_endpoint(managed_process, curve, protocol):
+def test_mutual_auth_endpoint(managed_process, curve, protocol):  # noqa: F811
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,
