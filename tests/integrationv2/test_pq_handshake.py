@@ -123,7 +123,7 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
 
 def assert_awslc_negotiation_parameters(awslc_results, expected_result):
     assert expected_result is not None
-    assert awslc_results.exit_code is 0
+    assert awslc_results.exit_code == 0
     assert to_bytes(("group: " + expected_result["kem_group"])) in awslc_results.stderr
     assert to_bytes(("Cipher: " + expected_result["cipher"])) in awslc_results.stderr
 
