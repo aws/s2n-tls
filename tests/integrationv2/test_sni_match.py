@@ -4,7 +4,7 @@ import pytest
 
 from configuration import available_ports, MULTI_CERT_TEST_CASES
 from common import ProviderOptions, Protocols
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,

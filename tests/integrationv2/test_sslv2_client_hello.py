@@ -4,7 +4,7 @@ import copy
 
 from configuration import available_ports
 from common import Certificates, Ciphers, Protocols, ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, JavaSSL
 from utils import (
     to_bytes,

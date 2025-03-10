@@ -14,7 +14,7 @@ from configuration import (
     TLS13_CIPHERS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,

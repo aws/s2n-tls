@@ -9,7 +9,7 @@ from configuration import (
     ALL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 from enum import Enum, auto

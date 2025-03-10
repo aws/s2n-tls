@@ -12,7 +12,7 @@ from configuration import (
     PROTOCOLS,
 )
 from common import ProviderOptions, Protocols
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 

@@ -11,7 +11,7 @@ from configuration import (
     PROTOCOLS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
 from utils import (
     invalid_test_parameters,
