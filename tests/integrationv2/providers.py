@@ -457,7 +457,6 @@ class OpenSSL(Provider):
         return True
 
     def at_least_openssl_1_1(self) -> None:
-        print(f"Openssl version: {OpenSSL.get_version()}")
         if OpenSSL.get_version() < "1.1":
             raise FileNotFoundError(
                 f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x."
