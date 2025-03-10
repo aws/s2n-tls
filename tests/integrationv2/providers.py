@@ -443,7 +443,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_certificate(cls, cert: Cert):
-        if OpenSSL.get_version()[0:3] == "3.0":
+        if OpenSSL.get_version()[0:3] >= "3.0":
             return cert not in (
                 Certificates.RSA_1024_SHA256,
                 Certificates.RSA_1024_SHA384,
