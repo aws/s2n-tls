@@ -9,7 +9,7 @@ from configuration import (
     MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]  # noqa: F401
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes, to_string
 
