@@ -187,7 +187,7 @@ class _processCommunicator(object):
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
                         print(f"{self.name}: stdin available")
-                        chunk = input_view[ # noqa: F821
+                        chunk = input_view[  # noqa: F821
                             input_data_offset : input_data_offset + _PIPE_BUF
                         ]
                         try:
@@ -260,7 +260,7 @@ class _processCommunicator(object):
                                 if send_with_newline:
                                     message += b"\n"
                                 # Data destined for stdin is stored in a memoryview
-                                input_view = memoryview(message) # noqa: F841
+                                input_view = memoryview(message)  # noqa: F841
                                 input_data_len = len(message)
                                 input_data_sent = False
                                 print(f"{self.name}: will send {message}")
