@@ -30,7 +30,7 @@ def available_providers():
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
 
-    if OpenSSL.get_provider() == "OpenSSL" and OpenSSL.get_version() == "3.0":
+    if OpenSSL.get_provider() == "OpenSSL" and OpenSSL.get_version() >= "3.0":
         providers.add(OpenSSL)
 
     return providers
