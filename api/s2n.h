@@ -3305,7 +3305,7 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
  *
  * @deprecated This function was previously used to retrieve the negotiated PQ group in TLS 1.2.
  * PQ key exchange in TLS1.2 was experimental and is now deprecated. Use s2n_connection_get_kem_group_name()
- * to retrieve PQ TLS 1.3 Group name.
+ * to retrieve the PQ TLS 1.3 Group name.
  *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
