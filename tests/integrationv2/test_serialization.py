@@ -22,6 +22,7 @@ S2N_TEST_POLICIES = {
     Protocols.TLS13.value: Ciphers.SECURITY_POLICY_DEFAULT_TLS13,
 }
 
+
 class MainlineRole(Enum):
     Serialize = auto()
     Deserialize = auto()
