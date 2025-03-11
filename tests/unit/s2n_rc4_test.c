@@ -20,6 +20,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
