@@ -86,7 +86,7 @@ jobs:
       - name: Run Ruff formatting check
         working-directory: tests/integrationv2
         id: ruff_format
-        run: uv run ruff format --check .
+        run: uv run ruff format --diff .
         continue-on-error: true
 
       - name: Check exit code
