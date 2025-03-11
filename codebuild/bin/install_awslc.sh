@@ -27,15 +27,16 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
+GH_RELEASE_URL="https://api.github.com/repos/aws/aws-lc/releases"
 
 if [[ ! -f "$(which clang)" ]]; then
   echo "Could not find clang"
   exit 1
 fi
 
-# Ask GitHub for the latest release.
-AWSLC_VERSION=$(curl --silent "https://api.github.com/repos/aws/aws-lc/releases/latest" | \
-	grep -Po '"tag_name": "\K.*?(?=")')
+# Ask GitHub for the latest v1.x release.
+AWSLC_VERSION=$(curl --silent "$GH_RELEASE_URL" | \
+        grep -Po '"tag_name": "\Kv1\..*?(?=")' |head -1)
 
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
