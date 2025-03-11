@@ -632,3 +632,11 @@ static S2N_RESULT s2n_async_pkey_op_set_output_sign(struct s2n_async_pkey_op *op
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_op *op,
+        struct s2n_hash_state *copy)
+{
+    RESULT_ENSURE_REF(op);
+    RESULT_GUARD_POSIX(s2n_hash_copy(copy, &op->op.sign.digest));
+    return S2N_RESULT_OK;
+}

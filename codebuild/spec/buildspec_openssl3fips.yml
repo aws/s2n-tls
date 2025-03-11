@@ -35,4 +35,4 @@ phases:
     commands:
       - export CTEST_PARALLEL_LEVEL=$(nproc)
       # openssl3fips is still a work-in-progress. Not all tests pass.
-      - make -C build test -- ARGS="-E 's2n_self_talk_offload_signing_test'"
+      - make -C build test
