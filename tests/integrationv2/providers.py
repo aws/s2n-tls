@@ -179,13 +179,13 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol):
-        if not cls._pss_supported() and protocol and protocol == Protocols.TLS13:
+        if not cls._pss_supported() and protocol == Protocols.TLS13:
             return False
 
         # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
         if all(
             [
-                protocol and protocol == Protocols.SSLv3,
+                protocol == Protocols.SSLv3,
                 get_flag(S2N_FIPS_MODE),
                 "awslc" not in get_flag(S2N_PROVIDER_VERSION),
             ]

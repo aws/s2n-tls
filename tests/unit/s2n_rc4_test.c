@@ -38,6 +38,11 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
+    /* awslc does support RC4 */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_rc4.is_available());
+    }
+
     struct s2n_connection *conn = NULL;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";

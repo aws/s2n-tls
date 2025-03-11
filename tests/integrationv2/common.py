@@ -204,7 +204,7 @@ class Protocol(object):
         return self.value <= other.value
 
     def __eq__(self, other):
-        return self.value == other.value
+        return other and self.value == other.value
 
     def __str__(self):
         return self.name
