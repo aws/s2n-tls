@@ -9,8 +9,8 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
-SERVER_DATA = f"Some random data from the server:" + random_str(10)
-CLIENT_DATA = f"Some random data from the client:" + random_str(10)
+SERVER_DATA = "Some random data from the server:" + random_str(10)
+CLIENT_DATA = "Some random data from the client:" + random_str(10)
 
 
 def test_nothing():

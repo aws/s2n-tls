@@ -16,6 +16,7 @@
 #include <openssl/evp.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
@@ -37,7 +38,11 @@
 static bool s2n_aead_chacha20_poly1305_available(void)
 {
 #if defined(S2N_CHACHA20_POLY1305_AVAILABLE_OSSL) || defined(S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC)
-    return true;
+    /* We could support ChaChaPoly with openssl-3.0-fips,
+     * but it would require more branching and logic to fetch a non-fips EVP_CIPHER.
+     * For now, just consider ChaChaPoly unsupported by openssl-3.0-fips.
+     */
+    return !s2n_libcrypto_is_openssl_fips();
 #else
     return false;
 #endif
