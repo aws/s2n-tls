@@ -637,6 +637,7 @@ S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_o
         struct s2n_hash_state *copy)
 {
     RESULT_ENSURE_REF(op);
+    RESULT_ENSURE_EQ(op->type, S2N_ASYNC_SIGN);
     RESULT_GUARD_POSIX(s2n_hash_copy(copy, &op->op.sign.digest));
     return S2N_RESULT_OK;
 }
