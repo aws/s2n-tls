@@ -11,7 +11,10 @@ from configuration import (
     PROTOCOLS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import custom_mtu, managed_process  # lgtm [py/unused-import]
+from fixtures import (
+    custom_mtu,  # noqa: F401
+    managed_process,  # noqa: F401
+)
 from providers import Provider, S2N, OpenSSL, Tcpdump
 from utils import (
     invalid_test_parameters,
@@ -56,8 +59,8 @@ def find_fragmented_packet(results):
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_dynamic_record(
-    custom_mtu,
-    managed_process,
+    custom_mtu,  # noqa: F811
+    managed_process,  # noqa: F811
     cipher,
     curve,
     provider,
