@@ -458,5 +458,4 @@ int main(int argc, char **argv)
     }
 
     END_TEST();
-    return 0;
 }

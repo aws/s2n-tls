@@ -7,6 +7,7 @@ import threading
 import itertools
 import random
 import string
+import pytest
 
 from constants import TEST_CERT_DIRECTORY
 from global_flags import get_flag, S2N_PROVIDER_VERSION

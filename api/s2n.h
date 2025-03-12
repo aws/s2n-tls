@@ -3303,6 +3303,10 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
 /**
  * Function to get the human readable KEM name for the connection.
  *
+ * @deprecated This function was previously used to retrieve the negotiated PQ group in TLS 1.2.
+ * PQ key exchange in TLS1.2 was experimental and is now deprecated. Use s2n_connection_get_kem_group_name()
+ * to retrieve the PQ TLS 1.3 Group name.
+ *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
  */
@@ -3311,8 +3315,12 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
 /**
  * Function to get the human readable KEM group name for the connection.
  *
+ * @note PQ key exchange will not occur if the connection is < TLS1.3 or the configured security
+ * policy has no KEM groups on it. It also will not occur if the peer does not support PQ key exchange.
+ * In these instances this function will return "NONE".
+ *
  * @param conn A pointer to the s2n connection
- * @returns A human readable string for the KEM group. If the connection is < TLS1.3 or there is no KEM group configured returns "NONE"
+ * @returns A human readable string for the KEM group. Returns "NONE" if no PQ key exchange occurred.
  */
 S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
 
