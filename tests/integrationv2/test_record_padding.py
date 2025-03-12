@@ -4,7 +4,6 @@ import copy
 import platform
 import pytest
 import re
-import json  # Unused import
 
 from configuration import (
     available_ports,
