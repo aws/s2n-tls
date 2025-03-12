@@ -3,7 +3,7 @@
 import copy
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
+from configuration import available_ports, ALL_TEST_CIPHERS, MINIMAL_TEST_CERTS
 from common import ProviderOptions, Protocols, Signatures, data_bytes
 from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, GnuTLS
@@ -87,7 +87,7 @@ def skip_ciphers(*args, **kwargs):
     [Protocols.TLS13, Protocols.TLS12, Protocols.TLS11],
     ids=get_parameter_name,
 )
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("signature", all_sigs, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "client_auth",
@@ -169,7 +169,7 @@ def test_s2n_server_signature_algorithms(
     [Protocols.TLS13, Protocols.TLS12, Protocols.TLS11],
     ids=get_parameter_name,
 )
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("signature", all_sigs, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "client_auth",

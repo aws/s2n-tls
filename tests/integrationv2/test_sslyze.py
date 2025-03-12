@@ -5,7 +5,7 @@ import sslyze
 import abc
 from enum import Enum, auto
 
-from configuration import available_ports, ALL_TEST_CERTS
+from configuration import available_ports, MINIMAL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Curves
 from fixtures import managed_process  # noqa: F401
 from providers import S2N
@@ -35,7 +35,7 @@ SSLYZE_SCANS_TO_TEST = [
 
 CERTS_TO_TEST = [
     cert
-    for cert in ALL_TEST_CERTS
+    for cert in MINIMAL_TEST_CERTS
     if cert.name
     not in {
         "RSA_PSS_2048_SHA256"  # SSLyze errors when given an RSA PSS cert

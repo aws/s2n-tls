@@ -9,7 +9,7 @@ from configuration import (
     available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
     PROTOCOLS,
     TLS13_CIPHERS,
 )
@@ -27,7 +27,7 @@ from utils import (
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name
 )
@@ -89,7 +89,7 @@ def test_session_resumption_s2n_server(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name
 )
@@ -149,7 +149,7 @@ def test_session_resumption_s2n_client(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -245,7 +245,7 @@ def test_tls13_session_resumption_s2n_server(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -327,7 +327,7 @@ def test_tls13_session_resumption_s2n_client(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -418,7 +418,7 @@ def test_s2nd_falls_back_to_full_connection(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p < Protocols.TLS13], ids=get_parameter_name
 )

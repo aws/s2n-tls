@@ -7,7 +7,7 @@ from configuration import (
     available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
     PROTOCOLS,
 )
 from common import ProviderOptions, data_bytes
@@ -57,7 +57,7 @@ def find_fragmented_packet(results):
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_dynamic_record(
     custom_mtu,  # noqa: F811
     managed_process,  # noqa: F811

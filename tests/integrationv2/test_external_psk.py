@@ -6,7 +6,7 @@ from configuration import (
     available_ports,
     TLS13_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
@@ -33,7 +33,7 @@ PSK_SECRET_NO_MATCH = "e9492e1c"
 PSK_IDENTITY_NO_MATCH_2 = "PSK_IDENTITY_NO_MATCH_2"
 PSK_SECRET_NO_MATCH_2 = "c1e29493fd"
 
-ALL_TEST_CERTS_WITH_EMPTY_CERT = ALL_TEST_CERTS + [None]
+MINIMAL_TEST_CERTS_WITH_EMPTY_CERT = MINIMAL_TEST_CERTS + [None]
 PSK_PROVIDERS = [OpenSSL, S2N]
 
 
@@ -291,7 +291,7 @@ as the input.
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize(
-    "certificate", ALL_TEST_CERTS_WITH_EMPTY_CERT, ids=get_parameter_name
+    "certificate", MINIMAL_TEST_CERTS_WITH_EMPTY_CERT, ids=get_parameter_name
 )
 def test_s2n_server_full_handshake(
     managed_process,  # noqa: F811

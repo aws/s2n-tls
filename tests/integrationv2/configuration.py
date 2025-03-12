@@ -62,6 +62,7 @@ MINIMAL_TEST_CERTS = [
     Certificates.ECDSA_256,
     Certificates.ECDSA_384,
     Certificates.RSA_PSS_2048_SHA256,
+    Certificates.ECDSA_521,
 ]
 
 

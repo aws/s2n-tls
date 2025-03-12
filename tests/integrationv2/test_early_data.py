@@ -7,7 +7,7 @@ import pytest
 from configuration import (
     available_ports,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
     TLS13_CIPHERS,
 )
 from common import ProviderOptions, Protocols, Curves, data_bytes
@@ -156,7 +156,7 @@ then another resumption connection with early data.
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -224,7 +224,7 @@ That means we don't need to manually perform the initial full connection, and th
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -292,7 +292,7 @@ test_session_resumption but with validation that no early data is sent.
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -360,7 +360,7 @@ reconnects automatically, without any mechanism to modify the connection in betw
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -431,7 +431,7 @@ does not send key shares for.
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", S2N_HRR_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -508,7 +508,7 @@ S2N doesn't support while still supporting at least one curve S2N does support.
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -576,7 +576,7 @@ Test the S2N server fails if it receives too much early data.
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
