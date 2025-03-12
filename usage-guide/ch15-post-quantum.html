@@ -155,7 +155,7 @@
                         <h1 id="post-quantum-pq-support"><a class="header" href="#post-quantum-pq-support">Post Quantum (PQ) Support</a></h1>
 <p>s2n-tls supports post-quantum key exchange for TLS1.3. Currently, only <a href="https://pq-crystals.org/kyber/">Kyber</a> is supported. See the draft IETF standard: https://datatracker.ietf.org/doc/html/draft-ietf-tls-hybrid-design</p>
 <p>Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum Kyber key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.</p>
-<p>Careful: if an s2n-tls server is configured to support post-quantum key exchange, the server will require that any client that advertises support ultimately uses post-quantum key exchange. That will result in a retry and an extra round trip if the client does not intially provide a post-quantum key share.</p>
+<p>Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rational behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.</p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <h3 id="aws-lc"><a class="header" href="#aws-lc">AWS-LC</a></h3>
 <p>s2n-tls must be built with aws-lc to use post-quantum key exchange. See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto">s2n-tls build documentation</a> for how to build with aws-lc.</p>
@@ -240,6 +240,9 @@ Listening on localhost:8000
 <tr><td>v1.5.0</td><td>20240730</td></tr>
 </tbody></table>
 </div>
+<h2 id="visibility"><a class="header" href="#visibility">Visibility</a></h2>
+<p>Call <code>s2n_connection_get_kem_group_name</code> to determine if a TLS handshake negotiated PQ key exchange.</p>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
