@@ -35,9 +35,9 @@ What must a solution address in order to solve the problem? How do we know the s
   * **Will this change trigger SAW changes?** Changes to the state machine, the s2n_handshake_io code that controls state transitions, the DRBG, or the corking/uncorking logic could trigger SAW failures.
   * **Should this change be fuzz tested?** Will it handle untrusted input? Create a separate issue to track the fuzzing work.
 
-### Timeline:
+### Need By Date:
 
-An estimated timeline for this issue to be fixed.
+Any information you can give us to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by your timeline.
 
 ### Out of scope:
 
