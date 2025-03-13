@@ -9,16 +9,12 @@ from configuration import (
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
+    S2N_TEST_POLICIES,
 )
-from common import Ciphers, ProviderOptions, Protocols, data_bytes
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
-
-S2N_TEST_POLICIES = [
-    Ciphers.SECURITY_POLICY_DEFAULT,
-    Ciphers.SECURITY_POLICY_DEFAULT_TLS13,
-]
 
 S2N_RESUMPTION_MARKER = to_bytes("Resumed session")
 CLOSE_MARKER_BYTES = data_bytes(10)

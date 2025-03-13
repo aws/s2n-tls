@@ -18,7 +18,7 @@ SERVER_DATA = "Some random data from the server:" + random_str(10)
 CLIENT_DATA = "Some random data from the client:" + random_str(10)
 
 S2N_TEST_POLICIES = {
-    Protocols.TLS12.value: Ciphers.SECURITY_POLICY_DEFAULT,
+    Protocols.TLS12.value: Ciphers.SECURITY_POLICY_DEFAULT_TLS12,
     Protocols.TLS13.value: Ciphers.SECURITY_POLICY_DEFAULT_TLS13,
 }
 

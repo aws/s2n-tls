@@ -518,6 +518,15 @@ class Ciphers(object):
     SECURITY_POLICY_DEFAULT_TLS13 = Cipher(
         "default_tls13", Protocols.TLS12, False, False, s2n=True, pq=False
     )
+    """
+    There is no "default_tls12" policy like there is a "default_tls13".
+    We could use "default", but we will someday add TLS1.3 support to "default".
+    Instead, pin to the latest version of "default" known to not include TLS1.3.
+    See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch06-security-policies.md#default-policy-history
+    """
+    SECURITY_POLICY_DEFAULT_TLS12 = Cipher(
+        "20240501", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
 
     SECURITY_POLICY_20210816 = Cipher(
         "20210816", Protocols.TLS12, False, False, s2n=True, pq=False
