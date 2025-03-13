@@ -7,7 +7,7 @@ from enum import Enum, auto
 
 from configuration import available_ports
 from common import ProviderOptions, Protocols, random_str
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -53,7 +53,11 @@ This prevents one peer from receiving a TCP FIN message and shutting the connect
     "version_change", [Mode.Server, Mode.Client], ids=get_parameter_name
 )
 def test_server_serialization_backwards_compat(
-    managed_process, tmp_path, protocol, mainline_role, version_change
+    managed_process,  # noqa: F811
+    tmp_path,
+    protocol,
+    mainline_role,
+    version_change,
 ):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
