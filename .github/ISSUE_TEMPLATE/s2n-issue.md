@@ -35,6 +35,10 @@ What must a solution address in order to solve the problem? How do we know the s
   * **Will this change trigger SAW changes?** Changes to the state machine, the s2n_handshake_io code that controls state transitions, the DRBG, or the corking/uncorking logic could trigger SAW failures.
   * **Should this change be fuzz tested?** Will it handle untrusted input? Create a separate issue to track the fuzzing work.
 
+### Timeline:
+
+An estimated timeline for this issue to be fixed.
+
 ### Out of scope:
 
 Is there anything the solution will intentionally NOT address?
