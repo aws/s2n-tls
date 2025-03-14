@@ -17,6 +17,10 @@ AWS Security via our [vulnerability reporting page](http://aws.amazon.com/securi
 
 A short description of what the problem is and why we need to fix it. Add reproduction steps if necessary.
 
+### Need By Date:
+
+Do you have a date that you need this issue resolved by? What is the reason for that date, and what are the consequences of missing it? Any additional information you can provide to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by the requested date.
+
 ### Solution:
 
 A description of the possible solution in terms of S2N architecture. Highlight and explain any potentially controversial design decisions taken.
@@ -35,10 +39,6 @@ What must a solution address in order to solve the problem? How do we know the s
 * **Testing:** How will this change be tested? Call out new integration tests, functional tests, or particularly interesting/important unit tests.
   * **Will this change trigger SAW changes?** Changes to the state machine, the s2n_handshake_io code that controls state transitions, the DRBG, or the corking/uncorking logic could trigger SAW failures.
   * **Should this change be fuzz tested?** Will it handle untrusted input? Create a separate issue to track the fuzzing work.
-
-### Need By Date:
-
-Do you have a date that you need this issue resolved by? What is the reason for that date, and what are the consequences of missing it? Any additional information you can provide to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by the requested date.
 
 ### Out of scope: 
 
