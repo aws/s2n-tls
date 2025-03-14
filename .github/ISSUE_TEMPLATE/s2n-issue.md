@@ -37,7 +37,7 @@ What must a solution address in order to solve the problem? How do we know the s
 
 ### Need By Date:
 
-Any information you can give us to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by your timeline.
+Do you have a date that you need this issue resolved by? What is the reason for that date, and what are the consequences of missing it? Any additional information you can provide to help prioritize the issue is appreciated. However, we cannot guarantee that this issue will be fixed by the requested date.
 
 ### Out of scope:
 
