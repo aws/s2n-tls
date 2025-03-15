@@ -336,64 +336,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure->cipher_suite, expected_rsa_wire_choice);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        /* Test that PQ cipher suites are marked available/unavailable appropriately in s2n_cipher_suites_init() */
-        {
-            const struct s2n_cipher_suite *pq_suites[] = {
-                &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
-            };
-
-            for (size_t i = 0; i < s2n_array_len(pq_suites); i++) {
-                if (s2n_pq_is_enabled()) {
-                    EXPECT_EQUAL(pq_suites[i]->available, 1);
-                    EXPECT_NOT_NULL(pq_suites[i]->record_alg);
-                } else {
-                    EXPECT_EQUAL(pq_suites[i]->available, 0);
-                    EXPECT_NULL(pq_suites[i]->record_alg);
-                }
-            }
-        };
-
-        /* Test that clients that support PQ ciphers can negotiate them. */
-        {
-            uint8_t client_extensions_data[] = {
-                0xFE, 0x01,                                /* PQ KEM extension ID */
-                0x00, 0x04,                                /* Total extension length in bytes */
-                0x00, 0x02,                                /* Length of the supported parameters list in bytes */
-                0x00, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 /* Kyber-512-Round3*/
-            };
-            int client_extensions_len = sizeof(client_extensions_data);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "PQ-TLS-1-0-2021-05-24"));
-            conn->actual_protocol_version = S2N_TLS12;
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->kex_params.client_pq_kem_extension.data = client_extensions_data;
-            conn->kex_params.client_pq_kem_extension.size = client_extensions_len;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-            const struct s2n_cipher_suite *kyber_cipher = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-            const struct s2n_cipher_suite *ecc_cipher = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
-            if (s2n_pq_is_enabled()) {
-                EXPECT_EQUAL(conn->secure->cipher_suite, kyber_cipher);
-            } else {
-                EXPECT_EQUAL(conn->secure->cipher_suite, ecc_cipher);
-            }
-
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
-            /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
-             * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
-             * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
-            for (int i = S2N_TLS10; i <= S2N_TLS11; i++) {
-                const struct s2n_cipher_suite *expected_classic_wire_choice = &s2n_ecdhe_rsa_with_aes_256_cbc_sha;
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"));
-                conn->actual_protocol_version = i;
-                conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-                conn->kex_params.client_pq_kem_extension.data = client_extensions_data;
-                conn->kex_params.client_pq_kem_extension.size = client_extensions_len;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-                EXPECT_EQUAL(conn->secure->cipher_suite, expected_classic_wire_choice);
-                EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
-        };
-
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
 

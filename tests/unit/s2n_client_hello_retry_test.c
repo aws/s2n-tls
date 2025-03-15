@@ -1317,7 +1317,7 @@ int main(int argc, char **argv)
 
             /* Setup all extensions */
             uint8_t apn[] = "https";
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-1-2021-05-21"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-2-2023-10-07"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
             EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_4096));
@@ -1350,8 +1350,8 @@ int main(int argc, char **argv)
                     continue;
                 }
 
-                /* No pq extension if pq not enabled for the build */
-                if (iana == TLS_EXTENSION_PQ_KEM_PARAMETERS && !s2n_pq_is_enabled()) {
+                /* PQ TLS 1.2  extension is not enabled */
+                if (iana == TLS_EXTENSION_PQ_KEM_PARAMETERS) {
                     continue;
                 }
 
