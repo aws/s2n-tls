@@ -904,6 +904,12 @@ int main(int argc, char **argv)
             FAIL_MSG("Expected ENGINE feature probe to be disabled with AWS-LC");
 #endif
         }
+
+        if (s2n_libcrypto_is_openssl_fips()) {
+#if !S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+            FAIL_MSG("Expected private rand support from openssl3 fips");
+#endif
+        }
     };
 
     /* Feature probe: Positive test
