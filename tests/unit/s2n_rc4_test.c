@@ -20,6 +20,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
@@ -38,9 +39,9 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
-    /* Test FIPS does not support RC4 */
-    if (s2n_is_in_fips_mode()) {
-        EXPECT_FALSE(s2n_rc4.is_available());
+    /* awslc does support RC4 */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_rc4.is_available());
     }
 
     struct s2n_connection *conn = NULL;
@@ -53,11 +54,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-    if (s2n_is_in_fips_mode()) {
-        /* Skip when FIPS mode is set as FIPS mode does not support RC4 */
-        END_TEST();
-    }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_OK(s2n_get_public_random_data(&r));
