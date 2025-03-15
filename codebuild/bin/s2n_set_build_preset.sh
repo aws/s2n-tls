@@ -21,12 +21,12 @@ case "${S2N_BUILD_PRESET-default}" in
         : "${S2N_LIBCRYPTO:=awslc}"
         : "${GCC_VERSION:=9}"
         ;;
-    "awslc-fips_gcc4-8")
-        : "${S2N_LIBCRYPTO:=awslc-fips}"
+    "awslc-fips-2022_gcc4-8")
+        : "${S2N_LIBCRYPTO:=awslc-fips-2022}"
         : "${GCC_VERSION:=4.8}"
         ;;
-    "awslc-fips_gcc9")
-        : "${S2N_LIBCRYPTO:=awslc-fips}"
+    "awslc-fips-2022_gcc9")
+        : "${S2N_LIBCRYPTO:=awslc-fips-2022}"
         : "${GCC_VERSION:=9}"
         ;;
     "awslc-fips-2022_gcc6")

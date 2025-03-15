@@ -75,6 +75,13 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
+    - identifier: gcc_openssl_3_fips
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24_20250214
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0-fips
+          COMPILER: gcc
     - identifier: gcc_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
