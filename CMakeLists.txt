@@ -640,6 +640,8 @@ if (BUILD_TESTING)
                         COMMAND
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
+                        --junitxml=report_integ-${test_target}.xml
+                        --html=${test_target}_report.html --self-contained-html
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
