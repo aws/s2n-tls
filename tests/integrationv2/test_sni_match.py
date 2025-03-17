@@ -4,7 +4,7 @@ import pytest
 
 from configuration import available_ports, MULTI_CERT_TEST_CASES
 from common import ProviderOptions, Protocols
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,
@@ -41,7 +41,7 @@ def filter_cipher_list(*args, **kwargs):
     "protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name
 )
 @pytest.mark.parametrize("cert_test_case", MULTI_CERT_TEST_CASES)
-def test_sni_match(managed_process, provider, other_provider, protocol, cert_test_case):
+def test_sni_match(managed_process, provider, other_provider, protocol, cert_test_case):  # noqa: F811
     port = next(available_ports)
 
     client_options = ProviderOptions(

@@ -3,7 +3,7 @@
 import os
 import pytest
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from providers import S2N, JavaSSL
+from providers import S2N, JavaSSL, OpenSSL
 
 PATH_CONFIGURATION_KEY = pytest.StashKey()
 
@@ -29,6 +29,9 @@ def available_providers():
 
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
+
+    if OpenSSL.get_provider() == "OpenSSL" and OpenSSL.get_version() >= "3.0":
+        providers.add(OpenSSL)
 
     return providers
 

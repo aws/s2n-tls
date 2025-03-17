@@ -16,31 +16,28 @@ set -eu
 pushd "$(pwd)"
 
 usage() {
-    echo "install_awslc.sh build_dir install_dir is_fips"
+    echo -e "\ninstall_awslc.sh build_dir install_dir"
+    echo -e "\tIf you need FIPS, use the FIPS specific install script.\n"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-IS_FIPS=$3
+GH_RELEASE_URL="https://api.github.com/repos/aws/aws-lc/releases"
 
 if [[ ! -f "$(which clang)" ]]; then
   echo "Could not find clang"
   exit 1
 fi
 
-# These tags represents the latest versions that S2N is compatible
-# with. It prevents our build system from breaking when AWS-LC
-# is updated, last done on 2023-02-22.
-if [ "$IS_FIPS" == "1" ]; then
-  AWSLC_VERSION=AWS-LC-FIPS-1.0.3
-else
-  AWSLC_VERSION=v1.36.0
-fi
+# Ask GitHub for the latest v1.x release.
+AWSLC_VERSION=$(curl --silent "$GH_RELEASE_URL" | \
+        grep -Po '"tag_name": "\Kv1\..*?(?=")' |head -1)
+
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
 echo "Checking out tag=$AWSLC_VERSION"
@@ -57,16 +54,12 @@ install_awslc() {
       -DCMAKE_BUILD_TYPE=relwithdebinfo \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
       -DCMAKE_C_COMPILER=$(which clang) \
-      -DCMAKE_CXX_COMPILER=$(which clang++) \
-      -DFIPS="${IS_FIPS}"
+      -DCMAKE_CXX_COMPILER=$(which clang++)
     ninja -j "$(nproc)" -C build install
     ninja -C build clean
 }
 
-if [ "$IS_FIPS" != "1" ]; then
-  install_awslc 0
-fi
-
+install_awslc 0
 install_awslc 1
 
 exit 0

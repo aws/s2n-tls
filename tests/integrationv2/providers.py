@@ -5,7 +5,15 @@ import subprocess
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures, Cert
+from common import (
+    ProviderOptions,
+    Certificates,
+    Ciphers,
+    Curves,
+    Protocols,
+    Signatures,
+    Cert,
+)
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from stat import S_IMODE
 
@@ -348,12 +356,22 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
+    result = subprocess.run(
+        ["openssl", "version"], shell=False, capture_output=True, text=True
+    )
+    # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
+    version_str = result.stdout.split(" ")
+    # e.g., "OpenSSL"
+    provider = version_str[0]
+    # e.g., "3.0.8"
+    version_openssl = version_str[1]
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
         # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
-        self._is_openssl_11()
+        self.at_least_openssl_1_1()
 
     @classmethod
     def get_send_marker(cls):
@@ -408,12 +426,29 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return get_flag(S2N_PROVIDER_VERSION)
+        return cls.version_openssl
+
+    @classmethod
+    def get_provider(cls):
+        return cls.provider
 
     @classmethod
     def supports_protocol(cls, protocol):
-        if protocol is Protocols.SSLv3:
-            return False
+        if OpenSSL.get_version()[0:3] == "1.1":
+            return protocol not in (Protocols.SSLv3,)
+        elif OpenSSL.get_version()[0:3] == "3.0":
+            return protocol not in (Protocols.SSLv3, Protocols.TLS10, Protocols.TLS11)
+        else:
+            return True
+
+    @classmethod
+    def supports_certificate(cls, cert: Cert):
+        if OpenSSL.get_version()[0:3] >= "3.0":
+            return cert not in (
+                Certificates.RSA_1024_SHA256,
+                Certificates.RSA_1024_SHA384,
+                Certificates.RSA_1024_SHA512,
+            )
 
         return True
 
@@ -421,17 +456,10 @@ class OpenSSL(Provider):
     def supports_cipher(cls, cipher, with_curve=None):
         return True
 
-    def _is_openssl_11(self) -> None:
-        result = subprocess.run(
-            ["openssl", "version"], shell=False, capture_output=True, text=True
-        )
-        version_str = result.stdout.split(" ")
-        project = version_str[0]
-        version = version_str[1]
-        print(f"openssl version: {project} version: {version}")
-        if project != "OpenSSL" or version[0:3] != "1.1":
+    def at_least_openssl_1_1(self) -> None:
+        if OpenSSL.get_version() < "1.1":
             raise FileNotFoundError(
-                f"Openssl version returned {version}, expected 1.1.x."
+                f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x."
             )
 
     def setup_client(self):

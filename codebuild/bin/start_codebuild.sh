@@ -28,23 +28,23 @@ BUILDS=(
     "s2nUnitNix"
     "Integv2NixBatchBF1FB83F-7tcZOiMDWPH0 us-east-2 batch"
     "kTLS us-west-2 no-batch"
-    "Openssl3fipsWIP us-west-2 no-batch"
 )
 
 usage() {
-    echo "start_codebuild.sh <source_version>"
+    echo "start_codebuild.sh <source_version> <repo>"
     echo "    example: start_codebuild.sh pr/1111"
-    echo "    example: start_codebuild.sh test_branch"
     echo "    example: start_codebuild.sh 1234abcd"
+    echo "    example: start_codebuild.sh test_branch lrstewart/s2n"
 }
 
-if [ "$#" -ne "1" ]; then
+if [ "$#" -lt "1" ]; then
     usage
     # Return instead of exit so we can `source` this script
     # in order to get access to BUILDS.
     return 1
 fi
 SOURCE_VERSION=$1
+REPO=${2:-aws/s2n-tls}
 
 add_command() {
     NAME=$1
@@ -55,8 +55,9 @@ add_command() {
     if [ "$BATCH" = "no-batch" ]; then
         START_COMMAND="start-build"
     fi
-    COMMANDS+=("aws --region $REGION codebuild $START_COMMAND --source-version $SOURCE_VERSION
-        --project-name $NAME")
+    COMMANDS+=("aws --region $REGION codebuild $START_COMMAND --project-name $NAME
+        --source-location-override https://github.com/$REPO
+        --source-version $SOURCE_VERSION")
 }
 
 for args in "${BUILDS[@]}"; do
