@@ -43,7 +43,8 @@ cd "$BUILD_DIR"
 echo "Checking out tag=$AWSLC_VERSION"
 # --branch can also take tags and detaches the HEAD at that commit in the resulting repository
 # --depth 1 Create a shallow clone with a history truncated to 1 commit
-git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --depth 1
+# If the curl above is throttled, fall back to a known version.
+git clone https://github.com/awslabs/aws-lc.git --branch "${AWSLC_VERSION:-v1.48.4}" --depth 1
 
 install_awslc() {
     echo "Building with shared library=$1"
