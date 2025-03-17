@@ -228,6 +228,7 @@ static S2N_RESULT s2n_hkdf_kdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm a
     if (mode == EVP_KDF_HKDF_MODE_EXTRACT_ONLY) {
         RESULT_GUARD_OSSL(EVP_KDF_CTX_set_params(hkdf_ctx, params), S2N_ERR_HKDF);
         size_t key_size = EVP_KDF_CTX_get_kdf_size(hkdf_ctx);
+        RESULT_ENSURE(key_size > 0, S2N_ERR_HKDF_OUTPUT_SIZE);
         RESULT_ENSURE(key_size <= output->size, S2N_ERR_HKDF_OUTPUT_SIZE);
         output->size = key_size;
     }
