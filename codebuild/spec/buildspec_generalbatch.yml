@@ -69,7 +69,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: true
@@ -140,15 +140,6 @@ batch:
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
-        image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
-        privileged-mode: true
-        variables:
-          TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0-fips
-      identifier: UnitAl2023x86Openssl3FIPS
-    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
-      env:
-        compute-type: BUILD_GENERAL1_SMALL
         image: aws/codebuild/amazonlinux2-aarch64-standard:3.0
         privileged-mode: true
         type: ARM_CONTAINER
@@ -156,16 +147,6 @@ batch:
           TESTS: unit
           S2N_LIBCRYPTO: openssl-3.0
       identifier: UnitAl2023armOpenssl30
-    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
-      env:
-        compute-type: BUILD_GENERAL1_SMALL
-        image: aws/codebuild/amazonlinux2-aarch64-standard:3.0
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0-fips
-      identifier: UnitAl2023armOpenssl3FIPS
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
