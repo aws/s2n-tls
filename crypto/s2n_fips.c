@@ -67,11 +67,6 @@ int s2n_fips_init(void)
     POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
 #endif
 
-    /* For now, openssl is only supported for testing */
-    if (s2n_libcrypto_is_openssl_fips()) {
-        POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_FIPS_MODE_UNSUPPORTED);
-    }
-
     return S2N_SUCCESS;
 }
 
