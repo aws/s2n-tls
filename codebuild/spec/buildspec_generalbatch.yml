@@ -66,6 +66,18 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           TESTS: unit
       identifier: s2nUnitOpenssl3Gcc9
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          BUILD_S2N: true
+          GCC_VERSION: 9
+          S2N_COVERAGE: true
+          S2N_LIBCRYPTO: openssl-3.0-fips
+          TESTS: unit
+      identifier: s2nUnitOpenssl3FIPSGcc9
     ### Ubuntu24 ###
     # Openssl-1.1.1 + gcc-13: Prefer more widely used Openssl on the default
     #   Ubuntu24 compiler.
@@ -128,6 +140,15 @@ batch:
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        privileged-mode: true
+        variables:
+          TESTS: unit
+          S2N_LIBCRYPTO: openssl-3.0-fips
+      identifier: UnitAl2023x86Openssl3FIPS
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
         image: aws/codebuild/amazonlinux2-aarch64-standard:3.0
         privileged-mode: true
         type: ARM_CONTAINER
@@ -135,6 +156,16 @@ batch:
           TESTS: unit
           S2N_LIBCRYPTO: openssl-3.0
       identifier: UnitAl2023armOpenssl30
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-aarch64-standard:3.0
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          TESTS: unit
+          S2N_LIBCRYPTO: openssl-3.0-fips
+      identifier: UnitAl2023armOpenssl3FIPS
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
