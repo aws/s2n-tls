@@ -136,11 +136,11 @@ The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specif
 
 ### AWS-LC FIPS
 
-s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. See the [AWS-LC FIPS documentation](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md) for how to build a FIPS validated version of AWS-LC.
+s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. See the [AWS-LC FIPS documentation](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md) for more information. The security policy listed for each FIPS validation includes instructions for how to build the validated version.
 
 ### Openssl FIPS
 
-If you require FIPS, you should consider using AWS-LC. If AWS-LC would conflict with Openssl in your environment, you can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls.
+If you require FIPS, you should consider using AWS-LC. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). If AWS-LC would conflict with Openssl in your environment, you can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls.
 
 But if you must use Openssl instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS validated version of Openssl. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS validated version of Openssl.
 
