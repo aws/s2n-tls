@@ -199,7 +199,7 @@ phases:
   install:
     commands:
       - |
-        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*\"nixCache\".* ]]; then
+        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
          nix build .#devShell
          nix copy --to $NIX_CACHE_BUCKET .#devShell
