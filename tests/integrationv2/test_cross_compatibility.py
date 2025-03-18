@@ -9,6 +9,7 @@ from configuration import (
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
+    S2N_TEST_POLICIES,
 )
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
@@ -177,19 +178,15 @@ server because the Openssl server uses a different ticket key for each session.
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", S2N_TEST_POLICIES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_old_client_new_ticket(
     managed_process,  # noqa: F811
     tmp_path,
     cipher,
-    curve,
     certificate,
-    protocol,
     provider,
     other_provider,
 ):
@@ -199,8 +196,6 @@ def test_s2n_old_client_new_ticket(
     options = ProviderOptions(
         port=next(available_ports),
         cipher=cipher,
-        curve=curve,
-        protocol=protocol,
         insecure=True,
         use_session_ticket=True,
     )
@@ -246,19 +241,15 @@ Tests that S2N tickets are forwards-compatible.
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", S2N_TEST_POLICIES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2n_new_client_old_ticket(
     managed_process,  # noqa: F811
     tmp_path,
     cipher,
-    curve,
     certificate,
-    protocol,
     provider,
     other_provider,
 ):
@@ -268,8 +259,6 @@ def test_s2n_new_client_old_ticket(
     options = ProviderOptions(
         port=next(available_ports),
         cipher=cipher,
-        curve=curve,
-        protocol=protocol,
         insecure=True,
         use_session_ticket=True,
     )

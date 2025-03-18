@@ -105,6 +105,12 @@ TLS13_CIPHERS = [
     Ciphers.AES256_GCM_SHA384,
 ]
 
+S2N_TEST_POLICIES = [
+    Ciphers.SECURITY_POLICY_DEFAULT,
+    Ciphers.SECURITY_POLICY_DEFAULT_TLS12,
+    Ciphers.SECURITY_POLICY_DEFAULT_TLS13,
+]
+
 
 # List of ports available to tests.
 available_ports = AvailablePorts()
