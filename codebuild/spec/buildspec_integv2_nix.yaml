@@ -213,9 +213,10 @@ phases:
         fi
   build:
     commands:
-      - if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-        nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
-        nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; build"
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
     commands:
