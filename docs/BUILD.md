@@ -140,7 +140,7 @@ s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. S
 
 ### Openssl FIPS
 
-If you require FIPS, you should consider using AWS-LC. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). If AWS-LC would conflict with Openssl in your environment, you can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls.
+You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). You can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls if AWS-LC symbols would conflict with Openssl symbols in your environment.
 
 But if you must use Openssl instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS validated version of Openssl. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS validated version of Openssl.
 
