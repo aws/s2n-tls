@@ -83,5 +83,6 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(buffer, data, sizeof(data));
     }
 
+    EXPECT_SUCCESS(s2n_cleanup());
     END_TEST();
 }
