@@ -1,0 +1,226 @@
+---
+version: 0.2
+env:
+  shell: bash
+  variables:
+    NIXDEV_ARGS: --max-jobs auto --ignore-environment
+    NIX_CACHE_BUCKET_X86: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+    NIX_CACHE_BUCKET_AARCH64: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+batch:
+  build-graph:
+    - env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: false
+        type: LINUX_CONTAINER
+        variables:
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: nixCache_x86_64
+    - env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: false
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: nixCache_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_awslc_x86_0
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_awslc_aarch64_0
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_openssl30_x86_0
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_openssl30_aarch64_0
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_openssl111_x86_0
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_openssl111_aarch64_0
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_awslc_x86_1
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_awslc_aarch64_1
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_openssl30_x86_1
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#default
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_openssl30_aarch64_1
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        type: LINUX_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_X86
+      identifier: Integ_openssl111_x86_1
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          INTEGV2_TEST:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
+          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: $NIX_CACHE_BUCKET_AARCH64
+      identifier: Integ_openssl111_aarch64_1
+
+phases:
+  install:
+    commands:
+      - |
+        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*\"nixCache\".* ]]; then
+         nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+         nix build .#devShell
+         nix copy --to $NIX_CACHE_BUCKET .#devShell
+        fi
+  pre_build:
+    commands:
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; configure"
+        fi
+  build:
+    commands:
+      - if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+        nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+        nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; build"
+        fi
+  post_build:
+    commands:
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST"
+        fi

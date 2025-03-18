@@ -1,0 +1,179 @@
+---
+env:
+  shell: bash
+batch:
+  build-graph:
+    - comment: identifiers can not contain dashes
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        variables:
+          NIXDEV_ARGS: --max-jobs auto
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+      identifier: nixCache_x86_64
+    - env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --max-jobs auto
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+      identifier: nixCache_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl30_x86_64
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl30_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl111_x86_64
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#openssl111
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl111_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#openssl102
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl102_x86_64
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#openssl102
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitOpenssl102_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#libressl
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitLibressl_x86_64
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#libressl
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitLibressl_aarch64
+    - depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitAwslc_x86_64
+    - depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_ARGS: --ignore-environment --max-jobs auto .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          S2N_NO_HEADBUILD: "1"
+          S2N_TEST: unit
+      identifier: UnitAwslc_aarch64
+
+phases:
+  install:
+    commands:
+      - |
+        if [[ "$CODEBUILD_BATCH_BUILD_IDENTIFIER" =~ .*\"nixCache\".* ]]; then
+          nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
+          echo "Running nix build..."
+          nix build $NIXDEV_ARGS .#devShell
+          echo "Copying derivations to s3..."
+          nix copy --to $NIX_CACHE_BUCKET .#devShell;
+        else
+          echo "downloading cache.."
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+        fi
+  pre_build:
+    commands:
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*\"nixCache\".* ]]; then
+          nix develop $NIXDEV_ARGS --command bash -c \"source ./nix/shell.sh; configure";
+        fi
+  build:
+    commands:
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; build";
+        fi
+  post_build:
+    commands:
+      - |
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*\"nixCache\".* ]]; then
+          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; unit"
+        fi
