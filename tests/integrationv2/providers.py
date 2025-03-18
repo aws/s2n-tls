@@ -175,6 +175,8 @@ class S2N(Provider):
     def supports_certificate(cls, cert: Cert):
         if not cls._pss_supported() and cert.algorithm == "RSAPSS":
             return False
+        if "openssl-3.0" in get_flag(S2N_PROVIDER_VERSION) and "RSA_1024" in cert.name:
+            return False
         return True
 
     @classmethod
@@ -444,12 +446,7 @@ class OpenSSL(Provider):
     @classmethod
     def supports_certificate(cls, cert: Cert):
         if OpenSSL.get_version()[0:3] >= "3.0":
-            return cert not in (
-                Certificates.RSA_1024_SHA256,
-                Certificates.RSA_1024_SHA384,
-                Certificates.RSA_1024_SHA512,
-            )
-
+            return "RSA_1024" in cert.name
         return True
 
     @classmethod
