@@ -17,7 +17,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls.h"
 
-#define UINT24_MAX (1 << 24)
+#define UINT24_MAX ((1 << 24) - 1)
 
 static S2N_RESULT s2n_test_handshake_finish_header(uint32_t handshake_message_length)
 {
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_handshake_finish_header(UINT16_MAX + 1));
 
         /* When handshake message size is larger than uint24_max */
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_handshake_finish_header(UINT24_MAX), S2N_ERR_INTEGER_OVERFLOW);
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_handshake_finish_header(UINT24_MAX + 1), S2N_ERR_INTEGER_OVERFLOW);
     }
 
     END_TEST();
