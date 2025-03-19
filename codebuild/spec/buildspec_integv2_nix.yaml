@@ -4,6 +4,12 @@ env:
   shell: bash
   variables:
     NIXDEV_ARGS: --max-jobs auto --ignore-environment
+    INTEGV2_TEST_0:
+            happy_path client_authentication sni_match buffered_send npn
+            signature_algorithms ocsp external_psk pq_handshake serialization
+    INTEGV2_TEST_1:
+            renegotiate cross_compatibility early_data hello_retry_requests
+            fragmentation key_update session_resumption version_negotiation
 batch:
   build-graph:
     # Cache job for x86
@@ -14,7 +20,7 @@ batch:
         privileged-mode: false
         type: LINUX_CONTAINER
         variables:
-          NIXDEV_ARGS: --max-jobs auto .#default
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
     # Cache Job for aarch64
@@ -25,7 +31,7 @@ batch:
         privileged-mode: false
         type: ARM_CONTAINER
         variables:
-          NIXDEV_ARGS: --max-jobs auto .#default
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # AWSLC  x86
@@ -37,11 +43,10 @@ batch:
         image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
         privileged-mode: true
         type: LINUX_CONTAINER
+        # Zero out the opposite test group
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#awslc
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
     - identifier: Integ_awslc_x86_1
       depend-on:
@@ -51,11 +56,10 @@ batch:
         image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
         privileged-mode: true
         type: LINUX_CONTAINER
+        # Zero out the opposite test group
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#awslc
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
     # AWSLC aarch64
@@ -68,10 +72,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#awslc
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
     - identifier: Integ_awslc_aarch64_1
       depend-on:
@@ -82,10 +84,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#awslc
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # AWSLC-FIPS-2022
@@ -98,10 +98,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#awslcfips2022
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#awslcfips2022
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
     - identifier: Integ_awslcfips2022_aarch64_1
       depend-on:
@@ -112,10 +110,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#awslcfips2022
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#awslcfips2022
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # AWSLC-FIPS-2024
@@ -128,10 +124,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#awslcfips2024
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#awslcfips2024
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
     - identifier: Integ_awslcfips2024_aarch64_1
       depend-on:
@@ -142,10 +136,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#awslcfips2024
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#awslcfips2024
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # Openssl30 x86
@@ -158,10 +150,8 @@ batch:
         privileged-mode: true
         type: LINUX_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#default
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
     - identifier: Integ_openssl30_x86_1
       depend-on:
@@ -172,10 +162,8 @@ batch:
         privileged-mode: true
         type: LINUX_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#default
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
     # Openssl30 aarch
@@ -188,10 +176,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#default
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
     - identifier: Integ_openssl30_aarch64_1
       depend-on:
@@ -202,10 +188,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#default
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # Openssl111 aarch64 only
@@ -218,10 +202,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            happy_path client_authentication sni_match buffered_send npn
-            signature_algorithms ocsp external_psk pq_handshake serialization
-          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          INTEGV2_TEST_1: ""
+          NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
     - identifier: Integ_openssl111_aarch64_1
       depend-on:
@@ -232,10 +214,8 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST:
-            renegotiate cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
-          NIXDEV_ARGS: --max-jobs auto .#openssl111
+          INTEGV2_TEST_0: ""
+          NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
 phases:
@@ -256,17 +236,17 @@ phases:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
-          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; configure"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
         fi
   build:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh; build"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST_0 $INTEGV2_TEST_1"
         fi
