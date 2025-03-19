@@ -176,7 +176,10 @@ class S2N(Provider):
         if not cls._pss_supported() and cert.algorithm == "RSAPSS":
             return False
         # https://github.com/aws/s2n-tls/issues/5200
-        if "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION) and "RSA_1024" in cert.name:
+        if (
+            "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION)
+            and "RSA_1024" in cert.name
+        ):
             return False
         return True
 

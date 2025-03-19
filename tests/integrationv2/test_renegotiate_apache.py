@@ -27,9 +27,7 @@ MUTUAL_AUTH_ENDPOINT = "/mutual_auth/"
 # which s2n-tls does not support when built with openssl-3.0-fips.
 def skip_for_openssl3_fips():
     if "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION):
-        pytest.skip(
-            "Certs not supported: https://github.com/aws/s2n-tls/issues/5200"
-        )
+        pytest.skip("Certs not supported: https://github.com/aws/s2n-tls/issues/5200")
 
 
 def create_get_request(route):
