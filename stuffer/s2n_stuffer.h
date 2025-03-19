@@ -35,7 +35,6 @@
 #define SIZEOF_IN_BITS(t) (sizeof(t) * CHAR_BIT)
 
 #define SIZEOF_UINT24 3
-#define UINT24_MAX    0xffffff
 
 struct s2n_stuffer {
     /* The data for the s2n_stuffer */

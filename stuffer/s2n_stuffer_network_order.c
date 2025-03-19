@@ -18,6 +18,8 @@
 #include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
 
+#define UINT24_MAX (1 << 24)
+
 /* Writes length bytes of input to stuffer, in network order, starting from the smallest byte of input. */
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t input, const uint8_t length)
 {
@@ -111,6 +113,7 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u)
 
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
 {
+    POSIX_ENSURE(u < UINT24_MAX, S2N_ERR_INTEGER_OVERFLOW);
     return s2n_stuffer_write_network_order(stuffer, u, SIZEOF_UINT24);
 }
 

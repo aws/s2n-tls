@@ -48,7 +48,6 @@ int s2n_handshake_finish_header(struct s2n_stuffer *out)
     /* Write the message header */
     POSIX_GUARD(s2n_stuffer_rewrite(out));
     POSIX_GUARD(s2n_stuffer_skip_write(out, 1));
-    POSIX_ENSURE(payload <= UINT24_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_GUARD(s2n_stuffer_write_uint24(out, payload));
     POSIX_GUARD(s2n_stuffer_skip_write(out, payload));
 

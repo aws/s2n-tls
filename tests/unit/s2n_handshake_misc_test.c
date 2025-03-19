@@ -15,6 +15,21 @@
 
 #include "s2n_test.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_tls.h"
+
+#define UINT24_MAX (1 << 24)
+
+static S2N_RESULT s2n_test_handshake_finish_header(uint32_t handshake_message_length)
+{
+    DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+    uint32_t stuffer_size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&stuffer, stuffer_size));
+    RESULT_GUARD_POSIX(s2n_handshake_finish_header(&stuffer));
+
+    return S2N_RESULT_OK;
+}
 
 int main(int argc, char **argv)
 {
@@ -47,6 +62,15 @@ int main(int argc, char **argv)
          */
         EXPECT_ERROR_WITH_ERRNO(s2n_handshake_set_finished_len(conn, max_len - 1), S2N_ERR_SAFETY);
     };
+
+    /* Test: s2n_handshake_finish_header */
+    {
+        /* When handshake meesage size is larger than uint16_max */
+        EXPECT_OK(s2n_test_handshake_finish_header(UINT16_MAX + 1));
+
+        /* When handshake message size is larger than uint24_max */
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_handshake_finish_header(UINT24_MAX), S2N_ERR_INTEGER_OVERFLOW);
+    }
 
     END_TEST();
 }
