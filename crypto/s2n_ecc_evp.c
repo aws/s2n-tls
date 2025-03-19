@@ -412,7 +412,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    struct s2n_blob point_blob = { 0 };
     uint8_t *encoded_point = NULL;
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
@@ -420,9 +419,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        POSIX_ENSURE_REF(point_blob.data);
-        POSIX_CHECKED_MEMCPY(point_blob.data, encoded_point, size);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
         OPENSSL_free(encoded_point);
     }
 #else
@@ -437,11 +434,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    point_blob.data = s2n_stuffer_raw_write(out, point_len);
-    POSIX_ENSURE_REF(point_blob.data);
-    point_blob.size = point_len;
 
+    POSIX_GUARD(s2n_alloc(&point_blob, point_len));
     POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
+    POSIX_GUARD(s2n_stuffer_write(out, &point_blob));
+    POSIX_GUARD(s2n_free(&point_blob));
 #endif
     return 0;
 }
