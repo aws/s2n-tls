@@ -6,6 +6,7 @@ import tempfile
 from configuration import ALL_TEST_CURVES
 from common import ProviderOptions
 from fixtures import managed_process  # noqa: F401
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
