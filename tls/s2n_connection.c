@@ -45,6 +45,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
@@ -1002,6 +1003,25 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     }
 
     return conn->kex_params.server_kem_group_params.kem_group->name;
+}
+
+int s2n_connection_get_key_exchange_group_name(struct s2n_connection *conn, const char **group_name)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(group_name);
+
+    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if 
+       the negotiated group was a hybrid PQ key exchange also containing a KEM. Therefore,
+       we use the result of s2n_connection_get_kem_group_name if the connection supports PQ. */
+    if (s2n_tls13_pq_hybrid_supported(conn)) {
+        *group_name = s2n_connection_get_kem_group_name(conn);
+    } else {
+        *group_name = s2n_connection_get_curve(conn);
+    }
+
+    POSIX_ENSURE(*group_name != NULL && strcmp(*group_name, "NONE"), S2N_ERR_INVALID_STATE);
+
+    return S2N_SUCCESS;
 }
 
 static S2N_RESULT s2n_connection_get_client_supported_version(struct s2n_connection *conn,

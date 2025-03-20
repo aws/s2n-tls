@@ -274,11 +274,16 @@ int main(int argc, char **argv)
         /* No curve negotiated yet */
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group_name(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         /* TLS1.3 always returns a curve */
         conn->actual_protocol_version = S2N_TLS13;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group_name(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 returns a curve if ECDHE cipher negotiated */
@@ -287,6 +292,10 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group_name(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 does not return a curve if ECDHE cipher was not negotiated */
         conn->actual_protocol_version = S2N_TLS12;
@@ -294,6 +303,7 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group_name(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };

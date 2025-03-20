@@ -3294,6 +3294,8 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
 
 /**
  * Function to get the human readable elliptic curve name for the connection.
+ * 
+ * @deprecated Use `s2n_connection_get_key_exchange_group_name` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
@@ -3318,11 +3320,25 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
  * @note PQ key exchange will not occur if the connection is < TLS1.3 or the configured security
  * policy has no KEM groups on it. It also will not occur if the peer does not support PQ key exchange.
  * In these instances this function will return "NONE".
+ * 
+ * @deprecated Use `s2n_connection_get_key_exchange_group_name` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. Returns "NONE" if no PQ key exchange occurred.
  */
 S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
+
+/**
+ * Function to get the human readable key exchange group name for the connection.
+ *
+ * @note This function replaces `s2n_connection_get_curve` and `s2n_connection_get_kem_group_name`, returning
+ * the named group regardless if a hybrid PQ group was negotiated or not. 
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to point to a const char* containing the group name
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `group_name` will be set on success.
+ */
+S2N_API extern int s2n_connection_get_key_exchange_group_name(struct s2n_connection *conn, const char **group_name);
 
 /**
  * Function to get the alert that caused a connection to close. s2n-tls considers all
