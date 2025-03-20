@@ -10,9 +10,9 @@ env:
     # renegotiate covers both renegotiate.py and renegotiate_apache.py
     INTEGV2_TEST_0:
             happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
-            signature_algorithms ocsp external_psk pq_handshake serialization
+            ocsp external_psk pq_handshake serialization
     INTEGV2_TEST_1:
-            record_padding renegotiate cross_compatibility early_data hello_retry_requests
+            signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
             fragmentation key_update session_resumption version_negotiation
     # Excluded in nix:
     # - dynamic_record_sizes (fails on aarch64)
