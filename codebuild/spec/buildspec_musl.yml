@@ -33,7 +33,7 @@ phases:
       # We need to modify the usual install so that the library can link to musl.
       # If this becomes a problem, we can switch to more official cross compilation.
       - CFLAGS="-U_FORTIFY_SOURCE -D_FILE_OFFSET_BITS=32"
-      - ./codebuild/bin/install_awslc.sh $(mktemp -d) $CODEBUILD_SRC_DIR/$LIBCRYPTO_DIR 0
+      - ./codebuild/bin/install_awslc.sh $(mktemp -d) $CODEBUILD_SRC_DIR/$LIBCRYPTO_DIR
   build:
     on-failure: ABORT
     commands:

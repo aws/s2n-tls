@@ -27,7 +27,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_set.h"
 
 int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
