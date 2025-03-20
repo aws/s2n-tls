@@ -245,8 +245,8 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, s2n_connection_get_kem_group_name(client_conn), strlen(expected_kem_group->name)), 0);
 
         /* Ensure s2n_connection_get_key_exchange_group_name() gives the correct answer for both client and server */
-        const char* server_group_name = NULL;
-        const char* client_group_name = NULL;
+        const char *server_group_name = NULL;
+        const char *client_group_name = NULL;
         POSIX_GUARD(s2n_connection_get_key_exchange_group_name(server_conn, &server_group_name));
         POSIX_GUARD(s2n_connection_get_key_exchange_group_name(client_conn, &client_group_name));
         POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(server_group_name));
@@ -271,8 +271,8 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(memcmp(expected_curve->name, s2n_connection_get_curve(client_conn), strlen(expected_curve->name)), 0);
 
         /* Ensure s2n_connection_get_key_exchange_group_name() gives the correct answer for both client and server */
-        const char* server_group_name = NULL;
-        const char* client_group_name = NULL;
+        const char *server_group_name = NULL;
+        const char *client_group_name = NULL;
         POSIX_GUARD(s2n_connection_get_key_exchange_group_name(server_conn, &server_group_name));
         POSIX_GUARD(s2n_connection_get_key_exchange_group_name(client_conn, &client_group_name));
         POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(server_group_name));
