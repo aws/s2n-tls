@@ -435,10 +435,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
-    POSIX_GUARD(s2n_alloc(&point_blob, point_len));
+    POSIX_GUARD(s2n_stuffer_skip_write(out, point_len));
+    point_blob.data = out->blob.data + out->write_cursor - point_len;
+    point_blob.size = point_len;
+
     POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
-    POSIX_GUARD(s2n_stuffer_write(out, &point_blob));
-    POSIX_GUARD(s2n_free(&point_blob));
 #endif
     return 0;
 }
