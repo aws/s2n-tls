@@ -1,3 +1,7 @@
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
 ---
 version: 0.2
 env:
@@ -9,11 +13,11 @@ env:
     # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
     # renegotiate covers both renegotiate.py and renegotiate_apache.py
     INTEGV2_TEST_0:
-            happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
-            ocsp external_psk pq_handshake serialization
+      happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
+      ocsp external_psk pq_handshake serialization
     INTEGV2_TEST_1:
-            signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
-            fragmentation key_update session_resumption version_negotiation
+      signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
+      fragmentation key_update session_resumption version_negotiation
     # Excluded in nix:
     # - dynamic_record_sizes (fails on aarch64)
     # - sslyze (tooling not available on aarch64)
