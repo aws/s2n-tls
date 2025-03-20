@@ -3,6 +3,8 @@ version: 0.2
 env:
   shell: bash
   variables:
+    # --ignore-environment prevents existing environment variables from being carried forward into the new shell.
+    # This allows for a clean, sterile environment.
     NIXDEV_ARGS: --max-jobs auto --ignore-environment
     # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
     # renegotiate covers both renegotiate.py and renegotiate_apache.py
