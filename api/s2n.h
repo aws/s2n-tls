@@ -3320,8 +3320,6 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
  * @note PQ key exchange will not occur if the connection is < TLS1.3 or the configured security
  * policy has no KEM groups on it. It also will not occur if the peer does not support PQ key exchange.
  * In these instances this function will return "NONE".
- * 
- * @deprecated Use `s2n_connection_get_key_exchange_group_name` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. Returns "NONE" if no PQ key exchange occurred.
