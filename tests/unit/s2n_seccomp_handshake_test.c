@@ -19,7 +19,7 @@
 
 int main(int argc, char **argv)
 {
-    /* We need to execute BEGIN_TEST() before the seccomp filter is applied.
+    /* We need to execute s2n_init before the seccomp filter is applied.
      * Some one-time initialization involves opening files, like "dev/urandom".
      * If built with aws-lc, s2n-tls also needs to call CRYPTO_pre_sandbox_init()
      * before seccomp starts sandboxing.
