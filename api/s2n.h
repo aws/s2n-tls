@@ -3327,10 +3327,8 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
 S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
 
 /**
- * Function to get the human readable key exchange group name for the connection.
- *
- * The value returned matches the `Description` defined in the [IANA Registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8),
- * for example: `secp521r1` or `SecP256r1MLKEM768`.
+ * Function to get the human readable key exchange group name for the connection, for example: 
+ * `secp521r1` or `SecP256r1MLKEM768`.
  *
  * @note This function replaces `s2n_connection_get_curve` and `s2n_connection_get_kem_group_name`, returning
  * the named group regardless if a hybrid PQ group was negotiated or not. 
