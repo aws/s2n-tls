@@ -19,7 +19,14 @@
 
 int main(int argc, char **argv)
 {
-    BEGIN_TEST_NO_INIT();
+    /* We need to execute s2n_init before the seccomp filter is applied.
+     * Some one-time initialization involves opening files, like "dev/urandom".
+     * If built with aws-lc, s2n-tls also needs to call CRYPTO_pre_sandbox_init()
+     * before seccomp starts sandboxing.
+     *
+     * An application using s2n-tls with seccomp would need to do the same.
+     */
+    BEGIN_TEST();
 
     /* One of the primary purposes of seccomp is to block opening new files.
      * So before we enable seccomp, we need to open any files that the test would
@@ -33,15 +40,6 @@ int main(int argc, char **argv)
             cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY,
             private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-
-    /* We need to execute s2n_init before the seccomp filter is applied.
-     * Some one-time initialization involves opening files, like "dev/urandom".
-     * If built with aws-lc, s2n-tls also needs to call CRYPTO_pre_sandbox_init()
-     * before seccomp starts sandboxing.
-     *
-     * An application using s2n-tls with seccomp would need to do the same.
-     */
-    EXPECT_SUCCESS(s2n_init());
 
     /* No unexpected syscalls allowed beyond this point */
     EXPECT_OK(s2n_seccomp_init());
