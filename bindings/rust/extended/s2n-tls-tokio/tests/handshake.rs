@@ -35,7 +35,10 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
         assert!(tls.as_ref().cipher_suite().is_ok());
         assert!(tls.as_ref().selected_curve().is_ok());
         assert!(tls.as_ref().selected_key_exchange_group_name().is_ok());
-        assert_eq(tls.as_ref().selected_curve(), tls.as_ref().selected_key_exchange_group_name());
+        assert_eq(
+            tls.as_ref().selected_curve(),
+            tls.as_ref().selected_key_exchange_group_name()
+        );
     }
 
     Ok(())

@@ -1128,10 +1128,8 @@ impl Connection {
     pub fn selected_key_exchange_group_name(&self) -> Result<&str, Error> {
         let mut group_name = core::ptr::null();
         unsafe {
-            s2n_connection_get_key_exchange_group_name(
-                self.connection.as_ptr(), 
-                &mut group_name
-            ).into_result()
+            s2n_connection_get_key_exchange_group_name(self.connection.as_ptr(), &mut group_name)
+                .into_result()
         }?;
 
         unsafe {
