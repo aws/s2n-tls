@@ -58,7 +58,7 @@ function build {(set -e
 function unit {(set -e
     if [[ -z "$1" ]]; then
         cmake --build build -j $(nproc)
-        ctest --test-dir build -L unit -j $(nproc) --output-on-failure --output-junit "unit_all.xml"  --verbose
+        ctest --test-dir build -L unit -j $(nproc) --output-junit "junit/unit.xml"  --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
         echo "Tests:"
@@ -67,7 +67,7 @@ function unit {(set -e
         do
             cmake --build build -j $(nproc) --target $test
         done
-        ctest --test-dir build -L unit -R "$1" -j $(nproc) --output-junit "$1.xml" --verbose
+        ctest --test-dir build -L unit -R "$1" -j $(nproc) --output-junit "junit/$1.xml" --verbose
     fi
 )}
 
@@ -75,11 +75,10 @@ function integ {(set -e
     apache2_start
     if [[ -z "$1" ]]; then
         banner "Running all integ tests."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 --output-junit "integv2.xml"  --verbose)
+        (cd $SRC_ROOT/build; ctest -L integrationv2 --output-junit "junit/integv2.xml" --verbose)
     else
         for test in $@; do
-            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure \
-              --output-junit "$1.xml" -R "$test" --verbose
+            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --output-junit "junit/$test.xml" --verbose
             if [ "$?" -ne 0 ]; then
                echo "Test failed, stopping execution"
                return 1

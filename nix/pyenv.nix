@@ -37,7 +37,6 @@ in pkgs.python310.withPackages (ps:
   [
     ps.pep8
     ps.pytest
-    ps.pytest-html
     ps.pytest-xdist
     ps.pytest-rerunfailures
     ps.typing-extensions
