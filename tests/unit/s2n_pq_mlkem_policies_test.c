@@ -94,7 +94,6 @@ const struct s2n_kem *mlkem_list[] = {
 
 /* Ciphers that should not be present in TLS Policies that have ML-KEM */
 const struct s2n_cipher_suite *legacy_cipher_suites[] = {
-    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384, /* Draft cipher for negotiating Kyber in TLS 1.2. */
     &s2n_rsa_with_3des_ede_cbc_sha,
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
