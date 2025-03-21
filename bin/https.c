@@ -110,11 +110,8 @@ int https(struct s2n_connection *conn, uint32_t bench)
         BUFFER("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    BUFFER("Curve: %s\n", s2n_connection_get_curve(conn));
-    BUFFER("KEM: %s\n", s2n_connection_get_kem_name(conn));
-    BUFFER("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
     const char *group_name = NULL;
-    if (s2n_connection_get_key_exchange_group_name(conn, &group_name)) {
+    if (s2n_connection_get_key_exchange_group_name(conn, &group_name) == 0) {
         BUFFER("Key Exchange Group: %s\n", group_name);
     }
     BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));

@@ -3328,7 +3328,8 @@ S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connecti
 
 /**
  * Function to get the human readable key exchange group name for the connection, for example: 
- * `secp521r1` or `SecP256r1MLKEM768`.
+ * `secp521r1` or `SecP256r1MLKEM768`. If an EC curve or KEM was not negotiated, S2N_FAILURE will be
+ * returned.
  *
  * @note This function replaces `s2n_connection_get_curve` and `s2n_connection_get_kem_group_name`, returning
  * the named group regardless if a hybrid PQ group was negotiated or not. 
