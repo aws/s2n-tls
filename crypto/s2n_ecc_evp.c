@@ -412,7 +412,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    struct s2n_blob point_blob = { 0 };
     uint8_t *encoded_point = NULL;
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
@@ -420,14 +419,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        POSIX_ENSURE_REF(point_blob.data);
-        POSIX_CHECKED_MEMCPY(point_blob.data, encoded_point, size);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
         OPENSSL_free(encoded_point);
     }
 #else
-    uint8_t point_len;
-    struct s2n_blob point_blob = { 0 };
+    uint8_t point_len = 0;
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
@@ -437,11 +433,19 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    point_blob.data = s2n_stuffer_raw_write(out, point_len);
-    POSIX_ENSURE_REF(point_blob.data);
-    point_blob.size = point_len;
 
-    POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
+    /* A safer way to do s2n_stuffer_raw_write without tainted the out stuffer */
+    POSIX_GUARD(s2n_stuffer_reserve_space(out, point_len));
+    struct s2n_stuffer copy = *out;
+    {
+        struct s2n_blob point_blob = { 0 };
+        point_blob.data = s2n_stuffer_raw_write(&copy, point_len);
+        POSIX_ENSURE_REF(point_blob.data);
+        point_blob.size = point_len;
+
+        POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
+    }
+    out->write_cursor += point_len;
 #endif
     return 0;
 }
@@ -456,8 +460,14 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-    /* Remember where the written data starts */
-    written->data = s2n_stuffer_raw_write(out, 0);
+    /**
+     * Remember where the written data starts with 
+     * a safer way to do s2n_stuffer_raw_write without tainted the out stuffer.
+     */
+    struct s2n_stuffer copy = *out;
+    {
+        written->data = s2n_stuffer_raw_write(&copy, 0);
+    }
     POSIX_ENSURE_REF(written->data);
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
