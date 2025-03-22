@@ -16,6 +16,7 @@ use tokio::time;
 
 pub mod common;
 
+#[allow(deprecated)]
 #[tokio::test]
 async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
     let (server_stream, client_stream) = common::get_streams().await?;
@@ -34,6 +35,11 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
         // Cipher suite may change, so just makes sure we can retrieve it.
         assert!(tls.as_ref().cipher_suite().is_ok());
         assert!(tls.as_ref().selected_curve().is_ok());
+        assert!(tls.as_ref().selected_key_exchange_group_name().is_ok());
+        assert_eq!(
+            tls.as_ref().selected_curve().unwrap(),
+            tls.as_ref().selected_key_exchange_group_name().unwrap(),
+        );
     }
 
     Ok(())

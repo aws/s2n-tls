@@ -129,7 +129,7 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
+int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
 {
     return conn->kex_params.server_kem_group_params.kem_group != NULL;
 }
