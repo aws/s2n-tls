@@ -1672,15 +1672,11 @@ mod tests {
     /// Test that `certificate_match` executes safely and returns a result.
     #[test]
     fn test_certificate_match_executes_safely() {
-        use crate::config::Config;
-
         let config = Config::new();
-        let mut connection = Connection::new_client();
+        let mut connection = Connection::new_server();
         connection.set_config(config).unwrap();
 
         let result = connection.certificate_match();
-
-        // Just make sure it runs and returns something
         assert!(result.is_ok() || result.is_err());
     }
 }
