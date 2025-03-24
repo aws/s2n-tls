@@ -195,7 +195,7 @@ impl Connection {
     pub fn certificate_match(&self) -> Result<CertSNIMatch, Error> {
         // Create a mutable variable to store the output value from the C function.
         // We initialize it to a default (NO_MATCH), but the C function will overwrite it.
-        let mut match_type = s2n_cert_sni_match::SNI_NO_MATCH;
+        let mut match = s2n_cert_sni_match::SNI_NO_MATCH;
 
         // Call the raw C function via FFI.
         // It takes a raw pointer to the connection, and a pointer to where the match result should go.
