@@ -147,7 +147,7 @@ fn build_vendored() {
     build.compile("s2n-tls");
 
     // linking to the libcrypto is handled by the rust compiler through the
-    // `use aws_lc_rs as _;` statement included in the generated source files. 
+    // `use aws_lc_rs as _;` statement included in the generated source files.
     // This is less brittle than manually linking the libcrypto artifact.
 
     // let consumers know where to find our header files
