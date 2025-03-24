@@ -151,13 +151,13 @@ When running in FIPS mode with Openssl, s2n-tls does not support RSA 1024 certif
 s2n-tls requires that Openssl be configured with the standard provider in addition to the FIPS provider. The base provider is NOT sufficient. If you are following the [Openssl documentation for how to configure FIPS](https://docs.openssl.org/master/man7/fips_module/), your openssl.cnf must include:
 ```
 [provider_sect]
+default = default_sect
 fips = fips_sect
-standard = standard_sect
 
-[standard_sect]
+[default_sect]
 activate = 1
 ```
-Note the use of `standard` instead of `base`. 
+Note the use of `default` instead of `base`. You can see the openssl.cnf that s2n-tls uses for testing [here](https://github.com/aws/s2n-tls/blob/main/codebuild/bin/s2n_fips_openssl.cnf).
 
 
 ## Other build methods
