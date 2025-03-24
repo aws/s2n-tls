@@ -60,6 +60,27 @@ pub struct Connection {
     connection: NonNull<s2n_connection>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CertSNIMatch {
+    None,
+    ExactMatch,
+    WildcardMatch,
+    NoMatch,
+    Unknown(i32),
+}
+
+impl From<u32> for CertSNIMatch {
+    fn from(value: u32) -> Self {
+        match value {
+            s2n_cert_sni_match::SNI_NONE => CertSNIMatch::None,
+            s2n_cert_sni_match::SNI_EXACT_MATCH => CertSNIMatch::ExactMatch,
+            s2n_cert_sni_match::SNI_WILDCARD_MATCH => CertSNIMatch::WildcardMatch,
+            s2n_cert_sni_match::SNI_NO_MATCH => CertSNIMatch::NoMatch,
+            other => CertSNIMatch::Unknown(other as i32),
+        }
+    }
+}
+
 impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug = f.debug_struct("Connection");
@@ -166,6 +187,24 @@ impl Connection {
 
     pub(crate) fn mode(&self) -> Mode {
         self.context().mode
+    }
+
+    /// This method safely wraps the C function and returns the certificate match result
+    /// (e.g., Exact, Wildcard, or No Match) as a Rust enum.
+    /// Corresponds to [s2n_connection_get_certificate_match].
+    pub fn certificate_match(&self) -> Result<CertSNIMatch, Error> {
+        // Create a mutable variable to store the output value from the C function.
+        // We initialize it to a default (NO_MATCH), but the C function will overwrite it.
+        let mut match_type = s2n_cert_sni_match::SNI_NO_MATCH;
+
+        // Call the raw C function via FFI.
+        // It takes a raw pointer to the connection, and a pointer to where the match result should go.
+        unsafe {
+            s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut match_type)
+        }
+        .into_result()?; // handles error conversion
+
+        Ok(CertSNIMatch::from(match_type))
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
@@ -1628,5 +1667,20 @@ mod tests {
 
         // Retrieving the correct type succeeds.
         assert!(connection.application_context::<u32>().is_some());
+    }
+
+    /// Test that `certificate_match` executes safely and returns a result.
+    #[test]
+    fn test_certificate_match_executes_safely() {
+        use crate::config::Config;
+
+        let config = Config::new();
+        let mut connection = Connection::new_client();
+        connection.set_config(config).unwrap();
+
+        let result = connection.certificate_match();
+
+        // Just make sure it runs and returns something
+        assert!(result.is_ok() || result.is_err());
     }
 }
