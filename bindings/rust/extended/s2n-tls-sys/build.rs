@@ -146,8 +146,9 @@ fn build_vendored() {
 
     build.compile("s2n-tls");
 
-    // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib={}", libcrypto.link);
+    // linking to the libcrypto is handled by the rust compiler through the
+    // `use aws_lc_rs as _;` statement included in the generated source files. 
+    // This is less brittle than manually linking the libcrypto artifact.
 
     // let consumers know where to find our header files
     let include_dir = out_dir.join("include");
