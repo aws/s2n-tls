@@ -1005,7 +1005,7 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     return conn->kex_params.server_kem_group_params.kem_group->name;
 }
 
-int s2n_connection_get_key_exchange_group_name(struct s2n_connection *conn, const char **group_name)
+int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(group_name);

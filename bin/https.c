@@ -111,7 +111,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
     }
 
     const char *group_name = NULL;
-    if (s2n_connection_get_key_exchange_group_name(conn, &group_name) == 0) {
+    if (s2n_connection_get_key_exchange_group(conn, &group_name) == 0) {
         BUFFER("Key Exchange Group: %s\n", group_name);
     }
     BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));

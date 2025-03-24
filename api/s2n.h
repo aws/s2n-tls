@@ -3295,7 +3295,7 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
 /**
  * Function to get the human readable elliptic curve name for the connection.
  * 
- * @deprecated Use `s2n_connection_get_key_exchange_group_name` instead
+ * @deprecated Use `s2n_connection_get_key_exchange_group` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
@@ -3338,7 +3338,7 @@ S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connecti
  * @param group_name A pointer that will be set to point to a const char* containing the group name
  * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `group_name` will be set on success.
  */
-S2N_API extern int s2n_connection_get_key_exchange_group_name(struct s2n_connection *conn, const char **group_name);
+S2N_API extern int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name);
 
 /**
  * Function to get the alert that caused a connection to close. s2n-tls considers all

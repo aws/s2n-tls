@@ -72,8 +72,8 @@ impl fmt::Debug for Connection {
         if let Ok(version) = self.actual_protocol_version() {
             debug.field("actual_protocol_version", &version);
         }
-        if let Ok(group_name) = self.selected_key_exchange_group_name() {
-            debug.field("selected_key_exchange_group_name", &group_name);
+        if let Some(group_name) = self.selected_key_exchange_group() {
+            debug.field("selected_key_exchange_group", &group_name);
         }
         debug.finish_non_exhaustive()
     }
@@ -1112,7 +1112,7 @@ impl Connection {
     }
 
     /// Corresponds to [s2n_connection_get_curve].
-    #[deprecated = "Use selected_key_exchange_group_name instead"]
+    #[deprecated = "Use selected_key_exchange_group instead"]
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         unsafe {
@@ -1124,12 +1124,13 @@ impl Connection {
         }
     }
 
-    /// Corresponds to [s2n_connection_get_key_exchange_group_name].
-    pub fn selected_key_exchange_group_name(&self) -> Result<&str, Error> {
+    /// Corresponds to [s2n_connection_get_key_exchange_group].
+    pub fn selected_key_exchange_group(&self) -> Option<&str> {
         let mut group_name = core::ptr::null();
         unsafe {
-            s2n_connection_get_key_exchange_group_name(self.connection.as_ptr(), &mut group_name)
+            s2n_connection_get_key_exchange_group(self.connection.as_ptr(), &mut group_name)
                 .into_result()
+                .ok()
         }?;
 
         unsafe {
@@ -1138,7 +1139,7 @@ impl Connection {
             // SAFETY: group_name has a static lifetime because it lives on either
             //         s2n_ecc_named_curve or s2n_kem, both of which are static
             //         const structs.
-            const_str!(group_name)
+            const_str!(group_name).ok()
         }
     }
 
