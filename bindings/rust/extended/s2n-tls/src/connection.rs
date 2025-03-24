@@ -199,10 +199,8 @@ impl Connection {
 
         // Call the raw C function via FFI.
         // It takes a raw pointer to the connection, and a pointer to where the match result should go.
-        unsafe {
-            s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut match_type)
-        }
-        .into_result()?; // handles error conversion
+        unsafe { s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut match_type) }
+            .into_result()?; // handles error conversion
 
         Ok(CertSNIMatch::from(match_type))
     }
