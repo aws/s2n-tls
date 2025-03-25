@@ -50,6 +50,10 @@ mod tests {
 
             pair.handshake().unwrap();
             assert_eq!(pair.client.kem_group_name(), Some("X25519MLKEM768"));
+            assert_eq!(
+                pair.client.selected_key_exchange_group(),
+                Some("X25519MLKEM768")
+            );
         }
 
         Ok(())
