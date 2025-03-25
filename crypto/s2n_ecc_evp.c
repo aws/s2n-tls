@@ -434,22 +434,17 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
-    /**
-     * A safer way to do s2n_stuffer_raw_write without tainted the out stuffer.
-     * Reserve enough space to write point_len so s2n_stuffer_raw_write won't
-     * realloc and change the memory address of blob.data.
-     */
+    /* Use a temprorary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
     POSIX_GUARD(s2n_stuffer_reserve_space(out, point_len));
     struct s2n_stuffer copy = *out;
-    {
-        struct s2n_blob point_blob = { 0 };
-        point_blob.data = s2n_stuffer_raw_write(&copy, point_len);
-        POSIX_ENSURE_REF(point_blob.data);
-        point_blob.size = point_len;
 
-        POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
-    }
-    /* write_cursor and high_water_mark might be changed during s2n_stuffer_raw_write */
+    struct s2n_blob point_blob = { 0 };
+    point_blob.data = s2n_stuffer_raw_write(&copy, point_len);
+    POSIX_ENSURE_REF(point_blob.data);
+    point_blob.size = point_len;
+
+    POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
+
     out->write_cursor = copy.write_cursor;
     out->high_water_mark = copy.high_water_mark;
 #endif
@@ -466,14 +461,12 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-    /**
-     * Remember where the written data starts with 
-     * a safer way to do s2n_stuffer_raw_write without tainted the out stuffer.
-     */
+
+    /* Use a temprorary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
     struct s2n_stuffer copy = *out;
-    {
-        written->data = s2n_stuffer_raw_write(&copy, 0);
-    }
+
+    /* Remember where the written data starts */
+    written->data = s2n_stuffer_raw_write(&copy, 0);
     POSIX_ENSURE_REF(written->data);
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));

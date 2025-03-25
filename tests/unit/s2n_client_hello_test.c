@@ -50,7 +50,7 @@
 /* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
 #define REDUCED_CIPHER_SUITE_COUNT (MAXIMUM_NUM_OF_CIPHER_SUITES - NUM_OF_CIPHER_SUITES_TO_DROP)
 /* Reducing cipher suites by 150 creates approximately 300 bytes margin below maximum handshake length */
-#define ESTMATIED_MAX_HANDSHAKE_LENGTH_MARGIN (NUM_OF_CIPHER_SUITES_TO_DROP * S2N_TLS_CIPHER_SUITE_LEN)
+#define ESTIMATED_MAX_HANDSHAKE_LENGTH_MARGIN (NUM_OF_CIPHER_SUITES_TO_DROP * S2N_TLS_CIPHER_SUITE_LEN)
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
@@ -2023,7 +2023,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_hello);
         uint32_t handshake_max_len_margin = S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH - s2n_client_hello_get_raw_message_length(client_hello);
         /* Size of Client Hello is less than 300 bytes from the maximum handshake length */
-        EXPECT_TRUE(handshake_max_len_margin < ESTMATIED_MAX_HANDSHAKE_LENGTH_MARGIN);
+        EXPECT_TRUE(handshake_max_len_margin < ESTIMATED_MAX_HANDSHAKE_LENGTH_MARGIN);
     }
 
     /* Test: Client Hello is larger than 64KB */
