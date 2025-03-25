@@ -105,6 +105,30 @@ impl TryFrom<s2n_tls_version::Type> for Version {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
+pub enum CertSNIMatch {
+    None,
+    ExactMatch,
+    WildcardMatch,
+    NoMatch,
+    Unknown(i32),
+}
+
+impl TryFrom<u32> for CertSNIMatch {
+    type Error = Error;
+    fn try_from(input: u32) -> Result<Self, Self::Error> {
+        let version = match input {
+            s2n_cert_sni_match::SNI_NONE => Self::None,
+            s2n_cert_sni_match::SNI_EXACT_MATCH => Self::ExactMatch,
+            s2n_cert_sni_match::SNI_WILDCARD_MATCH => Self::WildcardMatch,
+            s2n_cert_sni_match::SNI_NO_MATCH => Self::NoMatch,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(version)
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
 /// Corresponds to [s2n_blinding].
 pub enum Blinding {
     SelfService,
