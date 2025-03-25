@@ -1647,14 +1647,13 @@ mod tests {
         assert!(connection.application_context::<u32>().is_some());
     }
 
-    /// Test that `certificate_match` executes safely and returns a result.
+    /// Test that `certificate_match` wrapper correctly maps C values to CertSNIMatch and handles unknown input.
     #[test]
-    fn test_certificate_match_executes_safely() {
-        let config = Config::new();
-        let mut connection = Connection::new_server();
-        connection.set_config(config).unwrap();
-
-        let result = connection.certificate_match();
-        assert!(result.is_ok() || result.is_err());
+    fn test_cert_sni_match_conversion() {
+        assert_eq!(
+            CertSNIMatch::try_from(s2n_cert_sni_match::SNI_EXACT_MATCH).unwrap(),
+            CertSNIMatch::ExactMatch
+        );
+        assert!(CertSNIMatch::try_from(9999).is_err());
     }
 }
