@@ -434,7 +434,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
-    /* Use a temprorary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
+    /* Use a temporary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
     POSIX_GUARD(s2n_stuffer_reserve_space(out, point_len));
     struct s2n_stuffer copy = *out;
 
@@ -462,7 +462,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
 
-    /* Use a temprorary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
+    /* Use a temporary stuffer copy to perform s2n_stuffer_raw_write, so the original stuffer won't be tainted */
     struct s2n_stuffer copy = *out;
 
     /* Remember where the written data starts */

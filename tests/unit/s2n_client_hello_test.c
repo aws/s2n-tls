@@ -46,9 +46,9 @@
 
 #define CIPHER_SUITES_MAX_LENGTH     (UINT16_MAX - 2)
 #define NUM_OF_CIPHER_SUITES_TO_DROP 150
-#define MAXIMUM_NUM_OF_CIPHER_SUITES (CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN)
+#define MAX_CIPHER_SUITE_COUNT       (CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN)
 /* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
-#define REDUCED_CIPHER_SUITE_COUNT (MAXIMUM_NUM_OF_CIPHER_SUITES - NUM_OF_CIPHER_SUITES_TO_DROP)
+#define REDUCED_CIPHER_SUITE_COUNT (MAX_CIPHER_SUITE_COUNT - NUM_OF_CIPHER_SUITES_TO_DROP)
 /* Reducing cipher suites by 150 creates approximately 300 bytes margin below maximum handshake length */
 #define ESTIMATED_MAX_HANDSHAKE_LENGTH_MARGIN (NUM_OF_CIPHER_SUITES_TO_DROP * S2N_TLS_CIPHER_SUITE_LEN)
 
@@ -2036,9 +2036,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
-        struct s2n_cipher_suite *test_cipher_suites[MAXIMUM_NUM_OF_CIPHER_SUITES] = { 0 };
+        struct s2n_cipher_suite *test_cipher_suites[MAX_CIPHER_SUITE_COUNT] = { 0 };
 
-        for (int i = 0; i < MAXIMUM_NUM_OF_CIPHER_SUITES; i++) {
+        for (int i = 0; i < MAX_CIPHER_SUITE_COUNT; i++) {
             test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
         }
 
@@ -2082,10 +2082,10 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
         /* Write Client Hello into io_pair.server_in */
-        s2n_negotiate(client, &blocked);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client, &blocked), S2N_ERR_IO_BLOCKED);
 
         /* The size of Client Hello exceeds S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH */
-        EXPECT_TRUE(io_pair.server_in.write_cursor > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+        EXPECT_TRUE(s2n_stuffer_data_available(&io_pair.server_in) > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
         EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO), S2N_ERR_BAD_MESSAGE);
 
         /* handshake.io shouldn't be tainted after sending and receiving large client hello */
