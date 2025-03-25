@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.15-4be62cb9</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.15-f6c55885</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -748,6 +748,8 @@ Functions</h2></td></tr>
 <tr class="separator:a5c26b7b10e7ed39a6cd3aeaab0f4066a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c116afc860c9273c32126617881f4b5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:a1c116afc860c9273c32126617881f4b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad782d2e72055ddfc4ce8768c163f4c6b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad782d2e72055ddfc4ce8768c163f4c6b">s2n_connection_get_key_exchange_group</a> (struct s2n_connection *conn, const char **group_name)</td></tr>
+<tr class="separator:ad782d2e72055ddfc4ce8768c163f4c6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5612a3161a2dcb4dd7fcb04aaf8845a8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a5612a3161a2dcb4dd7fcb04aaf8845a8">s2n_connection_get_alert</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:a5612a3161a2dcb4dd7fcb04aaf8845a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8649c4ff89e91c0a2278c139bc033449"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a8649c4ff89e91c0a2278c139bc033449">s2n_connection_get_handshake_type_name</a> (struct s2n_connection *conn)</td></tr>
@@ -6671,6 +6673,7 @@ Only a minimal amount of information about the original TLS connection is serial
       </table>
 </div><div class="memdoc">
 <p >Function to get the human readable elliptic curve name for the connection.</p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>Use <code>s2n_connection_get_key_exchange_group</code> instead</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
@@ -6813,7 +6816,7 @@ Only a minimal amount of information about the original TLS connection is serial
       </table>
 </div><div class="memdoc">
 <p >Function to get the human readable KEM name for the connection.</p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
@@ -6821,6 +6824,44 @@ Only a minimal amount of information about the original TLS connection is serial
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A human readable string for the KEM group. If there is no KEM configured returns "NONE" </dd></dl>
+
+</div>
+</div>
+<a id="ad782d2e72055ddfc4ce8768c163f4c6b" name="ad782d2e72055ddfc4ce8768c163f4c6b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad782d2e72055ddfc4ce8768c163f4c6b">&#9670;&#160;</a></span>s2n_connection_get_key_exchange_group()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_get_key_exchange_group </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>group_name</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Function to get the human readable key exchange group name for the connection, for example: <code>secp521r1</code> or <code>SecP256r1MLKEM768</code>. If an EC curve or KEM was not negotiated, S2N_FAILURE will be returned.</p>
+<dl class="section note"><dt>Note</dt><dd>This function replaces <code>s2n_connection_get_curve</code> and <code>s2n_connection_get_kem_group_name</code>, returning the named group regardless if a hybrid PQ group was negotiated or not.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
+    <tr><td class="paramname">group_name</td><td>A pointer that will be set to point to a const char* containing the group name </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE otherwise. <code>group_name</code> will be set on success. </dd></dl>
 
 </div>
 </div>
