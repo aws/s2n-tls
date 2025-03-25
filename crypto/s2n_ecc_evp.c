@@ -434,7 +434,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
-    /* A safer way to do s2n_stuffer_raw_write without tainted the out stuffer */
+    /**
+     * A safer way to do s2n_stuffer_raw_write without tainted the out stuffer.
+     * Reserve enough space to write point_len so s2n_stuffer_raw_write won't
+     * realloc and change the memory address of blob.data.
+     */
     POSIX_GUARD(s2n_stuffer_reserve_space(out, point_len));
     struct s2n_stuffer copy = *out;
     {
@@ -445,7 +449,9 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
         POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
     }
-    out->write_cursor += point_len;
+    /* write_cursor and high_water_mark might be changed during s2n_stuffer_raw_write */
+    out->write_cursor = copy.write_cursor;
+    out->high_water_mark = copy.high_water_mark;
 #endif
     return 0;
 }
