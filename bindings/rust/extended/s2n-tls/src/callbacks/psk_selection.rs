@@ -10,7 +10,7 @@ use s2n_tls_sys::*;
 
 use crate::{
     connection::Connection,
-    error::Fallible,
+    error::{Error, ErrorType, Fallible},
     foreign_types::{Opaque, S2NRef},
 };
 
@@ -43,15 +43,20 @@ impl<'callback> OfferedPsk<'callback> {
             s2n_offered_psk_get_identity(self.ptr.as_ptr(), &mut identity_buffer, &mut size)
                 .into_result()?
         };
+        let identity_buffer = NonNull::new(identity_buffer).ok_or(Error::bindings(
+            ErrorType::InternalError,
+            "unexpected psk identity",
+            "s2n_offered_psk_get_identity returned SUCCESS, but identity was null.",
+        ))?;
 
         Ok(unsafe {
-            // SAFETY: valid, aligned, non-null -> If the s2n-tls API didn't fail
-            //         (which we check for) then data will be non-null, valid for
-            //         reads, and aligned.
+            // SAFETY: valid, aligned -> If the s2n-tls API didn't fail (which we
+            //         check for) then data will be valid for reads and aligned.
+            // SAFETY: non-null -> We check the nullness of the returned identity.
             // SAFETY: the memory is not mutated -> For the life of the PSK Selection
             //         callback, nothing else is mutating the wire buffer which
             //         is the backing memory of the identities.
-            std::slice::from_raw_parts(identity_buffer, size as usize)
+            std::slice::from_raw_parts(identity_buffer.as_ptr(), size as usize)
         })
     }
 }
@@ -73,7 +78,10 @@ pub struct OfferedPskListRef<'callback> {
     wire_input: PhantomData<&'callback [u8]>,
 }
 
-impl S2NRef for OfferedPskListRef<'_> {
+// Safety: s2n_offered_psk_list is zero-sized, because it is an opaque type only
+// exposed from `s2n.h`. OfferedPskListRef is zero-sized because it contains only
+// an `Opaque` member and a `PhantomData` member.
+unsafe impl S2NRef for OfferedPskListRef<'_> {
     type ForeignType = s2n_offered_psk_list;
 }
 

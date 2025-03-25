@@ -58,7 +58,7 @@ pub(crate) struct Opaque(PhantomData<*mut c_void>);
 /// };
 /// ```
 /// SAFETY: both Self and Self::ForeignType must be zero sized.
-pub(crate) trait S2NRef: Sized {
+pub(crate) unsafe trait S2NRef: Sized {
     type ForeignType: Sized;
 
     fn from_s2n_ptr_mut<'a>(ptr: *mut Self::ForeignType) -> &'a mut Self {
