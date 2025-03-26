@@ -112,7 +112,7 @@ pub enum CertSNIMatch {
     NoMatch,
 }
 
-impl TryFrom<u32> for CertSNIMatch {
+impl TryFrom<s2n_cert_sni_match::Type> for CertSNIMatch {
     type Error = Error;
     fn try_from(input: s2n_cert_sni_match::Type) -> Result<Self, Self::Error> {
         let version = match input {
