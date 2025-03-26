@@ -110,7 +110,6 @@ pub enum CertSNIMatch {
     ExactMatch,
     WildcardMatch,
     NoMatch,
-    Unknown(i32),
 }
 
 impl TryFrom<u32> for CertSNIMatch {
