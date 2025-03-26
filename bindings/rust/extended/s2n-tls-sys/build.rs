@@ -3,7 +3,11 @@
 
 use std::path::{Path, PathBuf};
 
+const EXTERNAL_BUILD_CFG_NAME: &str = "s2n_tls_external_build";
+
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg({EXTERNAL_BUILD_CFG_NAME})");
+
     let external = External::default();
     if external.is_enabled() {
         external.link();
@@ -251,6 +255,8 @@ impl External {
     }
 
     fn link(&self) {
+        println!("cargo:rustc-cfg={EXTERNAL_BUILD_CFG_NAME}");
+
         println!(
             "cargo:rustc-link-search={}",
             self.lib_dir.as_ref().unwrap().display()

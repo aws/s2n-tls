@@ -127,6 +127,7 @@ const PRELUDE: &str = r#"
 use libc::{iovec, FILE, off_t};
 // specify that aws-lc-rs is used, so that the rust compiler will link in the appropriate
 // libcrypto artifact.
+#[cfg(not(s2n_tls_external_build))]
 extern crate aws_lc_rs as _;
 "#;
 
