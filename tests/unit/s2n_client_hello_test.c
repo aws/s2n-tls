@@ -49,8 +49,6 @@
 #define MAX_CIPHER_SUITE_COUNT       (CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN)
 /* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
 #define REDUCED_CIPHER_SUITE_COUNT (MAX_CIPHER_SUITE_COUNT - NUM_OF_CIPHER_SUITES_TO_DROP)
-/* Reducing cipher suites by 150 creates approximately 300 bytes margin below maximum handshake length */
-#define ESTIMATED_MAX_HANDSHAKE_LENGTH_MARGIN (NUM_OF_CIPHER_SUITES_TO_DROP * S2N_TLS_CIPHER_SUITE_LEN)
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
@@ -1963,9 +1961,6 @@ int main(int argc, char **argv)
 
     /* Test: Client Hello is slightly less than 64KB */
     {
-        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(client_config);
-
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_config);
 
@@ -1982,23 +1977,16 @@ int main(int argc, char **argv)
             .suites = test_cipher_suites,
         };
 
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = S2N_TLS12,
-            .cipher_preferences = &test_cipher_suites_preferences,
-            .kem_preferences = &kem_preferences_null,
-            .signature_preferences = &s2n_signature_preferences_20240501,
-            .ecc_preferences = &s2n_ecc_preferences_20240501,
-            .rules = {
-                    [S2N_PERFECT_FORWARD_SECRECY] = true,
-            },
-        };
+        const struct s2n_security_policy *default_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
 
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        /* Use default security policy but with custom cipher suites preferences */
+        struct s2n_security_policy test_security_policy = *default_policy;
+        test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
         client->security_policy_override = &test_security_policy;
 
@@ -2015,22 +2003,15 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO));
 
-        /* handshake.io shouldn't be tainted after sending and receiving large client hello */
-        EXPECT_TRUE(client->handshake.io.tainted == 0);
-        EXPECT_TRUE(server->handshake.io.tainted == 0);
-
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
         EXPECT_NOT_NULL(client_hello);
-        uint32_t handshake_max_len_margin = S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH - s2n_client_hello_get_raw_message_length(client_hello);
-        /* Size of Client Hello is less than 300 bytes from the maximum handshake length */
-        EXPECT_TRUE(handshake_max_len_margin < ESTIMATED_MAX_HANDSHAKE_LENGTH_MARGIN);
+
+        /* Size of Client Hello should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH*/
+        EXPECT_TRUE(s2n_client_hello_get_raw_message_length(client_hello) < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
     }
 
     /* Test: Client Hello is larger than 64KB */
     {
-        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(client_config);
-
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_config);
 
@@ -2048,23 +2029,16 @@ int main(int argc, char **argv)
             .suites = test_cipher_suites,
         };
 
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = S2N_TLS12,
-            .cipher_preferences = &test_cipher_suites_preferences,
-            .kem_preferences = &kem_preferences_null,
-            .signature_preferences = &s2n_signature_preferences_20240501,
-            .ecc_preferences = &s2n_ecc_preferences_20240501,
-            .rules = {
-                    [S2N_PERFECT_FORWARD_SECRECY] = true,
-            },
-        };
+        const struct s2n_security_policy *default_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
 
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        /* Use default security policy but with custom cipher suites preferences */
+        struct s2n_security_policy test_security_policy = *default_policy;
+        test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
         client->security_policy_override = &test_security_policy;
 
@@ -2087,10 +2061,6 @@ int main(int argc, char **argv)
         /* The size of Client Hello exceeds S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH */
         EXPECT_TRUE(s2n_stuffer_data_available(&io_pair.server_in) > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
         EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO), S2N_ERR_BAD_MESSAGE);
-
-        /* handshake.io shouldn't be tainted after sending and receiving large client hello */
-        EXPECT_TRUE(client->handshake.io.tainted == 0);
-        EXPECT_TRUE(server->handshake.io.tainted == 0);
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

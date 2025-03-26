@@ -114,6 +114,12 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     /* Write extension data */
     POSIX_GUARD(extension_type->send(conn, out));
 
+    /**
+     * Stuffer might get tainted when sending extensions, while we can't find all of them at the moment.
+     * Catch tainted stuffer during testing only, so we won't break our customers in production.
+     */
+    POSIX_DEBUG_ENSURE(out->tainted == false, S2N_ERR_STUFFER_IS_TAINTED);
+
     /* Record extension size */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));
 
