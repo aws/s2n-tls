@@ -382,7 +382,7 @@ int main(int argc, char **argv)
                 ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
 
         /* Verify there is an encrypt key available */
-        s2n_result_is_ok(s2n_config_is_encrypt_key_available(server_config));
+        EXPECT_OK(s2n_config_is_encrypt_key_available(server_config));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -396,7 +396,7 @@ int main(int argc, char **argv)
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
         EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
-        s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
         /* Verify the lifetime hint from the server */
