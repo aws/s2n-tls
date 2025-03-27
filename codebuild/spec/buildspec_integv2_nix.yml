@@ -260,5 +260,5 @@ phases:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST_0 $INTEGV2_TEST_1"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; integ $INTEGV2_TEST_0 $INTEGV2_TEST_1"
         fi
