@@ -13,6 +13,7 @@ use crate::{
     error::{Error, Fallible, Pollable},
     psk::Psk,
     security,
+    testing::{build_config, TestPair},
 };
 
 use core::{
@@ -1640,13 +1641,17 @@ mod tests {
         assert!(connection.application_context::<u32>().is_some());
     }
 
-    /// Test that `certificate_match` wrapper correctly maps C values to CertSNIMatch and handles unknown input.
+    /// Test that the `certificate_match` Rust wrapper correctly calls the underlying C API
     #[test]
-    fn test_cert_sni_match_conversion() {
-        assert_eq!(
-            CertSNIMatch::try_from(s2n_cert_sni_match::SNI_EXACT_MATCH).unwrap(),
-            CertSNIMatch::ExactMatch
-        );
-        assert!(CertSNIMatch::try_from(9999).is_err());
+    fn test_certificate_match_returns_no_match() {
+        let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
+        let mut pair = TestPair::from_config(&config);
+
+        pair.client.set_server_name("localhost").expect("Failed to set SNI");
+
+        pair.handshake().expect("Handshake failed");
+        let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
+
+        assert_eq!(cert_match, CertSNIMatch::NoMatch);
     }
 }
