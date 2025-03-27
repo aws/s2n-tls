@@ -189,7 +189,7 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
-target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PRIVATE -fPIC)
 
 set(S2N_PRELUDE "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
 target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
