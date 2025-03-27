@@ -412,7 +412,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    struct s2n_blob point_blob = { 0 };
     uint8_t *encoded_point = NULL;
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
@@ -420,13 +419,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        POSIX_ENSURE_REF(point_blob.data);
-        POSIX_CHECKED_MEMCPY(point_blob.data, encoded_point, size);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
         OPENSSL_free(encoded_point);
     }
 #else
-    uint8_t point_len;
+    uint8_t point_len = 0;
     struct s2n_blob point_blob = { 0 };
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
@@ -442,6 +439,12 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     point_blob.size = point_len;
 
     POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
+
+    /**
+     * point_blob.data is not accessable outside of this function.
+     * The stuffer is not tainted after it goes out of this function's scope.
+     */
+    out->tainted = false;
 #endif
     return 0;
 }
@@ -456,9 +459,6 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-    /* Remember where the written data starts */
-    written->data = s2n_stuffer_raw_write(out, 0);
-    POSIX_ENSURE_REF(written->data);
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
@@ -468,6 +468,18 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     /* key share + key share size (1) + iana (2) + curve type (1) */
     written->size = key_share_size + 4;
+
+    /* Write data after writing ecc evp params to avoid stuffer resize failure */
+    uint32_t read_cursor = out->read_cursor;
+    uint32_t written_data_location = s2n_stuffer_data_available(out) - written->size;
+
+    POSIX_GUARD(s2n_stuffer_rewrite(out));
+    POSIX_GUARD(s2n_stuffer_skip_write(out, written_data_location));
+    POSIX_GUARD(s2n_stuffer_skip_read(out, read_cursor));
+
+    /* Remember where the written data starts */
+    written->data = s2n_stuffer_raw_write(out, written->size);
+    POSIX_ENSURE_REF(written->data);
 
     return written->size;
 }

@@ -71,7 +71,7 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
 
     /* Early data must require a supported cipher */
     bool match = false;
-    for (uint8_t i = 0; i < cipher_preferences->count; i++) {
+    for (size_t i = 0; i < cipher_preferences->count; i++) {
         if (cipher_preferences->suites[i] == early_data_config->cipher_suite) {
             match = true;
             break;

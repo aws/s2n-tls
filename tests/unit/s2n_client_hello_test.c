@@ -44,6 +44,12 @@
 #define COMPRESSION_METHODS     0x00, 0x01, 0x02, 0x03, 0x04
 #define COMPRESSION_METHODS_LEN 0x05
 
+#define CIPHER_SUITES_MAX_LENGTH     (UINT16_MAX - 2)
+#define NUM_OF_CIPHER_SUITES_TO_DROP 150
+#define MAX_CIPHER_SUITE_COUNT       (CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN)
+/* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
+#define REDUCED_CIPHER_SUITE_COUNT (MAX_CIPHER_SUITE_COUNT - NUM_OF_CIPHER_SUITES_TO_DROP)
+
 int s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension);
@@ -1952,6 +1958,110 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name(client_hello, small_buf, sizeof(small_buf), &out_length), S2N_ERR_SAFETY);
         };
     };
+
+    /* Test: Client Hello is slightly less than 64KB */
+    {
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        struct s2n_cipher_suite *test_cipher_suites[REDUCED_CIPHER_SUITE_COUNT] = { 0 };
+
+        for (int i = 0; i < REDUCED_CIPHER_SUITE_COUNT; i++) {
+            test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
+        }
+
+        const struct s2n_cipher_preferences test_cipher_suites_preferences = {
+            .count = s2n_array_len(test_cipher_suites),
+            .suites = test_cipher_suites,
+        };
+
+        const struct s2n_security_policy *default_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
+
+        /* Use default security policy but with custom cipher suites preferences */
+        struct s2n_security_policy test_security_policy = *default_policy;
+        test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+        client->security_policy_override = &test_security_policy;
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+        server->security_policy_override = &test_security_policy;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO));
+
+        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+        EXPECT_NOT_NULL(client_hello);
+
+        /* Size of Client Hello should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH*/
+        EXPECT_TRUE(s2n_client_hello_get_raw_message_length(client_hello) < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+    }
+
+    /* Test: Client Hello is larger than 64KB */
+    {
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        struct s2n_cipher_suite *test_cipher_suites[MAX_CIPHER_SUITE_COUNT] = { 0 };
+
+        for (int i = 0; i < MAX_CIPHER_SUITE_COUNT; i++) {
+            test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
+        }
+
+        /* We append the maximun number of cipher suites, so that the Client Hello size grows beyond 64KB */
+        const struct s2n_cipher_preferences test_cipher_suites_preferences = {
+            .count = s2n_array_len(test_cipher_suites),
+            .suites = test_cipher_suites,
+        };
+
+        const struct s2n_security_policy *default_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
+
+        /* Use default security policy but with custom cipher suites preferences */
+        struct s2n_security_policy test_security_policy = *default_policy;
+        test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+        client->security_policy_override = &test_security_policy;
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+        server->security_policy_override = &test_security_policy;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Write Client Hello into io_pair.server_in */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client, &blocked), S2N_ERR_IO_BLOCKED);
+
+        /* The size of Client Hello exceeds S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH */
+        EXPECT_TRUE(s2n_stuffer_data_available(&io_pair.server_in) > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+        EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO), S2N_ERR_BAD_MESSAGE);
+    }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
