@@ -1,7 +1,5 @@
-#
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-#
 ---
 version: 0.2
 env:
@@ -12,10 +10,9 @@ env:
     NIXDEV_ARGS: --max-jobs auto --ignore-environment
     # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
     # renegotiate covers both renegotiate.py and renegotiate_apache.py
-    INTEGV2_TEST_0:
+    INTEGV2_TEST:
       happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
       ocsp external_psk pq_handshake serialization
-    INTEGV2_TEST_1:
       signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
       fragmentation key_update session_resumption version_negotiation
     # Excluded in nix:
@@ -27,7 +24,7 @@ batch:
     # Cache job for x86
     - identifier: nixCache_x86_64
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_XLARGE
         image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
         privileged-mode: false
         type: LINUX_CONTAINER
@@ -38,7 +35,7 @@ batch:
     # Cache Job for aarch64
     - identifier: nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_XLARGE
         image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
         privileged-mode: false
         type: ARM_CONTAINER
@@ -55,22 +52,7 @@ batch:
         image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
         privileged-mode: true
         type: LINUX_CONTAINER
-        # Zero out the opposite test group
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#awslc
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
-    - identifier: Integ_awslc_x86_1
-      depend-on:
-        - nixCache_x86_64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
-        privileged-mode: true
-        type: LINUX_CONTAINER
-        # Zero out the opposite test group
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
@@ -84,19 +66,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#awslc
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-    - identifier: Integ_awslc_aarch64_1
-      depend-on:
-        - nixCache_aarch64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -110,19 +79,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#awslcfips2022
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-    - identifier: Integ_awslcfips2022_aarch64_1
-      depend-on:
-        - nixCache_aarch64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#awslcfips2022
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -136,19 +92,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#awslcfips2024
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-    - identifier: Integ_awslcfips2024_aarch64_1
-      depend-on:
-        - nixCache_aarch64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#awslcfips2024
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -162,19 +105,6 @@ batch:
         privileged-mode: true
         type: LINUX_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
-    - identifier: Integ_openssl30_x86_1
-      depend-on:
-        - nixCache_x86_64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
-        privileged-mode: true
-        type: LINUX_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
@@ -188,19 +118,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-    - identifier: Integ_openssl30_aarch64_1
-      depend-on:
-        - nixCache_aarch64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -214,19 +131,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          INTEGV2_TEST_1: ""
-          NIXDEV_LIBCRYPTO: .#openssl111
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-    - identifier: Integ_openssl111_aarch64_1
-      depend-on:
-        - nixCache_aarch64
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
-        variables:
-          INTEGV2_TEST_0: ""
           NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -260,5 +164,7 @@ phases:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; integ $INTEGV2_TEST_0 $INTEGV2_TEST_1"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST"
         fi
+
+
