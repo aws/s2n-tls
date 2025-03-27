@@ -178,7 +178,7 @@ batch:
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
-    # Openssl30 aarch
+    # Openssl30 aarch64
     - identifier: Integ_openssl30_aarch64_0
       depend-on:
         - nixCache_aarch64
