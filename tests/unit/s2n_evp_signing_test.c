@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_evp_signing.h"
-
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_pkey_evp.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "s2n_test.h"
