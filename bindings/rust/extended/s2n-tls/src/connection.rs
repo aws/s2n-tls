@@ -1647,7 +1647,7 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
         let mut pair = TestPair::from_config(&config);
 
-        pair.client.set_server_name("localhost").expect("Failed to set SNI");
+        pair.client.set_server_name("nonmatching_sni").expect("Failed to set SNI");
 
         pair.handshake().expect("Handshake failed");
         let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
