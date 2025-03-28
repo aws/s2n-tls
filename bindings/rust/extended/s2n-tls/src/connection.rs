@@ -13,7 +13,7 @@ use crate::{
     error::{Error, Fallible, Pollable},
     psk::Psk,
     security,
-    testing::{build_config, TestPair},
+    testing::{build_config, SniTestCerts, TestPair},
 };
 
 use core::{
@@ -1647,10 +1647,15 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
         let mut pair = TestPair::from_config(&config);
 
-        pair.client.set_server_name("nonmatching_sni").expect("Failed to set SNI");
+        pair.client
+            .set_server_name("nonmatching_sni")
+            .expect("Failed to set SNI");
 
         pair.handshake().expect("Handshake failed");
-        let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
+        let cert_match = pair
+            .server
+            .certificate_match()
+            .expect("Failed to get certificate match");
 
         assert_eq!(cert_match, CertSNIMatch::NoMatch);
     }
@@ -1662,7 +1667,10 @@ mod tests {
         let mut pair = TestPair::from_config(&config);
 
         pair.handshake().expect("Handshake failed");
-        let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
+        let cert_match = pair
+            .server
+            .certificate_match()
+            .expect("Failed to get certificate match");
 
         assert_eq!(cert_match, CertSNIMatch::NoSNI);
     }
@@ -1674,13 +1682,52 @@ mod tests {
         let mut pair = TestPair::from_config(&config);
 
         // Use an SNI that matches the certificate
-        pair.client.set_server_name("127.0.0.1").expect("Failed to set SNI");
+        pair.client
+            .set_server_name("127.0.0.1")
+            .expect("Failed to set SNI");
 
         pair.handshake().expect("Handshake failed");
 
-        let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
-        dbg!(&cert_match);
+        let cert_match = pair
+            .server
+            .certificate_match()
+            .expect("Failed to get certificate match");
 
         assert_eq!(cert_match, CertSNIMatch::ExactMatch);
+    }
+
+    /// Test that the `certificate_match` Rust wrapper returns WildcardMatch enum
+    #[test]
+    fn test_certificate_match_returns_wildcard_match() {
+        let wildcard_cert = SniTestCerts::WildcardInsectRsa.get();
+        let mut builder = crate::config::Builder::new();
+        builder
+            .load_pem(wildcard_cert.cert(), wildcard_cert.key())
+            .expect("Failed to load PEM");
+
+        let server_config = builder.build().expect("Failed to build config");
+
+        let mut client_builder = crate::config::Builder::new();
+        client_builder
+            .trust_pem(wildcard_cert.cert())
+            .expect("Failed to trust PEM");
+        let client_config = client_builder
+            .build()
+            .expect("Failed to build client config");
+
+        let mut pair = TestPair::from_configs(&client_config, &server_config);
+
+        pair.client
+            .set_server_name("anything.insect.hexapod")
+            .expect("Failed to set SNI");
+
+        pair.handshake().expect("Handshake failed");
+
+        let cert_match = pair
+            .server
+            .certificate_match()
+            .expect("Failed to get certificate match");
+
+        assert_eq!(cert_match, CertSNIMatch::WildcardMatch);
     }
 }
