@@ -1654,4 +1654,16 @@ mod tests {
 
         assert_eq!(cert_match, CertSNIMatch::NoMatch);
     }
+
+    /// Test that the `certificate_match` Rust wrapper returns NoSNI
+    #[test]
+    fn test_certificate_match_returns_exact_match() {
+        let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
+        let mut pair = TestPair::from_config(&config);
+
+        pair.handshake().expect("Handshake failed");
+        let cert_match = pair.server.certificate_match().expect("Failed to get certificate match");
+
+        assert_eq!(cert_match, CertSNIMatch::NoSNI);
+    }
 }
