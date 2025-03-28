@@ -21,6 +21,7 @@
 #include "crypto/s2n_openssl_x509.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
+#include "utils/s2n_mem.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
@@ -32,7 +33,6 @@ int s2n_pkey_zero_init(struct s2n_pkey *pkey)
     pkey->verify = NULL;
     pkey->encrypt = NULL;
     pkey->decrypt = NULL;
-    pkey->match = NULL;
     pkey->free = NULL;
     pkey->check_key = NULL;
     return 0;
@@ -106,11 +106,58 @@ int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2
 
 int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
 {
-    POSIX_ENSURE_REF(pub_key->match);
+    POSIX_ENSURE_REF(pub_key);
 
-    S2N_ERROR_IF(pub_key->match != priv_key->match, S2N_ERR_KEY_MISMATCH);
+    /* Minimally, both keys must be of the same type */
+    s2n_pkey_type priv_type = 0, pub_type = 0;
+    POSIX_GUARD_RESULT(s2n_pkey_get_type(priv_key->pkey, &priv_type));
+    POSIX_GUARD_RESULT(s2n_pkey_get_type(pub_key->pkey, &pub_type));
+    POSIX_ENSURE(priv_type == pub_type, S2N_ERR_KEY_MISMATCH);
 
-    return pub_key->match(pub_key, priv_key);
+    /* If both keys are of the same type, check that the public key
+     * can verify a test signature from the private key.
+     */
+
+    uint8_t input[] = "key check";
+    DEFER_CLEANUP(struct s2n_blob signature = { 0 }, s2n_free);
+
+    DEFER_CLEANUP(struct s2n_hash_state state_in = { 0 }, s2n_hash_free);
+    POSIX_GUARD(s2n_hash_new(&state_in));
+    POSIX_GUARD(s2n_hash_init(&state_in, S2N_HASH_SHA256));
+    POSIX_GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
+
+    DEFER_CLEANUP(struct s2n_hash_state state_out = { 0 }, s2n_hash_free);
+    POSIX_GUARD(s2n_hash_new(&state_out));
+    POSIX_GUARD(s2n_hash_copy(&state_out, &state_in));
+
+    uint32_t size = 0;
+    POSIX_GUARD_RESULT(s2n_pkey_size(priv_key, &size));
+    POSIX_GUARD(s2n_alloc(&signature, size));
+
+    /* Choose one signature algorithm to test each type of pkey.
+     * For example, RSA certs can be used for either S2N_SIGNATURE_RSA (PKCS1)
+     * or S2N_SIGNATURE_RSA_PSS_RSAE, but we only test with S2N_SIGNATURE_RSA.
+     */
+    s2n_signature_algorithm check_alg = S2N_SIGNATURE_ANONYMOUS;
+    switch (priv_type) {
+        case S2N_PKEY_TYPE_ECDSA:
+            check_alg = S2N_SIGNATURE_ECDSA;
+            break;
+        case S2N_PKEY_TYPE_RSA:
+            check_alg = S2N_SIGNATURE_RSA;
+            break;
+        case S2N_PKEY_TYPE_RSA_PSS:
+            check_alg = S2N_SIGNATURE_RSA_PSS_PSS;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    }
+
+    POSIX_GUARD(s2n_pkey_sign(priv_key, check_alg, &state_in, &signature));
+    POSIX_ENSURE(s2n_pkey_verify(pub_key, check_alg, &state_out, &signature) == S2N_SUCCESS,
+            S2N_ERR_KEY_MISMATCH);
+
+    return S2N_SUCCESS;
 }
 
 int s2n_pkey_free(struct s2n_pkey *key)

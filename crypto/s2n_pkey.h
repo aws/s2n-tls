@@ -50,7 +50,6 @@ struct s2n_pkey {
             struct s2n_hash_state *digest, struct s2n_blob *signature);
     int (*encrypt)(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
     int (*decrypt)(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
-    int (*match)(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key);
     int (*free)(struct s2n_pkey *key);
     int (*check_key)(const struct s2n_pkey *key);
 };
