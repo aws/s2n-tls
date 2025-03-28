@@ -106,6 +106,7 @@ impl TryFrom<s2n_tls_version::Type> for Version {
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CertSNIMatch {
+    /// The client did not supply an SNI
     NoSNI,
     ExactMatch,
     WildcardMatch,
