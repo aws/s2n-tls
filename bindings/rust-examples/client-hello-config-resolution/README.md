@@ -16,7 +16,7 @@ TlsStream {
         handshake_type: "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT",
         cipher_suite: "TLS_AES_128_GCM_SHA256",
         actual_protocol_version: TLS13,
-        selected_curve: "x25519",
+        selected_key_exchange_group: "x25519",
         ..
     },
 }
@@ -34,7 +34,7 @@ TlsStream {
         handshake_type: "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY",
         cipher_suite: "ECDHE-ECDSA-AES128-SHA",
         actual_protocol_version: TLS12,
-        selected_curve: "secp256r1",
+        selected_key_exchange_group_name: "secp256r1",
         ..
     },
 }
