@@ -2006,7 +2006,7 @@ int main(int argc, char **argv)
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
         EXPECT_NOT_NULL(client_hello);
 
-        /* Size of Client Hello should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH*/
+        /* Size of Client Hello should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH */
         EXPECT_TRUE(s2n_client_hello_get_raw_message_length(client_hello) < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
     }
 

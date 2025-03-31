@@ -139,7 +139,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_RESIZE_TAINTED_STUFFER, "cannot resize a tainted stuffer") \
     ERR_ENTRY(S2N_ERR_STUFFER_OUT_OF_DATA, "stuffer is out of data") \
     ERR_ENTRY(S2N_ERR_STUFFER_IS_FULL, "stuffer is full") \
-    ERR_ENTRY(S2N_ERR_STUFFER_IS_TAINTED, "stuffer is tainted") \
     ERR_ENTRY(S2N_ERR_STUFFER_NOT_FOUND, "stuffer expected bytes were not found") \
     ERR_ENTRY(S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA, "stuffer has unprocessed data") \
     ERR_ENTRY(S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm") \

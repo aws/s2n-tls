@@ -115,10 +115,14 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(extension_type->send(conn, out));
 
     /**
-     * Stuffer might get tainted when sending extensions, while we can't find all of them at the moment.
-     * Catch tainted stuffer during testing only, so we won't break our customers in production.
+     * Reset the tainted flag on the out stuffer (typically handshake.io).
+     * The handshake.io stuffer is wiped after processing each handshake message,
+     * which resets its state and marks it as not tainted.
+     * No raw data from handshake.io is permanently stored in the connection during extension send.
+     * Because of that, we can mark the out stuffer as not tainted which allows the stuffer to
+     * continue growing after each extension send.
      */
-    POSIX_DEBUG_ENSURE(out->tainted == false, S2N_ERR_STUFFER_IS_TAINTED);
+    out->tainted = false;
 
     /* Record extension size */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));

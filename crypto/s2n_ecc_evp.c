@@ -439,12 +439,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     point_blob.size = point_len;
 
     POSIX_GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
-
-    /**
-     * point_blob.data is not accessable outside of this function.
-     * The stuffer is not tainted after it goes out of this function's scope.
-     */
-    out->tainted = false;
 #endif
     return 0;
 }
