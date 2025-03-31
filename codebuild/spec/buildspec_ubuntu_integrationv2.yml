@@ -29,12 +29,13 @@ batch:
         variables:
           S2N_BUILD_PRESET:
             - awslc_gcc9
-            - awslc-fips_gcc4-8
+            - awslc-fips-2022_gcc4-8
             - awslc-fips-2022_gcc6
             - openssl-1.0.2
             - openssl-1.0.2-fips
             - openssl-1.1.1_gcc9
             - openssl-3.0
+            - openssl-3.0-fips
           INTEGV2_TEST:
             - "test_client_authentication test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
             - "test_happy_path"

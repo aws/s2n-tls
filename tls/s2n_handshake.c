@@ -40,10 +40,10 @@ int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type)
 
 int s2n_handshake_finish_header(struct s2n_stuffer *out)
 {
-    uint16_t length = s2n_stuffer_data_available(out);
+    uint32_t length = s2n_stuffer_data_available(out);
     S2N_ERROR_IF(length < TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
-    uint16_t payload = length - TLS_HANDSHAKE_HEADER_LENGTH;
+    uint32_t payload = length - TLS_HANDSHAKE_HEADER_LENGTH;
 
     /* Write the message header */
     POSIX_GUARD(s2n_stuffer_rewrite(out));

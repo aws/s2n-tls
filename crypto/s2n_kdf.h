@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_set.h"
+#pragma once
 
-#include <cbmc_proof/make_common_datastructures.h>
+#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
 
-#include <assert.h>
+    #include <openssl/core_names.h>
+    #include <openssl/kdf.h>
 
-void s2n_set_new_harness()
-{
-    /* Non-deterministic inputs. */
-    uint32_t element_size;
-    int (*nondet_compare_ptr)(void*,void*) = nondet_bool() ? &nondet_compare : NULL;
+    #define S2N_OSSL_PARAM_BLOB(id, blob) \
+        OSSL_PARAM_octet_string(id, blob->data, blob->size)
+    #define S2N_OSSL_PARAM_STR(id, cstr) \
+        OSSL_PARAM_utf8_string(id, cstr, strlen(cstr))
+    #define S2N_OSSL_PARAM_INT(id, val) \
+        OSSL_PARAM_int(id, &val)
 
-    nondet_s2n_mem_init();
+DEFINE_POINTER_CLEANUP_FUNC(EVP_KDF_CTX *, EVP_KDF_CTX_free);
+DEFINE_POINTER_CLEANUP_FUNC(EVP_KDF *, EVP_KDF_free);
 
-    /* Operation under verification. */
-    struct s2n_set *new_set = s2n_set_new(element_size, nondet_compare_ptr);
-
-    /* Post-conditions. */
-    assert(S2N_IMPLIES(new_set != NULL, s2n_result_is_ok(s2n_set_validate(new_set))));
-}
+#endif /* Openssl3 only */
