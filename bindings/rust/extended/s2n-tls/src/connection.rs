@@ -1661,59 +1661,38 @@ mod tests {
         assert!(connection.application_context::<u32>().is_some());
     }
 
-    /// Test that the `certificate_match` Rust wrapper returns NoMatch enum
+    /// Test that the `certificate_match` Rust wrapper returns expected enum variant
+    /// for different SNI scenarios (None, NoMatch, ExactMatch)
     #[test]
-    fn test_certificate_match_returns_no_match() {
-        let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
-        let mut pair = TestPair::from_config(&config);
+    fn test_certificate_match_variants() {
+        let scenarios = vec![
+            (None, CertSNIMatch::NoSNI),
+            (Some("nonmatching_sni"), CertSNIMatch::NoMatch),
+            (Some("127.0.0.1"), CertSNIMatch::ExactMatch),
+        ];
 
-        pair.client
-            .set_server_name("nonmatching_sni")
-            .expect("Failed to set SNI");
+        for (sni_opt, expected) in scenarios {
+            let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
+            let mut pair = TestPair::from_config(&config);
 
-        pair.handshake().expect("Handshake failed");
-        let cert_match = pair
-            .server
-            .certificate_match()
-            .expect("Failed to get certificate match");
+            if let Some(sni) = sni_opt {
+                pair.client
+                    .set_server_name(sni)
+                    .expect("Failed to set SNI");
+            }
 
-        assert_eq!(cert_match, CertSNIMatch::NoMatch);
-    }
+            pair.handshake().expect("Handshake failed");
+            let cert_match = pair
+                .server
+                .certificate_match()
+                .expect("Failed to get certificate match");
 
-    /// Test that the `certificate_match` Rust wrapper returns NoSNI enum
-    #[test]
-    fn test_certificate_match_returns_no_sni_match() {
-        let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
-        let mut pair = TestPair::from_config(&config);
-
-        pair.handshake().expect("Handshake failed");
-        let cert_match = pair
-            .server
-            .certificate_match()
-            .expect("Failed to get certificate match");
-
-        assert_eq!(cert_match, CertSNIMatch::NoSNI);
-    }
-
-    /// Test that the `certificate_match` Rust wrapper returns ExactMatch enum
-    #[test]
-    fn test_certificate_match_returns_exact_match() {
-        let config = build_config(&security::DEFAULT_TLS13).expect("Failed to build config");
-        let mut pair = TestPair::from_config(&config);
-
-        // Use an SNI that matches the certificate
-        pair.client
-            .set_server_name("127.0.0.1")
-            .expect("Failed to set SNI");
-
-        pair.handshake().expect("Handshake failed");
-
-        let cert_match = pair
-            .server
-            .certificate_match()
-            .expect("Failed to get certificate match");
-
-        assert_eq!(cert_match, CertSNIMatch::ExactMatch);
+            assert_eq!(
+                cert_match, expected,
+                "Expected {:?}, got {:?} (SNI: {:?})",
+                expected, cert_match, sni_opt
+            );
+        }
     }
 
     /// Test that the `certificate_match` Rust wrapper returns WildcardMatch enum
