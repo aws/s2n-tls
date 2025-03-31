@@ -257,6 +257,9 @@ impl External {
     fn link(&self) {
         println!("cargo:rustc-cfg={EXTERNAL_BUILD_CFG_NAME}");
 
+        // Propagate an external build flag to dependents.
+        println!("cargo:external_build=true");
+
         println!(
             "cargo:rustc-link-search={}",
             self.lib_dir.as_ref().unwrap().display()

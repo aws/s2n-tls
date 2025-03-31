@@ -157,6 +157,18 @@ impl Connection {
         self.connection.as_ptr()
     }
 
+    /// Returns the underlying `s2n_tls_sys::s2n_connection` pointer associated with the
+    /// `Connection`.
+    ///
+    /// #### Warning:
+    /// This API is unstable, and may be removed in a future s2n-tls release. Applications should
+    /// use the higher level s2n-tls bindings rather than calling the low-level `s2n_tls_sys` APIs
+    /// directly.
+    #[cfg(s2n_tls_external_build)]
+    pub fn unstable_as_ptr(&mut self) -> *mut s2n_connection {
+        self.as_ptr()
+    }
+
     /// # Safety
     ///
     /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
@@ -1709,6 +1721,24 @@ mod tests {
         let cert_match = pair.server.certificate_match()?;
         assert_eq!(cert_match, CertSNIMatch::WildcardMatch);
 
+        Ok(())
+    }
+
+    /// Test that `unstable_as_ptr()` can be used to call an s2n_tls_sys API.
+    #[cfg(s2n_tls_external_build)]
+    #[test]
+    fn test_unstable_as_ptr() -> Result<(), Error> {
+        let mut connection = Connection::new_client();
+
+        let test_server_name = "test-server-name";
+        connection.set_server_name(test_server_name)?;
+
+        let server_name = unsafe {
+            let server_name = s2n_get_server_name(connection.unstable_as_ptr());
+            CStr::from_ptr(server_name).to_str().unwrap()
+        };
+
+        assert_eq!(server_name, test_server_name);
         Ok(())
     }
 }
