@@ -75,6 +75,33 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+  external-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Checkout aws-lc
+        uses: actions/checkout@v4
+        with:
+          repository: aws/aws-lc
+          path: aws-lc
+
+      - name: Build aws-lc
+        # See https://github.com/aws/aws-lc/blob/main/BUILDING.md#building
+        working-directory: aws-lc
+        run: |
+          cmake -B build
+          make -C build
+          cmake --install build --prefix install
+
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
         # included. For a symbol to be visible in a shared lib, the
@@ -82,19 +109,27 @@ jobs:
         # in the same unit of compilation as the definition. Generally this just
         # means that if the linker can't resolve foo_method in tls/foo.c, you
         # forgot to include api/unstable/foo.h in tls/foo.c
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
+          AWS_LC_LIB_DIR=`pwd`/aws-lc/install/lib
+
+          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off -DCMAKE_PREFIX_PATH=AWS_LC_LIB_DIR
           cmake --build build -- -j $(nproc)
 
           export S2N_TLS_LIB_DIR=`pwd`/build/lib
           export S2N_TLS_INCLUDE_DIR=`pwd`/api
-          export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:AWS_LC_LIB_DIR:$LD_LIBRARY_PATH
+
+          CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
 
           cd ${{env.ROOT_PATH}}
           ./generate.sh
           # Relative paths
           cd ../../..
+
+          # Run tests with the external build
+          cargo test --manifest-path ${{env.ROOT_PATH}}/Cargo.toml
+          cargo test --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml
+
           ldd ${{env.STANDARD_PATH}}/target/debug/integration | grep libs2n.so
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
