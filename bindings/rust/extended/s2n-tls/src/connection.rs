@@ -13,7 +13,6 @@ use crate::{
     error::{Error, Fallible, Pollable},
     psk::Psk,
     security,
-    testing::{build_config, SniTestCerts, TestPair},
 };
 
 use core::{
@@ -1579,6 +1578,7 @@ impl Drop for Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{build_config, SniTestCerts, TestPair};
 
     // ensure the connection context is send
     #[test]
