@@ -1165,12 +1165,12 @@ impl Connection {
 
     /// Corresponds to [s2n_connection_get_certificate_match].
     pub fn certificate_match(&self) -> Result<CertSNIMatch, Error> {
-        let mut version = s2n_cert_sni_match::SNI_NO_MATCH;
+        let mut cert_match = s2n_cert_sni_match::SNI_NO_MATCH;
         unsafe {
-            s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut version)
+            s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut cert_match)
                 .into_result()?;
         }
-        version.try_into()
+        cert_match.try_into()
     }
 
     /// Corresponds to [s2n_connection_get_selected_client_cert_signature_algorithm].
