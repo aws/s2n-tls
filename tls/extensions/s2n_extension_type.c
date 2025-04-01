@@ -115,12 +115,16 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(extension_type->send(conn, out));
 
     /**
-     * Reset the tainted flag on the out stuffer (typically handshake.io).
-     * The handshake.io stuffer is wiped after processing each handshake message,
-     * which resets its state and marks it as not tainted.
-     * No raw data from handshake.io is permanently stored in the connection during extension send.
-     * Because of that, we can mark the out stuffer as not tainted which allows the stuffer to
-     * continue growing after each extension send.
+     * Reset the tainted flag in the out stuffer (handshake.io stuffer).
+     * 
+     * Some extension send methods use stuffer raw access functions that
+     * make the stuffer tainted, preventing further resizing of handshake.io.
+     * We need to reset this flag after each extension is sent, because handshake.io
+     * might need to be resized to send subsequent extensions.
+     * 
+     * This is safe because the handshake.io stuffer is wiped after each handshake message.
+     * No raw pointer is written to the connection, so raw pointers are not accessable
+     * after the extension send method.
      */
     out->tainted = false;
 

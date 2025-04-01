@@ -454,6 +454,8 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
 
+    uint32_t key_share_offset = out->write_cursor;
+
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
     POSIX_GUARD(s2n_stuffer_write_uint8(out, key_share_size));
@@ -463,17 +465,8 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     /* key share + key share size (1) + iana (2) + curve type (1) */
     written->size = key_share_size + 4;
 
-    /* Write data after writing ecc evp params to avoid stuffer resize failure */
-    uint32_t read_cursor = out->read_cursor;
-    uint32_t written_data_location = s2n_stuffer_data_available(out) - written->size;
-
-    POSIX_GUARD(s2n_stuffer_rewrite(out));
-    POSIX_GUARD(s2n_stuffer_skip_write(out, written_data_location));
-    POSIX_GUARD(s2n_stuffer_skip_read(out, read_cursor));
-
     /* Remember where the written data starts */
-    written->data = s2n_stuffer_raw_write(out, written->size);
-    POSIX_ENSURE_REF(written->data);
+    written->data = out->blob.data + key_share_offset;
 
     return written->size;
 }
