@@ -38,6 +38,7 @@ jobs:
       - uses: camshaft/install@v1
         with:
           crate: mdbook
+          use-cache: false
 
       - name: Build book
         run: |
