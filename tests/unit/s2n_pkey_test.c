@@ -225,6 +225,24 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_alloc(&decrypt_out, message.size));
                 EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &encrypt_out, &decrypt_out));
             };
+
+            /* Test: decryption does not fail for invalid ciphertexts
+             *
+             * To protect against Bleichenbacher oracles, we return random
+             * data instead of erroring when decryption fails. That ensures that
+             * all errors in the ciphertext are treated the same.
+             */
+            for (size_t i = 0; i < ciphertext.size; i++) {
+                DEFER_CLEANUP(struct s2n_blob input = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_dup(&ciphertext, &input));
+                input.data[i]++;
+
+                DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&output, message.size));
+
+                EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &input, &output));
+                EXPECT_BYTEARRAY_NOT_EQUAL(output.data, message.data, message.size);
+            }
         };
     };
 

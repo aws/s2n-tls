@@ -272,6 +272,7 @@ S2N_RESULT s2n_pkey_evp_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
     RESULT_ENSURE_REF(pkey);
     RESULT_ENSURE_REF(pkey->pkey);
+    RESULT_ENSURE_REF(size_out);
 
     const int size = EVP_PKEY_size(pkey->pkey);
     RESULT_ENSURE_GT(size, 0);
