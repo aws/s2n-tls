@@ -224,6 +224,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_blob decrypt_out = { 0 }, s2n_free);
                 EXPECT_SUCCESS(s2n_alloc(&decrypt_out, message.size));
                 EXPECT_SUCCESS(s2n_pkey_decrypt(rsa_pkeys.priv_key, &encrypt_out, &decrypt_out));
+                EXPECT_BYTEARRAY_EQUAL(decrypt_out.data, message.data, message.size);
             };
 
             /* Test: decryption does not fail for invalid ciphertexts
