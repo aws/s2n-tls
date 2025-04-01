@@ -36,9 +36,9 @@ cd cppcheck-src
 # updated: https://github.com/aws/s2n-tls/issues/5239
 sed -i '1s/^/#include <limits>\n/' ./lib/programmemory.cpp
 
-# See https://github.com/danmar/cppcheck#gnu-make for build recommendations
 # -DNO_UNIX_SIGNAL_HANDLING is added to support the cppcheck 2.3 build, and should also be removed
 # after cppcheck is updated: https://github.com/aws/s2n-tls/issues/5239
+# These build instructions are based on https://github.com/danmar/cppcheck#gnu-make.
 make -j $JOBS MATCHCOMPILER=yes CXXFLAGS="-O2 -DNDEBUG -DNO_UNIX_SIGNAL_HANDLING"
 
 mv cppcheck ..
