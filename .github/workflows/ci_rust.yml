@@ -20,6 +20,7 @@ env:
   STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
+  CMAKE_URL: https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-linux-x86_64.tar.gz
 
 jobs:
   generate:
@@ -45,6 +46,17 @@ jobs:
           go-version: '>=1.18'
 
       - uses: camshaft/rust-cache@v1
+
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        if: ${{matrix.os == 'ubuntu-latest'}}
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
 
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
@@ -175,6 +187,16 @@ jobs:
 
           popd
 
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
+
       - name: Generate
         run: OPENSSL_DIR=~/openssl-102/install ${{env.ROOT_PATH}}/generate.sh
 
@@ -207,6 +229,17 @@ jobs:
           go-version: '>=1.18'
 
       - uses: camshaft/rust-cache@v1
+
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        if: ${{matrix.os == 'ubuntu-latest'}}
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
 
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh
@@ -316,6 +349,16 @@ jobs:
       - name: Check MSRV
         run: grep "${{steps.read_toml.outputs.value}}" ${{env.ROOT_PATH}}/.clippy.toml
 
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
+
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
@@ -392,6 +435,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        if: ${{matrix.os == 'ubuntu-latest'}}
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
+
       - name: Install Rust toolchain
         id: toolchain
         # minimal-versions is an unstable feature, and requires the nightly toolchain:
@@ -413,6 +467,16 @@ jobs:
         uses: baptiste0928/cargo-install@v3.3.0
         with:
           crate: cargo-minimal-versions
+
+      # The Ubuntu Github runners automatically use CMake 4, which isn't supported by
+      # aws-lc-fips-sys yet. The CMake version is pinned until support is added.
+      # https://github.com/aws/s2n-tls/issues/5234
+      - name: Install CMake
+        run: |
+          wget -O cmake.tar.gz ${{env.CMAKE_URL}}
+          mkdir cmake-3.31
+          tar xf cmake.tar.gz -C cmake-3.31 --strip-components=1
+          echo PATH="`pwd`/cmake-3.31/bin:$PATH" >> $GITHUB_ENV
 
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
