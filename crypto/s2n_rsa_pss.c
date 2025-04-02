@@ -19,9 +19,9 @@
 #include <openssl/rsa.h>
 #include <stdint.h>
 
-#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_pkey_evp.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
@@ -146,7 +146,7 @@ S2N_RESULT s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 
     pkey->free = &s2n_rsa_pss_key_free;
 
-    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    RESULT_GUARD(s2n_pkey_evp_set_overrides(pkey));
     return S2N_RESULT_OK;
 }
 

@@ -20,9 +20,9 @@
 #include <openssl/x509.h>
 
 #include "crypto/s2n_ecc_evp.h"
-#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_pkey_evp.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
@@ -184,7 +184,7 @@ S2N_RESULT s2n_ecdsa_pkey_init(struct s2n_pkey *pkey)
     pkey->decrypt = NULL; /* No function for decryption */
     pkey->free = &s2n_ecdsa_key_free;
     pkey->check_key = &s2n_ecdsa_check_key_exists;
-    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    RESULT_GUARD(s2n_pkey_evp_set_overrides(pkey));
     return S2N_RESULT_OK;
 }
 
