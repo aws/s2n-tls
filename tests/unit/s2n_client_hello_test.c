@@ -44,9 +44,13 @@
 #define COMPRESSION_METHODS     0x00, 0x01, 0x02, 0x03, 0x04
 #define COMPRESSION_METHODS_LEN 0x05
 
-#define CIPHER_SUITES_MAX_LENGTH     (UINT16_MAX - 2)
+#define CIPHER_SUITES_MAX_LENGTH     ((1 << 16) - 2)
 #define NUM_OF_CIPHER_SUITES_TO_DROP 150
-#define MAX_CIPHER_SUITE_COUNT       (CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN)
+/**
+ * S2N-TLS automatically includes TLS_EMPTY_RENEGOTIATION_INFO_SCSV in TLS 1.2 ClientHello,
+ * so we subtract 1 from the maximum number of cipher suites to reserve space for it.
+ */
+#define MAX_CIPHER_SUITE_COUNT ((CIPHER_SUITES_MAX_LENGTH / S2N_TLS_CIPHER_SUITE_LEN) - 1)
 /* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
 #define REDUCED_CIPHER_SUITE_COUNT (MAX_CIPHER_SUITE_COUNT - NUM_OF_CIPHER_SUITES_TO_DROP)
 
@@ -1961,7 +1965,7 @@ int main(int argc, char **argv)
 
     /* Test: large Client Hellos */
     {
-        uint32_t cipher_suites_counts[] = { REDUCED_CIPHER_SUITE_COUNT, MAX_CIPHER_SUITE_COUNT };
+        uint16_t cipher_suites_counts[] = { REDUCED_CIPHER_SUITE_COUNT, MAX_CIPHER_SUITE_COUNT };
 
         for (size_t i = 0; i < s2n_array_len(cipher_suites_counts); i++) {
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -1969,10 +1973,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
-            struct s2n_cipher_suite *test_cipher_suites[] = { 0 };
+            uint16_t cipher_suites_count = cipher_suites_counts[i];
 
-            for (size_t i = 0; i < cipher_suites_counts[i]; i++) {
-                test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
+            struct s2n_cipher_suite *test_cipher_suites[cipher_suites_count];
+
+            for (size_t j = 0; j < cipher_suites_count; j++) {
+                test_cipher_suites[j] = &s2n_rsa_with_aes_128_gcm_sha256;
             }
 
             const struct s2n_cipher_preferences test_cipher_suites_preferences = {
@@ -2012,7 +2018,10 @@ int main(int argc, char **argv)
              */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client, &blocked), S2N_ERR_IO_BLOCKED);
 
-            if ((cipher_suites_counts[i] * S2N_TLS_CIPHER_SUITE_LEN) < CIPHER_SUITES_MAX_LENGTH) {
+            /* Add one extra cipher suite length to account for TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+            uint16_t cipher_suites_length = (cipher_suites_count + 1) * S2N_TLS_CIPHER_SUITE_LEN;
+
+            if (cipher_suites_length < CIPHER_SUITES_MAX_LENGTH) {
                 /**
                  * The Client Hello message size should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, even with
                  * the five bytes record header.
