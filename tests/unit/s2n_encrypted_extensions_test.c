@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"

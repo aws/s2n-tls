@@ -371,31 +371,15 @@ struct s2n_config *cbmc_allocate_s2n_config()
     return s2n_config;
 }
 
-void cbmc_populate_s2n_rsa_key(struct s2n_rsa_key *s2n_rsa_key)
-{
-    CBMC_ENSURE_REF(s2n_rsa_key);
-    s2n_rsa_key->rsa = malloc(sizeof(*(s2n_rsa_key->rsa)));
-}
-
-void cbmc_populate_s2n_ecdsa_key(struct s2n_ecdsa_key *s2n_ecdsa_key)
-{
-    CBMC_ENSURE_REF(s2n_ecdsa_key);
-    s2n_ecdsa_key->ec_key = malloc(sizeof(*(s2n_ecdsa_key->ec_key)));
-}
-
 void cbmc_populate_s2n_pkey(struct s2n_pkey *s2n_pkey)
 {
     CBMC_ENSURE_REF(s2n_pkey);
-    cbmc_populate_s2n_rsa_key(&(s2n_pkey->key.rsa_key));
-    cbmc_populate_s2n_ecdsa_key(&(s2n_pkey->key.ecdsa_key));
     /* `s2n_pkey->pkey`
      * `s2n_pkey->size`
      * `s2n_pkey->sign`
      * `s2n_pkey->verify`
      * `s2n_pkey->encrypt`
      * `s2n_pkey->decrypt`
-     * `s2n_pkey->free`
-     * `s2n_pkey->check_key` are never allocated.
      * If required, these initializations should be done in the proof harness.
      */
 }

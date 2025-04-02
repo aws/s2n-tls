@@ -19,12 +19,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-/* The rsa encrypt/decrypt methods are static.
- * This is temporary, and will be removed when legacy rsa pkeys are removed.
- * We do the same to test signing.
- */
-#include "crypto/s2n_rsa.c"
-
 struct s2n_test_pkeys {
     struct s2n_pkey pub_key;
     struct s2n_pkey *priv_key;
@@ -196,15 +190,6 @@ int main(int argc, char **argv)
                     "b6 17 96 7b d9 87 ec 49 71 dc 33 3e b2 f5 76 54 ad 13 ed "
                     "23 1c 34 53 d1 12 03 be f6";
             S2N_BLOB_FROM_HEX(ciphertext, ciphertext_hex);
-
-            /* Test: legacy RSA decryption accepts known good value */
-            {
-                DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
-                EXPECT_SUCCESS(s2n_alloc(&output, message.size));
-
-                EXPECT_SUCCESS(s2n_rsa_decrypt(rsa_pkeys.priv_key, &ciphertext, &output));
-                EXPECT_BYTEARRAY_EQUAL(output.data, message.data, message.size);
-            };
 
             /* Test: decryption works for known good value */
             {
