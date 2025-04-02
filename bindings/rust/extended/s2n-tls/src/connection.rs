@@ -1682,9 +1682,7 @@ mod tests {
             pair.handshake()?;
             let cert_match = pair.server.certificate_match()?;
 
-            assert_eq!(
-                cert_match, expected,
-            );
+            assert_eq!(cert_match, expected,);
         }
 
         Ok(())
