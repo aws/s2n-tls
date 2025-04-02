@@ -1684,8 +1684,6 @@ mod tests {
 
             assert_eq!(
                 cert_match, expected,
-                "Expected {:?}, got {:?} (SNI: {:?})",
-                expected, cert_match, sni_opt
             );
         }
 
