@@ -20,10 +20,10 @@
 #include <stdint.h>
 
 #include "crypto/s2n_drbg.h"
-#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_pkey_evp.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -152,28 +152,6 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     return 0;
 }
 
-static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
-{
-    uint8_t plain_inpad[36] = { 1 }, plain_outpad[36] = { 0 }, encpad[8192];
-    struct s2n_blob plain_in = { 0 }, plain_out = { 0 }, enc = { 0 };
-
-    plain_in.data = plain_inpad;
-    plain_in.size = sizeof(plain_inpad);
-
-    enc.data = encpad;
-    POSIX_GUARD_RESULT(s2n_rsa_encrypted_size(pub, &enc.size));
-    POSIX_ENSURE_LTE(enc.size, sizeof(encpad));
-    POSIX_GUARD(s2n_rsa_encrypt(pub, &plain_in, &enc));
-
-    plain_out.data = plain_outpad;
-    plain_out.size = sizeof(plain_outpad);
-    POSIX_GUARD(s2n_rsa_decrypt(priv, &enc, &plain_out));
-
-    POSIX_ENSURE(s2n_constant_time_equals(plain_in.data, plain_out.data, plain_in.size), S2N_ERR_KEY_MISMATCH);
-
-    return 0;
-}
-
 static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 {
     POSIX_ENSURE_REF(pkey);
@@ -221,9 +199,8 @@ S2N_RESULT s2n_rsa_pkey_init(struct s2n_pkey *pkey)
     pkey->verify = &s2n_rsa_verify;
     pkey->encrypt = &s2n_rsa_encrypt;
     pkey->decrypt = &s2n_rsa_decrypt;
-    pkey->match = &s2n_rsa_keys_match;
     pkey->free = &s2n_rsa_key_free;
     pkey->check_key = &s2n_rsa_check_key_exists;
-    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    RESULT_GUARD(s2n_pkey_evp_set_overrides(pkey));
     return S2N_RESULT_OK;
 }

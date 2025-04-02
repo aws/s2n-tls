@@ -13,7 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_pkey_evp.h"
+
+#include <openssl/evp.h>
+#include <openssl/rsa.h>
 
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_libcrypto.h"
@@ -21,6 +24,7 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
@@ -43,19 +47,6 @@ static S2N_RESULT s2n_evp_pkey_set_rsa_pss_saltlen(EVP_PKEY_CTX *pctx)
 #else
     RESULT_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
 #endif
-}
-
-/* Always use EVP signing.
- *
- * TODO: Migrate the rest of the s2n_pkey methods to EVP and delete the legacy
- * pkey logic and this method.
- */
-S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
-{
-    RESULT_ENSURE_REF(pkey);
-    pkey->sign = &s2n_evp_sign;
-    pkey->verify = &s2n_evp_verify;
-    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
@@ -275,4 +266,92 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_pkey_evp_size(const struct s2n_pkey *pkey, uint32_t *size_out)
+{
+    RESULT_ENSURE_REF(pkey);
+    RESULT_ENSURE_REF(pkey->pkey);
+    RESULT_ENSURE_REF(size_out);
+
+    const int size = EVP_PKEY_size(pkey->pkey);
+    RESULT_ENSURE_GT(size, 0);
+    *size_out = size;
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_pkey_evp_encrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out)
+{
+    POSIX_ENSURE_REF(key);
+    POSIX_ENSURE_REF(in);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(key->pkey);
+
+    s2n_pkey_type type = 0;
+    POSIX_GUARD_RESULT(s2n_pkey_get_type(key->pkey, &type));
+    POSIX_ENSURE(type == S2N_PKEY_TYPE_RSA, S2N_ERR_UNIMPLEMENTED);
+
+    DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(key->pkey, NULL), EVP_PKEY_CTX_free_pointer);
+    POSIX_ENSURE_REF(pctx);
+    POSIX_GUARD_OSSL(EVP_PKEY_encrypt_init(pctx), S2N_ERR_PKEY_CTX_INIT);
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PADDING), S2N_ERR_PKEY_CTX_INIT);
+
+    size_t out_size = out->size;
+    POSIX_GUARD_OSSL(EVP_PKEY_encrypt(pctx, out->data, &out_size, in->data, in->size), S2N_ERR_ENCRYPT);
+    POSIX_ENSURE(out_size == out->size, S2N_ERR_SIZE_MISMATCH);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_pkey_evp_decrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out)
+{
+    POSIX_ENSURE_REF(key);
+    POSIX_ENSURE_REF(in);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(key->pkey);
+
+    s2n_pkey_type type = 0;
+    POSIX_GUARD_RESULT(s2n_pkey_get_type(key->pkey, &type));
+    POSIX_ENSURE(type == S2N_PKEY_TYPE_RSA, S2N_ERR_UNIMPLEMENTED);
+
+    uint32_t expected_size = 0;
+    POSIX_GUARD_RESULT(s2n_pkey_size(key, &expected_size));
+
+    /* RSA decryption requires more output memory than the size of the final decrypted message */
+    struct s2n_blob buffer = { 0 };
+    uint8_t buffer_bytes[4096] = { 0 };
+    POSIX_GUARD(s2n_blob_init(&buffer, buffer_bytes, sizeof(buffer_bytes)));
+    POSIX_ENSURE(out->size <= buffer.size, S2N_ERR_NOMEM);
+    POSIX_ENSURE(expected_size <= buffer.size, S2N_ERR_NOMEM);
+
+    DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(key->pkey, NULL), EVP_PKEY_CTX_free_pointer);
+    POSIX_ENSURE_REF(pctx);
+    POSIX_GUARD_OSSL(EVP_PKEY_decrypt_init(pctx), S2N_ERR_PKEY_CTX_INIT);
+    /* The padding is actually RSA_PKCS1_PADDING, but we'll handle the padding later */
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_NO_PADDING), S2N_ERR_PKEY_CTX_INIT);
+
+    size_t out_size = buffer.size;
+    POSIX_GUARD_OSSL(EVP_PKEY_decrypt(pctx, buffer.data, &out_size, in->data, in->size), S2N_ERR_DECRYPT);
+    POSIX_ENSURE(out_size == expected_size, S2N_ERR_SIZE_MISMATCH);
+
+    /* Handle padding in constant time to avoid Bleichenbacher oracles.
+     * If the padding is wrong, we return random output rather than failing.
+     * That ensures that padding failures are treated the same as wrong outputs.
+     */
+    POSIX_GUARD_RESULT(s2n_get_public_random_data(out));
+    s2n_constant_time_pkcs1_unpad_or_dont(out->data, buffer.data, out_size, out->size);
+
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_pkey_evp_set_overrides(struct s2n_pkey *pkey)
+{
+    RESULT_ENSURE_REF(pkey);
+    pkey->size = &s2n_pkey_evp_size;
+    pkey->sign = &s2n_evp_sign;
+    pkey->verify = &s2n_evp_verify;
+    pkey->encrypt = s2n_pkey_evp_encrypt;
+    pkey->decrypt = s2n_pkey_evp_decrypt;
+    return S2N_RESULT_OK;
 }

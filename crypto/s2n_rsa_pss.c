@@ -19,9 +19,9 @@
 #include <openssl/rsa.h>
 #include <stdint.h>
 
-#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_pkey_evp.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
@@ -88,89 +88,6 @@ int s2n_rsa_pss_key_verify(const struct s2n_pkey *pub, s2n_signature_algorithm s
     return s2n_rsa_pss_verify(pub, digest, signature_in);
 }
 
-static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
-{
-    /* Generate a random blob to sign and verify */
-    s2n_stack_blob(random_data, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
-    POSIX_GUARD_RESULT(s2n_get_private_random_data(&random_data));
-
-    /* Sign/Verify API's only accept Hashes, so hash our Random Data */
-    DEFER_CLEANUP(struct s2n_hash_state sign_hash = { 0 }, s2n_hash_free);
-    DEFER_CLEANUP(struct s2n_hash_state verify_hash = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&sign_hash));
-    POSIX_GUARD(s2n_hash_new(&verify_hash));
-    POSIX_GUARD(s2n_hash_init(&sign_hash, S2N_HASH_SHA256));
-    POSIX_GUARD(s2n_hash_init(&verify_hash, S2N_HASH_SHA256));
-    POSIX_GUARD(s2n_hash_update(&sign_hash, random_data.data, random_data.size));
-    POSIX_GUARD(s2n_hash_update(&verify_hash, random_data.data, random_data.size));
-
-    /* Sign and Verify the Hash of the Random Blob */
-    s2n_stack_blob(signature_data, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE);
-    POSIX_GUARD(s2n_pkey_sign(priv, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &signature_data));
-    POSIX_GUARD(s2n_pkey_verify(pub, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
-
-    return 0;
-}
-
-static int s2n_rsa_validate_params_equal(const RSA *pub, const RSA *priv)
-{
-    const BIGNUM *pub_val_e = NULL;
-    const BIGNUM *pub_val_n = NULL;
-    RSA_get0_key(pub, &pub_val_n, &pub_val_e, NULL);
-
-    const BIGNUM *priv_val_e = NULL;
-    const BIGNUM *priv_val_n = NULL;
-    RSA_get0_key(priv, &priv_val_n, &priv_val_e, NULL);
-
-    if (pub_val_e == NULL || priv_val_e == NULL) {
-        POSIX_BAIL(S2N_ERR_KEY_CHECK);
-    }
-
-    if (pub_val_n == NULL || priv_val_n == NULL) {
-        POSIX_BAIL(S2N_ERR_KEY_CHECK);
-    }
-
-    S2N_ERROR_IF(BN_cmp(pub_val_e, priv_val_e) != 0, S2N_ERR_KEY_MISMATCH);
-    S2N_ERROR_IF(BN_cmp(pub_val_n, priv_val_n) != 0, S2N_ERR_KEY_MISMATCH);
-
-    return 0;
-}
-
-static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
-{
-    POSIX_ENSURE_REF(pub);
-    POSIX_ENSURE_REF(priv);
-
-    /* OpenSSL Documentation Links:
-     *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get1_RSA.html
-     *  - https://www.openssl.org/docs/manmaster/man3/RSA_get0_key.html
-     */
-    const RSA *pub_rsa_key = pub->key.rsa_key.rsa;
-    const RSA *priv_rsa_key = priv->key.rsa_key.rsa;
-
-    POSIX_ENSURE_REF(pub_rsa_key);
-    POSIX_ENSURE_REF(priv_rsa_key);
-
-    POSIX_GUARD(s2n_rsa_validate_params_equal(pub_rsa_key, priv_rsa_key));
-
-    return 0;
-}
-
-static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
-{
-    POSIX_ENSURE_REF(pub);
-    POSIX_ENSURE_REF(pub->pkey);
-    POSIX_ENSURE_REF(priv);
-    POSIX_ENSURE_REF(priv->pkey);
-
-    POSIX_GUARD(s2n_rsa_validate_params_match(pub, priv));
-
-    /* Validate that verify(sign(message)) for a random message is verified correctly */
-    POSIX_GUARD(s2n_rsa_pss_validate_sign_verify_match(pub, priv));
-
-    return 0;
-}
-
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
     POSIX_ENSURE_REF(pkey);
@@ -227,10 +144,9 @@ S2N_RESULT s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
     pkey->encrypt = NULL; /* No function for encryption */
     pkey->decrypt = NULL; /* No function for decryption */
 
-    pkey->match = &s2n_rsa_pss_keys_match;
     pkey->free = &s2n_rsa_pss_key_free;
 
-    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    RESULT_GUARD(s2n_pkey_evp_set_overrides(pkey));
     return S2N_RESULT_OK;
 }
 

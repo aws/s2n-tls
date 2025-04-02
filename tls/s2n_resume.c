@@ -476,7 +476,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     struct s2n_stuffer from = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&from, &entry));
     POSIX_GUARD(s2n_stuffer_write(&from, &entry));
-    POSIX_GUARD_RESULT(s2n_resume_decrypt_session_cache(conn, &from));
+    POSIX_GUARD_RESULT(s2n_resume_decrypt_session(conn, &from));
 
     return 0;
 }
@@ -752,7 +752,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     return ticket_key;
 }
 
-/* This function is used in s2n_resume_decrypt_session_ticket in order for s2n to
+/* This function is used in s2n_resume_decrypt_session in order for s2n to
  * find the matching key that was used for encryption.
  */
 struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN])
@@ -889,13 +889,11 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_stuffer *from,
-        uint64_t *key_intro_time)
+S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
     RESULT_ENSURE_REF(conn->config);
-    RESULT_ENSURE_REF(key_intro_time);
 
     /* Read version number */
     uint8_t version = 0;
@@ -956,40 +954,6 @@ static S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&state_stuffer, state_blob_size));
     RESULT_GUARD(s2n_deserialize_resumption_state(conn, &from->blob, &state_stuffer));
 
-    /* Store this key timestamp for session ticket logic */
-    *key_intro_time = key->intro_timestamp;
-
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_resume_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->config);
-
-    uint64_t key_intro_time = 0;
-    RESULT_GUARD(s2n_resume_decrypt_session(conn, from, &key_intro_time));
-
-    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
-        return S2N_RESULT_OK;
-    }
-
-    /* A new key is assigned for the ticket if the key used to encrypt current ticket is expired */
-    uint64_t now = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
-    if (now >= key_intro_time + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        if (s2n_result_is_ok(s2n_config_is_encrypt_key_available(conn->config))) {
-            conn->session_ticket_status = S2N_NEW_TICKET;
-            RESULT_GUARD(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
-        }
-    }
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_resume_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from)
-{
-    uint64_t key_intro_time = 0;
-    RESULT_GUARD(s2n_resume_decrypt_session(conn, from, &key_intro_time));
     return S2N_RESULT_OK;
 }
 

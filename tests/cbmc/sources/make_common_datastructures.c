@@ -394,7 +394,6 @@ void cbmc_populate_s2n_pkey(struct s2n_pkey *s2n_pkey)
      * `s2n_pkey->verify`
      * `s2n_pkey->encrypt`
      * `s2n_pkey->decrypt`
-     * `s2n_pkey->match`
      * `s2n_pkey->free`
      * `s2n_pkey->check_key` are never allocated.
      * If required, these initializations should be done in the proof harness.

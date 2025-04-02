@@ -105,6 +105,30 @@ impl TryFrom<s2n_tls_version::Type> for Version {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
+pub enum CertSNIMatch {
+    /// The client did not supply an SNI
+    NoSNI,
+    ExactMatch,
+    WildcardMatch,
+    NoMatch,
+}
+
+impl TryFrom<s2n_cert_sni_match::Type> for CertSNIMatch {
+    type Error = Error;
+    fn try_from(input: s2n_cert_sni_match::Type) -> Result<Self, Self::Error> {
+        let match_type = match input {
+            s2n_cert_sni_match::SNI_NONE => Self::NoSNI,
+            s2n_cert_sni_match::SNI_EXACT_MATCH => Self::ExactMatch,
+            s2n_cert_sni_match::SNI_WILDCARD_MATCH => Self::WildcardMatch,
+            s2n_cert_sni_match::SNI_NO_MATCH => Self::NoMatch,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(match_type)
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
 /// Corresponds to [s2n_blinding].
 pub enum Blinding {
     SelfService,
