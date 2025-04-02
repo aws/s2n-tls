@@ -1163,6 +1163,16 @@ impl Connection {
         hash_alg.try_into()
     }
 
+    /// Corresponds to [s2n_connection_get_certificate_match].
+    pub fn certificate_match(&self) -> Result<CertSNIMatch, Error> {
+        let mut cert_match = s2n_cert_sni_match::SNI_NO_MATCH;
+        unsafe {
+            s2n_connection_get_certificate_match(self.connection.as_ptr(), &mut cert_match)
+                .into_result()?;
+        }
+        cert_match.try_into()
+    }
+
     /// Corresponds to [s2n_connection_get_selected_client_cert_signature_algorithm].
     pub fn selected_client_signature_algorithm(&self) -> Result<Option<SignatureAlgorithm>, Error> {
         let mut sig_alg = s2n_tls_signature_algorithm::ANONYMOUS;
@@ -1568,6 +1578,7 @@ impl Drop for Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{build_config, SniTestCerts, TestPair};
 
     // ensure the connection context is send
     #[test]
@@ -1648,5 +1659,56 @@ mod tests {
 
         // Retrieving the correct type succeeds.
         assert!(connection.application_context::<u32>().is_some());
+    }
+
+    /// Test that the `certificate_match` Rust wrapper returns expected enum variant
+    /// for different SNI scenarios (None, NoMatch, ExactMatch)
+    #[test]
+    fn test_certificate_match_variants() -> Result<(), Box<dyn std::error::Error>> {
+        let scenarios = vec![
+            (None, CertSNIMatch::NoSNI),
+            (Some("nonmatching_sni"), CertSNIMatch::NoMatch),
+            (Some("127.0.0.1"), CertSNIMatch::ExactMatch),
+        ];
+
+        for (sni_opt, expected) in scenarios {
+            let config = build_config(&security::DEFAULT_TLS13)?;
+            let mut pair = TestPair::from_config(&config);
+
+            if let Some(sni) = sni_opt {
+                pair.client.set_server_name(sni)?;
+            }
+
+            pair.handshake()?;
+            let cert_match = pair.server.certificate_match()?;
+
+            assert_eq!(cert_match, expected,);
+        }
+
+        Ok(())
+    }
+
+    /// Test that the `certificate_match` Rust wrapper returns WildcardMatch enum
+    #[test]
+    fn test_certificate_match_returns_wildcard_match() -> Result<(), Box<dyn std::error::Error>> {
+        let wildcard_cert = SniTestCerts::WildcardInsectRsa.get();
+
+        let mut builder = crate::config::Builder::new();
+        builder.load_pem(wildcard_cert.cert(), wildcard_cert.key())?;
+        let server_config = builder.build()?;
+
+        let mut client_builder = crate::config::Builder::new();
+        client_builder.trust_pem(wildcard_cert.cert())?;
+        let client_config = client_builder.build()?;
+
+        let mut pair = TestPair::from_configs(&client_config, &server_config);
+
+        pair.client.set_server_name("anything.insect.hexapod")?;
+        pair.handshake()?;
+
+        let cert_match = pair.server.certificate_match()?;
+        assert_eq!(cert_match, CertSNIMatch::WildcardMatch);
+
+        Ok(())
     }
 }
