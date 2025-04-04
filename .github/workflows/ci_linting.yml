@@ -71,6 +71,7 @@ jobs:
         run: |
           ./codebuild/bin/run_kwstyle.sh
           ./codebuild/bin/cpp_style_comment_linter.sh
+
   ruff:
     runs-on: ubuntu-latest
     steps:
@@ -86,11 +87,24 @@ jobs:
         run: uv run ruff format --diff .
         continue-on-error: true
 
-      - name: Check exit code
+      - name: Check format exit code
         if: steps.ruff_format.outcome == 'failure'
         run: |
             echo "Run 'ruff format .' to fix formatting issues"
             exit 1
+
+      - name: Run Ruff lint check
+        working-directory: tests/integrationv2
+        id: ruff_lint
+        run: uv run ruff check .
+        continue-on-error: true
+
+      - name: Check lint exit code
+        if: steps.ruff_lint.outcome == 'failure'
+        run: |
+          echo "Linting issues detected. Run 'ruff check .' locally to see errors and fix them."
+          exit 1
+
   clang-format:
     runs-on: ubuntu-latest
     steps:
