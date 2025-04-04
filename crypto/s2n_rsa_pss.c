@@ -29,16 +29,16 @@
 #include "utils/s2n_safety.h"
 
 /* Checks whether PSS Certs is supported */
-int s2n_is_rsa_pss_certs_supported()
+bool s2n_is_rsa_pss_certs_supported()
 {
     return RSA_PSS_CERTS_SUPPORTED;
 }
 
-int s2n_is_rsa_pss_signing_supported()
+bool s2n_is_rsa_pss_signing_supported()
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
-    return 1;
+    return true;
 #else
-    return 0;
+    return false;
 #endif
 }

@@ -42,7 +42,7 @@ static S2N_RESULT s2n_setup_public_key(struct s2n_pkey *public_key, struct s2n_c
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_evp_sign(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg,
+static S2N_RESULT s2n_test_pkey_sign(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg,
         struct s2n_pkey *private_key, struct s2n_blob *evp_signature_out)
 {
     DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
@@ -52,7 +52,7 @@ static S2N_RESULT s2n_test_evp_sign(s2n_signature_algorithm sig_alg, s2n_hash_al
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_evp_verify(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg,
+static S2N_RESULT s2n_test_pkey_verify(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg,
         struct s2n_pkey *public_key, struct s2n_blob *expected_signature)
 {
     DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     const struct s2n_signature_preferences *all_sig_schemes =
             security_policy_test_all.signature_preferences;
 
-    /* EVP signing must match RSA signing */
+    /* Test: RSA signatures must match known good values */
     {
         s2n_signature_algorithm sig_alg = S2N_SIGNATURE_RSA;
 
@@ -187,21 +187,21 @@ int main(int argc, char **argv)
             }
             const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
-            /* Test that EVP can sign and verify */
-            s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
-            EXPECT_OK(s2n_test_evp_sign(sig_alg, hash_alg, private_key, &evp_signature));
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &evp_signature));
+            /* Test that we can sign and verify */
+            s2n_stack_blob(signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
+            EXPECT_OK(s2n_test_pkey_sign(sig_alg, hash_alg, private_key, &signature));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &signature));
 
             /* Test known value matches sign: RSA PKCS1 is deterministic */
             S2N_BLOB_FROM_HEX(known_value, valid_signatures[hash_alg]);
-            EXPECT_EQUAL(known_value.size, evp_signature.size);
-            EXPECT_BYTEARRAY_EQUAL(known_value.data, evp_signature.data, evp_signature.size);
+            EXPECT_EQUAL(known_value.size, signature.size);
+            EXPECT_BYTEARRAY_EQUAL(known_value.data, signature.data, signature.size);
             /* Test verifying known value */
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &known_value));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &known_value));
         }
     };
 
-    /* EVP signing must match ECDSA signing */
+    /* Test: ECDSA signing must match known good values */
     {
         s2n_signature_algorithm sig_alg = S2N_SIGNATURE_ECDSA;
 
@@ -259,20 +259,20 @@ int main(int argc, char **argv)
             }
             const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
-            /* Test that EVP can sign and verify */
-            s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
-            EXPECT_OK(s2n_test_evp_sign(sig_alg, hash_alg, private_key, &evp_signature));
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &evp_signature));
+            /* Test that we can sign and verify */
+            s2n_stack_blob(signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
+            EXPECT_OK(s2n_test_pkey_sign(sig_alg, hash_alg, private_key, &signature));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &signature));
 
             /* Test verifying known value */
             S2N_BLOB_FROM_HEX(known_value, valid_signatures[hash_alg]);
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &known_value));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &known_value));
         }
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
     };
 
-    /* EVP signing must match RSA-PSS-RSAE signing */
+    /* Test: RSA-PSS-RSAE signing must match known good values */
     if (s2n_is_rsa_pss_signing_supported()) {
         s2n_signature_algorithm sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
 
@@ -334,18 +334,18 @@ int main(int argc, char **argv)
             }
             const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
-            /* Test that EVP can sign and verify */
-            s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
-            EXPECT_OK(s2n_test_evp_sign(sig_alg, hash_alg, private_key, &evp_signature));
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &evp_signature));
+            /* Test that we can sign and verify */
+            s2n_stack_blob(signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
+            EXPECT_OK(s2n_test_pkey_sign(sig_alg, hash_alg, private_key, &signature));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &signature));
 
             /* Test verifying known value */
             S2N_BLOB_FROM_HEX(known_value, valid_signatures[hash_alg]);
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &known_value));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &known_value));
         }
     }
 
-    /* EVP signing must match RSA-PSS-PSS signing */
+    /* Test: RSA-PSS-PSS signing must match known good values */
     if (s2n_is_rsa_pss_certs_supported()) {
         s2n_signature_algorithm sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
 
@@ -410,14 +410,14 @@ int main(int argc, char **argv)
             }
             const s2n_hash_algorithm hash_alg = scheme->hash_alg;
 
-            /* Test that EVP can sign and verify */
-            s2n_stack_blob(evp_signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
-            EXPECT_OK(s2n_test_evp_sign(sig_alg, hash_alg, private_key, &evp_signature));
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &evp_signature));
+            /* Test that we can sign and verify */
+            s2n_stack_blob(signature, OUTPUT_DATA_SIZE, OUTPUT_DATA_SIZE);
+            EXPECT_OK(s2n_test_pkey_sign(sig_alg, hash_alg, private_key, &signature));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &signature));
 
             /* Test verifying known value */
             S2N_BLOB_FROM_HEX(known_value, valid_signatures[hash_alg]);
-            EXPECT_OK(s2n_test_evp_verify(sig_alg, hash_alg, public_key, &known_value));
+            EXPECT_OK(s2n_test_pkey_verify(sig_alg, hash_alg, public_key, &known_value));
         }
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_pss_cert_chain));

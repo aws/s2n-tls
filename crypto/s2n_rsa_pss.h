@@ -16,6 +16,7 @@
 #pragma once
 
 #include <openssl/bn.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "crypto/s2n_openssl.h"
@@ -33,5 +34,5 @@
     #define RSA_PSS_CERTS_SUPPORTED 0
 #endif
 
-int s2n_is_rsa_pss_certs_supported();
-int s2n_is_rsa_pss_signing_supported();
+bool s2n_is_rsa_pss_certs_supported();
+bool s2n_is_rsa_pss_signing_supported();
