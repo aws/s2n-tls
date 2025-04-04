@@ -453,7 +453,6 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-
     uint32_t key_share_offset = out->write_cursor;
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
@@ -464,8 +463,6 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     /* key share + key share size (1) + iana (2) + curve type (1) */
     written->size = key_share_size + 4;
-
-    /* Remember where the written data starts */
     written->data = out->blob.data + key_share_offset;
 
     return written->size;
