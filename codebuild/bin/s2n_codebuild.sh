@@ -81,13 +81,13 @@ run_integration_v2_tests() {
     cd ./build/
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
-      #echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
+      echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
       # should be the uv pytest command, -n auto (delete ctest) here. Manually run integv2 codebuild job
-      #ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
-      echo "Running pytest on $test_name"
-      pytest -x -n=auto --reruns=2 --durations=10 --cache-clear -rpfsq \
-      -o log_cli=true --log-cli-level=DEBUG \
-      tests/integrationv2/${test_name}.py
+      ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
+    #   echo "Running pytest on $test_name"
+    #   pytest -x -n=auto --reruns=2 --durations=10 --cache-clear -rpfsq \
+    #   -o log_cli=true --log-cli-level=DEBUG \
+    #   tests/integrationv2/${test_name}.py
     done
 }
 
