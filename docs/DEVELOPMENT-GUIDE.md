@@ -332,7 +332,7 @@ the first function returns a pointer to the existing location of the write curso
 The second function does the same thing, except that it increments the read cursor.
 Use of these functions is discouraged and should only be done when necessary for compatibility.
 
-One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be tainted, which prevents them from being resized within their present life-cycle.
+One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be marked as tainted, which prevents them from being resized within their present life-cycle.
 
 Internally stuffers track 4 pieces of state:
 
@@ -347,10 +347,11 @@ The `high_water_mark` tracks the furthermost byte which has been written but not
 Note that this may be past the `write_cursor` if `s2n_stuffer_rewrite()` has been called.
 Explicitly tracking the `high_water_mark` allows us to track the bytes which need to be wiped, and helps avoids needless zeroing of memory.
 The next two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable.
-`tainted` is set to 1 whenever the raw access functions are called.
-If a stuffer is currently tainted then it can not be resized and it becomes ungrowable.
+`tainted` is set to true whenever `s2n_stuffer_raw_read/write()` are called.
+`s2n_stuffer_raw_read/write()` returns an outstanding pointer that references a memory chunk within the stuffer. Whenever such an outstanding pointer exists, the stuffer's `tainted` flag must be set to true. However, if the outstanding pointer goes out of scope, the stuffer's `tainted` flag can safely be set to false.
+If a stuffer is currently tainted then it can not be resized and it becomes ungrowable due to memory safety constraints mentioned above.
 This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew.
-So any pointers returned by the raw access functions are legal only until `s2n_stuffer_wipe()` is called.
+So any pointers returned by the `s2n_stuffer_raw_read/write()` are legal only until `s2n_stuffer_wipe()` is called.
 The end result is that this kind of pattern is legal:
 
 ```c
