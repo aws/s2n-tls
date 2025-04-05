@@ -23,7 +23,6 @@
 #include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_server_name.h"

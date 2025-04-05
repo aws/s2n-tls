@@ -29,6 +29,8 @@
 #include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_pkey.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 #define STDIO_BUFSIZE 10240
 

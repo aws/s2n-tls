@@ -18,7 +18,6 @@
 #include "api/s2n.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_pkey.h"
-#include "crypto/s2n_rsa.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_async_pkey.h"

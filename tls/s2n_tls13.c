@@ -17,7 +17,6 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_tls.h"
 
 bool s2n_use_default_tls13_config_flag = false;

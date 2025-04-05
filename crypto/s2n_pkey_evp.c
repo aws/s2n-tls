@@ -49,7 +49,7 @@ static S2N_RESULT s2n_evp_pkey_set_rsa_pss_saltlen(EVP_PKEY_CTX *pctx)
 #endif
 }
 
-static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
+static S2N_RESULT s2n_pkey_evp_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
 {
     RESULT_ENSURE_REF(key);
 
@@ -110,7 +110,7 @@ static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm has
  * Currently only awslc-fips meets both these requirements. New libcryptos
  * should be assumed not to meet these requirements until proven otherwise.
  */
-int s2n_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
+static int s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pctx);
@@ -149,7 +149,7 @@ int s2n_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
  * then sign the digest bytes. That is not allowed by FIPS 140-3, but is allowed
  * in all other cases.
  */
-int s2n_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
+static int s2n_pkey_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pctx);
@@ -173,7 +173,7 @@ int s2n_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
     return S2N_SUCCESS;
 }
 
-int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
+int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(priv);
@@ -190,16 +190,16 @@ int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
     }
 
     if (s2n_libcrypto_is_awslc_fips()) {
-        POSIX_GUARD(s2n_evp_digest_and_sign(pctx, sig_alg, hash_state, signature));
+        POSIX_GUARD(s2n_pkey_evp_digest_and_sign(pctx, sig_alg, hash_state, signature));
     } else {
-        POSIX_GUARD(s2n_evp_digest_then_sign(pctx, hash_state, signature));
+        POSIX_GUARD(s2n_pkey_evp_digest_then_sign(pctx, hash_state, signature));
     }
 
     return S2N_SUCCESS;
 }
 
 /* See s2n_evp_digest_and_sign for more information */
-int s2n_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
+static int s2n_pkey_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pctx);
@@ -221,7 +221,7 @@ int s2n_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_al
 }
 
 /* See s2n_evp_digest_then_sign for more information */
-int s2n_evp_digest_then_verify(EVP_PKEY_CTX *pctx,
+static int s2n_pkey_evp_digest_then_verify(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pctx);
@@ -241,13 +241,13 @@ int s2n_evp_digest_then_verify(EVP_PKEY_CTX *pctx,
     return S2N_SUCCESS;
 }
 
-int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
+int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pub);
     POSIX_ENSURE_REF(hash_state);
     POSIX_ENSURE_REF(signature);
-    POSIX_GUARD_RESULT(s2n_evp_signing_validate_sig_alg(pub, sig_alg));
+    POSIX_GUARD_RESULT(s2n_pkey_evp_validate_sig_alg(pub, sig_alg));
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = s2n_evp_pkey_ctx_new(pub->pkey, hash_state->alg), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
@@ -260,9 +260,9 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     }
 
     if (s2n_libcrypto_is_awslc_fips()) {
-        POSIX_GUARD(s2n_evp_digest_and_verify(pctx, sig_alg, hash_state, signature));
+        POSIX_GUARD(s2n_pkey_evp_digest_and_verify(pctx, sig_alg, hash_state, signature));
     } else {
-        POSIX_GUARD(s2n_evp_digest_then_verify(pctx, hash_state, signature));
+        POSIX_GUARD(s2n_pkey_evp_digest_then_verify(pctx, hash_state, signature));
     }
 
     return S2N_SUCCESS;
@@ -345,12 +345,12 @@ int s2n_pkey_evp_decrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_pkey_evp_set_overrides(struct s2n_pkey *pkey)
+S2N_RESULT s2n_pkey_evp_init(struct s2n_pkey *pkey)
 {
     RESULT_ENSURE_REF(pkey);
     pkey->size = &s2n_pkey_evp_size;
-    pkey->sign = &s2n_evp_sign;
-    pkey->verify = &s2n_evp_verify;
+    pkey->sign = &s2n_pkey_evp_sign;
+    pkey->verify = &s2n_pkey_evp_verify;
     pkey->encrypt = s2n_pkey_evp_encrypt;
     pkey->decrypt = s2n_pkey_evp_decrypt;
     return S2N_RESULT_OK;

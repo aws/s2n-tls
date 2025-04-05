@@ -17,7 +17,6 @@
 #include <openssl/rsa.h>
 
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"

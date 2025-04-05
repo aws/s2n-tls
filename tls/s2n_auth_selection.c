@@ -16,7 +16,6 @@
 #include "tls/s2n_auth_selection.h"
 
 #include "crypto/s2n_certificate.h"
-#include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_signature.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"

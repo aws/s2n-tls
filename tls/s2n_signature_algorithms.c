@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"

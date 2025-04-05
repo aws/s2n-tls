@@ -34,6 +34,8 @@ struct s2n_test_rsa_client_key_send_ctx {
     uint8_t version;
 };
 
+DEFINE_POINTER_CLEANUP_FUNC(RSA *, RSA_free);
+
 static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *conn, struct s2n_blob *in,
         struct s2n_blob *out)
 {
@@ -43,8 +45,10 @@ static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *
      *    (n, e)   recipient's RSA public key (k denotes the length in
      *             octets of the modulus n)
      */
-    const s2n_rsa_public_key *n_e = &conn->handshake_params.server_public_key.key.rsa_key;
-    const int k = RSA_size(n_e->rsa);
+    DEFER_CLEANUP(RSA *n_e = EVP_PKEY_get1_RSA(conn->handshake_params.server_public_key.pkey),
+            RSA_free_pointer);
+    RESULT_ENSURE_REF(n_e);
+    const int k = RSA_size(n_e);
     RESULT_ENSURE_GT(k, 0);
 
     /*    M        message to be encrypted, an octet string of length
@@ -126,7 +130,7 @@ static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *
      *           c = RSAEP ((n, e), m).
      */
     int r = RSA_public_encrypt(k, (unsigned char *) EM, (unsigned char *) C->data,
-            s2n_unsafe_rsa_get_non_const(n_e), RSA_NO_PADDING);
+            n_e, RSA_NO_PADDING);
     RESULT_ENSURE((int64_t) r == (int64_t) C->size, S2N_ERR_SIZE_MISMATCH);
 
     return S2N_RESULT_OK;
