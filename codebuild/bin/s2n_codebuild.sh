@@ -105,9 +105,9 @@ run_integration_v2_tests() {
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
 
     cmake . -Bbuild \
-    -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-    -DBUILD_SHARED_LIBS=on \
-    -DPython3_EXECUTABLE=$(which python3)
+            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+            -DBUILD_SHARED_LIBS=on \
+            -DPython3_EXECUTABLE=$(which python3)
     cmake --build ./build --clean-first -- -j $(nproc)
 
     test_linked_libcrypto ./build/bin/s2nc
@@ -116,6 +116,9 @@ run_integration_v2_tests() {
     # Ensure the s2nc and s2nd binaries are available
     cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
     cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
+
+    export LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:$LD_LIBRARY_PATH"
+    export PATH="$BASE_S2N_DIR/bin:$PROJECT_SOURCE_DIR/bin:$PATH"
 
     echo "Running with S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
 
