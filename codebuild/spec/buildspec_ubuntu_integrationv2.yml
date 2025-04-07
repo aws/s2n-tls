@@ -36,14 +36,17 @@ batch:
             - openssl-1.1.1_gcc9
             - openssl-3.0
             - openssl-3.0-fips
+          # Group 1 and Group 2 (test_happy_path and test_buffered_send) each take approximately 1300 seconds to run.
+          # Group 3 is kept under 1000 seconds (bottlenecked by the slowest testcase which is 1300)
+          # Group 4 contains the remaining faster test cases.
           INTEGV2_TEST:
-            - "test_client_authentication test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
             - "test_happy_path"
-            - "test_cross_compatibility"
-            - "test_early_data test_hello_retry_requests test_sni_match test_pq_handshake test_fragmentation test_key_update"
-            - "test_session_resumption test_renegotiate_apache test_buffered_send"
-            - "test_npn test_signature_algorithms"
-            - "test_version_negotiation test_external_psk test_ocsp test_renegotiate test_serialization test_record_padding"
+            - "test_buffered_send"
+            - "test_signature_algorithms test_session_resumption test_early_data test_external_psk"
+            - "test_version_negotiation test_ocsp test_renegotiate test_serialization test_record_padding
+               test_npn test_cross_compatibility test_renegotiate_apache test_hello_retry_requests
+               test_sni_match test_pq_handshake test_fragmentation test_key_update
+               test_client_authentication test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
 
 env:
   variables:

@@ -22,7 +22,7 @@
 #include "tls/s2n_tls13.h"
 
 struct s2n_cipher_preferences {
-    uint8_t count;
+    uint16_t count;
     struct s2n_cipher_suite **suites;
     bool allow_chacha20_boosting;
 };

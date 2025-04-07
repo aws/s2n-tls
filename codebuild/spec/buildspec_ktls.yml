@@ -20,6 +20,8 @@ env:
   shell: bash
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
+    # AWS Support was removed - pin it for now. https://github.com/aws/s2n-tls/issues/5244
+    NIX_INSTALLER: "https://releases.nixos.org/nix/nix-2.15.0/install"
     S2N_KTLS_TESTING_EXPECTED: 1
 phases:
   install:
@@ -33,7 +35,7 @@ phases:
         echo "Working around the faulty yaml parser..."
         echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix
       # (Re)Install nix
-      - sh <(curl -L https://nixos.org/nix/install) --no-daemon
+      - sh <(curl -L "$NIX_INSTALLER") --no-daemon
       # Make sure nix exists in the PATH
       - export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
