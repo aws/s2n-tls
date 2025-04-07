@@ -262,16 +262,6 @@ void cbmc_populate_s2n_x509_trust_store(struct s2n_x509_trust_store *s2n_x509_tr
 struct s2n_config *cbmc_allocate_s2n_config();
 
 /*
- * Populates the fields of a pre-allocated s2n_rsa_key for CBMC proofs.
- */
-void cbmc_populate_s2n_rsa_key(struct s2n_rsa_key *s2n_rsa_key);
-
-/*
- * Populates the fields of a pre-allocated s2n_ecdsa_key for CBMC proofs.
- */
-void cbmc_populate_s2n_ecdsa_key(struct s2n_ecdsa_key *s2n_ecdsa_key);
-
-/*
  * Populates the fields of a pre-allocated s2n_pkey for CBMC proofs.
  */
 void cbmc_populate_s2n_pkey(struct s2n_pkey *s2n_pkey);
