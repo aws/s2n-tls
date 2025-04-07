@@ -66,35 +66,44 @@ setup_apache_server() {
 }
 
 run_integration_v2_tests() {
-    local test_path=$1
-    local test_name=$(basename "$test_path" .py)
+    # setup_apache_server
+    # "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
+    # cmake . -Bbuild \
+    #         -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+    #         -DBUILD_SHARED_LIBS=on \
+    #         -DS2N_INTEG_TESTS=on \
+    #         -DPython3_EXECUTABLE=$(which python3)
+    # cmake --build ./build --clean-first -- -j $(nproc)
+    # test_linked_libcrypto ./build/bin/s2nc
+    # test_linked_libcrypto ./build/bin/s2nd
+    # cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
+    # cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
+    # cd ./build/
+    # for test_name in $TOX_TEST_NAME; do
+    #   test="${test_name//test_/}"
+    #   echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
+    #   ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
+    # done
 
-    echo "Running test $test_name"
+    cmake . -Bbuild \
+    -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+    -DBUILD_SHARED_LIBS=on \
+    -DPython3_EXECUTABLE=$(which python3)
+    cmake --build ./build --clean-first -- -j $(nproc)
 
-    export S2N_INTEG_TEST=1
-    export TOX_TEST_NAME="$test_path"
+    # Ensure the s2nc and s2nd binaries are available
+    cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
+    cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
 
-    if [[ "$S2N_INTEG_NIX" == "1" ]]; then
-        echo "[Nix] Running with pytest directly (env already set)"
-        uv run pytest \
-            -x -n=auto --reruns=2 -rpfs --durations=10 \
-            --log-cli-level=DEBUG \
-            --provider-version="${S2N_LIBCRYPTO}" \
-            "$test_path"
-    else
-        echo "[CodeBuild] Running with full env setup"
+    # Set up paths for OpenSSL or crypto libraries if needed
+    export LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${LD_LIBRARY_PATH}"
+    export PATH="${PROJECT_SOURCE_DIR}/bin:$PATH"
 
-        export LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$LD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$DYLD_LIBRARY_PATH"
-        export PATH="${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$PATH"
-        export PYTHONNOUSERSITE=1
-
-        uv run pytest \
-            -x -n=auto --reruns=2 -rpfs --durations=10 \
-            --log-cli-level=DEBUG \
-            --provider-version="${S2N_LIBCRYPTO}" \
-            "$test_path"
-    fi
+    # Run pytest directly with uv
+    uv run pytest tests/integrationv2 \
+    -rpfs -n auto \
+    --provider-version=${S2N_LIBCRYPTO} \
+    -o log_cli=true --log-cli-level=DEBUG
 }
 
 run_unit_tests() {
