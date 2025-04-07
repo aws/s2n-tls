@@ -101,15 +101,19 @@ run_integration_v2_tests() {
     #   ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
     # done
 
+    # checks if the Apache-related integration test is being run
     setup_apache_server
+    # installs the current version of s2n (s2nc/s2nd) into a temporary directory
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
-
+    # generates a CMake-based build system inside the build/ directory
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
             -DBUILD_SHARED_LIBS=on \
             -DPython3_EXECUTABLE=$(which python3)
+    # "Now build everything"
     cmake --build ./build --clean-first -- -j $(nproc)
 
+    # "doing a runtime check to verify which libcrypto library is actually linked to the s2nc and s2nd binaries"
     test_linked_libcrypto ./build/bin/s2nc
     test_linked_libcrypto ./build/bin/s2nd
 

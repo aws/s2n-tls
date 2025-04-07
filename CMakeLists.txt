@@ -616,6 +616,13 @@ if (BUILD_TESTING)
         target_compile_options(s2nd PRIVATE -flto)
     endif()
 
+    """
+    1.	Checks if integration tests are enabled (S2N_INTEG_TESTS)
+    2.	Discovers all test_*.py files under tests/integrationv2/
+    3.	Generates a CTest entry per test file
+    4.	Depending on the env (Nix vs CodeBuild), chooses how to run the test (pytest or tox)
+    5.	Adds runtime config (paths, timeouts, logs) for each test
+    """
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
@@ -644,6 +651,7 @@ if (BUILD_TESTING)
                         ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
                 )
+            # running in code build vs above is running in nix
             else()
                 # For use with libcryptos built into test-deps, and not in LD_LIBRARY_PATH.
                 # This is a duplication of tests/integrationv2/Makefile and
