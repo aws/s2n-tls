@@ -117,16 +117,8 @@ run_integration_v2_tests() {
     cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
     cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
 
-    export LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:$LD_LIBRARY_PATH"
-    export PATH="$BASE_S2N_DIR/bin:$PROJECT_SOURCE_DIR/bin:$PATH"
-
-    echo "Running with S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
-
     # Run pytest directly with uv
-    uv run pytest tests/integrationv2 \
-    -rpfs -n auto \
-    --provider-version=${S2N_LIBCRYPTO} \
-    -o log_cli=true --log-cli-level=DEBUG
+    uv run pytest tests/integrationv2
 }
 
 run_unit_tests() {
