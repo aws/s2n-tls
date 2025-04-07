@@ -50,21 +50,43 @@ env:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
 
+# phases:
+#   pre_build:
+#     commands:
+#       - |
+#         if [ -d "third-party-src" ]; then
+#           cd third-party-src;
+#           ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
+#         fi
+#   build:
+#     commands:
+#       # e.g. awslc-fips-2022_gcc6
+#       - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
+#       # e.g. "test_cross_compatibility test_client_authentication"
+#       - echo "CI Configuration - the integ tests are $INTEGV2_TEST"
+#       # For jdk integration test
+#       - javac tests/integrationv2/bin/SSLSocketClient.java
+#       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
+#       - TOX_TEST_NAME=$INTEGV2_TEST TESTS=integrationv2 $CB_BIN_DIR/s2n_codebuild.sh
+
 phases:
   pre_build:
     commands:
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
-        fi
+      - echo "==[ pre_build ]=="
+      - echo "Checking working directory: $(pwd)"
+      - echo "Listing files in root:"
+      - ls -la
+      - echo "Listing files in $CB_BIN_DIR:"
+      - ls -la $CB_BIN_DIR || echo "Directory not found: $CB_BIN_DIR"
+      - echo "Done pre_build"
   build:
     commands:
-      # e.g. awslc-fips-2022_gcc6
-      - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
-      # e.g. "test_cross_compatibility test_client_authentication"
-      - echo "CI Configuration - the integ tests are $INTEGV2_TEST"
-      # For jdk integration test
-      - javac tests/integrationv2/bin/SSLSocketClient.java
-      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
+      - echo "==[ build phase starting ]=="
+      - echo "TOX_TEST_NAME=$INTEGV2_TEST"
+      - echo "S2N_BUILD_PRESET=$S2N_BUILD_PRESET"
+      - echo "Checking if s2n_codebuild.sh exists..."
+      - if [ ! -f "$CB_BIN_DIR/s2n_codebuild.sh" ]; then echo "❌ s2n_codebuild.sh not found"; exit 1; fi
+      - echo "Making script executable..."
+      - chmod +x "$CB_BIN_DIR/s2n_codebuild.sh"
+      - echo "Running integration tests..."
       - TOX_TEST_NAME=$INTEGV2_TEST TESTS=integrationv2 $CB_BIN_DIR/s2n_codebuild.sh
