@@ -17,6 +17,8 @@
 
 #include <openssl/crypto.h>
 
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl.h"
 #include "utils/s2n_init.h"
 #include "utils/s2n_safety.h"
 
@@ -26,23 +28,27 @@
 
 static bool s2n_fips_mode_enabled = false;
 
-/* FIPS mode can be checked if OpenSSL was configured and built for FIPS which then defines OPENSSL_FIPS.
+/* Check if the linked libcrypto has FIPS mode enabled.
  *
- * AWS-LC always defines FIPS_mode() that you can call and check what the library was built with. It does not define
- * a public OPENSSL_FIPS/AWSLC_FIPS macro that we can (or need to) check here
+ * This method indicates the state of the libcrypto, NOT the state
+ * of s2n-tls and should ONLY be called during library initialization (i.e.
+ * s2n_init()). This distinction is important because in the past,
+ * if s2n-tls was using Openssl-1.0.2-fips and FIPS_mode_set(1)
+ * was called after s2n_init() was called, then this method would return true
+ * while s2n_is_in_fips_mode() would return false and s2n-tls would not operate
+ * in FIPS mode.
  *
- * Safeguard with macro's, for example because Libressl dosn't define
- * FIPS_mode() by default.
- *
- * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
- * using s2n must call FIPS_mode_set(1) prior to s2n_init.
- * */
+ * For AWS-LC, the FIPS_mode() method is always defined. If AWS-LC was built to
+ * support FIPS, FIPS_mode() always returns 1.
+ */
 bool s2n_libcrypto_is_fips(void)
 {
 #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
     if (FIPS_mode() == 1) {
         return true;
     }
+#elif S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
+    return EVP_default_properties_is_fips_enabled(NULL);
 #endif
     return false;
 }
@@ -50,6 +56,17 @@ bool s2n_libcrypto_is_fips(void)
 int s2n_fips_init(void)
 {
     s2n_fips_mode_enabled = s2n_libcrypto_is_fips();
+
+    /* When using Openssl, ONLY 3.0 currently supports FIPS.
+     * openssl-1.0.2-fips is no longer supported.
+     * openssl >= 3.5 will likely have a FIPS 140-3 certificate instead of a
+     * FIPS 140-2 certificate, which will require additional review in order
+     * to properly integrate.
+     */
+#if defined(OPENSSL_FIPS) || S2N_OPENSSL_VERSION_AT_LEAST(3, 5, 0)
+    POSIX_ENSURE(!s2n_fips_mode_enabled, S2N_ERR_FIPS_MODE_UNSUPPORTED);
+#endif
+
     return S2N_SUCCESS;
 }
 

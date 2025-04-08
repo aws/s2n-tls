@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+#define S2N_CLOSED_FD -1
+
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
 
@@ -118,6 +120,7 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
+#define S2N_RSA_2048_SHA256_WILDCARD_KEY     "../pems/rsa_2048_sha256_wildcard_key.pem"
 
 #define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
 
@@ -246,20 +249,6 @@ S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
         struct s2n_blob *data, const size_t *lens, size_t lens_count);
 S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
 
-struct s2n_kem_kat_test_vector {
-    const struct s2n_kem *kem;
-    const char *kat_file;
-    bool (*asm_is_enabled)();
-    S2N_RESULT (*enable_asm)();
-    S2N_RESULT (*disable_asm)();
-};
-S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
-int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char *cipher_pref_version, const char *kat_file_name, uint32_t server_key_message_length,
-        uint32_t client_key_message_length);
-S2N_RESULT s2n_pq_noop_asm();
-bool s2n_pq_no_asm_available();
-
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
 #define S2N_BLOB_EXPECT_EQUAL(blob1, blob2)                         \
     do {                                                            \
@@ -298,3 +287,6 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 #define S2N_CHECKED_BLOB_FROM_HEX(name, check, hex)        \
     DEFER_CLEANUP(struct s2n_blob name = { 0 }, s2n_free); \
     check(s2n_blob_alloc_from_hex_with_whitespace(&name, (const char *) hex));
+
+bool s2n_is_seccomp_supported();
+S2N_RESULT s2n_seccomp_init();

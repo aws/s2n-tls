@@ -19,7 +19,11 @@ S2N_FILES=$(find "$PWD" -type f -name "s2n_*.[ch]")
 S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD"/codebuild/ -type f -name "*.sh")
 S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD"/codebuild/ -type f -name "*.yml")
+S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD"/tests/ -type f -name "*.sh")
+S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD"/tests/integrationv2 -type f -name "*.py")
 S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD" -type f -name "*.rs" | grep -v target)
 

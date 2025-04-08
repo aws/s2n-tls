@@ -62,32 +62,6 @@ bin: libs
 integrationv2: bin
 	$(MAKE) -C tests integrationv2
 
-.PHONY : valgrind
-valgrind: bin
-	$(MAKE) -C tests valgrind
-
-# https://github.com/aws/s2n-tls/issues/3758
-# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
-.PHONY : pedantic_valgrind
-pedantic_valgrind: bin
-	$(MAKE) -C tests pedantic_valgrind
-
-.PHONY : fuzz
-ifeq ($(shell uname),Linux)
-fuzz : fuzz-linux
-else
-fuzz : fuzz-osx
-endif
-
-.PHONY : fuzz-osx
-fuzz-osx :
-	@echo "\033[33;1mSKIPPED\033[0m Fuzzing is not supported on \"$$(uname -mprs)\" at this time."
-
-.PHONY : fuzz-linux
-fuzz-linux : export S2N_UNSAFE_FUZZING_MODE = 1
-fuzz-linux : bin
-	$(MAKE) -C tests fuzz
-
 .PHONY : coverage
 coverage: run-lcov run-genhtml
 

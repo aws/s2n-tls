@@ -45,6 +45,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
@@ -118,6 +119,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
 static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(config);
+
     /* Zero the whole connection structure */
     POSIX_CHECKED_MEMSET(conn, 0, sizeof(struct s2n_connection));
 
@@ -144,6 +148,8 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
@@ -420,6 +426,8 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
 
 int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* We are done with the handshake */
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
     POSIX_GUARD_RESULT(s2n_prf_free(conn));
@@ -458,6 +466,8 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
  */
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
@@ -666,6 +676,28 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     return 0;
 }
 
+int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status)
+{
+    POSIX_ENSURE(conn, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(match_status, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_CLIENT_MODE);
+
+    /* Server must have gotten past certificate selection */
+    POSIX_ENSURE(conn->handshake_params.our_chain_and_key, S2N_ERR_NO_CERT_FOUND);
+
+    if (!s2n_server_received_server_name(conn)) {
+        *match_status = S2N_SNI_NONE;
+    } else if (conn->handshake_params.exact_sni_match_exists) {
+        *match_status = S2N_SNI_EXACT_MATCH;
+    } else if (conn->handshake_params.wc_sni_match_exists) {
+        *match_status = S2N_SNI_WILDCARD_MATCH;
+    } else {
+        *match_status = S2N_SNI_NO_MATCH;
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy)
 {
     POSIX_ENSURE_REF(conn);
@@ -790,6 +822,8 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
+    POSIX_ENSURE_REF(conn);
+
     conn->client_cert_auth_type_overridden = 1;
     conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
@@ -922,9 +956,8 @@ int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *f
     POSIX_ENSURE_MUT(second);
 
     /* ensure we've negotiated a cipher suite */
-    POSIX_ENSURE(memcmp(conn->secure->cipher_suite->iana_value,
-                         s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value))
-                    != 0,
+    POSIX_ENSURE(!s2n_constant_time_equals(conn->secure->cipher_suite->iana_value,
+                         s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)),
             S2N_ERR_INVALID_STATE);
 
     const uint8_t *iana_value = conn->secure->cipher_suite->iana_value;
@@ -970,6 +1003,25 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     }
 
     return conn->kex_params.server_kem_group_params.kem_group->name;
+}
+
+int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(group_name);
+
+    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if 
+       the negotiated group was a hybrid PQ key exchange also containing a KEM. Therefore,
+       we use the result of s2n_connection_get_kem_group_name if the connection supports PQ. */
+    if (s2n_tls13_pq_hybrid_supported(conn)) {
+        *group_name = s2n_connection_get_kem_group_name(conn);
+    } else {
+        *group_name = s2n_connection_get_curve(conn);
+    }
+
+    POSIX_ENSURE(*group_name != NULL && strcmp(*group_name, "NONE"), S2N_ERR_INVALID_STATE);
+
+    return S2N_SUCCESS;
 }
 
 static S2N_RESULT s2n_connection_get_client_supported_version(struct s2n_connection *conn,

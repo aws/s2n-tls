@@ -181,7 +181,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
@@ -191,7 +191,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
@@ -201,7 +201,35 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-    .minimum_protocol_version = S2N_TLS13,
+    .minimum_protocol_version = S2N_TLS12,
+};
+
+/* ALL signature schemes, including the legacy default s2n_rsa_pkcs1_md5_sha1 scheme.
+ * New signature schemes must be added to this list.
+ */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_all[] = {
+    &s2n_rsa_pkcs1_md5_sha1,
+    &s2n_rsa_pkcs1_sha1,
+    &s2n_rsa_pkcs1_sha224,
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_ecdsa_sha1,
+    &s2n_ecdsa_sha224,
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_all = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_all),
+    .signature_schemes = s2n_sig_scheme_pref_list_all,
 };
 
 /* Chosen based on AWS server recommendations as of 05/24.

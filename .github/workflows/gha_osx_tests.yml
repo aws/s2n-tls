@@ -2,6 +2,8 @@
 name: macOS build and test S2n
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
@@ -13,7 +15,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Dependencies
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prebuild
         run: |

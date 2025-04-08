@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.9)
 project (s2n C)
 
 if(POLICY CMP0077)
@@ -32,16 +32,17 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
+option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "Allow s2n-tls to override the libcrypto random implementation with the custom
+s2n-tls implementation, when appropriate. Disabling this flag is not recommended. See docs/BUILD.md for details." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
+option(BUILD_TESTING "Build tests for s2n-tls. By default only unit tests are built." ON)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
-
-# Turn BUILD_TESTING=ON by default
-include(CTest)
+option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
 
 file(GLOB API_HEADERS "api/*.h")
 file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
@@ -102,11 +103,6 @@ else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
 
-# Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
-if(S2N_FIPS)
-    add_definitions(-DS2N_TEST_IN_FIPS_MODE)
-endif()
-
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${API_UNSTABLE_HEADERS}
@@ -134,9 +130,30 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    -pedantic
+    -std=gnu99
+    -Wall
+    -Wcast-align
+    -Wchar-subscripts
+    -Wcomment
+    -Wformat-security
+    -Wimplicit
+    -Wshadow
+    -Wsign-compare
+    -Wuninitialized
+    -Wunused
+    -Wwrite-strings
+    
+    # Assembler Options
+    -Wa,--noexecstack
+
+    # Suppressed Warnings
+    -Wno-deprecated-declarations
+    # GCC 4 fails to parse our macros with a "missing-braces" error
+    -Wno-missing-braces
+    -Wno-strict-prototypes
+    -Wno-unknown-pragmas
 )
 
 if (S2N_WERROR_ALL)
@@ -145,10 +162,10 @@ elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
-if(BUILD_TESTING AND BUILD_SHARED_LIBS)
+if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS=1)
 endif()
 
 if(S2N_LTO)
@@ -174,17 +191,23 @@ endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
 
-add_definitions(-D_POSIX_C_SOURCE=200809L)
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    add_definitions(-D_FORTIFY_SOURCE=2)
+set(S2N_PRELUDE "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
+target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
+
+# Match on Release, RelWithDebInfo and MinSizeRel
+# See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
+if(CMAKE_BUILD_TYPE MATCHES Rel)
+    add_definitions(-DS2N_BUILD_RELEASE=1)
 endif()
 
 if(NO_STACK_PROTECTOR)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wstack-protector -fstack-protector-all)
 endif()
 
-if(S2N_UNSAFE_FUZZING_MODE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
+if(S2N_FUZZ_TEST)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC S2N_FUZZ_TESTING=1)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak,address,undefined)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak,address,undefined)
 endif()
 
 if(TSAN)
@@ -217,10 +240,15 @@ if (COVERAGE)
     # on LLVM compilers. GCC would fail with "unrecognized compile options"
     # on -fprofile-instr-generate -fcoverage-mapping flags.
     if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
-        message(FATAL_ERROR "This project requires clang for coverage support")
+        message(FATAL_ERROR "This project requires clang for coverage support. You are currently using " ${CMAKE_C_COMPILER_ID})
     endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+endif()
+
+if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
+    message(STATUS "Disabling libcrypto RAND engine override")
+    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE=1)
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs
@@ -285,7 +313,7 @@ function(feature_probe_result PROBE_NAME IS_AVAILABLE)
 
     # define the probe if available
     if(NORMALIZED)
-        add_definitions(-D${PROBE_NAME})
+        add_definitions(-D${PROBE_NAME}=1)
     endif()
 endfunction()
 
@@ -306,7 +334,7 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
@@ -378,7 +406,7 @@ if (S2N_INTERN_LIBCRYPTO)
           # copy the static version of libcrypto
           cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
-          bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
+          bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{if ($3) print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
           ${CMAKE_OBJCOPY} --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
           rm -rf s2n_libcrypto &&
@@ -395,7 +423,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
-    add_definitions(-DS2N_INTERN_LIBCRYPTO)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO=1)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
@@ -421,9 +449,8 @@ if (S2N_INTERN_LIBCRYPTO)
         # add all of the prefixed symbols to the archive
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
-            DEPENDS libcrypto.symbols
             COMMAND
-                bash -c "${CMAKE_AR} -r lib/libs2n.a s2n_libcrypto/*.o"
+                bash -c "${CMAKE_AR} -r $<TARGET_FILE:${PROJECT_NAME}> s2n_libcrypto/*.o"
             VERBATIM
         )
     endif()
@@ -440,17 +467,28 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 if (BUILD_TESTING)
     enable_testing()
 
+    ############################################################################
+    ################### build testlib (utility library) ########################
+    ############################################################################
+
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
     file(GLOB EXAMPLES_SRC "docs/examples/*.c")
-    file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC} ${EXAMPLES_SRC})
+    add_library(testss2n STATIC ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
+    # make sure all linked tests include the prelude
+    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}")
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
+    if (SECCOMP)
+        message(STATUS "Linking tests with seccomp")
+        target_link_libraries(testss2n PRIVATE seccomp)
+        target_compile_definitions(testss2n PRIVATE SECCOMP)
+    endif()
 
     if (S2N_INTERN_LIBCRYPTO)
-        # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
+        # if libcrypto was interned, rewrite libcrypto symbols so use of internal
+        # functions will link correctly
         add_custom_command(
             TARGET testss2n POST_BUILD
             COMMAND
@@ -458,9 +496,33 @@ if (BUILD_TESTING)
         )
     endif()
 
-    #run unit tests
-    file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
-    add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
+    ############################################################################
+    ########################## configure unit tests ############################
+    ############################################################################
+
+    # CTest configuration variables need to be set before include(CTest) is called
+    set(VALGRIND_DEFAULT " \
+        --leak-check=full \
+        --leak-resolution=high \
+        --trace-children=yes \
+        -q --error-exitcode=123 \
+        --error-limit=no \
+        --num-callers=40 \
+        --undef-value-errors=no \
+        --track-fds=yes \
+        --log-fd=2 \
+        --suppressions=valgrind.suppressions")
+
+    # "pedantic valgrind" will error on memory that is "Still Reachable". 
+    # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
+    # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
+    if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=yes --errors-for-leak-kinds=all --show-leak-kinds=all")
+    else()
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=no")
+    endif()
+
+    set(MEMORYCHECK_TYPE "Valgrind")
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
     if (TSAN OR ASAN)
@@ -490,12 +552,18 @@ if (BUILD_TESTING)
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
+    include(CTest)
+
+    ############################################################################
+    ############################ build unit tests ##############################
+    ############################################################################
+
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
-        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+        # NAME_WE: name without extension
+        get_filename_component(test_case_name ${test_case} NAME_WE)
 
         add_executable(${test_case_name} ${test_case})
-        target_include_directories(${test_case_name} PRIVATE ./)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
         if (S2N_INTERN_LIBCRYPTO)
             # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -506,18 +574,27 @@ if (BUILD_TESTING)
             )
         endif()
         target_compile_options(${test_case_name} PRIVATE 
-                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
-                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
-                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
-                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99)
+            -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+            -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99
+        )
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+
+        add_test(
+            NAME ${test_case_name} 
+            COMMAND $<TARGET_FILE:${test_case_name}> 
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit
+        )
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
         set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 
     endforeach(test_case)
+
+    ############################################################################
+    ######################### build utility binaries ###########################
+    ############################################################################
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
@@ -561,7 +638,7 @@ if (BUILD_TESTING)
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-                        --provider-criterion=off --fips-mode=0 ${test_file_path}
+                        ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
                 )
             else()
@@ -582,6 +659,67 @@ if (BUILD_TESTING)
             endif()
             set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
             set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
+        endforeach()
+    endif()
+
+    if(S2N_FUZZ_TEST)
+        message(STATUS "Fuzz build enabled")
+        set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
+        file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
+
+        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+
+        # This must be a shared object so that symbols can be overridden by the
+        # fuzz test specific LD_PRELOAD libraries.
+        add_library(fuzztest SHARED ${TESTLIB_SRC})
+        target_include_directories(fuzztest PUBLIC tests)
+        target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
+
+        # Set default values for fuzzing
+        if(DEFINED ENV{FUZZ_TIMEOUT_SEC})
+            set(FUZZ_TIMEOUT_SEC $ENV{FUZZ_TIMEOUT_SEC})    
+        else()
+            set(FUZZ_TIMEOUT_SEC 60)
+        endif()
+
+        # Build LD_PRELOAD shared libraries
+        file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
+        foreach(SRC ${LIBRARY_SRCS})
+            get_filename_component(LIB_NAME ${SRC} NAME_WE)
+            add_library(${LIB_NAME} SHARED ${SRC})
+            target_include_directories(${LIB_NAME} PRIVATE 
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                ${CMAKE_CURRENT_SOURCE_DIR}/api
+            )
+        endforeach()
+
+        set(CMAKE_C_COMPILER clang)
+
+        foreach(src ${FUZZ_TEST_SRCS})
+            get_filename_component(TEST_NAME ${src} NAME_WE)
+
+            add_executable(${TEST_NAME} ${src})
+            
+            target_compile_options(${TEST_NAME} PRIVATE 
+                -g -Wno-unknown-pragmas -Wno-unused-result
+            )
+            target_link_options(${TEST_NAME} PRIVATE 
+                -fsanitize=fuzzer -lstdc++
+            )
+            target_link_libraries(${TEST_NAME} PRIVATE 
+                fuzztest
+            )
+
+            add_test(NAME ${TEST_NAME}
+                COMMAND ${CMAKE_COMMAND} -E env
+                    bash ${SCRIPT_PATH} 
+                    ${TEST_NAME} 
+                    ${FUZZ_TIMEOUT_SEC} 
+                    ${CMAKE_CURRENT_SOURCE_DIR}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
+            )
+            set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
         endforeach()
     endif()
 endif()
@@ -609,7 +747,6 @@ install(
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
         RUNTIME DESTINATION bin COMPONENT Runtime
 )
-
 
 configure_file("cmake/${PROJECT_NAME}-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"

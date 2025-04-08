@@ -32,7 +32,7 @@
 #define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
-static uint8_t server_ocsp_status[] = {
+static uint8_t server_ocsp_status_bytes[] = {
     /* clang-format off */
         0x30, 0x82, 0x06, 0x45, 0x0a, 0x01, 0x00, 0xa0, 0x82, 0x06, 0x3e, 0x30, 0x82, 0x06, 0x3a, 0x06, 0x09, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x01, 0x04, 0x82, 0x06, 0x2b, 0x30, 0x82, 0x06, 0x27, 0x30, 0x81, 0xeb, 0xa1, 0x70, 0x30, 0x6e, 0x31, 0x0b, 0x30, 0x09, 0x06, 0x03, 0x55, 0x04, 0x06, 0x13, 0x02, 0x49, 0x4c, 0x31, 0x31, 0x30, 0x2f, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x28, 0x53, 0x74, 0x61, 0x72, 0x74, 0x43, 0x6f, 0x6d, 0x20, 0x4c, 0x74, 0x64, 0x2e, 0x20, 0x28, 0x53, 0x74, 0x61, 0x72, 0x74, 0x20, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x72, 0x63, 0x69, 0x61, 0x6c, 0x20, 0x4c, 0x69, 0x6d, 0x69, 0x74, 0x65, 0x64, 0x29, 0x31, 0x2c, 0x30, 0x2a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x23, 0x53, 0x74, 0x61, 0x72,
         0x74, 0x43, 0x6f, 0x6d, 0x20, 0x43, 0x6c, 0x61, 0x73, 0x73, 0x20, 0x31, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x4f, 0x43, 0x53, 0x50, 0x20, 0x53, 0x69, 0x67, 0x6e, 0x65, 0x72, 0x18, 0x0f, 0x32, 0x30, 0x31, 0x35, 0x30, 0x32, 0x32, 0x37, 0x30, 0x36, 0x34, 0x36, 0x34, 0x35, 0x5a, 0x30, 0x66, 0x30, 0x64, 0x30, 0x3c, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14, 0x65, 0x68, 0x87, 0x4f, 0x40, 0x75, 0x0f, 0x01, 0x6a, 0x34, 0x75, 0x62, 0x5e, 0x1f, 0x5c, 0x93, 0xe5, 0xa2, 0x6d, 0x58, 0x04, 0x14, 0xeb, 0x42, 0x34, 0xd0, 0x98, 0xb0, 0xab, 0x9f, 0xf4, 0x1b, 0x6b, 0x08, 0xf7, 0xcc, 0x64, 0x2e, 0xef, 0x0e, 0x2c, 0x45, 0x02, 0x03, 0x0f, 0x87, 0x2c, 0x80, 0x00, 0x18, 0x0f, 0x32, 0x30,
@@ -753,7 +753,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
-                server_ocsp_status, sizeof(server_ocsp_status)));
+                server_ocsp_status_bytes, sizeof(server_ocsp_status_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -862,7 +862,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
-                server_ocsp_status, sizeof(server_ocsp_status)));
+                server_ocsp_status_bytes, sizeof(server_ocsp_status_bytes)));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -877,10 +877,10 @@ int main(int argc, char **argv)
         /* Verify that the client received an OCSP response. */
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
+        EXPECT_EQUAL(length, sizeof(server_ocsp_status_bytes));
 
-        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
+        for (size_t i = 0; i < sizeof(server_ocsp_status_bytes); i++) {
+            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status_bytes[i]);
         }
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -923,7 +923,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
-                server_ocsp_status, sizeof(server_ocsp_status)));
+                server_ocsp_status_bytes, sizeof(server_ocsp_status_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -934,10 +934,10 @@ int main(int argc, char **argv)
         /* Verify that the client received an OCSP response. */
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
+        EXPECT_EQUAL(length, sizeof(server_ocsp_status_bytes));
 
-        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
+        for (size_t i = 0; i < sizeof(server_ocsp_status_bytes); i++) {
+            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status_bytes[i]);
         }
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -985,7 +985,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
-                server_ocsp_status, sizeof(server_ocsp_status)));
+                server_ocsp_status_bytes, sizeof(server_ocsp_status_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -997,10 +997,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
 
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
+        EXPECT_EQUAL(length, sizeof(server_ocsp_status_bytes));
 
-        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
+        for (size_t i = 0; i < sizeof(server_ocsp_status_bytes); i++) {
+            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status_bytes[i]);
         }
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -1321,169 +1321,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     };
 
-    /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
-    {
-        /* Client requests Kyber ciphersuite but sends only PQ KEM extensions with bogus
-         * extension IDs; server is using the round 3 preference list. Expect to negotiate no KEM (-1) whether or
-         * not PQ is enabled. */
-        int expected_kem_id = -1;
-
-        uint8_t client_extensions[] = {
-            /* Extension type pq_kem_parameters */
-            0xFE,
-            0x01,
-            /* Extension size */
-            0x00,
-            0x08,
-            /* KEM names len */
-            0x00,
-            0x06,
-            /* KEM values out of range of anything s2n supports */
-            0xcc,
-            0x05,
-            0xaa,
-            0xbb,
-            0xff,
-            0xa1,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-            /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Client random */
-            ZERO_TO_THIRTY_ONE,
-            /* SessionID len - 32 bytes */
-            0x20,
-            /* Session ID */
-            ZERO_TO_THIRTY_ONE,
-            /* Cipher suites len */
-            0x00,
-            0x02,
-            /* Cipher suite - TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 */
-            0xFF,
-            0x0C,
-            /* Compression methods len */
-            0x01,
-            /* Compression method - none */
-            0x00,
-            /* Extensions len */
-            (client_extensions_len >> 8) & 0xff,
-            (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                client_hello_len, "PQ-TLS-1-0-2021-05-24", expected_kem_id, &io_pair));
-    };
-
-    {
-        /* Client sends PQ KEM extension with BIKE extensions, but requests SIKE ciphersuite;
-         * server is using the round 1 only preference list. Expect to negotiate no KEM (-1)
-         * whether or not PQ is enabled. */
-        int expected_kem_id = -1;
-
-        uint8_t client_extensions[] = {
-            /* Extension type pq_kem_parameters */
-            0xFE,
-            0x01,
-            /* Extension size */
-            0x00,
-            0x06,
-            /* KEM names len */
-            0x00,
-            0x04,
-            /* BIKE1_L1_R1 */
-            0x00,
-            0x01,
-            /* BIKE1_L1_R2 */
-            0x00,
-            0x0D,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-            /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Client random */
-            ZERO_TO_THIRTY_ONE,
-            /* SessionID len - 32 bytes */
-            0x20,
-            /* Session ID */
-            ZERO_TO_THIRTY_ONE,
-            /* Cipher suites len */
-            0x00,
-            0x02,
-            /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-            0xFF,
-            0x08,
-            /* Compression methods len */
-            0x01,
-            /* Compression method - none */
-            0x00,
-            /* Extensions len */
-            (client_extensions_len >> 8) & 0xff,
-            (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                client_hello_len, "KMS-PQ-TLS-1-0-2019-06", expected_kem_id, &io_pair));
-    };
-
-    {
-        /* Client sends PQ KEM extensions for round 2 only; the server is using the round 1
-         * only preference list. Expect to negotiate no KEM (-1) whether or not PQ is enabled. */
-        int expected_kem_id = -1;
-
-        uint8_t client_extensions[] = {
-            /* Extension type pq_kem_parameters */
-            0xFE,
-            0x01,
-            /* Extension size */
-            0x00,
-            0x06,
-            /* KEM names len */
-            0x00,
-            0x04,
-            /* SIKE_P434_R3 */
-            0x00,
-            0x13,
-            /* BIKE1_L1_R2 */
-            0x00,
-            0x0D,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-            /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Client random */
-            ZERO_TO_THIRTY_ONE,
-            /* SessionID len - 32 bytes */
-            0x20,
-            /* Session ID */
-            ZERO_TO_THIRTY_ONE,
-            /* Cipher suites len */
-            0x00,
-            0x02,
-            /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-            0xFF,
-            0x08,
-            /* Compression methods len */
-            0x01,
-            /* Compression method - none */
-            0x00,
-            /* Extensions len */
-            (client_extensions_len >> 8) & 0xff,
-            (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                client_hello_len, "KMS-PQ-TLS-1-0-2019-06", expected_kem_id, &io_pair));
-    };
-
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     free(cert_chain);
     free(private_key);
     END_TEST();
-    return 0;
 }

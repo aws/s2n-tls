@@ -49,8 +49,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -88,8 +91,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket without EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -125,8 +131,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket with EMS data */
-            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -157,7 +166,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -208,7 +217,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -253,7 +262,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

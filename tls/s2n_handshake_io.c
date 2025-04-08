@@ -1046,7 +1046,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
             /* We reuse the session if a valid TLS12 ticket is provided.
              * Otherwise, we will perform a full handshake and then generate
              * a new session ticket. */
-            if (s2n_result_is_ok(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt))) {
+            if (s2n_result_is_ok(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt))) {
                 return S2N_SUCCESS;
             }
 
@@ -1389,8 +1389,7 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
  * HEARTBEAT messages), or during renegotiations we may even get application
- * data messages that need to be handled by the application. The latter is punted
- * for now (s2n does not support renegotiations).
+ * data messages that need to be handled by the application.
  */
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {

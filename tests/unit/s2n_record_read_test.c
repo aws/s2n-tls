@@ -164,12 +164,25 @@ int main(int argc, char *argv[])
         };
     };
 
+    struct {
+        const char *policy;
+        uint8_t version;
+    } policy_test_cases[] = {
+        { .policy = "20240503", .version = S2N_TLS13 },
+        { .policy = "20240501", .version = S2N_TLS12 }
+    };
+
     /* Ensure that the input buffer is wiped after failing to read a record */
-    {
+    for (size_t i = 0; i < s2n_array_len(policy_test_cases); i++) {
+        if (policy_test_cases[i].version == S2N_TLS13 && !s2n_is_tls13_fully_supported()) {
+            continue;
+        }
+
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policy_test_cases[i].policy));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -189,6 +202,7 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &stuffer_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_EQUAL(server->actual_protocol_version, policy_test_cases[i].version);
 
         /* Send some test data to the server. */
         uint8_t test_data[] = "hello world";
@@ -198,9 +212,11 @@ int main(int argc, char *argv[])
 
         /* Invalidate an encrypted byte to cause decryption to fail. */
         struct s2n_stuffer invalidation_stuffer = stuffer_pair.server_in;
-        uint8_t *first_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
-        EXPECT_NOT_NULL(first_byte);
-        *first_byte += 1;
+        /* Skip the TLS Record Header content, since its not used for decryption in TLS 1.3. */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&invalidation_stuffer, S2N_TLS_RECORD_HEADER_LENGTH));
+        uint8_t *corrupt_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
+        EXPECT_NOT_NULL(corrupt_byte);
+        *corrupt_byte += 1;
 
         /* Receive the invalid data. */
         uint8_t buffer[sizeof(test_data)] = { 0 };

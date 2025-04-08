@@ -22,16 +22,18 @@ function libcrypto_alias {
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
-libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 #No need to alias gnutls because it is included in common_packages (see flake.nix).
 
-function clean {
+function clean {(set -e
     banner "Cleanup ./build"
     rm -rf ./build ./s2n_head
-}
+)}
 
-function configure {
+function configure {(set -e
     banner "Configuring with cmake"
     cmake -S . -B./build \
           -DBUILD_TESTING=ON \
@@ -41,9 +43,9 @@ function configure {
           -DBUILD_SHARED_LIBS=ON \
           $S2N_CMAKE_OPTIONS \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
-}
+)}
 
-function build {
+function build {(set -e
     banner "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
@@ -51,17 +53,25 @@ function build {
     if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
         $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
-}
+)}
 
-function unit {
+function unit {(set -e
     if [[ -z "$1" ]]; then
-        (cd $SRC_ROOT/build; ctest -L unit -j $(nproc) --verbose)
+        cmake --build build -j $(nproc)
+        ctest --test-dir build -L unit -j $(nproc) --verbose
     else
-        (cd $SRC_ROOT/build; ctest -L unit -R $1 -j $(nproc) --verbose)
+        tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
+        echo "Tests:"
+        echo "$tests"
+        for test in $tests
+        do
+            cmake --build build -j $(nproc) --target $test
+        done
+        ctest --test-dir build -L unit -R "$1" -j $(nproc) --verbose
     fi
-}
+)}
 
-function integ {
+function integ {(set -e
     apache2_start
     if [[ -z "$1" ]]; then
         banner "Running all integ tests."
@@ -75,9 +85,9 @@ function integ {
             fi
         done
     fi
-}
+)}
 
-function check-clang-format {
+function check-clang-format {(set -e
     banner "Dry run of clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
@@ -99,8 +109,9 @@ function check-clang-format {
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file)
-}
-function do-clang-format {
+)}
+
+function do-clang-format {(set -e
     banner "In place clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
@@ -122,9 +133,9 @@ function do-clang-format {
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
-}
+)}
 
-function test_toolchain_counts {
+function test_toolchain_counts {(set -e
     # This is a starting point for a unit test of the devShell.
     # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
@@ -145,12 +156,12 @@ function test_toolchain_counts {
     echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
     echo -e "valgrind:\t $(valgrind --version|grep -c 'valgrind-3.19.0')"
-}
+)}
 
-function test_nonstandard_compilation {
+function test_nonstandard_compilation {(set -e
     # Any script that needs to compile s2n in a non-standard way can run here
     ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
-}
+)}
 
 function apache2_config(){
     export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
@@ -181,5 +192,4 @@ function apache2_start(){
     else
       echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
-
 }

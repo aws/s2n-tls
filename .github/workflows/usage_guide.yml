@@ -6,6 +6,9 @@ on:
   pull_request:
     branches:
       - main
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 env:
   CDN: https://d3fqnyekunr9xg.cloudfront.net
@@ -18,6 +21,7 @@ env:
 permissions:
   contents: write
   statuses: write
+  id-token: write # This is required for requesting the JWT/OIDC
 
 jobs:
   build-deploy:
@@ -39,22 +43,22 @@ jobs:
         run: |
           cd docs/usage-guide
           mdbook build
-      
+
       - name: Deploy documentation to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         if: github.event_name == 'push'
         with:
           target-folder: usage-guide
           folder: docs/usage-guide/book
-  
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.1
+        uses: aws-actions/configure-aws-credentials@v4.1.0
         if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-1
-      
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: s2ntlsghauseageguidesession
+          aws-region: us-west-2
+
       - name: Upload to S3
         if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
         id: s3
@@ -63,9 +67,9 @@ jobs:
           aws s3 sync docs/usage-guide/book "s3://s2n-tls-ci-artifacts/$TARGET" --acl private --follow-symlinks
           URL="$CDN/$TARGET/index.html"
           echo "URL=$URL" >> $GITHUB_OUTPUT
-      
-      - name: Output mdbook url 
-        uses: ouzi-dev/commit-status-updater@v2.0.1
+
+      - name: Output mdbook url
+        uses: ouzi-dev/commit-status-updater@v2
         if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
         with:
           name: "book / url"

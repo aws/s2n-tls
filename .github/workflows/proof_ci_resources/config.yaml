@@ -1,5 +1,5 @@
 cadical-tag: latest
-cbmc-version: "6.1.0"
+cbmc-version: "6.2.0"
 cbmc-viewer-version: latest
 kissat-tag: latest
 litani-version: latest

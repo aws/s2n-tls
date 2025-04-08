@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_rsa_signing.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_key_log.h"
@@ -77,7 +76,7 @@ int main(int argc, char **argv)
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
         DEFER_CLEANUP(struct s2n_stuffer client_key_log, s2n_stuffer_free);
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 
         struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         DEFER_CLEANUP(struct s2n_stuffer server_key_log, s2n_stuffer_free);
@@ -180,16 +179,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&raw_bytes, bytes, sizeof(bytes)));
         EXPECT_OK(s2n_stuffer_write_hex(&encoded, &raw_bytes));
 
-        DEFER_CLEANUP(struct s2n_stuffer decoded, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&decoded, sizeof(bytes)));
-
-        encoded.blob.size = s2n_stuffer_data_available(&encoded);
-        EXPECT_OK(s2n_stuffer_read_hex(&decoded, &encoded.blob));
-
-        uint8_t *out = s2n_stuffer_raw_read(&decoded, s2n_stuffer_data_available(&decoded));
-        EXPECT_NOT_NULL(out);
-
-        EXPECT_EQUAL(memcmp(bytes, out, sizeof(bytes)), 0);
+        DEFER_CLEANUP(struct s2n_blob decoded = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&decoded, sizeof(bytes)));
+        EXPECT_OK(s2n_stuffer_read_hex(&encoded, &decoded));
+        EXPECT_BYTEARRAY_EQUAL(decoded.data, bytes, sizeof(bytes));
     };
 
     END_TEST();

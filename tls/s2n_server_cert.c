@@ -22,16 +22,21 @@
 
 int s2n_server_cert_recv(struct s2n_connection *conn)
 {
+    /* s2n_server_cert_recv() may be re-entered due to handling an async callback.
+     * We operate on a copy of `handshake.io` to ensure the stuffer is initilized properly on the re-entry case.
+     */
+    struct s2n_stuffer in = conn->handshake.io;
+
     if (conn->actual_protocol_version == S2N_TLS13) {
         uint8_t certificate_request_context_len = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
+        POSIX_GUARD(s2n_stuffer_read_uint8(&in, &certificate_request_context_len));
         S2N_ERROR_IF(certificate_request_context_len != 0, S2N_ERR_BAD_MESSAGE);
     }
 
     uint32_t size_of_all_certificates = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
+    POSIX_GUARD(s2n_stuffer_read_uint24(&in, &size_of_all_certificates));
 
-    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3,
+    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&in) || size_of_all_certificates < 3,
             S2N_ERR_BAD_MESSAGE);
 
     s2n_cert_public_key public_key;
@@ -40,7 +45,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     s2n_pkey_type actual_cert_pkey_type;
     struct s2n_blob cert_chain = { 0 };
     cert_chain.size = size_of_all_certificates;
-    cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
+    cert_chain.data = s2n_stuffer_raw_read(&in, size_of_all_certificates);
     POSIX_ENSURE_REF(cert_chain.data);
 
     POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
@@ -49,6 +54,9 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_is_cert_type_valid_for_auth(conn, actual_cert_pkey_type));
     POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));
     conn->handshake_params.server_public_key = public_key;
+
+    /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
+    conn->handshake.io = in;
 
     return 0;
 }

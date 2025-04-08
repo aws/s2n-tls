@@ -3,7 +3,7 @@ TLS handshake sessions are CPU-heavy due to the calculations involved in authent
 
 ## Session Ticket Key
 
-The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys.
+The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. Unlike other methods that modify `s2n_config` objects, `s2n_config_add_ticket_crypto_key()` can be called after setting an `s2n_config` object on a connection. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys.
 
 Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
 
@@ -24,6 +24,8 @@ In stateful session resumption, also known as session caching, the server caches
 Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Session caching will not be turned on unless all three session cache callbacks are set prior to calling `s2n_config_set_session_cache_onoff()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
 Clients should call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
+
+The `cache_delete_callback` is called when a connection encounters a fatal error. This allows a server to delete a potentially corrupted or faulty session from its cache. Because an unexpected end-of-stream is considered a fatal error, an application should ensure that it performs a graceful TLS shutdown when using session caching. For more information on how to close connections, see [Closing the Connection](./ch07-io.md#closing-the-connection).
 
 ## Session Resumption in TLS1.2 and TLS1.3
 

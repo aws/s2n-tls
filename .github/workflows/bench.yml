@@ -1,0 +1,56 @@
+name: Benchmarking
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # run the job daily at midnight
+    - cron: "0 0 * * *"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # This is required for actions/checkout
+      id-token: write # This is required for requesting the JWT
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+          cargo install cargo-criterion
+          pip3 install "boto3[crt]"
+
+      - name: Generate
+        working-directory: bindings/rust/extended
+        run: ./generate.sh --skip-tests
+
+      - name: Benchmark
+        working-directory: bindings/rust/standard/bench
+        run: cargo criterion --message-format json > criterion_output.log
+
+      - name: Configure AWS Credentials
+        # Only continue with the workflow to emit metrics on code that has been merged to main.
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: s2ntlsghabenchsession
+          aws-region: us-west-2
+
+      - name: Emit CloudWatch metrics
+        if: github.event_name != 'pull_request'
+        run: |
+          python3 .github/bin/criterion_to_cloudwatch.py \
+            --criterion_output_path bindings/rust/standard/bench/criterion_output.log \
+            --namespace s2n-tls-bench \
+            --platform ${{ runner.os }}-${{ runner.arch }}

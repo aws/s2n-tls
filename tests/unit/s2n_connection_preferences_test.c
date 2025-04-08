@@ -243,11 +243,17 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_connection_get_signature_preferences(conn, &signature_preferences));
         EXPECT_FAILURE(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_NOT_NULL(conn->config->security_policy);
         EXPECT_NULL(conn->security_policy_override);
 
-        conn->config->security_policy = NULL;
+        /* Invalidate the security policy and expect failure. */
+        config->security_policy = NULL;
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_cipher_preferences(conn, &cipher_preferences), S2N_ERR_INVALID_CIPHER_PREFERENCES);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_security_policy(conn, &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -256,10 +262,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences), S2N_ERR_INVALID_ECC_PREFERENCES);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-
-        /* The static configs were mutated. Reset them to allow following unit tests to use them. */
-        s2n_wipe_static_configs();
-        EXPECT_SUCCESS(s2n_config_defaults_init());
     };
 
     /* s2n_connection_get_curve */
@@ -272,11 +274,16 @@ int main(int argc, char **argv)
         /* No curve negotiated yet */
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         /* TLS1.3 always returns a curve */
         conn->actual_protocol_version = S2N_TLS13;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 returns a curve if ECDHE cipher negotiated */
@@ -285,6 +292,10 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 does not return a curve if ECDHE cipher was not negotiated */
         conn->actual_protocol_version = S2N_TLS12;
@@ -292,6 +303,7 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };

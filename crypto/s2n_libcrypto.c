@@ -99,15 +99,36 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
 }
 
 /* s2n_libcrypto_is_*() encodes the libcrypto version used at build-time.
- * Currently only captures AWS-LC and BoringSSL. When a libcrypto-dependent
- * branch is required, we prefer these functions where possible to reduce
- # #ifs and avoid potential bugs where the header containing the #define is not
- * included.
+ *
+ * When a libcrypto-dependent branch is required, we prefer these functions
+ * where possible to reduce #ifs and avoid potential bugs where the header
+ * containing the #define is not included.
  */
 
 #if defined(OPENSSL_IS_AWSLC) && defined(OPENSSL_IS_BORINGSSL)
     #error "Both OPENSSL_IS_AWSLC and OPENSSL_IS_BORINGSSL are defined at the same time!"
 #endif
+
+/* Attempt to detect if the libcrypto is OpenSSL.
+ *
+ * This check should be updated if s2n-tls adds support for a new libcrypto.
+ *
+ * Since several libcrypto implementations (such as BoringSSL and AWS-LC) are
+ * ABI compatible forks of OpenSSL, detecting OpenSSL is done by checking the
+ * absence of other known libcrypto variants.
+ */
+bool s2n_libcrypto_is_openssl(void)
+{
+    bool is_other_libcrypto_variant =
+            s2n_libcrypto_is_boringssl() || s2n_libcrypto_is_libressl() || s2n_libcrypto_is_awslc();
+
+    return !is_other_libcrypto_variant;
+}
+
+bool s2n_libcrypto_is_openssl_fips(void)
+{
+    return s2n_libcrypto_is_openssl() && s2n_is_in_fips_mode();
+}
 
 bool s2n_libcrypto_is_awslc()
 {
@@ -116,6 +137,11 @@ bool s2n_libcrypto_is_awslc()
 #else
     return false;
 #endif
+}
+
+bool s2n_libcrypto_is_awslc_fips(void)
+{
+    return s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode();
 }
 
 uint64_t s2n_libcrypto_awslc_api_version(void)
@@ -195,6 +221,15 @@ unsigned long s2n_get_openssl_version(void)
 bool s2n_libcrypto_supports_flag_no_check_time()
 {
 #ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool s2n_libcrypto_supports_providers(void)
+{
+#if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
     return true;
 #else
     return false;

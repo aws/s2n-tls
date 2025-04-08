@@ -750,5 +750,60 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Test: s2n_flush is necessary and not achievable with s2n_send */
+    {
+        bool use_send[] = { true, false };
+
+        /* To reproduce the problematic scenario, we need to block on
+         * sending a record during a multi-record write.
+         */
+        struct s2n_send_result results[] = {
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT,
+            OK_SEND_RESULT,
+            OK_SEND_RESULT,
+        };
+
+        for (size_t i = 0; i < s2n_array_len(use_send); i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            struct s2n_send_context context = {
+                .results = results,
+                .results_len = s2n_array_len(results)
+            };
+            EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+            EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+
+            s2n_blocked_status blocked = 0;
+
+            /* First attempt blocks */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                    S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            EXPECT_EQUAL(context.bytes_sent, 0);
+
+            /* For our control case, we attempt to use a zero-length send as flush */
+            if (use_send[i]) {
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, 0, &blocked),
+                        S2N_ERR_SEND_SIZE);
+                continue;
+            }
+
+            /* Unlike the zero-length send, s2n_flush succeeds */
+            EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+            EXPECT_EQUAL(context.bytes_sent, max_frag_bytes_sent[S2N_MFL_DEFAULT]);
+
+            /* We can also successfully finish sending */
+            EXPECT_EQUAL(
+                    s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                    sizeof(large_test_data));
+            EXPECT_EQUAL(context.bytes_sent, large_test_data_bytes_sent);
+        }
+    };
+
     END_TEST();
 }

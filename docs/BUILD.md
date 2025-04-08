@@ -110,12 +110,18 @@ cmake . -LH
 
 s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be linked to s2n-tls when building. The following libcrypto libraries are currently supported:
 - [AWS-LC](https://github.com/aws/aws-lc)
+  - Limited ["Sandboxing"](https://github.com/aws/aws-lc/blob/main/SANDBOXING.md) is only supported and tested with AWS-LC.
+  - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
+  - FIPS mode is supported with versions of AWS-LC [that support
+    FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
 - [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
+  - FIPS mode is supported with FIPS-validated versions of Openssl-3.0, with caveats: see [details](#openssl-fips).
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
+  - FIPS mode is not supported with BoringSSL.
 - [LibreSSL](https://www.libressl.org/)
 
 By default, s2n-tls will attempt to find a system libcrypto to link with when building. However, this search can be overridden to any of the above libcryptos by specifying the install directory with the `CMAKE_PREFIX_PATH` flag.
@@ -127,6 +133,32 @@ For help building a desired libcrypto on your platform, please consult the proje
 [AWS-LC](https://github.com/aws/aws-lc) is the recommended libcrypto to use with s2n-tls due to increased performance and security. See the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md) for information on building AWS-LC.
 
 The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specify where AWS-LC will be installed. The install path for AWS-LC should be provided when building s2n-tls, via the `CMAKE_PREFIX_PATH` option. This will ensure that s2n-tls is able to find the AWS-LC library artifact to link with.
+
+### AWS-LC FIPS
+
+s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. See the [AWS-LC FIPS documentation](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md) for more information. The security policy listed for each FIPS validation includes instructions for how to build the validated version.
+
+### Openssl FIPS
+
+You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). You can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls if AWS-LC symbols would conflict with Openssl symbols in your environment.
+
+But if you must use Openssl instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS-validated version of Openssl. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS-validated version of Openssl.
+
+Note that currently s2n-tls only supports the Openssl-3.0 version of FIPS-validated Openssl. Openssl-3.0 has a FIPS 140-2 certificate, NOT a FIPS 140-3 certificate. If you require FIPS 140-3, consider using AWS-LC instead. Once Openssl releases a FIPS 140-3 validated version (currently planned for Openssl-3.5), then the s2n-tls integration can be updated. Because of the significant changes made in FIPS 140-3, simply building s2n-tls with a FIPS 140-3 validated version of Openssl will not meet all FIPS 140-3 requirements.
+
+When running in FIPS mode with Openssl, s2n-tls does not support RSA 1024 certificates (https://github.com/aws/s2n-tls/issues/5200) or ChaChaPoly (https://github.com/aws/s2n-tls/issues/5199), even if allowed by the configured security policy. As with non-FIPS Openssl, RC4 is also not supported.
+
+s2n-tls requires that Openssl be configured with the default provider in addition to the FIPS provider. The base provider is NOT sufficient. s2n-tls assumes that non-FIPS algorithms like MD5 and SHA1 are available even when built with FIPS-validated Openssl. If you are following the [Openssl documentation for how to configure FIPS](https://docs.openssl.org/master/man7/fips_module/), your openssl.cnf must include:
+```
+[provider_sect]
+default = default_sect
+fips = fips_sect
+
+[default_sect]
+activate = 1
+```
+Note the use of `default` instead of `base`. You can see the openssl.cnf that s2n-tls uses for testing [here](https://github.com/aws/s2n-tls/blob/main/codebuild/bin/s2n_fips_openssl.cnf).
+
 
 ## Other build methods
 
@@ -221,3 +253,17 @@ cmake --build ./build -j $(nproc)
 CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
 ```
 </details>
+
+## RAND engine override
+
+By default, s2n-tls may override the libcrypto random implementation with its custom implementation. This allows the libcrypto APIs invoked by s2n-tls to internally use the s2n-tls random implementation when fetching random bytes.
+
+The motivation for this behavior is twofold:
+1. Ensure that s2n-tls usage is safe when linked to a libcrypto with known issues in its random implementation, such as OpenSSL 1.0.2. See https://wiki.openssl.org/index.php/Random_fork-safety for details.
+2. Ensure that s2n-tls usage is safe when used in snapshot environments. Some applications, such as [Lambda SnapStart](https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html), take a snapshot of the memory and disk state, and later restore this state to a virtual machine. Precautions must be taken when running inside a restored snapshot environment to ensure that randomly generated data remains unique between restored snapshots. See the Lambda SnapStart documentation for details: https://docs.aws.amazon.com/lambda/latest/dg/snapstart-uniqueness.html
+
+When both of the above concerns are known to be mitigated in the linked libcrypto's random implementation, s2n-tls will not override the libcrypto's implementation, as is the case for AWS-LC.
+
+The s2n-tls RAND engine may conflict with some environments that use the same libcrypto as s2n-tls. For example, other applications or libraries may have certain requirements for the libcrypto RAND engine that the s2n-tls implementation doesn't provide. Other applications or libraries might also need to implement their own custom RAND engines. If the s2n-tls RAND engine conflicts with your environment, consider enabling libcrypto interning with the `S2N_INTERN_LIBCRYPTO` CMake option, which will build s2n-tls with its own copy of the libcrypto that's isolated from the rest of the environment.
+
+If the s2n-tls RAND engine conflicts with your environment and enabling libcrypto interning is not a viable option, s2n-tls can be forced to disable overriding the RAND engine by setting the `S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE` CMake flag to false when building s2n-tls. This is not recommended unless both of the concerns described above are confirmed to be inapplicable to your use case.

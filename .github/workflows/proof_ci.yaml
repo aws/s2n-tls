@@ -26,13 +26,15 @@ jobs:
   run_cbmc_proofs:
     runs-on: cbmc_ubuntu-latest_64-core
     name: run_cbmc_proofs
+    # The default timeout is 360 minutes
+    timeout-minutes: 60
     permissions:
       contents: read
       id-token: write
       pull-requests: read
     steps:
       - name: Check out repository and submodules recursively
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
       - name: Parse config file
@@ -226,7 +228,7 @@ jobs:
             && mv $FINAL_REPORT_DIR/${{ steps.artifact.outputs.name }}.zip .
       - name: Upload zip artifact of CBMC proof results to GitHub Actions
         if: ${{ env.REPO_VISIBILITY == 'public' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: ${{ steps.artifact.outputs.name }}.zip

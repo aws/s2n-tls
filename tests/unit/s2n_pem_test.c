@@ -59,6 +59,13 @@ static const char *invalid_pem_pairs[][2] = {
     { S2N_NO_DASHES_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
 };
 
+const struct {
+    const char *path;
+    uint16_t length;
+} valid_cert_chains[] = {
+    { .path = S2N_TEST_TRUST_STORE, .length = 179 },
+};
+
 int main(int argc, char **argv)
 {
     struct s2n_config *config = NULL;
@@ -88,6 +95,26 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    }
+
+    char large_cert_chain_pem[500000] = { 0 };
+    for (size_t i = 0; i < s2n_array_len(valid_cert_chains); i++) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_NOT_NULL(chain);
+        EXPECT_SUCCESS(s2n_read_test_pem(valid_cert_chains[i].path,
+                large_cert_chain_pem, sizeof(large_cert_chain_pem)));
+
+        uint32_t length = 0;
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_public_pem_bytes(chain,
+                (uint8_t *) large_cert_chain_pem, strlen(large_cert_chain_pem)));
+        EXPECT_SUCCESS(s2n_cert_chain_get_length(chain, &length));
+        EXPECT_EQUAL(length, valid_cert_chains[i].length);
+
+        DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(test_config);
+        EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(test_config, large_cert_chain_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(test_config, chain));
     }
 
     free(cert_chain_pem);

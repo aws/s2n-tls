@@ -29,10 +29,8 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_set.h"
 
-#define S2N_MAX_TICKET_KEYS       48
-#define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
+#define S2N_MAX_TICKET_KEYS 48
 
 /*
  * TLS1.3 does not allow alert messages to be fragmented, and some TLS
@@ -133,8 +131,7 @@ struct s2n_config {
 
     uint64_t session_state_lifetime_in_nanos;
 
-    struct s2n_set *ticket_keys;
-    struct s2n_set *ticket_key_hashes;
+    struct s2n_array *ticket_keys;
     uint64_t encrypt_decrypt_key_lifetime_in_nanos;
     uint64_t decrypt_key_lifetime_in_nanos;
 
@@ -239,7 +236,6 @@ struct s2n_config {
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
-S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void);
 struct s2n_config *s2n_fetch_default_config(void);
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config);
 

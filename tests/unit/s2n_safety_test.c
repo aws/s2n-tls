@@ -445,6 +445,17 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test: s2n_array_len */
+    {
+        /* Must return correct length */
+        uint16_t test_data[10] = { 0 };
+        EXPECT_EQUAL(s2n_array_len(test_data), 10);
+        EXPECT_NOT_EQUAL(s2n_array_len(test_data), sizeof(test_data));
+
+        /* Must be usable as an array size / constant expression */
+        uint16_t test_data_dup[s2n_array_len(test_data)] = { 0 };
+        EXPECT_EQUAL(sizeof(test_data), sizeof(test_data_dup));
+    }
+
     END_TEST();
-    return 0;
 }

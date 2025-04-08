@@ -16,9 +16,12 @@
 #include "tls/s2n_config.h"
 
 #include <stdlib.h>
+#include <testlib/s2n_sslv2_client_hello.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -27,6 +30,7 @@
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
@@ -910,7 +914,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
                 EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -945,7 +949,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
                 EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -1147,6 +1151,43 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
+
+        /* when cert preferences don't apply locally, certs in domain map are not iterated over
+         *
+         * Some customers load large numbers of certificates, so even iterating
+         * over every certificate without performing any validation is expensive.
+         */
+        {
+            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+
+            /* Assert that the security policy WOULD apply,
+             * if certificate_preferences_apply_locally was true.
+             */
+            EXPECT_NOT_NULL(non_local_rfc9151.certificate_key_preferences);
+            EXPECT_NOT_NULL(non_local_rfc9151.certificate_signature_preferences);
+            EXPECT_TRUE(non_local_rfc9151.certificate_key_preferences->count > 0);
+            EXPECT_TRUE(non_local_rfc9151.certificate_signature_preferences->count > 0);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
+
+            /* Invalidate the domain map so that attempting to use it will trigger
+             * an error. We want to ensure that we DON'T use it.
+             * Iterating over a map requires that map to be immutable / complete.
+             */
+            EXPECT_OK(s2n_map_unlock(config->domain_name_to_cert_map));
+
+            /* Control case: if local validation needed, attempt to use invalid domain map */
+            non_local_rfc9151.certificate_preferences_apply_locally = true;
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_config_validate_loaded_certificates(config, &non_local_rfc9151),
+                    S2N_ERR_MAP_MUTABLE);
+
+            /* Test case: if no local validation needed, do not use invalid domain map */
+            non_local_rfc9151.certificate_preferences_apply_locally = false;
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &non_local_rfc9151));
+        };
     };
 
     /* Checks that servers don't use a config before the client hello callback is executed.
@@ -1192,6 +1233,41 @@ int main(int argc, char **argv)
              */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
+        }
+    }
+
+    /* Checks that servers don't use a config before the client hello callback is executed on a
+     * SSLv2-formatted client hello.
+     *
+     * Parsing SSLv2 hellos uses a different code path and needs to be tested separately.
+     */
+    {
+        uint8_t sslv2_client_hello[] = {
+            SSLv2_CLIENT_HELLO_PREFIX,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+        };
+
+        struct s2n_blob client_hello = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&client_hello, sslv2_client_hello, sizeof(sslv2_client_hello)));
+
+        /* Checks that the handshake gets as far as the client hello callback with a NULL config */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->config = NULL;
+
+            /* Record version and protocol version are in the header for SSLv2 */
+            server_conn->client_hello_version = S2N_SSLv2;
+            server_conn->client_protocol_version = S2N_TLS12;
+
+            /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
+             * client hello callback. Therefore, we can assert that if we hit this error, we
+             * have gotten as far as the client hello callback without dereferencing the config.
+             */
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
         }
     }
 

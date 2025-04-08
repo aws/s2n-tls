@@ -34,21 +34,13 @@ const s2n_extension_type s2n_server_key_share_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_server_key_share_send_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(conn);
-
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE_REF(out);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
-
-    POSIX_ENSURE_REF(server_kem_group_params->kem_group);
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, server_kem_group_params->kem_group->iana_id));
-
-    struct s2n_stuffer_reservation total_share_size = { 0 };
-    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(server_ecc_params->negotiated_curve);
@@ -58,12 +50,37 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(server_ecc_params));
     POSIX_GUARD(s2n_ecc_evp_write_params_point(server_ecc_params, out));
 
+    return S2N_SUCCESS;
+}
+
+static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(conn);
+
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
+
+    struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
+    struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
     POSIX_ENSURE_REF(client_kem_params->public_key.data);
+
+    POSIX_ENSURE_REF(server_kem_group_params->kem_group);
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, server_kem_group_params->kem_group->iana_id));
+
+    struct s2n_stuffer_reservation total_share_size = { 0 };
+    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
+
     /* s2n_kem_send_ciphertext() will generate the PQ shared secret and use
      * the client's public key to encapsulate; the PQ shared secret will be
      * stored in client_kem_params, and will be used during the hybrid shared
      * secret derivation. */
-    POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
+    if (server_kem_group_params->kem_group->send_kem_first) {
+        POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
+        POSIX_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
+    } else {
+        POSIX_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
+        POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
+    }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
     return S2N_SUCCESS;
@@ -74,7 +91,7 @@ int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_group);
     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_params.kem);
@@ -157,6 +174,32 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     return S2N_SUCCESS;
 }
 
+static int s2n_server_key_share_recv_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(extension);
+
+    struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
+    struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
+    const struct s2n_kem_group *server_kem_group = server_kem_group_params->kem_group;
+    POSIX_ENSURE_REF(server_kem_group);
+    uint16_t expected_ecc_share_size = server_kem_group->curve->share_size;
+
+    /* Parse ECC key share */
+    if (client_kem_params->len_prefixed) {
+        uint16_t actual_ecc_share_size = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_ecc_share_size));
+        POSIX_ENSURE(actual_ecc_share_size == expected_ecc_share_size, S2N_ERR_BAD_KEY_SHARE);
+    }
+
+    struct s2n_blob point_blob = { 0 };
+    POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, expected_ecc_share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+    POSIX_ENSURE(s2n_ecc_evp_parse_params_point(&point_blob, &server_kem_group_params->ecc_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+    POSIX_ENSURE(server_kem_group_params->ecc_params.evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint16_t named_group_iana,
         struct s2n_stuffer *extension)
 {
@@ -165,7 +208,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
 
     /* If PQ is disabled, the client should not have sent any PQ IDs
      * in the supported_groups list of the initial ClientHello */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
@@ -211,22 +254,13 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     /* Don't need to call s2n_is_tls13_hybrid_kem_length_prefixed() to set client_kem_params->len_prefixed since we are
      * the client, and server-side should auto-detect hybrid share size and match our behavior. */
 
-    /* Parse ECC key share */
-    uint16_t expected_ecc_share_size = server_kem_group_params->kem_group->curve->share_size;
-    if (client_kem_params->len_prefixed) {
-        uint16_t actual_ecc_share_size = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_ecc_share_size));
-        POSIX_ENSURE(actual_ecc_share_size == expected_ecc_share_size, S2N_ERR_BAD_KEY_SHARE);
+    if (!server_kem_group_params->kem_group->send_kem_first) {
+        POSIX_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+        POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+    } else {
+        POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+        POSIX_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
     }
-
-    struct s2n_blob point_blob = { 0 };
-    POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, expected_ecc_share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(s2n_ecc_evp_parse_params_point(&point_blob, &server_kem_group_params->ecc_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(server_kem_group_params->ecc_params.evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
-
-    /* Parse the PQ KEM key share */
-    POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS,
-            S2N_ERR_BAD_KEY_SHARE);
 
     return S2N_SUCCESS;
 }

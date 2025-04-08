@@ -35,20 +35,6 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     POSIX_GUARD(s2n_stuffer_alloc(&fuzzed_ticket, len));
     POSIX_GUARD(s2n_stuffer_write_bytes(&fuzzed_ticket, buf, len));
 
-    /* Pull a byte off the libfuzzer input and use it to set parameters */
-    uint8_t randval = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(&fuzzed_ticket, &randval));
-    POSIX_GUARD(s2n_stuffer_reread(&fuzzed_ticket));
-    POSIX_GUARD(s2n_stuffer_rewrite(&fuzzed_ticket));
-
-    /* There are only a few valid formats for session tickets; this ensures the
-     * format version is at or below S2N_SERIALIZED_FORMAT_TLS12_V3, which will
-     * keep the test checking mostly valid paths. */
-    randval = randval % S2N_SERIALIZED_FORMAT_TLS12_V3;
-    POSIX_GUARD(s2n_stuffer_write_uint8(&fuzzed_ticket, randval));
-    /* We have to put the write cursor back */
-    POSIX_GUARD(s2n_stuffer_skip_write(&fuzzed_ticket, len - 1));
-
     /* A session ticket is sent along with the Client Hello, so there's not much set up needed for the server */
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
     POSIX_ENSURE_REF(server_conn);

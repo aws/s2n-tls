@@ -1,5 +1,4 @@
 s2n-core:
-  - '@toidiu'
   - '@lrstewart'
   - '@dougch'
   - '@goatgoose'
@@ -9,3 +8,5 @@ s2n-core:
   - '@jmayclin'
   - '@jouho'
   - '@boquan-fang'
+  - '@CarolYeh910'
+  - '@johubertj'

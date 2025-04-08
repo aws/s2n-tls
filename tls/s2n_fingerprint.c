@@ -38,7 +38,6 @@ static S2N_RESULT s2n_fingerprint_init(struct s2n_fingerprint *fingerprint,
     const struct s2n_fingerprint_method *method = fingerprint->method;
     RESULT_ENSURE_REF(method);
     RESULT_GUARD_POSIX(s2n_hash_new(&fingerprint->hash));
-    s2n_hash_allow_md5_for_fips(&fingerprint->hash);
     RESULT_GUARD_POSIX(s2n_hash_init(&fingerprint->hash, method->hash));
     return S2N_RESULT_OK;
 }
@@ -184,7 +183,7 @@ static S2N_RESULT s2n_assert_grease_value(uint16_t val)
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#details
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#details
  *# The program needs to ignore GREASE values anywhere it sees them
  */
 bool s2n_fingerprint_is_grease_value(uint16_t val)
@@ -288,12 +287,13 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
      * but s2n_fingerprint_get_hash returns a hex string instead.
      * We need to translate back to the raw bytes.
      */
-    struct s2n_stuffer bytes_out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&bytes_out.blob, output, max_output_size));
-    struct s2n_blob hex_in = { 0 };
-    POSIX_GUARD(s2n_blob_init(&hex_in, hex_hash, hex_hash_size));
-    POSIX_GUARD_RESULT(s2n_stuffer_read_hex(&bytes_out, &hex_in));
-    *output_size = s2n_stuffer_data_available(&bytes_out);
+    struct s2n_blob bytes_out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&bytes_out, output, MD5_DIGEST_LENGTH));
+    struct s2n_stuffer hex_in = { 0 };
+    POSIX_GUARD(s2n_blob_init(&hex_in.blob, hex_hash, hex_hash_size));
+    POSIX_GUARD(s2n_stuffer_skip_write(&hex_in, hex_hash_size));
+    POSIX_GUARD_RESULT(s2n_stuffer_read_hex(&hex_in, &bytes_out));
+    *output_size = bytes_out.size;
 
     POSIX_GUARD(s2n_fingerprint_get_raw_size(&fingerprint, str_size));
     return S2N_SUCCESS;

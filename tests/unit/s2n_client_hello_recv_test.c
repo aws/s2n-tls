@@ -75,13 +75,12 @@ int main(int argc, char **argv)
 
     /* Test we can successfully receive an sslv2 client hello and set a
      * tls12 connection */
-    for (uint8_t i = 0; i < 2; i++) {
-        if (i == 1) {
-            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-        }
+    {
+        /* "enable" tls13, to test under default s2n-tls behavior */
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
 
         /* Record version and protocol version are in the header for SSLv2 */
         server_conn->client_hello_version = S2N_SSLv2;
@@ -102,7 +101,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->server_protocol_version, i == 0 ? S2N_TLS12 : S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_SSLv2);
@@ -521,19 +519,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, tls12_config));
 
         struct s2n_stuffer server_in = { 0 };
-        uint8_t sslv2_client_hello[] = {
+        uint8_t sslv2_client_hello_bytes[] = {
             SSLv2_CLIENT_HELLO_HEADER,
             SSLv2_CLIENT_HELLO_PREFIX,
             SSLv2_CLIENT_HELLO_CIPHER_SUITES,
             SSLv2_CLIENT_HELLO_CHALLENGE,
         };
         EXPECT_SUCCESS(s2n_blob_init(&server_in.blob,
-                sslv2_client_hello, sizeof(sslv2_client_hello)));
+                sslv2_client_hello_bytes, sizeof(sslv2_client_hello_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&server_in, server));
 
         /* Read message one byte at a time */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        for (size_t i = 0; i < sizeof(sslv2_client_hello); i++) {
+        for (size_t i = 0; i < sizeof(sslv2_client_hello_bytes); i++) {
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_negotiate_until_message(server, &blocked, SERVER_HELLO),
                     S2N_ERR_IO_BLOCKED);
@@ -557,5 +555,4 @@ int main(int argc, char **argv)
     free(tls13_cert_chain);
     free(tls13_private_key);
     END_TEST();
-    return 0;
 }

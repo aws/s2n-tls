@@ -12,9 +12,9 @@ jobs:
       contents: write
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check out GitHub Pages branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'gh-pages'
 
@@ -74,7 +74,7 @@ jobs:
                 color: 'green'
               - type: 'number'
                 title: 'No review (external) last 14 days'
-                issue_query: 'repo:aws/s2n-tls is:open is:pr review:none -label:status/stale -label:s2n-core created:>{{ date("-14 days") }}'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr comments:0 review:none -label:status/stale -label:s2n-core created:>{{ date("-14 days") }}'
                 color: 'red'
               - type: 'number'
                 title: 'PRs with changes requested (external)'

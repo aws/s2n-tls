@@ -49,30 +49,14 @@ endif
 
 DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
                  -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
-                 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -DS2N_BUILD_RELEASE -include utils/s2n_prelude.h \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS
+                 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 LDFLAGS = -z relro -z now -z noexecstack
-
-FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
-
-# Define FUZZ_COVERAGE - to be used for generating coverage reports on fuzz tests
-#                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
-ifeq ($(FUZZ_COVERAGE), true)
-	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
-else
-	ifeq ($(S2N_COVERAGE), true)
-		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
-		LIBS += ${COVERAGE_LDFLAGS}
-	endif
-endif
-
-ifdef FUZZ_TIMEOUT_SEC
-	DEFAULT_CFLAGS += -DS2N_FUZZ_TESTING=1
-endif
 
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
@@ -82,11 +66,6 @@ endif
 
 ifeq ($(NO_INLINE), 1)
 DEFAULT_CFLAGS += -fno-inline
-endif
-
-# Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
-ifdef S2N_TEST_IN_FIPS_MODE
-    DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
 CFLAGS += ${DEFAULT_CFLAGS}
@@ -134,27 +113,6 @@ endif
 
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
 
-ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
-    # Override compiler to clang if fuzzing, since gcc does not support as many sanitizer flags as clang
-    CC=clang
-
-    # Create a marker file so that later invocations of make can pick the right COV_TOOL by default
-    $(shell touch "${LLVM_GCOV_MARKER_FILE}")
-
-    # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
-    # an error occurs while fuzzing.
-    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
-
-    # Filter out the visibility settings if we are fuzzing
-    CFLAGS := $(filter-out -fvisibility=hidden,$(CFLAGS))
-    CFLAGS := $(filter-out -DS2N_EXPORTS,$(CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -fvisibility=hidden,$(DEFAULT_CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -DS2N_EXPORTS,$(DEFAULT_CFLAGS))
-    CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
-    CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
-
-endif
-
 # Disable strict-prototypes check in clang
 ifneq '' '$(findstring clang,$(CC))'
 	CFLAGS += -Wno-strict-prototypes
@@ -176,7 +134,7 @@ bindir ?= $(exec_prefix)/bin
 libdir ?= $(exec_prefix)/lib64
 includedir ?= $(exec_prefix)/include
 
-feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/GLOBAL.flags) $(shell cat $(S2N_ROOT)/tests/features/$(1).flags) -c -o tmp.o $(S2N_ROOT)/tests/features/$(1).c > /dev/null 2>&1 && echo "-D$(1)"; rm tmp.o > /dev/null 2>&1)
+feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/GLOBAL.flags) $(shell cat $(S2N_ROOT)/tests/features/$(1).flags) -c -o tmp.o $(S2N_ROOT)/tests/features/$(1).c > /dev/null 2>&1 && echo "-D$(1)=1"; rm tmp.o > /dev/null 2>&1)
 
 FEATURES := $(notdir $(patsubst %.c,%,$(wildcard $(S2N_ROOT)/tests/features/*.c)))
 SUPPORTED_FEATURES := $(foreach feature,$(FEATURES),$(call feature_probe,$(feature)))

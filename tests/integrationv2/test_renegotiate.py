@@ -1,11 +1,18 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 import copy
-import platform
 import pytest
 import random
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS, PROTOCOLS
+from configuration import (
+    available_ports,
+    ALL_TEST_CIPHERS,
+    ALL_TEST_CURVES,
+    MINIMAL_TEST_CERTS,
+    PROTOCOLS,
+)
 from common import ProviderOptions, Protocols
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
@@ -19,7 +26,7 @@ S2N_RENEG_OPTION = "--renegotiation"
 S2N_RENEG_ACCEPT = "accept"
 S2N_RENEG_REJECT = "reject"
 S2N_RENEG_WAIT = "wait"
-OPENSSL_RENEG_CTRL_CMD = 'r\n'
+OPENSSL_RENEG_CTRL_CMD = "r\n"
 
 
 # Output indicating renegotiation state
@@ -43,17 +50,19 @@ def renegotiate_was_started(s2n_results):
 
 
 def renegotiate_was_successful(s2n_results):
-    return renegotiate_was_started(s2n_results) and \
-        to_bytes(S2N_RENEG_SUCCESS_MARKER) in s2n_results.stdout
+    return (
+        renegotiate_was_started(s2n_results)
+        and to_bytes(S2N_RENEG_SUCCESS_MARKER) in s2n_results.stdout
+    )
 
 
 # Basic conversion methods
 def to_bytes(val):
-    return str(val).encode('utf-8')
+    return str(val).encode("utf-8")
 
 
 def to_marker(val):
-    return bytes(val).decode('utf-8')
+    return bytes(val).decode("utf-8")
 
 
 """
@@ -100,7 +109,7 @@ class Msg(object):
                 # but our framework is not good at handling non-ASCII characters due
                 # to inconsistent use of bytes vs decode and str vs encode.
                 # As a workaround, just prepend a throwaway non-ASCII utf-8 character.
-                data_bytes.append(bytes([0xc2, 0xbb]) + to_bytes(message.data_str))
+                data_bytes.append(bytes([0xC2, 0xBB]) + to_bytes(message.data_str))
         # We assume that the client will close the connection.
         # Give the server one last message to send without a corresponding send_marker.
         # The message will never be sent, but waiting to send it will prevent the server
@@ -111,7 +120,11 @@ class Msg(object):
 
     @staticmethod
     def expected_output(messages, mode):
-        return [to_bytes(message.data_str) for message in messages if not message.ctrl and message.mode is not mode]
+        return [
+            to_bytes(message.data_str)
+            for message in messages
+            if not message.ctrl and message.mode is not mode
+        ]
 
     @staticmethod
     def send_markers(messages, mode):
@@ -125,27 +138,31 @@ class Msg(object):
                 # Assume that the first sender is s2n
                 send_markers.append(S2N.get_send_marker())
             else:
-                previous = messages[i-1]
-                assert (previous.mode is not mode)
+                previous = messages[i - 1]
+                assert previous.mode is not mode
                 send_markers.append(previous.data_str)
         return send_markers
 
     @staticmethod
     def close_marker(messages):
         # Assume that the last sender is the server
-        assert (messages[-1].mode is Provider.ServerMode)
+        assert messages[-1].mode is Provider.ServerMode
         output = Msg.expected_output(messages, Provider.ClientMode)
         return to_marker(output[-1])
 
     @staticmethod
     def debug(messages):
-        print(f'client data to send: {Msg.data_to_send(messages, Provider.ClientMode)}')
-        print(f'server data to send: {Msg.data_to_send(messages, Provider.ServerMode)}')
-        print(f'client send markers: {Msg.send_markers(messages, Provider.ClientMode)}')
-        print(f'server send markers: {Msg.send_markers(messages, Provider.ServerMode)}')
-        print(f'client close_marker: {Msg.close_marker(messages)}')
-        print(f'client expected output: {Msg.expected_output(messages, Provider.ClientMode)}')
-        print(f'server expected output: {Msg.expected_output(messages, Provider.ServerMode)}')
+        print(f"client data to send: {Msg.data_to_send(messages, Provider.ClientMode)}")
+        print(f"server data to send: {Msg.data_to_send(messages, Provider.ServerMode)}")
+        print(f"client send markers: {Msg.send_markers(messages, Provider.ClientMode)}")
+        print(f"server send markers: {Msg.send_markers(messages, Provider.ServerMode)}")
+        print(f"client close_marker: {Msg.close_marker(messages)}")
+        print(
+            f"client expected output: {Msg.expected_output(messages, Provider.ClientMode)}"
+        )
+        print(
+            f"server expected output: {Msg.expected_output(messages, Provider.ServerMode)}"
+        )
 
 
 # The order of messages that will trigger renegotiation
@@ -165,7 +182,16 @@ RENEG_MESSAGES = [
 ]
 
 
-def basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, messages=RENEG_MESSAGES, reneg_option=None):
+def basic_reneg_test(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    messages=RENEG_MESSAGES,
+    reneg_option=None,
+):
     options = ProviderOptions(
         port=next(available_ports),
         cipher=cipher,
@@ -187,16 +213,20 @@ def basic_reneg_test(managed_process, cipher, curve, certificate, protocol, prov
     server_options.mode = Provider.ServerMode
     server_options.data_to_send = Msg.data_to_send(messages, Provider.ServerMode)
 
-    server = managed_process(provider, server_options,
-                             send_marker=Msg.send_markers(messages, Provider.ServerMode),
-                             timeout=8
-                             )
+    server = managed_process(
+        provider,
+        server_options,
+        send_marker=Msg.send_markers(messages, Provider.ServerMode),
+        timeout=8,
+    )
 
-    s2n_client = managed_process(S2N, client_options,
-                                 send_marker=Msg.send_markers(messages, Provider.ClientMode),
-                                 close_marker=Msg.close_marker(messages),
-                                 timeout=8
-                                 )
+    s2n_client = managed_process(
+        S2N,
+        client_options,
+        send_marker=Msg.send_markers(messages, Provider.ClientMode),
+        close_marker=Msg.close_marker(messages),
+        timeout=8,
+    )
 
     return (s2n_client, server)
 
@@ -214,8 +244,17 @@ This tests the default behavior for customers who do not enable renegotiation.
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_ignores_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider)
+def test_s2n_client_ignores_openssl_hello_request(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+):
+    (s2n_client, server) = basic_reneg_test(
+        managed_process, cipher, curve, certificate, protocol, provider
+    )
 
     for results in server.get_results():
         results.assert_success()
@@ -242,9 +281,23 @@ Renegotiation request rejected by s2n-tls client.
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_rejects_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider,
-                                            reneg_option=S2N_RENEG_REJECT)
+def test_s2n_client_rejects_openssl_hello_request(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+):
+    (s2n_client, server) = basic_reneg_test(
+        managed_process,
+        cipher,
+        curve,
+        certificate,
+        protocol,
+        provider,
+        reneg_option=S2N_RENEG_REJECT,
+    )
 
     for results in server.get_results():
         assert renegotiate_was_requested(results)
@@ -267,9 +320,23 @@ Renegotiation request accepted by s2n-tls client.
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_renegotiate_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider,
-                                            reneg_option=S2N_RENEG_ACCEPT)
+def test_s2n_client_renegotiate_with_openssl(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+):
+    (s2n_client, server) = basic_reneg_test(
+        managed_process,
+        cipher,
+        curve,
+        certificate,
+        protocol,
+        provider,
+        reneg_option=S2N_RENEG_ACCEPT,
+    )
 
     for results in server.get_results():
         results.assert_success()
@@ -293,26 +360,41 @@ but does require client auth during the second handshake.
 """
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=1, condition=platform.machine().startswith("aarch"))
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_renegotiate_with_client_auth_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
+def test_s2n_client_renegotiate_with_client_auth_with_openssl(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+):
     # We want to use the same messages to test renegotiation,
     # but with 'R' instead of 'r' to trigger the Openssl renegotiate request.
     messages = copy.deepcopy(RENEG_MESSAGES)
     for m in messages:
         if m.ctrl:
-            m.data_str = 'R\n'
+            m.data_str = "R\n"
 
     client_auth_marker = "|CLIENT_AUTH"
     no_client_cert_marker = "|NO_CLIENT_CERT"
 
-    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider,
-                                            messages=messages, reneg_option=S2N_RENEG_WAIT)
+    (s2n_client, server) = basic_reneg_test(
+        managed_process,
+        cipher,
+        curve,
+        certificate,
+        protocol,
+        provider,
+        messages=messages,
+        reneg_option=S2N_RENEG_WAIT,
+    )
 
     for results in server.get_results():
         results.assert_success()
@@ -343,17 +425,31 @@ The s2n-tls client successfully reads ApplicationData during the renegotiation h
 """
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=1, condition=platform.machine().startswith("aarch"))
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_renegotiate_with_app_data_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
+def test_s2n_client_renegotiate_with_app_data_with_openssl(
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+):
     first_server_app_data = Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode)[0]
-    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider,
-                                            reneg_option=S2N_RENEG_WAIT)
+    (s2n_client, server) = basic_reneg_test(
+        managed_process,
+        cipher,
+        curve,
+        certificate,
+        protocol,
+        provider,
+        reneg_option=S2N_RENEG_WAIT,
+    )
 
     for results in server.get_results():
         results.assert_success()

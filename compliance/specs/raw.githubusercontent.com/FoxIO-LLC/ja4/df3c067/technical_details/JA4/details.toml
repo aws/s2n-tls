@@ -1,0 +1,12 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#details"
+
+# ## Details:
+#
+# The program needs to ignore GREASE values anywhere it sees them: (https://datatracker.ietf.org/doc/html/draft-davidben-tls-grease-01#page-5)
+# 
+
+[[spec]]
+level = "MUST"
+quote = '''
+The program needs to ignore GREASE values anywhere it sees them
+'''

@@ -47,7 +47,12 @@
 #endif
 #include <errno.h>
 #include <limits.h>
-#include <openssl/engine.h>
+#if S2N_LIBCRYPTO_SUPPORTS_ENGINE
+    #include <openssl/engine.h>
+#endif
+/* LibreSSL requires <openssl/rand.h> include.
+ * https://github.com/aws/s2n-tls/issues/153#issuecomment-129651643
+ */
 #include <openssl/rand.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -66,6 +71,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "s2n_io.h"
 #include "stuffer/s2n_stuffer.h"
@@ -75,6 +81,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+
+const char s2n_rand_engine_id[] = "s2n_rand";
 
 #if defined(O_CLOEXEC)
     #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
@@ -268,6 +276,17 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
+{
+    RESULT_GUARD_PTR(out_blob);
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+#else
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+#endif
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_get_libcrypto_random_data(struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
@@ -300,33 +319,23 @@ static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_random_data(struct s2n_blob *blob, struct s2n_drbg *drbg_state)
-{
-    /* By default, s2n-tls uses a custom random implementation to generate random data for the TLS
-     * handshake. When operating in FIPS mode, the FIPS-validated libcrypto implementation is used
-     * instead.
-     */
-    if (s2n_is_in_fips_mode()) {
-        RESULT_GUARD(s2n_get_libcrypto_random_data(blob));
-        return S2N_RESULT_OK;
-    }
-
-    RESULT_GUARD(s2n_get_custom_random_data(blob, drbg_state));
-
-    return S2N_RESULT_OK;
-}
-
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
-
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD(s2n_get_libcrypto_random_data(blob));
+    } else {
+        RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
+    }
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
-
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD(s2n_get_libcrypto_private_random_data(blob));
+    } else {
+        RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
+    }
     return S2N_RESULT_OK;
 }
 
@@ -492,10 +501,6 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
     }
 }
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-
-    #define S2N_RAND_ENGINE_ID "s2n_rand"
-
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     struct s2n_blob out = { 0 };
@@ -512,11 +517,18 @@ int s2n_openssl_compat_status(void)
     return 1;
 }
 
+#if S2N_LIBCRYPTO_SUPPORTS_ENGINE
 int s2n_openssl_compat_init(ENGINE *unused)
 {
     return 1;
 }
 
+/* RAND_METHOD is gated behind S2N_LIBCRYPTO_SUPPORTS_ENGINE because AWS-LC has
+ * a different signature for RAND_METHOD and fails to compile.
+ *
+ * - AWS-LC: https://github.com/aws/aws-lc/blob/main/include/openssl/rand.h#L124
+ * - OpenSSL: https://github.com/openssl/openssl/blob/master/include/openssl/rand.h#L42
+ */
 RAND_METHOD s2n_openssl_rand_method = {
     .seed = NULL,
     .bytes = s2n_openssl_compat_rand,
@@ -542,38 +554,50 @@ static int s2n_rand_init_cb_impl(void)
     return S2N_SUCCESS;
 }
 
+bool s2n_supports_custom_rand(void)
+{
+#if !defined(S2N_LIBCRYPTO_SUPPORTS_ENGINE) || defined(OPENSSL_FIPS)
+    /* OpenSSL 1.0.2-fips is excluded to match historical behavior */
+    /* OPENSSL_FIPS is only defined for 1.0.2-fips, not 3.x-fips */
+    return false;
+#elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
+    return false;
+#else
+    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
+#endif
+}
+
 S2N_RESULT s2n_rand_init(void)
 {
     RESULT_ENSURE(s2n_rand_init_cb() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-    if (s2n_is_in_fips_mode()) {
-        return S2N_RESULT_OK;
+#if S2N_LIBCRYPTO_SUPPORTS_ENGINE
+    if (s2n_supports_custom_rand()) {
+        /* Unset any existing random engine */
+        RESULT_GUARD_OSSL(RAND_set_rand_engine(NULL), S2N_ERR_OPEN_RANDOM);
+
+        /* Create an engine */
+        ENGINE *e = ENGINE_new();
+
+        /* Initialize the engine */
+        RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_id(e, s2n_rand_engine_id), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_RAND(e, &s2n_openssl_rand_method), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_add(e), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM);
+
+        /* Use that engine for rand() */
+        e = ENGINE_by_id(s2n_rand_engine_id);
+        RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM);
+        RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM);
     }
-
-    /* Unset any existing random engine */
-    RESULT_GUARD_OSSL(RAND_set_rand_engine(NULL), S2N_ERR_OPEN_RANDOM);
-
-    /* Create an engine */
-    ENGINE *e = ENGINE_new();
-
-    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_RAND(e, &s2n_openssl_rand_method), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_add(e), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM);
-
-    /* Use that engine for rand() */
-    e = ENGINE_by_id(S2N_RAND_ENGINE_ID);
-    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM);
 #endif
 
     return S2N_RESULT_OK;
@@ -595,17 +619,19 @@ S2N_RESULT s2n_rand_cleanup(void)
 {
     RESULT_ENSURE(s2n_rand_cleanup_cb() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-    /* Cleanup our rand ENGINE in libcrypto */
-    ENGINE *rand_engine = ENGINE_by_id(S2N_RAND_ENGINE_ID);
-    if (rand_engine) {
-        ENGINE_remove(rand_engine);
-        ENGINE_finish(rand_engine);
-        ENGINE_unregister_RAND(rand_engine);
-        ENGINE_free(rand_engine);
-        ENGINE_cleanup();
-        RAND_set_rand_engine(NULL);
-        RAND_set_rand_method(NULL);
+#if S2N_LIBCRYPTO_SUPPORTS_ENGINE
+    if (s2n_supports_custom_rand()) {
+        /* Cleanup our rand ENGINE in libcrypto */
+        ENGINE *rand_engine = ENGINE_by_id(s2n_rand_engine_id);
+        if (rand_engine) {
+            ENGINE_remove(rand_engine);
+            ENGINE_finish(rand_engine);
+            ENGINE_unregister_RAND(rand_engine);
+            ENGINE_free(rand_engine);
+            ENGINE_cleanup();
+            RAND_set_rand_engine(NULL);
+            RAND_set_rand_method(NULL);
+        }
     }
 #endif
 

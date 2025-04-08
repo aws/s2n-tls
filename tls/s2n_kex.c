@@ -121,7 +121,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     RESULT_ENSURE_REF(cipher_suite);
     RESULT_ENSURE_REF(conn);
 
-    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));
@@ -245,7 +245,7 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .server_key_send = &s2n_hybrid_server_key_send,
     .client_key_recv = &s2n_hybrid_client_key_recv,
     .client_key_send = &s2n_hybrid_client_key_send,
-    .prf = &s2n_hybrid_prf_master_secret,
+    .prf = &s2n_prf_hybrid_master_secret,
 };
 
 /* TLS1.3 key exchange is implemented differently from previous versions and does

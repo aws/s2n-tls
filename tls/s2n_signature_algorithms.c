@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
@@ -76,8 +75,6 @@ static S2N_RESULT s2n_signature_scheme_validate_for_recv(struct s2n_connection *
     if (conn->actual_protocol_version >= S2N_TLS13) {
         RESULT_ENSURE_NE(scheme->hash_alg, S2N_HASH_SHA1);
         RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA);
-    } else {
-        RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
     return S2N_RESULT_OK;

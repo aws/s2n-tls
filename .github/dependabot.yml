@@ -1,0 +1,37 @@
+# This configuration file tells Dependabot which
+# package ecosystems to update and where the package manifests are located.
+# https://docs.github.com/en/enterprise-cloud@latest/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates
+
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  # https://github.com/dependabot/dependabot-core/pull/6189
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "daily"
+    groups:
+      all-gha-updates:
+        patterns:
+          - "*"
+
+  # permissive-MSRV, batch updates are acceptable
+  - package-ecosystem: "cargo"
+    directories:
+      - "/bindings/rust-examples"
+      - "/tests/pcap"
+      - "/tests/regression"
+    schedule:
+      interval: "daily"
+    groups:
+      all-cargo-updates:
+        patterns:
+          - "*"
+
+  # restricted-MSRV, so don't do batch updates
+  - package-ecosystem: "cargo"
+    directories:
+      - "/bindings/rust/standard"
+      - "/bindings/rust/extended"
+    schedule:
+      interval: "daily"

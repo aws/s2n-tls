@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
@@ -226,7 +225,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-    for (size_t i = 0; i < sizeof(test_cases) / sizeof(struct s2n_tls13_cert_verify_test); i++) {
+    for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         /* Run all tests for server sending and client receiving/verifying cert_verify message */
         run_tests(&test_cases[i], S2N_CLIENT);
 
@@ -307,7 +306,7 @@ int main(int argc, char **argv)
                 client_policy.signature_preferences = &test_sig_preferences;
                 client_conn->security_policy_override = &client_policy;
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 

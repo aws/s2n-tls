@@ -16,7 +16,6 @@ extras += stuffer/s2n_stuffer_network_order.c
 extras += tls/s2n_record_read_composite.c
 extras += utils/s2n_ensure.c
 extras += utils/s2n_mem.c
-extras += utils/s2n_result.c
 extras += utils/s2n_safety.c
 goals  += s2n_record_parse_wrapper@s2n_record_read_wrapper.c
 #goals += test_leakage@s2n_record_read_wrapper.c

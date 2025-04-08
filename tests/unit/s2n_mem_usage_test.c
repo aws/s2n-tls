@@ -17,7 +17,7 @@
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
      * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
-    /* clang-format off */
+/* clang-format off */
     #include <sys/types.h>
     #include <sys/sysctl.h>
     /* clang-format on */
@@ -25,7 +25,7 @@
 #elif defined(__OpenBSD__)
     #undef _POSIX_C_SOURCE
     #include <kvm.h>
-    /* clang-format off */
+/* clang-format off */
     #include <sys/types.h>
     #include <sys/sysctl.h>
     /* clang-format on */
@@ -50,32 +50,8 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
-/* This is roughly the current memory usage per connection, in KB */
-#ifdef __FreeBSD__
-    #define MEM_PER_CONNECTION 57
-#elif defined(__OpenBSD__)
-    #define MEM_PER_CONNECTION 61
-#else
-    #define MEM_PER_CONNECTION 51
-#endif
-
-/* This is the maximum memory per connection including 4KB of slack */
-#define TEST_SLACK 4
-#define MAX_MEM_PER_CONNECTION \
-    ((MEM_PER_CONNECTION + TEST_SLACK) * 1024)
-
-/* This is the total maximum memory allowed */
-#define MAX_MEM_ALLOWED(num_connections) \
-    (2 * (num_connections) *MAX_MEM_PER_CONNECTION)
-
-/* This is the correct value of MEM_PER_CONNECTION based on test results.
- * Basically, this calculation should reverse MAX_MEM_ALLOWED */
-#define ACTUAL_MEM_PER_CONNECTION(num_connections, max_mem) \
-    ((((max_mem) / 2 / (num_connections)) / 1024) - TEST_SLACK)
-
 ssize_t get_vm_data_size()
 {
-#ifdef __linux__
     long page_size = 0;
     ssize_t size = 0, resident = 0, share = 0, text = 0, lib = 0, data = 0, dt = 0;
 
@@ -92,57 +68,6 @@ ssize_t get_vm_data_size()
     fclose(status_file);
 
     return data * page_size;
-
-#elif defined(__FreeBSD__)
-    pid_t ppid = getpid();
-    int pidinfo[4];
-    pidinfo[0] = CTL_KERN;
-    pidinfo[1] = KERN_PROC;
-    pidinfo[2] = KERN_PROC_PID;
-    pidinfo[3] = (int) ppid;
-
-    struct kinfo_proc procinfo = { 0 };
-
-    size_t len = sizeof(procinfo);
-
-    sysctl(pidinfo, nitems(pidinfo), &procinfo, &len, NULL, 0);
-
-    /* Taken from linprocfs implementation
-     * https://github.com/freebsd/freebsd-src/blob/779fd05344662aeec79c29470258bf657318eab3/sys/compat/linprocfs/linprocfs.c#L1019 */
-    segsz_t lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
-
-    return lsize << PAGE_SHIFT;
-
-#elif defined(__OpenBSD__)
-    struct kinfo_proc *procinfo;
-    kvm_t *kd;
-    pid_t ppid;
-    long page_size;
-    ssize_t size;
-    int nentries;
-
-    kd = kvm_open(NULL, NULL, NULL, KVM_NO_FILES, NULL);
-    ppid = getpid();
-    procinfo = kvm_getprocs(kd, KERN_PROC_PID, ppid, sizeof(*procinfo), &nentries);
-    if (procinfo == NULL || nentries == 0) {
-        return -1;
-    }
-
-    /* Taken from ps(1)'s calculation of vsize
-     * https://github.com/openbsd/src/blob/329e3480337617df4d195c9a400c3f186254b137/bin/ps/print.c#L603 */
-    size = procinfo->p_vm_dsize + procinfo->p_vm_ssize + procinfo->p_vm_tsize;
-
-    page_size = sysconf(_SC_PAGESIZE);
-    if (page_size < 0) {
-        return -1;
-    }
-    kvm_close(kd);
-
-    return (size * page_size);
-#else
-    /* Not implemented for other platforms */
-    return 0;
-#endif
 }
 
 int main(int argc, char **argv)
@@ -155,14 +80,19 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_test_io_pair io_pair;
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-    /* Skip the test when running under valgrind or address sanitizer, as those tools
-     * impact the memory usage. */
-    if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) {
+    /* Skip the test unless specifically enabled.
+     * This test is too unreliable to run in all customer environments.
+     * We should choose specific, known builds to run this test in.
+     */
+    const char *env_var = getenv("S2N_EXPECTED_CONNECTION_MEMORY_KB");
+    if (env_var == NULL) {
         END_TEST();
     }
+    const int expected_kbs_per_conn = atoi(env_var);
+    EXPECT_TRUE(expected_kbs_per_conn > 1);
 
     struct rlimit file_limit;
     EXPECT_SUCCESS(getrlimit(RLIMIT_NOFILE, &file_limit));
@@ -171,9 +101,6 @@ int main(int argc, char **argv)
     if (4 * connectionsToUse + 16 > file_limit.rlim_cur) {
         connectionsToUse = MAX(1, (file_limit.rlim_cur - 16) / 4);
     }
-
-    const ssize_t maxAllowedMemDiff = MAX_MEM_ALLOWED(connectionsToUse);
-    const ssize_t minAllowedMemDiff = maxAllowedMemDiff * 0.75;
 
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
     struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
@@ -244,7 +171,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
     }
 
-    EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -254,34 +180,31 @@ int main(int argc, char **argv)
     free(clients);
     free(servers);
 
-    TEST_DEBUG_PRINT("\n");
-    TEST_DEBUG_PRINT("VmData initial:              %10zd\n", vm_data_initial);
-    TEST_DEBUG_PRINT("VmData after allocations:    %10zd\n", vm_data_after_allocation);
-    TEST_DEBUG_PRINT("VmData after handshakes:     %10zd\n", vm_data_after_handshakes);
-    TEST_DEBUG_PRINT("VmData after free handshake: %10zd\n", vm_data_after_free_handshake);
-    TEST_DEBUG_PRINT("VmData after release:        %10zd\n", vm_data_after_release_buffers);
-    TEST_DEBUG_PRINT("Max VmData diff allowed:     %10zd\n", maxAllowedMemDiff);
-    TEST_DEBUG_PRINT("Number of connections used:  %10zu\n", connectionsToUse);
-
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
 
     ssize_t handshake_diff = (vm_data_after_handshakes - vm_data_initial);
     ssize_t allocation_diff = (vm_data_after_allocation - vm_data_initial);
+    EXPECT_TRUE(allocation_diff <= handshake_diff);
 
-    /*
-     * get_vm_data_size is required for this test to succeed.
-     * Any platform that doesn't implement get_vm_data_size should be excluded here.
-     */
-#ifndef __APPLE__
-    if (allocation_diff > maxAllowedMemDiff
-            || handshake_diff > maxAllowedMemDiff
-            || handshake_diff < minAllowedMemDiff) {
-        fprintf(stdout, "\nActual KB per connection: %i\n",
-                (int) ACTUAL_MEM_PER_CONNECTION(connectionsToUse, handshake_diff));
+    ssize_t mem_per_conn = handshake_diff / (connectionsToUse * 2);
+    ssize_t kbs_per_conn = mem_per_conn / 1024;
+
+    if (kbs_per_conn != expected_kbs_per_conn) {
+        printf("\nExpected KB per connection: %i\n", expected_kbs_per_conn);
+        printf("\nActual KB per connection: %li\n", kbs_per_conn);
+        printf("This is a %.2f%% change\n",
+                (kbs_per_conn - expected_kbs_per_conn) * 100.0 / expected_kbs_per_conn);
+
+        printf("\n");
+        printf("VmData initial:              %10zd\n", vm_data_initial);
+        printf("VmData after allocations:    %10zd\n", vm_data_after_allocation);
+        printf("VmData after handshakes:     %10zd\n", vm_data_after_handshakes);
+        printf("VmData after free handshake: %10zd\n", vm_data_after_free_handshake);
+        printf("VmData after release:        %10zd\n", vm_data_after_release_buffers);
+        printf("Number of connections used:  %10zu\n", connectionsToUse);
         FAIL_MSG("Unexpected memory usage. If expected, update MEM_PER_CONNECTION.");
     }
-#endif
 
     END_TEST();
 }

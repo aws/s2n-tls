@@ -1,6 +1,8 @@
 name: OpenBSD
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
@@ -15,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build and test in OpenBSD
         id: test
-        uses: cross-platform-actions/action@v0.23.0
+        uses: cross-platform-actions/action@v0.27.0
         with:
           operating_system: openbsd
           architecture: x86-64

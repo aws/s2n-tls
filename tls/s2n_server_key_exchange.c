@@ -52,11 +52,6 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
     POSIX_ENSURE_REF(active_sig_scheme);
 
-    /* FIPS specifically allows MD5 for <TLS1.2 */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
-    }
-
     POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
     POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
     POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
@@ -265,11 +260,6 @@ int s2n_server_key_send(struct s2n_connection *conn)
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
         POSIX_GUARD(s2n_stuffer_write_uint16(out, sig_scheme->iana_value));
-    }
-
-    /* FIPS specifically allows MD5 for <TLS1.2 */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
     }
 
     /* Add the random data to the hash */

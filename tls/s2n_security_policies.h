@@ -93,12 +93,15 @@ struct s2n_security_policy_selection {
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
+extern const char *deprecated_security_policies[];
+extern const size_t deprecated_security_policies_len;
 
 /* Defaults as of 05/24 */
 extern const struct s2n_security_policy security_policy_20240501;
 extern const struct s2n_security_policy security_policy_20240502;
 extern const struct s2n_security_policy security_policy_20240503;
 
+extern const struct s2n_security_policy security_policy_20241106;
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
@@ -123,6 +126,10 @@ extern const struct s2n_security_policy security_policy_20240331;
 extern const struct s2n_security_policy security_policy_20240417;
 extern const struct s2n_security_policy security_policy_20240416;
 extern const struct s2n_security_policy security_policy_20240603;
+extern const struct s2n_security_policy security_policy_20240730;
+extern const struct s2n_security_policy security_policy_20241001;
+extern const struct s2n_security_policy security_policy_20241001_pq_mixed;
+extern const struct s2n_security_policy security_policy_20250211;
 
 extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
@@ -149,13 +156,13 @@ extern const struct s2n_security_policy security_policy_aws_crt_sdk_ssl_v3;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12;
+extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23;
+extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13;
 
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12;
 extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18;
@@ -177,6 +184,10 @@ extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_07;
 extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_08;
 extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_09;
 extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_10;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_07;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08_gcm;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_09;
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls10;
@@ -194,6 +205,7 @@ extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_
 extern const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10;
 extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10;
+extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10;
 
 extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;

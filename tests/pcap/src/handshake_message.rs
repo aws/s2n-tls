@@ -138,6 +138,8 @@ impl Builder {
     const TCP_PAYLOAD: &'static str = "tcp.payload";
     const TCP_REASSEMBLED: &'static str = "tcp.reassembled.data";
 
+    // Note: sslv2 uses "tls.ssl2.handshake.type" instead. If we want to support
+    // sslv2 ClientHellos, we will need to search for both variants.
     const MESSAGE_TYPE: &'static str = "tls.handshake.type";
 
     pub(crate) fn set_type(&mut self, message_type: u8) -> &mut Self {
@@ -161,6 +163,9 @@ impl Builder {
         } else {
             Self::MESSAGE_TYPE.to_string()
         };
+
+        // We currently don't support QUIC
+        let filter = filter + " && !quic";
 
         // tshark associates a LOT of metadata with each packet. Filtering that
         // metadata (like by using `metadata_whitelist`) significantly improves

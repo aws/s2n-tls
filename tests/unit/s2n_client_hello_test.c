@@ -759,7 +759,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240501"));
 
             const struct s2n_security_policy *security_policy = NULL;
             POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
@@ -1953,8 +1953,95 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: large Client Hellos */
+    {
+        const uint16_t cipher_suites_max_length = (1 << 16) - 2;
+        const uint16_t num_of_cipher_suites_to_drop = 150;
+
+        /**
+         * S2N-TLS automatically includes TLS_EMPTY_RENEGOTIATION_INFO_SCSV in TLS 1.2 ClientHello,
+         * so we subtract 1 from the maximum number of cipher suites to reserve space for it.
+         */
+        const uint16_t max_cipher_suite_count = (cipher_suites_max_length / S2N_TLS_CIPHER_SUITE_LEN) - 1;
+
+        /* Drop 150 cipher suites from max, so that the total handshake message length won't exceed 64KB */
+        const uint16_t reduced_cipher_suite_count = max_cipher_suite_count - num_of_cipher_suites_to_drop;
+
+        uint16_t cipher_suites_counts[] = { reduced_cipher_suite_count, max_cipher_suite_count };
+
+        for (size_t i = 0; i < s2n_array_len(cipher_suites_counts); i++) {
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+            /* We need to generate a large Client Hello.
+             * We do this by manipulating the number of cipher suites,
+             * which is the easiest way to make Client Hello large.
+             */
+            uint16_t cipher_suites_count = cipher_suites_counts[i];
+            struct s2n_cipher_suite *test_cipher_suites[UINT16_MAX] = { 0 };
+            for (size_t j = 0; j < cipher_suites_count; j++) {
+                test_cipher_suites[j] = &s2n_rsa_with_aes_128_gcm_sha256;
+            }
+            const struct s2n_cipher_preferences test_cipher_suites_preferences = {
+                .count = cipher_suites_count,
+                .suites = test_cipher_suites,
+            };
+            const struct s2n_security_policy *default_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
+            struct s2n_security_policy test_security_policy = *default_policy;
+            test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+            client->security_policy_override = &test_security_policy;
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+            server->security_policy_override = &test_security_policy;
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+            /**
+             * Write Client Hello into io_pair.server_in. 
+             * The server_in buffer contains the Client Hello message plus a 5-byte record header.
+             */
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client, &blocked), S2N_ERR_IO_BLOCKED);
+
+            /* Add one extra cipher suite length to account for TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+            uint16_t cipher_suites_length = (cipher_suites_count + 1) * S2N_TLS_CIPHER_SUITE_LEN;
+
+            if (cipher_suites_length < cipher_suites_max_length) {
+                /**
+                 * The Client Hello message size should be less than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, even with
+                 * the five byte record header.
+                 */
+                EXPECT_TRUE(s2n_stuffer_data_available(&io_pair.server_in) < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO));
+            } else {
+                /**
+                 * When using maximum cipher suites, the Client Hello message size exceeds 
+                 * S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH by more than five byte.
+                 * 
+                 * Hence, if server_in's available data is greater than S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH,
+                 * then the Client Hello itself exceeds the maximum allowed size, even after accounting for the record header.
+                 */
+                EXPECT_TRUE(s2n_stuffer_data_available(&io_pair.server_in) > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+                EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_HELLO), S2N_ERR_BAD_MESSAGE);
+            }
+        }
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     END_TEST();
-    return 0;
 }

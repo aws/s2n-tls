@@ -23,12 +23,6 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; t
     codebuild/bin/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
 
-# Download and Install LibFuzzer with latest clang
-if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
-    mkdir -p "$LIBFUZZER_INSTALL_DIR" || true
-    PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH codebuild/bin/install_libFuzzer.sh "$(mktemp -d)" "$LIBFUZZER_INSTALL_DIR" "$OS_NAME" ;
-fi
-
 # Download and Install Openssl 1.1.1
 if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
@@ -41,6 +35,12 @@ fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" && ! -d "$OPENSSL_3_0_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_3_0_INSTALL_DIR"
     codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_0_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+fi
+
+# Download and Install Openssl 3.0 FIPS
+if [[ "$S2N_LIBCRYPTO" == "openssl-3.0-fips" && ! -d "$OPENSSL_3_FIPS_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_3_FIPS_INSTALL_DIR"
+    codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_FIPS_INSTALL_DIR" "$OS_NAME" fips > /dev/null ;
 fi
 
 # Download and Install Openssl 1.0.2
@@ -66,14 +66,14 @@ fi
 
 # Download and Install AWS-LC
 if [[ "$S2N_LIBCRYPTO" == "awslc" && ! -d "$AWSLC_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" "0" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" > /dev/null ;
 fi
 
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
-fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" && ! -d "$AWSLC_FIPS_2022_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc_fips_2022.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" "2022" > /dev/null ;
+fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2024" && ! -d "$AWSLC_FIPS_2024_INSTALL_DIR" ]]; then
+    codebuild/bin/install_awslc_fips_2024.sh "$(mktemp -d)" "$AWSLC_FIPS_2024_INSTALL_DIR" "2024" > /dev/null ;
 fi
 
 if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then

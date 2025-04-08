@@ -10,6 +10,44 @@ have all the dependencies installed correctly. The integration test dependencies
  * Compiled Java SSLSocketClient for the Java provider
  * Compiled an s2nc executable named s2nc_head in the bin directory for the cross compatibility test
 
+Alternately, you can use the "best effort" mode with `uv`. This will only run the integration tests with the currently available binaries.
+```
+# install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# run pytest
+# -x: exit on the first failure
+# -rpfs: print a (r)eport with (p)assing, (f)ailed, and (s)kipped tests.
+uv run pytest --provider-version <LINKED_LIBCRYPTO> --best-effort-NOT-FOR-CI -x -rpfs -n auto
+```
+
+## Architecture
+```
+ ┌────────────────────────────────────────────────────────────┐
+ │                                                            │
+ │                      Pytest Process                        │
+ │      Managed                                Managed        │
+ │    Process (s2n)                          Process (Ossl)   │
+ │     │       ▲                             │        ▲       │
+ └─────┼───────┼─────────────────────────────┼────────┼───────┘
+       │       │                             │        │        
+     STDIN   STDOUT                        STDIN    STDOUT     
+       │       │                             │        │        
+       │       │                             │        │        
+    ┌──▼───────┼───┐                      ┌──▼────────┼────┐   
+    │    s2nc      │◄────────TLS─────────►│  openssl server│   
+    └──────────────┘  ▲                   └────────────────┘   
+                      │                           ▲            
+                      │                           │            
+                localhost/socket                  │            
+                                               process         
+```
+The integration test harness relies on client and server executables. It coordinates
+these through stdin/stdout.
+
+The above diagram shows an example setup with `s2nc` as the client and `openssl` 
+as the server. Note that these are just for the purpose of documentation, and the
+actual integration tests run with a wide variety of executables.
+
 ## Run all tests
 
 The fastest way to run the integrationv2 tests is to run `make` from the S2N root directory.
@@ -156,39 +194,3 @@ An example of how to test that the server and the client can send and receive ap
 **INTERNALERROR> OSError: cannot send to <Channel id=1 closed>**
 An error similar to this is caused by a runtime error in a test. In `tox.ini` change `-n8` to `-n0` to
 see the actual error causing the OSError.
-
-
-# Criterion
-
-### Why
-
-We wanted to use the rust criterion project to benchmark s2n-tls, without re-writing all the integration tests.
-To accomplish this, we created some criterion benchmarks that use s2nc and s2nd, and a new provider, CriterionS2N, in the python testing framework.
-
-### Prerequisites
-
-Normally, you'd run criterion with `cargo bench --bench <name>`, but cargo does some checks to see if it needs to rebuild
-the benchmark and other housekeeping that slows things down a bit.  Running `cargo bench --no-run` is the benchmark equivalent to `cargo build` and will produce a binary executable.
-
-The CI will run `make install` and `make -C ./bindings/rust` to create and install the s2nc/d binaries in a system-wide location, then build the cargo criterion binary handlers for s2nc and s2nd.
-
-
-### Running locally
-
-The Criterion CodeBuild scripts can be used to run these locally, by setting LOCAL_TESTING the s3/github interactions are disabled. Tooling needed includes python3.9, rust, and write permissions to `/usr/local/bin|lib` (or use sudo) - in addition to the traditional C build tooling.
-
-```
-export LOCAL_TESTING=true
-INTEGV2_TEST=test_well_known_endpoints ./codebuild/bin/criterion_baseline.sh
-INTEGV2_TEST=test_well_known_endpoints ./codebuild/bin/criterion_delta.sh
-```
-
-The resulting reports are viewable via `tests/integrationv2/target/criterion/report/index.html`
-
-
-
-## Troubleshooting CriterionS2N
-
-The most direct trouble-shooting is done using the [interactive troubleshooting CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/session-manager.html#ssm-pause-build) `codebuild-break` line in the buildspec. Put the break right before the main build step and run interactively.
-
-As mentioned above, in order to get more output from the tests, set the `-n` or `XDIST_WORKER` environment variable to 0 and add a -v to the pytest command line in tox.ini.
