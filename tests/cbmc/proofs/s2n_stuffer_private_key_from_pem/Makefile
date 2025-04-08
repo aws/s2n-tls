@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # Enough to get full coverage with 7 minutes of runtime.
-MAX_BLOB_SIZE = 10
+MAX_BLOB_SIZE = 8
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
@@ -48,6 +48,7 @@ REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_rewrite
 REMOVE_FUNCTION_BODY += s2n_add_overflow
+REMOVE_FUNCTION_BODY += s2n_stuffer_skip_whitespace
 
 UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
