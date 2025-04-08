@@ -58,7 +58,7 @@ phases:
       - export PATH="/root/.local/bin:$PATH"
       - echo "Verifying uv install"
       - uv --version
-
+      - uv venv
       - uv pip install pytest pytest-xdist
 
       - |
