@@ -55,7 +55,7 @@ phases:
     commands:
       - echo "Installing uv..."
       - curl -Ls https://astral.sh/uv/install.sh | bash
-      - export PATH="$HOME/.cargo/bin:$PATH"
+      - export PATH="/root/.local/bin:$PATH"
       - echo "Verifying uv install"
       - uv --version
       - |
