@@ -122,7 +122,10 @@ run_integration_v2_tests() {
     cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
 
     # Run pytest directly with uv
-    uv run pytest tests/integrationv2
+    uv run pytest tests/integrationv2 \
+    --provider-version=${S2N_LIBCRYPTO} \
+    -rpfs -n auto \
+    -o log_cli=true --log-cli-level=DEBUG
 }
 
 run_unit_tests() {
