@@ -124,7 +124,7 @@ run_integration_v2_tests() {
     # Run pytest directly with uv
     uv run pytest tests/integrationv2 \
     --provider-version=${S2N_LIBCRYPTO} \
-    -rpfs -n auto \
+    -rpfs -n auto -x\
     -o log_cli=true --log-cli-level=DEBUG
 }
 
