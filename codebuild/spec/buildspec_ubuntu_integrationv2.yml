@@ -59,7 +59,7 @@ phases:
       - echo "Verifying uv install"
       - uv --version
       - uv venv
-      - uv pip install pytest pytest-xdist pytest-rerunfailures
+      - uv pip install pytest pytest-xdist pytest-rerunfailures sslyze
 
       - |
         if [ -d "third-party-src" ]; then
