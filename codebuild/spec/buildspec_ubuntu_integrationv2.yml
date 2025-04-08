@@ -52,7 +52,7 @@ env:
 
 phases:
   pre_build:
-    commands:pru
+    commands:
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
