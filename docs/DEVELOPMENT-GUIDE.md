@@ -348,7 +348,7 @@ Note that this may be past the `write_cursor` if `s2n_stuffer_rewrite()` has bee
 Explicitly tracking the `high_water_mark` allows us to track the bytes which need to be wiped, and helps avoids needless zeroing of memory.
 The next two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable.
 `tainted` is set to true whenever `s2n_stuffer_raw_read/write()` are called.
-`s2n_stuffer_raw_read/write()` returns an outstanding pointer that references a memory chunk within the stuffer. Whenever such an outstanding pointer exists, the stuffer's `tainted` flag must be set to true. However, if the outstanding pointer goes out of scope, the stuffer's `tainted` flag can safely be set to false.
+A `tainted` stuffer therefore implies that a pointer currently exists from a previous `s2n_stuffer_raw_read/write()` call which points to memory within the stuffer. Of course, the tainted mark is not needed once the pointer goes out of scope. Therefore, the stuffer's tainted flag can be safely set to false when the pointer no longer exists, in a sense, the danger has passed.
 If a stuffer is currently tainted then it can not be resized and it becomes ungrowable due to memory safety constraints mentioned above.
 This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew.
 So any pointers returned by the `s2n_stuffer_raw_read/write()` are legal only until `s2n_stuffer_wipe()` is called.
@@ -369,7 +369,7 @@ uint8_t * ptr = s2n_stuffer_raw_read(&in, 1500);
 
 /* This write will fail, the stuffer is no longer growable, as a raw
  * pointer was taken */
-GUARD(s2n_stuffer_write(&in, &some_more_data_blob);
+GUARD(s2n_stuffer_write(&in, &some_more_data_blob));
 
 /* Stuffer life cycle is now complete, reset everything and wipe */
 GUARD(s2n_stuffer_wipe(&in));
