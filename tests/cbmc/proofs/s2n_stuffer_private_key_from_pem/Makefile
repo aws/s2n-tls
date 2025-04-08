@@ -17,7 +17,6 @@ DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
 
-USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
 PROOF_UID = s2n_stuffer_private_key_from_pem
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
@@ -48,7 +47,6 @@ REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_rewrite
 REMOVE_FUNCTION_BODY += s2n_add_overflow
-REMOVE_FUNCTION_BODY += s2n_stuffer_skip_whitespace
 
 UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
