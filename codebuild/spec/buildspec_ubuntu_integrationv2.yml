@@ -54,15 +54,12 @@ phases:
   pre_build:
     commands:
       - echo "Installing uv..."
-      - curl -Ls https://astral.sh/uv/install.sh | bash
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
       - export PATH="/root/.local/bin:$PATH"
       - echo "Verifying uv install"
       - uv --version
 
-      # Set up virtualenv and install test deps
-      - echo "Creating virtual environment with uv..."
-      - uv venv
-      - uv pip install pytest pytest-xdist
+      - uv pip install pytest pytest
 
       - |
         if [ -d "third-party-src" ]; then
