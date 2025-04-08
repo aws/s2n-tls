@@ -59,7 +59,7 @@ phases:
       - echo "Verifying uv install"
       - uv --version
 
-      - uv pip install pytest
+      - uv pip install pytest pytest-xdist
 
       - |
         if [ -d "third-party-src" ]; then
