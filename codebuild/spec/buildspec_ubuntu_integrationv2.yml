@@ -52,7 +52,7 @@ env:
 
 phases:
   pre_build:
-    commands:
+    commands:pru
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
@@ -60,6 +60,10 @@ phases:
         fi
   build:
     commands:
+      - echo "Installing uv..."
+      - curl -Ls https://astral.sh/uv/install.sh | bash
+      - export PATH="$HOME/.cargo/bin:$PATH"
+      - uv --version  # confirm it's installed
       # e.g. awslc-fips-2022_gcc6
       - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
       # e.g. "test_cross_compatibility test_client_authentication"
