@@ -156,6 +156,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wno-unknown-pragmas
 )
 
+if (${CMAKE_C_COMPILER_ID} MATCHES "GNU")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wa,-mbranches-within-32B-boundaries)
+endif ()
+
 if (S2N_WERROR_ALL)
     target_compile_options(${PROJECT_NAME} PUBLIC -Werror)
 elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
