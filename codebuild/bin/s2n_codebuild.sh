@@ -123,13 +123,14 @@ run_integration_v2_tests() {
 
     export PATH="$BASE_S2N_DIR/bin:$PATH"
 
+    cd tests/integrationv2
+
     # Run tests — THIS replaces the old ctest loop
-    uv run pytest tests/integrationv2 \
+    uv run pytest . \
         --provider-version=${S2N_LIBCRYPTO} \
         -rpfs -n auto -x \
         --durations=10 --reruns=2 \
         -o log_cli=true --log-cli-level=DEBUG \
-        --rootdir=tests/integrationv2
 }
 
 run_unit_tests() {
