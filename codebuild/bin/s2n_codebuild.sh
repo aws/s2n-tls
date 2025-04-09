@@ -121,6 +121,8 @@ run_integration_v2_tests() {
     cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
     cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
 
+    export PATH="$BASE_S2N_DIR/bin:$PATH"
+
     # Run pytest directly with uv
     uv run pytest tests/integrationv2 \
     --provider-version=${S2N_LIBCRYPTO} \
