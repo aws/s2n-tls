@@ -128,7 +128,8 @@ run_integration_v2_tests() {
         --provider-version=${S2N_LIBCRYPTO} \
         -rpfs -n auto -x \
         --durations=10 --reruns=2 \
-        -o log_cli=true --log-cli-level=DEBUG
+        -o log_cli=true --log-cli-level=DEBUG \
+        --rootdir=tests/integrationv2
 }
 
 run_unit_tests() {
