@@ -12,7 +12,7 @@ fn main() {
          * linked. Set a cfg attribute in this case to allow s2n-tls to be aware of the external
          * build.
          */
-        if name == "DEP_S2M_TLS_EXTERNAL_BUILD" {
+        if name == EXTERNAL_BUILD_ENV_NAME {
             println!("cargo:rerun-if-env-changed={EXTERNAL_BUILD_ENV_NAME}");
 
             let external_build: bool = value.parse().unwrap();
