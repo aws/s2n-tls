@@ -53,6 +53,8 @@ env:
 phases:
   pre_build:
     commands:
+      - apt-get update
+      - apt-get install -y gnutls-bin
       - echo "Installing uv..."
       - curl -LsSf https://astral.sh/uv/install.sh | sh
       - export PATH="/root/.local/bin:$PATH"
