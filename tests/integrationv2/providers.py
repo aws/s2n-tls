@@ -829,48 +829,35 @@ class GnuTLS(Provider):
         return "Simple Client Mode:"
 
     def create_priority_str(self):
-        try:
-            priority_str = "NONE"
+        # Start with NONE to manually define everything
+        priority_str = "NONE"
 
-            protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
-            if protocol_to_priority_str:
-                priority_str += ":+" + protocol_to_priority_str
-            else:
-                priority_str += ":+VERS-ALL"
+        # Protocols
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
+        if protocol_to_priority_str:
+            priority_str += ":+" + protocol_to_priority_str
+        else:
+            priority_str += ":+VERS-ALL"
 
-            cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
-            if cipher_to_priority_str:
-                priority_str += ":+" + cipher_to_priority_str
-            else:
-                priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
+        # Ciphers
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
+        if cipher_to_priority_str:
+            priority_str += ":+" + cipher_to_priority_str
+        else:
+            priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
 
-            curve_to_priority_str = self.curve_to_priority_str(self.options.curve)
-            if curve_to_priority_str:
-                priority_str += ":+" + curve_to_priority_str
-            else:
-                priority_str += ":+GROUP-ALL"
+        curve_to_priority_str = self.curve_to_priority_str(self.options.curve)
+        if curve_to_priority_str:
+            priority_str += ":+" + curve_to_priority_str
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
 
-            sigalg_to_priority_str = self.sigalg_to_priority_str(
-                self.options.signature_algorithm
-            )
-            if sigalg_to_priority_str:
-                priority_str += ":+" + sigalg_to_priority_str
-            else:
-                priority_str += ":+SIGN-ALL"
+        if sigalg_to_priority_str:
+            priority_str += ":+" + sigalg_to_priority_str
+        priority_str += ":+COMP-NULL"
 
-            priority_str += ":+COMP-NULL"
+        priority_str += ":%COMPAT"
 
-            # A digital signature option is not included for the test RSA certs, so GnuTLS must be
-            # told to use these certs regardless. The %COMPAT priority string option enables this for
-            # client certificates, and the undocumented %DEBUG_ALLOW_KEY_USAGE_VIOLATIONS priority
-            # string option enables this for server certificates.
-            priority_str += ":%COMPAT"
-            priority_str += ":%DEBUG_ALLOW_KEY_USAGE_VIOLATIONS"
-
-            return priority_str
-        except Exception:
-            # Fallback for weird edge cases
-            return "NORMAL:%COMPAT"
+        return priority_str
 
     def setup_client(self):
         self.set_provider_ready()
