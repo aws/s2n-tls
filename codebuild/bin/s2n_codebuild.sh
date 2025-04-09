@@ -88,7 +88,7 @@ run_integration_v2_tests() {
 
     export PATH="$BASE_S2N_DIR/bin:$PATH"
 
-    cd ./build/
+    cd tests/integrationv2
 
     # Run tests — THIS replaces the old ctest loop
     uv run pytest . \
