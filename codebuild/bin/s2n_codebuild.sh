@@ -66,41 +66,6 @@ setup_apache_server() {
 }
 
 run_integration_v2_tests() {
-    # setup_apache_server
-    # "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
-
-    # -Bbuild	Outputs everything to build/
-    # -DCMAKE_PREFIX_PATH	Tells CMake where your custom libraries (e.g. OpenSSL) are
-    # -DBUILD_SHARED_LIBS=on	Builds .so shared libraries
-    # -DS2N_INTEG_TESTS=on	Enables test discovery and registration logic in CMakeLists.txt
-    # -DPython3_EXECUTABLE=...	Ensures the right Python version is used
-    # (output of this command generates a CMake-based build system inside the build/ directory)
-    # cmake . -Bbuild \
-    #         -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-    #         -DBUILD_SHARED_LIBS=on \
-    #         -DS2N_INTEG_TESTS=on \
-    #         -DPython3_EXECUTABLE=$(which python3)
-
-    # "Now build everything according to the rules!"
-    # cmake --build ./build --clean-first -- -j $(nproc)
-
-    # "doing a runtime check to verify which libcrypto library is actually linked to the s2nc and s2nd binaries"
-    # test_linked_libcrypto ./build/bin/s2nc
-    # test_linked_libcrypto ./build/bin/s2nd
-    
-    # copies the freshly built s2nc and s2nd binaries from the CMake build output (./build/bin/) 
-    # into a shared location used by the integration tests:
-    # cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
-    # cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
-    
-    # iterate through each integration test names and excutes them using ctest
-    # cd ./build/
-    # for test_name in $TOX_TEST_NAME; do
-    #   test="${test_name//test_/}"
-    #   echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
-    #   ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
-    # done
-
     # checks if the Apache-related integration test is being run
     setup_apache_server
     # installs the current version of s2n (s2nc/s2nd) into a temporary directory
