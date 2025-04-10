@@ -348,10 +348,9 @@ Note that this may be past the `write_cursor` if `s2n_stuffer_rewrite()` has bee
 Explicitly tracking the `high_water_mark` allows us to track the bytes which need to be wiped, and helps avoids needless zeroing of memory.
 The next two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable.
 `tainted` is set to true whenever `s2n_stuffer_raw_read/write()` are called.
-If a stuffer is currently tainted then it can not be resized and it becomes ungrowable due to memory safety constraints mentioned above.
+If a stuffer is currently tainted then it can not be resized and it becomes ungrowable due to memory safety constraints.
 This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew.
-So any pointers returned by the `s2n_stuffer_raw_read/write()` are legal only until `s2n_stuffer_wipe()` is called.
-Ideally, a `tainted` stuffer should be wiped before further write operations. If that is not an option, you may need to manually reset the `tainted` flag to false. When resetting the `tainted` flag, be very careful that the pointer is really no longer accessible and that a future developer won't unknowingly change the lifetime of the pointer. Include a comment explaining why resetting the `tainted` flag is safe.
+So any pointers returned by `s2n_stuffer_raw_read/write()` are legal only until `s2n_stuffer_wipe()` is called.
 The end result is that this kind of pattern is legal:
 
 ```c
@@ -374,6 +373,8 @@ GUARD(s2n_stuffer_write(&in, &some_more_data_blob));
 /* Stuffer life cycle is now complete, reset everything and wipe */
 GUARD(s2n_stuffer_wipe(&in));
 ```
+
+Ideally, a `tainted` stuffer should be wiped before further write operations. If that is not an option, you may need to manually reset the `tainted` flag to false. When resetting the `tainted` flag, be very careful that the pointer is really no longer accessible and that a future developer won't unknowingly change the lifetime of the pointer. Include a comment explaining why resetting the `tainted` flag is safe.
 
 ## s2n_connection and the TLS state machine
 
