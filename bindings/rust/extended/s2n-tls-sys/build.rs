@@ -257,7 +257,8 @@ impl External {
     fn link(&self) {
         println!("cargo:rustc-cfg={EXTERNAL_BUILD_CFG_NAME}");
 
-        // Propagate an external build flag to dependents.
+        // Propagate an external build flag to dependents, of the form
+        // `DEP_S2N_TLS_EXTERNAL_BUILD=true`.
         println!("cargo:external_build=true");
 
         println!(

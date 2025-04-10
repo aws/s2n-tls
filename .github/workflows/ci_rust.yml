@@ -20,6 +20,8 @@ env:
   STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
+  # The name of a s2n-tls test gated behind the external build cfg flag.
+  EXTERNAL_BUILD_TEST_NAME: test_unstable_as_ptr
 
 jobs:
   generate:
@@ -75,6 +77,17 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+      - name: Test external build cfg
+        working-directory: ${{env.ROOT_PATH}}/s2n-tls
+        run: |
+          echo "Using the external build feature should set a cfg flag in s2n-tls. Ensure that"
+          echo "this flag is NOT set when the external build feature isn't used. The"
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this test"
+          echo "is NOT run."
+          output=$(cargo test ${{env.EXTERNAL_BUILD_TEST_NAME}})
+          echo "${output}"
+          echo "${output}" | grep -q "test result: ok. 0 passed; 0 failed; 0 ignored;"
+
   external-build-test:
     runs-on: ubuntu-latest
     steps:
@@ -112,8 +125,6 @@ jobs:
         # means that if the linker can't resolve foo_method in tls/foo.c, you
         # forgot to include api/unstable/foo.h in tls/foo.c
         run: |
-          set -e
-
           cmake . -Bbuild \
             -DBUILD_SHARED_LIBS=on \
             -DBUILD_TESTING=off \
@@ -137,8 +148,10 @@ jobs:
 
           echo ""
           echo "Test that the external build will enable the proper cfg flag in s2n-tls. The"
-          echo "test_unstable_as_ptr test is gated behind this flag, so ensure this test is run."
-          output=$(cargo test --manifest-path ${{env.ROOT_PATH}}/s2n-tls/Cargo.toml test_unstable_as_ptr)
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this"
+          echo "test is run."
+          manifest_path="${{env.ROOT_PATH}}/s2n-tls/Cargo.toml"
+          output=$(cargo test --manifest-path ${manifest_path} ${{env.EXTERNAL_BUILD_TEST_NAME}})
           echo "${output}"
           echo "${output}" | grep -q "test result: ok. 1 passed; 0 failed; 0 ignored;"
 
