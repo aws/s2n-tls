@@ -20,6 +20,8 @@ env:
   STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
+  # The name of a s2n-tls test gated behind the external build cfg flag.
+  EXTERNAL_BUILD_TEST_NAME: test_unstable_as_ptr
 
 jobs:
   generate:
@@ -75,6 +77,46 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+      - name: Test external build cfg
+        working-directory: ${{env.ROOT_PATH}}/s2n-tls
+        run: |
+          echo "Using the external build feature should set a cfg flag in s2n-tls. Ensure that"
+          echo "this flag is NOT set when the external build feature isn't used. The"
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this test"
+          echo "is NOT run."
+          output=$(cargo test ${{env.EXTERNAL_BUILD_TEST_NAME}})
+          echo "${output}"
+          echo "${output}" | grep -q "test result: ok. 0 passed; 0 failed; 0 ignored;"
+
+  external-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Checkout aws-lc
+        uses: actions/checkout@v4
+        with:
+          repository: aws/aws-lc
+          path: aws-lc
+
+      - name: Build aws-lc
+        working-directory: aws-lc
+        run: |
+          cmake -Bbuild \
+            -DBUILD_SHARED_LIBS=off \
+            -DBUILD_LIBSSL=off \
+            -DCMAKE_INSTALL_PREFIX=./install
+          cmake --build build -j $(nproc)
+          cmake --install build
+
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
         # included. For a symbol to be visible in a shared lib, the
@@ -82,9 +124,12 @@ jobs:
         # in the same unit of compilation as the definition. Generally this just
         # means that if the linker can't resolve foo_method in tls/foo.c, you
         # forgot to include api/unstable/foo.h in tls/foo.c
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
+          cmake . -Bbuild \
+            -DBUILD_SHARED_LIBS=on \
+            -DBUILD_TESTING=off \
+            -DCMAKE_PREFIX_PATH=./aws-lc/install \
+            -DS2N_INTERN_LIBCRYPTO=on
           cmake --build build -- -j $(nproc)
 
           export S2N_TLS_LIB_DIR=`pwd`/build/lib
@@ -96,6 +141,19 @@ jobs:
           # Relative paths
           cd ../../..
           ldd ${{env.STANDARD_PATH}}/target/debug/integration | grep libs2n.so
+
+          # Run tests with the external build
+          cargo test --manifest-path ${{env.ROOT_PATH}}/Cargo.toml
+          cargo test --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml
+
+          echo ""
+          echo "Test that the external build will enable the proper cfg flag in s2n-tls. The"
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this"
+          echo "test is run."
+          manifest_path="${{env.ROOT_PATH}}/s2n-tls/Cargo.toml"
+          output=$(cargo test --manifest-path ${manifest_path} ${{env.EXTERNAL_BUILD_TEST_NAME}})
+          echo "${output}"
+          echo "${output}" | grep -q "test result: ok. 1 passed; 0 failed; 0 ignored;"
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
   # openssl
