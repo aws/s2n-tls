@@ -22,6 +22,17 @@ env:
   PCAP_TEST_PATH: tests/pcap
 
 jobs:
+  set-e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set e test
+        run: |
+          text="a test string!"
+          echo "${text}" | grep "not in text!"
+          echo $?
+          echo "${text}" | grep "string"
+          echo $?
+
   generate:
     runs-on: ${{ matrix.os }}
     strategy:
