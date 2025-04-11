@@ -11,6 +11,7 @@ dependencies = [
     "pytest-xdist>=3.6.1",
     "ruff>=0.9.7",
     "sslyze>=6.1.0",
+    "pytest-timeout>=2.3.1",
 ]
 
 # setuptools made a breaking change in setup file validation: https://github.com/pypa/setuptools/blob/main/NEWS.rst#deprecations-and-removals
