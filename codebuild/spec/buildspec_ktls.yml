@@ -20,8 +20,7 @@ env:
   shell: bash
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
-    # AWS Support was removed - pin it for now. https://github.com/aws/s2n-tls/issues/5244
-    NIX_INSTALLER: "https://releases.nixos.org/nix/nix-2.15.0/install"
+    NIX_INSTALLER: "https://nixos.org/nix/install"
     S2N_KTLS_TESTING_EXPECTED: 1
 phases:
   install:
