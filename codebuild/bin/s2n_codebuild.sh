@@ -94,7 +94,7 @@ run_integration_v2_tests() {
     uv run pytest . \
         --provider-version=${S2N_LIBCRYPTO} \
         -rpfs -n auto \
-        --durations=10 --reruns=2 \
+        --timeout=200 \
         -o log_cli=true --log-cli-level=DEBUG
 }
 
