@@ -62,7 +62,7 @@ phases:
       - echo "Verifying uv install"
       - uv --version
       - uv venv
-      - uv pip install pytest>=8.3.4 pytest-rerunfailures>=15.0 pytest-xdist>=3.6.1 ruff>=0.9.7 sslyze>=6.1.0
+      - uv pip install pytest>=8.3.4 pytest-rerunfailures>=15.0 pytest-xdist>=3.6.1 ruff>=0.9.7 sslyze>=6.1.0 pytest-timeout>=2.3.1
 
       - |
         if [ -d "third-party-src" ]; then
