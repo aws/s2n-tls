@@ -107,6 +107,9 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha256_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha256_chain_and_key, "ec", "ecdsa", "p256", "sha256"));
+
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     if (s2n_is_rsa_pss_certs_supported()) {
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
@@ -811,21 +814,46 @@ int main(int argc, char **argv)
          * breakage by verifying compatibility.
          */
         if (s2n_is_tls13_fully_supported()) {
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
+            /* 20250211 */
+            {
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
 
-            /* default_tls13 is currently 20240503 */
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
-            /* default_fips is currently 20240502 */
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "rfc9151", ecdsa_sha384_chain_and_key));
+                /* default_tls13 is currently 20240503 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
+                /* default_fips is currently 20240502 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "rfc9151", ecdsa_sha384_chain_and_key));
 
-            /* default_tls13 > 20250211
-             * note this does not require a sha384 key.
-             */
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250211", ecdsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "default_tls13", ecdsa_chain_and_key));
+                /* default_tls13 > 20250211
+                */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250211", ecdsa_chain_and_key));
+
+                /* note this ended up requiring a sha384 key, fixed in 20250414. */
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20240503, "20250211", ecdsa_sha256_chain_and_key),
+                        S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
+            };
+
+            /* 20250414 */
+            {
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250414", ecdsa_sha384_chain_and_key));
+
+                /* default_tls13 is currently 20240503 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
+                /* default_fips is currently 20240502 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "rfc9151", ecdsa_sha384_chain_and_key));
+
+                /* default_tls13 > 20250414 (with either p-256 or p-384 cert) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250414", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "20250414", ecdsa_sha256_chain_and_key));
+
+                /* 20250211 > 20250414 (with p-384 cert only) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "20250414", ecdsa_sha384_chain_and_key));
+            };
         };
     };
 
