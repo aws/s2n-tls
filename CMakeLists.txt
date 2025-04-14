@@ -147,6 +147,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     
     # Assembler Options
     -Wa,--noexecstack
+    -Wa,-mbranches-within-32B-boundaries
 
     # Suppressed Warnings
     -Wno-deprecated-declarations
