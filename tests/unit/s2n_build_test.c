@@ -162,9 +162,9 @@ int main()
     /* Check libcrypto version matches the intent of the CI.  */
     {
         if (version != NULL) {
-            printf("version is:: ", version);
+            printf("version is: %s\n", version);
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
-            printf("ssleay_version_text is: ", ssleay_version_text);
+            printf("ssleay_version_text is: %s\n", ssleay_version_text);
             EXPECT_NOT_NULL(strstr(ssleay_version_text, version));
         }
     };
