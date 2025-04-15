@@ -1,3 +1,4 @@
+include(CheckCCompilerFlag)
 cmake_minimum_required (VERSION 3.9)
 project (s2n C)
 
@@ -130,6 +131,20 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
+# Only apply on x86_64 with compilers that support -Wa,-mbranches-within-32B-boundaries (GCC ≥8, Clang ≥11)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    check_c_compiler_flag("-Wa,-mbranches-within-32B-boundaries" HAS_BRANCH_ALIGN)
+
+    if(HAS_BRANCH_ALIGN)
+        set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
+    else()
+        message(WARNING "Skipping -Wa,-mbranches-within-32B-boundaries: not supported by compiler")
+    endif()
+
+else()
+    message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries: non-x86_64 arch")
+endif()
+
 target_compile_options(${PROJECT_NAME} PRIVATE 
     -pedantic
     -std=gnu99
@@ -147,7 +162,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     
     # Assembler Options
     -Wa,--noexecstack
-    -Wa,-mbranches-within-32B-boundaries
+    ${BRANCH_ALIGN_FLAG}
 
     # Suppressed Warnings
     -Wno-deprecated-declarations
