@@ -166,7 +166,12 @@ int main()
             printf("version is: %s\n", version);
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
             printf("ssleay_version_text is: %s\n", ssleay_version_text);
-            EXPECT_NOT_NULL(strstr(ssleay_version_text, version));
+            if (strstr(ssleay_version_text, version) == NULL) {
+                const char* fail_msg = sprintf(
+                    "OpenSSL version mismatch - expected version '%s' not found in '%s'", version, ssleay_version_text
+                );
+                FAIL_MSG(fail_msg);
+            }
         }
     };
 
