@@ -176,5 +176,3 @@ If you are interested in contributing to s2n-tls, please see our [development gu
 
 ## Language Bindings for s2n-tls
 See our [language bindings list](https://github.com/aws/s2n-tls/blob/main/docs/BINDINGS.md) for language bindings for s2n-tls that we're aware of.
-
-Just for testing CI failure
