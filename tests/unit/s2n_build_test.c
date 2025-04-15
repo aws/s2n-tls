@@ -167,9 +167,9 @@ int main()
             if (strstr(ssleay_version_text, version) == NULL) {
                 char fail_msg[256];
                 snprintf(
-                    fail_msg, sizeof(fail_msg),
-                    "Libcrypto version mismatch - expected version '%s' not found in '%s'",
-                    version, ssleay_version_text);
+                        fail_msg, sizeof(fail_msg),
+                        "Libcrypto version mismatch - expected version '%s' not found in '%s'",
+                        version, ssleay_version_text);
                 FAIL_MSG(fail_msg);
             }
         }
