@@ -134,17 +134,22 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 # Only apply on x86_64 with compilers that support -Wa,-mbranches-within-32B-boundaries (GCC ≥8, Clang ≥11)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
 
+    # GCC always safe if >= 8
     if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 8)
         set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
+
+    # Clang is trickier: check >=11 AND test flag
     elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
         check_c_compiler_flag("-Wa,-mbranches-within-32B-boundaries" HAS_BRANCH_ALIGN)
+
         if(HAS_BRANCH_ALIGN)
             set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
         else()
             message(WARNING "Skipping -Wa,-mbranches-within-32B-boundaries: Clang doesn't support it")
         endif()
+
     else()
-        message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries: Unsupported compiler")
+        message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries: Unsupported compiler version")
     endif()
 
 else()
