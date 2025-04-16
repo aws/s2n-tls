@@ -131,6 +131,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
+message(STATUS "CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
+message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+message(STATUS "CMAKE_C_COMPILER_VERSION: ${CMAKE_C_COMPILER_VERSION}")
+
 # Only apply on x86_64 with compilers that support -Wa,-mbranches-within-32B-boundaries (GCC ≥8, Clang ≥11)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
 
