@@ -130,32 +130,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE 
-    -pedantic
-    -std=gnu99
-    -Wall
-    -Wcast-align
-    -Wchar-subscripts
-    -Wcomment
-    -Wformat-security
-    -Wimplicit
-    -Wshadow
-    -Wsign-compare
-    -Wuninitialized
-    -Wunused
-    -Wwrite-strings
-    
-    # Assembler Options
-    -Wa,--noexecstack
-
-    # Suppressed Warnings
-    -Wno-deprecated-declarations
-    # GCC 4 fails to parse our macros with a "missing-braces" error
-    -Wno-missing-braces
-    -Wno-strict-prototypes
-    -Wno-unknown-pragmas
-)
-
 if (S2N_WERROR_ALL)
     target_compile_options(${PROJECT_NAME} PUBLIC -Werror)
 elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
@@ -372,6 +346,41 @@ if (NOT S2N_EXECINFO_AVAILABLE)
     set(S2N_STACKTRACE FALSE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
+
+if(S2N_BRANCH_ALIGN)
+    set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
+    message(STATUS "✅ Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
+else()
+    set(BRANCH_ALIGN_FLAG "")
+    message(STATUS "❌ Feature probe failed: S2N_BRANCH_ALIGN is not supported.")
+endif()
+
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    -pedantic
+    -std=gnu99
+    -Wall
+    -Wcast-align
+    -Wchar-subscripts
+    -Wcomment
+    -Wformat-security
+    -Wimplicit
+    -Wshadow
+    -Wsign-compare
+    -Wuninitialized
+    -Wunused
+    -Wwrite-strings
+    
+    # Assembler Options
+    -Wa,--noexecstack
+    ${BRANCH_ALIGN_FLAG}
+
+    # Suppressed Warnings
+    -Wno-deprecated-declarations
+    # GCC 4 fails to parse our macros with a "missing-braces" error
+    -Wno-missing-braces
+    -Wno-strict-prototypes
+    -Wno-unknown-pragmas
+)
 
 if (S2N_INTERN_LIBCRYPTO)
 
