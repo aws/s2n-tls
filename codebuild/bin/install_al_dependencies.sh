@@ -18,7 +18,7 @@ source ./codebuild/bin/s2n_setup_env.sh
 
 al2023_main(){
     case "$S2N_LIBCRYPTO" in
-    "openssl-3.0"|"default") echo "Installing AL2023 packages";;
+    "openssl-3.0"|"openssl-3.2.2"|"default") echo "Installing AL2023 packages";;
     *) echo "${S2N_LIBCRYPTO} is not installed on this platform."; exit 1;;
     esac
     common_packages
