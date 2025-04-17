@@ -355,15 +355,6 @@ function(feature_probe PROBE_NAME)
     set(${PROBE_NAME}_FLAGS ${PROBE_FLAGS} PARENT_SCOPE)
 endfunction()
 
-# Run the probe (this will try to compile branch_align.c with branch_align.flags)
-feature_probe(S2N_BRANCH_ALIGN)
-
-if(S2N_BRANCH_ALIGN)
-    message(STATUS "✅ branch_align supported: ${branch_align_FLAGS}")
-else()
-    message(STATUS "❌ branch_align NOT supported")
-endif()
-
 # Iterate over all of the features and try to compile them
 FILE(GLOB FEATURE_SRCS "${CMAKE_CURRENT_LIST_DIR}/tests/features/*.c")
 list(SORT FEATURE_SRCS)
