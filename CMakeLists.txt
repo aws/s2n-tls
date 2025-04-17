@@ -140,7 +140,7 @@ execute_process(COMMAND ${CMAKE_C_COMPILER} --version
                 OUTPUT_VARIABLE C_COMPILER_VERSION_STRING
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-message(STATUS "Actual compiler string: ${C_COMPILER_VERSION_STRING}")
+message("Actual compiler string: ${C_COMPILER_VERSION_STRING}")
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
 
