@@ -50,7 +50,7 @@ function build {(set -e
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
-    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
         $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
 )}
