@@ -347,6 +347,24 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
+execute_process(
+    COMMAND ${CMAKE_C_COMPILER} --version
+    OUTPUT_VARIABLE COMPILER_VERSION_STRING
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+message(STATUS "🔍 Full compiler version string:")
+message(STATUS "${COMPILER_VERSION_STRING}")
+
+# Match on "clang" literally
+if(COMPILER_VERSION_STRING MATCHES "clang")
+    set(IS_TRUE_CLANG TRUE)
+    message(STATUS "🔎 Detected true Clang compiler")
+else()
+    set(IS_TRUE_CLANG FALSE)
+    message(STATUS "🔎 Not Clang (likely real GCC)")
+endif()
+
 if(S2N_BRANCH_ALIGN)
     set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
     message(STATUS "✅ Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
