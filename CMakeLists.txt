@@ -136,16 +136,20 @@ message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "CMAKE_C_COMPILER_VERSION: ${CMAKE_C_COMPILER_VERSION}")
 
 # Only apply on x86_64 with compilers that support -Wa,-mbranches-within-32B-boundaries (GCC ≥8, Clang ≥11)
+execute_process(COMMAND ${CMAKE_C_COMPILER} --version
+                OUTPUT_VARIABLE C_COMPILER_VERSION_STRING
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+message(STATUS "Actual compiler string: ${C_COMPILER_VERSION_STRING}")
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
 
-    if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 8)
+    if(C_COMPILER_VERSION_STRING MATCHES "clang")
+        message(STATUS "Compiler is Clang — skipping -mbranches-within-32B-boundaries")
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 8)
         set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
-
-    elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries for Clang: known unsupported in some toolchains")
-
     else()
-        message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries: Unsupported compiler version or architecture")
+        message(STATUS "Skipping -Wa,-mbranches-within-32B-boundaries: Unsupported compiler")
     endif()
 
 else()
