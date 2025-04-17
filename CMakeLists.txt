@@ -136,11 +136,12 @@ message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "CMAKE_C_COMPILER_VERSION: ${CMAKE_C_COMPILER_VERSION}")
 
 # Only apply on x86_64 with compilers that support -Wa,-mbranches-within-32B-boundaries (GCC ≥8, Clang ≥11)
-execute_process(COMMAND ${CMAKE_C_COMPILER} --version
-                OUTPUT_VARIABLE C_COMPILER_VERSION_STRING
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-message("Actual compiler string: ${C_COMPILER_VERSION_STRING}")
+execute_process(
+  COMMAND ${CMAKE_C_COMPILER} --version
+  OUTPUT_VARIABLE C_COMPILER_VERSION_STRING
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+message("🔥 execute_process ran! Compiler version string: [${C_COMPILER_VERSION_STRING}]")
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
 
