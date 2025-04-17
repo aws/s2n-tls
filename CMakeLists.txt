@@ -355,6 +355,11 @@ else()
     message(STATUS "❌ Feature probe failed: S2N_BRANCH_ALIGN is not supported.")
 endif()
 
+message(STATUS "CMake detected compiler info:")
+message(STATUS "CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
+message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+message(STATUS "CMAKE_C_COMPILER_VERSION: ${CMAKE_C_COMPILER_VERSION}")
+
 target_compile_options(${PROJECT_NAME} PRIVATE 
     -pedantic
     -std=gnu99
