@@ -347,12 +347,6 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
-execute_process(
-    COMMAND ${CMAKE_C_COMPILER} --version
-    OUTPUT_VARIABLE COMPILER_VERSION_STRING
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
 if(S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
     set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
     message(STATUS "Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
