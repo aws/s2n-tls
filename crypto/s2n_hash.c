@@ -299,11 +299,20 @@ static const struct s2n_hash s2n_evp_hash = {
     .free = &s2n_evp_hash_free,
 };
 
+/* This method looks unnecessary, but our CBMC proofs are
+ * dependent on it. Search for:
+ * __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl
+ */
+static void s2n_hash_set_evp_impl(struct s2n_hash_state *state)
+{
+    state->hash_impl = &s2n_evp_hash;
+}
+
 int s2n_hash_new(struct s2n_hash_state *state)
 {
     POSIX_ENSURE_REF(state);
 
-    state->hash_impl = &s2n_evp_hash;
+    s2n_hash_set_evp_impl(state);
     POSIX_ENSURE_REF(state->hash_impl->alloc);
     POSIX_GUARD(state->hash_impl->alloc(state));
 
