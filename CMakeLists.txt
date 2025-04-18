@@ -353,30 +353,13 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-message(STATUS "🔍 Full compiler version string:")
-message(STATUS "${COMPILER_VERSION_STRING}")
-
-# Match on "clang" literally
-if(COMPILER_VERSION_STRING MATCHES "clang")
-    set(IS_TRUE_CLANG TRUE)
-    message(STATUS "🔎 Detected true Clang compiler")
-else()
-    set(IS_TRUE_CLANG FALSE)
-    message(STATUS "🔎 Not Clang (likely real GCC)")
-endif()
-
 if(S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
     set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
-    message(STATUS "✅ Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
+    message(STATUS "Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
 else()
     set(BRANCH_ALIGN_FLAG "")
-    message(STATUS "❌ Feature probe failed: S2N_BRANCH_ALIGN is not supported.")
+    message(STATUS "Feature probe failed: S2N_BRANCH_ALIGN is not supported.")
 endif()
-
-message(STATUS "CMake detected compiler info:")
-message(STATUS "CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
-message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
-message(STATUS "CMAKE_C_COMPILER_VERSION: ${CMAKE_C_COMPILER_VERSION}")
 
 target_compile_options(${PROJECT_NAME} PRIVATE 
     -pedantic
