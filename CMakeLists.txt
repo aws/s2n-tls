@@ -734,7 +734,7 @@ if (BUILD_TESTING)
 
         if(S2N_FUZZ_TEST)
             message(STATUS "Fuzz build enabled")
-            add_subdirectory(tests/fuzz)
+            add_subdirectory(fuzz)
         endif()
 
 
