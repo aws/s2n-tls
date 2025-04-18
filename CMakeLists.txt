@@ -730,7 +730,7 @@ if (BUILD_TESTING)
             )
         endforeach()
 
-        set(CMAKE_C_COMPILER clang)
+        #set(CMAKE_C_COMPILER clang)
 
         foreach(src ${FUZZ_TEST_SRCS})
             get_filename_component(TEST_NAME ${src} NAME_WE)
