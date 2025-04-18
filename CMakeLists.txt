@@ -1,5 +1,4 @@
 cmake_minimum_required (VERSION 3.9)
-set(CMAKE_C_COMPILER clang)
 project (s2n C)
 
 if(POLICY CMP0077)
@@ -730,6 +729,8 @@ if (BUILD_TESTING)
                 ${CMAKE_CURRENT_SOURCE_DIR}/api
             )
         endforeach()
+
+        ##set(CMAKE_C_COMPILER clang)
 
         foreach(src ${FUZZ_TEST_SRCS})
             get_filename_component(TEST_NAME ${src} NAME_WE)
