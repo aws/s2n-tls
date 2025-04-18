@@ -732,31 +732,37 @@ if (BUILD_TESTING)
 
         ##set(CMAKE_C_COMPILER clang)
 
-        foreach(src ${FUZZ_TEST_SRCS})
-            get_filename_component(TEST_NAME ${src} NAME_WE)
+        if(S2N_FUZZ_TEST)
+            message(STATUS "Fuzz build enabled")
+            add_subdirectory(tests/fuzz)
+        endif()
 
-            add_executable(${TEST_NAME} ${src})
+
+        # foreach(src ${FUZZ_TEST_SRCS})
+        #     get_filename_component(TEST_NAME ${src} NAME_WE)
+
+        #     add_executable(${TEST_NAME} ${src})
             
-            target_compile_options(${TEST_NAME} PRIVATE 
-                -g -Wno-unknown-pragmas -Wno-unused-result
-            )
-            target_link_options(${TEST_NAME} PRIVATE 
-                -fsanitize=fuzzer -lstdc++
-            )
-            target_link_libraries(${TEST_NAME} PRIVATE 
-                fuzztest
-            )
+        #     target_compile_options(${TEST_NAME} PRIVATE 
+        #         -g -Wno-unknown-pragmas -Wno-unused-result
+        #     )
+        #     target_link_options(${TEST_NAME} PRIVATE 
+        #         -fsanitize=fuzzer -lstdc++
+        #     )
+        #     target_link_libraries(${TEST_NAME} PRIVATE 
+        #         fuzztest
+        #     )
 
-            add_test(NAME ${TEST_NAME}
-                COMMAND ${CMAKE_COMMAND} -E env
-                    bash ${SCRIPT_PATH} 
-                    ${TEST_NAME} 
-                    ${FUZZ_TIMEOUT_SEC} 
-                    ${CMAKE_CURRENT_SOURCE_DIR}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
-            )
-            set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
-        endforeach()
+        #     add_test(NAME ${TEST_NAME}
+        #         COMMAND ${CMAKE_COMMAND} -E env
+        #             bash ${SCRIPT_PATH} 
+        #             ${TEST_NAME} 
+        #             ${FUZZ_TIMEOUT_SEC} 
+        #             ${CMAKE_CURRENT_SOURCE_DIR}
+        #         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
+        #     )
+        #     set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
+        # endforeach()
     endif()
 endif()
 
