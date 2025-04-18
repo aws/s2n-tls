@@ -365,7 +365,7 @@ else()
     message(STATUS "🔎 Not Clang (likely real GCC)")
 endif()
 
-if(S2N_BRANCH_ALIGN)
+if(S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
     set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
     message(STATUS "✅ Feature probe succeeded: S2N_BRANCH_ALIGN is supported.")
 else()
