@@ -262,8 +262,7 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     sign->on_complete = on_complete;
     sign->sig_alg = sig_alg;
 
-    RESULT_GUARD_POSIX(s2n_hash_new(&sign->digest));
-    RESULT_GUARD_POSIX(s2n_hash_copy(&sign->digest, digest));
+    RESULT_GUARD(s2n_hash_new_copy(&sign->digest, digest));
 
     RESULT_GUARD(s2n_async_cb_execute(conn, &op));
     return S2N_RESULT_OK;
@@ -286,8 +285,7 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->verify_after_sign) {
         DEFER_CLEANUP(struct s2n_hash_state digest_for_verify, s2n_hash_free);
-        RESULT_GUARD_POSIX(s2n_hash_new(&digest_for_verify));
-        RESULT_GUARD_POSIX(s2n_hash_copy(&digest_for_verify, digest));
+        RESULT_GUARD(s2n_hash_new_copy(&digest_for_verify, digest));
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
         RESULT_GUARD(s2n_async_pkey_verify_signature(conn, sig_alg, &digest_for_verify, &signed_content));
     } else {
@@ -416,9 +414,7 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
      * then use local hash copy to sign the signature */
     if (op->validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
         DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
-        RESULT_GUARD_POSIX(s2n_hash_new(&hash_state_copy));
-        RESULT_GUARD_POSIX(s2n_hash_copy(&hash_state_copy, &sign->digest));
-
+        RESULT_GUARD(s2n_hash_new_copy(&hash_state_copy, &sign->digest));
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &hash_state_copy, &sign->signature));
     } else {
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
@@ -577,8 +573,7 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
     DEFER_CLEANUP(struct s2n_hash_state digest_copy = { 0 }, s2n_hash_free);
-    RESULT_GUARD_POSIX(s2n_hash_new(&digest_copy));
-    RESULT_GUARD_POSIX(s2n_hash_copy(&digest_copy, &sign->digest));
+    RESULT_GUARD(s2n_hash_new_copy(&digest_copy, &sign->digest));
 
     uint8_t digest_length = 0;
 

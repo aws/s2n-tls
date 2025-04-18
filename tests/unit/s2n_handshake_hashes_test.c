@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
             /* Allocates all hashes */
             for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_ALGS_COUNT; alg++) {
-                if (alg == S2N_HASH_NONE) {
+                if (alg == S2N_HASH_NONE || alg == S2N_HASH_INTRINSIC) {
                     continue;
                 }
 
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
             uint8_t data[100] = { 0 };
 
             for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_ALGS_COUNT; alg++) {
-                if (alg == S2N_HASH_NONE) {
+                if (alg == S2N_HASH_NONE || alg == S2N_HASH_INTRINSIC) {
                     continue;
                 }
 

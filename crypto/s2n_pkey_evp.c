@@ -132,6 +132,7 @@ static int s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algori
      */
     POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
+    POSIX_ENSURE_EQ(s2n_hash_get_type(hash_state), S2N_HASH_TYPE_EVP);
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
     POSIX_ENSURE_REF(ctx);
     POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
@@ -210,6 +211,7 @@ static int s2n_pkey_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algo
     POSIX_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
     POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
+    POSIX_ENSURE_EQ(s2n_hash_get_type(hash_state), S2N_HASH_TYPE_EVP);
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
     POSIX_ENSURE_REF(ctx);
     POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));

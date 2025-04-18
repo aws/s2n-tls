@@ -61,16 +61,20 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
     };
 
     /* Test s2n_hash_copy */
-    struct s2n_hash_state hash_copy = { 0 };
+    DEFER_CLEANUP(struct s2n_hash_state hash_copy = { 0 }, s2n_hash_free);
     {
-        struct s2n_blob result = { 0 };
-        uint8_t result_data[OUTPUT_DATA_SIZE] = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&result, result_data, OUTPUT_DATA_SIZE));
-
         RESULT_GUARD_POSIX(s2n_hash_new(&hash_copy));
         RESULT_GUARD_POSIX(s2n_hash_copy(&hash_copy, hash_state));
         RESULT_ENSURE_EQ(hash_copy.currently_in_hash, hash_state->currently_in_hash);
         RESULT_ENSURE_EQ(hash_copy.is_ready_for_input, hash_state->is_ready_for_input);
+    };
+
+    /* Test s2n_hash_new_copy */
+    DEFER_CLEANUP(struct s2n_hash_state hash_new_copy = { 0 }, s2n_hash_free);
+    {
+        RESULT_GUARD(s2n_hash_new_copy(&hash_new_copy, hash_state));
+        RESULT_ENSURE_EQ(hash_new_copy.currently_in_hash, hash_state->currently_in_hash);
+        RESULT_ENSURE_EQ(hash_new_copy.is_ready_for_input, hash_state->is_ready_for_input);
     };
 
     /* Test s2n_hash_digest */
@@ -85,12 +89,17 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
 
         uint8_t copy_result[OUTPUT_DATA_SIZE] = { 0 };
         RESULT_GUARD_POSIX(s2n_hash_digest(&hash_copy, copy_result, digest_size));
-        RESULT_ENSURE_EQ(hash_state->currently_in_hash, 0);
-        RESULT_ENSURE_EQ(hash_state->is_ready_for_input, false);
+        RESULT_ENSURE_EQ(hash_copy.currently_in_hash, 0);
+        RESULT_ENSURE_EQ(hash_copy.is_ready_for_input, false);
         RESULT_ENSURE_EQ(memcmp(digest->data, copy_result, digest_size), 0);
+
+        uint8_t new_copy_result[OUTPUT_DATA_SIZE] = { 0 };
+        RESULT_GUARD_POSIX(s2n_hash_digest(&hash_new_copy, new_copy_result, digest_size));
+        RESULT_ENSURE_EQ(hash_new_copy.currently_in_hash, 0);
+        RESULT_ENSURE_EQ(hash_new_copy.is_ready_for_input, false);
+        RESULT_ENSURE_EQ(memcmp(digest->data, new_copy_result, digest_size), 0);
     };
 
-    RESULT_GUARD_POSIX(s2n_hash_free(&hash_copy));
     return S2N_RESULT_OK;
 }
 
@@ -135,6 +144,17 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_ALGS_COUNT; hash_alg++) {
+        if (hash_alg == S2N_HASH_INTRINSIC) {
+            /* Intrinsic hashes are only used when signing, and do not behave
+             * like other hashes.
+             */
+            DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
+            EXPECT_SUCCESS(s2n_hash_new(&hash_state));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_hash_init(&hash_state, hash_alg),
+                    S2N_ERR_HASH_INVALID_ALGORITHM);
+            continue;
+        }
+
         struct s2n_blob actual_result = { 0 };
         uint8_t actual_result_data[OUTPUT_DATA_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));

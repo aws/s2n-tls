@@ -151,6 +151,7 @@ bool s2n_hash_is_available(s2n_hash_algorithm alg)
         case S2N_HASH_SHA256:
         case S2N_HASH_SHA384:
         case S2N_HASH_SHA512:
+        case S2N_HASH_INTRINSIC:
             return true;
         case S2N_HASH_ALGS_COUNT:
             return false;
@@ -177,6 +178,7 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
 {
     POSIX_ENSURE_REF(state->digest.high_level.evp.ctx);
 
+    POSIX_ENSURE(alg != S2N_HASH_INTRINSIC, S2N_ERR_HASH_INVALID_ALGORITHM);
     if (alg == S2N_HASH_NONE) {
         return S2N_SUCCESS;
     }
@@ -290,6 +292,7 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 }
 
 static const struct s2n_hash s2n_evp_hash = {
+    .type = S2N_HASH_TYPE_EVP,
     .alloc = &s2n_evp_hash_new,
     .init = &s2n_evp_hash_init,
     .update = &s2n_evp_hash_update,
@@ -298,6 +301,93 @@ static const struct s2n_hash s2n_evp_hash = {
     .reset = &s2n_evp_hash_reset,
     .free = &s2n_evp_hash_free,
 };
+
+static int s2n_raw_hash_alloc(struct s2n_hash_state *state)
+{
+    /* Raw hashes should be created via s2n_hash_new_raw instead,
+     * which requires additional inputs. If we allocated the stuffer here,
+     * the only "no args" stuffer allocation option would be
+     * s2n_stuffer_growable_alloc(stuffer, 0), which is not very efficient.
+     */
+    return S2N_SUCCESS;
+}
+
+static int s2n_raw_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_raw_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
+{
+    POSIX_ENSURE_REF(state);
+    struct s2n_stuffer *raw_data = &state->digest.raw_data;
+    POSIX_GUARD(s2n_stuffer_write_bytes(raw_data, data, size));
+    return S2N_SUCCESS;
+}
+
+/* For raw hashes, "digest" actually just returns the stored raw data.
+ * If the naming causes confusion, we could create a new method to return the
+ * raw data instead and simply have s2n_hash_digest report an error.
+ */
+static int s2n_raw_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
+{
+    POSIX_ENSURE_REF(state);
+    struct s2n_stuffer *raw_data = &state->digest.raw_data;
+    POSIX_ENSURE_EQ(size, s2n_stuffer_data_available(raw_data));
+    POSIX_GUARD(s2n_stuffer_read_bytes(raw_data, out, size));
+    return S2N_SUCCESS;
+}
+
+static int s2n_raw_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
+{
+    POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(from);
+
+    struct s2n_stuffer *to_raw_data = &to->digest.raw_data;
+    struct s2n_stuffer *from_raw_data = &from->digest.raw_data;
+
+    uint32_t size = s2n_stuffer_data_available(from_raw_data);
+    POSIX_GUARD(s2n_stuffer_alloc(to_raw_data, size));
+
+    POSIX_GUARD(s2n_stuffer_copy(from_raw_data, to_raw_data, size));
+    POSIX_GUARD(s2n_stuffer_reread(from_raw_data));
+    return S2N_SUCCESS;
+}
+
+static int s2n_raw_hash_reset(struct s2n_hash_state *state)
+{
+    POSIX_ENSURE_REF(state);
+    struct s2n_stuffer *raw_data = &state->digest.raw_data;
+    POSIX_GUARD(s2n_stuffer_wipe(raw_data));
+    return S2N_SUCCESS;
+}
+
+static int s2n_raw_hash_free(struct s2n_hash_state *state)
+{
+    POSIX_ENSURE_REF(state);
+    struct s2n_stuffer *raw_data = &state->digest.raw_data;
+    POSIX_GUARD(s2n_stuffer_free(raw_data));
+    return S2N_SUCCESS;
+}
+
+static const struct s2n_hash s2n_raw_hash = {
+    .type = S2N_HASH_TYPE_RAW,
+    .alloc = &s2n_raw_hash_alloc,
+    .init = &s2n_raw_hash_init,
+    .update = &s2n_raw_hash_update,
+    .digest = &s2n_raw_hash_digest,
+    .copy = &s2n_raw_hash_copy,
+    .reset = &s2n_raw_hash_reset,
+    .free = &s2n_raw_hash_free,
+};
+
+uint8_t s2n_hash_get_type(struct s2n_hash_state *state)
+{
+    if (!state || !state->hash_impl) {
+        return S2N_HASH_TYPE_NONE;
+    }
+    return state->hash_impl->type;
+}
 
 /* This method looks unnecessary, but our CBMC proofs are
  * dependent on it. Search for:
@@ -308,18 +398,38 @@ static void s2n_hash_set_evp_impl(struct s2n_hash_state *state)
     state->hash_impl = &s2n_evp_hash;
 }
 
-int s2n_hash_new(struct s2n_hash_state *state)
+static S2N_RESULT s2n_hash_alloc(struct s2n_hash_state *state)
 {
-    POSIX_ENSURE_REF(state);
+    RESULT_ENSURE_REF(state);
 
-    s2n_hash_set_evp_impl(state);
-    POSIX_ENSURE_REF(state->hash_impl->alloc);
-    POSIX_GUARD(state->hash_impl->alloc(state));
+    RESULT_ENSURE_REF(state->hash_impl);
+    RESULT_ENSURE_REF(state->hash_impl->alloc);
+    RESULT_GUARD_POSIX(state->hash_impl->alloc(state));
 
     state->alg = S2N_HASH_NONE;
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
+    return S2N_RESULT_OK;
+}
+
+int s2n_hash_new(struct s2n_hash_state *state)
+{
+    POSIX_ENSURE_REF(state);
+    s2n_hash_set_evp_impl(state);
+    POSIX_GUARD_RESULT(s2n_hash_alloc(state));
     return S2N_SUCCESS;
+}
+
+/* Raw hashes should operate on data of a known, reasonably small size.
+ * We should therefore only create raw hashes with a fixed size buffer.
+ */
+S2N_RESULT s2n_hash_new_raw(struct s2n_hash_state *state, struct s2n_blob *buffer)
+{
+    RESULT_ENSURE_REF(state);
+    state->hash_impl = &s2n_raw_hash;
+    RESULT_GUARD(s2n_hash_alloc(state));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&state->digest.raw_data, buffer));
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state)
@@ -377,16 +487,28 @@ int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
     POSIX_PRECONDITION(s2n_hash_state_validate(to));
     POSIX_PRECONDITION(s2n_hash_state_validate(from));
+    POSIX_ENSURE_EQ(from->hash_impl, to->hash_impl);
 
     POSIX_ENSURE_REF(from->hash_impl);
     POSIX_ENSURE_REF(from->hash_impl->copy);
     POSIX_GUARD(from->hash_impl->copy(to, from));
 
-    to->hash_impl = from->hash_impl;
     to->alg = from->alg;
     to->is_ready_for_input = from->is_ready_for_input;
     to->currently_in_hash = from->currently_in_hash;
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_hash_new_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
+{
+    RESULT_PRECONDITION(s2n_hash_state_validate(to));
+    RESULT_PRECONDITION(s2n_hash_state_validate(from));
+
+    to->hash_impl = from->hash_impl;
+    RESULT_GUARD(s2n_hash_alloc(to));
+
+    RESULT_GUARD_POSIX(s2n_hash_copy(to, from));
+    return S2N_RESULT_OK;
 }
 
 int s2n_hash_reset(struct s2n_hash_state *state)

@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "crypto/s2n_evp.h"
+#include "stuffer/s2n_stuffer.h"
 
 #define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
@@ -33,6 +34,10 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
+    /* A placeholder hash algorithm for cases where hashing is handled by the
+     * signature algorithm itself, as in the case of pure (not pre-hashed) ML-DSA.
+     */
+    S2N_HASH_INTRINSIC,
     /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
     S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;
@@ -54,13 +59,21 @@ struct s2n_hash_state {
     uint64_t currently_in_hash;
     union {
         struct s2n_hash_evp_digest high_level;
+        struct s2n_stuffer raw_data;
     } digest;
 };
+
+typedef enum {
+    S2N_HASH_TYPE_NONE = 0,
+    S2N_HASH_TYPE_EVP,
+    S2N_HASH_TYPE_RAW,
+} s2n_hash_type;
 
 /* The s2n hash implementation is abstracted to allow for separate implementations.
  * Currently the only implementation uses the EVP APIs.
  */
 struct s2n_hash {
+    s2n_hash_type type;
     int (*alloc)(struct s2n_hash_state *state);
     int (*init)(struct s2n_hash_state *state, s2n_hash_algorithm alg);
     int (*update)(struct s2n_hash_state *state, const void *data, uint32_t size);
@@ -79,12 +92,15 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
 bool s2n_hash_is_available(s2n_hash_algorithm alg);
 int s2n_hash_is_ready_for_input(struct s2n_hash_state *state);
 int s2n_hash_new(struct s2n_hash_state *state);
+S2N_RESULT s2n_hash_new_raw(struct s2n_hash_state *state, struct s2n_blob *buffer);
 S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state);
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);
+S2N_RESULT s2n_hash_new_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);
 int s2n_hash_reset(struct s2n_hash_state *state);
 int s2n_hash_free(struct s2n_hash_state *state);
 int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);
 int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out);
+uint8_t s2n_hash_get_type(struct s2n_hash_state *state);

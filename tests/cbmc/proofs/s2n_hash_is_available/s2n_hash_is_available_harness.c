@@ -38,6 +38,7 @@ void s2n_hash_is_available_harness()
         case S2N_HASH_SHA256:
         case S2N_HASH_SHA384:
         case S2N_HASH_SHA512:
+        case S2N_HASH_INTRINSIC:
             assert(is_available); break;
         default:
             __CPROVER_assert(!is_available, "Unsupported algorithm.");
