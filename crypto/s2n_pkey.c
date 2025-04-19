@@ -20,6 +20,7 @@
 #include "crypto/s2n_openssl_evp.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "crypto/s2n_pkey_evp.h"
+#include "crypto/s2n_pkey_mldsa.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_mem.h"
@@ -48,6 +49,8 @@ S2N_RESULT s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_pkey_type pkey_typ
         case S2N_PKEY_TYPE_ECDSA:
         case S2N_PKEY_TYPE_RSA_PSS:
             return s2n_pkey_evp_init(pkey);
+        case S2N_PKEY_TYPE_MLDSA:
+            return s2n_pkey_mldsa_init(pkey);
         case S2N_PKEY_TYPE_SENTINEL:
         case S2N_PKEY_TYPE_UNKNOWN:
             RESULT_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
@@ -149,6 +152,9 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
         case S2N_PKEY_TYPE_RSA_PSS:
             check_alg = S2N_SIGNATURE_RSA_PSS_PSS;
             break;
+        case S2N_PKEY_TYPE_MLDSA:
+            check_alg = S2N_SIGNATURE_MLDSA;
+            break;
         default:
             POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
     }
@@ -176,8 +182,6 @@ S2N_RESULT s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob
 {
     const unsigned char *key_to_parse = asn1der->data;
 
-    RESULT_GUARD(s2n_pkey_evp_init(priv_key));
-
     /* We use "d2i_AutoPrivateKey" instead of "PEM_read_bio_PrivateKey" because
      * s2n-tls prefers to perform its own custom PEM parsing. Historically,
      * openssl's PEM parsing tended to ignore invalid certificates rather than
@@ -201,6 +205,11 @@ S2N_RESULT s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob
     /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse to the byte following the parsed data */
     uint32_t parsed_len = key_to_parse - asn1der->data;
     RESULT_ENSURE(parsed_len == asn1der->size, S2N_ERR_DECODE_PRIVATE_KEY);
+
+    /* Initialize s2n_pkey according to key type */
+    s2n_pkey_type type = 0;
+    RESULT_GUARD(s2n_pkey_get_type(evp_private_key, &type));
+    RESULT_GUARD(s2n_pkey_setup_for_type(priv_key, type));
 
     priv_key->pkey = evp_private_key;
     ZERO_TO_DISABLE_DEFER_CLEANUP(evp_private_key);
@@ -235,6 +244,11 @@ S2N_RESULT s2n_pkey_get_type(EVP_PKEY *evp_pkey, s2n_pkey_type *pkey_type)
         case EVP_PKEY_EC:
             *pkey_type = S2N_PKEY_TYPE_ECDSA;
             break;
+#if S2N_AWSLC_SUPPORTS_MLDSA
+        case EVP_PKEY_PQDSA:
+            *pkey_type = S2N_PKEY_TYPE_MLDSA;
+            break;
+#endif
         default:
             RESULT_BAIL(S2N_ERR_DECODE_CERTIFICATE);
     }
@@ -249,12 +263,11 @@ S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
     RESULT_ENSURE_REF(pub_key_out);
     RESULT_ENSURE_REF(pkey_type_out);
 
-    RESULT_GUARD(s2n_pkey_evp_init(pub_key_out));
-
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(evp_public_key != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
     RESULT_GUARD(s2n_pkey_get_type(evp_public_key, pkey_type_out));
+    RESULT_GUARD(s2n_pkey_setup_for_type(pub_key_out, *pkey_type_out));
 
     pub_key_out->pkey = evp_public_key;
     ZERO_TO_DISABLE_DEFER_CLEANUP(evp_public_key);

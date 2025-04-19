@@ -144,14 +144,14 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type)
+int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type_hint)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(pem));
     POSIX_PRECONDITION(s2n_stuffer_validate(asn1));
-    POSIX_ENSURE_REF(type);
+    POSIX_ENSURE_REF(type_hint);
 
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY) == S2N_SUCCESS) {
-        *type = EVP_PKEY_RSA;
+        *type_hint = EVP_PKEY_RSA;
         return S2N_SUCCESS;
     }
 
@@ -169,7 +169,7 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     POSIX_GUARD(s2n_stuffer_wipe(asn1));
 
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY) == S2N_SUCCESS) {
-        *type = EVP_PKEY_EC;
+        *type_hint = EVP_PKEY_EC;
         return S2N_SUCCESS;
     }
 
@@ -177,7 +177,10 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     POSIX_GUARD(s2n_stuffer_reread(pem));
     POSIX_GUARD(s2n_stuffer_reread(asn1));
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY) == S2N_SUCCESS) {
-        *type = EVP_PKEY_RSA;
+        /* This is the most generic format, and could represent keys other than RSA.
+         * We set RSA only as a default type hint.
+         */
+        *type_hint = EVP_PKEY_RSA;
         return S2N_SUCCESS;
     }
 
