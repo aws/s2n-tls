@@ -19,8 +19,6 @@
 
 #include <assert.h>
 
-int __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(struct s2n_hash_state *);
-
 void s2n_hash_digest_harness()
 {
     /* Non-deterministic inputs. */
@@ -30,7 +28,6 @@ void s2n_hash_digest_harness()
 
     /* Assumptions. */
     __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(state);
 
     /* Operation under verification. */
     if (s2n_hash_digest(state, out, size) == S2N_SUCCESS)

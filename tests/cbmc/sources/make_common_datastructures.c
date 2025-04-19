@@ -225,15 +225,15 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
     return evp_digest;
 }
 
+void __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl(struct s2n_hash_state *);
+
 void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
 {
     CBMC_ENSURE_REF(state);
-    /* `state->hash_impl` is never allocated.
-     * It is always initialized based on the hashing algorithm.
-     * If required, this initialization should be done in the validation function.
-     */
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp);
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
+    /* By populating the EVP fields, we have chosen to test the EVP implementation */
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl(state);
 }
 
 struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
