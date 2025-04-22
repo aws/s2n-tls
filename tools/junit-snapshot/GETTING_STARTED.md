@@ -9,21 +9,26 @@ This guide will help you get started with the junit-snapshot tool, which allows 
 
 ## Building the Tool
 
-First, build the junit-snapshot tool:
+Install the junit-snapshot tool using Cargo:
+
+```bash
+cd tools/junit-snapshot
+cargo install --path .
+```
+
+This will compile the tool and install it to your Cargo binary directory (typically `~/.cargo/bin/`), which should already be in your PATH. You can now run `junit-snapshot` from anywhere on your system.
+
+If you prefer to build without installing:
 
 ```bash
 cd tools/junit-snapshot
 cargo build
 ```
 
-For convenience, you might want to create a symlink or add the binary to your PATH:
+Then run it directly with:
 
 ```bash
-# Option 1: Create a symlink
-ln -s $(pwd)/target/debug/junit-snapshot /usr/local/bin/junit-snapshot
-
-# Option 2: Add to PATH temporarily
-export PATH="$(pwd)/target/debug:$PATH"
+./target/debug/junit-snapshot
 ```
 
 ## Basic Workflow
