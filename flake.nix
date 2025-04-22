@@ -15,7 +15,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
