@@ -1,8 +1,9 @@
 use crate::junit::model::{TestSuite, TestSuites};
 use anyhow::{Context, Result};
 use quick_xml::de::from_str;
+use quick_xml::de::from_reader;
 use std::fs;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::path::Path;
 use thiserror::Error;
 
@@ -23,18 +24,76 @@ pub enum ParserError {
 pub fn parse_junit_file<P: AsRef<Path>>(path: P) -> Result<TestSuites> {
     let path_str = path.as_ref().to_string_lossy().to_string();
     
-    // Read the file content - use a buffered approach for large files
-    let mut file = fs::File::open(&path)
+    // Open the file with a buffered reader for efficient reading of large files
+    let file = fs::File::open(&path)
         .with_context(|| format!("Failed to open JUnit XML file: {}", path_str))
         .map_err(|e| ParserError::FileReadError(e.to_string()))?;
     
-    let mut content = String::new();
-    file.read_to_string(&mut content)
-        .with_context(|| format!("Failed to read JUnit XML file: {}", path_str))
-        .map_err(|e| ParserError::FileReadError(e.to_string()))?;
+    let reader = BufReader::new(file);
     
-    parse_junit_xml(&content)
-        .with_context(|| format!("Failed to parse JUnit XML file: {}", path_str))
+    // Try to parse as TestSuites (multiple test suites) using the reader directly
+    let result: Result<TestSuites, _> = from_reader(reader);
+    
+    match result {
+        Ok(mut test_suites) => {
+            // Process each test case to determine its status
+            for suite in &mut test_suites.test_suites {
+                for test_case in &mut suite.test_cases {
+                    test_case.determine_status();
+                }
+            }
+            
+            // Calculate total tests from test suites if not set in the root element
+            if test_suites.tests == 0 {
+                test_suites.tests = test_suites.test_suites.iter().map(|s| s.tests).sum();
+            }
+            
+            // Calculate total failures from test suites if not set in the root element
+            if test_suites.failures == 0 {
+                test_suites.failures = test_suites.test_suites.iter().map(|s| s.failures).sum();
+            }
+            
+            // Calculate total errors from test suites if not set in the root element
+            if test_suites.errors == 0 {
+                test_suites.errors = test_suites.test_suites.iter().map(|s| s.errors).sum();
+            }
+            
+            Ok(test_suites)
+        }
+        Err(e) => {
+            // If parsing as TestSuites fails, try parsing as a single TestSuite
+            // We need to reopen the file since the reader was consumed
+            let file = fs::File::open(&path)
+                .with_context(|| format!("Failed to reopen JUnit XML file: {}", path_str))
+                .map_err(|e| ParserError::FileReadError(e.to_string()))?;
+            
+            let reader = BufReader::new(file);
+            let result: Result<TestSuite, _> = from_reader(reader);
+            
+            match result {
+                Ok(mut test_suite) => {
+                    // Process each test case to determine its status
+                    for test_case in &mut test_suite.test_cases {
+                        test_case.determine_status();
+                    }
+                    
+                    // Create a TestSuites wrapper with a single TestSuite
+                    Ok(TestSuites {
+                        name: test_suite.name.clone(),
+                        tests: test_suite.tests,
+                        failures: test_suite.failures,
+                        errors: test_suite.errors,
+                        time: test_suite.time,
+                        test_suites: vec![test_suite],
+                    })
+                }
+                Err(_) => {
+                    // Both parsing attempts failed
+                    Err(ParserError::XmlParseError(e.to_string()).into())
+                }
+            }
+        }
+    }
 }
 
 /// Parse JUnit XML content into our data model
@@ -50,6 +109,22 @@ pub fn parse_junit_xml(content: &str) -> Result<TestSuites> {
                     test_case.determine_status();
                 }
             }
+            
+            // Calculate total tests from test suites if not set in the root element
+            if test_suites.tests == 0 {
+                test_suites.tests = test_suites.test_suites.iter().map(|s| s.tests).sum();
+            }
+            
+            // Calculate total failures from test suites if not set in the root element
+            if test_suites.failures == 0 {
+                test_suites.failures = test_suites.test_suites.iter().map(|s| s.failures).sum();
+            }
+            
+            // Calculate total errors from test suites if not set in the root element
+            if test_suites.errors == 0 {
+                test_suites.errors = test_suites.test_suites.iter().map(|s| s.errors).sum();
+            }
+            
             Ok(test_suites)
         }
         Err(e) => {
