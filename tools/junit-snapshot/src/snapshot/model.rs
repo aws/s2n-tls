@@ -1,4 +1,4 @@
-use crate::junit::{TestSuite, TestSuites};
+use crate::junit::TestSuites;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

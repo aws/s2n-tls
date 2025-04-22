@@ -1,4 +1,4 @@
-use crate::junit::model::{TestCase, TestSuite, TestSuites};
+use crate::junit::model::{TestSuite, TestSuites};
 use anyhow::{Context, Result};
 use quick_xml::de::from_str;
 use std::fs;

@@ -3,11 +3,18 @@ use std::fmt;
 
 /// Status of a test case
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TestStatus {
     Success,
     Failure,
     Error,
     Skipped,
+}
+
+impl Default for TestStatus {
+    fn default() -> Self {
+        TestStatus::Success
+    }
 }
 
 impl fmt::Display for TestStatus {
@@ -28,6 +35,7 @@ pub struct TestCase {
     pub classname: String,
     pub time: f64,
     #[serde(skip_serializing, skip_deserializing)]
+    #[serde(default)]
     pub status: TestStatus,
     pub failure: Option<Failure>,
     pub error: Option<Error>,

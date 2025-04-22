@@ -55,7 +55,7 @@ impl SnapshotStorage {
             Self::load_collection(&collection_path)?
         } else {
             let collection = SnapshotCollection::new("Test Snapshots".to_string());
-            Self::save_collection(&collection_path, &collection)?;
+            Self::save_collection_file(&collection_path, &collection)?;
             collection
         };
         
@@ -179,7 +179,7 @@ impl SnapshotStorage {
     }
     
     /// Save the collection file
-    fn save_collection<P: AsRef<Path>>(path: P, collection: &SnapshotCollection) -> Result<()> {
+    fn save_collection_file<P: AsRef<Path>>(path: P, collection: &SnapshotCollection) -> Result<()> {
         let file = File::create(path)
             .with_context(|| "Failed to create collection file")
             .map_err(|e| StorageError::FileWriteError(e.to_string()))?;
@@ -195,6 +195,6 @@ impl SnapshotStorage {
     /// Save the current collection
     fn save_collection(&self) -> Result<()> {
         let collection_path = self.base_dir.join(COLLECTION_FILE);
-        Self::save_collection(&collection_path, &self.collection)
+        Self::save_collection_file(&collection_path, &self.collection)
     }
 }
