@@ -2,6 +2,7 @@ use crate::junit::model::{TestSuite, TestSuites};
 use anyhow::{Context, Result};
 use quick_xml::de::from_str;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use thiserror::Error;
 
@@ -22,8 +23,13 @@ pub enum ParserError {
 pub fn parse_junit_file<P: AsRef<Path>>(path: P) -> Result<TestSuites> {
     let path_str = path.as_ref().to_string_lossy().to_string();
     
-    // Read the file content
-    let content = fs::read_to_string(&path)
+    // Read the file content - use a buffered approach for large files
+    let mut file = fs::File::open(&path)
+        .with_context(|| format!("Failed to open JUnit XML file: {}", path_str))
+        .map_err(|e| ParserError::FileReadError(e.to_string()))?;
+    
+    let mut content = String::new();
+    file.read_to_string(&mut content)
         .with_context(|| format!("Failed to read JUnit XML file: {}", path_str))
         .map_err(|e| ParserError::FileReadError(e.to_string()))?;
     
