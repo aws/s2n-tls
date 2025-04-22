@@ -32,7 +32,13 @@
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
-          pkgs.valgrind
+          # Pin to a specific version of valgrind that's maintained
+          (pkgs.valgrind.overrideAttrs (oldAttrs: {
+            meta = oldAttrs.meta // { 
+              broken = false;
+              unsupported = false;
+            };
+          }))
           corretto
           pkgs.iproute2
           pkgs.apacheHttpd
