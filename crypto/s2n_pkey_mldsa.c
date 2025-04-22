@@ -30,14 +30,12 @@ bool s2n_pkey_mldsa_supported()
 int s2n_pkey_mldsa_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_UNIMPLEMENTED);
     return S2N_SUCCESS;
 }
 
 int s2n_pkey_mldsa_verify(const struct s2n_pkey *pub_key, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_UNIMPLEMENTED);
     return S2N_SUCCESS;
 }
 

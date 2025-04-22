@@ -118,7 +118,7 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
      * signature_digest_nid may not always be set. ML-DSA does not have an associated digest.
      */
     int find_result = OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL);
-    if (find_result == 0) {
+    if (find_result != 1) {
         /* OBJ_find_sigid_algs may fail for ML-DSA-44 and ML-DSA-87, depending on the
          * version of AWS-LC. See https://github.com/aws/aws-lc/issues/2347.
          *
