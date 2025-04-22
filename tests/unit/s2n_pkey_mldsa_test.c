@@ -68,6 +68,15 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL, s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
                     pub_key_path, priv_key_path));
+
+            EXPECT_NOT_NULL(chain);
+            EXPECT_NOT_NULL(chain->private_key);
+            EVP_PKEY *pkey = chain->private_key->pkey;
+            EXPECT_NOT_NULL(pkey);
+
+            s2n_pkey_type pkey_type = 0;
+            EXPECT_OK(s2n_pkey_get_type(pkey, &pkey_type));
+            EXPECT_EQUAL(pkey_type, S2N_PKEY_TYPE_MLDSA);
         }
     }
 
