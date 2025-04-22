@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="s2n-tls Tests" tests="42" failures="1" errors="1" time="10.123">
+  <testsuite name="s2n_handshake_test" tests="20" failures="1" errors="0" skipped="2" time="5.678" timestamp="2025-04-22T00:12:13">
+    <testcase name="test_basic_handshake" classname="s2n_handshake_test.BasicHandshakeTest" time="0.123">
+    </testcase>
+    <testcase name="test_failed_handshake" classname="s2n_handshake_test.FailedHandshakeTest" time="0.456">
+      <failure message="Handshake failed with error" type="AssertionError">
+        Expected handshake to succeed but it failed with error: S2N_ERR_HANDSHAKE
+        at line 42 in test_handshake.c
+      </failure>
+    </testcase>
+    <testcase name="test_skipped_handshake" classname="s2n_handshake_test.SkippedHandshakeTest" time="0.001">
+      <skipped message="Test skipped due to environment">
+        This test requires specific environment setup
+      </skipped>
+    </testcase>
+    <testcase name="test_another_skipped" classname="s2n_handshake_test.AnotherSkippedTest" time="0.001">
+      <skipped message="Not implemented yet">
+        This test is not implemented yet
+      </skipped>
+    </testcase>
+  </testsuite>
+  <testsuite name="s2n_crypto_test" tests="22" failures="0" errors="1" skipped="0" time="4.445" timestamp="2025-04-22T00:15:13">
+    <testcase name="test_aes_encryption" classname="s2n_crypto_test.AesTest" time="0.234">
+    </testcase>
+    <testcase name="test_sha256_hash" classname="s2n_crypto_test.ShaTest" time="0.345">
+    </testcase>
+    <testcase name="test_error_case" classname="s2n_crypto_test.ErrorTest" time="0.567">
+      <error message="Segmentation fault" type="SIGSEGV">
+        Process crashed with segmentation fault
+        at line 123 in crypto_test.c
+      </error>
+      <system-out>
+        Debug output from the test
+      </system-out>
+      <system-err>
+        Error: memory corruption detected
+      </system-err>
+    </testcase>
+  </testsuite>
+</testsuites>

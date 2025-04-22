@@ -1,0 +1,13 @@
+[package]
+name = "junit-snapshot"
+version = "0.1.0"
+edition = "2021"
+description = "A snapshot testing utility for JUnit XML files"
+authors = ["s2n-tls Team"]
+
+[dependencies]
+quick-xml = { version = "0.30", features = ["serialize"] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"

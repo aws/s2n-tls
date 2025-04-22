@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="s2n_single_test" tests="3" failures="1" errors="0" skipped="0" time="1.234" timestamp="2025-04-22T00:12:13">
+  <testcase name="test_success" classname="s2n_single_test.SuccessTest" time="0.123">
+  </testcase>
+  <testcase name="test_failure" classname="s2n_single_test.FailureTest" time="0.456">
+    <failure message="Test failed" type="AssertionError">
+      Expected true but got false
+    </failure>
+  </testcase>
+  <testcase name="test_another_success" classname="s2n_single_test.AnotherSuccessTest" time="0.655">
+  </testcase>
+</testsuite>
