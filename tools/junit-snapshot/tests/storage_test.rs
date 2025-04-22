@@ -5,7 +5,6 @@ use std::path::Path;
 use tempfile::tempdir;
 
 #[test]
-#[ignore = "Missing test file: integrationv2_happy_path.xml"]
 fn test_snapshot_storage() {
     // Create a temporary directory for testing
     let temp_dir = tempdir().expect("Failed to create temp directory");

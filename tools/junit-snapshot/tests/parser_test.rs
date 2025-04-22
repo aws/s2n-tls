@@ -2,7 +2,6 @@ use junit_snapshot::{parse_junit_file, validate_test_suites};
 use std::path::Path;
 
 #[test]
-#[ignore = "Missing test file: integrationv2_happy_path.xml"]
 fn test_parse_multiple_test_suites() {
     let path = Path::new("tests/integrationv2_happy_path.xml");
     let test_suites = parse_junit_file(path).expect("Failed to parse integrationv2_happy_path.xml");
