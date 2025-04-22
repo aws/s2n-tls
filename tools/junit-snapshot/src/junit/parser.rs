@@ -13,6 +13,7 @@ pub enum ParserError {
     #[error("Failed to parse XML: {0}")]
     XmlParseError(String),
     
+    #[allow(dead_code)]
     #[error("Invalid JUnit XML format: {0}")]
     InvalidFormat(String),
 }
@@ -75,6 +76,7 @@ pub fn parse_junit_xml(content: &str) -> Result<TestSuites> {
 }
 
 /// Validate that the parsed TestSuites object is consistent
+#[allow(dead_code)]
 pub fn validate_test_suites(test_suites: &TestSuites) -> Result<()> {
     // Check if the total number of tests matches the sum of tests in each suite
     let total_tests_in_suites: u32 = test_suites.test_suites.iter()
@@ -97,6 +99,7 @@ pub fn validate_test_suites(test_suites: &TestSuites) -> Result<()> {
 }
 
 /// Validate that a TestSuite object is consistent
+#[allow(dead_code)]
 fn validate_test_suite(test_suite: &TestSuite) -> Result<()> {
     // Check if the number of test cases matches the reported test count
     if test_suite.tests as usize != test_suite.test_cases.len() {

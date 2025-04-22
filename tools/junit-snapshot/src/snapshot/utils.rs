@@ -5,6 +5,7 @@ use std::process::Command;
 use uuid::Uuid;
 
 /// Generate a unique ID for a snapshot
+#[allow(dead_code)]
 pub fn generate_snapshot_id() -> String {
     Uuid::new_v4().to_string()
 }
@@ -48,6 +49,7 @@ pub fn get_git_branch() -> Option<String> {
 }
 
 /// Check if a path is within a git repository
+#[allow(dead_code)]
 pub fn is_git_repository<P: AsRef<Path>>(path: P) -> bool {
     let output = Command::new("git")
         .current_dir(path)
@@ -64,6 +66,7 @@ pub fn is_git_repository<P: AsRef<Path>>(path: P) -> bool {
 }
 
 /// Get the relative path from the git repository root
+#[allow(dead_code)]
 pub fn get_relative_path<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     

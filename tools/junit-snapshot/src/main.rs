@@ -3,7 +3,7 @@ mod snapshot;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 use crate::junit::parse_junit_file;
 use crate::snapshot::{
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
     match &cli.command {
         Commands::Init { dir } => {
             println!("Initializing snapshot directory in {:?}", dir);
-            let storage = SnapshotStorage::init(dir)?;
+            let _storage = SnapshotStorage::init(dir)?;
             println!("Snapshot directory initialized successfully");
             Ok(())
         }

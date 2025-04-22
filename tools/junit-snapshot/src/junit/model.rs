@@ -140,13 +140,13 @@ pub struct TestSuites {
     #[serde(rename = "@name", default)]
     pub name: String,
     
-    #[serde(rename = "@tests")]
+    #[serde(rename = "@tests", default)]
     pub tests: u32,
     
-    #[serde(rename = "@failures")]
+    #[serde(rename = "@failures", default)]
     pub failures: u32,
     
-    #[serde(rename = "@errors")]
+    #[serde(rename = "@errors", default)]
     pub errors: u32,
     
     #[serde(rename = "@time", default)]
