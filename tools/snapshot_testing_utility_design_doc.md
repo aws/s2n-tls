@@ -138,7 +138,7 @@ struct StatusChange {
 1. **Command Structure**
    - `init`: Initialize snapshot directory
    - `capture`: Create new snapshots from JUnit XML files
-   - `check`: Compare current results with snapshots
+   - `compare`: Compare current results with snapshots
    - `review`: Interactive review of changes
    - `accept`: Accept changes to snapshots
 
