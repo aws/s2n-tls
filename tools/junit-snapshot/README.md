@@ -4,12 +4,19 @@ A Rust-based utility for tracking changes in test results over time using snapsh
 
 ## Current Status
 
-This is an implementation of Phase 1, Step 1 of the design document: the JUnit XML Parser. The parser can:
+This implementation includes:
 
-- Parse JUnit XML files into structured data
-- Handle both multiple test suites and single test suite formats
-- Validate the consistency of the parsed data
-- Extract detailed information about test cases, including failures, errors, and skipped tests
+1. **JUnit XML Parser** (Phase 1, Step 1)
+   - Parse JUnit XML files into structured data
+   - Handle both multiple test suites and single test suite formats
+   - Validate the consistency of the parsed data
+   - Extract detailed information about test cases, including failures, errors, and skipped tests
+
+2. **Snapshot Storage** (Phase 1, Step 2)
+   - Store snapshots in JSON format
+   - Manage a collection of snapshots with metadata
+   - Support for creating, loading, and deleting snapshots
+   - Track git information for snapshots
 
 ## Usage
 
@@ -17,8 +24,20 @@ This is an implementation of Phase 1, Step 1 of the design document: the JUnit X
 # Build the project
 cargo build
 
-# Run the parser on a JUnit XML file
-cargo run -- tests/sample.xml
+# Initialize a snapshot directory
+cargo run -- init
+
+# Capture a snapshot from a JUnit XML file
+cargo run -- capture tests/sample.xml --name "My Snapshot" --description "A test snapshot"
+
+# List available snapshots
+cargo run -- list
+
+# Show details of a specific snapshot
+cargo run -- show <snapshot-id>
+
+# Delete a snapshot
+cargo run -- delete <snapshot-id>
 
 # Run tests
 cargo test
@@ -26,25 +45,24 @@ cargo test
 
 ## Implementation Details
 
-The JUnit XML parser is implemented using the `quick-xml` crate with the following components:
+### JUnit XML Parser
 
+The JUnit XML parser is implemented using the `quick-xml` crate with the following components:
 - `model.rs`: Defines the data structures for test suites and test cases
 - `parser.rs`: Implements the parsing logic and validation functions
 
-The parser can handle both formats commonly used in JUnit XML:
-1. A root `<testsuites>` element containing multiple `<testsuite>` elements
-2. A single `<testsuite>` element as the root
+### Snapshot Storage
+
+The snapshot storage system includes:
+- `model.rs`: Defines the data structures for snapshots and collections
+- `storage.rs`: Implements the storage management functionality
+- `utils.rs`: Provides utility functions for snapshot creation
 
 ## Next Steps
 
-The next phases of implementation will include:
+The next phase of implementation will include:
 
-1. Snapshot Storage
-   - Design snapshot file format in JSON
-   - Implement serialization/deserialization
-   - Create directory structure for snapshots
-
-2. Basic Comparison Logic
+1. **Basic Comparison Logic**
    - Implement algorithms to compare test results
    - Generate detailed diffs between snapshots
    - Highlight important changes (e.g., passing → failing)
