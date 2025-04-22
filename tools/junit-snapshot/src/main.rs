@@ -39,12 +39,16 @@ enum Commands {
         /// Description for the snapshot
         #[arg(short, long)]
         description: Option<String>,
+        
+        /// Directory containing snapshots (defaults to current directory)
+        #[arg(long, default_value = ".")]
+        dir: PathBuf,
     },
     
     /// List available snapshots
     List {
         /// Directory containing snapshots (defaults to current directory)
-        #[arg(default_value = ".")]
+        #[arg(long, default_value = ".")]
         dir: PathBuf,
     },
     
@@ -82,8 +86,8 @@ fn main() -> Result<()> {
             Ok(())
         }
         
-        Commands::Capture { files, name, description } => {
-            let mut storage = SnapshotStorage::new(".")?;
+        Commands::Capture { files, name, description, dir } => {
+            let mut storage = SnapshotStorage::new(dir)?;
             
             for file in files {
                 println!("Capturing snapshot from {:?}", file);
