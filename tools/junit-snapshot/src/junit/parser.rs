@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use quick_xml::de::from_str;
 use quick_xml::de::from_reader;
 use std::fs;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 use std::path::Path;
 use thiserror::Error;
 
@@ -97,6 +97,7 @@ pub fn parse_junit_file<P: AsRef<Path>>(path: P) -> Result<TestSuites> {
 }
 
 /// Parse JUnit XML content into our data model
+#[allow(dead_code)]
 pub fn parse_junit_xml(content: &str) -> Result<TestSuites> {
     // Try to parse as TestSuites (multiple test suites)
     let result: Result<TestSuites, _> = from_str(content);
