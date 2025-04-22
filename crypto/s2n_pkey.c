@@ -244,7 +244,7 @@ S2N_RESULT s2n_pkey_get_type(EVP_PKEY *evp_pkey, s2n_pkey_type *pkey_type)
         case EVP_PKEY_EC:
             *pkey_type = S2N_PKEY_TYPE_ECDSA;
             break;
-#if S2N_AWSLC_SUPPORTS_MLDSA
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
         case EVP_PKEY_PQDSA:
             *pkey_type = S2N_PKEY_TYPE_MLDSA;
             break;

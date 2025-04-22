@@ -20,7 +20,7 @@
 
 bool s2n_pkey_mldsa_supported()
 {
-#if S2N_AWSLC_SUPPORTS_MLDSA
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
     return true;
 #else
     return false;
