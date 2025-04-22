@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="s2n-tls Tests" tests="42" failures="1" errors="1" time="10.123">
-  <testsuite name="s2n_handshake_test" tests="20" failures="1" errors="0" skipped="2" time="5.678" timestamp="2025-04-22T00:12:13">
+<testsuites name="s2n-tls Tests" tests="7" failures="1" errors="1" time="10.123">
+  <testsuite name="s2n_handshake_test" tests="4" failures="1" errors="0" skipped="2" time="5.678" timestamp="2025-04-22T00:12:13">
     <testcase name="test_basic_handshake" classname="s2n_handshake_test.BasicHandshakeTest" time="0.123">
     </testcase>
     <testcase name="test_failed_handshake" classname="s2n_handshake_test.FailedHandshakeTest" time="0.456">
@@ -20,7 +20,7 @@
       </skipped>
     </testcase>
   </testsuite>
-  <testsuite name="s2n_crypto_test" tests="22" failures="0" errors="1" skipped="0" time="4.445" timestamp="2025-04-22T00:15:13">
+  <testsuite name="s2n_crypto_test" tests="3" failures="0" errors="1" skipped="0" time="4.445" timestamp="2025-04-22T00:15:13">
     <testcase name="test_aes_encryption" classname="s2n_crypto_test.AesTest" time="0.234">
     </testcase>
     <testcase name="test_sha256_hash" classname="s2n_crypto_test.ShaTest" time="0.345">

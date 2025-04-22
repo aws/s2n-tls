@@ -7,14 +7,14 @@ fn test_parse_multiple_test_suites() {
     let test_suites = parse_junit_file(path).expect("Failed to parse sample.xml");
     
     assert_eq!(test_suites.test_suites.len(), 2);
-    assert_eq!(test_suites.tests, 42);
+    assert_eq!(test_suites.tests, 7);
     assert_eq!(test_suites.failures, 1);
     assert_eq!(test_suites.errors, 1);
     
     // Validate first test suite
     let first_suite = &test_suites.test_suites[0];
     assert_eq!(first_suite.name, "s2n_handshake_test");
-    assert_eq!(first_suite.tests, 20);
+    assert_eq!(first_suite.tests, 4);
     assert_eq!(first_suite.failures, 1);
     assert_eq!(first_suite.errors, 0);
     assert_eq!(first_suite.skipped, 2);
@@ -22,7 +22,7 @@ fn test_parse_multiple_test_suites() {
     // Validate second test suite
     let second_suite = &test_suites.test_suites[1];
     assert_eq!(second_suite.name, "s2n_crypto_test");
-    assert_eq!(second_suite.tests, 22);
+    assert_eq!(second_suite.tests, 3);
     assert_eq!(second_suite.failures, 0);
     assert_eq!(second_suite.errors, 1);
     assert_eq!(second_suite.skipped, 0);

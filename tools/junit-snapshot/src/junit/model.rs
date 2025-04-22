@@ -31,17 +31,26 @@ impl fmt::Display for TestStatus {
 /// Represents an individual test case from JUnit XML
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestCase {
+    #[serde(rename = "@name")]
     pub name: String,
+    
+    #[serde(rename = "@classname")]
     pub classname: String,
+    
+    #[serde(rename = "@time")]
     pub time: f64,
+    
     #[serde(skip_serializing, skip_deserializing)]
     #[serde(default)]
     pub status: TestStatus,
+    
     pub failure: Option<Failure>,
     pub error: Option<Error>,
     pub skipped: Option<Skipped>,
+    
     #[serde(rename = "system-out")]
     pub system_out: Option<String>,
+    
     #[serde(rename = "system-err")]
     pub system_err: Option<String>,
 }
@@ -66,8 +75,10 @@ impl TestCase {
 pub struct Failure {
     #[serde(rename = "@message", default)]
     pub message: String,
+    
     #[serde(rename = "@type", default)]
     pub failure_type: String,
+    
     #[serde(rename = "$text", default)]
     pub text: String,
 }
@@ -77,8 +88,10 @@ pub struct Failure {
 pub struct Error {
     #[serde(rename = "@message", default)]
     pub message: String,
+    
     #[serde(rename = "@type", default)]
     pub error_type: String,
+    
     #[serde(rename = "$text", default)]
     pub text: String,
 }
@@ -88,6 +101,7 @@ pub struct Error {
 pub struct Skipped {
     #[serde(rename = "@message", default)]
     pub message: String,
+    
     #[serde(rename = "$text", default)]
     pub text: String,
 }
@@ -97,18 +111,25 @@ pub struct Skipped {
 pub struct TestSuite {
     #[serde(rename = "@name")]
     pub name: String,
+    
     #[serde(rename = "@tests")]
     pub tests: u32,
+    
     #[serde(rename = "@failures")]
     pub failures: u32,
+    
     #[serde(rename = "@errors")]
     pub errors: u32,
+    
     #[serde(rename = "@skipped", default)]
     pub skipped: u32,
+    
     #[serde(rename = "@time")]
     pub time: f64,
+    
     #[serde(rename = "@timestamp")]
     pub timestamp: String,
+    
     #[serde(rename = "testcase")]
     pub test_cases: Vec<TestCase>,
 }
@@ -118,14 +139,19 @@ pub struct TestSuite {
 pub struct TestSuites {
     #[serde(rename = "@name", default)]
     pub name: String,
+    
     #[serde(rename = "@tests")]
     pub tests: u32,
+    
     #[serde(rename = "@failures")]
     pub failures: u32,
+    
     #[serde(rename = "@errors")]
     pub errors: u32,
+    
     #[serde(rename = "@time", default)]
     pub time: f64,
+    
     #[serde(rename = "testsuite")]
     pub test_suites: Vec<TestSuite>,
 }
