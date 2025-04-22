@@ -147,7 +147,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     
     # Assembler Options
     -Wa,--noexecstack
-    {BRANCH_ALIGN_FLAG}
+    ${BRANCH_ALIGN_FLAG}
 
     # Suppressed Warnings
     -Wno-deprecated-declarations
