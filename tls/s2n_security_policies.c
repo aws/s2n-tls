@@ -1164,6 +1164,7 @@ const struct s2n_security_policy security_policy_20250414 = {
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
     },
 };
 
