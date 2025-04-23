@@ -28,6 +28,7 @@ typedef enum {
     S2N_PKEY_TYPE_RSA = 0,
     S2N_PKEY_TYPE_ECDSA,
     S2N_PKEY_TYPE_RSA_PSS,
+    S2N_PKEY_TYPE_MLDSA,
     S2N_PKEY_TYPE_SENTINEL
 } s2n_pkey_type;
 
