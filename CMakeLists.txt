@@ -374,7 +374,7 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
-if (SN_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
+if (S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
     set (BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
 else()
     set (BRANCH_ALIGN_FLAG "")
