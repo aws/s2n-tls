@@ -333,6 +333,7 @@ static int s2n_raw_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 {
     POSIX_ENSURE_REF(state);
     struct s2n_stuffer *raw_data = &state->digest.raw_data;
+    POSIX_ENSURE_EQ(raw_data->read_cursor, 0);
     POSIX_ENSURE_EQ(size, s2n_stuffer_data_available(raw_data));
     POSIX_GUARD(s2n_stuffer_read_bytes(raw_data, out, size));
     return S2N_SUCCESS;
@@ -345,6 +346,7 @@ static int s2n_raw_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 
     struct s2n_stuffer *to_raw_data = &to->digest.raw_data;
     struct s2n_stuffer *from_raw_data = &from->digest.raw_data;
+    POSIX_ENSURE_EQ(from_raw_data->read_cursor, 0);
 
     uint32_t size = s2n_stuffer_data_available(from_raw_data);
     POSIX_GUARD(s2n_stuffer_alloc(to_raw_data, size));
