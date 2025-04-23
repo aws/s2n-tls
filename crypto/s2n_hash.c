@@ -116,29 +116,6 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     return S2N_SUCCESS;
 }
 
-/* NOTE: s2n_hash_const_time_get_currently_in_hash_block takes advantage of the fact that
- * hash_block_size is a power of 2. This is true for all hashes we currently support
- * If this ever becomes untrue, this would require fixing*/
-int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
-{
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
-    /* clang-format off */
-    switch (alg) {
-            case S2N_HASH_NONE:       *block_size = 64;   break;
-            case S2N_HASH_MD5:        *block_size = 64;   break;
-            case S2N_HASH_SHA1:       *block_size = 64;   break;
-            case S2N_HASH_SHA224:     *block_size = 64;   break;
-            case S2N_HASH_SHA256:     *block_size = 64;   break;
-            case S2N_HASH_SHA384:     *block_size = 128;  break;
-            case S2N_HASH_SHA512:     *block_size = 128;  break;
-            case S2N_HASH_MD5_SHA1:   *block_size = 64;   break;
-            default:
-                POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
-    /* clang-format on */
-    return S2N_SUCCESS;
-}
-
 /* Return true if hash algorithm is available, false otherwise. */
 bool s2n_hash_is_available(s2n_hash_algorithm alg)
 {
@@ -421,20 +398,5 @@ int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t 
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     *out = state->currently_in_hash;
-    return S2N_SUCCESS;
-}
-
-/* Calculate, in constant time, the number of bytes currently in the hash_block */
-int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out)
-{
-    POSIX_PRECONDITION(s2n_hash_state_validate(state));
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
-    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-    uint64_t hash_block_size = 0;
-    POSIX_GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
-
-    /* Requires that hash_block_size is a power of 2. This is true for all hashes we currently support
-     * If this ever becomes untrue, this would require fixing this*/
-    *out = state->currently_in_hash & (hash_block_size - 1);
     return S2N_SUCCESS;
 }
