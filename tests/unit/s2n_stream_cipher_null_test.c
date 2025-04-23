@@ -56,5 +56,26 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(in_array, out_array, out.size);
     };
 
+    /* Test that null cipher is always available */
+    {
+        EXPECT_TRUE(s2n_stream_cipher_null_available());
+    };
+
+    /* Test that get_key always returns success */
+    {
+        struct s2n_blob in = { 0 };
+        EXPECT_OK(s2n_stream_cipher_null_get_key(NULL, &in));
+    };
+
+    /* Test that destroy_key always returns success */
+    {
+        EXPECT_OK(s2n_stream_cipher_null_destroy_key(NULL));
+    };
+
+    /* Test that init always returns success */
+    {
+        EXPECT_OK(s2n_stream_cipher_null_init(NULL));
+    };
+
     END_TEST();
 }
