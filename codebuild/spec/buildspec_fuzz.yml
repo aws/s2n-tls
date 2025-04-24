@@ -28,7 +28,7 @@ phases:
         cmake . -Bbuild \
         -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
         -DS2N_FUZZ_TEST=on
-      - cmake --build ./build --target s2n --clean-first --verbose
+      - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
     commands:

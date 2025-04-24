@@ -28,7 +28,7 @@ phases:
           -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
           -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - cmake --build ./build -- -j $(nproc)
+      - cmake --build ./build --target s2n --clean-first --verbose
   post_build:
     on-failure: ABORT
     commands:
