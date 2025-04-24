@@ -25,11 +25,27 @@ JUnit XML is a standard format for test results that includes:
 
 ### Insta Workflow
 
-The `insta` crate provides a workflow that is the inspiration for this tool:
-1. Tests generate a report
-2. The report is then compared against stored snapshots
-3. Differences are highlighted and an error is raised if differences are found
-4. Users can review and accept changes using a CLI tool
+The `insta` crate provides a workflow that is the inspiration for this tool.
+
+#### Baseline workflow
+
+1. Integration tests succeed localy
+1. Run the `capture` command locally to create a snapshot file from the xml, named baseline
+1. check-in and PR the baseline snapshots
+
+#### PR Failure workflow
+
+1. Tests generate a junit report
+2. The report is then compared with the stored baseline snapshot (in the PR, not main)
+3. In CI, an error is raised if there are any differences 
+4. Interactivly, users can review and accept the changes using a CLI tool
+5. Snapshot updates are then added to the PR 
+
+The workflow for adding new ciphers, curves, and other fixtures should be identical to the PR failure workflow.  
+
+For entirely new tests, we need to ensure that the delta check routine fails if no baseline snapshot file
+ exists for a given junit report.
+
 
 ## System Design
 
