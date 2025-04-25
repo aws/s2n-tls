@@ -374,10 +374,7 @@ endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
 if (S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
-    set(BRANCH_ALIGN_FLAG "-Wa,-mbranches-within-32B-boundaries")
-    target_compile_options(${PROJECT_NAME} PRIVATE ${BRANCH_ALIGN_FLAG})
-else()
-    set(BRANCH_ALIGN_FLAG "")
+    target_compile_options(${PROJECT_NAME} PRIVATE "-Wa,-mbranches-within-32B-boundaries")
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
