@@ -373,7 +373,8 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
-if (S2N_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
+if (S2N_COMPILER_SUPPORTS_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
+    message(STATUS "Enabling branch alignment: -Wa,-mbranches-within-32B-boundaries")
     target_compile_options(${PROJECT_NAME} PRIVATE "-Wa,-mbranches-within-32B-boundaries")
 endif()
 
