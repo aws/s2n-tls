@@ -319,8 +319,9 @@ jobs:
         env:
           RUSTDOCFLAGS: -Zsanitizer=address
           RUSTFLAGS: -Zsanitizer=address
+          CC_ENABLE_DEBUG_OUTPUT: 1
         run: |
-          cargo test \
+          cargo test -vv \
             -Zbuild-std \
             --manifest-path ${{ env.ROOT_PATH}}/Cargo.toml \
             --target x86_64-unknown-linux-gnu
