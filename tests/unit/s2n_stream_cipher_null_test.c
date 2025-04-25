@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+    struct s2n_session_key session_key = { 0 };
 
     /* Test that in and out being the same size succeeds */
     {
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
         struct s2n_blob out = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&out, array, 9));
-        EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
+        EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));
     };
 
     /* Test that in size > out size fails */
@@ -40,7 +41,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
         struct s2n_blob out = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&out, array, 8));
-        EXPECT_FAILURE(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
+        EXPECT_FAILURE(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));
     };
 
     /* Test that in is copied to out when they are different */
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
         struct s2n_blob out = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&out, out_array, 9));
         EXPECT_BYTEARRAY_NOT_EQUAL(in_array, out_array, out.size);
-        EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
+        EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));
         EXPECT_BYTEARRAY_EQUAL(in_array, out_array, out.size);
     };
 
@@ -64,17 +65,17 @@ int main(int argc, char **argv)
     /* Test that get_key always returns success */
     {
         struct s2n_blob in = { 0 };
-        EXPECT_OK(s2n_stream_cipher_null_get_key(NULL, &in));
+        EXPECT_OK(s2n_stream_cipher_null_get_key(&session_key, &in));
     };
 
     /* Test that destroy_key always returns success */
     {
-        EXPECT_OK(s2n_stream_cipher_null_destroy_key(NULL));
+        EXPECT_OK(s2n_stream_cipher_null_destroy_key(&session_key));
     };
 
     /* Test that init always returns success */
     {
-        EXPECT_OK(s2n_stream_cipher_null_init(NULL));
+        EXPECT_OK(s2n_stream_cipher_null_init(&session_key));
     };
 
     END_TEST();
