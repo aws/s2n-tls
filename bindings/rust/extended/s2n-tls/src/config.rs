@@ -954,6 +954,18 @@ impl Builder {
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
     }
+
+    /// Returns the underlying `s2n_tls_sys::s2n_config` pointer associated with the
+    /// `config::Builder`.
+    ///
+    /// #### Warning:
+    /// This API is unstable, and may be removed in a future s2n-tls release. Applications should
+    /// use the higher level s2n-tls bindings rather than calling the low-level `s2n_tls_sys` APIs
+    /// directly.
+    #[cfg(s2n_tls_external_build)]
+    pub fn unstable_as_ptr(&mut self) -> *mut s2n_config {
+        self.as_mut_ptr()
+    }
 }
 
 #[cfg(feature = "quic")]
@@ -1104,5 +1116,33 @@ mod tests {
     fn context_send_sync_test() {
         fn assert_send_sync<T: 'static + Send + Sync>() {}
         assert_send_sync::<Context>();
+    }
+
+    /// Test that `config::Builder::unstable_as_ptr()` can be used to call an s2n_tls_sys API.
+    #[cfg(s2n_tls_external_build)]
+    #[test]
+    fn test_config_unstable_as_ptr() -> Result<(), Error> {
+        let mut builder = Config::builder();
+
+        let auth_types = [
+            ClientAuthType::None,
+            ClientAuthType::Optional,
+            ClientAuthType::Required,
+        ];
+        for auth_type in auth_types {
+            builder.set_client_auth_type(auth_type)?;
+
+            let mut retrieved_auth_type = s2n_cert_auth_type::NONE;
+            unsafe {
+                s2n_config_get_client_auth_type(
+                    builder.unstable_as_ptr(),
+                    &mut retrieved_auth_type,
+                );
+            }
+
+            assert_eq!(retrieved_auth_type, auth_type.into());
+        }
+
+        Ok(())
     }
 }
