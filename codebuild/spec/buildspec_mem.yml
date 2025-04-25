@@ -34,7 +34,7 @@ phases:
       - |
         cmake . -Bbuild \
           -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO
-      - cmake --build build -j $(nproc) --target $S2N_TEST_NAME --verbose --clean-first
+      - cmake --build build -j $(nproc) --target $S2N_TEST_NAME
       - echo ">>>> POSITIVE TEST - EXPECTED TO SUCCEED <<<<"
       - make -C build test -- ARGS="-R $S2N_TEST_NAME"
       # Test for unexpected memory to confirm failure possible
