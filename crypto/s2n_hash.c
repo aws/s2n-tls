@@ -116,29 +116,6 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     return S2N_SUCCESS;
 }
 
-/* NOTE: s2n_hash_const_time_get_currently_in_hash_block takes advantage of the fact that
- * hash_block_size is a power of 2. This is true for all hashes we currently support
- * If this ever becomes untrue, this would require fixing*/
-int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
-{
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
-    /* clang-format off */
-    switch (alg) {
-            case S2N_HASH_NONE:       *block_size = 64;   break;
-            case S2N_HASH_MD5:        *block_size = 64;   break;
-            case S2N_HASH_SHA1:       *block_size = 64;   break;
-            case S2N_HASH_SHA224:     *block_size = 64;   break;
-            case S2N_HASH_SHA256:     *block_size = 64;   break;
-            case S2N_HASH_SHA384:     *block_size = 128;  break;
-            case S2N_HASH_SHA512:     *block_size = 128;  break;
-            case S2N_HASH_MD5_SHA1:   *block_size = 64;   break;
-            default:
-                POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
-    /* clang-format on */
-    return S2N_SUCCESS;
-}
-
 /* Return true if hash algorithm is available, false otherwise. */
 bool s2n_hash_is_available(s2n_hash_algorithm alg)
 {
@@ -170,20 +147,12 @@ static int s2n_evp_hash_new(struct s2n_hash_state *state)
     if (s2n_hash_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
     }
-
-    state->is_ready_for_input = 0;
-    state->currently_in_hash = 0;
-
     return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
     POSIX_ENSURE_REF(state->digest.high_level.evp.ctx);
-
-    state->alg = alg;
-    state->is_ready_for_input = 1;
-    state->currently_in_hash = 0;
 
     if (alg == S2N_HASH_NONE) {
         return S2N_SUCCESS;
@@ -210,10 +179,6 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
 
 static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
-    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-    POSIX_ENSURE(size <= (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
-    state->currently_in_hash += size;
-
     if (state->alg == S2N_HASH_NONE) {
         return S2N_SUCCESS;
     }
@@ -231,11 +196,6 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 
 static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
-    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-
-    state->currently_in_hash = 0;
-    state->is_ready_for_input = 0;
-
     unsigned int digest_size = size;
     uint8_t expected_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(state->alg, &expected_digest_size));
@@ -271,11 +231,6 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
 static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
-    to->hash_impl = from->hash_impl;
-    to->alg = from->alg;
-    to->is_ready_for_input = from->is_ready_for_input;
-    to->currently_in_hash = from->currently_in_hash;
-
     if (from->alg == S2N_HASH_NONE) {
         return S2N_SUCCESS;
     }
@@ -297,22 +252,17 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
     if (state->alg == S2N_HASH_MD5_SHA1 && s2n_hash_use_custom_md5_sha1()) {
         POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
-
-    /* hash_init resets the ready_for_input and currently_in_hash fields. */
-    return s2n_evp_hash_init(state, state->alg);
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_free(struct s2n_hash_state *state)
 {
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
     state->digest.high_level.evp.ctx = NULL;
-
     if (s2n_hash_use_custom_md5_sha1()) {
         S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
         state->digest.high_level.evp_md5_secondary.ctx = NULL;
     }
-
-    state->is_ready_for_input = 0;
     return S2N_SUCCESS;
 }
 
@@ -326,23 +276,26 @@ static const struct s2n_hash s2n_evp_hash = {
     .free = &s2n_evp_hash_free,
 };
 
-static int s2n_hash_set_impl(struct s2n_hash_state *state)
+/* This method looks unnecessary, but our CBMC proofs are
+ * dependent on it. Search for:
+ * __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl
+ */
+static void s2n_hash_set_evp_impl(struct s2n_hash_state *state)
 {
     state->hash_impl = &s2n_evp_hash;
-    return S2N_SUCCESS;
 }
 
 int s2n_hash_new(struct s2n_hash_state *state)
 {
     POSIX_ENSURE_REF(state);
-    /* Set hash_impl on initial hash creation.
-     * When in FIPS mode, the EVP API's must be used for hashes.
-     */
-    POSIX_GUARD(s2n_hash_set_impl(state));
 
+    s2n_hash_set_evp_impl(state);
     POSIX_ENSURE_REF(state->hash_impl->alloc);
-
     POSIX_GUARD(state->hash_impl->alloc(state));
+
+    state->alg = S2N_HASH_NONE;
+    state->is_ready_for_input = 0;
+    state->currently_in_hash = 0;
     return S2N_SUCCESS;
 }
 
@@ -355,57 +308,72 @@ S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state)
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
     POSIX_ENSURE_REF(state);
-    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
-     * When in FIPS mode, the EVP API's must be used for hashes.
-     */
-    POSIX_GUARD(s2n_hash_set_impl(state));
+    POSIX_ENSURE(s2n_hash_is_available(alg), S2N_ERR_HASH_INVALID_ALGORITHM);
 
-    if (s2n_hash_is_available(alg)) {
-        POSIX_ENSURE_REF(state->hash_impl->init);
-        return state->hash_impl->init(state, alg);
-    } else {
-        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
+    POSIX_ENSURE_REF(state->hash_impl);
+    POSIX_ENSURE_REF(state->hash_impl->init);
+    POSIX_GUARD(state->hash_impl->init(state, alg));
+
+    state->alg = alg;
+    state->is_ready_for_input = 1;
+    state->currently_in_hash = 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_hash_state_validate(state));
     POSIX_ENSURE(S2N_MEM_IS_READABLE(data, size), S2N_ERR_PRECONDITION_VIOLATION);
-    POSIX_ENSURE_REF(state->hash_impl->update);
+    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    return state->hash_impl->update(state, data, size);
+    POSIX_ENSURE_REF(state->hash_impl);
+    POSIX_ENSURE_REF(state->hash_impl->update);
+    POSIX_GUARD(state->hash_impl->update(state, data, size));
+
+    POSIX_ENSURE(size <= (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
+    state->currently_in_hash += size;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_hash_state_validate(state));
     POSIX_ENSURE(S2N_MEM_IS_READABLE(out, size), S2N_ERR_PRECONDITION_VIOLATION);
-    POSIX_ENSURE_REF(state->hash_impl->digest);
+    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    return state->hash_impl->digest(state, out, size);
+    POSIX_ENSURE_REF(state->hash_impl);
+    POSIX_ENSURE_REF(state->hash_impl->digest);
+    POSIX_GUARD(state->hash_impl->digest(state, out, size));
+
+    state->currently_in_hash = 0;
+    state->is_ready_for_input = 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
     POSIX_PRECONDITION(s2n_hash_state_validate(to));
     POSIX_PRECONDITION(s2n_hash_state_validate(from));
-    POSIX_ENSURE_REF(from->hash_impl->copy);
 
-    return from->hash_impl->copy(to, from);
+    POSIX_ENSURE_REF(from->hash_impl);
+    POSIX_ENSURE_REF(from->hash_impl->copy);
+    POSIX_GUARD(from->hash_impl->copy(to, from));
+
+    to->hash_impl = from->hash_impl;
+    to->alg = from->alg;
+    to->is_ready_for_input = from->is_ready_for_input;
+    to->currently_in_hash = from->currently_in_hash;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
     POSIX_ENSURE_REF(state);
-    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
-     * When in FIPS mode, the EVP API's must be used for hashes.
-     */
-    POSIX_GUARD(s2n_hash_set_impl(state));
-
+    POSIX_ENSURE_REF(state->hash_impl);
     POSIX_ENSURE_REF(state->hash_impl->reset);
-
-    return state->hash_impl->reset(state);
+    POSIX_GUARD(state->hash_impl->reset(state));
+    POSIX_GUARD(s2n_hash_init(state, state->alg));
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_free(struct s2n_hash_state *state)
@@ -413,14 +381,15 @@ int s2n_hash_free(struct s2n_hash_state *state)
     if (state == NULL) {
         return S2N_SUCCESS;
     }
-    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
-     * When in FIPS mode, the EVP API's must be used for hashes.
-     */
-    POSIX_GUARD(s2n_hash_set_impl(state));
 
+    POSIX_ENSURE_REF(state->hash_impl);
     POSIX_ENSURE_REF(state->hash_impl->free);
+    POSIX_GUARD(state->hash_impl->free(state));
 
-    return state->hash_impl->free(state);
+    state->alg = S2N_HASH_NONE;
+    state->is_ready_for_input = 0;
+    state->currently_in_hash = 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
@@ -428,22 +397,6 @@ int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t 
     POSIX_PRECONDITION(s2n_hash_state_validate(state));
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-
     *out = state->currently_in_hash;
-    return S2N_SUCCESS;
-}
-
-/* Calculate, in constant time, the number of bytes currently in the hash_block */
-int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out)
-{
-    POSIX_PRECONDITION(s2n_hash_state_validate(state));
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
-    POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-    uint64_t hash_block_size = 0;
-    POSIX_GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
-
-    /* Requires that hash_block_size is a power of 2. This is true for all hashes we currently support
-     * If this ever becomes untrue, this would require fixing this*/
-    *out = state->currently_in_hash & (hash_block_size - 1);
     return S2N_SUCCESS;
 }
