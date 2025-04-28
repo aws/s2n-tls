@@ -33,7 +33,7 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
-    S2N_HASH_SHAKE256,
+    S2N_HASH_SHAKE256_64,
     /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
     S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;

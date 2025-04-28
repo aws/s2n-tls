@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     /* Not all hash algorithms are used in the handshake hashes */
     const bool skip_handshake_hash[S2N_HASH_ALGS_COUNT] = {
         [S2N_HASH_NONE] = true,
-        [S2N_HASH_SHAKE256] = true,
+        [S2N_HASH_SHAKE256_64] = true,
     };
 
     /* Test s2n_handshake_hashes_new */

@@ -141,7 +141,7 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
             break;
         case S2N_PKEY_TYPE_MLDSA:
             check_alg = S2N_SIGNATURE_MLDSA;
-            hash_alg = S2N_HASH_SHAKE256;
+            hash_alg = S2N_HASH_SHAKE256_64;
             break;
         default:
             POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);

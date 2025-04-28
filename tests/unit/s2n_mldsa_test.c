@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_hash_state master_input = { 0 }, s2n_hash_free);
             EXPECT_SUCCESS(s2n_hash_new(&master_input));
-            EXPECT_SUCCESS(s2n_hash_init(&master_input, S2N_HASH_SHAKE256));
+            EXPECT_SUCCESS(s2n_hash_init(&master_input, S2N_HASH_SHAKE256_64));
             EXPECT_OK(s2n_pkey_init_hash(&public_key, S2N_SIGNATURE_MLDSA, &master_input));
             EXPECT_SUCCESS(s2n_hash_update(&master_input, test_message, strlen(test_message)));
 
