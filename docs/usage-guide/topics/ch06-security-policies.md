@@ -66,7 +66,7 @@ For previous defaults, see the "Default Policy History" section below.
 "default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
 
 "rfc9151" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151). This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
-Like the default policies, this policy may also change if the source RFC definition changes.
+Like the default policies, this policy may also change if the source RFC definition changes. The "20250429" policy is the current fixed policy corresponding to "rfc9151".
 
 s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
 
