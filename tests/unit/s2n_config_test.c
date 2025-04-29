@@ -1093,7 +1093,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
 
-        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
         /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
@@ -1108,7 +1108,7 @@ int main(int argc, char **argv)
 
         /* when cert preferences don't apply locally, invalid certs are accepted */
         {
-            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            struct s2n_security_policy non_local_rfc9151 = security_policy_20250429;
             non_local_rfc9151.certificate_preferences_apply_locally = false;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1158,7 +1158,7 @@ int main(int argc, char **argv)
          * over every certificate without performing any validation is expensive.
          */
         {
-            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            struct s2n_security_policy non_local_rfc9151 = security_policy_20250429;
 
             /* Assert that the security policy WOULD apply,
              * if certificate_preferences_apply_locally was true.
