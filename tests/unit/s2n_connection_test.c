@@ -636,7 +636,7 @@ int main(int argc, char **argv)
          * s2n_connection_set_config will fail 
          */
         {
-            struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+            struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
             rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);

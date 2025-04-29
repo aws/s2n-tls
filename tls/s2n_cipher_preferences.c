@@ -2167,7 +2167,7 @@ const struct s2n_cipher_preferences cipher_preferences_20240603 = {
     .allow_chacha20_boosting = true,
 };
 
-struct s2n_cipher_suite *cipher_suites_rfc9151[] = {
+struct s2n_cipher_suite *cipher_suites_20250429[] = {
     /* TLS1.2 */
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -2178,9 +2178,9 @@ struct s2n_cipher_suite *cipher_suites_rfc9151[] = {
     &s2n_tls13_aes_256_gcm_sha384,
 };
 
-const struct s2n_cipher_preferences cipher_preferences_rfc9151 = {
-    .count = s2n_array_len(cipher_suites_rfc9151),
-    .suites = cipher_suites_rfc9151,
+const struct s2n_cipher_preferences cipher_preferences_20250429 = {
+    .count = s2n_array_len(cipher_suites_20250429),
+    .suites = cipher_suites_20250429,
     .allow_chacha20_boosting = false,
 };
 
