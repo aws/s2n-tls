@@ -355,10 +355,10 @@ impl Builder {
         chains: T,
     ) -> Result<&mut Self, Error> {
         // Must be equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h.
-        const CHAINS_MAX_COUNT: usize = 3;
+        const CHAINS_MAX_COUNT: usize = 4;
 
         let mut chain_arrays: [Option<CertificateChain<'static>>; CHAINS_MAX_COUNT] =
-            [None, None, None];
+            [None, None, None, None];
         let mut pointer_array = [std::ptr::null_mut(); CHAINS_MAX_COUNT];
         let mut cert_chain_count = 0;
 
@@ -367,8 +367,8 @@ impl Builder {
                 return Err(Error::bindings(
                     ErrorType::UsageError,
                     "InvalidInput",
-                    "A single default can be specified for RSA, ECDSA, 
-                    and RSA-PSS auth types, but more than 3 certs were supplied",
+                    "A single default can be specified for each supported
+                    cert type, but more than 4 certs were supplied",
                 ));
             }
 
