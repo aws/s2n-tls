@@ -86,7 +86,6 @@ S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
         { .libcrypto = "openssl-1.1.1", .is_openssl = true },
         { .libcrypto = "openssl-3.0", .is_openssl = true },
         { .libcrypto = "openssl-3.0-fips", .is_openssl = true, .is_opensslfips = true },
-        { .libcrypto = "openssl-3.2.2", .is_openssl = true },
         { .libcrypto = "openssl-3.4", .is_openssl = true },
     };
 
@@ -165,14 +164,7 @@ int main()
     {
         if (version != NULL) {
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
-            if (strstr(ssleay_version_text, version) == NULL) {
-                char fail_msg[256];
-                snprintf(
-                        fail_msg, sizeof(fail_msg),
-                        "Libcrypto version mismatch - expected version '%s' not found in '%s'",
-                        version, ssleay_version_text);
-                FAIL_MSG(fail_msg);
-            }
+            EXPECT_NOT_NULL(strstr(ssleay_version_text, version));
         }
     };
 
