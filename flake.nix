@@ -28,7 +28,10 @@
         llvmPkgs = pkgs.llvmPackages_15;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
-        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
+        # OpenSSL 1.0.2 is not supported on Apple Silicon (ARM64)
+        openssl_1_0_2 = if pkgs.stdenv.isDarwin && pkgs.stdenv.isAarch64
+                        then null
+                        else import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
@@ -110,7 +113,8 @@
           buildInputs = [ pkgs.cmake openssl_3_0 ];
           packages = common_packages;
           S2N_LIBCRYPTO = "openssl-3.0";
-          OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
+          # Only set OPENSSL_1_0_2_INSTALL_DIR when OpenSSL 1.0.2 is available
+          OPENSSL_1_0_2_INSTALL_DIR = if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
           OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
           OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
           AWSLC_INSTALL_DIR = "${aws-lc}";
@@ -156,20 +160,23 @@
             '';
           });
 
-        devShells.openssl102 = devShells.default.overrideAttrs
-          (finalAttrs: previousAttrs: {
-            # Re-include cmake to update the environment with a new libcrypto.
-            buildInputs = [ pkgs.cmake openssl_1_0_2 ];
-            S2N_LIBCRYPTO = "openssl-1.0.2";
-            # Integ s_client/server tests expect openssl 1.1.1.
-            # GnuTLS-cli and serv utilities needed for some integration tests.
-            shellHook = ''
-              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-              export PATH=${openssl_1_1_1}/bin:$PATH
-              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-              source ${writeScript ./nix/shell.sh}
-            '';
-          });
+        # Only define openssl102 devShell when OpenSSL 1.0.2 is available (not on macOS ARM64)
+        devShells.openssl102 = if openssl_1_0_2 != null then
+          devShells.default.overrideAttrs
+            (finalAttrs: previousAttrs: {
+              # Re-include cmake to update the environment with a new libcrypto.
+              buildInputs = [ pkgs.cmake openssl_1_0_2 ];
+              S2N_LIBCRYPTO = "openssl-1.0.2";
+              # Integ s_client/server tests expect openssl 1.1.1.
+              # GnuTLS-cli and serv utilities needed for some integration tests.
+              shellHook = ''
+                echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+                export PATH=${openssl_1_1_1}/bin:$PATH
+                export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+                source ${writeScript ./nix/shell.sh}
+              '';
+            })
+          else null;
 
         devShells.awslc = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {

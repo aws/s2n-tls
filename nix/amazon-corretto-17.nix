@@ -26,7 +26,7 @@ pkgs.stdenv.mkDerivation rec {
     aarch64-darwin = pkgs.fetchzip {
       url =
         "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-aarch64.tar.gz";
-      sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
+      sha256 = "sha256-c2sYFd6aX8U5Q2c2refZYehBhPX9Id1h+zgUtox2s+k=";
     };
   }.${pkgs.stdenv.hostPlatform.system} or (throw
     "No build profile setup for this platform: ${pkgs.stdenv.hostPlatform.system}");
@@ -35,7 +35,8 @@ pkgs.stdenv.mkDerivation rec {
   dontStrip = 1;
 
   buildInputs = with pkgs; [
-    autoPatchelfHook
+    # Only use autoPatchelfHook on Linux platforms
+    (if stdenv.isLinux then autoPatchelfHook else null)
     cpio
     cups
     file
@@ -67,7 +68,8 @@ pkgs.stdenv.mkDerivation rec {
 
   # Arm doesn't have this, and because Corretto was built elsewhere, we need
   # to change the interpreter: https://github.com/NixOS/patchelf
-  autoPatchelfIgnoreMissingDeps = [ "libasound.so.2" ];
+  # Only set this on Linux platforms
+  autoPatchelfIgnoreMissingDeps = if pkgs.stdenv.isLinux then [ "libasound.so.2" ] else [];
 
   buildPhase = ''
     echo "Corretto is already built"

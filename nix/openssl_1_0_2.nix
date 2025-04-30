@@ -29,12 +29,16 @@ pkgs.stdenv.mkDerivation rec {
       ./config -d ${default_options}
     '';
     aarch64-darwin = ''
-      # TODO: validation in future PR - nix checks fail without a definition.
-      ./config ${default_options}
+      # OpenSSL 1.0.2 doesn't support Apple Silicon natively
+      # Use a more generic configuration that might work
+      ./Configure darwin64-x86_64-cc ${default_options}
     '';
   }.${pkgs.stdenv.hostPlatform.system};
 
-  buildPhase = ''
+  buildPhase = if pkgs.stdenv.isDarwin then ''
+    # Skip 'make depend' on macOS as it fails with "cannot use 'dependencies' output with multiple -arch options"
+    make -j $(nproc)
+  '' else ''
     make depend -j $(nproc)
     make -j $(nproc)
   '';
