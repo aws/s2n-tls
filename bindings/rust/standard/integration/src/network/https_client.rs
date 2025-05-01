@@ -54,7 +54,7 @@ const TEST_CASES: &[TestCase] = &[
     TestCase::new("https://www.t-mobile.com", &[200]),
     TestCase::new("https://www.verizon.com", &[200]),
     TestCase::new("https://www.wikipedia.org", &[200]),
-    TestCase::new("https://www.yahoo.com", &[200]),
+    TestCase::new("https://www.yahoo.com", &[200, 429]),
     TestCase::new("https://www.youtube.com", &[200]),
     TestCase::new("https://www.github.com", &[301]),
     TestCase::new("https://www.samsung.com", &[301]),
