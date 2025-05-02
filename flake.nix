@@ -51,12 +51,9 @@
           (if pkgs.stdenv.isLinux then pkgs.gdb else null)
           pkgs.tshark
 
-          # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
-          llvmPkgs.llvm
-          llvmPkgs.llvm-manpages
-          llvmPkgs.libclang
-          llvmPkgs.clang-manpages
-          llvmPkgs.lldb
+          # C Compiler Tooling: Using GCC instead of Clang
+          pkgs.gcc
+          pkgs.gdb
 
           # Linters/Formatters
           pkgs.shellcheck
@@ -80,14 +77,20 @@
           name = "s2n-tls";
           inherit system;
 
+          # Set GCC as the compiler for package builds
+          CC = "${pkgs.gcc}/bin/gcc";
+          CXX = "${pkgs.gcc}/bin/g++";
+
           nativeBuildInputs = [ pkgs.cmake ];
           buildInputs = [ pkgs.openssl_3 ];
 
           configurePhase = ''
             cmake -S . -B./build \
                   -DBUILD_SHARED_LIBS=ON \
-                  -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          ''; # TODO: set when system like aarch64/mips,etc
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  -DCMAKE_C_COMPILER=${pkgs.gcc}/bin/gcc \
+                  -DCMAKE_CXX_COMPILER=${pkgs.gcc}/bin/g++
+          ''; # Explicitly set GCC as the compiler for CMake
 
           buildPhase = ''
             cmake --build ./build -j $(nproc)
@@ -122,8 +125,13 @@
           GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
           LIBRESSL_INSTALL_DIR = "${libressl}";
           # Integ s_client/server tests expect openssl 1.1.1.
+          # Set GCC as the default compiler
+          CC = "${pkgs.gcc}/bin/gcc";
+          CXX = "${pkgs.gcc}/bin/g++";
+
           shellHook = ''
             echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+            echo "Using GCC as the compiler: $CC"
             export PATH=${openssl_1_1_1}/bin:$PATH
             export PS1="[nix $S2N_LIBCRYPTO] $PS1"
             source ${writeScript ./nix/shell.sh}
@@ -135,6 +143,9 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake openssl_1_1_1 ];
             S2N_LIBCRYPTO = "openssl-1.1.1";
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
@@ -150,6 +161,9 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake libressl ];
             S2N_LIBCRYPTO = "libressl";
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
@@ -167,6 +181,9 @@
               # Re-include cmake to update the environment with a new libcrypto.
               buildInputs = [ pkgs.cmake openssl_1_0_2 ];
               S2N_LIBCRYPTO = "openssl-1.0.2";
+              # Set GCC as the compiler
+              CC = "${pkgs.gcc}/bin/gcc";
+              CXX = "${pkgs.gcc}/bin/g++";
               # Integ s_client/server tests expect openssl 1.1.1.
               # GnuTLS-cli and serv utilities needed for some integration tests.
               shellHook = ''
@@ -183,6 +200,9 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake aws-lc ];
             S2N_LIBCRYPTO = "awslc";
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
@@ -204,6 +224,9 @@
               buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
               S2N_LIBCRYPTO = "awslc-fips-2022";
               AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
+              # Set GCC as the compiler
+              CC = "${pkgs.gcc}/bin/gcc";
+              CXX = "${pkgs.gcc}/bin/g++";
               shellHook = ''
                 echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
                 export PATH=${openssl_1_1_1}/bin:$PATH
@@ -221,6 +244,9 @@
               buildInputs = [ pkgs.cmake aws-lc-fips-2024 ];
               S2N_LIBCRYPTO = "awslc-fips-2024";
               AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
+              # Set GCC as the compiler
+              CC = "${pkgs.gcc}/bin/gcc";
+              CXX = "${pkgs.gcc}/bin/g++";
               shellHook = ''
                 echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
                 export PATH=${openssl_1_1_1}/bin:$PATH
@@ -233,16 +259,27 @@
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
-          (finalAttrs: previousAttrs: { doCheck = true; });
+          (finalAttrs: previousAttrs: {
+            doCheck = true;
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
+          });
         packages.s2n-tls-openssl11 = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: {
             doCheck = true;
             buildInputs = [ pkgs.openssl_1_1 ];
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
           });
         packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: {
             doCheck = true;
             buildInputs = [ pkgs.libressl ];
+            # Set GCC as the compiler
+            CC = "${pkgs.gcc}/bin/gcc";
+            CXX = "${pkgs.gcc}/bin/g++";
           });
         formatter = pkgs.nixfmt;
       });

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 echo nix/shell.sh: Entering a devShell
+echo "Using GCC as the compiler: $CC"
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
 
@@ -13,10 +14,10 @@ banner()
 
 # Function to create aliases for different libcrypto implementations
 function libcrypto_alias {
-    local libcrypto_name=$1
-    local libcrypto_binary_path=$2
-    if [[ -f $libcrypto_binary_path ]]; then
-      alias $libcrypto_name=$libcrypto_binary_path
+    local libcrypto_name="$1"
+    local libcrypto_binary_path="$2"
+    if [[ -f "$libcrypto_binary_path" ]]; then
+      alias "$libcrypto_name"="$libcrypto_binary_path"
       echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
     else
       banner "Could not find libcrypto $libcrypto_binary_path for alias"
@@ -53,7 +54,9 @@ function configure {(set -e
           -DS2N_INSTALL_S2NC_S2ND=ON \
           -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
-          $S2N_CMAKE_OPTIONS \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          "$S2N_CMAKE_OPTIONS" \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 )}
 
@@ -63,7 +66,7 @@ function build {(set -e
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
     if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
-        $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+        "$SRC_ROOT/codebuild/bin/install_s2n_head.sh" "$(mktemp -d)"
     fi
 )}
 
@@ -75,9 +78,10 @@ function unit {(set -e
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
         echo "Tests:"
         echo "$tests"
+        # Split the tests string into words
         for test in $tests
         do
-            cmake --build build -j $(nproc) --target $test
+            cmake --build build -j $(nproc) --target "$test"
         done
         ctest --test-dir build -L unit -R "$1" -j $(nproc) --verbose
     fi
@@ -87,9 +91,9 @@ function integ {(set -e
     apache2_start
     if [[ -z "$1" ]]; then
         banner "Running all integ tests."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
+        (cd "$SRC_ROOT/build"; ctest -L integrationv2 --verbose)
     else
-        for test in $@; do
+        for test in "$@"; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
                echo "Test failed, stopping execution"
@@ -101,7 +105,7 @@ function integ {(set -e
 
 function check-clang-format {(set -e
     banner "Dry run of clang-format"
-    (cd $SRC_ROOT;
+    (cd "$SRC_ROOT";
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
@@ -120,12 +124,12 @@ function check-clang-format {(set -e
     src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
-    echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file)
+    echo "$src_files" | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file)
 )}
 
 function do-clang-format {(set -e
     banner "In place clang-format"
-    (cd $SRC_ROOT;
+    (cd "$SRC_ROOT";
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
@@ -144,14 +148,14 @@ function do-clang-format {(set -e
     src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
-    echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
+    echo "$src_files" | xargs -n 1 -P $(nproc) clang-format -style=file -i)
 )}
 
 function test_toolchain_counts {(set -e
     # This is a starting point for a unit test of the devShell.
     # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
-    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
+    echo "$CMAKE_INCLUDE_PATH"|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
       /openssl-1.1/{o11++}
       /openssl-1.0/{o10++}
@@ -172,7 +176,7 @@ function test_toolchain_counts {(set -e
 
 function test_nonstandard_compilation {(set -e
     # Any script that needs to compile s2n in a non-standard way can run here
-    ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
+    ./codebuild/bin/test_dynamic_load.sh "$(mktemp -d)"
 )}
 
 function apache2_config(){
@@ -193,11 +197,11 @@ function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
         if [[ ! -f "$APACHE2_INSTALL_DIR/conf/apache2.conf" ]]; then
-            mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
+            mkdir -p "$APACHE2_INSTALL_DIR"/{run,log,lock}
             # NixOs specific base apache config
-            cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
+            cp -R ./tests/integrationv2/apache2/nix/* "$APACHE2_INSTALL_DIR"
             # Integrationv2::renegotiate site
-            cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
+            cp -R ./codebuild/bin/apache2/{www,sites-enabled} "$APACHE2_INSTALL_DIR"
         fi
         httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
         trap 'pkill httpd' ERR EXIT
