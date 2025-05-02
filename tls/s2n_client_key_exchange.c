@@ -48,6 +48,8 @@ static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rs
 static S2N_RESULT s2n_client_key_exchange_get_rsa_client_version(struct s2n_connection *conn,
         uint8_t client_version[S2N_TLS_PROTOCOL_VERSION_LEN])
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(client_version);
     uint8_t client_version_for_rsa = MIN(conn->client_protocol_version, S2N_TLS12);
     client_version[0] = client_version_for_rsa / 10;
     client_version[1] = client_version_for_rsa % 10;
