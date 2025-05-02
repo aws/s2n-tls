@@ -52,8 +52,6 @@
           # Linters/Formatters
           pkgs.shellcheck
           pkgs.nixfmt
-          pkgs.python310Packages.pep8
-          pkgs.python310Packages.ipython
 
           # Rust
           pkgs.rustup

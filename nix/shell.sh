@@ -2,6 +2,34 @@ echo nix/shell.sh: Entering a devShell
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
 
+# Setup Python environment using uv
+function setup_python_env {
+    VENV_DIR="$SRC_ROOT/.venv"
+    PYPROJECT_PATH="$SRC_ROOT/tests/integrationv2"
+
+    # Create virtual environment if it doesn't exist
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Creating Python virtual environment using uv..."
+        uv venv "$VENV_DIR"
+
+        # Install dependencies from pyproject.toml
+        echo "Installing Python dependencies from $PYPROJECT_PATH..."
+        uv pip install -e "$PYPROJECT_PATH"
+    fi
+
+    # Activate the virtual environment
+    echo "Activating Python virtual environment..."
+    source "$VENV_DIR/bin/activate"
+
+    # Add the virtual environment's bin directory to PATH
+    export PATH="$VENV_DIR/bin:$PATH"
+
+    echo "Python virtual environment is ready."
+}
+
+# Call the function to set up the Python environment
+setup_python_env
+
 banner()
 {
     echo "+---------------------------------------------------------+"
@@ -85,6 +113,11 @@ function integ {(set -e
             fi
         done
     fi
+)}
+
+function uvinteg {(set -e
+    cd ./tests/integrationv2
+    uv run pytest --provider-version $S2N_LIBCRYPTO --best-effort-NOT-FOR-CI -x -rpfs -n auto "$@";
 )}
 
 function check-clang-format {(set -e
