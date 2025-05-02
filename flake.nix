@@ -40,7 +40,7 @@
           pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
-          pkgs.gdb
+        ] ++ (if pkgs.stdenv.isLinux then [ pkgs.gdb ] else [ ]) ++ [
           pkgs.tshark
 
           # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
