@@ -117,7 +117,7 @@ function integ {(set -e
 
 function uvinteg {(set -e
     cd ./tests/integrationv2
-    uv run pytest --provider-version $S2N_LIBCRYPTO --best-effort-NOT-FOR-CI -x -rpfs -n auto "$@";
+    uv run pytest --provider-version $S2N_LIBCRYPTO -x -rpfs -n auto -r "$@";
 )}
 
 function check-clang-format {(set -e
