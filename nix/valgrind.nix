@@ -8,7 +8,7 @@ if pkgs.stdenv.isLinux then
 
     src = pkgs.fetchurl {
       url = "https://sourceware.org/pub/valgrind/valgrind-${version}.tar.bz2";
-      sha256 = "sha256-Yk9qPJfiGGd2LwJjgH9VLlDI8MhRvqx0aYOzUZSQJFU="; # SHA for 3.21.0
+      sha256 = "sha256-EM4WGLs+M/rRbreVUrCj4SEXYkSKDX/OEcimJDuayXE="; # SHA for 3.21.0
     };
 
     # Dependencies needed for valgrind
