@@ -12,7 +12,7 @@ if pkgs.stdenv.isLinux then
     };
 
     # Dependencies needed for valgrind
-    nativeBuildInputs = [ pkgs.perl pkgs.gdb ];
+    nativeBuildInputs = [ pkgs.perl ] ++ (if pkgs.stdenv.isLinux then [ pkgs.gdb ] else [ ]);
     buildInputs = [ pkgs.glibc ];
 
     # Standard configure/make/install process
