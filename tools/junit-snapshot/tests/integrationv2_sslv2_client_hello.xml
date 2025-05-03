@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="1.518" timestamp="2025-04-01T19:58:02.622333" hostname="devdesktop22"><testcase classname="test_sslv2_client_hello" name="test_s2n_server_sslv2_client_hello" time="0.696" /></testsuite></testsuites>
