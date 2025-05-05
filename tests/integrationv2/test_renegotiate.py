@@ -191,6 +191,7 @@ def basic_reneg_test(
     provider,
     messages=RENEG_MESSAGES,
     reneg_option=None,
+    timeout=8,
 ):
     options = ProviderOptions(
         port=next(available_ports),
@@ -217,7 +218,7 @@ def basic_reneg_test(
         provider,
         server_options,
         send_marker=Msg.send_markers(messages, Provider.ServerMode),
-        timeout=8,
+        timeout=timeout,
     )
 
     s2n_client = managed_process(
@@ -225,7 +226,7 @@ def basic_reneg_test(
         client_options,
         send_marker=Msg.send_markers(messages, Provider.ClientMode),
         close_marker=Msg.close_marker(messages),
-        timeout=8,
+        timeout=timeout,
     )
 
     return (s2n_client, server)
@@ -422,6 +423,49 @@ def test_s2n_client_renegotiate_with_client_auth_with_openssl(
 
 """
 The s2n-tls client successfully reads ApplicationData during the renegotiation handshake.
+
+This test is best-effort, and flakiness could be a sign of problems with how
+s2n-tls handles ApplicationData during the renegotiation handshake.
+
+Ideally the actions in the test would be:
+1. Server sends the HelloRequest
+2. Client s2n_recv reads HelloRequest
+3. Client s2n_renegotiate sends ClientHello
+4. Server sends ApplicationData
+5. Server reads ClientHello, begins new handshake
+6. Server sends ServerHello
+7. Client s2n_renegotiate reads ApplicationData
+
+Notice that the ApplicationData appears between two handshake messages,
+so is read by s2n_renegotiate instead of s2n_recv. That is the scenario
+we are attempting to test.
+
+But that means that the actions might occur in this order:
+1. Server sends the HelloRequest
+2. Server sends ApplicationData
+3. Client s2n_recv reads HelloRequest
+4. Client s2n_recv reads ApplicationData
+5. Client s2n_renegotiate sends ClientHello
+6. Server reads ClientHello, begins new handshake
+7. Server sends ServerHello
+
+You might think we could avoid this scenario by waiting to send the server
+ApplicationData until the server reads the ClientHello. However, at that point
+the server cannot send any ApplicationData because it has begun a new handshake.
+There is no other viable trigger for the ApplicationData, which is why this test
+is only best-effort.
+
+The actions might also occur in this order:
+1. Server sends the HelloRequest
+2. Client s2n_recv reads HelloRequest
+3. Client s2n_renegotiate sends ClientHello
+4. Server reads ClientHello, begins new handshake
+5. Server sends ServerHello
+6. ... rest of the handshake...
+6. Server sends ApplicationData
+7. Client s2n_recv reads ApplicationData
+We can make this scenario less likely by forcing the client to wait a few seconds
+before sending the ClientHello, but it is still theoretically possible.
 """
 
 
@@ -440,7 +484,6 @@ def test_s2n_client_renegotiate_with_app_data_with_openssl(
     protocol,
     provider,
 ):
-    first_server_app_data = Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode)[0]
     (s2n_client, server) = basic_reneg_test(
         managed_process,
         cipher,
@@ -449,6 +492,7 @@ def test_s2n_client_renegotiate_with_app_data_with_openssl(
         protocol,
         provider,
         reneg_option=S2N_RENEG_WAIT,
+        timeout=30,  # Set the timeout much higher than the wait
     )
 
     for results in server.get_results():
@@ -463,10 +507,3 @@ def test_s2n_client_renegotiate_with_app_data_with_openssl(
         for output in Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode):
             assert output in results.stdout
         assert renegotiate_was_successful(results)
-        stdout_str = str(results.stdout)
-
-    # In order to test the case where application data is received during renegotiation,
-    # we must verify that the data was received after renegotiation started but before the new handshake finished.
-    reneg_starts = stdout_str.find(S2N_RENEG_START_MARKER)
-    reneg_finishes = stdout_str.find(S2N_RENEG_SUCCESS_MARKER)
-    assert to_marker(first_server_app_data) in stdout_str[reneg_starts:reneg_finishes]
