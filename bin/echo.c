@@ -314,11 +314,11 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
 
-    /* Do not proceed with renegotiation until we receive more data from the server */
+    /* Pause before beginning renegotiation, giving the server the chance to
+     * potentially send more application data.
+     */
     if (wait_for_more_data) {
-        fd_set fds = { 0 };
-        FD_SET(fd, &fds);
-        select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+        sleep(1);
     }
 
     while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
