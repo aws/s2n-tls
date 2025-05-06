@@ -25,7 +25,6 @@ TEST_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
 S2N_RENEG_OPTION = "--renegotiation"
 S2N_RENEG_ACCEPT = "accept"
 S2N_RENEG_REJECT = "reject"
-S2N_RENEG_WAIT = "wait"
 OPENSSL_RENEG_CTRL_CMD = "r\n"
 
 
@@ -394,7 +393,7 @@ def test_s2n_client_renegotiate_with_client_auth_with_openssl(
         protocol,
         provider,
         messages=messages,
-        reneg_option=S2N_RENEG_WAIT,
+        reneg_option=S2N_RENEG_ACCEPT,
     )
 
     for results in server.get_results():

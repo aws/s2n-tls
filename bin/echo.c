@@ -302,7 +302,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
-int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
+int renegotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint8_t buffer[STDIO_BUFSIZE] = { 0 };
@@ -313,13 +313,6 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
 
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
-
-    /* Pause before beginning renegotiation, giving the server the chance to
-     * potentially send more application data.
-     */
-    if (wait_for_more_data) {
-        sleep(1);
-    }
 
     while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
         uint8_t *data_ptr = buffer;
