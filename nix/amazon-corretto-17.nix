@@ -69,7 +69,8 @@ pkgs.stdenv.mkDerivation rec {
   # Arm doesn't have this, and because Corretto was built elsewhere, we need
   # to change the interpreter: https://github.com/NixOS/patchelf
   # Only set this on Linux platforms
-  autoPatchelfIgnoreMissingDeps = if pkgs.stdenv.isLinux then [ "libasound.so.2" ] else [];
+  autoPatchelfIgnoreMissingDeps =
+    if pkgs.stdenv.isLinux then [ "libasound.so.2" ] else [ ];
 
   buildPhase = ''
     echo "Corretto is already built"

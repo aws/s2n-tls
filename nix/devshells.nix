@@ -1,4 +1,5 @@
-{ pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0, libressl, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
+{ pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0
+, libressl, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
   # Define the default devShell
@@ -13,7 +14,8 @@ let
     packages = common_packages;
     S2N_LIBCRYPTO = "openssl-3.0";
     # Only set OPENSSL_1_0_2_INSTALL_DIR when OpenSSL 1.0.2 is available
-    OPENSSL_1_0_2_INSTALL_DIR = if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
+    OPENSSL_1_0_2_INSTALL_DIR =
+      if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
     OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
     OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
     AWSLC_INSTALL_DIR = "${aws-lc}";
@@ -30,61 +32,41 @@ let
   };
 
   # Define the openssl111 devShell
-  openssl111 = default.overrideAttrs
-    (finalAttrs: previousAttrs: {
-      # Re-include cmake to update the environment with a new libcrypto.
-      buildInputs = [ pkgs.cmake openssl_1_1_1 ];
-      S2N_LIBCRYPTO = "openssl-1.1.1";
-      # Integ s_client/server tests expect openssl 1.1.1.
-      # GnuTLS-cli and serv utilities needed for some integration tests.
-      shellHook = ''
-        echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-        export PATH=${openssl_1_1_1}/bin:$PATH
-        export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-        source ${writeScript ./nix/shell.sh}
-      '';
-    });
+  openssl111 = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
+    buildInputs = [ pkgs.cmake openssl_1_1_1 ];
+    S2N_LIBCRYPTO = "openssl-1.1.1";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
+    shellHook = ''
+      echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+      export PATH=${openssl_1_1_1}/bin:$PATH
+      export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+      source ${writeScript ./nix/shell.sh}
+    '';
+  });
 
   # Define the libressl devShell
-  libressl_shell = default.overrideAttrs
-    (finalAttrs: previousAttrs: {
-      # Re-include cmake to update the environment with a new libcrypto.
-      buildInputs = [ pkgs.cmake libressl ];
-      S2N_LIBCRYPTO = "libressl";
-      # Integ s_client/server tests expect openssl 1.1.1.
-      # GnuTLS-cli and serv utilities needed for some integration tests.
-      shellHook = ''
-        echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-        export PATH=${openssl_1_1_1}/bin:$PATH
-        export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-        source ${writeScript ./nix/shell.sh}
-      '';
-    });
+  libressl_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
+    buildInputs = [ pkgs.cmake libressl ];
+    S2N_LIBCRYPTO = "libressl";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
+    shellHook = ''
+      echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+      export PATH=${openssl_1_1_1}/bin:$PATH
+      export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+      source ${writeScript ./nix/shell.sh}
+    '';
+  });
 
   # Only define openssl102 devShell when OpenSSL 1.0.2 is available (not on macOS ARM64)
   openssl102 = if openssl_1_0_2 != null then
-    default.overrideAttrs
-      (finalAttrs: previousAttrs: {
-        # Re-include cmake to update the environment with a new libcrypto.
-        buildInputs = [ pkgs.cmake openssl_1_0_2 ];
-        S2N_LIBCRYPTO = "openssl-1.0.2";
-        # Integ s_client/server tests expect openssl 1.1.1.
-        # GnuTLS-cli and serv utilities needed for some integration tests.
-        shellHook = ''
-          echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-          export PATH=${openssl_1_1_1}/bin:$PATH
-          export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-          source ${writeScript ./nix/shell.sh}
-        '';
-      })
-    else null;
-
-  # Define the awslc devShell
-  awslc_shell = default.overrideAttrs
-    (finalAttrs: previousAttrs: {
+    default.overrideAttrs (finalAttrs: previousAttrs: {
       # Re-include cmake to update the environment with a new libcrypto.
-      buildInputs = [ pkgs.cmake aws-lc ];
-      S2N_LIBCRYPTO = "awslc";
+      buildInputs = [ pkgs.cmake openssl_1_0_2 ];
+      S2N_LIBCRYPTO = "openssl-1.0.2";
       # Integ s_client/server tests expect openssl 1.1.1.
       # GnuTLS-cli and serv utilities needed for some integration tests.
       shellHook = ''
@@ -93,12 +75,28 @@ let
         export PS1="[nix $S2N_LIBCRYPTO] $PS1"
         source ${writeScript ./nix/shell.sh}
       '';
-    });
+    })
+  else
+    null;
+
+  # Define the awslc devShell
+  awslc_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
+    buildInputs = [ pkgs.cmake aws-lc ];
+    S2N_LIBCRYPTO = "awslc";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
+    shellHook = ''
+      echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+      export PATH=${openssl_1_1_1}/bin:$PATH
+      export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+      source ${writeScript ./nix/shell.sh}
+    '';
+  });
 
   # Conditionally define awslcfips2022 devShell
   awslcfips2022_shell = if pkgs.stdenv.isLinux then
-    default.overrideAttrs
-    (finalAttrs: previousAttrs: {
+    default.overrideAttrs (finalAttrs: previousAttrs: {
       # Re-include cmake to update the environment with a new libcrypto.
       buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
       S2N_LIBCRYPTO = "awslc-fips-2022";
@@ -110,12 +108,12 @@ let
         source ${writeScript ./nix/shell.sh}
       '';
     })
-  else null;
+  else
+    null;
 
   # Conditionally define awslcfips2024 devShell
   awslcfips2024_shell = if pkgs.stdenv.isLinux then
-    default.overrideAttrs
-    (finalAttrs: previousAttrs: {
+    default.overrideAttrs (finalAttrs: previousAttrs: {
       # Re-include cmake to update the environment with a new libcrypto.
       buildInputs = [ pkgs.cmake aws-lc-fips-2024 ];
       S2N_LIBCRYPTO = "awslc-fips-2024";
@@ -127,9 +125,9 @@ let
         source ${writeScript ./nix/shell.sh}
       '';
     })
-  else null;
-in
-{
+  else
+    null;
+in {
   default = default;
   openssl111 = openssl111;
   libressl = libressl_shell;
