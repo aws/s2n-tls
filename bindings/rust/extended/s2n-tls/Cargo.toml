@@ -28,7 +28,7 @@ hex = "0.4"
 
 [dev-dependencies]
 futures-test = "0.3"
-once_cell = "=1.20.3" # newer versions require rust 1.70.0
+once_cell = "=1.21.3" # newer versions require rust 1.70.0
 openssl = "0.10"
 openssl-sys = "0.9"
 foreign-types = "0.3" # newer versions require updated ForeignTypeRef, see https://github.com/sfackler/rust-openssl/issues/2298
