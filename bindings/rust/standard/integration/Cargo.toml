@@ -30,7 +30,7 @@ tokio = { version = "1", features = ["macros", "test-util"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 # TODO: Unpin when s2n-tls MSRV >= 1.71, https://github.com/aws/s2n-tls/issues/4893
-test-log = { version = "=0.2.14", default-features = false, features = ["trace"]}
+test-log = { version = "=0.2.17", default-features = false, features = ["trace"]}
 test-log-macros = "=0.2.14"
 
 http = "1.1"
