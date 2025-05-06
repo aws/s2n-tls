@@ -12,7 +12,14 @@
     { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            permittedInsecurePackages = [
+              "openssl-1.1.1w"
+            ];
+          };
+        };
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
         # Only include aws-lc-fips on Linux platforms
