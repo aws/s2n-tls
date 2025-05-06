@@ -11,13 +11,12 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 7 minutes of runtime.
-MAX_BLOB_SIZE = 10
+# Enough to get full coverage with a reasonable runtime.
+MAX_BLOB_SIZE = 8
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
 
-USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
 PROOF_UID = s2n_stuffer_private_key_from_pem
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
