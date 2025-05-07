@@ -331,7 +331,7 @@ const struct s2n_cipher_preferences cipher_preferences_20240331 = {
  * TLS1.3 support.
  * FIPS compliant.
  * No DHE (would require extra setup with s2n_config_add_dhparams)
- * No CBC (no encrypt then MAC)
+ * No CBC ciphers
  */
 struct s2n_cipher_suite *cipher_suites_20250422[] = {
     /* TLS1.2 with ECDSA */
