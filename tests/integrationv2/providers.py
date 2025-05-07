@@ -250,9 +250,8 @@ class S2N(Provider):
             cmd_line.append("s2nc")
         cmd_line.append("--non-blocking")
 
-        # Tests requiring reconnects can't wait on echo data,
-        # but all other tests can.
-        if self.options.reconnect is not True:
+        # Tests requiring reconnects can't wait on echo data
+        if self.options.echo and not self.options.reconnect:
             cmd_line.append("-e")
 
         if self.options.use_session_ticket is False:
@@ -335,6 +334,9 @@ class S2N(Provider):
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(["-c", cipher_prefs])
+
+        if not self.options.echo:
+            cmd_line.append("-n")
 
         if self.options.use_client_auth is True:
             cmd_line.append("-m")

@@ -755,6 +755,7 @@ class ProviderOptions(object):
         signature_algorithm=None,
         record_size=None,
         verbose=True,
+        echo=True,
     ):
         # Client or server
         self.mode = mode
@@ -833,3 +834,7 @@ class ProviderOptions(object):
         # Useful if you find that debugging information is printed between
         # application data you expect the provider to print on stdout.
         self.verbose = verbose
+
+        # Should the provider echo any data sent / received?
+        # If not, the connection will be closed after one handshake.
+        self.echo = echo

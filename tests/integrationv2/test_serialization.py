@@ -73,6 +73,7 @@ def test_server_serialization_backwards_compat(
         port=next(available_ports),
         cipher=S2N_TEST_POLICIES[protocol.value],
         insecure=True,
+        echo=False,
     )
 
     client_options = copy.copy(options)
@@ -117,7 +118,10 @@ def test_server_serialization_backwards_compat(
         else:
             client_options.use_mainline_version = True
 
+    server_options.echo = True
     server_options.data_to_send = SERVER_DATA.encode()
+
+    client_options.echo = True
     client_options.data_to_send = CLIENT_DATA.encode()
 
     server = managed_process(S2N, server_options, send_marker=CLIENT_DATA)
