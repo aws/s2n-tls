@@ -109,7 +109,7 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo);
 int wait_for_event(int fd, s2n_blocked_status blocked);
 int negotiate(struct s2n_connection *conn, int sockfd);
-int renegotiate(struct s2n_connection *conn, int sockfd, bool wait);
+int renegotiate(struct s2n_connection *conn, int sockfd);
 int wait_for_shutdown(struct s2n_connection *conn, int sockfd);
 int early_data_recv(struct s2n_connection *conn);
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
