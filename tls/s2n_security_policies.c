@@ -32,7 +32,6 @@ const struct s2n_security_policy security_policy_20240501 = {
     },
 };
 
-/* FIPS default as of 05/24 */
 const struct s2n_security_policy security_policy_20240502 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20240331,
@@ -46,6 +45,7 @@ const struct s2n_security_policy security_policy_20240502 = {
     },
 };
 
+/* FIPS default as of 05/25 */
 const struct s2n_security_policy security_policy_20250416 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20250422,
