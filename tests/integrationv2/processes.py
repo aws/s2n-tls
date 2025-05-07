@@ -12,7 +12,7 @@ from time import monotonic as _time
 
 _PopenSelector = selectors.PollSelector
 _PIPE_BUF = getattr(select, "PIPE_BUF", 512)
-_DEBUG_LEN = 80
+_DEBUG_LEN = 200
 
 
 class _processCommunicator(object):
@@ -475,27 +475,6 @@ class ManagedProcess(threading.Thread):
                     self.expect_stderr,
                 )
                 raise ex
-            finally:
-                # This data is dumped to stdout so we capture this
-                # information no matter where a test fails.
-                print("###############################################################")
-                print(
-                    f"#######################   {self.cmd_line[0]}   #######################"
-                )
-                print("###############################################################")
-
-                print(f"Command line:\n\t{' '.join(self.cmd_line)}")
-                print(f"Exit code:\n\t {proc.returncode}")
-
-                print("##########################################################")
-                print("########################### Stdout #######################")
-                print("##########################################################")
-                print(proc_results[0].decode("utf-8", "backslashreplace"))
-
-                print("#########################################################")
-                print("########################### Stderr #######################")
-                print("#########################################################")
-                print(proc_results[1].decode("utf-8", "backslashreplace"))
 
     def kill(self):
         self.proc.kill()

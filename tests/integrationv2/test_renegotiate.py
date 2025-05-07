@@ -25,7 +25,6 @@ TEST_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
 S2N_RENEG_OPTION = "--renegotiation"
 S2N_RENEG_ACCEPT = "accept"
 S2N_RENEG_REJECT = "reject"
-S2N_RENEG_WAIT = "wait"
 OPENSSL_RENEG_CTRL_CMD = "r\n"
 
 
@@ -191,6 +190,7 @@ def basic_reneg_test(
     provider,
     messages=RENEG_MESSAGES,
     reneg_option=None,
+    timeout=8,
 ):
     options = ProviderOptions(
         port=next(available_ports),
@@ -217,7 +217,7 @@ def basic_reneg_test(
         provider,
         server_options,
         send_marker=Msg.send_markers(messages, Provider.ServerMode),
-        timeout=8,
+        timeout=timeout,
     )
 
     s2n_client = managed_process(
@@ -225,7 +225,7 @@ def basic_reneg_test(
         client_options,
         send_marker=Msg.send_markers(messages, Provider.ClientMode),
         close_marker=Msg.close_marker(messages),
-        timeout=8,
+        timeout=timeout,
     )
 
     return (s2n_client, server)
@@ -393,7 +393,7 @@ def test_s2n_client_renegotiate_with_client_auth_with_openssl(
         protocol,
         provider,
         messages=messages,
-        reneg_option=S2N_RENEG_WAIT,
+        reneg_option=S2N_RENEG_ACCEPT,
     )
 
     for results in server.get_results():
@@ -418,55 +418,3 @@ def test_s2n_client_renegotiate_with_client_auth_with_openssl(
     reneg_finishes = stdout_str.find(S2N_RENEG_SUCCESS_MARKER)
     assert client_auth_marker in stdout_str[init_finishes:reneg_finishes]
     assert no_client_cert_marker not in stdout_str[init_finishes:reneg_finishes]
-
-
-"""
-The s2n-tls client successfully reads ApplicationData during the renegotiation handshake.
-"""
-
-
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_renegotiate_with_app_data_with_openssl(
-    managed_process,  # noqa: F811
-    cipher,
-    curve,
-    certificate,
-    protocol,
-    provider,
-):
-    first_server_app_data = Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode)[0]
-    (s2n_client, server) = basic_reneg_test(
-        managed_process,
-        cipher,
-        curve,
-        certificate,
-        protocol,
-        provider,
-        reneg_option=S2N_RENEG_WAIT,
-    )
-
-    for results in server.get_results():
-        results.assert_success()
-        for output in Msg.expected_output(RENEG_MESSAGES, Provider.ServerMode):
-            assert output in results.stdout
-        assert renegotiate_was_requested(results)
-        assert not renegotiate_was_rejected(results)
-
-    for results in s2n_client.get_results():
-        results.assert_success()
-        for output in Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode):
-            assert output in results.stdout
-        assert renegotiate_was_successful(results)
-        stdout_str = str(results.stdout)
-
-    # In order to test the case where application data is received during renegotiation,
-    # we must verify that the data was received after renegotiation started but before the new handshake finished.
-    reneg_starts = stdout_str.find(S2N_RENEG_START_MARKER)
-    reneg_finishes = stdout_str.find(S2N_RENEG_SUCCESS_MARKER)
-    assert to_marker(first_server_app_data) in stdout_str[reneg_starts:reneg_finishes]

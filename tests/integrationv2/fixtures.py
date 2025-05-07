@@ -94,8 +94,29 @@ def managed_process(request: pytest.FixtureRequest):
         # is nothing to capture here.
         pass
     finally:
-        # Whether the processes succeeded or not, clean then up.
         for p in processes:
+            # Always print the results
+            if p.results:
+                width = 90
+                padchar = "#"
+
+                print(padchar * width)
+                print(f"  {p.cmd_line[0]}  ".center(width, padchar))
+                print(padchar * width)
+
+                print(f"Command line:\n\t{' '.join(p.cmd_line)}")
+                print(f"Exit code:\n\t {p.results.exit_code}")
+                print("")
+
+                print("  Stdout  ".center(width, padchar))
+                print(p.results.stdout.decode("utf-8", "backslashreplace"))
+                print("")
+
+                print("  Stderr  ".center(width, padchar))
+                print(p.results.stderr.decode("utf-8", "backslashreplace"))
+                print("")
+
+            # Whether the processes succeeded or not, clean them up.
             if aborted:
                 p.kill()
             else:
