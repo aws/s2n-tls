@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
     /* TLS1.3 is supported by default */
     {
-        /* Client does not support or configure TLS 1.3 */
+        /* Client does support or configure TLS 1.3 */
         {
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Server does not support or configure TLS 1.3 */
+        /* Server does support or configure TLS 1.3 */
         {
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
