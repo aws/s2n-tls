@@ -39,7 +39,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
 
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            EXPECT_NOT_EQUAL(conn->server_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
 
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
