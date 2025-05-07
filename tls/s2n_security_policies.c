@@ -59,7 +59,6 @@ const struct s2n_security_policy security_policy_20250416 = {
     },
 };
 
-
 /* TLS1.3 default as of 05/24 */
 const struct s2n_security_policy security_policy_20240503 = {
     .minimum_protocol_version = S2N_TLS12,
