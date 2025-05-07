@@ -106,6 +106,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->client_hello.sslv2, true);
         EXPECT_EQUAL(server_conn->client_hello.legacy_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello.callback_invoked, 1);
+        EXPECT_EQUAL(s2n_connection_get_client_hello_version(server_conn), S2N_SSLv2);
 
         s2n_connection_free(server_conn);
 
@@ -545,6 +546,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server->client_hello.legacy_version, S2N_TLS12);
         EXPECT_TRUE(server->client_hello.sslv2);
+        EXPECT_EQUAL(s2n_connection_get_client_hello_version(server_conn), S2N_SSLv2);
     };
 
     s2n_config_free(tls12_config);
