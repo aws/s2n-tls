@@ -28,7 +28,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     /* TLS 1.3 is used by default */
     EXPECT_TRUE(s2n_use_default_tls13_config());
 

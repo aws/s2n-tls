@@ -19,7 +19,7 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "tls/s2n_tls.h"
 
-bool s2n_use_default_tls13_config_flag = true;
+bool s2n_use_default_tls13_config_flag = false;
 
 bool s2n_use_default_tls13_config()
 {
