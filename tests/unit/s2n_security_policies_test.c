@@ -822,8 +822,8 @@ int main(int argc, char **argv)
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
-                /* default_fips is currently 20240502 */
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+                /* default_fips is currently 20250422 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250422, "rfc9151", ecdsa_sha384_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "rfc9151", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 > 20250211
@@ -843,8 +843,8 @@ int main(int argc, char **argv)
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
-                /* default_fips is currently 20240502 */
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240502, "rfc9151", ecdsa_sha384_chain_and_key));
+                /* default_fips is currently 20250422 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250422, "rfc9151", ecdsa_sha384_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "rfc9151", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 > 20250414 (with either p-256 or p-384 cert) */
@@ -908,6 +908,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
+                &security_policy_20250416,
             };
 
             const struct s2n_supported_cert supported_certs[] = {
