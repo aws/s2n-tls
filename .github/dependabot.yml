@@ -10,6 +10,7 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
     groups:
       all-gha-updates:
         patterns:
@@ -23,6 +24,7 @@ updates:
       - "/tests/regression"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
     groups:
       all-cargo-updates:
         patterns:
@@ -35,3 +37,4 @@ updates:
       - "/bindings/rust/extended"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
