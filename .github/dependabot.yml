@@ -35,4 +35,3 @@ updates:
       - "/bindings/rust/extended"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
