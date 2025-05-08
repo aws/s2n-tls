@@ -182,7 +182,10 @@ int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_a
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = s2n_evp_pkey_ctx_new(priv->pkey, hash_state->alg), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
     POSIX_GUARD_OSSL(EVP_PKEY_sign_init(pctx), S2N_ERR_PKEY_CTX_INIT);
-    POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+
+    if (sig_alg != S2N_SIGNATURE_MLDSA) {
+        POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+    }
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
@@ -252,7 +255,10 @@ int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = s2n_evp_pkey_ctx_new(pub->pkey, hash_state->alg), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
     POSIX_GUARD_OSSL(EVP_PKEY_verify_init(pctx), S2N_ERR_PKEY_CTX_INIT);
-    POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+
+    if (sig_alg != S2N_SIGNATURE_MLDSA) {
+        POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+    }
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);

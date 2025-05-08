@@ -35,6 +35,15 @@ bool s2n_hash_use_custom_md5_sha1()
 #endif
 }
 
+bool s2n_hash_supports_shake()
+{
+#if S2N_LIBCRYPTO_SUPPORTS_SHAKE
+    return true;
+#else
+    return false;
+#endif
+}
+
 S2N_RESULT s2n_hash_algorithms_init()
 {
 #if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
@@ -55,6 +64,7 @@ S2N_RESULT s2n_hash_algorithms_init()
     s2n_evp_mds[S2N_HASH_SHA256] = EVP_MD_fetch(NULL, "SHA256", NULL);
     s2n_evp_mds[S2N_HASH_SHA384] = EVP_MD_fetch(NULL, "SHA384", NULL);
     s2n_evp_mds[S2N_HASH_SHA512] = EVP_MD_fetch(NULL, "SHA512", NULL);
+    s2n_evp_mds[S2N_HASH_SHAKE256_64] = EVP_MD_fetch(NULL, "SHAKE256", NULL);
 #else
     s2n_evp_mds[S2N_HASH_MD5] = EVP_md5();
     s2n_evp_mds[S2N_HASH_SHA1] = EVP_sha1();
@@ -62,6 +72,9 @@ S2N_RESULT s2n_hash_algorithms_init()
     s2n_evp_mds[S2N_HASH_SHA256] = EVP_sha256();
     s2n_evp_mds[S2N_HASH_SHA384] = EVP_sha384();
     s2n_evp_mds[S2N_HASH_SHA512] = EVP_sha512();
+    #if S2N_LIBCRYPTO_SUPPORTS_SHAKE
+    s2n_evp_mds[S2N_HASH_SHAKE256_64] = EVP_shake256();
+    #endif
     /* Very old libcryptos like openssl-1.0.2 do not support EVP_MD_md5_sha1().
      * We work around that by manually combining MD5 and SHA1, rather than
      * using the composite algorithm.
@@ -109,6 +122,10 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
         case S2N_HASH_SHA384:   *out = SHA384_DIGEST_LENGTH; break;
         case S2N_HASH_SHA512:   *out = SHA512_DIGEST_LENGTH; break;
         case S2N_HASH_MD5_SHA1: *out = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH; break;
+        /* SHAKE digests can be variable sized, but for now we only support
+         * 64-byte digests to match the behavior of our existing SHA hashes.
+         */
+        case S2N_HASH_SHAKE256_64: *out = 64; break;
         default:
             POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
@@ -129,6 +146,8 @@ bool s2n_hash_is_available(s2n_hash_algorithm alg)
         case S2N_HASH_SHA384:
         case S2N_HASH_SHA512:
             return true;
+        case S2N_HASH_SHAKE256_64:
+            return s2n_hash_supports_shake();
         case S2N_HASH_ALGS_COUNT:
             return false;
     }
@@ -222,6 +241,21 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         return S2N_SUCCESS;
+    }
+
+    if (state->alg == S2N_HASH_SHAKE256_64) {
+#if S2N_LIBCRYPTO_SUPPORTS_SHAKE
+        /* "XOF" stands for "extendable-output functions", and indicates a hash algorithm
+         * like SHAKE that can produce digests of any size. When using an XOF algorithm,
+         * EVP_DigestFinalXOF should be used instead of EVP_DigestFinal_ex.
+         * Calling the wrong digest method will error.
+         */
+        POSIX_GUARD_OSSL(EVP_DigestFinalXOF(state->digest.high_level.evp.ctx, out, digest_size),
+                S2N_ERR_HASH_DIGEST_FAILED);
+        return S2N_SUCCESS;
+#else
+        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+#endif
     }
 
     POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
