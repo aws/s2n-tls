@@ -1097,7 +1097,11 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    return conn->client_hello_version;
+    if (conn->client_hello.sslv2) {
+        return S2N_SSLv2;
+    } else {
+        return MIN(conn->client_hello.legacy_version, S2N_TLS12);
+    }
 }
 
 int s2n_connection_client_cert_used(struct s2n_connection *conn)

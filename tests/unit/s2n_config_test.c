@@ -1259,8 +1259,8 @@ int main(int argc, char **argv)
             server_conn->config = NULL;
 
             /* Record version and protocol version are in the header for SSLv2 */
-            server_conn->client_hello_version = S2N_SSLv2;
-            server_conn->client_protocol_version = S2N_TLS12;
+            server_conn->client_hello.sslv2 = true;
+            server_conn->client_hello.legacy_version = S2N_TLS12;
 
             /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
              * client hello callback. Therefore, we can assert that if we hit this error, we

@@ -31,12 +31,30 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#define get_client_hello_protocol_version(conn) (conn->client_hello_version == S2N_SSLv2 ? conn->client_protocol_version : conn->client_hello_version)
-
 typedef S2N_RESULT s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
 
 static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *shared_key);
+
+/*
+ *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.1
+ *#   client_version
+ *#      The latest (newest) version supported by the client.  This is
+ *#      used to detect version rollback attacks.
+ *
+ * However, TLS1.2 rsa kex does not account for the existence of TLS1.3.
+ * Therefore "latest" actually means "latest up to TLS1.2".
+ */
+static S2N_RESULT s2n_client_key_exchange_get_rsa_client_version(struct s2n_connection *conn,
+        uint8_t client_version[S2N_TLS_PROTOCOL_VERSION_LEN])
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(client_version);
+    uint8_t client_version_for_rsa = MIN(conn->client_protocol_version, S2N_TLS12);
+    client_version[0] = client_version_for_rsa / 10;
+    client_version[1] = client_version_for_rsa % 10;
+    return S2N_RESULT_OK;
+}
 
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
         s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
@@ -109,7 +127,6 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     S2N_ASYNC_PKEY_GUARD(conn);
 
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint16_t length = 0;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -120,13 +137,8 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     S2N_ERROR_IF(length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
-    /* Keep a copy of the client hello version in wire format, which should be
-     * either the protocol version supported by client if the supported version is <= TLS1.2,
-     * or TLS1.2 (the legacy version) if client supported version is TLS1.3
-     */
-    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
-    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
-    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_key_exchange_get_rsa_client_version(conn, protocol_version));
 
     /* Decrypt the pre-master secret */
     struct s2n_blob encrypted = { 0 };
@@ -136,8 +148,8 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* First: use a random pre-master secret */
     POSIX_GUARD_RESULT(s2n_get_private_random_data(shared_key));
-    conn->secrets.version.tls12.rsa_premaster_secret[0] = client_hello_protocol_version[0];
-    conn->secrets.version.tls12.rsa_premaster_secret[1] = client_hello_protocol_version[1];
+    conn->secrets.version.tls12.rsa_premaster_secret[0] = protocol_version[0];
+    conn->secrets.version.tls12.rsa_premaster_secret[1] = protocol_version[1];
 
     S2N_ASYNC_PKEY_DECRYPT(conn, &encrypted, shared_key, s2n_rsa_client_key_recv_complete);
 }
@@ -153,15 +165,13 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_faile
     }
 
     /* Get client hello protocol version for comparison with decrypted data */
-    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
-    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
-    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_key_exchange_get_rsa_client_version(conn, protocol_version));
 
     conn->handshake.rsa_failed = rsa_failed;
 
     /* Set rsa_failed to true, if it isn't already, if the protocol version isn't what we expect */
-    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version,
+    conn->handshake.rsa_failed |= !s2n_constant_time_equals(protocol_version,
             conn->secrets.version.tls12.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     /* Required to protect against Bleichenbacher attack.
@@ -169,8 +179,8 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_faile
      * We choose the first option: always setting the version in the rsa_premaster_secret
      * from our local view of the client_hello value.
      */
-    conn->secrets.version.tls12.rsa_premaster_secret[0] = client_hello_protocol_version[0];
-    conn->secrets.version.tls12.rsa_premaster_secret[1] = client_hello_protocol_version[1];
+    conn->secrets.version.tls12.rsa_premaster_secret[0] = protocol_version[0];
+    conn->secrets.version.tls12.rsa_premaster_secret[1] = protocol_version[1];
 
     return 0;
 }
@@ -260,10 +270,8 @@ int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
-    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
-    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_key_exchange_get_rsa_client_version(conn, protocol_version));
 
     shared_key->data = conn->secrets.version.tls12.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
@@ -274,7 +282,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2
      * for all clients, because TLS 1.3 clients freezes the TLS1.2 legacy version in client hello.
      */
-    POSIX_CHECKED_MEMCPY(conn->secrets.version.tls12.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
+    POSIX_CHECKED_MEMCPY(conn->secrets.version.tls12.rsa_premaster_secret, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     uint32_t encrypted_size = 0;
     POSIX_GUARD_RESULT(s2n_pkey_size(&conn->handshake_params.server_public_key, &encrypted_size));

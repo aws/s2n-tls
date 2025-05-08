@@ -119,7 +119,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     /* If the first bit is set then this is an SSLv2 record */
     if (conn->header_in.blob.data[0] & S2N_TLS_SSLV2_HEADER_FLAG) {
         *isSSLv2 = 1;
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_hello.legacy_version, &fragment_length)));
     } else {
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_header_parse(conn, record_type, &fragment_length)));
     }

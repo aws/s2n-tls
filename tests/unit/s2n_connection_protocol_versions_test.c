@@ -76,7 +76,7 @@ static int s2n_overwrite_client_hello_cb(struct s2n_connection *conn, void *ctx)
      * with a different version.
      */
     if (context->client_hello_version) {
-        conn->client_hello_version = context->client_hello_version;
+        conn->client_hello.legacy_version = context->client_hello_version;
         conn->client_protocol_version = context->client_hello_version;
     }
 
