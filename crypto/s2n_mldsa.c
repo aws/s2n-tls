@@ -54,7 +54,6 @@ S2N_RESULT s2n_mldsa_init_mu_hash(struct s2n_hash_state *state, const struct s2n
     RESULT_ENSURE_REF(state);
     RESULT_ENSURE_REF(pub_key);
     RESULT_ENSURE_REF(pub_key->pkey);
-    RESULT_ENSURE(s2n_mldsa_is_supported(), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 
     /* The required prefix must be the first data added to the hash */
     uint64_t currently_in_hash = 0;
@@ -67,6 +66,8 @@ S2N_RESULT s2n_mldsa_init_mu_hash(struct s2n_hash_state *state, const struct s2n
 #if S2N_LIBCRYPTO_SUPPORTS_MLDSA
     RESULT_GUARD_OSSL(EVP_PKEY_get_raw_public_key(pub_key->pkey, public_key_bytes, &public_key_size),
             S2N_ERR_HASH_INIT_FAILED);
+#else
+    RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 #endif
 
     /* Get the digest of the raw bytes of the public key.

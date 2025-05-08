@@ -243,8 +243,8 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         return S2N_SUCCESS;
     }
 
-#if S2N_LIBCRYPTO_SUPPORTS_SHAKE
     if (state->alg == S2N_HASH_SHAKE256_64) {
+#if S2N_LIBCRYPTO_SUPPORTS_SHAKE
         /* "XOF" stands for "extendable-output functions", and indicates a hash algorithm
          * like SHAKE that can produce digests of any size. When using an XOF algorithm,
          * EVP_DigestFinalXOF should be used instead of EVP_DigestFinal_ex.
@@ -253,8 +253,10 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         POSIX_GUARD_OSSL(EVP_DigestFinalXOF(state->digest.high_level.evp.ctx, out, digest_size),
                 S2N_ERR_HASH_DIGEST_FAILED);
         return S2N_SUCCESS;
-    }
+#else
+        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
 #endif
+    }
 
     POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
     POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
