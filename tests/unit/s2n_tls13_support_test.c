@@ -41,7 +41,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
-            
+
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
