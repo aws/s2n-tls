@@ -1592,6 +1592,7 @@ static S2N_RESULT s2n_signature_scheme_to_tls_iana(const struct s2n_signature_sc
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
+    *converted_scheme = S2N_TLS_HASH_NONE;
 
     switch (sig_scheme->hash_alg) {
         case S2N_HASH_MD5:
@@ -1615,7 +1616,9 @@ static S2N_RESULT s2n_signature_scheme_to_tls_iana(const struct s2n_signature_sc
         case S2N_HASH_MD5_SHA1:
             *converted_scheme = S2N_TLS_HASH_MD5_SHA1;
             break;
-        default:
+        case S2N_HASH_NONE:
+        case S2N_HASH_SHAKE256_64:
+        case S2N_HASH_ALGS_COUNT:
             *converted_scheme = S2N_TLS_HASH_NONE;
             break;
     }
@@ -1651,6 +1654,7 @@ static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(const struct s2n_s
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
+    *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
 
     switch (sig_scheme->sig_alg) {
         case S2N_SIGNATURE_RSA:
@@ -1665,7 +1669,11 @@ static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(const struct s2n_s
         case S2N_SIGNATURE_RSA_PSS_PSS:
             *converted_scheme = S2N_TLS_SIGNATURE_RSA_PSS_PSS;
             break;
-        default:
+        case S2N_SIGNATURE_ANONYMOUS:
+        /* TODO: add public value for ML-DSA when available for negotiation
+         * https://github.com/aws/s2n-tls/issues/5257
+         */
+        case S2N_SIGNATURE_MLDSA:
             *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
             break;
     }
