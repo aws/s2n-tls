@@ -96,7 +96,8 @@ extern struct s2n_security_policy_selection security_policy_selection[];
 extern const char *deprecated_security_policies[];
 extern const size_t deprecated_security_policies_len;
 
-/* Defaults as of 05/24 */
+/* Defaults as of 05/25 */
+extern const struct s2n_security_policy security_policy_20250416;
 extern const struct s2n_security_policy security_policy_20240501;
 extern const struct s2n_security_policy security_policy_20240502;
 extern const struct s2n_security_policy security_policy_20240503;
