@@ -216,7 +216,6 @@ struct s2n_config *s2n_fetch_default_config(void)
         fprintf(stderr, "DEBUG: Using s2n_default_tls13_config\n");
         return &s2n_default_tls13_config;
     }
-    // GOAL IS TO GET TO HERE? Currently returning true?
     if (s2n_is_in_fips_mode()) {
         fprintf(stderr, "DEBUG: Using s2n_default_fips_config\n");
         return &s2n_default_fips_config;
