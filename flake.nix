@@ -2,7 +2,7 @@
   description = "A flake for s2n-tls";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
     awslcfips2022.url = "github:dougch/aws-lc?ref=nixAWS-LC-FIPS-2.0.17";
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
@@ -15,7 +15,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
@@ -27,19 +27,20 @@
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
+        valgrind = import ./nix/valgrind.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
-          pkgs.valgrind
+          valgrind
           corretto
           pkgs.iproute2
           pkgs.apacheHttpd
           pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
-          pkgs.gdb
+        ] ++ (if pkgs.stdenv.isLinux then [ pkgs.gdb ] else [ ]) ++ [
           pkgs.tshark
 
           # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
@@ -52,8 +53,6 @@
           # Linters/Formatters
           pkgs.shellcheck
           pkgs.nixfmt
-          pkgs.python310Packages.pep8
-          pkgs.python310Packages.ipython
 
           # Rust
           pkgs.rustup
