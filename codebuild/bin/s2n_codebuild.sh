@@ -66,24 +66,36 @@ setup_apache_server() {
 }
 
 run_integration_v2_tests() {
+    # checks if the Apache-related integration test is being run
     setup_apache_server
+    # installs the current version of s2n (s2nc/s2nd) into a temporary directory
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
+    # generates a CMake-based build system inside the build/ directory
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
             -DBUILD_SHARED_LIBS=on \
-            -DS2N_INTEG_TESTS=on \
             -DPython3_EXECUTABLE=$(which python3)
+    # "Now build everything"
     cmake --build ./build --clean-first -- -j $(nproc)
+
+    # "doing a runtime check to verify which libcrypto library is actually linked to the s2nc and s2nd binaries"
     test_linked_libcrypto ./build/bin/s2nc
     test_linked_libcrypto ./build/bin/s2nd
+
+    # Ensure the s2nc and s2nd binaries are available
     cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
     cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
-    cd ./build/
-    for test_name in $TOX_TEST_NAME; do
-      test="${test_name//test_/}"
-      echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
-      ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
-    done
+
+    export PATH="$BASE_S2N_DIR/bin:$PATH"
+
+    cd tests/integrationv2
+
+    # Run tests — THIS replaces the old ctest loop
+    uv run pytest . \
+        --provider-version=${S2N_LIBCRYPTO} \
+        -rpfs -n auto \
+        --timeout=100 \
+        -o log_cli=true --log-cli-level=DEBUG
 }
 
 run_unit_tests() {

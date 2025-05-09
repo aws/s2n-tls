@@ -56,6 +56,17 @@ env:
 phases:
   pre_build:
     commands:
+      - apt-get update
+      - apt-get install -y gnutls-bin
+
+      - echo "Installing uv..."
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - export PATH="/root/.local/bin:$PATH"
+      - echo "Verifying uv install"
+      - uv --version
+      - uv venv
+      - uv pip install pytest>=8.3.4 pytest-rerunfailures>=15.0 pytest-xdist>=3.6.1 ruff>=0.9.7 sslyze>=6.1.0 pytest-timeout>=2.3.1
+
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
@@ -63,6 +74,8 @@ phases:
         fi
   build:
     commands:
+      - export PATH="$HOME/.cargo/bin:$PATH"
+      - uv --version   
       # e.g. awslc-fips-2022_gcc6
       - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
       # e.g. "test_cross_compatibility test_client_authentication"

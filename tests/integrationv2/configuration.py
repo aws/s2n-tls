@@ -65,8 +65,24 @@ MINIMAL_TEST_CERTS = [
     Certificates.ECDSA_521,
 ]
 
-
+# 1 of each authentication type + encryp
+# 1 of each cipher h mac (AES128_SHA), AES128_GCM_SHA256)
+# no every combination
+# test buffered send, we don't want to reduce for happy path (other way???)
 # List of all ciphers that will be tested.
+
+
+"""
+OVERALL SPEEEED
+make tests run in parallel?
+when tests run on nix, we don't have an issue of the parallel stuff ()
+- n auto in pytest is running stuff in parallel, also works in nix, doesn't work in codebuild (that's why it's slow), 
+nix and codebuild overlapping test cases because each can't run all of them
+
+QUESTIONS
+Should I use minimal test ciphers for every testcase except for happy_path
+Questions on notes
+"""
 ALL_TEST_CIPHERS = [
     Ciphers.DHE_RSA_AES128_SHA,
     Ciphers.DHE_RSA_AES256_SHA,
@@ -75,19 +91,21 @@ ALL_TEST_CIPHERS = [
     Ciphers.DHE_RSA_AES128_GCM_SHA256,
     Ciphers.DHE_RSA_AES256_GCM_SHA384,
     Ciphers.DHE_RSA_CHACHA20_POLY1305,
+
+    # what authentication is this???
     Ciphers.AES128_SHA,
     Ciphers.AES256_SHA,
     Ciphers.AES128_SHA256,
     Ciphers.AES256_SHA256,
-    Ciphers.AES128_GCM_SHA256,
-    Ciphers.AES256_GCM_SHA384,
-    Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256,
-    Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384,
-    Ciphers.ECDHE_ECDSA_AES128_SHA256,
-    Ciphers.ECDHE_ECDSA_AES256_SHA384,
+
     Ciphers.ECDHE_ECDSA_AES128_SHA,
     Ciphers.ECDHE_ECDSA_AES256_SHA,
+    Ciphers.ECDHE_ECDSA_AES128_SHA256,
+    Ciphers.ECDHE_ECDSA_AES256_SHA384,
+    Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256,
+    Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384,
     Ciphers.ECDHE_ECDSA_CHACHA20_POLY1305,
+
     Ciphers.ECDHE_RSA_AES128_SHA,
     Ciphers.ECDHE_RSA_AES256_SHA,
     Ciphers.ECDHE_RSA_AES128_SHA256,
@@ -95,6 +113,10 @@ ALL_TEST_CIPHERS = [
     Ciphers.ECDHE_RSA_AES128_GCM_SHA256,
     Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
     Ciphers.ECDHE_RSA_CHACHA20_POLY1305,
+
+    # List of TLS13 Ciphers
+    Ciphers.AES128_GCM_SHA256,
+    Ciphers.AES256_GCM_SHA384,
     Ciphers.CHACHA20_POLY1305_SHA256,
 ]
 
