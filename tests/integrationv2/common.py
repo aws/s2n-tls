@@ -754,7 +754,7 @@ class ProviderOptions(object):
         ocsp_response=None,
         signature_algorithm=None,
         record_size=None,
-        verbose=True,
+        verbose=None,
         echo=True,
     ):
         # Client or server

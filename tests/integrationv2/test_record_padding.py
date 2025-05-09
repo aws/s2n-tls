@@ -107,6 +107,7 @@ def test_s2n_server_handles_padded_records(
         insecure=True,
         protocol=protocol,
         extra_flags=["-record_padding", padding_size],
+        verbose=True,
     )
 
     server_options = copy.copy(client_options)
@@ -178,6 +179,7 @@ def test_s2n_client_handles_padded_records(
         protocol=protocol,
         data_to_send=server_random_bytes,
         extra_flags=["-record_padding", padding_size],
+        verbose=True,
     )
 
     client_options = copy.copy(server_options)

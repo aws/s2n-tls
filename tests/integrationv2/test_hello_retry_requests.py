@@ -74,6 +74,9 @@ def test_hrr_with_s2n_as_client(
     server_options.cert = certificate.cert
     server_options.extra_flags = None
     server_options.curve = curve
+    # We need the full bytes of the messages to find the specific
+    # ServerRandom bytes that indicate a HelloRetryRequest
+    server_options.verbose = True
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -86,6 +89,7 @@ def test_hrr_with_s2n_as_client(
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
+    # These are the special HelloRetryRequest bytes from the Server Random field
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
@@ -135,6 +139,9 @@ def test_hrr_with_s2n_as_server(
         curve=curve,
         extra_flags=["-msg", "-curves", "X448:" + str(curve)],
         protocol=protocol,
+        # We need the full bytes of the messages to find the specific
+        # ServerRandom bytes that indicate a HelloRetryRequest
+        verbose=True,
     )
 
     server_options = copy.copy(client_options)
@@ -214,6 +221,9 @@ def test_hrr_with_default_keyshare(
     server_options.cert = certificate.cert
     server_options.extra_flags = None
     server_options.curve = curve
+    # We need the full bytes of the messages to find the specific
+    # ServerRandom bytes that indicate a HelloRetryRequest
+    server_options.verbose = True
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -226,6 +236,7 @@ def test_hrr_with_default_keyshare(
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
+    # These are the special HelloRetryRequest bytes from the Server Random field
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
