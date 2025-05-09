@@ -187,14 +187,16 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    s2n_authentication_method conn_auth_method = conn->secure->cipher_suite->auth_method;
 
-    s2n_authentication_method auth_method;
-    POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type, &auth_method));
-
-    if (conn->secure->cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
-        S2N_ERROR_IF(auth_method != conn->secure->cipher_suite->auth_method, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    /* TLS1.3 cipher suites do not specify an auth type */
+    if (conn_auth_method == S2N_AUTHENTICATION_METHOD_SENTINEL) {
+        return S2N_SUCCESS;
     }
 
+    s2n_authentication_method cert_auth_method = 0;
+    POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type, &cert_auth_method));
+    POSIX_ENSURE(cert_auth_method == conn_auth_method, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     return S2N_SUCCESS;
 }
 

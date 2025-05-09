@@ -70,6 +70,11 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
+/* ML-DSA: post-quantum signature schemes */
+extern const struct s2n_signature_scheme s2n_mldsa44;
+extern const struct s2n_signature_scheme s2n_mldsa65;
+extern const struct s2n_signature_scheme s2n_mldsa87;
+
 extern const struct s2n_signature_preferences s2n_signature_preferences_20240501;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20230317;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;

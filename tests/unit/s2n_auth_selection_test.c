@@ -294,7 +294,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
         EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
         EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
+        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

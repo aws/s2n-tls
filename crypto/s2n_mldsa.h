@@ -18,6 +18,16 @@
 #include "crypto/s2n_pkey.h"
 #include "utils/s2n_result.h"
 
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+    #define S2N_NID_MLDSA44 NID_MLDSA44
+    #define S2N_NID_MLDSA65 NID_MLDSA65
+    #define S2N_NID_MLDSA87 NID_MLDSA87
+#else
+    #define S2N_NID_MLDSA44 NID_undef
+    #define S2N_NID_MLDSA65 NID_undef
+    #define S2N_NID_MLDSA87 NID_undef
+#endif
+
 /*
  * The draft ML-DSA PKI RFC
  * (https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-07.html)
