@@ -816,9 +816,9 @@ int main(int argc, char **argv)
         if (s2n_is_tls13_fully_supported()) {
             /* 20250211 */
             {
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "20250211", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
@@ -837,9 +837,9 @@ int main(int argc, char **argv)
 
             /* 20250414 */
             {
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250414", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "20250414", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
