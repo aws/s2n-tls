@@ -2,7 +2,7 @@
   description = "A flake for s2n-tls";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
     awslcfips2022.url = "github:dougch/aws-lc?ref=nixAWS-LC-FIPS-2.0.17";
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
@@ -12,18 +12,36 @@
     { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            permittedInsecurePackages = [
+              "openssl-1.1.1w"
+            ];
+          };
+        };
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips;
-        aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
+        # Only include aws-lc-fips on Linux platforms
+        aws-lc-fips-2022 = if pkgs.stdenv.isLinux then
+          awslcfips2022.packages.${system}.aws-lc-fips-2022
+        else
+          null;
+        aws-lc-fips-2024 = if pkgs.stdenv.isLinux then
+          awslcfips2024.packages.${system}.aws-lc-fips-2024
+        else
+          null;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
         # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
-        llvmPkgs = pkgs.llvmPackages_14;
+        llvmPkgs = pkgs.llvmPackages_15;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
-        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
+        # OpenSSL 1.0.2 is not supported on Apple Silicon (ARM64)
+        openssl_1_0_2 = if pkgs.stdenv.isDarwin && pkgs.stdenv.isAarch64 then
+          null
+        else
+          import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
@@ -32,22 +50,20 @@
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
-          pkgs.valgrind
           corretto
-          pkgs.iproute2
+          # Only include iproute2 on Linux platforms
+          (if pkgs.stdenv.isLinux then pkgs.iproute2 else null)
           pkgs.apacheHttpd
           pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
-          pkgs.gdb
+          # Only include gdb on Linux platforms
+          (if pkgs.stdenv.isLinux then pkgs.gdb else null)
           pkgs.tshark
 
-          # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
-          llvmPkgs.llvm
-          llvmPkgs.llvm-manpages
-          llvmPkgs.libclang
-          llvmPkgs.clang-manpages
-          llvmPkgs.lldb
+          # C Compiler Tooling: Using GCC instead of Clang
+          pkgs.gcc
+          pkgs.gdb
 
           # Linters/Formatters
           pkgs.shellcheck
@@ -71,14 +87,20 @@
           name = "s2n-tls";
           inherit system;
 
+          # Set GCC as the compiler for package builds
+          CC = "${pkgs.gcc}/bin/gcc";
+          CXX = "${pkgs.gcc}/bin/g++";
+
           nativeBuildInputs = [ pkgs.cmake ];
           buildInputs = [ pkgs.openssl_3 ];
 
           configurePhase = ''
             cmake -S . -B./build \
                   -DBUILD_SHARED_LIBS=ON \
-                  -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          ''; # TODO: set when system like aarch64/mips,etc
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  -DCMAKE_C_COMPILER=${pkgs.gcc}/bin/gcc \
+                  -DCMAKE_CXX_COMPILER=${pkgs.gcc}/bin/g++
+          ''; # Explicitly set GCC as the compiler for CMake
 
           buildPhase = ''
             cmake --build ./build -j $(nproc)
@@ -104,12 +126,17 @@
           buildInputs = [ pkgs.cmake openssl_3_0 ];
           packages = common_packages;
           S2N_LIBCRYPTO = "openssl-3.0";
-          OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
+          # Only set OPENSSL_1_0_2_INSTALL_DIR when OpenSSL 1.0.2 is available
+          OPENSSL_1_0_2_INSTALL_DIR =
+            if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
           OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
           OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
           AWSLC_INSTALL_DIR = "${aws-lc}";
-          AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
-          AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
+          AWSLC_FIPS_2022_INSTALL_DIR =
+            if pkgs.stdenv.isLinux then "${aws-lc-fips-2022}" else "";
+          AWSLC_FIPS_2024_INSTALL_DIR =
+            if pkgs.stdenv.isLinux then "${aws-lc-fips-2024}" else "";
+
           GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
           LIBRESSL_INSTALL_DIR = "${libressl}";
           # Integ s_client/server tests expect openssl 1.1.1.
@@ -151,8 +178,9 @@
             '';
           });
 
-        devShells.openssl102 = devShells.default.overrideAttrs
-          (finalAttrs: previousAttrs: {
+        # Only define openssl102 devShell when OpenSSL 1.0.2 is available (not on macOS ARM64)
+        devShells.openssl102 = if openssl_1_0_2 != null then
+          devShells.default.overrideAttrs (finalAttrs: previousAttrs: {
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake openssl_1_0_2 ];
             S2N_LIBCRYPTO = "openssl-1.0.2";
@@ -164,7 +192,9 @@
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
-          });
+          })
+        else
+          null;
 
         devShells.awslc = devShells.default.overrideAttrs
           (finalAttrs: previousAttrs: {
@@ -180,30 +210,44 @@
               source ${writeScript ./nix/shell.sh}
             '';
           });
-        devShells.awslcfips2022 = devShells.default.overrideAttrs
-          (finalAttrs: previousAttrs: {
-            # Re-include cmake to update the environment with a new libcrypto.
-            buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
-            S2N_LIBCRYPTO = "awslc-fips-2022";
-            shellHook = ''
-              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-              export PATH=${openssl_1_1_1}/bin:$PATH
-              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-              source ${writeScript ./nix/shell.sh}
-            '';
-          }); # Used to backup the devShell to s3 for caching.
-        devShells.awslcfips2024 = devShells.default.overrideAttrs
-          (finalAttrs: previousAttrs: {
-            # Re-include cmake to update the environment with a new libcrypto.
-            buildInputs = [ pkgs.cmake aws-lc-fips-2024 ];
-            S2N_LIBCRYPTO = "awslc-fips-2024";
-            shellHook = ''
-              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-              export PATH=${openssl_1_1_1}/bin:$PATH
-              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-              source ${writeScript ./nix/shell.sh}
-            '';
-          }); # Used to backup the devShell to s3 for caching.
+        # Only define awslcfips devShells on Linux platforms
+        devShells = rec {
+          inherit devShells;
+
+          # Conditionally define awslcfips2022 devShell
+          awslcfips2022 = if pkgs.stdenv.isLinux then
+            devShells.default.overrideAttrs (finalAttrs: previousAttrs: {
+              # Re-include cmake to update the environment with a new libcrypto.
+              buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
+              S2N_LIBCRYPTO = "awslc-fips-2022";
+              AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
+              shellHook = ''
+                echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+                export PATH=${openssl_1_1_1}/bin:$PATH
+                export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+                source ${writeScript ./nix/shell.sh}
+              '';
+            })
+          else
+            null; # Used to backup the devShell to s3 for caching.
+
+          # Conditionally define awslcfips2024 devShell
+          awslcfips2024 = if pkgs.stdenv.isLinux then
+            devShells.default.overrideAttrs (finalAttrs: previousAttrs: {
+              # Re-include cmake to update the environment with a new libcrypto.
+              buildInputs = [ pkgs.cmake aws-lc-fips-2024 ];
+              S2N_LIBCRYPTO = "awslc-fips-2024";
+              AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
+              shellHook = ''
+                echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+                export PATH=${openssl_1_1_1}/bin:$PATH
+                export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+                source ${writeScript ./nix/shell.sh}
+              '';
+            })
+          else
+            null; # Used to backup the devShell to s3 for caching.
+        };
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
