@@ -16,11 +16,19 @@ banner()
 function libcrypto_alias {
     local libcrypto_name="$1"
     local libcrypto_binary_path="$2"
+    # Check both bin and lib directories for the binary
+    local binary_dir=$(dirname "$libcrypto_binary_path")
+    local install_dir=$(dirname "$binary_dir")
+    local lib_binary_path="$install_dir/lib/$(basename $libcrypto_binary_path)"
+    
     if [[ -f "$libcrypto_binary_path" ]]; then
       alias "$libcrypto_name"="$libcrypto_binary_path"
       echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+    elif [[ -f "$lib_binary_path" ]]; then
+      alias "$libcrypto_name"="$lib_binary_path"
+      echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
     else
-      banner "Could not find libcrypto $libcrypto_binary_path for alias"
+      banner "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
 # Check if we're not on macOS (Darwin)
