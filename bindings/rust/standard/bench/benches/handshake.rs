@@ -21,7 +21,6 @@ fn bench_handshake_for_library<T>(
     T: TlsConnection,
     T::Config: TlsBenchConfig,
 {
-    // make configs before benching to reuse
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
 
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
