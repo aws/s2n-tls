@@ -1055,13 +1055,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(len, 2);
     };
 
-    /* cert type count is equal to 3 */
+    /* cert type count is equal to 4 */
     {
         /* The rust bindings have a constant - CHAINS_MAX_COUNT - which must be 
          * equal to S2N_CERT_TYPE_COUNT. If this test fails, CHAINS_MAX_COUNT in
          * config.rs must be updated. 
          */
-        EXPECT_EQUAL(S2N_CERT_TYPE_COUNT, 3);
+        EXPECT_EQUAL(S2N_CERT_TYPE_COUNT, 4);
     }
 
     END_TEST();

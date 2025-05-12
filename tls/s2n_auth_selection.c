@@ -49,6 +49,7 @@ int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authenticatio
         case S2N_PKEY_TYPE_ECDSA:
             *auth_method = S2N_AUTHENTICATION_ECDSA;
             return S2N_SUCCESS;
+        case S2N_PKEY_TYPE_MLDSA:
         case S2N_PKEY_TYPE_UNKNOWN:
         case S2N_PKEY_TYPE_SENTINEL:
             POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);

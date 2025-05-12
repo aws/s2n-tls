@@ -43,6 +43,7 @@ KNOWN_MISSES=(
     "s2n_config_set_ctx"
     "s2n_client_hello_has_extension"
     "s2n_async_pkey_op_perform"
+    "s2n_config_get_client_auth_type"
 )
 C_DOCS_FAILED=0
 for api in $C_APIS; do

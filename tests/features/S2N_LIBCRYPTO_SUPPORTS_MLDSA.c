@@ -13,20 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <cbmc_proof/cbmc_utils.h>
+#include <openssl/evp.h>
 
-#include "crypto/s2n_hash.h"
-
-#include <assert.h>
-
-void s2n_hash_digest_size_harness()
+int main()
 {
-    /* Non-deterministic inputs. */
-    s2n_hash_algorithm alg;
-    uint8_t *          out = malloc(sizeof(*out));
-
-    /* Operation under verification. */
-    if (s2n_hash_digest_size(alg, out) == S2N_SUCCESS) {
-        assert(*out <= S2N_MAX_DIGEST_LEN);
-    }
+    int evp_pkey_id = EVP_PKEY_PQDSA;
+    /* Required to calculate the mu hash for ML-DSA */
+    EVP_PKEY_get_raw_public_key(NULL, NULL, NULL);
+    return 0;
 }
