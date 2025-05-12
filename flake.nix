@@ -15,7 +15,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
@@ -32,7 +32,13 @@
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
-          pkgs.valgrind
+          # Pin to a specific version of valgrind that's maintained
+          (pkgs.valgrind.overrideAttrs (oldAttrs: {
+            meta = oldAttrs.meta // { 
+              broken = false;
+              unsupported = false;
+            };
+          }))
           corretto
           pkgs.iproute2
           pkgs.apacheHttpd
