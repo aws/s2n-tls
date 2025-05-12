@@ -27,7 +27,7 @@ let
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-      source ${writeScript ./nix/shell.sh}
+      source ${writeScript ./shell.sh}
     '';
   };
 
@@ -42,7 +42,7 @@ let
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-      source ${writeScript ./nix/shell.sh}
+      source ${writeScript ./shell.sh}
     '';
   });
 
@@ -57,7 +57,7 @@ let
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-      source ${writeScript ./nix/shell.sh}
+      source ${writeScript ./shell.sh}
     '';
   });
 
@@ -73,7 +73,7 @@ let
         echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
         export PATH=${openssl_1_1_1}/bin:$PATH
         export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-        source ${writeScript ./nix/shell.sh}
+        source ${writeScript ./shell.sh}
       '';
     })
   else
@@ -90,7 +90,7 @@ let
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-      source ${writeScript ./nix/shell.sh}
+      source ${writeScript ./shell.sh}
     '';
   });
 
@@ -105,7 +105,7 @@ let
         echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
         export PATH=${openssl_1_1_1}/bin:$PATH
         export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-        source ${writeScript ./nix/shell.sh}
+        source ${writeScript ./shell.sh}
       '';
     })
   else
@@ -122,7 +122,7 @@ let
         echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
         export PATH=${openssl_1_1_1}/bin:$PATH
         export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-        source ${writeScript ./nix/shell.sh}
+        source ${writeScript ./shell.sh}
       '';
     })
   else

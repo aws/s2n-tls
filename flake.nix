@@ -3,13 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    flake-utils.url = "github:numtide/flake-utils";
     awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
     awslcfips2022.url = "github:dougch/aws-lc?ref=nixAWS-LC-FIPS-2.0.17";
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };
 
   outputs =
-    { self, nix, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
+    { self, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -76,7 +77,7 @@
           pkgs.which
         ];
         writeScript = path:
-          pkgs.writeScript (baseNameOf path) (builtins.readFile path);
+          pkgs.writeScript (baseNameOf path) (builtins.readFile (toString path));
       in rec {
         packages.s2n-tls = pkgs.stdenv.mkDerivation {
           src = self;
