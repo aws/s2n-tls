@@ -9,8 +9,7 @@
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };
 
-  outputs =
-    { self, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
+  outputs = { self, nixpkgs, awslc, awslcfips2022, awslcfips2024, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -77,7 +76,8 @@
           pkgs.which
         ];
         writeScript = path:
-          pkgs.writeScript (baseNameOf path) (builtins.readFile (toString path));
+          pkgs.writeScript (baseNameOf path)
+          (builtins.readFile (toString path));
       in rec {
         packages.s2n-tls = pkgs.stdenv.mkDerivation {
           src = self;
@@ -115,8 +115,9 @@
         };
         # Import devShells from the separate module
         devShells = import ./nix/devshells.nix {
-          inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1 openssl_3_0
-                  libressl aws-lc aws-lc-fips-2022 aws-lc-fips-2024 writeScript;
+          inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1
+            openssl_3_0 libressl aws-lc aws-lc-fips-2022 aws-lc-fips-2024
+            writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
