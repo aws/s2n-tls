@@ -878,11 +878,10 @@ class GnuTLS(Provider):
             "--port",
             str(self.options.port),
             self.options.host,
-            "--debug",
-            "9999",
         ]
 
-        if self.options.verbose:
+        # Most GnuTLS tests expect verbose output, so default to True.
+        if self.options.verbose is not False:
             cmd_line.append("--verbose")
 
         if self.options.cert and self.options.key:
@@ -913,7 +912,6 @@ class GnuTLS(Provider):
             "gnutls-serv",
             f"--port={self.options.port}",
             "--echo",
-            "--debug=9999",
         ]
 
         if self.options.cert is not None:
