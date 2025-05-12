@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* TLS1.3 is supported by default_fips */
-    if (s2n_is_fips_enabled()){
+    if (s2n_is_in_fips_mode()){
         /* Client does support or configure TLS 1.3 */
         {
             struct s2n_connection *conn = NULL;
