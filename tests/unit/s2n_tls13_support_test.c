@@ -62,6 +62,11 @@ int main(int argc, char **argv)
     /* TLS1.3 is not supported by default */
     else
     {
+
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+        /* TLS 1.3 is not used by default */
+        EXPECT_FALSE(s2n_use_default_tls13_config());
         /* Client does not support or configure TLS 1.3 */
         {
             struct s2n_connection *conn = NULL;
