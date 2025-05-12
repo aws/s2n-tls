@@ -14,11 +14,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          config = {
-            permittedInsecurePackages = [
-              "openssl-1.1.1w"
-            ];
-          };
+          config = { permittedInsecurePackages = [ "openssl-1.1.1w" ]; };
         };
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
