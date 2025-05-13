@@ -12,7 +12,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_cookie.h"
@@ -28,45 +27,12 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    /* TLS1.3 is supported by default_fips */
-    if (s2n_is_in_fips_mode()){
-        /* Client does support or configure TLS 1.3 */
-        {
-            struct s2n_connection *conn = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
-            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
-
-            const struct s2n_security_policy *security_policy = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        };
-
-        /* Server does support or configure TLS 1.3 */
-        {
-            struct s2n_connection *conn = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-            EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
-
-            const struct s2n_security_policy *security_policy = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        };
-    }
-    /* TLS1.3 is not supported by default */
-    else
+    /* TLS 1.3 is not used by default */
+    EXPECT_FALSE(s2n_use_default_tls13_config());
     {
-
-        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-        /* TLS 1.3 is not used by default */
-        EXPECT_FALSE(s2n_use_default_tls13_config());
         /* Client does not support or configure TLS 1.3 */
         {
             struct s2n_connection *conn = NULL;

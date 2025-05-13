@@ -289,6 +289,7 @@ int main(int argc, char **argv)
     {
         char tls12_only_security_policy_strings[][255] = {
             "default",
+            "default_fips",
             "ELBSecurityPolicy-TLS-1-0-2015-04",
             "ELBSecurityPolicy-TLS-1-0-2015-05",
             "ELBSecurityPolicy-2016-08",
