@@ -18,6 +18,7 @@
 int main()
 {
     int evp_pkey_id = EVP_PKEY_PQDSA;
+    int nids[] = { NID_MLDSA44, NID_MLDSA65, NID_MLDSA87 };
     /* Required to calculate the mu hash for ML-DSA */
     EVP_PKEY_get_raw_public_key(NULL, NULL, NULL);
     return 0;

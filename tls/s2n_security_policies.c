@@ -1231,6 +1231,17 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls13,
     .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_all,
+    .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_20200207 = {
+    .minimum_protocol_version = S2N_SSLv3,
+    .cipher_preferences = &cipher_preferences_test_all_tls13,
+    .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
     .rules = {
@@ -1362,7 +1373,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20190122", .security_policy = &security_policy_20190122, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20190801", .security_policy = &security_policy_20190801, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20190802", .security_policy = &security_policy_20190802, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "20200207", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20200207", .security_policy = &security_policy_20200207, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20201021", .security_policy = &security_policy_20201021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20210816", .security_policy = &security_policy_20210816, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20210816_GCM", .security_policy = &security_policy_20210816_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
