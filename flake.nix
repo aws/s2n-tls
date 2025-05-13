@@ -51,13 +51,11 @@
           pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
-          # Only include gdb on Linux platforms
-          (if pkgs.stdenv.isLinux then pkgs.gdb else null)
           pkgs.tshark
 
           # C Compiler Tooling
           pkgs.gcc
-          pkgs.gdb
+          (if pkgs.stdenv.isLinux then pkgs.gdb else null)
 
           # Linters/Formatters
           pkgs.shellcheck
