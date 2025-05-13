@@ -18,6 +18,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_signature.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
@@ -204,6 +205,35 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
     .minimum_protocol_version = S2N_TLS12,
 };
 
+/* ML-DSA: post-quantum signature schemes */
+
+const struct s2n_signature_scheme s2n_mldsa44 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA44,
+    .iana_name = "mldsa44",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA44,
+    .minimum_protocol_version = S2N_TLS13,
+};
+
+const struct s2n_signature_scheme s2n_mldsa65 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA65,
+    .iana_name = "mldsa65",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA65,
+    .minimum_protocol_version = S2N_TLS13,
+};
+
+const struct s2n_signature_scheme s2n_mldsa87 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA87,
+    .iana_name = "mldsa87",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA87,
+    .minimum_protocol_version = S2N_TLS13,
+};
+
 /* ALL signature schemes, including the legacy default s2n_rsa_pkcs1_md5_sha1 scheme.
  * New signature schemes must be added to this list.
  */
@@ -225,6 +255,9 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_all[] = {
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
     &s2n_rsa_pss_pss_sha512,
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_all = {
