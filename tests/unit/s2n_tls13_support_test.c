@@ -12,6 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_cookie.h"
@@ -27,11 +28,12 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* TLS 1.3 is not used by default */
     EXPECT_FALSE(s2n_use_default_tls13_config());
+
+    /* TLS1.3 is not supported or configured by default */
     {
         /* Client does not support or configure TLS 1.3 */
         {
