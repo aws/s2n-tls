@@ -18,24 +18,13 @@
         };
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
-        # Only include aws-lc-fips on Linux platforms
-        aws-lc-fips-2022 = if pkgs.stdenv.isLinux then
-          awslcfips2022.packages.${system}.aws-lc-fips-2022
-        else
-          null;
-        aws-lc-fips-2024 = if pkgs.stdenv.isLinux then
-          awslcfips2024.packages.${system}.aws-lc-fips-2024
-        else
-          null;
+        aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
+        aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
-        # OpenSSL 1.0.2 is not supported on Apple Silicon (ARM64)
-        openssl_1_0_2 = if pkgs.stdenv.isDarwin && pkgs.stdenv.isAarch64 then
-          null
-        else
-          import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
+        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
@@ -45,8 +34,7 @@
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
           corretto
-          # Only include iproute2 on Linux platforms
-          (if pkgs.stdenv.isLinux then pkgs.iproute2 else null)
+          pkgs.iproute2
           pkgs.apacheHttpd
           pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
@@ -55,7 +43,7 @@
 
           # C Compiler Tooling
           pkgs.gcc
-          (if pkgs.stdenv.isLinux then pkgs.gdb else null)
+          pkgs.gdb
 
           # Linters/Formatters
           pkgs.shellcheck

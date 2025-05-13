@@ -18,27 +18,12 @@ pkgs.stdenv.mkDerivation rec {
     x86_64-linux = ''
       ./config -d ${default_options}
     '';
-    # The Openssl102 Configure script appears to have a bug and won't recognize
-    # aarch64 as a supported platform when passed the '-d' flag.
-    # See the PR for more detail: https://github.com/aws/s2n-tls/pull/4045 
     aarch64-linux = ''
       ./config ${default_options}
     '';
-    x86_64-darwin = ''
-      # TODO: validation in future PR - nix checks fail without a definition.
-      ./config -d ${default_options}
-    '';
-    aarch64-darwin = ''
-      # OpenSSL 1.0.2 doesn't support Apple Silicon natively
-      # Use a more generic configuration that might work
-      ./Configure darwin64-x86_64-cc ${default_options}
-    '';
   }.${pkgs.stdenv.hostPlatform.system};
 
-  buildPhase = if pkgs.stdenv.isDarwin then ''
-    # Skip 'make depend' on macOS as it fails with "cannot use 'dependencies' output with multiple -arch options"
-    make -j $(nproc)
-  '' else ''
+  buildPhase = ''
     make depend -j $(nproc)
     make -j $(nproc)
   '';

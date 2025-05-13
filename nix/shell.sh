@@ -30,20 +30,17 @@ function libcrypto_alias {
       banner "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
-# Check if we're not on macOS (Darwin)
-if [[ "$(uname)" != "Darwin" ]]; then
-  libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
-  # Only set FIPS aliases if the environment variables are defined
-  if [[ -n "${AWSLC_FIPS_2022_INSTALL_DIR}" ]]; then
-    libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
-  fi
-  if [[ -n "${AWSLC_FIPS_2024_INSTALL_DIR}" ]]; then
-    libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
-  fi
-  # Only set other aliases if the environment variables are defined
-  if [[ -n "${LIBRESSL_INSTALL_DIR}" ]]; then
-    libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
-  fi
+libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
+# Only set FIPS aliases if the environment variables are defined
+if [[ -n "${AWSLC_FIPS_2022_INSTALL_DIR}" ]]; then
+  libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
+fi
+if [[ -n "${AWSLC_FIPS_2024_INSTALL_DIR}" ]]; then
+  libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
+fi
+# Only set other aliases if the environment variables are defined
+if [[ -n "${LIBRESSL_INSTALL_DIR}" ]]; then
+  libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 fi
 # Widely available libcrypto's
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
