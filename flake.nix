@@ -29,8 +29,6 @@
           null;
         # TODO: submit a flake PR
         corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
-        # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
-        llvmPkgs = pkgs.llvmPackages_15;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
         # OpenSSL 1.0.2 is not supported on Apple Silicon (ARM64)
@@ -57,7 +55,7 @@
           (if pkgs.stdenv.isLinux then pkgs.gdb else null)
           pkgs.tshark
 
-          # C Compiler Tooling: Using GCC instead of Clang
+          # C Compiler Tooling
           pkgs.gcc
           pkgs.gdb
 
