@@ -81,8 +81,8 @@
           inherit system;
 
           # Set GCC as the compiler for package builds
-          CC = "${pkgs.stdenv.cc.cc}";
-          CXX = "${pkgs.stdenv.cc.cxx}";
+          CC = "${pkgs.gcc}/bin/gcc";
+          CXX = "${pkgs.gcc}/bin/g++";
 
           nativeBuildInputs = [ pkgs.cmake ];
           buildInputs = [ pkgs.openssl_3 ];
