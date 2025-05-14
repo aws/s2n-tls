@@ -48,6 +48,7 @@
 
           # Linters/Formatters
           pkgs.shellcheck
+          # There are 2 nix formatters; use the old one for now.
           pkgs.nixfmt-classic
           pkgs.python310Packages.pep8
           pkgs.python310Packages.ipython
