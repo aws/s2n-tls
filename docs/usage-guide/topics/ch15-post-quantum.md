@@ -4,7 +4,7 @@ s2n-tls supports both post-quantum key exchange and post-quantum authentication 
 
 ## Key Exchange: ML-KEM / Kyber
 
-Currently, only [ML-KEM](https://csrc.nist.gov/pubs/fips/203) / [Kyber](https://pq-crystals.org/kyber/) are supported for key exchange. "ML-KEM" is the name given to the NIST standardized version of Kyber.
+Currently, only [ML-KEM](https://csrc.nist.gov/pubs/fips/203) / [Kyber](https://pq-crystals.org/kyber/) are supported for post-quantum key exchange. "ML-KEM" is the name given to the NIST standardized version of Kyber.
 
 Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.
 
