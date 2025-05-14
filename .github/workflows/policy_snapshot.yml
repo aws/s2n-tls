@@ -1,0 +1,46 @@
+name: Policy Snapshot Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+env:
+  GENERATE_SCRIPT: ./tests/policy_snapshot/generate.sh build/bin/policy
+  COMMITTED_SNAPSHOTS: ./tests/policy_snapshot/snapshots
+  GENERATED_SNAPSHOTS: ./tests/policy_snapshot/generated
+  
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout s2n-tls
+        uses: actions/checkout@v4
+
+      - name: build policy util
+        run: |
+          cmake -Bbuild
+          cmake --build build -j $(nproc)
+
+      - name: generate snapshots
+        run: |
+          mkdir $GENERATED_SNAPSHOTS
+          $GENERATE_SCRIPT $GENERATED_SNAPSHOTS
+      
+      - name: compare snapshots
+        run: |
+          diff -u $COMMITTED_SNAPSHOTS $GENERATED_SNAPSHOTS
+
+      - name: report failure
+        if: failure()
+        run: |
+          echo "Changes made to security policies!"
+          echo "Regenerate the snapshot files by rebuilding 'policy' and running: "
+          echo "  $GENERATE_SCRIPT $COMMITTED_SNAPSHOTS"
+          echo "and committing the results as part of your PR for review."
+          exit 1
+
