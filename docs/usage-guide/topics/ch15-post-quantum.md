@@ -12,7 +12,7 @@ Careful: An s2n-tls server that enables post-quantum cryptography will mandate p
 
 ## Authentication: ML-DSA
 
-Currently, only [ML-DSA](https://csrc.nist.gov/pubs/fips/204) is supported for authentication.
+Currently, only [ML-DSA](https://csrc.nist.gov/pubs/fips/204) is supported for post-quantum authentication.
 
 In order to use ML-DSA, you must configure s2n-tls to use an ML-DSA certificate, just as you would configure an RSA or ECDSA certificate. See [certificates](./ch09-certificates.md).
 
