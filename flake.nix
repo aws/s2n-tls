@@ -45,6 +45,7 @@
           # C Compiler Tooling; adding llvm/clang is an involved future task.
           pkgs.gcc
           pkgs.gdb
+          pkgs.valgrind
 
           # Linters/Formatters
           pkgs.shellcheck
