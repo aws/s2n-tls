@@ -17,17 +17,6 @@ pkgs.stdenv.mkDerivation rec {
         "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-linux-aarch64.tar.gz";
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
-    # TODO: The Mac versions will be validated in future darwin PR - nix still wants them defined.
-    x86_64-darwin = pkgs.fetchzip {
-      url =
-        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-x64.tar.gz";
-      sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
-    };
-    aarch64-darwin = pkgs.fetchzip {
-      url =
-        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-aarch64.tar.gz";
-      sha256 = "sha256-c2sYFd6aX8U5Q2c2refZYehBhPX9Id1h+zgUtox2s+k=";
-    };
   }.${pkgs.stdenv.hostPlatform.system} or (throw
     "No build profile setup for this platform: ${pkgs.stdenv.hostPlatform.system}");
 
@@ -35,8 +24,7 @@ pkgs.stdenv.mkDerivation rec {
   dontStrip = 1;
 
   buildInputs = with pkgs; [
-    # Only use autoPatchelfHook on Linux platforms
-    (if stdenv.isLinux then autoPatchelfHook else null)
+    autoPatchelfHook
     cpio
     cups
     file
@@ -68,9 +56,7 @@ pkgs.stdenv.mkDerivation rec {
 
   # Arm doesn't have this, and because Corretto was built elsewhere, we need
   # to change the interpreter: https://github.com/NixOS/patchelf
-  # Only set this on Linux platforms
-  autoPatchelfIgnoreMissingDeps =
-    if pkgs.stdenv.isLinux then [ "libasound.so.2" ] else [ ];
+  autoPatchelfIgnoreMissingDeps = [ "libasound.so.2" ];
 
   buildPhase = ''
     echo "Corretto is already built"

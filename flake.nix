@@ -42,7 +42,7 @@
           pkgs.gnutls
           pkgs.tshark
 
-          # C Compiler Tooling
+          # C Compiler Tooling; adding llvm/clang is an involved future task.
           pkgs.gcc
           pkgs.gdb
 
