@@ -21,7 +21,7 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
 }
 
 #[test_log::test(tokio::test)]
-async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_client() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -64,7 +64,7 @@ async fn tls_client() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test_log::test(tokio::test)]
-async fn tls_server() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_server() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
