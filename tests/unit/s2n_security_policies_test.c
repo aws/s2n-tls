@@ -908,7 +908,6 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
-                &security_policy_20250416,
             };
 
             const struct s2n_supported_cert supported_certs[] = {
