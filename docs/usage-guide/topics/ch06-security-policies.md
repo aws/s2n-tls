@@ -30,6 +30,7 @@ The following chart maps the security policy version to protocol version and cip
 |    default    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 | default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 | default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+|   20250422    |        |        |        |    X   |         |    X    |            |      |     |     |   X   |        |
 |   20240501    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240502    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240503    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
@@ -88,6 +89,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |   X   |              |    X    |
 | default_fips  |     X     |   X   |              |    X    |
 | default_tls13 |     X     |   X   |              |    X    |
+|   20250422    |     X     |   X   |              |    X    |
 |   20240501    |     X     |   X   |              |    X    |
 |   20240502    |     X     |   X   |              |    X    |
 |   20240503    |     X     |   X   |              |    X    |
@@ -123,6 +125,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |     X     |    X   |
 | default_fips  |     X     |     X     |        |
 | default_tls13 |     X     |     X     |    X   |
+|   20250422    |     X     |     X     |        |
 |   20240501    |     X     |     X     |    X   |
 |   20240502    |     X     |     X     |        |
 |   20240503    |     X     |     X     |    X   |
