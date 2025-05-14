@@ -19,7 +19,8 @@ let
     OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
     OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
     AWSLC_INSTALL_DIR = "${aws-lc}";
-
+    AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
+    AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
     GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
     LIBRESSL_INSTALL_DIR = "${libressl}";
     # Integ s_client/server tests expect openssl 1.1.1.
@@ -94,7 +95,6 @@ let
     # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = [ pkgs.cmake aws-lc-fips-2022 ];
     S2N_LIBCRYPTO = "awslc-fips-2022";
-    AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
@@ -107,7 +107,6 @@ let
     # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = [ pkgs.cmake aws-lc-fips-2024 ];
     S2N_LIBCRYPTO = "awslc-fips-2024";
-    AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
