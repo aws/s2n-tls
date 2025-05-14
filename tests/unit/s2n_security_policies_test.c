@@ -346,6 +346,7 @@ int main(int argc, char **argv)
             "default_tls13",
             "test_all",
             "test_all_tls13",
+            "20250422",
             "20190801",
             "20190802",
             "KMS-TLS-1-2-2023-06",
