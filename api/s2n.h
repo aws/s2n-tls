@@ -2650,6 +2650,7 @@ typedef enum {
     S2N_TLS_SIGNATURE_ANONYMOUS = 0,
     S2N_TLS_SIGNATURE_RSA = 1,
     S2N_TLS_SIGNATURE_ECDSA = 3,
+    S2N_TLS_SIGNATURE_MLDSA = 9,
 
     /* Use Private Range for RSA PSS since it's not defined there */
     S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
@@ -3482,6 +3483,9 @@ S2N_API extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op
  *
  * When signing, the input is the digest to sign.
  * When decrypting, the input is the data to decrypt.
+ * 
+ * When signing with ML-DSA, the input is the "external mu" pre-hash value described in
+ * https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D
  *
  * # Safety
  * * `data` must be sufficiently large to contain the input.

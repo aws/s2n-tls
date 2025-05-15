@@ -97,6 +97,19 @@ const struct s2n_security_policy security_policy_20241001 = {
     },
 };
 
+/* 20241001, but with ML-DSA added */
+const struct s2n_security_policy security_policy_20250512 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2019,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .signature_preferences = &s2n_signature_preferences_20250512,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250512,
+    .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
 const struct s2n_security_policy security_policy_20241001_pq_mixed = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2019,
@@ -1269,7 +1282,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "default", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_pq", .security_policy = &security_policy_20241001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_pq", .security_policy = &security_policy_20250512, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250416", .security_policy = &security_policy_20250416, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241106", .security_policy = &security_policy_20241106, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240501", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1281,6 +1294,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20240416", .security_policy = &security_policy_20240416, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240730", .security_policy = &security_policy_20240730, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241001", .security_policy = &security_policy_20241001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20250512", .security_policy = &security_policy_20250512, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241001_pq_mixed", .security_policy = &security_policy_20241001_pq_mixed, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */

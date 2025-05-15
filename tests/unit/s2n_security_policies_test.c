@@ -931,16 +931,69 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &default_tls13));
         EXPECT_EQUAL(default_tls13->kem_preferences, &kem_preferences_null);
 
-        /* If we ignore kem preferences, the two policies match */
+        /* Except for PQ algorithms, the two policies should match */
+
+        /* Most fields can be compared directly. We just ignore kem_preferences. */
         EXPECT_EQUAL(default_pq->minimum_protocol_version, default_tls13->minimum_protocol_version);
         EXPECT_EQUAL(default_pq->cipher_preferences, default_tls13->cipher_preferences);
-        EXPECT_EQUAL(default_pq->signature_preferences, default_tls13->signature_preferences);
-        EXPECT_EQUAL(default_pq->certificate_signature_preferences,
-                default_tls13->certificate_signature_preferences);
         EXPECT_EQUAL(default_pq->ecc_preferences, default_tls13->ecc_preferences);
         EXPECT_EQUAL(default_pq->certificate_key_preferences, default_tls13->certificate_key_preferences);
         EXPECT_EQUAL(default_pq->certificate_preferences_apply_locally,
                 default_tls13->certificate_preferences_apply_locally);
+
+        /* The signature preferences match,
+         * EXCEPT for the added PQ algorithms, which should come first.
+         */
+        {
+            const struct s2n_signature_preferences *pq_sig_prefs = default_pq->signature_preferences;
+            const struct s2n_signature_preferences *tls13_sig_prefs = default_tls13->signature_preferences;
+
+            /* Count how many PQ sig schemes */
+            size_t pq_count = 0;
+            while (pq_count < pq_sig_prefs->count) {
+                if (pq_sig_prefs->signature_schemes[pq_count]->sig_alg
+                        == S2N_SIGNATURE_MLDSA) {
+                    pq_count++;
+                } else {
+                    break;
+                }
+            }
+            EXPECT_TRUE(pq_count > 0);
+
+            /* Compare the two preference lists, minus the PQ sig schemes */
+            EXPECT_EQUAL(pq_sig_prefs->count - pq_count, tls13_sig_prefs->count);
+            for (size_t i = 0; i < default_tls13->signature_preferences->count; i++) {
+                EXPECT_EQUAL(pq_sig_prefs->signature_schemes[i + pq_count],
+                        tls13_sig_prefs->signature_schemes[i]);
+            }
+        }
+
+        /* The certificate signature preferences match,
+         * EXCEPT for the added PQ algorithms, which should come first.
+         */
+        {
+            const struct s2n_signature_preferences *pq_sig_prefs = default_pq->certificate_signature_preferences;
+            const struct s2n_signature_preferences *tls13_sig_prefs = default_tls13->certificate_signature_preferences;
+
+            /* Count how many PQ sig schemes */
+            size_t pq_count = 0;
+            while (pq_count < pq_sig_prefs->count) {
+                if (pq_sig_prefs->signature_schemes[pq_count]->sig_alg
+                        == S2N_SIGNATURE_MLDSA) {
+                    pq_count++;
+                } else {
+                    break;
+                }
+            }
+            EXPECT_TRUE(pq_count > 0);
+
+            /* Compare the two preference lists, minus the PQ sig schemes */
+            EXPECT_EQUAL(pq_sig_prefs->count - pq_count, tls13_sig_prefs->count);
+            for (size_t i = 0; i < default_tls13->signature_preferences->count; i++) {
+                EXPECT_EQUAL(pq_sig_prefs->signature_schemes[i + pq_count],
+                        tls13_sig_prefs->signature_schemes[i]);
+            }
+        }
     };
 
     END_TEST();
