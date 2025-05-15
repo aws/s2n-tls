@@ -40,6 +40,7 @@ const char *sig_alg_strs[] = {
     [S2N_TLS_SIGNATURE_ECDSA] = "ECDSA",
     [S2N_TLS_SIGNATURE_RSA_PSS_RSAE] = "RSA-PSS-RSAE",
     [S2N_TLS_SIGNATURE_RSA_PSS_PSS] = "RSA-PSS-PSS",
+    [S2N_TLS_SIGNATURE_MLDSA] = "MLDSA",
 };
 
 const char *sig_hash_strs[] = {
