@@ -189,6 +189,7 @@ pub enum SignatureAlgorithm {
     RSA_PSS_RSAE,
     RSA_PSS_PSS,
     ECDSA,
+    MLDSA,
 }
 
 impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
@@ -200,6 +201,7 @@ impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
             s2n_tls_signature_algorithm::RSA_PSS_RSAE => Self::RSA_PSS_RSAE,
             s2n_tls_signature_algorithm::RSA_PSS_PSS => Self::RSA_PSS_PSS,
             s2n_tls_signature_algorithm::ECDSA => Self::ECDSA,
+            s2n_tls_signature_algorithm::MLDSA => Self::MLDSA,
             _ => return Err(Error::INVALID_INPUT),
         };
         Ok(version)

@@ -75,6 +75,7 @@ extern const struct s2n_signature_scheme s2n_mldsa44;
 extern const struct s2n_signature_scheme s2n_mldsa65;
 extern const struct s2n_signature_scheme s2n_mldsa87;
 
+extern const struct s2n_signature_preferences s2n_signature_preferences_20250512;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20240501;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20230317;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;
@@ -89,4 +90,5 @@ extern const struct s2n_signature_preferences s2n_signature_preferences_null;
 extern const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips;
 extern const struct s2n_signature_preferences s2n_signature_preferences_all;
 
+extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250512;
 extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110;

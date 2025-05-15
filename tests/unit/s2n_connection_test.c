@@ -302,6 +302,7 @@ int main(int argc, char **argv)
             [S2N_SIGNATURE_ECDSA] = S2N_TLS_SIGNATURE_ECDSA,
             [S2N_SIGNATURE_RSA_PSS_RSAE] = S2N_TLS_SIGNATURE_RSA_PSS_RSAE,
             [S2N_SIGNATURE_RSA_PSS_PSS] = S2N_TLS_SIGNATURE_RSA_PSS_PSS,
+            [S2N_SIGNATURE_MLDSA] = S2N_TLS_SIGNATURE_MLDSA,
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
