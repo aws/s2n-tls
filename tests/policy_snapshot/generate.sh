@@ -3,7 +3,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -eu
 
 SNAPSHOTS_DIR_DEFAULT="./tests/policy_snapshot/snapshots"
 SECURITY_POLICIES_C_DEFAULT="./tls/s2n_security_policies.c"
