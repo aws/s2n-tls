@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.18-2a5844a3</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.18-b333aa4c</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -265,9 +265,10 @@ Enumerations</h2></td></tr>
 &#160;&#160;<b>S2N_TLS_SIGNATURE_ANONYMOUS</b> = 0
 , <b>S2N_TLS_SIGNATURE_RSA</b> = 1
 , <b>S2N_TLS_SIGNATURE_ECDSA</b> = 3
-, <b>S2N_TLS_SIGNATURE_RSA_PSS_RSAE</b> = 224
+, <b>S2N_TLS_SIGNATURE_MLDSA</b> = 9
 , <br />
-&#160;&#160;<b>S2N_TLS_SIGNATURE_RSA_PSS_PSS</b>
+&#160;&#160;<b>S2N_TLS_SIGNATURE_RSA_PSS_RSAE</b> = 224
+, <b>S2N_TLS_SIGNATURE_RSA_PSS_PSS</b>
 <br />
  }</td></tr>
 <tr class="separator:a9812997751f63ac2d5ab70852792a689"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1937,6 +1938,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Returns the input to the private key operation.</p>
 <p >When signing, the input is the digest to sign. When decrypting, the input is the data to decrypt.</p>
+<p >When signing with ML-DSA, the input is the "external mu" pre-hash value described in <a href="https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D">https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D</a></p>
 <h1><a class="anchor" id="autotoc_md15"></a>
 Safety</h1>
 <ul>
