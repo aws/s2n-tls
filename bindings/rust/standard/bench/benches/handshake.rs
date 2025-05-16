@@ -21,20 +21,19 @@ fn bench_handshake_for_library<T>(
     T: TlsConnection,
     T::Config: TlsBenchConfig,
 {
-    // make configs before benching to reuse
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
-    let client_config =
-        T::Config::make_config(Mode::Client, crypto_config, handshake_type).unwrap();
-    let server_config =
-        T::Config::make_config(Mode::Server, crypto_config, handshake_type).unwrap();
 
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || -> TlsConnPair<T, T> { TlsConnPair::from_configs(&client_config, &server_config) },
+            || -> TlsConnPair<T, T> { TlsConnPair::new_bench_pair(crypto_config, handshake_type).unwrap() },
             |conn_pair| {
                 conn_pair.handshake().unwrap();
+                match handshake_type {
+                    HandshakeType::ServerAuth | HandshakeType::MutualAuth => assert!(!conn_pair.server.resumed_connection()),
+                    HandshakeType::Resumption => assert!(conn_pair.server.resumed_connection()),
+                }
             },
             BatchSize::SmallInput,
         )
