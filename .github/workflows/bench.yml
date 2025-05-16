@@ -41,7 +41,7 @@ jobs:
       - name: Configure AWS Credentials
         # Only continue with the workflow to emit metrics on code that has been merged to main.
         if: github.event_name != 'pull_request'
-        uses: aws-actions/configure-aws-credentials@v4.2.0
+        uses: aws-actions/configure-aws-credentials@v4.2.1
         with:
           role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
           role-session-name: s2ntlsghabenchsession
