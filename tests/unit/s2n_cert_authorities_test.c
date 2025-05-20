@@ -402,5 +402,21 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Safety Test: s2n_certificate_request_get_ca_list */
+    {
+        EXPECT_NULL(s2n_certificate_request_get_ca_list(NULL));
+    };
+
+    /* Safety Test: s2n_certificate_request_set_certificate */
+    {
+        /* Note: NULL for the 2nd argument is tested in s2n_mutual_auth. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_certificate_request_set_certificate(NULL, NULL), S2N_ERR_INVALID_ARGUMENT);
+    };
+
+    /* Safety Test: s2n_certificate_authority_list_has_next */
+    {
+        EXPECT_FALSE(s2n_certificate_authority_list_has_next(NULL));
+    };
+
     END_TEST();
 }
