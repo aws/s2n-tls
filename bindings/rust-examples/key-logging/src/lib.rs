@@ -66,10 +66,6 @@ impl TlsKeyLogger {
     }
 }
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
     use s2n_tls::{config::Config, security::DEFAULT_TLS13};
