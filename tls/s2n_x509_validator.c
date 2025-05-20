@@ -648,6 +648,12 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
+#ifdef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+static int no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids) {
+    return 1;
+}
+#endif
+
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
@@ -700,6 +706,23 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
      * allows the libcrypto to trust certificates in the trust store that aren't root certificates.
      */
     X509_STORE_CTX_set_flags(validator->store_ctx, X509_V_FLAG_PARTIAL_CHAIN);
+
+#ifdef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+    /* Custom critical oids are only supported when AWSLC_API_VERSION >= 34.
+     * See https://github.com/aws/aws-lc/pull/2426
+     */
+    if (conn->config->custom_crit_oids) {
+        size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_crit_oids);
+        for (size_t i = 0; i < custom_oid_count; i++) {
+            ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_crit_oids, i);
+            RESULT_ENSURE_REF(critical_oid);
+            if (!X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid)) {
+                RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+            }
+        }
+        X509_STORE_CTX_set_verify_crit_oids(validator->store_ctx, no_op_verify_custom_crit_oids_cb);
+    }
+#endif
 
     int verify_ret = X509_verify_cert(validator->store_ctx);
     if (verify_ret <= 0) {

@@ -125,6 +125,10 @@ static int s2n_config_cleanup(struct s2n_config *config)
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
 
+    if (config->custom_crit_oids) {
+        sk_ASN1_OBJECT_pop_free(config->custom_crit_oids, ASN1_OBJECT_free);
+    }
+
     POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
     POSIX_GUARD(s2n_config_free_cert_chain_and_key(config));
     POSIX_GUARD(s2n_config_free_dhparams(config));
@@ -803,6 +807,29 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
             break;
         default:
             POSIX_BAIL(S2N_ERR_UNRECOGNIZED_EXTENSION);
+    }
+
+    return 0;
+}
+
+int s2n_config_set_custom_critical_oids(struct s2n_config *config, const char *const *custom_critical_oids, uint32_t custom_oid_count) {
+    POSIX_ENSURE_REF(config);
+
+#ifndef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+    POSIX_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+#endif
+
+    if (config->custom_crit_oids != NULL) {
+        sk_ASN1_OBJECT_pop_free(config->custom_crit_oids, ASN1_OBJECT_free);
+    }
+    config->custom_crit_oids = sk_ASN1_OBJECT_new_null();
+
+    for (uint32_t i = 0; i < custom_oid_count; i++) {
+        ASN1_OBJECT *critical_oid = OBJ_txt2obj(custom_critical_oids[i], 1);
+
+        if (!sk_ASN1_OBJECT_push(config->custom_crit_oids, critical_oid)) {
+            POSIX_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        }
     }
 
     return 0;

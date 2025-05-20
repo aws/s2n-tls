@@ -1059,6 +1059,19 @@ S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *
 S2N_API extern int s2n_config_disable_x509_verification(struct s2n_config *config);
 
 /**
+ * Adds custom oids that allow users to perform additional validation on custom critical extensions.
+ * 
+ * # Safety
+ * 
+ * Users MUST validate their custom OIDs in the cert validation callback or after the handshake.
+ *
+ * @param config The configuration object being updated
+ * @param custom_critical_oids The list of custom critical oids
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_custom_critical_oids(struct s2n_config *config, const char *const *custom_critical_oids, uint32_t custom_oid_count);
+
+/**
  * Sets the maximum allowed depth of a cert chain used for X509 validation. The default value is
  * 7. If this limit is exceeded, validation will fail if s2n_config_disable_x509_verification()
  * has not been called. 0 is an illegal value and will return an error.
