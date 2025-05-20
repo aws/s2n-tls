@@ -1,6 +1,6 @@
 //! This example shows how to setup key logging for our rust bindings.
 //!
-//! The builds off the the basic client and server configuration, so be sure to
+//! This builds off the the basic client and server configuration, so be sure to
 //! first check out the `tokio-server-client` example if you are generally unfamiliar
 //! with s2n-tls APIs.
 
