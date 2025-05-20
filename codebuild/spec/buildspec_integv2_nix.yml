@@ -15,9 +15,12 @@ env:
       ocsp external_psk pq_handshake serialization
       signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
       fragmentation key_update session_resumption version_negotiation
-    # Excluded in nix:
+    # Excluded in with nix:
     # - dynamic_record_sizes (fails on aarch64)
-    # - sslyze (tooling not available on aarch64)
+
+    # Run with uv/pytest and not ctest
+    INTEG_UV_TESTS:
+      sslyze
 
 batch:
   build-graph:
@@ -164,7 +167,8 @@ phases:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEG_UV_TESTS"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg $INTEG_UV_TESTS"
         fi
 
 
