@@ -161,6 +161,15 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
     POSIX_GUARD_RESULT(s2n_pkey_size(priv_key, &size));
     POSIX_GUARD(s2n_alloc(&signature, size));
 
+    /* Note: The Libcrypto RSA EVP_PKEY will cache certain computations used for
+     * RSA signing.
+     * 
+     * This means that the first RSA sign with an EVP_PKEY is ~300 us slower
+     * then subsequent sign operations. The effect is much smaller for ECDSA signatures.
+     * 
+     * If this pkey_sign operation is moved out of config creation, then the
+     * 300 us penalty will be paid by the first handshake done on the config.
+     */
     POSIX_GUARD(s2n_pkey_sign(priv_key, check_alg, &state_in, &signature));
     POSIX_ENSURE(s2n_pkey_verify(pub_key, check_alg, &state_out, &signature) == S2N_SUCCESS,
             S2N_ERR_KEY_MISMATCH);
