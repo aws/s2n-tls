@@ -94,9 +94,9 @@ function uvinteg {(set -e
         banner "Running all integ tests with uv"
         uv run pytest --provider-version $S2N_LIBCRYPTO -x -rpfs -n auto
     else
-        for test in $@; do
+        for test in "$@"; do
             echo "Running $test"
-            uv run pytest --provider-version $S2N_LIBCRYPTO -x -rpfs -n auto -k "$test";
+            uv run pytest --provider-version $S2N_LIBCRYPTO -n auto --durations=10 --junitxml=../../build/junit/$test.xml  -rpfs --cache-clear -k "$test";
         done
     fi
 )}

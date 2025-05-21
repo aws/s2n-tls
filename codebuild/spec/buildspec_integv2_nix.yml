@@ -15,7 +15,7 @@ env:
       ocsp external_psk pq_handshake serialization
       signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
       fragmentation key_update session_resumption version_negotiation
-    # Excluded in with nix:
+    # Excluded from nix:
     # - dynamic_record_sizes (fails on aarch64)
 
     # Run with uv/pytest and not ctest
