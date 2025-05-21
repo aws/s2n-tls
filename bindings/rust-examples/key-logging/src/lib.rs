@@ -17,6 +17,8 @@ pub type KeyLogHandle = Arc<TlsKeyLogger>;
 /// The TlsKeyLogger can be used to log the keys from a TLS session, which can
 /// then be used to decrypt the TLS session with a tool like [wireshark](https://wiki.wireshark.org/TLS).
 /// This is incredibly useful when attempting to debug failures in TLS connections.
+/// 
+/// 
 pub struct TlsKeyLogger(Mutex<BufWriter<File>>);
 
 impl TlsKeyLogger {
@@ -78,7 +80,7 @@ mod tests {
 
     use super::*;
 
-    /// NOTE: this CA is to be used for demonstration purposes only!
+    /// NOTE: these materials are to be used for demonstration purposes only!
     const CA: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/ca-cert.pem"));
     const CHAIN: &[u8] = include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -131,7 +133,8 @@ mod tests {
             client_config.set_security_policy(&DEFAULT_TLS13)?;
             unsafe {
                 // The s2n-tls API currently requires a raw C callback and a raw C "context"
-                // pointer.
+                // pointer, although we have plans to improve this in the future:
+                // https://github.com/aws/s2n-tls/issues/4805. (Please +1 if interested)
                 //
                 // The callback is the "extern C" function that we defined for the TlsKeyLogger,
                 // and we get the underlying pointer to the KeyLogger to use as the
