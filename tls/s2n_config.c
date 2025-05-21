@@ -812,7 +812,8 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
-int s2n_config_set_custom_critical_oids(struct s2n_config *config, const char *const *custom_critical_oids, uint32_t custom_oid_count) {
+int s2n_config_set_custom_critical_oids(struct s2n_config *config, const char *const *custom_critical_oids, uint32_t custom_oid_count)
+{
     POSIX_ENSURE_REF(config);
 
 #ifndef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID

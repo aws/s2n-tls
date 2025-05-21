@@ -649,7 +649,8 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
 }
 
 #ifdef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
-static int no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids) {
+static int no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids)
+{
     return 1;
 }
 #endif
