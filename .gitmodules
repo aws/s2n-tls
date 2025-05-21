@@ -1,3 +1,4 @@
 [submodule "tests/cbmc/aws-verification-model-for-libcrypto"]
 	path = tests/cbmc/aws-verification-model-for-libcrypto
-	url = https://github.com/awslabs/aws-verification-model-for-libcrypto.git
+	url = https://github.com/goatgoose/aws-verification-model-for-libcrypto.git
+        branch = asn1-object
