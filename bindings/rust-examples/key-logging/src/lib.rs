@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 //! This example shows how to setup key logging for our rust bindings.
 //!
 //! This builds off the the basic client and server configuration, so be sure to
