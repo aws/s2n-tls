@@ -101,7 +101,8 @@ function integ {(set -e
 )}
 
 # Function to launch pytest with uv.
-function uvinteg {(set -e
+function uvinteg {(
+    set -e
     cd ./tests/integrationv2
     local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10  -rpfs --cache-clear"
     if [[ -z "$1" ]]; then
