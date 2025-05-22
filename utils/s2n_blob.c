@@ -36,6 +36,12 @@ S2N_RESULT s2n_blob_validate(const struct s2n_blob *b)
     return S2N_RESULT_OK;
 }
 
+/**
+ * Initialize a blob to reference some mutable data.
+ *  
+ * `b` will not free `data`. The caller is responsible for making sure that
+ * `data` outlives `b`.
+ */
 int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
 {
     POSIX_ENSURE_REF(b);
@@ -53,6 +59,12 @@ int s2n_blob_zero(struct s2n_blob *b)
     return S2N_SUCCESS;
 }
 
+/**
+ * Set `slice` to reference some portion of `b`.
+ * 
+ * The caller is responsible for ensuring that the data pointed to by `b` outlives
+ * `slice`.
+ */
 int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_blob_validate(b));
