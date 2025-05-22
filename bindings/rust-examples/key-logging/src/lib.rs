@@ -20,8 +20,6 @@ pub type KeyLogHandle = Arc<TlsKeyLogger>;
 /// The TlsKeyLogger can be used to log the keys from a TLS session, which can
 /// then be used to decrypt the TLS session with a tool like [wireshark](https://wiki.wireshark.org/TLS).
 /// This is incredibly useful when attempting to debug failures in TLS connections.
-/// 
-/// 
 pub struct TlsKeyLogger(Mutex<BufWriter<File>>);
 
 impl TlsKeyLogger {
