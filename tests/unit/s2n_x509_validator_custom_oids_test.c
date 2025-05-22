@@ -23,6 +23,7 @@
 #define S2N_MULTIPLE_OIDS_CERT_CHAIN "../pems/custom_oids/multiple_oids_cert_chain.pem"
 #define S2N_MULTIPLE_OID_KEY         "../pems/custom_oids/multiple_oids_key.pem"
 
+const char *random_oid[] = { "1.3.4.2" };
 const char *single_oid[] = { "1.3.178.25240.2" };
 const char *multiple_oids[] = { "1.3.178.25240.2", "1.3.178.25240.3" };
 const int multiple_oid_count = s2n_array_len(multiple_oids);
@@ -88,7 +89,17 @@ int main(int argc, char *argv[])
                 .expected_error = X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION,
             },
 
-            /* Validation should fail with misconfigured custom extensions */
+            /* Validation should fail with mismatched custom extensions */
+            {
+                .cert_pem_path = S2N_SINGLE_OID_CERT_CHAIN,
+                .key_pem_path = S2N_SINGLE_OID_KEY,
+                .custom_critical_oids = random_oid,
+                .custom_oid_count = 1,
+                .set_oids = true,
+                .expected_error = X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION,
+            },
+
+            /* Validation should fail with missing custom extensions */
             {
                 .cert_pem_path = S2N_MULTIPLE_OIDS_CERT_CHAIN,
                 .key_pem_path = S2N_MULTIPLE_OID_KEY,
