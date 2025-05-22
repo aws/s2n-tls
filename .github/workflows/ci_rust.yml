@@ -193,6 +193,10 @@ jobs:
         working-directory: ${{env.EXAMPLE_WORKSPACE}}
         run: cargo build
 
+      - name: test examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo test
+
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
