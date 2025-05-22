@@ -1059,28 +1059,6 @@ S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *
 S2N_API extern int s2n_config_disable_x509_verification(struct s2n_config *config);
 
 /**
- * Specify some unknown critical extensions to be ignored during certificate validation.
- * By default, s2n-tls will reject received certificates with unknown critical extensions. Calling 
- * s2n_config_set_custom_x509_extensions will allow s2n-tls to trust the given custom_extensions.
- * This API can be used when users want to perform additional validation through custom critical extensions.
- * 
- * Invoke this API multiple times to reset the custom extensions stored on s2n_config.
- * 
- * Libcrypto Requirement: AWS-LC >= 1.51.0
- * 
- * # Safety
- * 
- * Users MUST validate their custom OIDs in the cert validation callback or after the handshake.
- * RFC requires implementations to reject certificates with critical extensions they do not understand.
- * Failing to comply with this standard will cause security vulnarabilities.
- *
- * @param config The configuration object being updated
- * @param custom_critical_oids The list of custom critical oids
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
- */
-S2N_API extern int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *custom_extensions, uint32_t custom_ext_count);
-
-/**
  * Sets the maximum allowed depth of a cert chain used for X509 validation. The default value is
  * 7. If this limit is exceeded, validation will fail if s2n_config_disable_x509_verification()
  * has not been called. 0 is an illegal value and will return an error.

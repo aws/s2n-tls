@@ -22,6 +22,7 @@
 #include <time.h>
 
 #include "api/unstable/npn.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
@@ -812,16 +813,12 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
-bool s2n_libcrypto_supports_custom_oid(void);
-
-int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *custom_extensions, uint32_t custom_ext_count)
+int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *extension_oids, uint32_t extension_oids_count)
 {
     POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(custom_extensions, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(extension_oids, S2N_ERR_INVALID_ARGUMENT);
 
-    if (!s2n_libcrypto_supports_custom_oid()) {
-        POSIX_BAIL(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
-    }
+    POSIX_ENSURE(s2n_libcrypto_supports_custom_oid(), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
 
     if (config->custom_crit_oids != NULL) {
         sk_ASN1_OBJECT_pop_free(config->custom_crit_oids, ASN1_OBJECT_free);
@@ -830,10 +827,10 @@ int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char 
     config->custom_crit_oids = sk_ASN1_OBJECT_new_null();
     POSIX_ENSURE_REF(config->custom_crit_oids);
 
-    for (uint32_t i = 0; i < custom_ext_count; i++) {
-        ASN1_OBJECT *critical_oid = OBJ_txt2obj(custom_extensions[i], 1);
+    for (uint32_t i = 0; i < extension_oids_count; i++) {
+        ASN1_OBJECT *critical_oid = OBJ_txt2obj(extension_oids[i], 1);
         POSIX_ENSURE_REF(critical_oid);
-        POSIX_GUARD_OSSL(sk_ASN1_OBJECT_push(config->custom_crit_oids, critical_oid) != 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        POSIX_ENSURE(sk_ASN1_OBJECT_push(config->custom_crit_oids, critical_oid) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     }
 
     return S2N_SUCCESS;

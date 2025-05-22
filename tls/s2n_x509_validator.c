@@ -655,22 +655,31 @@ int no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(A
 
 static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
     if (conn->config->custom_crit_oids) {
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
         size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_crit_oids);
         for (size_t i = 0; i < custom_oid_count; i++) {
             ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_crit_oids, i);
             RESULT_ENSURE_REF(critical_oid);
-            RESULT_ENSURE(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid),
+            RESULT_GUARD_OSSL(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid),
                     S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
         /* To enable AWS-LC accepting custom extensions, an X509_STORE_CTX_verify_crit_oids_cb must be set.
          * See https://github.com/aws/aws-lc/blob/f0b4afedd7d45fc2517643d890b654856c57f994/include/openssl/x509.h#L2913-L2918.
-         * The validation of these extensions will be performed by users. Pass a no-op function to comply with AWS-LC's requirement.
+         * 
+         * The `X509_STORE_CTX_verify_crit_oids_cb` callback can be used to implement the validation for the
+         * custom certificate extensions. However, s2n-tls consumers are expected to implement this validation
+         * in the `s2n_cert_validation_callback` instead. So, a no-op callback is provided to AWS-LC.
          */
         X509_STORE_CTX_set_verify_crit_oids(validator->store_ctx, no_op_verify_custom_crit_oids_cb);
-    }
+#else
+        RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
 #endif
+    }
     return S2N_RESULT_OK;
 }
 
@@ -749,7 +758,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
             case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
                 RESULT_BAIL(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION);
             case X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION:
-                RESULT_BAIL(X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION);
+                RESULT_BAIL(S2N_ERR_UNHANDLED_CRITICAL_EXTENSION);
             default:
                 RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
