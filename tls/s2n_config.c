@@ -812,28 +812,31 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
-int s2n_config_set_custom_critical_oids(struct s2n_config *config, const char *const *custom_critical_oids, uint32_t custom_oid_count)
-{
-    POSIX_ENSURE_REF(config);
+bool s2n_libcrypto_supports_custom_oid(void);
 
-#ifndef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
-    POSIX_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
-#endif
+int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *custom_extensions, uint32_t custom_ext_count)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(custom_extensions, S2N_ERR_INVALID_ARGUMENT);
+
+    if (!s2n_libcrypto_supports_custom_oid()) {
+        POSIX_BAIL(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+    }
 
     if (config->custom_crit_oids != NULL) {
         sk_ASN1_OBJECT_pop_free(config->custom_crit_oids, ASN1_OBJECT_free);
+        config->custom_crit_oids = NULL;
     }
     config->custom_crit_oids = sk_ASN1_OBJECT_new_null();
+    POSIX_ENSURE_REF(config->custom_crit_oids);
 
-    for (uint32_t i = 0; i < custom_oid_count; i++) {
-        ASN1_OBJECT *critical_oid = OBJ_txt2obj(custom_critical_oids[i], 1);
-
-        if (!sk_ASN1_OBJECT_push(config->custom_crit_oids, critical_oid)) {
-            POSIX_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
-        }
+    for (uint32_t i = 0; i < custom_ext_count; i++) {
+        ASN1_OBJECT *critical_oid = OBJ_txt2obj(custom_extensions[i], 1);
+        POSIX_ENSURE_REF(critical_oid);
+        POSIX_GUARD_OSSL(sk_ASN1_OBJECT_push(config->custom_crit_oids, critical_oid) != 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
