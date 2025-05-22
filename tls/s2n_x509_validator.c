@@ -661,7 +661,7 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
         for (size_t i = 0; i < custom_oid_count; i++) {
             ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_crit_oids, i);
             RESULT_ENSURE_REF(critical_oid);
-            RESULT_ENSURE(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid), 
+            RESULT_ENSURE(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid),
                     S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
         /* To enable AWS-LC accepting custom extensions, an X509_STORE_CTX_verify_crit_oids_cb must be set.
