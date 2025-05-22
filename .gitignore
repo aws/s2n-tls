@@ -42,3 +42,4 @@ result-*
 # Exclude rust build directories
 *target/
 Cargo.lock
+uv.lock

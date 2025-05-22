@@ -1,0 +1,10 @@
+[project]
+name = "scripts"
+version = "0.1.0"
+description = "This project contains various utility script for the s2n-tls codebase"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pygithub>=2.6.1",
+    "ruff>=0.11.10",
+]
