@@ -155,10 +155,11 @@ static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
             POSIX_GUARD(s2n_stuffer_init_written(&request.list.iterator, &conn->cert_authorities));
             POSIX_ENSURE(conn->config->cert_request_cb(conn, conn->config->cert_request_cb_ctx, &request) == S2N_SUCCESS, S2N_ERR_CANCELLED);
             cert = request.chain;
+            POSIX_ENSURE(cert, S2N_ERR_NO_CERT_FOUND);
         } else {
             cert = s2n_config_get_single_default_cert(conn->config);
+            POSIX_ENSURE_REF(cert);
         }
-        POSIX_ENSURE(cert, S2N_ERR_NO_CERT_FOUND);
         conn->handshake_params.our_chain_and_key = cert;
         conn->handshake_params.client_cert_pkey_type = s2n_cert_chain_and_key_get_pkey_type(cert);
 
