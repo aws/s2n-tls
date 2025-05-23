@@ -9,7 +9,7 @@ pkgs.stdenv.mkDerivation rec {
     sha256 = "sha256-UzJzeL4gMzSNVig4eXe3arVvwdFYg5yEUuL9xAcXKiY=";
   };
 
-  buildInputs = [ pkgs.gnumake pkgs.perl534 ];
+  buildInputs = [ pkgs.gnumake pkgs.perl ];
 
   configurePhase = let
     default_options =
@@ -22,14 +22,6 @@ pkgs.stdenv.mkDerivation rec {
     # aarch64 as a supported platform when passed the '-d' flag.
     # See the PR for more detail: https://github.com/aws/s2n-tls/pull/4045 
     aarch64-linux = ''
-      ./config ${default_options}
-    '';
-    x86_64-darwin = ''
-      # TODO: validation in future PR - nix checks fail without a definition.
-      ./config -d ${default_options}
-    '';
-    aarch64-darwin = ''
-      # TODO: validation in future PR - nix checks fail without a definition.
       ./config ${default_options}
     '';
   }.${pkgs.stdenv.hostPlatform.system};

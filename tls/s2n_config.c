@@ -837,6 +837,16 @@ int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char 
     return S2N_SUCCESS;
 }
 
+int s2n_config_set_cert_request_callback(struct s2n_config *config, s2n_cert_request_callback cert_request_cb, void *ctx)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+
+    config->cert_request_cb = cert_request_cb;
+    config->cert_request_cb_ctx = ctx;
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
 {
     POSIX_ENSURE_REF(config);

@@ -277,6 +277,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->initial));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->secure));
     POSIX_GUARD(s2n_free_object((uint8_t **) &conn, sizeof(struct s2n_connection)));
@@ -454,6 +455,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->our_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
 
     return 0;
 }
@@ -532,6 +534,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
 
     /* Allocate memory for handling handshakes */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
@@ -1673,11 +1676,10 @@ static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(const struct s2n_s
         case S2N_SIGNATURE_RSA_PSS_PSS:
             *converted_scheme = S2N_TLS_SIGNATURE_RSA_PSS_PSS;
             break;
-        case S2N_SIGNATURE_ANONYMOUS:
-        /* TODO: add public value for ML-DSA when available for negotiation
-         * https://github.com/aws/s2n-tls/issues/5257
-         */
         case S2N_SIGNATURE_MLDSA:
+            *converted_scheme = S2N_TLS_SIGNATURE_MLDSA;
+            break;
+        case S2N_SIGNATURE_ANONYMOUS:
             *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
             break;
     }

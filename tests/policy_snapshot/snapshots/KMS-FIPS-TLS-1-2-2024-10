@@ -1,0 +1,37 @@
+name: KMS-FIPS-TLS-1-2-2024-10
+min version: TLS1.2
+rules:
+- Perfect Forward Secrecy: yes
+- FIPS 140-3 (2019): yes
+cipher suites:
+- TLS_AES_128_GCM_SHA256
+- TLS_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+- TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+- TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+- TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+signature schemes:
+- rsa_pss_rsae_sha256
+- rsa_pss_rsae_sha384
+- rsa_pss_rsae_sha512
+- rsa_pkcs1_sha256
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- rsa_pss_pss_sha256
+- rsa_pss_pss_sha384
+- rsa_pss_pss_sha512
+curves:
+- secp256r1
+- secp384r1
+- secp521r1
+pq:
+- revision: 5
+- kems:
+- kem groups:
+-- X25519MLKEM768
+-- SecP256r1MLKEM768

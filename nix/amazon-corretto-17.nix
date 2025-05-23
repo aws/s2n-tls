@@ -17,17 +17,6 @@ pkgs.stdenv.mkDerivation rec {
         "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-linux-aarch64.tar.gz";
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
-    # TODO: The Mac versions will be validated in future darwin PR - nix still wants them defined.
-    x86_64-darwin = pkgs.fetchzip {
-      url =
-        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-x64.tar.gz";
-      sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
-    };
-    aarch64-darwin = pkgs.fetchzip {
-      url =
-        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-aarch64.tar.gz";
-      sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
-    };
   }.${pkgs.stdenv.hostPlatform.system} or (throw
     "No build profile setup for this platform: ${pkgs.stdenv.hostPlatform.system}");
 

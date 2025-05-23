@@ -2,6 +2,7 @@ echo nix/shell.sh: Entering a devShell
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
 
+# Function to display a formatted banner with the provided text
 banner()
 {
     echo "+---------------------------------------------------------+"
@@ -9,14 +10,23 @@ banner()
     echo "+---------------------------------------------------------+"
 }
 
+# Function to create aliases for different libcrypto implementations
 function libcrypto_alias {
     local libcrypto_name=$1
     local libcrypto_binary_path=$2
+    # Check both bin and lib directories for the binary
+    local binary_dir=$(dirname $libcrypto_binary_path)
+    local install_dir=$(dirname $binary_dir)
+    local lib_binary_path="$install_dir/lib/$(basename $libcrypto_binary_path)"
+
     if [[ -f $libcrypto_binary_path ]]; then
       alias $libcrypto_name=$libcrypto_binary_path
       echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+    elif [[ -f $lib_binary_path ]]; then
+      alias $libcrypto_name=$lib_binary_path
+      echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
     else
-      banner "Could not find libcrypto $libcrypto_binary_path for alias"
+      banner "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
@@ -26,7 +36,7 @@ libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"
 libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
 libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
-#No need to alias gnutls because it is included in common_packages (see flake.nix).
+# No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
     banner "Cleanup ./build"
@@ -41,7 +51,9 @@ function configure {(set -e
           -DS2N_INSTALL_S2NC_S2ND=ON \
           -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
-          $S2N_CMAKE_OPTIONS \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          "$S2N_CMAKE_OPTIONS" \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 )}
 
@@ -63,6 +75,7 @@ function unit {(set -e
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
         echo "Tests:"
         echo "$tests"
+        # Split the tests string into words
         for test in $tests
         do
             cmake --build build -j $(nproc) --target $test
@@ -145,7 +158,7 @@ function test_toolchain_counts {(set -e
       /openssl-1.0/{o10++}
       /aws-lc/{awslc++}
       /libressl/{libre++}
-      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
+      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAws-lc:\t\t",awslc,"\nLibreSSL:\t", libre}'
     banner "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
     echo -e "Corretto 17:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto-17')"
@@ -190,6 +203,6 @@ function apache2_start(){
         httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
         trap 'pkill httpd' ERR EXIT
     else
-      echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
+      echo "Apache is already running. If \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
 }
