@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "unstable-cert_authorities")]
+use crate::cert_authorities::CertificateRequestCallback;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
@@ -966,6 +968,18 @@ impl Builder {
     pub fn unstable_as_ptr(&mut self) -> *mut s2n_config {
         self.as_mut_ptr()
     }
+
+    /// Load all acceptable certificate authorities from the currently configured trust store.
+    ///
+    /// Corresponds to [s2n_config_set_cert_authorities_from_trust_store].
+    pub fn set_certificate_authorities_from_trust_store(&mut self) -> Result<(), Error> {
+        // SAFETY: valid builder geting passed in.
+        unsafe {
+            s2n_config_set_cert_authorities_from_trust_store(self.as_mut_ptr()).into_result()?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(feature = "quic")]
@@ -1011,6 +1025,8 @@ pub(crate) struct Context {
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
 }
 
 impl Default for Context {
@@ -1031,6 +1047,8 @@ impl Default for Context {
             monotonic_clock: None,
             #[cfg(feature = "unstable-renegotiate")]
             renegotiate: None,
+            #[cfg(feature = "unstable-cert_authorities")]
+            cert_authorities: None,
         }
     }
 }
