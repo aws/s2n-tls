@@ -17,6 +17,7 @@
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_config.h"
 
 #define S2N_SINGLE_OID_CERT_CHAIN "../pems/custom_oids/single_oid_cert_chain.pem"
 #define S2N_SINGLE_OID_KEY        "../pems/custom_oids/single_oid_key.pem"
