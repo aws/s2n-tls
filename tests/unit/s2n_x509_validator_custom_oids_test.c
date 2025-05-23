@@ -13,6 +13,7 @@
 * permissions and limitations under the License.
 */
 
+#include "api/unstable/custom_x509_extensions.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"

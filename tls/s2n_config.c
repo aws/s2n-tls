@@ -22,10 +22,10 @@
 #include <time.h>
 
 #include "api/unstable/npn.h"
-#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_preferences.h"
