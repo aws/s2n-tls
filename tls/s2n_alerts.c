@@ -73,6 +73,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          *#    processing the certificate, rendering it unacceptable.
          */
         S2N_ALERT_CASE(S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+        S2N_ALERT_CASE(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
 
         /*
          *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
@@ -153,7 +154,6 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_SHUTDOWN_CLOSED);
         S2N_NO_ALERT(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         S2N_NO_ALERT(S2N_ERR_RECORD_LIMIT);
-        S2N_NO_ALERT(S2N_ERR_UNHANDLED_CRITICAL_EXTENSION);
         S2N_NO_ALERT(S2N_ERR_CRL_LOOKUP_FAILED);
         S2N_NO_ALERT(S2N_ERR_CRL_SIGNATURE);
         S2N_NO_ALERT(S2N_ERR_CRL_ISSUER);

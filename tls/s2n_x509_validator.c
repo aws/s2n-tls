@@ -648,7 +648,7 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
-int no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids)
+int s2n_no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids)
 {
     return 1;
 }
@@ -659,11 +659,11 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
 
-    if (conn->config->custom_crit_oids) {
+    if (conn->config->custom_x509_extension_oids) {
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
-        size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_crit_oids);
+        size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_x509_extension_oids);
         for (size_t i = 0; i < custom_oid_count; i++) {
-            ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_crit_oids, i);
+            ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_x509_extension_oids, i);
             RESULT_ENSURE_REF(critical_oid);
             RESULT_GUARD_OSSL(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid),
                     S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
@@ -675,7 +675,7 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
          * custom certificate extensions. However, s2n-tls consumers are expected to implement this validation
          * in the `s2n_cert_validation_callback` instead. So, a no-op callback is provided to AWS-LC.
          */
-        X509_STORE_CTX_set_verify_crit_oids(validator->store_ctx, no_op_verify_custom_crit_oids_cb);
+        X509_STORE_CTX_set_verify_crit_oids(validator->store_ctx, s2n_no_op_verify_custom_crit_oids_cb);
 #else
         RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
 #endif
@@ -758,7 +758,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
             case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
                 RESULT_BAIL(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION);
             case X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION:
-                RESULT_BAIL(S2N_ERR_UNHANDLED_CRITICAL_EXTENSION);
+                RESULT_BAIL(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION);
             default:
                 RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }

@@ -26,8 +26,8 @@
 #define S2N_MULTIPLE_OIDS_KEY        "../pems/custom_oids/multiple_oids_key.pem"
 
 const char *invalid_oid[] = { "1.3.4.2" };
-const char *single_oid[] = { "1.3.178.25240.2" };
-const char *multiple_oids[] = { "1.3.178.25240.2", "1.3.178.25240.3" };
+const char *single_oid[] = { "1.3.187.25240.2" };
+const char *multiple_oids[] = { "1.3.187.25240.2", "1.3.187.25240.3" };
 const int multiple_oid_count = s2n_array_len(multiple_oids);
 
 int main(int argc, char *argv[])
@@ -44,26 +44,26 @@ int main(int argc, char *argv[])
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_custom_x509_extensions(test_config, NULL, 0), S2N_ERR_INVALID_ARGUMENT);
         }
 
-        /* Ensure custom extensions can't be added when linked to an unsupported libcrypto */
-        {
-            if (!s2n_libcrypto_supports_custom_oid()) {
+        if (!s2n_libcrypto_supports_custom_oid()) {
+            /* Ensure custom extensions can't be added when linked to an unsupported libcrypto. */
+            {
                 DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(test_config);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_custom_x509_extensions(test_config, single_oid, 1),
                         S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
-
-                END_TEST();
             }
+
+            END_TEST();
         }
 
-        /* Ensure s2n_config_set_custom_x509_extensions() can be invoked multiple times */
+        /* Ensure s2n_config_set_custom_x509_extensions() overrides previously set extensions. */
         {
             DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(test_config);
             EXPECT_SUCCESS(s2n_config_set_custom_x509_extensions(test_config, single_oid, 1));
             /* invoke again to reset custom oids */
             EXPECT_SUCCESS(s2n_config_set_custom_x509_extensions(test_config, multiple_oids, multiple_oid_count));
-            EXPECT_EQUAL(sk_ASN1_OBJECT_num(test_config->custom_crit_oids), multiple_oid_count);
+            EXPECT_EQUAL(sk_ASN1_OBJECT_num(test_config->custom_x509_extension_oids), multiple_oid_count);
         }
 
         /* clang-format off */
@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
             unsigned set_oids : 1;
             s2n_error expected_error;
         } test_cases[] = {
+            /* Receive a certificate with a single custom extension. */
             {
                 .cert_pem_path = S2N_SINGLE_OID_CERT_CHAIN,
                 .key_pem_path = S2N_SINGLE_OID_KEY,
@@ -84,6 +85,7 @@ int main(int argc, char *argv[])
                 .expected_error = S2N_ERR_OK,
             },
 
+            /* Receive a certificate with multiple custom extensions. */
             {
                 .cert_pem_path = S2N_MULTIPLE_OIDS_CERT_CHAIN,
                 .key_pem_path = S2N_MULTIPLE_OIDS_KEY,
@@ -93,34 +95,34 @@ int main(int argc, char *argv[])
                 .expected_error = S2N_ERR_OK,
             },
 
-            /* Validation should fail without calling s2n_config_set_custom_x509_extensions() */
+            /* Validation should fail without calling s2n_config_set_custom_x509_extensions(). */
             {
                 .cert_pem_path = S2N_MULTIPLE_OIDS_CERT_CHAIN,
                 .key_pem_path = S2N_MULTIPLE_OIDS_KEY,
                 .custom_critical_oids = multiple_oids,
                 .custom_oid_count = multiple_oid_count,
                 .set_oids = false,
-                .expected_error = S2N_ERR_UNHANDLED_CRITICAL_EXTENSION,
+                .expected_error = S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION,
             },
 
-            /* Validation should fail with mismatched custom extensions */
+            /* Validation should fail with mismatched custom extensions. */
             {
                 .cert_pem_path = S2N_SINGLE_OID_CERT_CHAIN,
                 .key_pem_path = S2N_SINGLE_OID_KEY,
                 .custom_critical_oids = invalid_oid,
                 .custom_oid_count = 1,
                 .set_oids = true,
-                .expected_error = S2N_ERR_UNHANDLED_CRITICAL_EXTENSION,
+                .expected_error = S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION,
             },
 
-            /* Validation should fail with missing custom extensions */
+            /* Validation should fail with missing custom extensions. */
             {
                 .cert_pem_path = S2N_MULTIPLE_OIDS_CERT_CHAIN,
                 .key_pem_path = S2N_MULTIPLE_OIDS_KEY,
                 .custom_critical_oids = single_oid,
                 .custom_oid_count = 1,
                 .set_oids = true,
-                .expected_error = S2N_ERR_UNHANDLED_CRITICAL_EXTENSION,
+                .expected_error = S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION,
             },
         };
         /* clang-format on */
@@ -140,10 +142,10 @@ int main(int argc, char *argv[])
             const char **custom_oids = test_cases[i].custom_critical_oids;
             uint32_t custom_oid_count = test_cases[i].custom_oid_count;
 
-            EXPECT_NULL(config->custom_crit_oids);
+            EXPECT_NULL(config->custom_x509_extension_oids);
             if (test_cases[i].set_oids) {
                 EXPECT_SUCCESS(s2n_config_set_custom_x509_extensions(config, custom_oids, custom_oid_count));
-                EXPECT_EQUAL(sk_ASN1_OBJECT_num(config->custom_crit_oids), custom_oid_count);
+                EXPECT_EQUAL(sk_ASN1_OBJECT_num(config->custom_x509_extension_oids), custom_oid_count);
             }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -186,10 +188,10 @@ int main(int argc, char *argv[])
             const char **custom_oids = test_cases[i].custom_critical_oids;
             uint32_t custom_oid_count = test_cases[i].custom_oid_count;
 
-            EXPECT_NULL(server_config->custom_crit_oids);
+            EXPECT_NULL(server_config->custom_x509_extension_oids);
             if (test_cases[i].set_oids) {
                 EXPECT_SUCCESS(s2n_config_set_custom_x509_extensions(server_config, custom_oids, custom_oid_count));
-                EXPECT_EQUAL(sk_ASN1_OBJECT_num(server_config->custom_crit_oids), custom_oid_count);
+                EXPECT_EQUAL(sk_ASN1_OBJECT_num(server_config->custom_x509_extension_oids), custom_oid_count);
             }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);

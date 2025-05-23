@@ -46,7 +46,7 @@
  *
  * @param config The configuration object being updated
  * @param extension_oids The list of custom critical oids
- * @param extension_oids_count The length of the array `extension_oids`
+ * @param extension_oid_count The length of the array `extension_oids`
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *extension_oids, uint32_t extension_oids_count);
+S2N_API extern int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *extension_oids, uint32_t extension_oid_count);

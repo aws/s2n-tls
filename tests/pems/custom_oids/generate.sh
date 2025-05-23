@@ -33,8 +33,8 @@ for name in "single_oid" "multiple_oids"; do
             -keyout "${name}_key.pem" \
             -out "${name}.csr" \
             -subj "/C=US/CN=localhost" \
-            -addext "1.3.178.25240.2=critical,ASN1:UTF8String:hello" \
-            -addext "1.3.178.25240.3=critical,ASN1:UTF8String:world"
+            -addext "1.3.187.25240.2=critical,ASN1:UTF8String:hello" \
+            -addext "1.3.187.25240.3=critical,ASN1:UTF8String:world"
     else
         openssl req  -new -noenc \
             -newkey rsa \
@@ -42,7 +42,7 @@ for name in "single_oid" "multiple_oids"; do
             -keyout "${name}_key.pem" \
             -out "${name}.csr" \
             -subj "/C=US/CN=localhost" \
-            -addext "1.3.178.25240.2=critical,ASN1:UTF8String:hello"
+            -addext "1.3.187.25240.2=critical,ASN1:UTF8String:hello"
     fi
 
     openssl x509 -days 65536 \

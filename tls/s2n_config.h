@@ -172,7 +172,7 @@ struct s2n_config {
     s2n_cert_validation_callback cert_validation_cb;
     void *cert_validation_ctx;
 
-    STACK_OF(ASN1_OBJECT) *custom_crit_oids;
+    STACK_OF(ASN1_OBJECT) *custom_x509_extension_oids;
 
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
