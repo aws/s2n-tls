@@ -189,6 +189,7 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
 int s2n_cert_req_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
     POSIX_ENSURE_EQ(conn->mode, S2N_CLIENT);
 
     struct s2n_stuffer *in = &conn->handshake.io;
