@@ -43,7 +43,11 @@ fn bench_handshake_for_library<T>(
                     HandshakeType::Resumption => assert!(conn_pair.server.resumed_connection()),
                 }
             },
-            BatchSize::SmallInput,
+            // Use "PerIteration" benchmarking, because of the way that session 
+            // ticket setup interacts with shared configs.
+            // > In testing, the maximum measurement overhead from benchmarking 
+            // > with PerIteration is on the order of 350 nanoseconds
+            BatchSize::PerIteration,
         )
     });
 }
