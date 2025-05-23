@@ -17,6 +17,8 @@
 
 #include <cbmc_proof/cbmc_utils.h>
 
+#include <openssl/ossl_typ.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
