@@ -5,9 +5,7 @@ export PATH=$SRC_ROOT/build/bin:$PATH
 # Function to display a formatted banner with the provided text
 banner()
 {
-    echo "+---------------------------------------------------------+"
-    printf "| %-55s |\n" "$1"
-    echo "+---------------------------------------------------------+"
+    printf " %-55s \n" "$1"
 }
 
 # Function to create aliases for different libcrypto implementations
@@ -21,10 +19,10 @@ function libcrypto_alias {
 
     if [[ -f $libcrypto_binary_path ]]; then
       alias $libcrypto_name=$libcrypto_binary_path
-      echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+      banner "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
     elif [[ -f $lib_binary_path ]]; then
       alias $libcrypto_name=$lib_binary_path
-      echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
+      banner "Libcrypto binary $lib_binary_path available as $libcrypto_name"
     else
       banner "Could not find libcrypto binary for $libcrypto_name"
     fi
@@ -73,8 +71,8 @@ function unit {(set -e
         ctest --test-dir build -L unit -j $(nproc) --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
-        echo "Tests:"
-        echo "$tests"
+        banner "Tests:"
+        banner "$tests"
         # Split the tests string into words
         for test in $tests
         do
@@ -93,7 +91,7 @@ function integ {(set -e
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
-               echo "Test failed, stopping execution"
+               banner "Test failed, stopping execution"
                return 1
             fi
         done
@@ -104,14 +102,16 @@ function integ {(set -e
 function uvinteg {(
     set -e
     cd ./tests/integrationv2
-    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10  -rpfs --cache-clear"
+    banner "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
+    unset PYTHONPATH
+    # tests reliably fail on large instances with more than 50 workers.
+    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --maxprocesses=50 --reruns=2 --durations=10  -rpfs --cache-clear"
     if [[ -z "$1" ]]; then
         banner "Running all integ tests with uv"
-        eval "uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml";
+        uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
     else
         for test in "$@"; do
-            echo "Running $test"
-            eval "uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test";
+            uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
         done
     fi
 )}
