@@ -39,6 +39,8 @@ bytes = "1.8"
 hyper = "1.5"
 hyper-util = "0.1"
 
+dhat = "0.3.3"
+
 [build-dependencies]
 # The ML-DSA tests require the ML-DSA support added in Openssl-3.5
 # Since this overrides the dependency from the openssl-src crate,
