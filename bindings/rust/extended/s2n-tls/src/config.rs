@@ -972,8 +972,6 @@ impl Builder {
     /// Load all acceptable certificate authorities from the currently configured trust store.
     ///
     /// Corresponds to [s2n_config_set_cert_authorities_from_trust_store].
-    ///
-    /// Corresponds to [s2n_config_set_cert_authorities_from_trust_store].
     pub fn set_certificate_authorities_from_trust_store(&mut self) -> Result<(), Error> {
         // SAFETY: valid builder geting passed in.
         unsafe {
