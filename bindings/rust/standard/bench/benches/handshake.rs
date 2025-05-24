@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
-    PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
+    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -27,11 +26,15 @@ fn bench_handshake_for_library<T>(
     // only include negotiation and not config/connection initialization
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || -> TlsConnPair<T, T> { TlsConnPair::new_bench_pair(crypto_config, handshake_type).unwrap() },
+            || -> TlsConnPair<T, T> {
+                TlsConnPair::new_bench_pair(crypto_config, handshake_type).unwrap()
+            },
             |conn_pair| {
                 conn_pair.handshake().unwrap();
                 match handshake_type {
-                    HandshakeType::ServerAuth | HandshakeType::MutualAuth => assert!(!conn_pair.server.resumed_connection()),
+                    HandshakeType::ServerAuth | HandshakeType::MutualAuth => {
+                        assert!(!conn_pair.server.resumed_connection())
+                    }
                     HandshakeType::Resumption => assert!(conn_pair.server.resumed_connection()),
                 }
             },
