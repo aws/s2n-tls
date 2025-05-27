@@ -656,6 +656,7 @@ int s2n_no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_
 static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(validator->store_ctx);
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
 

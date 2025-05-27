@@ -105,7 +105,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
     ERR_ENTRY(S2N_ERR_CERT_REJECTED, "Certificate failed custom application validation") \
-    ERR_ENTRY(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, "Unhandled custom critical extension") \
+    ERR_ENTRY(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, "Unhandled custom critical certificate extension") \
     ERR_ENTRY(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, "Incompatibility found between loaded certificates and chosen security policy") \
     ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \

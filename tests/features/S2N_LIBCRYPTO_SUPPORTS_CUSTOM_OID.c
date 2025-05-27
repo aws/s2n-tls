@@ -13,7 +13,7 @@
 * permissions and limitations under the License.
 */
 
-#include "crypto/s2n_openssl_x509.h"
+#include <openssl/x509.h>
 
 static int verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids) {
     return 1;
