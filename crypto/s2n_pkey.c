@@ -165,7 +165,7 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
      * RSA signing.
      * 
      * This means that the first RSA sign with an EVP_PKEY is ~300 us slower
-     * then subsequent sign operations. The effect is much smaller for ECDSA signatures.
+     * than subsequent sign operations. The effect is much smaller for ECDSA signatures.
      * 
      * If this pkey_sign operation is moved out of config creation, then the
      * 300 us penalty will be paid by the first handshake done on the config.
