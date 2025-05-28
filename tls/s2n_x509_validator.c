@@ -660,9 +660,9 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
 
-    size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_x509_extension_oids);
-    if (custom_oid_count > 0) {
+    if (conn->config->custom_x509_extension_oids) {
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+        size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_x509_extension_oids);
         for (size_t i = 0; i < custom_oid_count; i++) {
             ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_x509_extension_oids, i);
             RESULT_ENSURE_REF(critical_oid);

@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     {
         /* Safety Check */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(NULL, single_oid[0], strlen(single_oid[0])),
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(NULL, (uint8_t *) single_oid[0], strlen(single_oid[0])),
                     S2N_ERR_INVALID_ARGUMENT);
 
             DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
@@ -50,21 +50,11 @@ int main(int argc, char *argv[])
             {
                 DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(test_config);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(test_config, single_oid[0], strlen(single_oid[0])),
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(test_config, (uint8_t *) single_oid[0], strlen(single_oid[0])),
                         S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
             }
 
             END_TEST();
-        }
-
-        /* Ensure s2n_config_add_custom_x509_extension() handles multiple extensions correctly. */
-        {
-            DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(test_config);
-            for (int i = 0; i < multiple_oid_count; i++) {
-                EXPECT_SUCCESS(s2n_config_add_custom_x509_extension(test_config, multiple_oids[i], strlen(multiple_oids[i])));
-            }
-            EXPECT_EQUAL(sk_ASN1_OBJECT_num(test_config->custom_x509_extension_oids), multiple_oid_count);
         }
 
         /* clang-format off */
@@ -143,10 +133,11 @@ int main(int argc, char *argv[])
             const char **custom_oids = test_cases[test_idx].custom_critical_oids;
             uint32_t custom_oid_count = test_cases[test_idx].custom_oid_count;
 
-            EXPECT_NOT_NULL(config->custom_x509_extension_oids);
+            EXPECT_NULL(config->custom_x509_extension_oids);
             if (test_cases[test_idx].set_oids) {
                 for (int i = 0; i < custom_oid_count; i++) {
-                    EXPECT_SUCCESS(s2n_config_add_custom_x509_extension(config, custom_oids[i], strlen(custom_oids[i])));
+                    uint8_t *custom_oid = (uint8_t *) custom_oids[i];
+                    EXPECT_SUCCESS(s2n_config_add_custom_x509_extension(config, custom_oid, strlen(custom_oids[i])));
                 }
                 EXPECT_EQUAL(sk_ASN1_OBJECT_num(config->custom_x509_extension_oids), custom_oid_count);
             }
@@ -191,10 +182,11 @@ int main(int argc, char *argv[])
             const char **custom_oids = test_cases[test_idx].custom_critical_oids;
             uint32_t custom_oid_count = test_cases[test_idx].custom_oid_count;
 
-            EXPECT_NOT_NULL(server_config->custom_x509_extension_oids);
+            EXPECT_NULL(server_config->custom_x509_extension_oids);
             if (test_cases[test_idx].set_oids) {
                 for (int i = 0; i < custom_oid_count; i++) {
-                    EXPECT_SUCCESS(s2n_config_add_custom_x509_extension(server_config, custom_oids[i], strlen(custom_oids[i])));
+                    uint8_t *custom_oid = (uint8_t *) custom_oids[i];
+                    EXPECT_SUCCESS(s2n_config_add_custom_x509_extension(server_config, custom_oid, strlen(custom_oids[i])));
                 }
                 EXPECT_EQUAL(sk_ASN1_OBJECT_num(server_config->custom_x509_extension_oids), custom_oid_count);
             }

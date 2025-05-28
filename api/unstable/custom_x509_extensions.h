@@ -50,4 +50,4 @@
  * @param extension_oid_len The length of the extension OID
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_config_add_custom_x509_extension(struct s2n_config *config, const char *extension_oid, uint32_t extension_oid_len);
+S2N_API extern int s2n_config_add_custom_x509_extension(struct s2n_config *config, uint8_t *extension_oid, uint32_t extension_oid_len);
