@@ -26,13 +26,13 @@
  */
 
 /**
- * Specify some unknown critical extensions to be ignored during certificate validation.
+ * Specify a custom critical extension to be ignored during certificate validation.
  * 
  * By default, s2n-tls will reject received certificates with unknown critical extensions. Calling 
- * s2n_config_set_custom_x509_extensions will allow s2n-tls to trust the given extension_oids.
+ * s2n_config_add_custom_x509_extension will mark the given extension_oid as known and handled.
  * This allows applications to provide their own validation for certificate extensions unknown to s2n-tls.
  * 
- * Invoking this API will override any custom extensions previously set on the config.
+ * This API adds a single custom critical extension to the config at a time.
  * 
  * Libcrypto Requirement: AWS-LC >= 1.51.0
  * 
@@ -42,11 +42,12 @@
  * understand the extension in order to safely determine the certificate's validity. As such, s2n-tls
  * assumes that this validation is performed by the application. Applications MUST implement this
  * validation for all provided certificate extensions outside of s2n-tls. The `s2n_cert_validation_callback`
- * can be used for this purpose.
+ * can be used for this purpose. An alternative is to wait until after the handshake completes,
+ * but before any application data is sent or accepted.
  *
  * @param config The configuration object being updated
- * @param extension_oids The list of custom critical oids
- * @param extension_oid_count The length of the array `extension_oids`
+ * @param extension_oid The pointer to a custom critical extension OID
+ * @param extension_oid_len The length of the extension OID
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *extension_oids, uint32_t extension_oid_count);
+S2N_API extern int s2n_config_add_custom_x509_extension(struct s2n_config *config, const char *extension_oid, uint32_t extension_oid_len);

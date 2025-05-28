@@ -107,6 +107,9 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
+    config->custom_x509_extension_oids = sk_ASN1_OBJECT_new_null();
+    POSIX_ENSURE_REF(config->custom_x509_extension_oids);
+
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
@@ -127,9 +130,8 @@ static int s2n_config_cleanup(struct s2n_config *config)
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
 
-    if (config->custom_x509_extension_oids) {
-        sk_ASN1_OBJECT_pop_free(config->custom_x509_extension_oids, ASN1_OBJECT_free);
-    }
+    sk_ASN1_OBJECT_pop_free(config->custom_x509_extension_oids, ASN1_OBJECT_free);
+    config->custom_x509_extension_oids = NULL;
 
     POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
     POSIX_GUARD(s2n_config_free_cert_chain_and_key(config));
@@ -814,25 +816,28 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
-int s2n_config_set_custom_x509_extensions(struct s2n_config *config, const char *const *extension_oids, uint32_t extension_oid_count)
+int s2n_config_add_custom_x509_extension(struct s2n_config *config, const char *extension_oid, uint32_t extension_oid_len)
 {
     POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(extension_oids, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(extension_oid, S2N_ERR_INVALID_ARGUMENT);
 
     POSIX_ENSURE(s2n_libcrypto_supports_custom_oid(), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
 
-    if (config->custom_x509_extension_oids != NULL) {
-        sk_ASN1_OBJECT_pop_free(config->custom_x509_extension_oids, ASN1_OBJECT_free);
-        config->custom_x509_extension_oids = NULL;
-    }
-    config->custom_x509_extension_oids = sk_ASN1_OBJECT_new_null();
-    POSIX_ENSURE_REF(config->custom_x509_extension_oids);
+    DEFER_CLEANUP(struct s2n_stuffer oid_buffer = { 0 }, s2n_stuffer_free);
+    uint32_t buf_size = extension_oid_len + 1;
+    POSIX_GUARD(s2n_stuffer_alloc(&oid_buffer, buf_size));
 
-    for (uint32_t i = 0; i < extension_oid_count; i++) {
-        ASN1_OBJECT *critical_oid = OBJ_txt2obj(extension_oids[i], 1);
-        POSIX_ENSURE_REF(critical_oid);
-        POSIX_ENSURE(sk_ASN1_OBJECT_push(config->custom_x509_extension_oids, critical_oid) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
-    }
+    uint8_t null_terminator = '\0';
+    POSIX_GUARD(s2n_stuffer_write_bytes(&oid_buffer, (const uint8_t *) extension_oid, extension_oid_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&oid_buffer, &null_terminator, 1));
+    POSIX_ENSURE_EQ(s2n_stuffer_data_available(&oid_buffer), buf_size);
+
+    const char *oid_string = s2n_stuffer_raw_read(&oid_buffer, buf_size);
+    POSIX_ENSURE_REF(oid_string);
+
+    ASN1_OBJECT *critical_oid = OBJ_txt2obj(oid_string, 1);
+    POSIX_ENSURE_REF(critical_oid);
+    POSIX_ENSURE(sk_ASN1_OBJECT_push(config->custom_x509_extension_oids, critical_oid) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
     return S2N_SUCCESS;
 }
