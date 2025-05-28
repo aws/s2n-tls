@@ -827,16 +827,14 @@ int s2n_config_add_custom_x509_extension(struct s2n_config *config, uint8_t *ext
     }
     POSIX_ENSURE_REF(config->custom_x509_extension_oids);
 
-    DEFER_CLEANUP(struct s2n_stuffer oid_buffer = { 0 }, s2n_stuffer_free);
-    uint32_t buf_size = extension_oid_len + 1;
-    POSIX_GUARD(s2n_stuffer_alloc(&oid_buffer, buf_size));
+    DEFER_CLEANUP(struct s2n_blob oid_buffer = { 0 }, s2n_free);
+    POSIX_GUARD(s2n_alloc(&oid_buffer, extension_oid_len + 1));
 
-    uint8_t null_terminator = '\0';
-    POSIX_GUARD(s2n_stuffer_write_bytes(&oid_buffer, extension_oid, extension_oid_len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&oid_buffer, &null_terminator, 1));
-    POSIX_ENSURE_EQ(s2n_stuffer_data_available(&oid_buffer), buf_size);
+    POSIX_GUARD(s2n_blob_zero(&oid_buffer));
+    POSIX_CHECKED_MEMCPY(oid_buffer.data, extension_oid, extension_oid_len);
+    oid_buffer.data[extension_oid_len] = '\0';
 
-    const char *oid_string = s2n_stuffer_raw_read(&oid_buffer, buf_size);
+    const char *oid_string = (const char *) oid_buffer.data;
     POSIX_ENSURE_REF(oid_string);
 
     ASN1_OBJECT *critical_oid = OBJ_txt2obj(oid_string, 1);

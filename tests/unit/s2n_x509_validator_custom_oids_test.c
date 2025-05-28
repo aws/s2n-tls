@@ -34,6 +34,12 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
+    /* Test adding custom critical cert extensions.
+     *
+     * By default, s2n-tls will reject certificates with custom critical extensions. Calling
+     * s2n_config_add_custom_x509_extension() allows s2n-tls to ingore these extensions during validation.
+     * Validation should succeed when added custom critical extensions match the ones provided in the certificate.
+     */
     {
         /* Safety Check */
         {
@@ -45,14 +51,12 @@ int main(int argc, char *argv[])
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(test_config, NULL, 0), S2N_ERR_INVALID_ARGUMENT);
         }
 
+        /* Ensure custom extensions can't be added when linked to an unsupported libcrypto. */
         if (!s2n_libcrypto_supports_custom_oid()) {
-            /* Ensure custom extensions can't be added when linked to an unsupported libcrypto. */
-            {
-                DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
-                EXPECT_NOT_NULL(test_config);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(test_config, (uint8_t *) single_oid[0], strlen(single_oid[0])),
-                        S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
-            }
+            DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(test_config);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_custom_x509_extension(test_config, (uint8_t *) single_oid[0], strlen(single_oid[0])),
+                    S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
 
             END_TEST();
         }
@@ -224,6 +228,10 @@ int main(int argc, char *argv[])
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         expected_error);
             }
+
+            /* Verify that both connections negotiated mutual auth. */
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(client_conn));
         }
     }
 
