@@ -18,7 +18,8 @@ env:
     # Excluded from nix:
     # - dynamic_record_sizes (fails on aarch64)
 
-    # Run with uv/pytest and not ctest
+    # Run with uv/pytest and not ctest.
+    # We're still seeing failures/flakiness with 7 tests.
     INTEG_UV_TESTS:
       sslyze
 
@@ -167,7 +168,7 @@ phases:
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEG_UV_TESTS"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TESTS"
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg $INTEG_UV_TESTS"
         fi
 
