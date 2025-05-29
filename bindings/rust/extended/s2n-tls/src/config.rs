@@ -1147,6 +1147,7 @@ impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "unstable-custom_x509_extensions")]
     use crate::testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair};
 
     // ensure the config context is send and sync
@@ -1184,6 +1185,9 @@ mod tests {
         Ok(())
     }
 
+    // This custom extension feature is only supported by a newer version of AWS-LC.
+    // The test will fail on an external build.
+    #[cfg(not(s2n_tls_external_build))]
     #[cfg(feature = "unstable-custom_x509_extensions")]
     #[test]
     fn custom_critical_extensions() -> Result<(), Error> {
