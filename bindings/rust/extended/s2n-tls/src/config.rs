@@ -1147,7 +1147,7 @@ impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::*;
+    use crate::testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair};
 
     // ensure the config context is send and sync
     #[test]
