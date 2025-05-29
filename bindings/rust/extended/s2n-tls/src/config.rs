@@ -604,6 +604,18 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_add_custom_x509_extension].
+    #[cfg(feature = "unstable-custom_x509_extensions")]
+    pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
+        let extension_oid_len: u32 = extension_oid
+            .len()
+            .try_into()
+            .map_err(|_| Error::INVALID_INPUT)?;
+        let extension_oid = extension_oid.as_ptr() as *mut u8;
+        unsafe { s2n_config_add_custom_x509_extension(self.as_mut_ptr(), extension_oid, extension_oid_len).into_result() }?;
+        Ok(self)
+    }
+
     /// Set a custom callback function which is run after parsing the client hello.
     ///
     /// Corresponds to [s2n_config_set_client_hello_cb].
