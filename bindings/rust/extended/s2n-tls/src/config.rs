@@ -612,7 +612,14 @@ impl Builder {
             .try_into()
             .map_err(|_| Error::INVALID_INPUT)?;
         let extension_oid = extension_oid.as_ptr() as *mut u8;
-        unsafe { s2n_config_add_custom_x509_extension(self.as_mut_ptr(), extension_oid, extension_oid_len).into_result() }?;
+        unsafe {
+            s2n_config_add_custom_x509_extension(
+                self.as_mut_ptr(),
+                extension_oid,
+                extension_oid_len,
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 
