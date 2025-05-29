@@ -24,3 +24,5 @@ s2n-tls = { path = "../s2n-tls", features = ["unstable-testing"] }
 rand = { version = "0.9" }
 tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-multi-thread", "test-util", "time"] }
 tokio-macros = "=2.3.0" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
+parking_lot_core = "=0.9.10" # newer versions require rust 1.64, see https://github.com/aws/s2n-tls/issues/5339
+lock_api = "=0.4.12" # newer versions require rust 1.64, see https://github.com/aws/s2n-tls/issues/5339
