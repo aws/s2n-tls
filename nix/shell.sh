@@ -109,14 +109,12 @@ function uvinteg {(
     banner "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
     unset PYTHONPATH
     local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
-    # A word on nice... 0 is the default priority, -1 is one step higher priority, and -20 is the highest priority.
-    # This is telling the OS to prioritize the uv process over other processes, but not to the point of starving them.
     if [[ -z "$1" ]]; then
         banner "Running all integ tests with uv" quiet
-        nice -1 uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+        uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
     else
         for test in "$@"; do
-            nice -1 uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+            uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
         done
     fi
 )}
