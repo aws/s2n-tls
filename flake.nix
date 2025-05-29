@@ -38,6 +38,8 @@
           pkgs.iproute2
           pkgs.apacheHttpd
           pkgs.procps
+          # stress testing tool for linux
+          pkgs.stress
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
           pkgs.tshark

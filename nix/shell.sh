@@ -109,15 +109,26 @@ function uvinteg {(
     banner "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
     unset PYTHONPATH
     local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
+    # A word on nice... 0 is the default priority, -1 is one step higher priority, and -20 is the highest priority.
+    # This is telling the OS to prioritize the uv process over other processes, but not to the point of starving them.
     if [[ -z "$1" ]]; then
         banner "Running all integ tests with uv" quiet
-        uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+        nice -1 uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
     else
         for test in "$@"; do
-            uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+            nice -1 uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
         done
     fi
 )}
+
+# Wrap a command with stress to simulate a high-load environment.
+function stresswrapper({
+    set -e
+    echo "Under STRESS"
+    stress --cpu 2 --io 2 --quiet &
+    trap 'pkill stress' ERR EXIT
+    "$@"
+})
 
 function check-clang-format {(set -e
     banner "Dry run of clang-format"
