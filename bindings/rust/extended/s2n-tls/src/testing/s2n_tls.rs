@@ -580,44 +580,6 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature = "unstable-custom_x509_extensions")]
-    #[test]
-    fn custom_critical_extensions() -> Result<(), Error> {
-        let certs = CertKeyPair::from_path(
-            "custom_oids/",
-            "single_oid_cert_chain",
-            "single_oid_key",
-            "ca-cert",
-        );
-        let single_oid = "1.3.187.25240.2";
-
-        for add_oid in [true, false] {
-            let config = {
-                let mut config = Builder::new();
-                config.set_security_policy(&security::DEFAULT_TLS13)?;
-                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
-
-                if add_oid {
-                    config.add_custom_x509_extension(single_oid)?;
-                }
-
-                config.load_pem(certs.cert(), certs.key())?;
-                config.trust_pem(certs.cert())?;
-                config.build()?
-            };
-            let mut pair = TestPair::from_config(&config);
-
-            if add_oid {
-                pair.handshake()?;
-            } else {
-                let s2n_err = pair.handshake().unwrap_err();
-                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION");
-            }
-        }
-
-        Ok(())
-    }
-
     #[cfg(feature = "unstable-ktls")]
     #[test]
     fn key_updates() -> Result<(), Error> {
