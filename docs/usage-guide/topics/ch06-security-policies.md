@@ -30,6 +30,7 @@ The following chart maps the security policy version to protocol version and cip
 |    default    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 | default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 | default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+|   20250422    |        |        |        |    X   |         |    X    |            |      |     |     |   X   |        |
 |   20240501    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240502    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240503    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
@@ -63,7 +64,7 @@ In contrast, numbered or dated versions are fixed and will never change. The num
 * "default_tls13": "20240503"
 For previous defaults, see the "Default Policy History" section below.
 
-"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
+"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20250422". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
 
 "rfc9151" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151). This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.
@@ -88,6 +89,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |   X   |              |    X    |
 | default_fips  |     X     |   X   |              |    X    |
 | default_tls13 |     X     |   X   |              |    X    |
+|   20250422    |     X     |   X   |              |    X    |
 |   20240501    |     X     |   X   |              |    X    |
 |   20240502    |     X     |   X   |              |    X    |
 |   20240503    |     X     |   X   |              |    X    |
@@ -123,6 +125,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |     X     |    X   |
 | default_fips  |     X     |     X     |        |
 | default_tls13 |     X     |     X     |    X   |
+|   20250422    |     X     |     X     |        |
 |   20240501    |     X     |     X     |    X   |
 |   20240502    |     X     |     X     |        |
 |   20240503    |     X     |     X     |    X   |
