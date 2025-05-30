@@ -2,6 +2,10 @@ echo nix/shell.sh: Entering a devShell
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
 
+# The GnuTlS config may restrict TLS versions in some environments,
+# so do not use any existing config file.
+export GNUTLS_SYSTEM_PRIORITY_FILE=
+
 # Function to display a formatted banner with the provided text
 banner()
 {
