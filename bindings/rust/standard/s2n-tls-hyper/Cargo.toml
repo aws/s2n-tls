@@ -12,8 +12,8 @@ license = "Apache-2.0"
 default = []
 
 [dependencies]
-s2n-tls = { version = "=0.3.20", path = "../../extended/s2n-tls" }
-s2n-tls-tokio = { version = "=0.3.20", path = "../../extended/s2n-tls-tokio" }
+s2n-tls = { version = "=0.3.21", path = "../../extended/s2n-tls" }
+s2n-tls-tokio = { version = "=0.3.21", path = "../../extended/s2n-tls-tokio" }
 # A minimum hyper version of 1.3 is required by hyper-util 0.1.4:
 # https://github.com/hyperium/hyper-util/blob/3f6a92ecd019b8d534d2945564d3ab8a92ff1f41/Cargo.toml#L34
 hyper = { version = "1.3" }
