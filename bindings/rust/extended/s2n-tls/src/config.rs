@@ -1147,8 +1147,6 @@ impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "unstable-custom_x509_extensions")]
-    use crate::testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair};
 
     // ensure the config context is send and sync
     #[test]
@@ -1185,15 +1183,19 @@ mod tests {
         Ok(())
     }
 
-    // This custom extension feature is only supported by a newer version of AWS-LC.
-    // The test will fail on an external build.
     #[cfg(all(
-        not(s2n_tls_external_build),
+        // The `add_custom_x509_extension` API is only exposed when its unstable feature is enabled.
         feature = "unstable-custom_x509_extensions",
+        // The `add_custom_x509_extension` API is only supported with AWS-LC, so
+        // this test is disabled for the external build, which may link to other libcryptos.
+        not(s2n_tls_external_build),
+        // The `add_custom_x509_extension` API is currently unsupported with AWS-LC-FIPS.
         not(feature = "fips")
     ))]
     #[test]
     fn custom_critical_extensions() -> Result<(), Error> {
+        use crate::testing::*;
+
         let certs = CertKeyPair::from_path(
             "custom_oids/",
             "single_oid_cert_chain",
