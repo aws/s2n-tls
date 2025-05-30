@@ -39,7 +39,7 @@ void s2n_blob_slice_harness()
     save_byte_from_blob(slice, &old_byte_from_slice);
 
     /* Operation under verification. */
-    if (s2n_blob_slice(blob, slice, offset, size) == S2N_SUCCESS) {
+    if (s2n_result_is_ok(s2n_blob_slice(blob, slice, offset, size))) {
         assert(blob->size >= offset + size);
         assert(slice->size == size);
         assert(slice->growable == 0);

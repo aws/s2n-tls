@@ -302,9 +302,10 @@ int s2n_free(struct s2n_blob *b)
 {
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
-    int zero_rc = s2n_blob_zero(b);
+    s2n_result zero_rc = s2n_blob_zero(b);
     POSIX_GUARD(s2n_free_without_wipe(b));
-    return zero_rc;
+    POSIX_GUARD_RESULT(zero_rc);
+    return S2N_SUCCESS;
 }
 
 int s2n_free_without_wipe(struct s2n_blob *b)
@@ -326,9 +327,10 @@ int s2n_free_without_wipe(struct s2n_blob *b)
 int s2n_free_or_wipe(struct s2n_blob *b)
 {
     POSIX_ENSURE_REF(b);
-    int zero_rc = s2n_blob_zero(b);
+    s2n_result zero_rc = s2n_blob_zero(b);
     if (b->allocated) {
         POSIX_GUARD(s2n_free_without_wipe(b));
     }
-    return zero_rc;
+    POSIX_GUARD_RESULT(zero_rc);
+    return S2N_SUCCESS;
 }

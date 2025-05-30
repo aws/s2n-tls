@@ -50,10 +50,10 @@ struct s2n_blob {
 
 bool s2n_blob_is_growable(const struct s2n_blob *b);
 S2N_RESULT s2n_blob_validate(const struct s2n_blob *b);
-int S2N_RESULT_MUST_USE s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size);
-int s2n_blob_zero(struct s2n_blob *b);
-int S2N_RESULT_MUST_USE s2n_blob_char_to_lower(struct s2n_blob *b);
-int S2N_RESULT_MUST_USE s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size);
+S2N_RESULT s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size);
+S2N_CLEANUP_RESULT s2n_blob_zero(struct s2n_blob *b);
+S2N_RESULT s2n_blob_char_to_lower(struct s2n_blob *b);
+S2N_RESULT s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size);
 
 #define s2n_stack_blob(name, requested_size, maximum)   \
     size_t name##_requested_size = (requested_size);    \

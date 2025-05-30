@@ -33,7 +33,7 @@ void s2n_blob_char_to_lower_harness()
     save_byte_from_blob(blob, &old_byte_from_blob);
 
     /* Operation under verification. */
-    if (s2n_blob_char_to_lower(blob) == S2N_SUCCESS) {
+    if (s2n_result_is_ok(s2n_blob_char_to_lower(blob))) {
         if (blob->size != 0) {
             if (old_byte_from_blob.byte >= 'A' && old_byte_from_blob.byte <= 'Z') {
                 assert(blob->data[ old_byte_from_blob.idx ] == (old_byte_from_blob.byte + ('a' - 'A')));
