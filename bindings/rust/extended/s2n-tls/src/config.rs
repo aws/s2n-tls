@@ -604,6 +604,25 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_add_custom_x509_extension].
+    #[cfg(feature = "unstable-custom_x509_extensions")]
+    pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
+        let extension_oid_len: u32 = extension_oid
+            .len()
+            .try_into()
+            .map_err(|_| Error::INVALID_INPUT)?;
+        let extension_oid = extension_oid.as_ptr() as *mut u8;
+        unsafe {
+            s2n_config_add_custom_x509_extension(
+                self.as_mut_ptr(),
+                extension_oid,
+                extension_oid_len,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Set a custom callback function which is run after parsing the client hello.
     ///
     /// Corresponds to [s2n_config_set_client_hello_cb].
@@ -1159,6 +1178,54 @@ mod tests {
             }
 
             assert_eq!(retrieved_auth_type, auth_type.into());
+        }
+
+        Ok(())
+    }
+
+    #[cfg(all(
+        // The `add_custom_x509_extension` API is only exposed when its unstable feature is enabled.
+        feature = "unstable-custom_x509_extensions",
+        // The `add_custom_x509_extension` API is only supported with AWS-LC, so
+        // this test is disabled for the external build, which may link to other libcryptos.
+        not(s2n_tls_external_build),
+        // The `add_custom_x509_extension` API is currently unsupported with AWS-LC-FIPS.
+        not(feature = "fips")
+    ))]
+    #[test]
+    fn custom_critical_extensions() -> Result<(), Error> {
+        use crate::testing::*;
+
+        let certs = CertKeyPair::from_path(
+            "custom_oids/",
+            "single_oid_cert_chain",
+            "single_oid_key",
+            "ca-cert",
+        );
+        let single_oid = "1.3.187.25240.2";
+
+        for add_oid in [true, false] {
+            let config = {
+                let mut config = Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+
+                if add_oid {
+                    config.add_custom_x509_extension(single_oid)?;
+                }
+
+                config.load_pem(certs.cert(), certs.key())?;
+                config.trust_pem(certs.cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+
+            if add_oid {
+                pair.handshake()?;
+            } else {
+                let s2n_err = pair.handshake().unwrap_err();
+                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION");
+            }
         }
 
         Ok(())
