@@ -112,7 +112,7 @@ static S2N_RESULT s2n_calculate_transcript_digest(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
 
     struct s2n_blob digest = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&digest, CONN_HASHES(conn)->transcript_hash_digest, digest_size));
+    RESULT_GUARD(s2n_blob_init(&digest, CONN_HASHES(conn)->transcript_hash_digest, digest_size));
 
     struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
     RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_algorithm, hash_state));
@@ -372,7 +372,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
 
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
+    RESULT_GUARD(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
     RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_EARLY_SECRET, &derived_secret));
 
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free_or_wipe);
@@ -464,7 +464,7 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
 
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
+    RESULT_GUARD(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
     RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_HANDSHAKE_SECRET, &derived_secret));
 
     RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
@@ -626,13 +626,13 @@ S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
      * A compromised secret additionally compromises all secrets derived from it,
      * so these are the most sensitive secrets.
      */
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, extract_secret)));
+    RESULT_GUARD(s2n_blob_zero(&CONN_SECRET(conn, extract_secret)));
     conn->secrets.extract_secret_type = S2N_NONE_SECRET;
 
     /* Wipe other secrets no longer needed */
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, client_early_secret)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, client_handshake_secret)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, server_handshake_secret)));
+    RESULT_GUARD(s2n_blob_zero(&CONN_SECRET(conn, client_early_secret)));
+    RESULT_GUARD(s2n_blob_zero(&CONN_SECRET(conn, client_handshake_secret)));
+    RESULT_GUARD(s2n_blob_zero(&CONN_SECRET(conn, server_handshake_secret)));
 
     return S2N_RESULT_OK;
 }
@@ -741,12 +741,12 @@ int s2n_connection_tls_exporter(struct s2n_connection *conn,
     struct s2n_blob label = { 0 };
     POSIX_ENSURE_LTE(label_length, sizeof(label_bytes));
     POSIX_CHECKED_MEMCPY(label_bytes, label_in, label_length);
-    POSIX_GUARD(s2n_blob_init(&label, label_bytes, label_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&label, label_bytes, label_length));
 
     uint8_t derived_secret_bytes[S2N_MAX_DIGEST_LEN] = { 0 };
     struct s2n_blob derived_secret = { 0 };
     POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
-    POSIX_GUARD(s2n_blob_init(&derived_secret,
+    POSIX_GUARD_RESULT(s2n_blob_init(&derived_secret,
             derived_secret_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
     POSIX_GUARD_RESULT(s2n_derive_secret(hmac_alg, &CONN_SECRET(conn, exporter_master_secret),
             &label, &EMPTY_CONTEXT(hmac_alg), &derived_secret));
@@ -762,14 +762,14 @@ int s2n_connection_tls_exporter(struct s2n_connection *conn,
     uint8_t digest_bytes[S2N_MAX_DIGEST_LEN] = { 0 };
     struct s2n_blob digest = { 0 };
     POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
-    POSIX_GUARD(s2n_blob_init(&digest, digest_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
+    POSIX_GUARD_RESULT(s2n_blob_init(&digest, digest_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
 
     POSIX_GUARD(s2n_hash_init(&hash, hash_alg));
     POSIX_GUARD(s2n_hash_update(&hash, context, context_length));
     POSIX_GUARD(s2n_hash_digest(&hash, digest.data, digest.size));
 
     struct s2n_blob output = { 0 };
-    POSIX_GUARD(s2n_blob_init(&output, output_in, output_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&output, output_in, output_length));
     POSIX_GUARD(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
             &derived_secret, &s2n_tls13_label_exporter, &digest, &output));
 

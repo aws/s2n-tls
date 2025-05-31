@@ -1733,7 +1733,7 @@ int main(int argc, char **argv)
 
             /* User did not provide a large enough buffer to write the compression methods */
             uint8_t data[] = { 1, 2, 3, 4, 5 };
-            EXPECT_SUCCESS(s2n_blob_init(&client_hello.compression_methods, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&client_hello.compression_methods, data, sizeof(data)));
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, &list, list_length, &out_length),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
         };

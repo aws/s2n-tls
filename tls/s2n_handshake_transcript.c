@@ -33,7 +33,7 @@ S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn)
     uint32_t len = s2n_stuffer_data_available(&message);
     uint8_t *bytes = s2n_stuffer_raw_read(&message, len);
     RESULT_ENSURE_REF(bytes);
-    RESULT_GUARD_POSIX(s2n_blob_init(&data, bytes, len));
+    RESULT_GUARD(s2n_blob_init(&data, bytes, len));
 
     RESULT_GUARD_POSIX(s2n_conn_update_handshake_hashes(conn, &data));
     return S2N_RESULT_OK;
@@ -118,11 +118,11 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
 
     /* Step 2: Update the transcript with the synthetic message */
     struct s2n_blob msg_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&msg_blob, msghdr, MESSAGE_HASH_HEADER_LENGTH));
+    POSIX_GUARD_RESULT(s2n_blob_init(&msg_blob, msghdr, MESSAGE_HASH_HEADER_LENGTH));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
     /* Step 3: Update the transcript with the ClientHello1 hash */
-    POSIX_GUARD(s2n_blob_init(&msg_blob, client_hello1_digest_out, hash_digest_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&msg_blob, client_hello1_digest_out, hash_digest_length));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
     return S2N_SUCCESS;

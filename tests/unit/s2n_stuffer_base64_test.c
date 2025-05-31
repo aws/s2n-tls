@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     struct s2n_stuffer stuffer = { 0 }, known_data = { 0 }, scratch = { 0 }, entropy = { 0 }, mirror = { 0 };
     uint8_t pad[50];
     struct s2n_blob r = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&r, pad, sizeof(pad)));
+    EXPECT_OK(s2n_blob_init(&r, pad, sizeof(pad)));
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));

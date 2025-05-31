@@ -176,7 +176,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer encoded, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_alloc(&encoded, sizeof(bytes) * 2));
         struct s2n_blob raw_bytes = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&raw_bytes, bytes, sizeof(bytes)));
+        EXPECT_OK(s2n_blob_init(&raw_bytes, bytes, sizeof(bytes)));
         EXPECT_OK(s2n_stuffer_write_hex(&encoded, &raw_bytes));
 
         DEFER_CLEANUP(struct s2n_blob decoded = { 0 }, s2n_free);
