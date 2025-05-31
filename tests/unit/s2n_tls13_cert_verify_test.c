@@ -121,7 +121,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
     struct s2n_blob cert = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&cert, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+    EXPECT_OK(s2n_blob_init(&cert, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
 
     /* Successfully send and receive certificate verify */
     {

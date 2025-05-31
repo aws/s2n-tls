@@ -86,7 +86,7 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
     POSIX_ENSURE(map != MAP_FAILED, S2N_ERR_MMAP);
 
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, map, (uint32_t) st.st_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&b, map, (uint32_t) st.st_size));
     return s2n_stuffer_init(stuffer, &b);
 }
 

@@ -91,7 +91,7 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
     RESULT_ENSURE(!conn->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
 
     struct s2n_blob session_id = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+    RESULT_GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
     RESULT_GUARD(s2n_get_public_random_data(&session_id));
     conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
     return S2N_RESULT_OK;
@@ -400,7 +400,7 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE(session_id_len <= S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
     uint8_t *session_id = s2n_stuffer_raw_read(in, session_id_len);
     RESULT_ENSURE(session_id != NULL, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->session_id, session_id, session_id_len));
+    RESULT_GUARD(s2n_blob_init(&client_hello->session_id, session_id, session_id_len));
 
     /* cipher suites */
     uint16_t cipher_suites_length = 0;
@@ -409,14 +409,14 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
     uint8_t *cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     RESULT_ENSURE(cipher_suites != NULL, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->cipher_suites, cipher_suites, cipher_suites_length));
+    RESULT_GUARD(s2n_blob_init(&client_hello->cipher_suites, cipher_suites, cipher_suites_length));
 
     /* legacy_compression_methods */
     uint8_t compression_methods_len = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &compression_methods_len));
     uint8_t *compression_methods = s2n_stuffer_raw_read(in, compression_methods_len);
     RESULT_ENSURE(compression_methods != NULL, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->compression_methods, compression_methods, compression_methods_len));
+    RESULT_GUARD(s2n_blob_init(&client_hello->compression_methods, compression_methods, compression_methods_len));
 
     /* extensions */
     RESULT_GUARD_POSIX(s2n_extension_list_parse(in, &client_hello->extensions));
@@ -480,7 +480,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
 
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_client_hello)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
+    RESULT_GUARD(s2n_blob_zero(&mem));
 
     DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
     client_hello = (struct s2n_client_hello *) (void *) mem.data;
@@ -728,7 +728,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD_RESULT(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
     if (!s2n_is_hello_retry_handshake(conn)) {
         /* Only generate the random data for our first client hello.
          * If we retry, we'll reuse the value. */
@@ -849,14 +849,14 @@ int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
     POSIX_ENSURE_REF(client_hello->cipher_suites.data);
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-    POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, session_id_length), session_id_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, session_id_length), session_id_length));
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
         POSIX_CHECKED_MEMCPY(conn->session_id, client_hello->session_id.data, session_id_length);
         conn->session_id_len = (uint8_t) session_id_length;
     }
 
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD_RESULT(s2n_blob_init(&b, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;
@@ -991,7 +991,7 @@ S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         RESULT_ENSURE_REF(extension_data);
 
         if (extension_iana == extension_type) {
-            RESULT_GUARD_POSIX(s2n_blob_init(extension, extension_data, extension_size));
+            RESULT_GUARD(s2n_blob_init(extension, extension_data, extension_size));
             return S2N_RESULT_OK;
         }
     }

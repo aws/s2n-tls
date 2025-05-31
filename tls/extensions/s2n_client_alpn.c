@@ -76,7 +76,7 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
     }
 
     struct s2n_blob client_protocols = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_protocols, s2n_stuffer_raw_read(extension, wire_size), wire_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&client_protocols, s2n_stuffer_raw_read(extension, wire_size), wire_size));
 
     struct s2n_stuffer server_protocols = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&server_protocols, supported_protocols));

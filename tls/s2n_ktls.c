@@ -191,11 +191,11 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
     struct s2n_ktls_crypto_info_inputs inputs = { 0 };
     if (key_mode == S2N_CLIENT) {
         inputs.key = key_material.client_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+        RESULT_GUARD(s2n_blob_init(&inputs.iv,
                 secure->client_implicit_iv, sizeof(secure->client_implicit_iv)));
     } else {
         inputs.key = key_material.server_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+        RESULT_GUARD(s2n_blob_init(&inputs.iv,
                 secure->server_implicit_iv, sizeof(secure->server_implicit_iv)));
     }
     RESULT_GUARD(s2n_connection_get_sequence_number(conn, key_mode, &inputs.seq));

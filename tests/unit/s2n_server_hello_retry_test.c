@@ -365,7 +365,7 @@ int main(int argc, char **argv)
         uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_hash_digest(&client_hello1_hash, client_hello1_digest_out, hash_digest_length));
 
-        EXPECT_SUCCESS(s2n_blob_init(&compare_blob, client_hello1_digest_out, hash_digest_length));
+        EXPECT_OK(s2n_blob_init(&compare_blob, client_hello1_digest_out, hash_digest_length));
         S2N_BLOB_EXPECT_EQUAL(client_hello1_expected_hash, compare_blob);
 
         EXPECT_SUCCESS(s2n_server_hello_retry_recreate_transcript(conn));
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
         POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, &recreated_hash));
         EXPECT_SUCCESS(s2n_hash_digest(&recreated_hash, recreated_transcript_digest_out, hash_digest_length));
 
-        EXPECT_SUCCESS(s2n_blob_init(&compare_blob, recreated_transcript_digest_out, hash_digest_length));
+        EXPECT_OK(s2n_blob_init(&compare_blob, recreated_transcript_digest_out, hash_digest_length));
         S2N_BLOB_EXPECT_EQUAL(synthetic_message_with_ch1_expected_hash, compare_blob);
 
         EXPECT_SUCCESS(s2n_config_free(conf));

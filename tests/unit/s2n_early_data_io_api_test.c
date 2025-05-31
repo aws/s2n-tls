@@ -460,7 +460,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob payload_blob = { 0 };
             struct s2n_stuffer payload_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&payload_blob, actual_payload, sizeof(actual_payload)));
+            EXPECT_OK(s2n_blob_init(&payload_blob, actual_payload, sizeof(actual_payload)));
             EXPECT_SUCCESS(s2n_stuffer_init(&payload_stuffer, &payload_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&payload_stuffer, data_size));
 

@@ -45,7 +45,7 @@ static int s2n_setup_test_parsed_extension(const s2n_extension_type *extension_t
 
     POSIX_GUARD(extension_type->send(conn, stuffer));
     uint16_t extension_size = s2n_stuffer_data_available(stuffer);
-    POSIX_GUARD(s2n_blob_init(&parsed_extension->extension, s2n_stuffer_raw_read(stuffer, extension_size), extension_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&parsed_extension->extension, s2n_stuffer_raw_read(stuffer, extension_size), extension_size));
 
     return S2N_SUCCESS;
 }
@@ -67,7 +67,7 @@ int main()
     {
         uint8_t extension_data[] = "data";
         struct s2n_blob extension_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+        EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
 
         const s2n_extension_type test_extension_type = {
             .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,

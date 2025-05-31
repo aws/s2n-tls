@@ -54,11 +54,11 @@ int main(int argc, char **argv)
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
     struct s2n_blob aes128 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
+    EXPECT_OK(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
     struct s2n_blob aes256 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&aes256, aes256_key, sizeof(aes256_key)));
+    EXPECT_OK(s2n_blob_init(&aes256, aes256_key, sizeof(aes256_key)));
     struct s2n_blob r = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
+    EXPECT_OK(s2n_blob_init(&r, random_data, sizeof(random_data)));
     /* Stores explicit IVs used in each test case to validate uniqueness. */
     uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH + 2][S2N_TLS_MAX_IV_LEN];
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < 3; j++) {
         for (size_t i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+            EXPECT_OK(s2n_blob_init(&in, random_data, i));
             int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+            EXPECT_OK(s2n_blob_init(&in, random_data, i));
             int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+            EXPECT_OK(s2n_blob_init(&in, random_data, i));
             int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+            EXPECT_OK(s2n_blob_init(&in, random_data, i));
             int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));

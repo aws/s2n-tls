@@ -46,7 +46,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);

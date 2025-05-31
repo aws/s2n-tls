@@ -551,11 +551,11 @@ int main(int argc, char **argv)
         };
 
         struct s2n_blob identity_1 = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&identity_1, test_identity, sizeof(test_identity)));
+        EXPECT_OK(s2n_blob_init(&identity_1, test_identity, sizeof(test_identity)));
         struct s2n_blob identity_2 = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&identity_2, test_identity_2, sizeof(test_identity_2)));
+        EXPECT_OK(s2n_blob_init(&identity_2, test_identity_2, sizeof(test_identity_2)));
         struct s2n_blob identity_3 = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&identity_3, test_identity_3, sizeof(test_identity_3)));
+        EXPECT_OK(s2n_blob_init(&identity_3, test_identity_3, sizeof(test_identity_3)));
 
         struct s2n_blob *all_psks_list[] = { &identity_1, &identity_2, &identity_3 };
         struct s2n_blob *reverse_order_list[] = { &identity_3, &identity_2, &identity_1 };
@@ -734,7 +734,7 @@ int main(int argc, char **argv)
             /* Write invalid resumption psk */
             uint8_t bad_identity_data[] = "hello";
             struct s2n_blob bad_identity = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+            EXPECT_OK(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
 
             uint8_t psk_idx = MAX_REJECTED_TICKETS - 1;
             for (size_t i = 0; i < psk_idx; i++) {
@@ -774,7 +774,7 @@ int main(int argc, char **argv)
             /* Write invalid resumption psk */
             uint8_t bad_identity_data[] = "hello";
             struct s2n_blob bad_identity = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+            EXPECT_OK(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
             EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
@@ -804,7 +804,7 @@ int main(int argc, char **argv)
             /* "hello" is mysteriously not a valid session ticket */
             uint8_t bad_identity_data[] = "hello";
             struct s2n_blob bad_identity = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+            EXPECT_OK(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
 
             struct s2n_offered_psk_list identity_list = { .conn = conn };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
@@ -999,7 +999,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_identity(local_psk, test_bytes_data, sizeof(test_bytes_data)));
 
             struct s2n_blob wire_identity = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
+            EXPECT_OK(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
 
             struct s2n_stuffer wire_identities_in = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identities_in, 0));
@@ -1045,7 +1045,7 @@ int main(int argc, char **argv)
             {
                 /* Write invalid resumption PSK */
                 struct s2n_blob wire_identity = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
+                EXPECT_OK(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
                 EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &wire_identity));
 
                 /* Write valid resumption PSK */
@@ -1077,7 +1077,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config_with_cb));
 
                 struct s2n_blob wire_identity = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
+                EXPECT_OK(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
                 EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &wire_identity));
 
                 EXPECT_ERROR(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
@@ -1109,14 +1109,14 @@ int main(int argc, char **argv)
         uint8_t valid_binder_data[SHA256_DIGEST_LENGTH] = { 0 };
 
         struct s2n_blob partial_client_hello = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&partial_client_hello,
+        EXPECT_OK(s2n_blob_init(&partial_client_hello,
                 partial_client_hello_data, sizeof(partial_client_hello_data)));
 
         struct s2n_blob binder_hash = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&binder_hash, binder_hash_data, sizeof(binder_hash_data)));
+        EXPECT_OK(s2n_blob_init(&binder_hash, binder_hash_data, sizeof(binder_hash_data)));
 
         struct s2n_blob valid_binder = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&valid_binder, valid_binder_data, sizeof(valid_binder_data)));
+        EXPECT_OK(s2n_blob_init(&valid_binder, valid_binder_data, sizeof(valid_binder_data)));
 
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));

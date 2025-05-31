@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 
                 uint8_t actual_num = 0;
                 struct s2n_blob num_out = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&num_out, &actual_num, 1));
+                EXPECT_OK(s2n_blob_init(&num_out, &actual_num, 1));
                 EXPECT_OK(s2n_stuffer_read_hex(&hex_in, &num_out));
                 EXPECT_EQUAL(actual_num, test_cases[i].num);
                 EXPECT_FALSE(s2n_stuffer_data_available(&hex_in));

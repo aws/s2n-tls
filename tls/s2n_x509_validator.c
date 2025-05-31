@@ -498,7 +498,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
     RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
 
     struct s2n_blob cert_chain_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
+    RESULT_GUARD(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
@@ -778,7 +778,7 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
     RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     struct s2n_blob cert_chain_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
+    RESULT_GUARD(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));

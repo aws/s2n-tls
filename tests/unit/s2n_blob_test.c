@@ -35,13 +35,13 @@ int main(int argc, char **argv)
 
     /* Size of 0 is OK if data is null */
     struct s2n_blob b2 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b2, 0, 0));
+    EXPECT_OK(s2n_blob_init(&b2, 0, 0));
     EXPECT_OK(s2n_blob_validate(&b2));
 
     /* Valid blob is valid */
     uint8_t array[12];
     struct s2n_blob b3 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b3, array, sizeof(array)));
+    EXPECT_OK(s2n_blob_init(&b3, array, sizeof(array)));
     EXPECT_OK(s2n_blob_validate(&b3));
 
     /* Null blob is not growable */
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
     /* Static blob is not growable or freeable */
     struct s2n_blob g1 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&g1, array, 12));
+    EXPECT_OK(s2n_blob_init(&g1, array, 12));
     EXPECT_FALSE(s2n_blob_is_growable(&g1));
     EXPECT_FAILURE(s2n_realloc(&g1, 24));
     EXPECT_FAILURE(s2n_free(&g1));
@@ -92,15 +92,15 @@ int main(int argc, char **argv)
 
     /* Down-casing works */
     struct s2n_blob g7 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&g7, hello_world, sizeof(hello_world)));
-    EXPECT_SUCCESS(s2n_blob_char_to_lower(&g7));
+    EXPECT_OK(s2n_blob_init(&g7, hello_world, sizeof(hello_world)));
+    EXPECT_OK(s2n_blob_char_to_lower(&g7));
     EXPECT_SUCCESS(memcmp(g7.data, "hello world", sizeof(hello_world)));
 
     /* Slicing works */
     struct s2n_blob g8 = { 0 };
     uint8_t hello[] = "hello ";
     uint8_t world[] = "world";
-    EXPECT_SUCCESS(s2n_blob_slice(&g7, &g8, strlen((char *) hello), sizeof(world)));
+    EXPECT_OK(s2n_blob_slice(&g7, &g8, strlen((char *) hello), sizeof(world)));
     EXPECT_EQUAL(memcmp(g8.data, world, sizeof(world)), 0);
     EXPECT_EQUAL(g8.size, sizeof(world));
 

@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     /* test data */
     uint8_t test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
+    EXPECT_OK(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
     /* Test the sendmsg mock IO stuffer implementation */

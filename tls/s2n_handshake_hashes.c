@@ -86,7 +86,7 @@ S2N_RESULT s2n_handshake_hashes_new(struct s2n_handshake_hashes **hashes)
 
     DEFER_CLEANUP(struct s2n_blob data = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_realloc(&data, sizeof(struct s2n_handshake_hashes)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&data));
+    RESULT_GUARD(s2n_blob_zero(&data));
     *hashes = (struct s2n_handshake_hashes *) (void *) data.data;
     ZERO_TO_DISABLE_DEFER_CLEANUP(data);
 

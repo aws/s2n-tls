@@ -68,7 +68,7 @@ S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
 
     struct s2n_blob iovecs_mem = { 0 };
     RESULT_GUARD_POSIX(s2n_alloc(&iovecs_mem, sizeof(struct iovec) * iovecs_count));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&iovecs_mem));
+    RESULT_GUARD(s2n_blob_zero(&iovecs_mem));
     iovecs->iovecs = (struct iovec *) (void *) iovecs_mem.data;
     iovecs->iovecs_count = iovecs_count;
 

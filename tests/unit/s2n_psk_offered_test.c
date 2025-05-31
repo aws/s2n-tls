@@ -337,7 +337,7 @@ int main(int argc, char **argv)
         {
             uint8_t wire_identity[] = "identity";
             DEFER_CLEANUP(struct s2n_offered_psk *psk = s2n_offered_psk_new(), s2n_offered_psk_free);
-            EXPECT_SUCCESS(s2n_blob_init(&psk->identity, wire_identity, sizeof(wire_identity)));
+            EXPECT_OK(s2n_blob_init(&psk->identity, wire_identity, sizeof(wire_identity)));
 
             uint8_t *data = NULL;
             uint16_t size = 0;
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
         const uint16_t wire_index = 5;
         uint8_t wire_identity_bytes[] = "wire_identity_bytes";
         struct s2n_blob wire_identity = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&wire_identity, wire_identity_bytes, sizeof(wire_identity_bytes)));
+        EXPECT_OK(s2n_blob_init(&wire_identity, wire_identity_bytes, sizeof(wire_identity_bytes)));
         struct s2n_offered_psk offered_psk = { .identity = wire_identity, .wire_index = wire_index };
 
         struct s2n_offered_psk_list offered_psk_list = { .conn = conn };

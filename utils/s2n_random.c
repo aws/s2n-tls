@@ -221,9 +221,9 @@ static S2N_RESULT s2n_init_drbgs(void)
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
     struct s2n_blob public = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&public, s2n_public_drbg, sizeof(s2n_public_drbg)));
+    RESULT_GUARD(s2n_blob_init(&public, s2n_public_drbg, sizeof(s2n_public_drbg)));
     struct s2n_blob private = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
+    RESULT_GUARD(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
 
     RESULT_ENSURE(pthread_once(&s2n_per_thread_rand_state_key_once, s2n_drbg_make_rand_state_key) == 0, S2N_ERR_DRBG);
     RESULT_ENSURE_EQ(pthread_key_create_result, 0);
@@ -309,7 +309,7 @@ static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s
     while (remaining) {
         struct s2n_blob slice = { 0 };
 
-        RESULT_GUARD_POSIX(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
+        RESULT_GUARD(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
         RESULT_GUARD(s2n_drbg_generate(drbg_state, &slice));
 
         remaining -= slice.size;
@@ -478,7 +478,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
     while (1) {
         struct s2n_blob blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&blob, (void *) &r, sizeof(r)));
+        RESULT_GUARD(s2n_blob_init(&blob, (void *) &r, sizeof(r)));
         RESULT_GUARD(s2n_get_public_random_data(&blob));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
@@ -504,7 +504,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, buf, num));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out, buf, num));
 
     if (s2n_result_is_error(s2n_get_private_random_data(&out))) {
         return 0;
@@ -691,7 +691,7 @@ static int s2n_rand_get_entropy_from_rdrand(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, data, size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out, data, size));
     size_t space_remaining = 0;
     struct s2n_stuffer stuffer = { 0 };
     union {

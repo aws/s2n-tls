@@ -27,9 +27,9 @@ int main(int argc, char **argv)
     {
         uint8_t array[9] = { 0 };
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
+        EXPECT_OK(s2n_blob_init(&in, array, 9));
         struct s2n_blob out = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&out, array, 9));
+        EXPECT_OK(s2n_blob_init(&out, array, 9));
         struct s2n_session_key session_key = { 0 };
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));
     };
@@ -38,9 +38,9 @@ int main(int argc, char **argv)
     {
         uint8_t array[9] = { 0 };
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
+        EXPECT_OK(s2n_blob_init(&in, array, 9));
         struct s2n_blob out = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&out, array, 8));
+        EXPECT_OK(s2n_blob_init(&out, array, 8));
         struct s2n_session_key session_key = { 0 };
         EXPECT_FAILURE(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));
     };
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
         uint8_t in_array[9] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
         uint8_t out_array[9] = { 0 };
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, in_array, 9));
+        EXPECT_OK(s2n_blob_init(&in, in_array, 9));
         struct s2n_blob out = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&out, out_array, 9));
+        EXPECT_OK(s2n_blob_init(&out, out_array, 9));
         EXPECT_BYTEARRAY_NOT_EQUAL(in_array, out_array, out.size);
         struct s2n_session_key session_key = { 0 };
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(&session_key, &in, &out));

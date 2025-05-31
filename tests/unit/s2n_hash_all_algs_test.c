@@ -67,7 +67,7 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
     {
         struct s2n_blob result = { 0 };
         uint8_t result_data[OUTPUT_DATA_SIZE] = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&result, result_data, OUTPUT_DATA_SIZE));
+        RESULT_GUARD(s2n_blob_init(&result, result_data, OUTPUT_DATA_SIZE));
 
         RESULT_GUARD_POSIX(s2n_hash_new(&hash_copy));
         RESULT_GUARD_POSIX(s2n_hash_copy(&hash_copy, hash_state));
@@ -117,7 +117,7 @@ S2N_RESULT s2n_hash_test(s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
     {
         struct s2n_blob result = { 0 };
         uint8_t result_data[OUTPUT_DATA_SIZE] = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&result, result_data, OUTPUT_DATA_SIZE));
+        RESULT_GUARD(s2n_blob_init(&result, result_data, OUTPUT_DATA_SIZE));
 
         RESULT_GUARD_POSIX(s2n_hash_reset(&hash_state));
         RESULT_ENSURE_EQ(hash_state.currently_in_hash, 0);
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob actual_result = { 0 };
         uint8_t actual_result_data[OUTPUT_DATA_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));
+        EXPECT_OK(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));
 
         S2N_CHECKED_BLOB_FROM_HEX(expected_result, EXPECT_OK, expected_result_hex[hash_alg]);
 

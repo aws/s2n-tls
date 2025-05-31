@@ -233,7 +233,7 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(&psk_list->wire_data, &psk->obfuscated_ticket_age));
     }
 
-    RESULT_GUARD_POSIX(s2n_blob_init(&psk->identity, identity_data, identity_size));
+    RESULT_GUARD(s2n_blob_init(&psk->identity, identity_data, identity_size));
     psk->wire_index = psk_list->wire_index;
 
     RESULT_ENSURE(psk_list->wire_index < UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
@@ -351,7 +351,7 @@ struct s2n_offered_psk *s2n_offered_psk_new()
 {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_offered_psk)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&mem));
+    PTR_GUARD_RESULT(s2n_blob_zero(&mem));
 
     struct s2n_offered_psk *psk = (struct s2n_offered_psk *) (void *) mem.data;
 
@@ -425,7 +425,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
 
     /* Derive the binder key */
     POSIX_GUARD_RESULT(s2n_derive_binder_key(psk, &psk_keys.derive_secret));
-    POSIX_GUARD(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
     struct s2n_blob *binder_key = &psk_keys.derive_secret;
 
     /* Expand the binder key into the finished key */
@@ -470,7 +470,7 @@ static S2N_RESULT s2n_psk_write_binder(struct s2n_connection *conn, struct s2n_p
 
     struct s2n_blob binder = { 0 };
     uint8_t binder_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&binder, binder_data, binder_hash->size));
+    RESULT_GUARD(s2n_blob_init(&binder, binder_data, binder_hash->size));
 
     RESULT_GUARD_POSIX(s2n_psk_calculate_binder(psk, binder_hash, &binder));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, binder.size));
@@ -520,7 +520,7 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
         if (binder_hash->size == 0) {
             uint8_t hash_size = 0;
             RESULT_GUARD_POSIX(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
-            RESULT_GUARD_POSIX(s2n_blob_init(binder_hash, binder_hashes_data[psk->hmac_alg], hash_size));
+            RESULT_GUARD(s2n_blob_init(binder_hash, binder_hashes_data[psk->hmac_alg], hash_size));
             RESULT_GUARD_POSIX(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, binder_hash));
         }
 
@@ -552,7 +552,7 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
 
     /* Store the partial client hello for use in calculating the binder hash. */
     struct s2n_blob partial_client_hello = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&partial_client_hello, client_hello->blob.data,
+    RESULT_GUARD(s2n_blob_init(&partial_client_hello, client_hello->blob.data,
             s2n_stuffer_data_available(client_hello)));
 
     RESULT_GUARD(s2n_psk_write_binder_list(conn, &partial_client_hello, client_hello));

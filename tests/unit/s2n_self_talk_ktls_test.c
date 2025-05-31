@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
     uint8_t test_data[100] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
+    EXPECT_OK(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
     DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
             const uint8_t test_record_type = TLS_CHANGE_CIPHER_SPEC;
             uint8_t control_record_data[] = "control record data";
             struct s2n_blob control_record = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
+            EXPECT_OK(s2n_blob_init(&control_record, control_record_data,
                     sizeof(control_record_data)));
 
             for (size_t i = 0; i < 5; i++) {
@@ -442,7 +442,7 @@ int main(int argc, char **argv)
                 10,
             };
             struct s2n_blob control_record = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
+            EXPECT_OK(s2n_blob_init(&control_record, control_record_data,
                     sizeof(control_record_data)));
 
             for (size_t i = 0; i < 5; i++) {

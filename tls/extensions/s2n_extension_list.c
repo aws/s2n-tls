@@ -149,7 +149,7 @@ static int s2n_extension_parse(struct s2n_stuffer *in, s2n_parsed_extension *par
     /* Fill in parsed extension */
     parsed_extension->extension_type = extension_type;
     parsed_extension->wire_index = *wire_index;
-    POSIX_GUARD(s2n_blob_init(&parsed_extension->extension, extension_data, extension_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&parsed_extension->extension, extension_data, extension_size));
     (*wire_index)++;
 
     return S2N_SUCCESS;
@@ -171,7 +171,7 @@ int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list 
     uint8_t *extensions_data = s2n_stuffer_raw_read(in, total_extensions_size);
     POSIX_ENSURE(extensions_data != NULL, S2N_ERR_BAD_MESSAGE);
 
-    POSIX_GUARD(s2n_blob_init(&parsed_extension_list->raw, extensions_data, total_extensions_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&parsed_extension_list->raw, extensions_data, total_extensions_size));
 
     struct s2n_stuffer extensions_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&extensions_stuffer, &parsed_extension_list->raw));

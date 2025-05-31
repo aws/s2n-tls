@@ -27,7 +27,7 @@ S2N_RESULT s2n_crypto_parameters_new(struct s2n_crypto_parameters **new_params)
 
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crypto_parameters)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
+    RESULT_GUARD(s2n_blob_zero(&mem));
 
     DEFER_CLEANUP(struct s2n_crypto_parameters *params = (struct s2n_crypto_parameters *) (void *) mem.data,
             s2n_crypto_parameters_free);
@@ -107,13 +107,13 @@ S2N_RESULT s2n_crypto_parameters_switch(struct s2n_connection *conn)
     /* Only start encryption if we have not already switched to secure parameters */
     if (conn->mode == S2N_CLIENT && conn->client == conn->initial) {
         struct s2n_blob seq = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
+        RESULT_GUARD(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        RESULT_GUARD(s2n_blob_zero(&seq));
         conn->client = conn->secure;
     } else if (conn->mode == S2N_SERVER && conn->server == conn->initial) {
         struct s2n_blob seq = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
+        RESULT_GUARD(s2n_blob_init(&seq, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        RESULT_GUARD(s2n_blob_zero(&seq));
         conn->server = conn->secure;
     }
 

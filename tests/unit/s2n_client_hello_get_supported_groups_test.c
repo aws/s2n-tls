@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
         uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
         struct s2n_blob extension_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+        EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
 
         s2n_parsed_extension *supported_groups_extension = &client_hello.extensions.parsed_extensions[supported_groups_id];
         supported_groups_extension->extension_type = S2N_EXTENSION_SUPPORTED_GROUPS;
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
         {
             uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
             struct s2n_blob extension_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+            EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
             supported_groups_extension->extension = extension_blob;
 
             struct s2n_stuffer extension_stuffer = { 0 };
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
             struct s2n_blob extension_blob = { 0 };
             uint32_t extension_too_small_size = S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE - 2;
-            EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, extension_too_small_size));
+            EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, extension_too_small_size));
             supported_groups_extension->extension = extension_blob;
 
             struct s2n_stuffer extension_stuffer = { 0 };
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         {
             uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
             struct s2n_blob extension_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+            EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
             supported_groups_extension->extension = extension_blob;
 
             struct s2n_stuffer extension_stuffer = { 0 };
@@ -282,12 +282,12 @@ int main(int argc, char **argv)
 
             uint8_t test_groups_list_data[S2N_TEST_SUPPORTED_GROUPS_LIST_SIZE] = { 0 };
             struct s2n_blob test_groups_list_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&test_groups_list_blob, test_groups_list_data, test_groups_list_size));
+            EXPECT_OK(s2n_blob_init(&test_groups_list_blob, test_groups_list_data, test_groups_list_size));
             EXPECT_OK(s2n_get_public_random_data(&test_groups_list_blob));
 
             uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
             struct s2n_blob extension_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+            EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
             supported_groups_extension->extension = extension_blob;
 
             struct s2n_stuffer extension_stuffer = { 0 };
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
 
             uint8_t sent_supported_groups_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE];
             struct s2n_blob sent_supported_groups_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&sent_supported_groups_blob, sent_supported_groups_data,
+            EXPECT_OK(s2n_blob_init(&sent_supported_groups_blob, sent_supported_groups_data,
                     s2n_array_len(sent_supported_groups_data)));
 
             struct s2n_stuffer sent_supported_groups_stuffer = { 0 };

@@ -97,9 +97,9 @@ int main(int argc, char **argv)
         POSIX_GUARD(ReadHex(kat_file, expected_master_secret, MASTER_SECRET_LENGTH, "master_secret = "));
 
         struct s2n_blob classic_pms = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&classic_pms, premaster_classic_secret, PREMASTER_CLASSIC_SECRET_LENGTH));
+        EXPECT_OK(s2n_blob_init(&classic_pms, premaster_classic_secret, PREMASTER_CLASSIC_SECRET_LENGTH));
         struct s2n_blob kem_pms = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&kem_pms, premaster_kem_secret, premaster_kem_secret_length));
+        EXPECT_OK(s2n_blob_init(&kem_pms, premaster_kem_secret, premaster_kem_secret_length));
 
         /* In the future the hybrid_kex client_key_send (client side) and client_key_receive (server side) will concatenate the two parts */
         DEFER_CLEANUP(struct s2n_blob combined_pms = { 0 }, s2n_free);

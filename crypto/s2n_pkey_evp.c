@@ -327,7 +327,7 @@ int s2n_pkey_evp_decrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct
     /* RSA decryption requires more output memory than the size of the final decrypted message */
     struct s2n_blob buffer = { 0 };
     uint8_t buffer_bytes[4096] = { 0 };
-    POSIX_GUARD(s2n_blob_init(&buffer, buffer_bytes, sizeof(buffer_bytes)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&buffer, buffer_bytes, sizeof(buffer_bytes)));
     POSIX_ENSURE(out->size <= buffer.size, S2N_ERR_NOMEM);
     POSIX_ENSURE(expected_size <= buffer.size, S2N_ERR_NOMEM);
 

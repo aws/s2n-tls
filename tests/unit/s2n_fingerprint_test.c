@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 
             uint8_t digest_bytes[sizeof(test_str_digest)] = { 0 };
             struct s2n_blob actual_digest = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
+            EXPECT_OK(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
 
             EXPECT_OK(s2n_fingerprint_hash_digest(&hash, &actual_digest));
             EXPECT_BYTEARRAY_EQUAL(test_str_digest, actual_digest.data, actual_digest.size);
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < count; i++) {
                 uint8_t digest_bytes[sizeof(test_str_digest)] = { 0 };
                 struct s2n_blob actual_digest = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
+                EXPECT_OK(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
 
                 EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, test_str, test_str_len));
                 EXPECT_OK(s2n_fingerprint_hash_digest(&hash, &actual_digest));
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
                     sizeof(output), output, &output_size));
 
             struct s2n_stuffer output_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&output_stuffer.blob, output, output_size));
+            EXPECT_OK(s2n_blob_init(&output_stuffer.blob, output, output_size));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&output_stuffer, output_size));
 
             /* Legacy output is raw bytes, but new output is hex */

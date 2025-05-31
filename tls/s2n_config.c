@@ -293,7 +293,7 @@ struct s2n_config *s2n_config_new_minimal(void)
     struct s2n_config *new_config = NULL;
 
     PTR_GUARD_POSIX(s2n_alloc(&allocator, sizeof(struct s2n_config)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&allocator));
+    PTR_GUARD_RESULT(s2n_blob_zero(&allocator));
 
     new_config = (struct s2n_config *) (void *) allocator.data;
     if (s2n_config_init(new_config) != S2N_SUCCESS) {
@@ -830,7 +830,7 @@ int s2n_config_add_custom_x509_extension(struct s2n_config *config, uint8_t *ext
     DEFER_CLEANUP(struct s2n_blob oid_buffer = { 0 }, s2n_free);
     POSIX_GUARD(s2n_alloc(&oid_buffer, extension_oid_len + 1));
 
-    POSIX_GUARD(s2n_blob_zero(&oid_buffer));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&oid_buffer));
     POSIX_CHECKED_MEMCPY(oid_buffer.data, extension_oid, extension_oid_len);
     oid_buffer.data[extension_oid_len] = '\0';
 
@@ -993,13 +993,13 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN] = { 0 };
     struct s2n_blob out_key = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad)));
     struct s2n_blob in_key = { 0 };
-    POSIX_GUARD(s2n_blob_init(&in_key, key, key_len));
+    POSIX_GUARD_RESULT(s2n_blob_init(&in_key, key, key_len));
     struct s2n_blob salt = { 0 };
-    POSIX_GUARD(s2n_blob_init(&salt, NULL, 0));
+    POSIX_GUARD_RESULT(s2n_blob_init(&salt, NULL, 0));
     struct s2n_blob info = { 0 };
-    POSIX_GUARD(s2n_blob_init(&info, NULL, 0));
+    POSIX_GUARD_RESULT(s2n_blob_init(&info, NULL, 0));
 
     struct s2n_ticket_key *session_ticket_key = { 0 };
     DEFER_CLEANUP(struct s2n_blob allocator = { 0 }, s2n_free);

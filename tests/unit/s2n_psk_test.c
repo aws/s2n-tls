@@ -335,7 +335,7 @@ int main(int argc, char **argv)
         uint8_t test_value[] = TEST_VALUE_1;
 
         struct s2n_blob client_hello_prefix = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&client_hello_prefix, test_value, sizeof(test_value)));
+        EXPECT_OK(s2n_blob_init(&client_hello_prefix, test_value, sizeof(test_value)));
 
         /* Write two binders.
          * There are no available test vectors for multiple PSKs, but we should at least
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob hash_value = { 0 };
             uint8_t hash_value_data[SHA256_DIGEST_LENGTH];
-            EXPECT_SUCCESS(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
+            EXPECT_OK(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, S2N_HMAC_SHA256, &client_hello_prefix, &hash_value));
             S2N_BLOB_EXPECT_EQUAL(hash_value, binder_hash);
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
-            EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
+            EXPECT_OK(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_calculate_binder(&test_psk, &binder_hash, &binder_value));
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
-            EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
+            EXPECT_OK(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, &finished_binder));
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
@@ -542,7 +542,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
-            EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
+            EXPECT_OK(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_FAILURE(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, incorrect_binder_value));
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);

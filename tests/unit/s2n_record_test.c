@@ -71,11 +71,11 @@ int main(int argc, char **argv)
     struct s2n_connection *conn = NULL;
     uint8_t mac_key[] = "sample mac key";
     struct s2n_blob fixed_iv = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&fixed_iv, mac_key, sizeof(mac_key)));
+    EXPECT_OK(s2n_blob_init(&fixed_iv, mac_key, sizeof(mac_key)));
     struct s2n_hmac_state check_mac;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     struct s2n_blob r = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
+    EXPECT_OK(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+        EXPECT_OK(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+        EXPECT_OK(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+        EXPECT_OK(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -294,7 +294,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+        EXPECT_OK(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 
     /* Test TLS record limit */
     struct s2n_blob empty_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&empty_blob, NULL, 0));
+    EXPECT_OK(s2n_blob_init(&empty_blob, NULL, 0));
     conn->initial->cipher_suite = &s2n_null_cipher_suite;
 
     /* Fast forward the sequence number */

@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     struct s2n_cipher_suite *test_cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
     uint8_t test_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "gibberish key";
     struct s2n_blob test_key = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&test_key, test_key_bytes,
+    EXPECT_OK(s2n_blob_init(&test_key, test_key_bytes,
             test_cipher_suite->record_alg->cipher->key_material_size));
 
     /**

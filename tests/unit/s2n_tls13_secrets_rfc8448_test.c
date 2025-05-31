@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&derived_secret,
+    EXPECT_OK(s2n_blob_init(&derived_secret,
             derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
 
     /*

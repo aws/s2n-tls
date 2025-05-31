@@ -323,7 +323,7 @@ int main(int argc, char **argv)
         if (s2n_is_tls13_fully_supported()) {
             uint8_t early_data_bytes[] = "hello world";
             struct s2n_blob early_data = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&early_data, early_data_bytes, sizeof(early_data_bytes)));
+            EXPECT_OK(s2n_blob_init(&early_data, early_data_bytes, sizeof(early_data_bytes)));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_test_config_new(chain_and_key),
                     s2n_config_ptr_free);
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 
             uint8_t recv_buffer[sizeof(early_data_bytes)] = { 0 };
             struct s2n_blob early_data_received = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&early_data_received, recv_buffer, sizeof(recv_buffer)));
+            EXPECT_OK(s2n_blob_init(&early_data_received, recv_buffer, sizeof(recv_buffer)));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_with_early_data(server_conn, client_conn,
                                             &early_data, &early_data_received),

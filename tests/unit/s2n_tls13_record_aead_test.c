@@ -106,19 +106,19 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(expected_aad, aad);
 
         /* record length 16640 should be valid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_OK(s2n_blob_zero(&aad));
         EXPECT_OK(s2n_tls13_aead_aad_init(16628, 12, &aad));
 
         /* record length 16641 should be invalid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_OK(s2n_blob_zero(&aad));
         EXPECT_ERROR_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &aad), S2N_ERR_RECORD_LIMIT);
 
         /* Test failure case: No AAD should be invalid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_OK(s2n_blob_zero(&aad));
         EXPECT_ERROR(s2n_tls13_aead_aad_init(16629, 12, NULL));
 
         /* Test failure case: 0-length tag should be invalid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_OK(s2n_blob_zero(&aad));
         EXPECT_ERROR(s2n_tls13_aead_aad_init(16628, 0, &aad));
 
         /* Test failure case: invalid record length (-1) should be invalid */
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 
         static uint8_t hello_data[] = "Hello world";
         struct s2n_blob plaintext = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&plaintext, hello_data, sizeof(hello_data) - 1));
+        EXPECT_OK(s2n_blob_init(&plaintext, hello_data, sizeof(hello_data) - 1));
 
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_OK(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));

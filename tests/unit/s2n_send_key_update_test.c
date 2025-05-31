@@ -171,7 +171,7 @@ int main(int argc, char **argv)
         /* Force Client to send a TLS 1.3 KeyUpdate Message over TLS 1.2 connection */
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
         struct s2n_blob key_update_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+        EXPECT_OK(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
         EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob));
         EXPECT_OK(s2n_record_write(client_conn, TLS_HANDSHAKE, &key_update_blob));
         EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));

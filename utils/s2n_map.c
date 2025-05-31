@@ -57,7 +57,7 @@ static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     RESULT_ENSURE(!map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     RESULT_GUARD_POSIX(s2n_alloc(&mem, (capacity * sizeof(struct s2n_map_entry))));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
+    RESULT_GUARD(s2n_blob_zero(&mem));
 
     tmp.capacity = capacity;
     tmp.size = 0;
@@ -211,7 +211,7 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
 
         /* We found a match */
         struct s2n_blob entry_value = map->table[slot].value;
-        RESULT_GUARD_POSIX(s2n_blob_init(value, entry_value.data, entry_value.size));
+        RESULT_GUARD(s2n_blob_init(value, entry_value.data, entry_value.size));
 
         *key_found = true;
 
@@ -306,7 +306,7 @@ S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob 
 
     RESULT_ENSURE(iter->current_index < iter->map->capacity, S2N_ERR_ARRAY_INDEX_OOB);
     struct s2n_blob entry_value = iter->map->table[iter->current_index].value;
-    RESULT_GUARD_POSIX(s2n_blob_init(value, entry_value.data, entry_value.size));
+    RESULT_GUARD(s2n_blob_init(value, entry_value.data, entry_value.size));
 
     RESULT_GUARD(s2n_map_iterator_advance(iter));
 

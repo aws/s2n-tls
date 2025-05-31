@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
     /* Try to write 101 bytes */
     struct s2n_blob in = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&in, entropy, 101));
+    EXPECT_OK(s2n_blob_init(&in, entropy, 101));
     EXPECT_FAILURE(s2n_stuffer_write(&stuffer, &in));
 
     /* Try to write 101 1-byte ints bytes */
@@ -148,14 +148,14 @@ int main(int argc, char **argv)
     /* Valid empty blob should succeed init */
     struct s2n_stuffer s2 = { 0 };
     struct s2n_blob b2 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b2, 0, 0));
+    EXPECT_OK(s2n_blob_init(&b2, 0, 0));
     EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
 
     /* Valid blob should succeed init */
     struct s2n_stuffer s3 = { 0 };
     uint8_t a3[12];
     struct s2n_blob b3 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b3, a3, sizeof(a3)));
+    EXPECT_OK(s2n_blob_init(&b3, a3, sizeof(a3)));
     EXPECT_SUCCESS(s2n_stuffer_init(&s3, &b3));
 
     /* Null blob should fail init */
@@ -164,14 +164,14 @@ int main(int argc, char **argv)
 
     /* Null stuffer should fail init */
     struct s2n_blob b5 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b5, 0, 0));
+    EXPECT_OK(s2n_blob_init(&b5, 0, 0));
     EXPECT_FAILURE(s2n_stuffer_init(NULL, &b5));
 
     /* Check s2n_stuffer_validate() function */
     EXPECT_ERROR(s2n_stuffer_validate(NULL));
     uint8_t valid_blob_array[12];
     struct s2n_blob blob_valid = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob_valid, valid_blob_array, sizeof(valid_blob_array)));
+    EXPECT_OK(s2n_blob_init(&blob_valid, valid_blob_array, sizeof(valid_blob_array)));
 
     struct s2n_stuffer stuffer_valid = { 0 };
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer_valid, &blob_valid));
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
         uint8_t output[sizeof(data)] = { 0 };
 
         struct s2n_blob blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&blob, input, sizeof(input)));
+        EXPECT_OK(s2n_blob_init(&blob, input, sizeof(input)));
 
         /* Repeat control to show behavior is consistent */
         for (size_t i = 0; i < 3; i++) {
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
         {
             uint8_t data[100] = { 0 };
             struct s2n_stuffer test = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&test.blob, data, sizeof(data)));
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, test_data, sizeof(test_data)));
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, sizeof(test_data)));
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
         {
             uint8_t data[100] = { 0 };
             struct s2n_stuffer test = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&test.blob, data, sizeof(data)));
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, test_data, test_data_size));
             EXPECT_EQUAL(s2n_stuffer_data_available(&test), test_data_size);
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
         {
             uint8_t data[100] = { 0 };
             struct s2n_stuffer test = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&test.blob, data, sizeof(data)));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&test, test_offset));
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, test_offset));
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
         {
             uint8_t data[100] = { 0 };
             struct s2n_stuffer test = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&test.blob, data, sizeof(data)));
 
             /* Allocate data large enough that it will overlap when shifted.
              * Allocate the entire block to distinctive data, not just all one character.

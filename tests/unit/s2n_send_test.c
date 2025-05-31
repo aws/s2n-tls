@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 
     uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 10] = { 0 };
     struct s2n_blob large_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&large_data_blob, large_test_data, sizeof(large_test_data)));
+    EXPECT_OK(s2n_blob_init(&large_data_blob, large_test_data, sizeof(large_test_data)));
     EXPECT_OK(s2n_get_public_random_data(&large_data_blob));
 
     /* Small record sizes will require a LOT of calls to s2n_send.

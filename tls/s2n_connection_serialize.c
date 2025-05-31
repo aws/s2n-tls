@@ -113,7 +113,7 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     POSIX_ENSURE(buffer_length >= context_length, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
     struct s2n_blob context_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&context_blob, buffer, buffer_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&context_blob, buffer, buffer_length));
     struct s2n_stuffer output = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&output, &context_blob));
 
@@ -206,7 +206,7 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
     RESULT_ENSURE_REF(parsed_values);
 
     struct s2n_blob context_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&context_blob, buffer, buffer_length));
+    RESULT_GUARD(s2n_blob_init(&context_blob, buffer, buffer_length));
     struct s2n_stuffer input = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&input, &context_blob));
 
@@ -272,7 +272,7 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
 
     uint64_t parsed_sequence_num = 0;
     struct s2n_blob seq_num_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&seq_num_blob, seq_num, S2N_TLS_SEQUENCE_NUM_LEN));
+    RESULT_GUARD(s2n_blob_init(&seq_num_blob, seq_num, S2N_TLS_SEQUENCE_NUM_LEN));
     RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &parsed_sequence_num));
 
     /* we don't need to initialize the context when the sequence number is 0 */
@@ -282,13 +282,13 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
 
     uint8_t in_data[S2N_TLS_GCM_TAG_LEN] = { 0 };
     struct s2n_blob in_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&in_blob, in_data, sizeof(in_data)));
+    RESULT_GUARD(s2n_blob_init(&in_blob, in_data, sizeof(in_data)));
 
     struct s2n_blob iv_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&iv_blob, implicit_iv, S2N_TLS13_FIXED_IV_LEN));
+    RESULT_GUARD(s2n_blob_init(&iv_blob, implicit_iv, S2N_TLS13_FIXED_IV_LEN));
 
     struct s2n_blob aad_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&aad_blob, NULL, 0));
+    RESULT_GUARD(s2n_blob_init(&aad_blob, NULL, 0));
 
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);

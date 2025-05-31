@@ -200,7 +200,7 @@ int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, 
     POSIX_ENSURE_REF(data);
 
     struct s2n_blob data_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&data_blob, data, length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&data_blob, data, length));
 
     POSIX_GUARD(s2n_stuffer_init(stuffer, &data_blob));
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
