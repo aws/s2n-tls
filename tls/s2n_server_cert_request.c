@@ -82,11 +82,84 @@ static int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_typ
     POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
 
+struct s2n_certificate_authority_list {
+    struct s2n_stuffer iterator;
+};
+
+struct s2n_certificate_request {
+    struct s2n_certificate_authority_list list;
+    struct s2n_cert_chain_and_key *chain;
+};
+
+struct s2n_certificate_authority_list *s2n_certificate_request_get_ca_list(struct s2n_certificate_request *request)
+{
+    return request != NULL ? &request->list : NULL;
+}
+
+int s2n_certificate_request_set_certificate(struct s2n_certificate_request *request, struct s2n_cert_chain_and_key *chain)
+{
+    POSIX_ENSURE(request, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(chain, S2N_ERR_INVALID_ARGUMENT);
+    request->chain = chain;
+    return S2N_SUCCESS;
+}
+
+bool s2n_certificate_authority_list_has_next(struct s2n_certificate_authority_list *list)
+{
+    return list != NULL && s2n_stuffer_data_available(&list->iterator) > 0;
+}
+
+S2N_RESULT s2n_certificate_authority_list_read_next(struct s2n_certificate_authority_list *list, uint8_t **name, uint16_t *length)
+{
+    RESULT_ENSURE_REF(list);
+    RESULT_ENSURE_MUT(length);
+    RESULT_ENSURE_MUT(name);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&list->iterator, length));
+    RESULT_ENSURE_GT(*length, 0);
+
+    *name = s2n_stuffer_raw_read(&list->iterator, *length);
+    RESULT_ENSURE_REF(*name);
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_certificate_authority_list_next(struct s2n_certificate_authority_list *list, uint8_t **name, uint16_t *length)
+{
+    POSIX_ENSURE(list, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(name, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(length, S2N_ERR_INVALID_ARGUMENT);
+
+    /* Ensure that if we exit due to errors we've cleared these fields */
+    *name = NULL;
+    *length = 0;
+
+    POSIX_ENSURE(s2n_certificate_authority_list_has_next(list), S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(s2n_result_is_ok(s2n_certificate_authority_list_read_next(list, name, length)), S2N_ERR_BAD_MESSAGE);
+    return S2N_SUCCESS;
+}
+
+int s2n_certificate_authority_list_reread(struct s2n_certificate_authority_list *list)
+{
+    POSIX_ENSURE(list, S2N_ERR_INVALID_ARGUMENT);
+    return s2n_stuffer_reread(&list->iterator);
+}
+
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     if (s2n_config_get_num_default_certs(conn->config) > 0) {
-        struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(conn->config);
-        POSIX_ENSURE_REF(cert);
+        struct s2n_cert_chain_and_key *cert = NULL;
+        if (conn->config->cert_request_cb) {
+            struct s2n_certificate_request request = { 0 };
+            /* Don't try to free this stuffer, it's purely for reading pre-existing blob that outlives it. */
+            POSIX_GUARD(s2n_stuffer_init_written(&request.list.iterator, &conn->cert_authorities));
+            POSIX_ENSURE(conn->config->cert_request_cb(conn, conn->config->cert_request_cb_ctx, &request) == S2N_SUCCESS, S2N_ERR_CANCELLED);
+            cert = request.chain;
+            POSIX_ENSURE(cert, S2N_ERR_NO_CERT_FOUND);
+        } else {
+            cert = s2n_config_get_single_default_cert(conn->config);
+            POSIX_ENSURE_REF(cert);
+        }
         conn->handshake_params.our_chain_and_key = cert;
         conn->handshake_params.client_cert_pkey_type = s2n_cert_chain_and_key_get_pkey_type(cert);
 
@@ -115,6 +188,10 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
 
 int s2n_cert_req_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
+    POSIX_ENSURE_EQ(conn->mode, S2N_CLIENT);
+
     struct s2n_stuffer *in = &conn->handshake.io;
 
     s2n_cert_type cert_type = 0;
@@ -127,10 +204,19 @@ int s2n_cert_req_recv(struct s2n_connection *conn)
     uint16_t cert_authorities_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cert_authorities_len));
 
-    /* For now we don't parse X.501 encoded CA Distinguished Names.
-     * Don't fail just yet as we still may succeed if we provide
-     * right certificate or if ClientAuth is optional. */
-    POSIX_GUARD(s2n_stuffer_skip_read(in, cert_authorities_len));
+    /* Stash the certificate authorities into the connection for later parsing
+     * as part of certificate lookup. Note that in TLS 1.3 these are handled as
+     * an extension in the ClientHello or CertificateRequest messages, rather
+     * than a field of the CertificateRequest message.
+     *
+     * The extension is handled in tls/extensions/s2n_cert_authorities.c.
+     */
+    if (conn->config->cert_request_cb) {
+        POSIX_GUARD(s2n_stuffer_extract_blob(in, &conn->cert_authorities));
+        POSIX_ENSURE_EQ(conn->cert_authorities.size, cert_authorities_len);
+    } else {
+        POSIX_GUARD(s2n_stuffer_skip_read(in, cert_authorities_len));
+    }
 
     /* In the future we may have more advanced logic to match a set of configured certificates against
      * The cert authorities extension and the signature algorithms advertised.
