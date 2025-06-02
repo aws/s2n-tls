@@ -45,43 +45,6 @@ read, review and extend s2n-tls . Although s2n-tls is written in C, s2n-tls adop
 patterns more common to functional programming. Though they are used in a way
 that is idiomatic and shouldn't feel completely alien in C.
 
-### API Guidelines
-We want to create the most future-proof APIs possible since it is rare for us to ever deprecate an API. These guidelines are meant to facilitate future-proofing and are drawn from our collective experience writing C APIs.
-* Do not make public any non-opaque structures.
-    * Why? We won’t be able to modify the structure later without potentially breaking users because we won’t know how our users are allocating memory for it.
-* Prefer opaque structures to lists of arguments.
-    * Why? If we need to add another argument to the function signature, we can.
-    * Why? This allows the different arguments to be named (by the getters/setters for the structure) rather than just being defined by which position they are in the list. This makes it harder to accidentally swap parameters of the same type but different meaning.
-* Everything pointer should have an explicit length - no null terminated lists/arrays
-    * Why?
-        * If a null is somehow forgotten, there is nothing to stop s2n from continuing to read or write beyond the end of the allocation (i.e. buffer overrun/buffer overwrite)
-        * If the list is not null terminated, it requires an allocation and copy by the caller to ensure it is
-        * Getting the length requires iterating through the list which can incur runtime overhead
-* Use explicitly sized integers (e.g. uint8_t, uint32_t, etc) rather than platform-dependent integer types (e.g. char, int, long) in arguments. The only exceptions to this rule are using bool as a return value or ssize_t / size_t for array/data lengths.
-    * Why? This makes compilation consistent across every platform and will be less likely to result in overflow.
-    * Only use ssize_t instead of size_t when passing the value to a customer-defined method.
-        * Why? S2N does not use memory lookups that might require ssize_t, but customers might.
-* Every function needs safety documentation explaining what is expected of the caller in order to maintain invariants. Topics that should be covered by safety documentation include thread-safety, ownership or lifetime of any memory returned, error handling behavior, and any conditions that must be met before calling the API. If most use cases will not require this API, clarify what uses cases might.
-    * Why? Safety relies on both s2n and its caller. We want to make sure our customers can avoid pain as much as possible.
-* When setting a callback, always also set a void* context.
-    * Why? Customers may need to pass additional information to the callback, and a void* pointer provides flexibility.
-    * Do not set the context in a separate API.
-        * Why? void* pointers are powerful but dangerous. If the wrong context is set for the wrong function, unexpected behavior can occur. The customer should always set both at the same time to avoid mistakes.
-* If you're operating on a connection, the connection pointer should be the first argument.
-* Prefer setting callbacks / contexts / configuration variables on the config over the connection. If necessary, they can be overridden on the connection later.
-    * Why? We are trying to keep the memory required by the connection object minimal. It’s also easier to set something once on the config and forget about it than to set it on every connection.
-* The return type should always indicate success / failure. Any other information should be returned by setting the value of an argument.
-    * Why? Error signals should not be conflated with library values, as it can easily lead to misinterpretation of information (see https://github.com/aws/s2n-tls/blob/main/utils/s2n_result.c)
-* Prefer copying data in and out of s2n over taking and handing out pointers to internal memory with a limited lifetime.
-    * Why? Manual memory management is hard and copying is the easiest way to avoid use-after-free and general memory corruption issues.
-    * This would require the caller to allocate memory on their end prior to calling an API that copies the data out.
-    * To let the caller know how much memory to allocate provide an additional _get_length API. 
-* Do not return generic internal errors (like S2N_ERR_SAFETY) for error conditions that might be triggered by customer inputs or behavior. Prefer more specific usage errors. The exception to this rule is S2N_ERR_NULL if a customer passes in an unexpected NULL argument.
-    * Why? Customers may log error message, and "a safety check failed" is not a particularly useful log message. More specific errors also make integrating with S2N APIs easier for customers.
-* Callbacks should not include any arguments to be provided by the customer implementing the callback. Results of operations should be set via other methods.
-    * Why? If the callback becomes asynchronous, it will not initially return the required customer output. The customer will need to be able to provide the output and mark the task unblocked asynchronously. See the asynchronous pkey operation APIs: https://github.com/aws/s2n-tls/blob/main/api/s2n.h#L542-L552
-* While naming the API make sure to use the prefix as `s2n_[context]_` For ex:  s2n_config_, s2n_connection_.
-
 ### High level function design
 The first convention is that's s2n-tls's functions are generally quite small, no
 more than a page or two at most and commonly just a few lines. Functions
@@ -290,6 +253,43 @@ pwd
 # .../s2n-tls/tests/unit/
 gdb ../../build/bin/s2n_x509_validator_test
 ```
+
+## API Guidelines
+We want to create the most future-proof APIs possible since it is rare for us to ever deprecate an API. These guidelines are meant to facilitate future-proofing and are drawn from our collective experience writing C APIs.
+* Do not make public any non-opaque structures.
+    * Why? We won’t be able to modify the structure later without potentially breaking users because we won’t know how our users are allocating memory for it.
+* Prefer opaque structures to lists of arguments.
+    * Why? If we need to add another argument to the function signature, we can.
+    * Why? This allows the different arguments to be named (by the getters/setters for the structure) rather than just being defined by which position they are in the list. This makes it harder to accidentally swap parameters of the same type but different meaning.
+* Everything pointer should have an explicit length - no null terminated lists/arrays
+    * Why?
+        * If a null is somehow forgotten, there is nothing to stop s2n from continuing to read or write beyond the end of the allocation (i.e. buffer overrun/buffer overwrite)
+        * If the list is not null terminated, it requires an allocation and copy by the caller to ensure it is
+        * Getting the length requires iterating through the list which can incur runtime overhead
+* Use explicitly sized integers (e.g. uint8_t, uint32_t, etc) rather than platform-dependent integer types (e.g. char, int, long) in arguments. The only exceptions to this rule are using bool as a return value or ssize_t / size_t for array/data lengths.
+    * Why? This makes compilation consistent across every platform and will be less likely to result in overflow.
+    * Only use ssize_t instead of size_t when passing the value to a customer-defined method.
+        * Why? S2N does not use memory lookups that might require ssize_t, but customers might.
+* Every function needs safety documentation explaining what is expected of the caller in order to maintain invariants. Topics that should be covered by safety documentation include thread-safety, ownership or lifetime of any memory returned, error handling behavior, and any conditions that must be met before calling the API. If most use cases will not require this API, clarify what uses cases might.
+    * Why? Safety relies on both s2n and its caller. We want to make sure our customers can avoid pain as much as possible.
+* When setting a callback, always also set a void* context.
+    * Why? Customers may need to pass additional information to the callback, and a void* pointer provides flexibility.
+    * Do not set the context in a separate API.
+        * Why? void* pointers are powerful but dangerous. If the wrong context is set for the wrong function, unexpected behavior can occur. The customer should always set both at the same time to avoid mistakes.
+* If you're operating on a connection, the connection pointer should be the first argument.
+* Prefer setting callbacks / contexts / configuration variables on the config over the connection. If necessary, they can be overridden on the connection later.
+    * Why? We are trying to keep the memory required by the connection object minimal. It’s also easier to set something once on the config and forget about it than to set it on every connection.
+* The return type should always indicate success / failure. Any other information should be returned by setting the value of an argument.
+    * Why? Error signals should not be conflated with library values, as it can easily lead to misinterpretation of information (see https://github.com/aws/s2n-tls/blob/main/utils/s2n_result.c)
+* Prefer copying data in and out of s2n over taking and handing out pointers to internal memory with a limited lifetime.
+    * Why? Manual memory management is hard and copying is the easiest way to avoid use-after-free and general memory corruption issues.
+    * This would require the caller to allocate memory on their end prior to calling an API that copies the data out.
+    * To let the caller know how much memory to allocate provide an additional _get_length API. 
+* Do not return generic internal errors (like S2N_ERR_SAFETY) for error conditions that might be triggered by customer inputs or behavior. Prefer more specific usage errors. The exception to this rule is S2N_ERR_NULL if a customer passes in an unexpected NULL argument.
+    * Why? Customers may log error message, and "a safety check failed" is not a particularly useful log message. More specific errors also make integrating with S2N APIs easier for customers.
+* Callbacks should not include any arguments to be provided by the customer implementing the callback. Results of operations should be set via other methods.
+    * Why? If the callback becomes asynchronous, it will not initially return the required customer output. The customer will need to be able to provide the output and mark the task unblocked asynchronously. See the asynchronous pkey operation APIs: https://github.com/aws/s2n-tls/blob/main/api/s2n.h#L542-L552
+* While naming the API make sure to use the prefix as `s2n_[context]_` For ex:  s2n_config_, s2n_connection_.
 
 ## A tour of s2n-tls memory handling: blobs and stuffers
 
