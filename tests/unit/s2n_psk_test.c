@@ -218,6 +218,14 @@ int main(int argc, char **argv)
          * Only element_size should be set. */
         struct s2n_psk_parameters expected_params = { 0 };
         expected_params.psk_list.element_size = sizeof(struct s2n_psk);
+
+        printf("psk_list.mem.data:\t %p : %p\n", params.psk_list.mem.data, expected_params.psk_list.mem.data);
+        printf("psk_list.mem.size:\t %d : %d\n", params.psk_list.mem.size, expected_params.psk_list.mem.size);
+        printf("psk_list.mem.allocated:\t %d : %d\n", params.psk_list.mem.allocated, expected_params.psk_list.mem.allocated);
+        printf("psk_list.mem.growable:\t %d : %d\n", params.psk_list.mem.growable, expected_params.psk_list.mem.growable);
+        printf("psk_list.len:\t %d : %d\n", params.psk_list.len, expected_params.psk_list.len);
+        printf("psk_list.element_size:\t %d : %d\n", params.psk_list.element_size, expected_params.psk_list.element_size);
+
         EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
     };
 
