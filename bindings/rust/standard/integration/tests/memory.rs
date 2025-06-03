@@ -85,5 +85,6 @@ fn memory_consumption() -> Result<(), S2NError> {
     assert!(fuzzy_equals(handshake_in_progress, 104911));
     assert!(fuzzy_equals(handshake_complete, 70085));
     assert!(fuzzy_equals(application_data, 70085));
+    assert!(fuzzy_equals(dhat::HeapStats::get().max_bytes, 109077));
     Ok(())
 }
