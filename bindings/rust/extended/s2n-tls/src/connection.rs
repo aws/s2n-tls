@@ -3,6 +3,8 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
+#[cfg(feature = "unstable-cert_authorities")]
+use crate::cert_authorities::CertRequestState;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateState;
 use crate::{
@@ -1451,6 +1453,11 @@ impl Connection {
         }
     }
 
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) fn cert_request_state(&mut self) -> &mut CertRequestState {
+        &mut self.context_mut().cert_request_state
+    }
+
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) fn renegotiate_state_mut(&mut self) -> &mut RenegotiateState {
         &mut self.context_mut().renegotiate_state
@@ -1471,6 +1478,8 @@ struct Context {
     app_context: Option<Box<dyn Any + Send + Sync>>,
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) renegotiate_state: RenegotiateState,
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) cert_request_state: CertRequestState,
 }
 
 impl Context {
@@ -1484,6 +1493,8 @@ impl Context {
             app_context: None,
             #[cfg(feature = "unstable-renegotiate")]
             renegotiate_state: RenegotiateState::default(),
+            #[cfg(feature = "unstable-cert_authorities")]
+            cert_request_state: CertRequestState::default(),
         }
     }
 }

@@ -18,6 +18,7 @@
 #include <sys/param.h>
 
 #include "api/s2n.h"
+#include "api/unstable/cert_authorities.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
@@ -172,6 +173,8 @@ struct s2n_config {
     s2n_cert_validation_callback cert_validation_cb;
     void *cert_validation_ctx;
 
+    STACK_OF(ASN1_OBJECT) *custom_x509_extension_oids;
+
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
@@ -192,6 +195,9 @@ struct s2n_config {
 
     s2n_session_ticket_fn session_ticket_cb;
     void *session_ticket_ctx;
+
+    s2n_cert_request_callback cert_request_cb;
+    void *cert_request_cb_ctx;
 
     s2n_early_data_cb early_data_cb;
 

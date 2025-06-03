@@ -14,6 +14,8 @@ static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
 pub mod error;
 
 pub mod callbacks;
+#[cfg(feature = "unstable-cert_authorities")]
+pub mod cert_authorities;
 pub mod cert_chain;
 pub mod client_hello;
 pub mod config;
