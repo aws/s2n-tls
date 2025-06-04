@@ -16,16 +16,16 @@ from test_renegotiate import TEST_PROTOCOLS, S2N_RENEG_OPTION, S2N_RENEG_ACCEPT
 APACHE_SERVER_IP = "127.0.0.1"
 APACHE_SERVER_PORT = 7777
 
-SERVER_CERT = TEST_CERT_DIRECTORY + "rsa_2048_pkcs1_cert.pem"
-CLIENT_CERT = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_cert.pem"
-CLIENT_KEY = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
+APACHE_SERVER_CERT = TEST_CERT_DIRECTORY + "apache_server_cert.pem"
+APACHE_CLIENT_CERT = TEST_CERT_DIRECTORY + "apache_client_cert.pem"
+APACHE_CLIENT_KEY = TEST_CERT_DIRECTORY + "apache_client_key.pem"
 
 CHANGE_CIPHER_SUITE_ENDPOINT = "/change_cipher_suite/"
 MUTUAL_AUTH_ENDPOINT = "/mutual_auth/"
 
 
-# The test now uses RSA 2048 certificates, which are more secure and
-# compatible with modern security requirements including openssl-3.0-fips.
+# The apache server uses RSA 1024 certificates,
+# which s2n-tls does not support when built with openssl-3.0-fips.
 def skip_for_openssl3_fips():
     if "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION):
         pytest.skip("Certs not supported: https://github.com/aws/s2n-tls/issues/5200")
@@ -49,9 +49,9 @@ def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint
         port=APACHE_SERVER_PORT,
         curve=ALL_TEST_CURVES[0],
         protocol=protocol,
-        trust_store=SERVER_CERT,
-        cert=CLIENT_CERT,
-        key=CLIENT_KEY,
+        trust_store=APACHE_SERVER_CERT,
+        cert=APACHE_CLIENT_CERT,
+        key=APACHE_CLIENT_KEY,
         use_client_auth=True,
     )
 
@@ -85,7 +85,7 @@ def test_change_cipher_suite_endpoint(managed_process, curve, protocol):  # noqa
         port=APACHE_SERVER_PORT,
         curve=curve,
         protocol=protocol,
-        trust_store=SERVER_CERT,
+        trust_store=APACHE_SERVER_CERT,
     )
 
     options.extra_flags = [S2N_RENEG_OPTION, S2N_RENEG_ACCEPT]
@@ -116,9 +116,9 @@ def test_mutual_auth_endpoint(managed_process, curve, protocol):  # noqa: F811
         port=APACHE_SERVER_PORT,
         curve=curve,
         protocol=protocol,
-        trust_store=SERVER_CERT,
-        cert=CLIENT_CERT,
-        key=CLIENT_KEY,
+        trust_store=APACHE_SERVER_CERT,
+        cert=APACHE_CLIENT_CERT,
+        key=APACHE_CLIENT_KEY,
         use_client_auth=True,
     )
 
