@@ -8,10 +8,12 @@ export GNUTLS_SYSTEM_PRIORITY_FILE=
 
 # Function to display a formatted banner with the provided text
 banner()
-{
-    echo "+---------------------------------------------------------+"
-    printf "| %-55s |\n" "$1"
-    echo "+---------------------------------------------------------+"
+{   if [ -z "$2" ]; then
+        local WRAPPER="+---------------------------------------------------------+\n"
+    else
+        local WRAPPER=""
+    fi
+    printf "$WRAPPER %-55s \n$WRAPPER" "$1"
 }
 
 # Function to create aliases for different libcrypto implementations
@@ -25,10 +27,10 @@ function libcrypto_alias {
 
     if [[ -f $libcrypto_binary_path ]]; then
       alias $libcrypto_name=$libcrypto_binary_path
-      echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+      banner "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name" quiet
     elif [[ -f $lib_binary_path ]]; then
       alias $libcrypto_name=$lib_binary_path
-      echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
+      banner "Libcrypto binary $lib_binary_path available as $libcrypto_name" quiet
     else
       banner "Could not find libcrypto binary for $libcrypto_name"
     fi
@@ -43,12 +45,12 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 # No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    banner "Cleanup ./build"
+    banner "Cleanup ./build" quiet
     rm -rf ./build ./s2n_head
 )}
 
 function configure {(set -e
-    banner "Configuring with cmake"
+    banner "Configuring with cmake" quiet
     cmake -S . -B./build \
           -DBUILD_TESTING=ON \
           -DS2N_INTEG_TESTS=ON \
@@ -77,8 +79,8 @@ function unit {(set -e
         ctest --test-dir build -L unit -j $(nproc) --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
-        echo "Tests:"
-        echo "$tests"
+        banner "Tests:" quiet
+        banner "$tests" quiet
         # Split the tests string into words
         for test in $tests
         do
@@ -97,12 +99,38 @@ function integ {(set -e
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
-               echo "Test failed, stopping execution"
+               banner "Test failed, stopping execution"
                return 1
             fi
         done
     fi
 )}
+
+# Function to launch pytest with uv.
+function uvinteg {(
+    set -e
+    cd ./tests/integrationv2
+    banner "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
+    unset PYTHONPATH
+    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
+    if [[ -z "$1" ]]; then
+        banner "Running all integ tests with uv" quiet
+        uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+    else
+        for test in "$@"; do
+            uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+        done
+    fi
+)}
+
+# Wrap a command with stress to simulate a high-load environment.
+function stresswrapper({
+    set -e
+    echo "Under STRESS"
+    stress --cpu 2 --io 2 --quiet &
+    trap 'pkill stress' ERR EXIT
+    "$@"
+})
 
 function check-clang-format {(set -e
     banner "Dry run of clang-format"
