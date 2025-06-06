@@ -159,7 +159,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
@@ -169,7 +169,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
@@ -241,14 +241,30 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
-          BUILD_S2N: 'true'
-          GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'awslc-fips-2022'
           TESTS: unit
       identifier: s2nUnitAwslcFips2022
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc-fips-2024'
+          TESTS: unit
+      identifier: s2nUnitAwslcFips2024
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc-fips-next'
+          TESTS: unit
+      identifier: s2nUnitAwslcFipsNext
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
@@ -303,3 +319,13 @@ batch:
         variables:
           S2N_LIBCRYPTO: 'awslc-fips-2022'
           S2N_EXPECTED_CONNECTION_MEMORY_KB: 46
+    - identifier: s2nMemUsageTest_awslcfips_next
+      buildspec: codebuild/spec/buildspec_mem.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc-fips-next'
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 46
+      
