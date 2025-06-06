@@ -130,8 +130,35 @@ int main()
     }
 
     /* Ensure that FIPS mode is enabled only when linked to a fips library */
+    printf("DEBUG: s2n_libcrypto = %s\n", s2n_libcrypto);
+    printf("DEBUG: s2n_libcrypto_is_fips() = %d\n", s2n_libcrypto_is_fips());
+    printf("DEBUG: s2n_is_in_fips_mode() = %d\n", s2n_is_in_fips_mode());
+    
+    /* Check for AWS-LC specifically */
+#ifdef OPENSSL_IS_AWSLC
+    printf("DEBUG: OPENSSL_IS_AWSLC is defined\n");
+#else
+    printf("DEBUG: OPENSSL_IS_AWSLC is NOT defined\n");
+#endif
+
+#ifdef OPENSSL_FIPS
+    printf("DEBUG: OPENSSL_FIPS is defined\n");
+#else
+    printf("DEBUG: OPENSSL_FIPS is NOT defined\n");
+#endif
+
+    /* Direct call to FIPS_mode() */
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+    printf("DEBUG: Direct FIPS_mode() call = %d\n", FIPS_mode());
+#endif
+
+    /* Check if awslc-fips detection is working */
+    printf("DEBUG: s2n_libcrypto_is_awslc() = %d\n", s2n_libcrypto_is_awslc());
+    printf("DEBUG: s2n_libcrypto_is_awslc_fips() = %d\n", s2n_libcrypto_is_awslc_fips());
+
     s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
     EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
+    printf("DEBUG: s2n_get_fips_mode(&fips_mode) returned: %d\n", fips_mode);
     if (strstr(s2n_libcrypto, "fips") && !strstr(s2n_libcrypto, "1.0.2")) {
         EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_ENABLED);
     } else {
