@@ -139,6 +139,7 @@ if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then export LIBCRYPTO_ROOT=$BORINGSSL_
 if [[ "$S2N_LIBCRYPTO" == "awslc" ]]; then export LIBCRYPTO_ROOT=$AWSLC_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2024" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2024_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
 if [[ -n "${LIBCRYPTO_ROOT:-}" ]]; then

@@ -26,10 +26,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 
 #define MAX_LIBCRYPTO_NAME_LEN 100
+
+bool s2n_libcrypto_is_fips(void);
 
 int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
 {
