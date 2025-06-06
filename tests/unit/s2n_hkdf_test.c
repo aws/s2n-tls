@@ -427,13 +427,13 @@ int main(int argc, char **argv)
     for (uint8_t i = 0; i < NUM_TESTS; i++) {
         struct hkdf_test_vector *test = &tests[i];
 
-        EXPECT_SUCCESS(s2n_blob_init(&in_key_blob, test->in_key, test->in_key_len));
-        EXPECT_SUCCESS(s2n_blob_init(&salt_blob, test->salt, test->salt_len));
-        EXPECT_SUCCESS(s2n_blob_init(&info_blob, test->info, test->info_len));
-        EXPECT_SUCCESS(s2n_blob_init(&actual_prk_blob, test->pseudo_rand_key, test->prk_len));
-        EXPECT_SUCCESS(s2n_blob_init(&actual_output_blob, test->output, test->output_len));
-        EXPECT_SUCCESS(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
-        EXPECT_SUCCESS(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
+        EXPECT_OK(s2n_blob_init(&in_key_blob, test->in_key, test->in_key_len));
+        EXPECT_OK(s2n_blob_init(&salt_blob, test->salt, test->salt_len));
+        EXPECT_OK(s2n_blob_init(&info_blob, test->info, test->info_len));
+        EXPECT_OK(s2n_blob_init(&actual_prk_blob, test->pseudo_rand_key, test->prk_len));
+        EXPECT_OK(s2n_blob_init(&actual_output_blob, test->output, test->output_len));
+        EXPECT_OK(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
+        EXPECT_OK(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
 
         EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, test->alg, &salt_blob, &in_key_blob, &prk_result));
         EXPECT_EQUAL(memcmp(prk_pad, actual_prk_blob.data, actual_prk_blob.size), 0);
@@ -469,9 +469,9 @@ int main(int argc, char **argv)
      */
     uint8_t error_out_pad[5101];
     struct s2n_blob error_out = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&error_out, error_out_pad, sizeof(error_out_pad)));
+    EXPECT_OK(s2n_blob_init(&error_out, error_out_pad, sizeof(error_out_pad)));
     struct s2n_blob zero_out = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&zero_out, output_pad, 0));
+    EXPECT_OK(s2n_blob_init(&zero_out, output_pad, 0));
 
     s2n_hmac_algorithm alg = S2N_HMAC_SHA1;
 

@@ -59,7 +59,7 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
 
     if (seed_b != NULL) {
         struct s2n_blob seed_b_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&seed_b_blob, seed_b->data, seed_b->size));
+        RESULT_GUARD(s2n_blob_init(&seed_b_blob, seed_b->data, seed_b->size));
         RESULT_GUARD_POSIX(s2n_stuffer_init_written(&seed_b_stuffer, &seed_b_blob));
 
         if (seed_c != NULL) {

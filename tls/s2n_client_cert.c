@@ -128,7 +128,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(cert_chain_data);
 
     struct s2n_blob cert_chain = { 0 };
-    POSIX_GUARD(s2n_blob_init(&cert_chain, cert_chain_data, cert_chain_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&cert_chain, cert_chain_data, cert_chain_size));
     POSIX_ENSURE(s2n_result_is_ok(s2n_client_cert_chain_store(conn, &cert_chain)),
             S2N_ERR_BAD_MESSAGE);
 

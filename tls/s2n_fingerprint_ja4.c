@@ -120,7 +120,7 @@ static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
 
     uint8_t digest_bytes[SHA256_DIGEST_LENGTH] = { 0 };
     struct s2n_blob digest = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
+    RESULT_GUARD(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
     RESULT_GUARD(s2n_fingerprint_hash_digest(hash, &digest));
 
     /* JA4 digests are truncated */
@@ -332,14 +332,14 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
      */
     uint8_t *ciphers_count_mem = s2n_stuffer_raw_write(output, S2N_JA4_COUNT_SIZE);
     RESULT_GUARD_PTR(ciphers_count_mem);
-    RESULT_GUARD_POSIX(s2n_blob_init(ciphers_count, ciphers_count_mem, S2N_JA4_COUNT_SIZE));
+    RESULT_GUARD(s2n_blob_init(ciphers_count, ciphers_count_mem, S2N_JA4_COUNT_SIZE));
 
     /* Reserve two characters for the "count of extensions".
      * We'll calculate it later when we handle the extensions list for JA4_c.
      */
     uint8_t *extensions_count_mem = s2n_stuffer_raw_write(output, S2N_JA4_COUNT_SIZE);
     RESULT_GUARD_PTR(extensions_count_mem);
-    RESULT_GUARD_POSIX(s2n_blob_init(extensions_count, extensions_count_mem, S2N_JA4_COUNT_SIZE));
+    RESULT_GUARD(s2n_blob_init(extensions_count, extensions_count_mem, S2N_JA4_COUNT_SIZE));
 
     RESULT_GUARD(s2n_fingerprint_ja4_alpn(output, fingerprint->client_hello));
 
@@ -486,7 +486,7 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
 
     uint8_t entry_bytes[S2N_JA4_IANA_ENTRY_SIZE] = { 0 };
     struct s2n_stuffer entry = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&entry.blob, entry_bytes, sizeof(entry_bytes)));
+    RESULT_GUARD(s2n_blob_init(&entry.blob, entry_bytes, sizeof(entry_bytes)));
 
     bool is_first = true;
     if (s2n_stuffer_skip_read(&sig_algs, sizeof(uint16_t)) != S2N_SUCCESS) {

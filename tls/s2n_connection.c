@@ -71,7 +71,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob = { 0 };
     PTR_GUARD_POSIX(s2n_alloc(&blob, sizeof(struct s2n_connection)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&blob));
+    PTR_GUARD_RESULT(s2n_blob_zero(&blob));
 
     /* Cast 'through' void to acknowledge that we are changing alignment,
      * which is ok, as blob.data is always aligned.
@@ -85,11 +85,11 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     /* Allocate the fixed-size stuffers */
     blob = (struct s2n_blob){ 0 };
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->alert_in_data, S2N_ALERT_LENGTH));
+    PTR_GUARD_RESULT(s2n_blob_init(&blob, conn->alert_in_data, S2N_ALERT_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->alert_in, &blob));
 
     blob = (struct s2n_blob){ 0 };
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+    PTR_GUARD_RESULT(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
     /* Allocate long term hash and HMAC memory */
@@ -100,7 +100,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * in _wipe will fix that
      */
     blob = (struct s2n_blob){ 0 };
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->header_in_data, S2N_TLS_RECORD_HEADER_LENGTH));
+    PTR_GUARD_RESULT(s2n_blob_init(&blob, conn->header_in_data, S2N_TLS_RECORD_HEADER_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->header_in, &blob));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->out, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->buffer_in, 0));
@@ -443,7 +443,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 
     /* Wipe the buffers we are going to free */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-    POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&conn->client_hello.raw_message));
 
     /* Truncate buffers to save memory, we are done with the handshake */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
@@ -512,7 +512,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->client_ticket_to_decrypt));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->post_handshake.in));
-    POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&conn->client_hello.raw_message));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->buffer_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
@@ -839,7 +839,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
-    POSIX_GUARD(s2n_blob_zero(&ctx_mem));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&ctx_mem));
 
     peer_socket_ctx = (struct s2n_socket_read_io_context *) (void *) ctx_mem.data;
     peer_socket_ctx->fd = rfd;
@@ -1822,11 +1822,11 @@ S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
 
     switch (mode) {
         case S2N_CLIENT:
-            RESULT_GUARD_POSIX(s2n_blob_init(seq_num, conn->secure->client_sequence_number,
+            RESULT_GUARD(s2n_blob_init(seq_num, conn->secure->client_sequence_number,
                     sizeof(conn->secure->client_sequence_number)));
             break;
         case S2N_SERVER:
-            RESULT_GUARD_POSIX(s2n_blob_init(seq_num, conn->secure->server_sequence_number,
+            RESULT_GUARD(s2n_blob_init(seq_num, conn->secure->server_sequence_number,
                     sizeof(conn->secure->server_sequence_number)));
             break;
         default:

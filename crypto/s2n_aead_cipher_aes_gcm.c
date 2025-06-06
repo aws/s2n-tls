@@ -418,7 +418,7 @@ static S2N_RESULT s2n_tls12_aead_cipher_aes128_gcm_set_ktls_info(
     RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->seq.size);
     RESULT_CHECKED_MEMCPY(crypto_info->iv, in->seq.data, sizeof(crypto_info->iv));
 
-    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+    RESULT_GUARD(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
             sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128)));
     return S2N_RESULT_OK;
 }
@@ -445,7 +445,7 @@ static S2N_RESULT s2n_tls12_aead_cipher_aes256_gcm_set_ktls_info(
     RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->seq.size);
     RESULT_CHECKED_MEMCPY(crypto_info->iv, in->seq.data, sizeof(crypto_info->iv));
 
-    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+    RESULT_GUARD(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
             sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_256)));
     return S2N_RESULT_OK;
 }
@@ -481,7 +481,7 @@ static S2N_RESULT s2n_tls13_aead_cipher_aes128_gcm_set_ktls_info(
     RESULT_ENSURE_LTE(sizeof(crypto_info->iv), iv_remainder);
     RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data + salt_size, sizeof(crypto_info->iv));
 
-    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+    RESULT_GUARD(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
             sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128)));
     return S2N_RESULT_OK;
 }
@@ -511,7 +511,7 @@ static S2N_RESULT s2n_tls13_aead_cipher_aes256_gcm_set_ktls_info(
     RESULT_ENSURE_LTE(sizeof(crypto_info->iv), iv_remainder);
     RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data + salt_size, sizeof(crypto_info->iv));
 
-    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+    RESULT_GUARD(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
             sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_256)));
     return S2N_RESULT_OK;
 }

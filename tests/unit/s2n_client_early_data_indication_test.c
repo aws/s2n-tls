@@ -190,7 +190,7 @@ int main(int argc, char **argv)
             uint8_t app_protocol_data[] = "protocol preference";
             uint8_t other_app_protocol_data[] = "different protocol";
             struct s2n_blob app_protocol = { 0 }, empty_app_protocol = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&app_protocol, app_protocol_data, sizeof(app_protocol_data)));
+            EXPECT_OK(s2n_blob_init(&app_protocol, app_protocol_data, sizeof(app_protocol_data)));
 
             /* No early data alp, empty alpn preferences: send */
             EXPECT_OK(s2n_set_early_data_app_protocol(conn, &empty_app_protocol));

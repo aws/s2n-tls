@@ -447,7 +447,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
         POSIX_ENSURE(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
 
-        POSIX_GUARD(s2n_blob_init(&key_share_blob,
+        POSIX_GUARD_RESULT(s2n_blob_init(&key_share_blob,
                 s2n_stuffer_raw_read(extension, share_size), share_size));
         POSIX_GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
