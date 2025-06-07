@@ -7,13 +7,12 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 // dhat can only be run in a single thread, so we use a single test case in an
 // "integration" test (tests/*) to fulfill those conditions.
 
-use std::task::Poll;
-
 use s2n_tls::error::Error as S2NError;
 use s2n_tls::{
     security::Policy,
     testing::{self, TestPair},
 };
+use std::task::Poll;
 
 /// Return an estimation of the memory size of the IO buffers
 ///
@@ -30,12 +29,118 @@ fn fuzzy_equals(actual: usize, expected: usize) -> bool {
     actual < expected + TOLERANCE && actual > expected - TOLERANCE
 }
 
-/// Note that this does not detect total memory usage, only the memory usage that
-/// uses the rust allocator.
+mod memory_callbacks {
+    use std::alloc::Layout;
+
+    /// A tagged allocator which prefixes each blob with the length of the allocation.
+    ///
+    /// ```text
+    ///          size            public allocation
+    ///  v---------------------  v---------
+    /// [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... ]
+    ///  ^                      
+    ///  allocation                      
+    ///  
+    /// ```
+    ///
+    /// This is necessary because the [`std::alloc::dealloc`] requires the length of
+    /// the blob to be deallocated, but the AWS-LC memory `free`` callback does not
+    /// return the length.
+    struct TaggedAllocation {
+        /// the private view
+        allocation: *mut u8,
+        /// allocation size including the prefix
+        size: usize,
+    }
+
+    impl TaggedAllocation {
+        const ALIGNMENT: usize = size_of::<usize>();
+        const USIZE_WIDTH: usize = size_of::<usize>();
+
+        pub fn public_allocation(&self) -> *mut u8 {
+            unsafe { self.allocation.add(Self::USIZE_WIDTH) }
+        }
+    }
+
+    impl TaggedAllocation {
+        /// Return an allocation of `size` bytes
+        ///
+        /// Internally allocates extra bytes to also store the size of the allocation.
+        unsafe fn alloc(public_size: usize) -> Self {
+            let needed_size = public_size + Self::USIZE_WIDTH;
+            let layout = Layout::from_size_align(needed_size, Self::ALIGNMENT).unwrap();
+
+            let allocation = std::alloc::alloc(layout);
+            (allocation as *mut usize).write(needed_size);
+
+            Self {
+                allocation,
+                size: needed_size,
+            }
+        }
+
+        unsafe fn from_public_view(public_view: *mut u8) -> Self {
+            let alloc_start = (public_view as *mut usize).sub(1);
+            let size = (alloc_start as *mut usize).read();
+            Self {
+                allocation: alloc_start as *mut u8,
+                size,
+            }
+        }
+
+        unsafe fn realloc(&mut self, new_public_size: usize) {
+            let new_size = new_public_size + Self::USIZE_WIDTH;
+            let old_layout = Layout::from_size_align(self.size, Self::ALIGNMENT).unwrap();
+
+            let allocation = std::alloc::realloc(self.allocation, old_layout, new_size);
+            (allocation as *mut usize).write(new_size);
+
+            self.allocation = allocation;
+            self.size = new_size;
+        }
+
+        unsafe fn free(self) {
+            let layout = Layout::from_size_align(self.size, Self::ALIGNMENT).unwrap();
+            std::alloc::dealloc(self.allocation, layout);
+        }
+    }
+
+    pub unsafe extern "C" fn malloc_cb(
+        num: usize,
+        _file: *const std::ffi::c_char,
+        _line: i32,
+    ) -> *mut std::ffi::c_void {
+        let allocation = TaggedAllocation::alloc(num);
+        allocation.public_allocation() as *mut _
+    }
+
+    pub unsafe extern "C" fn realloc_cb(
+        addr: *mut std::ffi::c_void,
+        num: usize,
+        _file: *const std::ffi::c_char,
+        _line: i32,
+    ) -> *mut std::ffi::c_void {
+        let mut allocation = TaggedAllocation::from_public_view(addr as *mut _);
+        allocation.realloc(num);
+        allocation.public_allocation() as *mut _
+    }
+
+    pub unsafe extern "C" fn free_cb(
+        addr: *mut std::ffi::c_void,
+        _file: *const std::ffi::c_char,
+        _line: i32,
+    ) {
+        let allocation = TaggedAllocation::from_public_view(addr as *mut _);
+        allocation.free();
+    }
+}
+
+/// The dhat-rs memory profiler can only measure memory allocated from the rust
+/// global allocator.
 ///
-/// Because the s2n-tls rust bindings set the s2n-tls memory callbacks to use the
-/// rust allocator, this does give a good picture of s2n-tls allocations. However
-/// this will _not_ report the allocations done by the libcrypto.
+/// The s2n-tls rust bindings set the s2n-tls memory callbacks to use the rust
+/// allocator, and we use `CRYPTO_set_mem_functions` to force aws-lc to use the
+/// rust system allocator.
 ///
 /// It's important to keep allocations to a minimal amount in this test to give
 /// as accurate a picture as possible into s2n-tls memory usage at various stages
@@ -44,16 +149,32 @@ fn fuzzy_equals(actual: usize, expected: usize) -> bool {
 /// - client connection
 /// - server connection
 /// - TestPair io buffers
+/// 
+/// We only run the test on Linux, because memory sizes vary across platforms.
+#[cfg(target_os = "linux")]
 #[test]
 fn memory_consumption() -> Result<(), S2NError> {
     const CLIENT_MESSAGE: &[u8] = b"from client";
     const SERVER_MESSAGE: &[u8] = b"from server";
 
     let _profiler = dhat::Profiler::new_heap();
-    let config = testing::build_config(&Policy::from_version("default_tls13")?).unwrap();
 
-    let stats = dhat::HeapStats::get();
-    let config_init = stats.curr_bytes;
+    unsafe {
+        aws_lc_sys::CRYPTO_set_mem_functions(
+            Some(memory_callbacks::malloc_cb),
+            Some(memory_callbacks::realloc_cb),
+            Some(memory_callbacks::free_cb),
+        )
+    };
+
+    // s2n-tls allocates memory for the default configs. This includes the system
+    // trust store, which is often a significant amount of memory (~1 MB). This
+    // is system specific, so we don't actually assert on this value.
+    s2n_tls::init::init();
+    let static_memory = dhat::HeapStats::get().curr_bytes;
+
+    let config = testing::build_config(&Policy::from_version("default_tls13")?).unwrap();
+    let config_init = dhat::HeapStats::get().curr_bytes;
 
     let mut pair = TestPair::from_config(&config);
     let connection_init = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
@@ -74,17 +195,24 @@ fn memory_consumption() -> Result<(), S2NError> {
     let _ = pair.server.poll_recv(&mut [0; CLIENT_MESSAGE.len()]);
     let application_data = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
 
-    println!("config: {config_init}");
-    println!("connection_init: {connection_init}");
-    println!("handshake in progress: {handshake_in_progress}");
-    println!("handshake complete: {handshake_complete}");
-    println!("application data: {application_data}");
+    let config_init = config_init - static_memory;
+    let connection_init = connection_init - static_memory;
+    let handshake_in_progress = handshake_in_progress - static_memory;
+    let handshake_complete = handshake_complete - static_memory;
+    let application_data = application_data - static_memory;
 
-    assert!(fuzzy_equals(config_init, 5086));
-    assert!(fuzzy_equals(connection_init, 54440));
-    assert!(fuzzy_equals(handshake_in_progress, 104911));
-    assert!(fuzzy_equals(handshake_complete, 70085));
-    assert!(fuzzy_equals(application_data, 70085));
-    assert!(fuzzy_equals(dhat::HeapStats::get().max_bytes, 109077));
+    println!("config: {}", config_init);
+    println!("connection_init: {}", connection_init);
+    println!("handshake in progress: {}", handshake_in_progress);
+    println!("handshake complete: {}", handshake_complete);
+    println!("application data: {}", application_data);
+
+    assert!(fuzzy_equals(config_init, 19_235));
+    assert!(fuzzy_equals(connection_init, 80_461));
+    assert!(fuzzy_equals(handshake_in_progress, 131_484));
+    assert!(fuzzy_equals(handshake_complete, 105_378));
+    assert!(fuzzy_equals(application_data, 105_378));
+    assert!(fuzzy_equals(dhat::HeapStats::get().max_bytes, 152_562));
+
     Ok(())
 }
