@@ -82,6 +82,7 @@ impl SniTestCerts {
     }
 }
 
+#[derive(Clone)]
 pub struct CertKeyPair {
     cert_path: String,
     key_path: String,

@@ -67,10 +67,5 @@ pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     }
 }
 
-criterion_group! {
-    name = benches;
-    // profile 100 samples/sec
-    config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
-    targets = bench_throughput_cipher_suites
-}
+criterion_group! {benches, bench_throughput_cipher_suites}
 criterion_main!(benches);

@@ -377,6 +377,8 @@ struct s2n_connection {
     /* Cookie extension data */
     struct s2n_blob cookie;
 
+    struct s2n_blob cert_authorities;
+
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing callbacks.
      */

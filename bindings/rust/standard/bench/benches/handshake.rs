@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
-    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
-use pprof::criterion::{Output, PProfProfiler};
 use strum::IntoEnumIterator;
 
 fn bench_handshake_for_library<T>(
@@ -21,13 +20,21 @@ fn bench_handshake_for_library<T>(
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
+    let client_config = &T::Config::make_config(Mode::Client, crypto_config, handshake_type).unwrap();
+    let server_config = &T::Config::make_config(Mode::Server, crypto_config, handshake_type).unwrap();
 
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || -> TlsConnPair<T, T> {
-                TlsConnPair::new_bench_pair(crypto_config, handshake_type).unwrap()
+            || -> TlsConnPair<T, T> { 
+                if handshake_type == HandshakeType::Resumption {
+                    // generate a session ticket to store on the config
+                    let mut pair = TlsConnPair::<T, T>::from_configs(&client_config, &server_config);
+                    pair.handshake().unwrap();
+                    pair.round_trip_transfer(&mut [0]).unwrap();
+                }
+                TlsConnPair::from_configs(client_config, server_config)
             },
             |conn_pair| {
                 conn_pair.handshake().unwrap();
@@ -38,7 +45,11 @@ fn bench_handshake_for_library<T>(
                     HandshakeType::Resumption => assert!(conn_pair.server.resumed_connection()),
                 }
             },
-            BatchSize::SmallInput,
+            // Use "PerIteration" benchmarking, because of the way that session 
+            // ticket setup interacts with shared configs.
+            // > In testing, the maximum measurement overhead from benchmarking 
+            // > with PerIteration is on the order of 350 nanoseconds
+            BatchSize::PerIteration,
         )
     });
 }
@@ -101,9 +112,6 @@ pub fn bench_handshake_sig_types(c: &mut Criterion) {
 }
 
 criterion_group! {
-    name = benches;
-    // profile 100 samples/sec
-    config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
-    targets = bench_handshake_types, bench_handshake_kx_groups, bench_handshake_sig_types
+    benches, bench_handshake_types, bench_handshake_kx_groups, bench_handshake_sig_types
 }
 criterion_main!(benches);
