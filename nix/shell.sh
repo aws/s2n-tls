@@ -35,8 +35,11 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 # No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    echo "Cleanup ./build"
+    echo "Cleaning up build, s2n_head and the apache2 configs"
     rm -rf ./build ./s2n_head
+    if [ -d "/usr/local/apache2" ]; then
+        rm -rf /usr/local/apache2
+    fi
 )}
 
 function configure {(set -e
@@ -97,6 +100,7 @@ function integ {(set -e
 # Function to launch pytest with uv.
 function uvinteg {(
     set -e
+    apache2_start
     cd ./tests/integrationv2
     echo "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
     unset PYTHONPATH

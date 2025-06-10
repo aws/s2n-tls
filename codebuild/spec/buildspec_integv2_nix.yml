@@ -21,7 +21,7 @@ env:
     # Run with uv/pytest and not ctest.
     # The final state of this buildspec is to not specify any specific tests, but to run all of them.
     INTEG_UV_TESTS:
-      sslyze
+      sslyze renegotiate_apache
 
 batch:
   build-graph:
