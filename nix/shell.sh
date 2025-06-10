@@ -98,24 +98,24 @@ function integ {(set -e
 function uvinteg {(
     set -e
     cd ./tests/integrationv2
-    echo "Warning: unsetting PYTHONPATH; you may need to exit this devshell to reset the python environment."
-    unset PYTHONPATH
     local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
     if [[ -z "$1" ]]; then
         echo "Running all integ tests with uv"
-        uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+        PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
     else
         for test in "$@"; do
-            uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+            PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
         done
     fi
 )}
 
 # Wrap a command with stress to simulate a high-load environment.
-function stresswrapper({
+# Not intended for CI, but local troubleshooting.
+function highstress({
     set -e
-    echo "Under STRESS"
-    stress --cpu $(nproc) --io 10 --quiet &
+    local STRESSARGS="--cpu $(nproc) --io $(nproc) --quiet"
+    echo "Running: stress $STRESSARGS"
+    stress $STRESSARGS &
     trap 'pkill stress' ERR EXIT
     "$@"
 })
