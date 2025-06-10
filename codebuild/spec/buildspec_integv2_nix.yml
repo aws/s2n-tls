@@ -19,7 +19,7 @@ env:
     # - dynamic_record_sizes (fails on aarch64)
 
     # Run with uv/pytest and not ctest.
-    # We're still seeing failures/flakiness with 7 tests.
+    # The final state of this buildspec is to not specify any specific tests, but to run all of them.
     INTEG_UV_TESTS:
       sslyze
 
