@@ -144,6 +144,20 @@ int main()
     printf("DEBUG: OPENSSL_IS_AWSLC is NOT defined\n");
 #endif
 
+#ifdef BORINGSSL_FIPS
+    printf("DEBUG: BORINGSSL_FIPS is defined\n");
+#else
+    printf("DEBUG: BORINGSSL_FIPS is NOT defined\n");
+#endif
+
+#ifdef OPENSSL_ASAN
+    printf("DEBUG: OPENSSL_ASAN is defined\n");
+#else
+    printf("DEBUG: OPENSSL_ASAN is NOT defined\n");
+#endif
+
+
+
 #ifdef OPENSSL_FIPS
     printf("DEBUG: OPENSSL_FIPS is defined\n");
 #else
@@ -157,6 +171,7 @@ int main()
 
     /* Check if awslc-fips detection is working */
     printf("DEBUG: s2n_libcrypto_is_awslc() = %d\n", s2n_libcrypto_is_awslc());
+    printf("DEBUG: s2n_libcrypto_is_awslc_fips() = %d\n", s2n_libcrypto_is_awslc_fips());
     printf("DEBUG: s2n_libcrypto_is_awslc_fips() = %d\n", s2n_libcrypto_is_awslc_fips());
 
     s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
