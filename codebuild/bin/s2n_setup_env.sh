@@ -152,8 +152,7 @@ fi
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
 #check if the path contains test dep X, if not and X exists, add to path
-path_overrides="$AWSLC_INSTALL_DIR/bin
-$PYTHON_INSTALL_DIR/bin
+path_overrides="$PYTHON_INSTALL_DIR/bin
 $OPENSSL_1_1_1_INSTALL_DIR/bin
 $SAW_INSTALL_DIR/bin
 $Z3_INSTALL_DIR/bin
