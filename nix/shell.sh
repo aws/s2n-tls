@@ -114,7 +114,6 @@ function uvinteg {(
 )}
 
 # Wrap a command with stress to simulate a high-load environment.
-
 # Not intended for CI, but local troubleshooting.
 function highstress({
     set -e
