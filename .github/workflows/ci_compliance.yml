@@ -29,7 +29,7 @@ jobs:
           submodules: true
 
       - name: Run duvet action
-        uses: ./s2n-quic/.github/actions/duvet
+        uses: awslabs/duvet@main
         with:
           duvet-version: 0.3.0 # Pin until we fix parsing issues
           s2n-quic-dir: ./s2n-quic
