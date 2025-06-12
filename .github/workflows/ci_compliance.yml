@@ -21,15 +21,8 @@ jobs:
       - name: Clone s2n-tls
         uses: actions/checkout@v4
 
-      - name: Clone s2n-quic
-        uses: actions/checkout@v4
-        with:
-          repository: aws/s2n-quic
-          path: ./s2n-quic
-          submodules: true
-
       - name: Run duvet action
-        uses: ./s2n-quic/.github/actions/duvet
+        uses: awslabs/duvet@main
         with:
           duvet-version: 0.3.0 # Pin until we fix parsing issues
           s2n-quic-dir: ./s2n-quic
