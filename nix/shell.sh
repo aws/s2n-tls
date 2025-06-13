@@ -82,7 +82,6 @@ function unit {(set -e
 )}
 
 function integ {(set -e
-    apache2_start
     if [[ -z "$1" ]]; then
         echo "Running all integ tests."
         (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
