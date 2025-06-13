@@ -35,8 +35,11 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 # No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    echo "Cleanup ./build"
+    echo "Cleaning up build, s2n_head and the apache2 configs"
     rm -rf ./build ./s2n_head
+    if [ -d "/usr/local/apache2" ]; then
+        rm -rf /usr/local/apache2
+    fi
 )}
 
 function configure {(set -e
@@ -79,7 +82,6 @@ function unit {(set -e
 )}
 
 function integ {(set -e
-    apache2_start
     if [[ -z "$1" ]]; then
         echo "Running all integ tests."
         (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
@@ -97,6 +99,7 @@ function integ {(set -e
 # Function to launch pytest with uv.
 function uvinteg {(
     set -e
+    apache2_start
     cd ./tests/integrationv2
     local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
     if [[ -z "$1" ]]; then
