@@ -3,6 +3,8 @@
 
 #[cfg(feature = "unstable-cert_authorities")]
 use crate::cert_authorities::CertificateRequestCallback;
+#[cfg(feature = "unstable-crl")]
+use crate::cert_validation::*;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
@@ -623,6 +625,50 @@ impl Builder {
         Ok(self)
     }
 
+    /// Set a callback function to perform custom cert validation.
+    ///
+    /// Corresponds to [s2n_config_set_cert_validation_cb].
+    #[cfg(feature = "unstable-crl")]
+    pub fn set_cert_validation_callback<T: 'static + CertValidationCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn cert_validation_cb(
+            connection_ptr: *mut s2n_connection,
+            validation_info: *mut s2n_cert_validation_info,
+            _context: *mut core::ffi::c_void,
+        ) -> libc::c_int {
+            with_context(connection_ptr, |conn, context| {
+                let callback = context.cert_validation_callback.as_ref();
+                let info = CertValidationInfo::from_ptr(validation_info);
+                let future = info.and_then(|info| {
+                    callback.map_or(Ok(None), |callback| callback.handle_validation(conn, info))
+                });
+                AsyncCallback::trigger(future, conn)
+            })
+            .into()
+        }
+
+        let handler = Box::new(handler);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.cert_validation_callback = Some(handler);
+
+        unsafe {
+            s2n_config_set_cert_validation_cb(
+                self.as_mut_ptr(),
+                Some(cert_validation_cb),
+                core::ptr::null_mut(),
+            )
+            .into_result()?;
+        }
+
+        Ok(self)
+    }
+
     /// Set a custom callback function which is run after parsing the client hello.
     ///
     /// Corresponds to [s2n_config_set_client_hello_cb].
@@ -1046,6 +1092,8 @@ pub(crate) struct Context {
     pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
     #[cfg(feature = "unstable-cert_authorities")]
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
+    #[cfg(feature = "unstable-crl")]
+    pub(crate) cert_validation_callback: Option<Box<dyn CertValidationCallback>>,
 }
 
 impl Default for Context {
@@ -1068,6 +1116,8 @@ impl Default for Context {
             renegotiate: None,
             #[cfg(feature = "unstable-cert_authorities")]
             cert_authorities: None,
+            #[cfg(feature = "unstable-crl")]
+            cert_validation_callback: None,
         }
     }
 }
