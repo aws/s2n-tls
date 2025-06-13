@@ -17,6 +17,8 @@ pub mod callbacks;
 #[cfg(feature = "unstable-cert_authorities")]
 pub mod cert_authorities;
 pub mod cert_chain;
+#[cfg(feature = "unstable-crl")]
+pub mod cert_validation;
 pub mod client_hello;
 pub mod config;
 pub mod connection;
