@@ -71,6 +71,12 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
      * during a retry, or the most preferred share according to local preferences.
      */
     struct s2n_ecc_evp_params *client_params = &conn->kex_params.client_ecc_evp_params;
+
+    if (ecc_pref->count==0) {
+        client_params->negotiated_curve = NULL;
+        return S2N_SUCCESS;
+    }
+
     if (s2n_is_hello_retry_handshake(conn)) {
         const struct s2n_ecc_named_curve *server_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
 

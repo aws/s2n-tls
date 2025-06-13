@@ -159,6 +159,7 @@ extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq;
+extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13;
 
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
