@@ -2169,6 +2169,17 @@ const struct s2n_cipher_preferences cipher_preferences_rfc9151 = {
     .allow_chacha20_boosting = false,
 };
 
+const struct s2n_cipher_preferences cipher_preferences_csna_2 = {
+    .count = s2n_array_len(cipher_suites_csna_2),
+    .suites = cipher_suites_csna_2,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_csna_2[] = {
+    /* TLS1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
 struct s2n_cipher_suite *cipher_suites_20250211[] = {
     /* TLS1.3 */
     &s2n_tls13_aes_256_gcm_sha384,
