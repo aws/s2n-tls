@@ -878,6 +878,9 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
     .signature_preferences = &s2n_signature_preferences_20250512,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_10_07, but with TLS 1.2 Kyber removed, and added ML-KEM support */
