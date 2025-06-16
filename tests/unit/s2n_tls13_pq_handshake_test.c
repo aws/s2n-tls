@@ -109,10 +109,9 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
 }
 
 int s2n_test_tls13_pq_handshake_cleanup(struct s2n_stuffer *client_to_server, struct s2n_stuffer *server_to_client,
-    struct s2n_connection *client_conn, struct s2n_connection *server_conn, struct s2n_cert_chain_and_key *chain_and_key,
-    struct s2n_config *client_config, struct s2n_config *server_config)
+        struct s2n_connection *client_conn, struct s2n_connection *server_conn, struct s2n_cert_chain_and_key *chain_and_key,
+        struct s2n_config *client_config, struct s2n_config *server_config)
 {
-
     POSIX_GUARD(s2n_stuffer_free(client_to_server));
     POSIX_GUARD(s2n_stuffer_free(server_to_client));
 
@@ -182,7 +181,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Server reads ClientHello */
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
-    POSIX_ENSURE_EQ((expected_handshake_success ? S2N_SUCCESS: S2N_FAILURE), s2n_handshake_read_io(server_conn));
+    POSIX_ENSURE_EQ((expected_handshake_success ? S2N_SUCCESS : S2N_FAILURE), s2n_handshake_read_io(server_conn));
 
     if (expected_handshake_success) {
         POSIX_ENSURE_EQ(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
@@ -251,7 +250,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Client reads ServerHello */
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
-    POSIX_ENSURE_EQ((expected_handshake_success ? S2N_SUCCESS: S2N_FAILURE), s2n_handshake_read_io(client_conn));
+    POSIX_ENSURE_EQ((expected_handshake_success ? S2N_SUCCESS : S2N_FAILURE), s2n_handshake_read_io(client_conn));
 
     /* We've gotten far enough in the handshake that both client and server should have
      * derived the shared secrets, so we don't send/receive any more messages. */
@@ -268,7 +267,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
         POSIX_GUARD(s2n_test_tls13_pq_handshake_cleanup(&client_to_server, &server_to_client, client_conn, server_conn,
-            chain_and_key, client_config, server_config));
+                chain_and_key, client_config, server_config));
 
         return S2N_SUCCESS;
     }
@@ -364,7 +363,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Clean up */
     POSIX_GUARD(s2n_test_tls13_pq_handshake_cleanup(&client_to_server, &server_to_client, client_conn, server_conn,
-        chain_and_key, client_config, server_config));
+            chain_and_key, client_config, server_config));
 
     return S2N_SUCCESS;
 }
@@ -848,29 +847,29 @@ int main()
     const struct pq_handshake_test_vector expected_failures[] = {
 #if !defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
         {
-            .client_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
-            .server_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
-            .expected_kem_group = NULL,
-            .expected_curve = NULL,
-            .hrr_expected = false,
-            .len_prefix_expected = false,
-    },
+                .client_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
+                .server_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
+                .expected_kem_group = NULL,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
 #endif
         {
-            .client_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
-            .server_policy = &security_policy_aws_crt_sdk_tls_12_06_23,
-            .expected_kem_group = NULL,
-            .expected_curve = NULL,
-            .hrr_expected = false,
-            .len_prefix_expected = false,
+                .client_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
+                .server_policy = &security_policy_aws_crt_sdk_tls_12_06_23,
+                .expected_kem_group = NULL,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
         },
         {
-            .client_policy = &security_policy_aws_crt_sdk_tls_12_06_23,
-            .server_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
-            .expected_kem_group = NULL,
-            .expected_curve = NULL,
-            .hrr_expected = false,
-            .len_prefix_expected = false,
+                .client_policy = &security_policy_aws_crt_sdk_tls_12_06_23,
+                .server_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required,
+                .expected_kem_group = NULL,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
         },
     };
 

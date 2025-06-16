@@ -72,7 +72,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
      */
     struct s2n_ecc_evp_params *client_params = &conn->kex_params.client_ecc_evp_params;
 
-    if (ecc_pref->count==0) {
+    if (ecc_pref->count == 0) {
         client_params->negotiated_curve = NULL;
         return S2N_SUCCESS;
     }

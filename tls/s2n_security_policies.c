@@ -1433,8 +1433,7 @@ int s2n_security_policy_is_available(const struct s2n_security_policy *security_
         for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count && !has_supported_tls13_kem; i++) {
             const struct s2n_kem_group **tls13_kem_groups = security_policy->kem_preferences->tls13_kem_groups;
             POSIX_ENSURE_REF(tls13_kem_groups);
-            if (s2n_kem_group_is_available(tls13_kem_groups[i]))
-            {
+            if (s2n_kem_group_is_available(tls13_kem_groups[i])) {
                 has_supported_tls13_kem = true;
             }
         }
