@@ -189,6 +189,18 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_DEPRECATED_SECURITY_POLICY);
     }
 
+    /* Test PQ KeyExchange Required policies */
+    {
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("AWS-CRT-SDK-TLSv1.3-2025-PQ-KX-Required", &security_policy));
+
+        if (s2n_libcrypto_supports_mlkem()) {
+            EXPECT_SUCCESS(s2n_security_policy_is_available(&security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required));
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_security_policy_is_available(&security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(NULL, "AWS-CRT-SDK-TLSv1.3-2025-PQ-KX-Required"), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+        }
+    }
+
     /* Test common known good cipher suites for expected configuration */
     {
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &security_policy));

@@ -1422,6 +1422,30 @@ const char *deprecated_security_policies[] = {
 };
 const size_t deprecated_security_policies_len = s2n_array_len(deprecated_security_policies);
 
+int s2n_security_policy_is_available(const struct s2n_security_policy *security_policy)
+{
+    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
+    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    /* If Security Policy only has PQ Key Exchange algorithms, ensure that libcrypto supports at least 1 PQ KEM Group */
+    if (security_policy->ecc_preferences->count == 0 && security_policy->minimum_protocol_version >= S2N_TLS13) {
+        bool has_supported_tls13_kem = false;
+        for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count && !has_supported_tls13_kem; i++) {
+            const struct s2n_kem_group **tls13_kem_groups = security_policy->kem_preferences->tls13_kem_groups;
+            POSIX_ENSURE_REF(tls13_kem_groups);
+            if (s2n_kem_group_is_available(tls13_kem_groups[i]))
+            {
+                has_supported_tls13_kem = true;
+            }
+        }
+        if (!has_supported_tls13_kem) {
+            POSIX_BAIL(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
 {
     POSIX_ENSURE_REF(version);
@@ -1453,8 +1477,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     POSIX_ENSURE_REF(security_policy->signature_preferences);
     POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
-    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
-    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    POSIX_GUARD(s2n_security_policy_is_available(security_policy));
 
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
@@ -1473,8 +1496,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     POSIX_ENSURE_REF(security_policy->signature_preferences);
     POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
-    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
-    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    POSIX_GUARD(s2n_security_policy_is_available(security_policy));
 
     /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */

@@ -221,6 +221,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
+int s2n_security_policy_is_available(const struct s2n_security_policy *security_policy);
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
