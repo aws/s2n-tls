@@ -1398,7 +1398,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "rfc9151", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     
     //TODO - add cnsa2 and cnsa2 strict
-    { .version = "cnsa_1", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "cnsa_1", .security_policy = &security_policy_cnsa_1_20250616, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "cnsa_2", .security_policy = &, .ecc_extension_required = 0, .pq_kem_extension_required = 1 },
     { .version = "cnsa_2_strict", .security_policy = &, .ecc_extension_required = 0, .pq_kem_extension_required = 1 },
     
