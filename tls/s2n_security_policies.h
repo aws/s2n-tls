@@ -212,6 +212,10 @@ extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
 extern const struct s2n_security_policy security_policy_20190122;
 
+extern const struct s2n_security_policy security_policy_cnsa_1_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_strict_20250616;
+
 extern const struct s2n_security_policy security_policy_null;
 
 int s2n_security_policies_init();
