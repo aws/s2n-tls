@@ -6,14 +6,6 @@ export PATH=$SRC_ROOT/build/bin:$PATH
 # so do not use any existing config file.
 export GNUTLS_SYSTEM_PRIORITY_FILE=
 
-# Function to display a formatted banner with the provided text
-banner()
-{
-    echo "+---------------------------------------------------------+"
-    printf "| %-55s |\n" "$1"
-    echo "+---------------------------------------------------------+"
-}
-
 # Function to create aliases for different libcrypto implementations
 function libcrypto_alias {
     local libcrypto_name=$1
@@ -30,7 +22,7 @@ function libcrypto_alias {
       alias $libcrypto_name=$lib_binary_path
       echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
     else
-      banner "Could not find libcrypto binary for $libcrypto_name"
+      echo "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
@@ -43,12 +35,12 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 # No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    banner "Cleanup ./build"
+    echo "Cleanup ./build"
     rm -rf ./build ./s2n_head
 )}
 
 function configure {(set -e
-    banner "Configuring with cmake"
+    echo "Configuring with cmake"
     cmake -S . -B./build \
           -DBUILD_TESTING=ON \
           -DS2N_INTEG_TESTS=ON \
@@ -62,7 +54,7 @@ function configure {(set -e
 )}
 
 function build {(set -e
-    banner "Running Build"
+    echo "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
@@ -77,8 +69,6 @@ function unit {(set -e
         ctest --test-dir build -L unit -j $(nproc) --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
-        echo "Tests:"
-        echo "$tests"
         # Split the tests string into words
         for test in $tests
         do
@@ -91,7 +81,7 @@ function unit {(set -e
 function integ {(set -e
     apache2_start
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests."
+        echo "Running all integ tests."
         (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
     else
         for test in $@; do
@@ -104,8 +94,34 @@ function integ {(set -e
     fi
 )}
 
+# Function to launch pytest with uv.
+function uvinteg {(
+    set -e
+    cd ./tests/integrationv2
+    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
+    if [[ -z "$1" ]]; then
+        echo "Running all integ tests with uv"
+        PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+    else
+        for test in "$@"; do
+            PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+        done
+    fi
+)}
+
+# Wrap a command with stress to simulate a high-load environment.
+# Not intended for CI, but local troubleshooting.
+function highstress({
+    set -e
+    local STRESSARGS="--cpu $(nproc) --io $(nproc) --quiet"
+    echo "Running: stress $STRESSARGS"
+    stress $STRESSARGS &
+    trap 'pkill stress' ERR EXIT
+    "$@"
+})
+
 function check-clang-format {(set -e
-    banner "Dry run of clang-format"
+    echo "Dry run of clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
@@ -129,7 +145,7 @@ function check-clang-format {(set -e
 )}
 
 function do-clang-format {(set -e
-    banner "In place clang-format"
+    echo "In place clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
@@ -155,7 +171,7 @@ function do-clang-format {(set -e
 function test_toolchain_counts {(set -e
     # This is a starting point for a unit test of the devShell.
     # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
-    banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
+    echo "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
     echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
       /openssl-1.1/{o11++}
@@ -163,7 +179,7 @@ function test_toolchain_counts {(set -e
       /aws-lc/{awslc++}
       /libressl/{libre++}
       END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAws-lc:\t\t",awslc,"\nLibreSSL:\t", libre}'
-    banner "Checking tooling counts (these should all be 1)"
+    echo "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
     echo -e "Corretto 17:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto-17')"
     echo -e "gnutls-cli:\t $(gnutls-cli --version |grep -c 'gnutls-cli 3.7')"
