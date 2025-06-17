@@ -96,12 +96,23 @@ function integ {(set -e
     fi
 )}
 
+uvinteg_snapshot(){
+   set -e
+   echo "Gathering the top level tests pytest would run..."
+   echo "PYTEST_ARGS: $PYTEST_ARGS"
+   PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
+   echo "Comparing the current list of integ tests against what is checked-in..."
+   diff -q /tmp/uvinteg_tests.txt uvinteg_tests.txt
+}
+
 # Function to launch pytest with uv.
 function uvinteg {(
     set -e
     apache2_start
     cd ./tests/integrationv2
-    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
+    # Two tests will be re-written; skip for now.
+    export PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear --ignore-glob=*test_dynamic_record_sizes* --ignore-glob=*test_session_resumption*"
+    uvinteg_snapshot
     if [[ -z "$1" ]]; then
         echo "Running all integ tests with uv"
         PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
