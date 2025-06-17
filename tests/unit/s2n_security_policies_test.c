@@ -196,8 +196,12 @@ int main(int argc, char **argv)
         if (s2n_libcrypto_supports_mlkem()) {
             EXPECT_SUCCESS(s2n_security_policy_is_available(&security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required));
         } else {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_security_policy_is_available(&security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(NULL, "AWS-CRT-SDK-TLSv1.3-2025-PQ-KX-Required"), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+            s2n_error expected_error = S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO;
+            if (security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required.minimum_protocol_version > s2n_get_highest_fully_supported_tls_version()) {
+                expected_error = S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED;
+            }
+            EXPECT_FAILURE_WITH_ERRNO(s2n_security_policy_is_available(&security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required), expected_error);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(NULL, "AWS-CRT-SDK-TLSv1.3-2025-PQ-KX-Required"), expected_error);
         }
     }
 
