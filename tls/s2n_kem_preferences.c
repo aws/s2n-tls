@@ -52,7 +52,7 @@ const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[] = {
 /* Includes hybrid P384_MLKEM1024 for added security despite CNSA 2.0 recommending non-hybrid MLKEM1024 */
 const struct s2n_kem_group *pq_kem_groups_ietf_2025_06[] = {
     &s2n_secp384r1_mlkem_1024,
-    &s2n_mlkem_1024,
+    &s2n_pure_mlkem_1024,
 };
 
 /* Includes both IETF standard KEM Groups, and earlier draft standards with Kyber. */
