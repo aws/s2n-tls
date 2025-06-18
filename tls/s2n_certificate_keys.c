@@ -85,6 +85,12 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
+const struct s2n_certificate_key s2n_mldsa_87_cert_key = {
+    .public_key_libcrypto_nid = S2N_NID_MLDSA87,
+    .name = "mldsa_87",
+    .bits = 256,
+};
+
 const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
     /**
      *= https://www.rfc-editor.org/rfc/rfc9151#section-5.1
@@ -109,6 +115,9 @@ struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 =
 };
 
 const struct s2n_certificate_key *s2n_certificate_key_csna_2[] = {
+    /* CSNA 2.0 */
+    &s2n_mldsa_87_cert_key,
+
     /* CSNA 1.0 */
     &s2n_ec_p384,
     &s2n_rsa_rsae_3072,
@@ -120,4 +129,14 @@ const struct s2n_certificate_key *s2n_certificate_key_csna_2[] = {
 struct s2n_certificate_key_preferences s2n_certificate_key_preferences_csna_2 = {
     .count = s2n_array_len(s2n_certificate_key_csna_2),
     .certificate_keys = s2n_certificate_key_csna_2,
+};
+
+const struct s2n_certificate_key *s2n_certificate_key_csna_2_strict[] = {
+    /* CSNA 2.0 */
+    &s2n_mldsa_87_cert_key,
+};
+
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_csna_2_strict = {
+    .count = s2n_array_len(s2n_certificate_key_csna_2_strict),
+    .certificate_keys = s2n_certificate_key_csna_2_strict,
 };

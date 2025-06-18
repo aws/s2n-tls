@@ -1183,6 +1183,7 @@ const struct s2n_security_policy security_policy_cnsa_2_strict_20250616 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_06,
     .signature_preferences = &s2n_signature_preferences_csna_2_strict,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_csna_2_strict,
+    .certificate_key_preferences = &s2n_certificate_key_preferences_csna_2_strict,
     .certificate_preferences_apply_locally = true
 };
 
