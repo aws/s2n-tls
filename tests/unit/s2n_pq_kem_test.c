@@ -25,6 +25,7 @@
 
 static const struct s2n_kem *test_vectors[] = {
     &s2n_mlkem_768,
+    &s2n_mlkem_1024,
     &s2n_kyber_512_r3,
     &s2n_kyber_768_r3,
     &s2n_kyber_1024_r3,

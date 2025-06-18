@@ -1182,7 +1182,7 @@ const struct s2n_security_policy security_policy_cnsa_2_strict_20250616 = {
     .cipher_preferences = &cipher_preferences_csna_2_strict,
     .kem_preferences = &s2n_mlkem_1024,
     .signature_preferences = &s2n_signature_preferences_csna_2_strict,
-    .certificate_signature_preferences = &s2n_certificate_signature_preferences_csna_2,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_csna_2_strict,
     .certificate_preferences_apply_locally = true
 };
 
