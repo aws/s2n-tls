@@ -17,6 +17,7 @@
 
 #include <openssl/objects.h>
 
+#include "crypto/s2n_mldsa.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_certificate_key s2n_rsa_rsae_1024 = {
