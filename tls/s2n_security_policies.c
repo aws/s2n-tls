@@ -1155,23 +1155,23 @@ const struct s2n_security_policy security_policy_cnsa_1_20250616 = {
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
     .certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
-    .certificate_preferences_apply_locally = true,
+    .certificate_preferences_apply_locally = true
 };
 
 /*
  * This policy should be a combination of CNSA 1.0 and 2.0 guidance, with 2.0 guidance 
  * being preferred over 1.0. This will allow clients time to migrate from 1.0 to 2.0.
  */
-// const struct s2n_security_policy security_policy_cnsa_2_20250616 = {
-//     .minimum_protocol_version = S2N_TLS13,
-//     .cipher_preferences = 
-//     .kem_preferences = 
-//     .signature_preferences =
-//     .certificate_signature_preferences =
-//     .certificate_key_preferences =
-//     .ecc_preferences =
-//     .certificate_preferences_apply_locally =
-// };
+const struct s2n_security_policy security_policy_cnsa_2_20250616 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_csna_2,
+    .kem_preferences = &s2n_mlkem_1024,
+    .signature_preferences = &s2n_signature_preferences_csna_2,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_csna_2,
+    .certificate_key_preferences = &s2n_certificate_key_preferences_csna_2,
+    .ecc_preferences = &s2n_ecc_preferences_20250617,
+    .certificate_preferences_apply_locally = true
+};
 
 /*
  * This security policy is derived from the following specification:
@@ -1179,13 +1179,11 @@ const struct s2n_security_policy security_policy_cnsa_1_20250616 = {
  */
 const struct s2n_security_policy security_policy_cnsa_2_strict_20250616 = {
     .minimum_protocol_version = S2N_TLS13,
-    .cipher_preferences = &cipher_preferences_csna_2,
-    // .kem_preferences =
-    .signature_preferences = &s2n_signature_preferences_csna_2,
+    .cipher_preferences = &cipher_preferences_csna_2_strict,
+    .kem_preferences = &s2n_mlkem_1024,
+    .signature_preferences = &s2n_signature_preferences_csna_2_strict,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_csna_2,
-    // .certificate_key_preferences =
     .certificate_preferences_apply_locally = true
-    
 };
 
 /*

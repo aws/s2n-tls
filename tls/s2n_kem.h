@@ -43,8 +43,10 @@ typedef uint16_t kem_ciphertext_key_size;
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
     #define S2N_NID_MLKEM768 NID_MLKEM768
+    #define S2N_NID_MLKEM1024 NID_MLKEM1024
 #else
     #define S2N_NID_MLKEM768 NID_undef
+    #define S2N_NID_MLKEM1024 NID_undef
 #endif
 
 struct s2n_kem {
@@ -95,6 +97,7 @@ struct s2n_kem_group_params {
 };
 
 extern const struct s2n_kem s2n_mlkem_768;
+extern const struct s2n_kem s2n_mlkem_1024;
 extern const struct s2n_kem s2n_kyber_512_r3;
 extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
@@ -140,6 +143,12 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 #define S2N_MLKEM_768_SECRET_KEY_BYTES    2400
 #define S2N_MLKEM_768_CIPHERTEXT_BYTES    1088
 #define S2N_MLKEM_768_SHARED_SECRET_BYTES 32
+
+/* mlkem1024 */
+#define S2N_MLKEM_1024_PUBLIC_KEY_BYTES    1568
+#define S2N_MLKEM_1024_SECRET_KEY_BYTES    3168
+#define S2N_MLKEM_1024_CIPHERTEXT_BYTES    1568
+#define S2N_MLKEM_1024_SHARED_SECRET_BYTES 32
 
 /* kyber512r3 */
 #define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES    800

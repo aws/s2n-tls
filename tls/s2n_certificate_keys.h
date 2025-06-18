@@ -45,3 +45,4 @@ extern const struct s2n_certificate_key s2n_ec_p384;
 extern const struct s2n_certificate_key s2n_ec_p521;
 
 extern struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151;
+extern struct s2n_certificate_key_preferences s2n_certificate_key_preferences_csna_2;
