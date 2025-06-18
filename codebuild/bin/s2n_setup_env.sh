@@ -48,6 +48,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
 : "${AWSLC_FIPS_2022_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2022}"
 : "${AWSLC_FIPS_2024_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-2024}"
+: "${AWSLC_FIPS_NEXT_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips-next}"
 : "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl}"
 : "${CPPCHECK_INSTALL_DIR:=$TEST_DEPS_DIR/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
@@ -127,6 +128,7 @@ fi
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "default" ]]; then export LIBCRYPTO_ROOT=/usr ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0-fips" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_FIPS_INSTALL_DIR ; fi
@@ -139,6 +141,8 @@ if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then export LIBCRYPTO_ROOT=$BORINGSSL_
 if [[ "$S2N_LIBCRYPTO" == "awslc" ]]; then export LIBCRYPTO_ROOT=$AWSLC_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2022_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2024" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_2024_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-next" ]]; then export LIBCRYPTO_ROOT=$AWSLC_FIPS_NEXT_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
 if [[ -n "${LIBCRYPTO_ROOT:-}" ]]; then
@@ -151,7 +155,7 @@ fi
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
 #check if the path contains test dep X, if not and X exists, add to path
-path_overrides="$AWSLC_INSTALL_DIR/bin
+path_overrides="$LIBCRYPTO_ROOT/bin
 $PYTHON_INSTALL_DIR/bin
 $OPENSSL_1_1_1_INSTALL_DIR/bin
 $SAW_INSTALL_DIR/bin
