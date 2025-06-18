@@ -109,17 +109,8 @@ struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 =
 };
 
 const struct s2n_certificate_key *s2n_certificate_key_csna_2[] = {
-    /**
-     *= https://www.rfc-editor.org/rfc/rfc9151#section-5.1
-     *# CNSA (D)TLS connections MUST use secp384r1
-     **/
+    /* CSNA 1.0 */
     &s2n_ec_p384,
-
-    /**
-     *= https://www.rfc-editor.org/rfc/rfc9151#section-5.2
-     *# CNSA specifies a minimum modulus size of 3072 bits; however, only two
-     *# modulus sizes (3072 bits and 4096 bits) are supported by this profile.
-     **/
     &s2n_rsa_rsae_3072,
     &s2n_rsa_rsae_4096,
     &s2n_rsa_pss_3072,
