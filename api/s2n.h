@@ -2650,6 +2650,7 @@ typedef enum {
     S2N_TLS_SIGNATURE_ANONYMOUS = 0,
     S2N_TLS_SIGNATURE_RSA = 1,
     S2N_TLS_SIGNATURE_ECDSA = 3,
+    S2N_TLS_SIGNATURE_MLDSA = 9,
 
     /* Use Private Range for RSA PSS since it's not defined there */
     S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
@@ -3294,6 +3295,8 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
 
 /**
  * Function to get the human readable elliptic curve name for the connection.
+ * 
+ * @deprecated Use `s2n_connection_get_key_exchange_group` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
@@ -3303,6 +3306,10 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
 /**
  * Function to get the human readable KEM name for the connection.
  *
+ * @deprecated This function was previously used to retrieve the negotiated PQ group in TLS 1.2.
+ * PQ key exchange in TLS1.2 was experimental and is now deprecated. Use s2n_connection_get_kem_group_name()
+ * to retrieve the PQ TLS 1.3 Group name.
+ *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
  */
@@ -3311,10 +3318,28 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
 /**
  * Function to get the human readable KEM group name for the connection.
  *
+ * @note PQ key exchange will not occur if the connection is < TLS1.3 or the configured security
+ * policy has no KEM groups on it. It also will not occur if the peer does not support PQ key exchange.
+ * In these instances this function will return "NONE".
+ *
  * @param conn A pointer to the s2n connection
- * @returns A human readable string for the KEM group. If the connection is < TLS1.3 or there is no KEM group configured returns "NONE"
+ * @returns A human readable string for the KEM group. Returns "NONE" if no PQ key exchange occurred.
  */
 S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
+
+/**
+ * Function to get the human readable key exchange group name for the connection, for example: 
+ * `secp521r1` or `SecP256r1MLKEM768`. If an EC curve or KEM was not negotiated, S2N_FAILURE will be
+ * returned.
+ *
+ * @note This function replaces `s2n_connection_get_curve` and `s2n_connection_get_kem_group_name`, returning
+ * the named group regardless if a hybrid PQ group was negotiated or not. 
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to point to a const char* containing the group name
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `group_name` will be set on success.
+ */
+S2N_API extern int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name);
 
 /**
  * Function to get the alert that caused a connection to close. s2n-tls considers all
@@ -3458,6 +3483,9 @@ S2N_API extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op
  *
  * When signing, the input is the digest to sign.
  * When decrypting, the input is the data to decrypt.
+ * 
+ * When signing with ML-DSA, the input is the "external mu" pre-hash value described in
+ * https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D
  *
  * # Safety
  * * `data` must be sufficiently large to contain the input.

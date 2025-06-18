@@ -18,6 +18,7 @@
 #include <sys/param.h>
 
 #include "api/s2n.h"
+#include "api/unstable/cert_authorities.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
@@ -29,10 +30,8 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_set.h"
 
-#define S2N_MAX_TICKET_KEYS       48
-#define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
+#define S2N_MAX_TICKET_KEYS 48
 
 /*
  * TLS1.3 does not allow alert messages to be fragmented, and some TLS
@@ -133,8 +132,7 @@ struct s2n_config {
 
     uint64_t session_state_lifetime_in_nanos;
 
-    struct s2n_set *ticket_keys;
-    struct s2n_set *ticket_key_hashes;
+    struct s2n_array *ticket_keys;
     uint64_t encrypt_decrypt_key_lifetime_in_nanos;
     uint64_t decrypt_key_lifetime_in_nanos;
 
@@ -175,6 +173,8 @@ struct s2n_config {
     s2n_cert_validation_callback cert_validation_cb;
     void *cert_validation_ctx;
 
+    STACK_OF(ASN1_OBJECT) *custom_x509_extension_oids;
+
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
@@ -195,6 +195,9 @@ struct s2n_config {
 
     s2n_session_ticket_fn session_ticket_cb;
     void *session_ticket_ctx;
+
+    s2n_cert_request_callback cert_request_cb;
+    void *cert_request_cb_ctx;
 
     s2n_early_data_cb early_data_cb;
 

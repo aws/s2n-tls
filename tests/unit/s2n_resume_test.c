@@ -1349,7 +1349,7 @@ int main(int argc, char **argv)
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
             memset(conn->secrets.version.tls12.master_secret, 0, test_master_secret.size);
 
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Check decryption was successful by comparing master key */
@@ -1384,7 +1384,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(key);
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
@@ -1423,7 +1423,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(key);
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
@@ -1461,13 +1461,13 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(*version_num, S2N_PRE_ENCRYPTED_STATE_V1);
             *version_num = S2N_PRE_ENCRYPTED_STATE_V1 + 100;
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt),
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt),
                     S2N_ERR_SAFETY);
 
             /* The correct version number should succeed */
             *version_num = S2N_PRE_ENCRYPTED_STATE_V1;
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->client_ticket_to_decrypt));
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt));
         }
 
         /* Check error is thrown when info bytes used to generate the ticket key are incorrect */
@@ -1511,12 +1511,12 @@ int main(int argc, char **argv)
             memset(info_ptr, 0, S2N_TICKET_INFO_SIZE);
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->client_ticket_to_decrypt));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt),
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt),
                     S2N_ERR_DECRYPT);
 
             /* The correct info bytes should succeed */
             EXPECT_SUCCESS(s2n_stuffer_reread(&valid_ticket));
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &valid_ticket));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &valid_ticket));
         }
 
         /* Check session ticket can never be encrypted with a zero-filled ticket key */
@@ -1532,7 +1532,7 @@ int main(int argc, char **argv)
 
             /* Manually zero out key bytes */
             struct s2n_ticket_key *key = NULL;
-            EXPECT_OK(s2n_set_get(config->ticket_keys, 0, (void **) &key));
+            EXPECT_OK(s2n_array_get(config->ticket_keys, 0, (void **) &key));
             EXPECT_NOT_NULL(key);
             POSIX_CHECKED_MEMSET((uint8_t *) key->aes_key, 0, S2N_AES256_KEY_LEN);
 
@@ -1570,7 +1570,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(key);
 
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &output));
-            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &output));
+            EXPECT_OK(s2n_resume_decrypt_session(conn, &output));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 

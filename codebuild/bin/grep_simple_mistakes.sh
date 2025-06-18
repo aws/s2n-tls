@@ -43,6 +43,7 @@ KNOWN_MISSES=(
     "s2n_config_set_ctx"
     "s2n_client_hello_has_extension"
     "s2n_async_pkey_op_perform"
+    "s2n_config_get_client_auth_type"
 )
 C_DOCS_FAILED=0
 for api in $C_APIS; do
@@ -88,7 +89,6 @@ KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do

@@ -33,6 +33,7 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
+    S2N_HASH_SHAKE256_64,
     /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
     S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;
@@ -73,9 +74,9 @@ struct s2n_hash {
 S2N_RESULT s2n_hash_algorithms_init();
 S2N_RESULT s2n_hash_algorithms_cleanup();
 bool s2n_hash_use_custom_md5_sha1();
+bool s2n_hash_supports_shake();
 const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
-int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
 bool s2n_hash_is_available(s2n_hash_algorithm alg);
 int s2n_hash_is_ready_for_input(struct s2n_hash_state *state);
 int s2n_hash_new(struct s2n_hash_state *state);
@@ -87,4 +88,3 @@ int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);
 int s2n_hash_reset(struct s2n_hash_state *state);
 int s2n_hash_free(struct s2n_hash_state *state);
 int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);
-int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out);

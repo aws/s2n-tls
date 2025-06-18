@@ -12,7 +12,7 @@ from time import monotonic as _time
 
 _PopenSelector = selectors.PollSelector
 _PIPE_BUF = getattr(select, "PIPE_BUF", 512)
-_DEBUG_LEN = 80
+_DEBUG_LEN = 200
 
 
 class _processCommunicator(object):
@@ -187,7 +187,7 @@ class _processCommunicator(object):
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
                         print(f"{self.name}: stdin available")
-                        chunk = input_view[
+                        chunk = input_view[  # noqa: F821
                             input_data_offset : input_data_offset + _PIPE_BUF
                         ]
                         try:
@@ -260,7 +260,7 @@ class _processCommunicator(object):
                                 if send_with_newline:
                                     message += b"\n"
                                 # Data destined for stdin is stored in a memoryview
-                                input_view = memoryview(message)
+                                input_view = memoryview(message)  # noqa: F841
                                 input_data_len = len(message)
                                 input_data_sent = False
                                 print(f"{self.name}: will send {message}")
@@ -475,27 +475,6 @@ class ManagedProcess(threading.Thread):
                     self.expect_stderr,
                 )
                 raise ex
-            finally:
-                # This data is dumped to stdout so we capture this
-                # information no matter where a test fails.
-                print("###############################################################")
-                print(
-                    f"#######################   {self.cmd_line[0]}   #######################"
-                )
-                print("###############################################################")
-
-                print(f"Command line:\n\t{' '.join(self.cmd_line)}")
-                print(f"Exit code:\n\t {proc.returncode}")
-
-                print("##########################################################")
-                print("########################### Stdout #######################")
-                print("##########################################################")
-                print(proc_results[0].decode("utf-8", "backslashreplace"))
-
-                print("#########################################################")
-                print("########################### Stderr #######################")
-                print("#########################################################")
-                print(proc_results[1].decode("utf-8", "backslashreplace"))
 
     def kill(self):
         self.proc.kill()

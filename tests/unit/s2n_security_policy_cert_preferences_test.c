@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
@@ -310,8 +311,11 @@ int main(int argc, char **argv)
      * 
      * This test ensures that such a breaking change would be visible and
      * deliberate.
+     *
+     * Skip this test for openssl-3.0-fips, which does not support RSA 1024:
+     * https://github.com/aws/s2n-tls/issues/5200
      */
-    {
+    if (!s2n_libcrypto_is_openssl_fips()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
         /* use a very insecure cert that would not be included in any reasonable cert preferences */
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));

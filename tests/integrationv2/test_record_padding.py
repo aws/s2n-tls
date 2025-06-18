@@ -12,7 +12,7 @@ from configuration import (
     MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,
@@ -86,7 +86,13 @@ def test_nothing():
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_server_handles_padded_records(
-    managed_process, cipher, provider, curve, protocol, certificate, padding_size
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,
 ):
     port = next(available_ports)
 
@@ -101,6 +107,7 @@ def test_s2n_server_handles_padded_records(
         insecure=True,
         protocol=protocol,
         extra_flags=["-record_padding", padding_size],
+        verbose=True,
     )
 
     server_options = copy.copy(client_options)
@@ -148,7 +155,13 @@ def test_s2n_server_handles_padded_records(
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_client_handles_padded_records(
-    managed_process, cipher, provider, curve, protocol, certificate, padding_size
+    managed_process,  # noqa: F811
+    cipher,
+    provider,
+    curve,
+    protocol,
+    certificate,
+    padding_size,
 ):
     port = next(available_ports)
 
@@ -166,6 +179,7 @@ def test_s2n_client_handles_padded_records(
         protocol=protocol,
         data_to_send=server_random_bytes,
         extra_flags=["-record_padding", padding_size],
+        verbose=True,
     )
 
     client_options = copy.copy(server_options)

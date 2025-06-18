@@ -1,0 +1,17 @@
+name: 20210816_GCM
+min version: TLS1.2
+rules:
+- Perfect Forward Secrecy: yes
+- FIPS 140-3 (2019): yes
+cipher suites:
+- TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+signature schemes:
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+- ecdsa_sha384
+- ecdsa_sha512
+curves:
+- secp384r1

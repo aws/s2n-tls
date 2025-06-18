@@ -67,6 +67,7 @@ pub enum SniTestCerts {
     AlligatorRsa,
     AlligatorEcdsa,
     BeaverRsa,
+    WildcardInsectRsa,
 }
 
 impl SniTestCerts {
@@ -75,11 +76,13 @@ impl SniTestCerts {
             SniTestCerts::AlligatorRsa => "alligator_",
             SniTestCerts::AlligatorEcdsa => "alligator_ecdsa_",
             SniTestCerts::BeaverRsa => "beaver_",
+            SniTestCerts::WildcardInsectRsa => "wildcard_insect_rsa_",
         };
         CertKeyPair::from_path(&format!("sni/{prefix}"), "cert", "key", "cert")
     }
 }
 
+#[derive(Clone)]
 pub struct CertKeyPair {
     cert_path: String,
     key_path: String,

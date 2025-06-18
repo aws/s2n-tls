@@ -127,7 +127,7 @@ int main(int argc, char **argv)
      * 1) Client sends empty ST extension. Server issues NST.
      * 2) Client sends empty ST extension. Server does a full handshake, but is unable to issue NST due to absence of an encrypt-decrypt key.
      * 3) Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST.
-     * 4) Client sends non-empty ST extension. Server does an abbreviated handshake and issues a NST because the key is in decrypt-only state.
+     * 4) Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST even though the key is in decrypt-only state.
      * 5) Client sends non-empty ST extension. Server does an abbreviated handshake, but does not issue a NST even though the key is in
      *    decrypt-only state due to absence of encrypt-decrypt key.
      * 6) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the key is not found.
@@ -218,8 +218,8 @@ int main(int argc, char **argv)
         uint64_t mock_current_time = 0;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
 
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
+                ticket_key2, s2n_array_len(ticket_key2), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
-                ticket_key_name1, s2n_array_len(ticket_key_name1));
+                ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
@@ -312,8 +312,8 @@ int main(int argc, char **argv)
         uint64_t mock_current_time = 0;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
 
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-                ticket_key1, s2n_array_len(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
+                ticket_key2, s2n_array_len(ticket_key2), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -343,8 +343,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     };
 
-    /* Client sends non-empty ST extension. Server does an abbreviated handshake and issues a NST
-     * because the key is in decrypt-only state.
+    /* Client sends non-empty ST extension. Server does an abbreviated handshake without issuing a NST
+     * even though the key is in decrypt-only state.
      */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -372,36 +372,35 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_time, &mock_current_time));
 
         /* Add one ST key */
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
         mock_current_time += server_config->encrypt_decrypt_key_lifetime_in_nanos;
 
         uint32_t key_intro_time = mock_current_time / ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
-                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
+                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+
+        /* Verify there is an encrypt key available */
+        EXPECT_OK(s2n_config_is_encrypt_key_available(server_config));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Verify that the server did an abbreviated handshake and issued NST */
+        /* Verify that the server did an abbreviated handshake without issuing NST */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
-        /* Verify that client_ticket is not same as before because server issued a NST */
+        /* Verify that client_ticket is the same as before because server didn't issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
         EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
-        s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
-        EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
+        EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
-
-        /* Verify that the new NST is encrypted using second ST */
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
-                ticket_key_name2, s2n_array_len(ticket_key_name2));
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), 0);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -577,9 +576,9 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the server has only the unexpired key */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
+        EXPECT_OK(s2n_array_get(server_config->ticket_keys, 0, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, s2n_array_len(ticket_key_name2));
-        EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
+        EXPECT_OK(s2n_array_num_elements(server_config->ticket_keys, &ticket_keys_len));
         EXPECT_EQUAL(ticket_keys_len, 1);
 
         /* Verify that the client received NST */
@@ -765,20 +764,39 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, s2n_array_len(ticket_key_name3), ticket_key3, s2n_array_len(ticket_key3), 0));
 
         /* Try adding the expired keys */
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0), -1);
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0), -1);
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
-        /* Verify that the config has only one unexpired key */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
+        /* Verify that the config has three unexpired keys */
+        EXPECT_OK(s2n_array_get(server_config->ticket_keys, 0, (void **) &ticket_key));
+        /* ticket_key3 should have "rotated" to the first index as other keys expired */
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, s2n_array_len(ticket_key_name3));
-        EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
-        EXPECT_EQUAL(ticket_keys_len, 1);
-
-        /* Verify that the total number of key hashes is three */
-        EXPECT_OK(s2n_set_len(server_config->ticket_key_hashes, &ticket_keys_len));
+        EXPECT_OK(s2n_array_num_elements(server_config->ticket_keys, &ticket_keys_len));
         EXPECT_EQUAL(ticket_keys_len, 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+    };
+
+    /* Attempting to add more than S2N_MAX_TICKET_KEYS causes failures. */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        uint8_t id = 0;
+        uint8_t ticket_key_buf[32] = { 0 };
+
+        for (uint8_t i = 0; i < S2N_MAX_TICKET_KEYS; i++) {
+            id = i;
+            ticket_key_buf[0] = i;
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config,
+                    &id, sizeof(id), ticket_key_buf, s2n_array_len(ticket_key_buf), 0));
+        }
+
+        id = S2N_MAX_TICKET_KEYS;
+        ticket_key_buf[0] = S2N_MAX_TICKET_KEYS;
+        EXPECT_FAILURE(s2n_config_add_ticket_crypto_key(config, &id, sizeof(id),
+                ticket_key_buf, s2n_array_len(ticket_key_buf), 0));
     };
 
     /* Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST. */
@@ -1058,14 +1076,6 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
-        /* Verify that the keys are stored from oldest to newest */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
-        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, s2n_array_len(ticket_key_name2));
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 1, (void **) &ticket_key));
-        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name1, s2n_array_len(ticket_key_name1));
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 2, (void **) &ticket_key));
-        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, s2n_array_len(ticket_key_name3));
-
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -1116,7 +1126,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     };
 
-    /* s2n_resume_decrypt_session_ticket fails to decrypt when presented with a valid ticket_key, valid iv and invalid encrypted blob */
+    /* s2n_resume_decrypt_session fails to decrypt when presented with a valid ticket_key, valid iv and invalid encrypted blob */
     {
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -1140,13 +1150,13 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_DECRYPT);
+        EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_DECRYPT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
     };
 
-    /* s2n_resume_decrypt_session_ticket fails with a key not found error when presented with an invalid ticket_key, valid iv and invalid encrypted blob */
+    /* s2n_resume_decrypt_session fails with a key not found error when presented with an invalid ticket_key, valid iv and invalid encrypted blob */
     {
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -1170,7 +1180,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+        EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1749,5 +1759,4 @@ int main(int argc, char **argv)
     free(cert_chain);
     free(private_key);
     END_TEST();
-    return 0;
 }

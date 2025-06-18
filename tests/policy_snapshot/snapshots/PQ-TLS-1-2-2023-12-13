@@ -1,0 +1,45 @@
+name: PQ-TLS-1-2-2023-12-13
+min version: TLS1.2
+rules:
+- Perfect Forward Secrecy: no
+- FIPS 140-3 (2019): no
+cipher suites:
+- TLS_AES_128_GCM_SHA256
+- TLS_AES_256_GCM_SHA384
+- TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+- TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+- TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+- TLS_RSA_WITH_AES_128_GCM_SHA256
+- TLS_RSA_WITH_AES_256_GCM_SHA384
+- TLS_RSA_WITH_AES_128_CBC_SHA256
+- TLS_RSA_WITH_AES_256_CBC_SHA256
+signature schemes:
+- rsa_pss_rsae_sha256
+- rsa_pss_rsae_sha384
+- rsa_pss_rsae_sha512
+- rsa_pkcs1_sha256
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- rsa_pss_pss_sha256
+- rsa_pss_pss_sha384
+- rsa_pss_pss_sha512
+curves:
+- secp256r1
+- secp384r1
+- secp521r1
+pq:
+- revision: 5
+- kems:
+- kem groups:
+-- SecP256r1Kyber768Draft00
+-- secp384r1_kyber-768-r3
+-- secp521r1_kyber-1024-r3
+-- secp256r1_kyber-512-r3

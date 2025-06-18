@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "unstable-cert_authorities")]
+use crate::cert_authorities::CertificateRequestCallback;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
@@ -356,10 +358,10 @@ impl Builder {
         chains: T,
     ) -> Result<&mut Self, Error> {
         // Must be equal to S2N_CERT_TYPE_COUNT in s2n_certificate.h.
-        const CHAINS_MAX_COUNT: usize = 3;
+        const CHAINS_MAX_COUNT: usize = 4;
 
         let mut chain_arrays: [Option<CertificateChain<'static>>; CHAINS_MAX_COUNT] =
-            [None, None, None];
+            [None, None, None, None];
         let mut pointer_array = [std::ptr::null_mut(); CHAINS_MAX_COUNT];
         let mut cert_chain_count = 0;
 
@@ -368,8 +370,8 @@ impl Builder {
                 return Err(Error::bindings(
                     ErrorType::UsageError,
                     "InvalidInput",
-                    "A single default can be specified for RSA, ECDSA, 
-                    and RSA-PSS auth types, but more than 3 certs were supplied",
+                    "A single default can be specified for each supported
+                    cert type, but more than 4 certs were supplied",
                 ));
             }
 
@@ -600,6 +602,25 @@ impl Builder {
     /// Corresponds to [s2n_config_set_send_buffer_size].
     pub fn set_send_buffer_size(&mut self, size: u32) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_send_buffer_size(self.as_mut_ptr(), size).into_result() }?;
+        Ok(self)
+    }
+
+    /// Corresponds to [s2n_config_add_custom_x509_extension].
+    #[cfg(feature = "unstable-custom_x509_extensions")]
+    pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
+        let extension_oid_len: u32 = extension_oid
+            .len()
+            .try_into()
+            .map_err(|_| Error::INVALID_INPUT)?;
+        let extension_oid = extension_oid.as_ptr() as *mut u8;
+        unsafe {
+            s2n_config_add_custom_x509_extension(
+                self.as_mut_ptr(),
+                extension_oid,
+                extension_oid_len,
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 
@@ -1001,6 +1022,30 @@ impl Builder {
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
     }
+
+    /// Returns the underlying `s2n_tls_sys::s2n_config` pointer associated with the
+    /// `config::Builder`.
+    ///
+    /// #### Warning:
+    /// This API is unstable, and may be removed in a future s2n-tls release. Applications should
+    /// use the higher level s2n-tls bindings rather than calling the low-level `s2n_tls_sys` APIs
+    /// directly.
+    #[cfg(s2n_tls_external_build)]
+    pub fn unstable_as_ptr(&mut self) -> *mut s2n_config {
+        self.as_mut_ptr()
+    }
+
+    /// Load all acceptable certificate authorities from the currently configured trust store.
+    ///
+    /// Corresponds to [s2n_config_set_cert_authorities_from_trust_store].
+    pub fn set_certificate_authorities_from_trust_store(&mut self) -> Result<(), Error> {
+        // SAFETY: valid builder geting passed in.
+        unsafe {
+            s2n_config_set_cert_authorities_from_trust_store(self.as_mut_ptr()).into_result()?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(feature = "quic")]
@@ -1047,6 +1092,8 @@ pub(crate) struct Context {
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
 }
 
 impl Default for Context {
@@ -1068,6 +1115,8 @@ impl Default for Context {
             monotonic_clock: None,
             #[cfg(feature = "unstable-renegotiate")]
             renegotiate: None,
+            #[cfg(feature = "unstable-cert_authorities")]
+            cert_authorities: None,
         }
     }
 }
@@ -1153,5 +1202,81 @@ mod tests {
     fn context_send_sync_test() {
         fn assert_send_sync<T: 'static + Send + Sync>() {}
         assert_send_sync::<Context>();
+    }
+
+    /// Test that `config::Builder::unstable_as_ptr()` can be used to call an s2n_tls_sys API.
+    #[cfg(s2n_tls_external_build)]
+    #[test]
+    fn test_config_unstable_as_ptr() -> Result<(), Error> {
+        let mut builder = Config::builder();
+
+        let auth_types = [
+            ClientAuthType::None,
+            ClientAuthType::Optional,
+            ClientAuthType::Required,
+        ];
+        for auth_type in auth_types {
+            builder.set_client_auth_type(auth_type)?;
+
+            let mut retrieved_auth_type = s2n_cert_auth_type::NONE;
+            unsafe {
+                s2n_config_get_client_auth_type(
+                    builder.unstable_as_ptr(),
+                    &mut retrieved_auth_type,
+                );
+            }
+
+            assert_eq!(retrieved_auth_type, auth_type.into());
+        }
+
+        Ok(())
+    }
+
+    #[cfg(all(
+        // The `add_custom_x509_extension` API is only exposed when its unstable feature is enabled.
+        feature = "unstable-custom_x509_extensions",
+        // The `add_custom_x509_extension` API is only supported with AWS-LC, so
+        // this test is disabled for the external build, which may link to other libcryptos.
+        not(s2n_tls_external_build),
+        // The `add_custom_x509_extension` API is currently unsupported with AWS-LC-FIPS.
+        not(feature = "fips")
+    ))]
+    #[test]
+    fn custom_critical_extensions() -> Result<(), Error> {
+        use crate::testing::*;
+
+        let certs = CertKeyPair::from_path(
+            "custom_oids/",
+            "single_oid_cert_chain",
+            "single_oid_key",
+            "ca-cert",
+        );
+        let single_oid = "1.3.187.25240.2";
+
+        for add_oid in [true, false] {
+            let config = {
+                let mut config = Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+
+                if add_oid {
+                    config.add_custom_x509_extension(single_oid)?;
+                }
+
+                config.load_pem(certs.cert(), certs.key())?;
+                config.trust_pem(certs.cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+
+            if add_oid {
+                pair.handshake()?;
+            } else {
+                let s2n_err = pair.handshake().unwrap_err();
+                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION");
+            }
+        }
+
+        Ok(())
     }
 }

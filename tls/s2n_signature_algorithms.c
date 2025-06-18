@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
@@ -387,6 +386,9 @@ S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg
             break;
         case S2N_SIGNATURE_ECDSA:
             *pkey_type = S2N_PKEY_TYPE_ECDSA;
+            break;
+        case S2N_SIGNATURE_MLDSA:
+            *pkey_type = S2N_PKEY_TYPE_MLDSA;
             break;
         default:
             RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

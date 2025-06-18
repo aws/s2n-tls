@@ -52,8 +52,8 @@ static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_p
 
     server_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     server_conn->kex_params.server_ecc_evp_params.evp_pkey = NULL;
-    server_conn->kex_params.kem_params.kem = &s2n_kyber_512_r3;
-    server_conn->secure->cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
+    server_conn->kex_params.kem_params.kem = NULL;
+    server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
     server_conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pkcs1_sha384;
 
     POSIX_GUARD(s2n_dup(&params->private_key, &server_conn->kex_params.kem_params.private_key));
@@ -106,11 +106,6 @@ int s2n_fuzz_test_with_params(const uint8_t *buf, size_t len, struct s2n_kem_par
      * s2n_client_key_recv does not leak/contaminate any memory, the fuzz input is most likely not valid and will fail
      * to be recv'd successfully. */
     int result = s2n_client_key_recv(server_conn);
-
-    /* If PQ is disabled, then s2n_client_key_recv should always fail since the KEM calls will always fail. */
-    if (!s2n_pq_is_enabled()) {
-        POSIX_ENSURE_EQ(result, S2N_FAILURE);
-    }
 
     POSIX_GUARD(s2n_connection_free(server_conn));
 

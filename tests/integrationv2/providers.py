@@ -5,7 +5,15 @@ import subprocess
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures, Cert
+from common import (
+    ProviderOptions,
+    Certificates,
+    Ciphers,
+    Curves,
+    Protocols,
+    Signatures,
+    Cert,
+)
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from stat import S_IMODE
 
@@ -167,6 +175,12 @@ class S2N(Provider):
     def supports_certificate(cls, cert: Cert):
         if not cls._pss_supported() and cert.algorithm == "RSAPSS":
             return False
+        # https://github.com/aws/s2n-tls/issues/5200
+        if (
+            "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION)
+            and "RSA_1024" in cert.name
+        ):
+            return False
         return True
 
     @classmethod
@@ -236,9 +250,8 @@ class S2N(Provider):
             cmd_line.append("s2nc")
         cmd_line.append("--non-blocking")
 
-        # Tests requiring reconnects can't wait on echo data,
-        # but all other tests can.
-        if self.options.reconnect is not True:
+        # Tests requiring reconnects can't wait on echo data
+        if self.options.echo and not self.options.reconnect:
             cmd_line.append("-e")
 
         if self.options.use_session_ticket is False:
@@ -322,6 +335,9 @@ class S2N(Provider):
 
         cmd_line.extend(["-c", cipher_prefs])
 
+        if not self.options.echo:
+            cmd_line.append("-n")
+
         if self.options.use_client_auth is True:
             cmd_line.append("-m")
 
@@ -348,12 +364,22 @@ class S2N(Provider):
 
 
 class OpenSSL(Provider):
+    result = subprocess.run(
+        ["openssl", "version"], shell=False, capture_output=True, text=True
+    )
+    # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
+    version_str = result.stdout.split(" ")
+    # e.g., "OpenSSL"
+    provider = version_str[0]
+    # e.g., "3.0.8"
+    version_openssl = version_str[1]
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
         # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
-        self._is_openssl_11()
+        self.at_least_openssl_1_1()
 
     @classmethod
     def get_send_marker(cls):
@@ -408,12 +434,29 @@ class OpenSSL(Provider):
 
     @classmethod
     def get_version(cls):
-        return get_flag(S2N_PROVIDER_VERSION)
+        return cls.version_openssl
+
+    @classmethod
+    def get_provider(cls):
+        return cls.provider
 
     @classmethod
     def supports_protocol(cls, protocol):
-        if protocol is Protocols.SSLv3:
-            return False
+        if OpenSSL.get_version()[0:3] == "1.1":
+            return protocol not in (Protocols.SSLv3,)
+        elif OpenSSL.get_version()[0:3] == "3.0":
+            return protocol not in (Protocols.SSLv3, Protocols.TLS10, Protocols.TLS11)
+        else:
+            return True
+
+    @classmethod
+    def supports_certificate(cls, cert: Cert):
+        if OpenSSL.get_version()[0:3] >= "3.0":
+            return cert not in (
+                Certificates.RSA_1024_SHA256,
+                Certificates.RSA_1024_SHA384,
+                Certificates.RSA_1024_SHA512,
+            )
 
         return True
 
@@ -421,17 +464,10 @@ class OpenSSL(Provider):
     def supports_cipher(cls, cipher, with_curve=None):
         return True
 
-    def _is_openssl_11(self) -> None:
-        result = subprocess.run(
-            ["openssl", "version"], shell=False, capture_output=True, text=True
-        )
-        version_str = result.stdout.split(" ")
-        project = version_str[0]
-        version = version_str[1]
-        print(f"openssl version: {project} version: {version}")
-        if project != "OpenSSL" or version[0:3] != "1.1":
+    def at_least_openssl_1_1(self) -> None:
+        if OpenSSL.get_version() < "1.1":
             raise FileNotFoundError(
-                f"Openssl version returned {version}, expected 1.1.x."
+                f"Openssl version returned {OpenSSL.get_version()}, expected at least 1.1.x."
             )
 
     def setup_client(self):
@@ -694,17 +730,9 @@ class BoringSSL(Provider):
         if self.options.key is not None:
             cmd_line.extend(["-key", self.options.key])
         if self.options.cipher is not None:
-            if self.options.cipher == Ciphersuites.TLS_CHACHA20_POLY1305_SHA256:
+            if self.options.cipher == Ciphers.TLS_CHACHA20_POLY1305_SHA256:
                 cmd_line.extend(
                     ["-cipher", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"]
-                )
-            elif self.options.cipher == Ciphersuites.TLS_AES_128_GCM_256:
-                pytest.skip(
-                    "BoringSSL does not support Cipher {}".format(self.options.cipher)
-                )
-            elif self.options.cipher == Ciphersuites.TLS_AES_256_GCM_384:
-                pytest.skip(
-                    "BoringSSL does not support Cipher {}".format(self.options.cipher)
                 )
         if self.options.curve is not None:
             if self.options.curve == Curves.P256:
@@ -850,11 +878,10 @@ class GnuTLS(Provider):
             "--port",
             str(self.options.port),
             self.options.host,
-            "--debug",
-            "9999",
         ]
 
-        if self.options.verbose:
+        # Most GnuTLS tests expect verbose output, so default to True.
+        if self.options.verbose is not False:
             cmd_line.append("--verbose")
 
         if self.options.cert and self.options.key:
@@ -885,7 +912,6 @@ class GnuTLS(Provider):
             "gnutls-serv",
             f"--port={self.options.port}",
             "--echo",
-            "--debug=9999",
         ]
 
         if self.options.cert is not None:

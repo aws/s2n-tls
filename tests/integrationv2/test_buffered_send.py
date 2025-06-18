@@ -9,7 +9,7 @@ from configuration import (
     MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes, to_string
 
@@ -39,7 +39,7 @@ SEND_BUFFER_SIZES = [
 FRAGMENT_PREFERENCE = [None, "--prefer-low-latency", "--prefer-throughput"]
 
 
-def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
+def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):  # noqa: F811
     port = next(available_ports)
 
     s2n_options = ProviderOptions(
@@ -73,7 +73,7 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     "fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name
 )
 def test_s2n_server_buffered_send(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     provider,
     protocol,
@@ -141,7 +141,7 @@ def test_s2n_server_buffered_send(
     "fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name
 )
 def test_s2n_client_buffered_send(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     provider,
     protocol,

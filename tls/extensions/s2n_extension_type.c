@@ -114,6 +114,19 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     /* Write extension data */
     POSIX_GUARD(extension_type->send(conn, out));
 
+    /**
+     * Reset the tainted flag in the out stuffer (handshake.io stuffer).
+     * 
+     * Some extension send functions call s2n_stuffer_raw_write(), which
+     * makes the stuffer tainted, preventing further resizing of the handshake.io stuffer.
+     * We need to reset this flag after each extension is sent, because handshake.io
+     * might need to be resized to send subsequent extensions.
+     * 
+     * This is safe because the outstanding pointer from s2n_stuffer_raw_write() is scoped to
+     * the send function of each extension, and it is never stored in s2n_connection.
+     */
+    out->tainted = false;
+
     /* Record extension size */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));
 
