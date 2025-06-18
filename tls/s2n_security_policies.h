@@ -133,6 +133,9 @@ extern const struct s2n_security_policy security_policy_20250211;
 extern const struct s2n_security_policy security_policy_20250414;
 
 extern const struct s2n_security_policy security_policy_rfc9151;
+extern const struct s2n_security_policy security_policy_cnsa_1_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_strict_20250616;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -211,6 +214,10 @@ extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10
 extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
 extern const struct s2n_security_policy security_policy_20190122;
+
+extern const struct s2n_security_policy security_policy_cnsa_1_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_20250616;
+extern const struct s2n_security_policy security_policy_cnsa_2_strict_20250616;
 
 extern const struct s2n_security_policy security_policy_null;
 

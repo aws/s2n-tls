@@ -84,6 +84,10 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20210816[] = {
     &s2n_ecc_curve_secp384r1,
 };
 
+const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20250617[] = {
+    &s2n_ecc_curve_secp384r1,
+};
+
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_test_all[] = {
 #if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
@@ -126,6 +130,11 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_20201021 = {
 const struct s2n_ecc_preferences s2n_ecc_preferences_20210816 = {
     .count = s2n_array_len(s2n_ecc_pref_list_20210816),
     .ecc_curves = s2n_ecc_pref_list_20210816,
+};
+
+const struct s2n_ecc_preferences s2n_ecc_preferences_20250617 = {
+    .count = s2n_array_len(s2n_ecc_pref_list_20250617),
+    .ecc_curves = s2n_ecc_pref_list_20250617,
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_20240603 = {

@@ -660,3 +660,51 @@ const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips =
     .count = s2n_array_len(s2n_sig_scheme_pref_list_test_all_fips),
     .signature_schemes = s2n_sig_scheme_pref_list_test_all_fips,
 };
+
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_csna_2_strict[] = {
+    &s2n_mldsa87,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_csna_2_strict = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_csna_2_strict),
+    .signature_schemes = s2n_sig_scheme_pref_list_csna_2_strict
+};
+
+const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_csna_2_strict[] = {
+    &s2n_mldsa87,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_csna_2_strict = {
+    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_csna_2_strict),
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_csna_2_strict
+};
+
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_csna_2[] = {
+    /* CSNA 2.0 */
+    &s2n_mldsa87,
+
+    /* CSNA 1.0 */
+    &s2n_ecdsa_sha384,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pkcs1_sha384,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_csna_2 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_csna_2),
+    .signature_schemes = s2n_sig_scheme_pref_list_csna_2
+};
+
+const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_csna_2[] = {
+    /* CSNA 2.0 */
+    &s2n_mldsa87,
+
+    /* CSNA 1.0 */
+    &s2n_ecdsa_sha384,
+    &s2n_rsa_pkcs1_sha384,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_csna_2 = {
+    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_csna_2),
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_csna_2
+};
