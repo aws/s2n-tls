@@ -49,6 +49,12 @@ const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[] = {
     &s2n_secp256r1_mlkem_768,
 };
 
+/* Includes hybrid P384_MLKEM1024 for added security despite CNSA 2.0 recommending non-hybrid MLKEM1024 */
+const struct s2n_kem_group *pq_kem_groups_ietf_2025_06[] = {
+    &s2n_secp384r1_mlkem_1024,
+    &s2n_mlkem_1024,
+};
+
 /* Includes both IETF standard KEM Groups, and earlier draft standards with Kyber. */
 const struct s2n_kem_group *pq_kem_groups_mixed_2024_10[] = {
     &s2n_x25519_mlkem_768,
@@ -108,6 +114,14 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_mixed_2024_10 = {
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_mixed_2024_10),
     .tls13_kem_groups = pq_kem_groups_mixed_2024_10,
+    .tls13_pq_hybrid_draft_revision = 5
+};
+
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_06 = {
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_ietf_2025_06),
+    .tls13_kem_groups = pq_kem_groups_ietf_2025_06,
     .tls13_pq_hybrid_draft_revision = 5
 };
 
