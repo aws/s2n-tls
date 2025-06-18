@@ -142,7 +142,7 @@ const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
     .send_kem_first = 1, // if required by spec
 };
 
-const struct s2n_kem_group s2n_mlkem_1024 = {
+const struct s2n_kem_group s2n_pure_mlkem_1024 = {
     .name = "MLKEM1024",
     .iana_id = TLS_PQ_KEM_GROUP_ID_MLKEM_1024,
     .curve = NULL,
@@ -199,6 +199,8 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
 };
 
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
+    &s2n_pure_mlkem_1024,
+    &s2n_secp384r1_mlkem_1024,
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
     &s2n_secp256r1_kyber_768_r3,
