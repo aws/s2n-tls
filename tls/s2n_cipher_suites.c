@@ -1037,6 +1037,7 @@ int s2n_cipher_suites_init(void)
         /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
         OpenSSL_add_all_algorithms();
 #else
+        /* Note implicit init may have already happened in s2n_hash_algorithms_init() with OpenSSL with providers */
         OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 #endif
     }

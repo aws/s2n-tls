@@ -21,6 +21,7 @@
 #include "utils/s2n_safety.h"
 
 #if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
+#include <openssl/provider.h>
 static EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
 #else
 static const EVP_MD *s2n_evp_mds[S2N_HASH_ALGS_COUNT] = { 0 };
@@ -55,8 +56,18 @@ S2N_RESULT s2n_hash_algorithms_init()
      * Additionally, the old style methods do not support property query strings
      * to guide which provider to fetch from. This is important for FIPS, where
      * the default query string of "fips=yes" will need to be overridden for
-     * legacy algorithms.
+     * legacy algorithms. TODO: are they actually still in use in FIPS mode?
+     *
      */
+    if (!OSSL_PROVIDER_available(NULL, "default")) {
+      /* System is configured without the default provider, but we are
+       * about to fetch MD5 and SHA1 from it below, note note sure if
+       * this should be conditional and opportunistic, as most
+       * policies no longer use SHA1, and even SHA224 is weak these
+       * days. Similar approach is taken in python to fetch MD5 when
+       * usedforsecurity=False */
+         OSSL_PROVIDER_load(NULL, "default");
+    }
     s2n_evp_mds[S2N_HASH_MD5] = EVP_MD_fetch(NULL, "MD5", "-fips");
     s2n_evp_mds[S2N_HASH_MD5_SHA1] = EVP_MD_fetch(NULL, "MD5-SHA1", "-fips");
     s2n_evp_mds[S2N_HASH_SHA1] = EVP_MD_fetch(NULL, "SHA1", NULL);
