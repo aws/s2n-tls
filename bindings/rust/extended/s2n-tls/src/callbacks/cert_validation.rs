@@ -36,13 +36,13 @@ impl CertValidationInfo {
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub fn accept(&self) -> Result<(), Error> {
+    pub fn accept(self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub fn reject(&self) -> Result<(), Error> {
+    pub fn reject(self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
@@ -99,15 +99,11 @@ mod tests {
                 config.build()?
             };
 
-            let (waker, wake_count) = new_count_waker();
             let mut pair = TestPair::from_config(&config);
-            pair.server.set_waker(Some(&waker))?;
-
             let context = ValidationContext { accept };
             pair.client.set_application_context(context);
 
             assert_eq!(counter.count(), 0);
-            assert_eq!(wake_count, 0);
 
             if accept {
                 pair.handshake()?;
@@ -117,7 +113,6 @@ mod tests {
             }
 
             assert_eq!(counter.count(), 1);
-            assert_eq!(wake_count, 0);
         }
 
         Ok(())
@@ -127,7 +122,7 @@ mod tests {
 
     struct AsyncFuture {
         counter: usize,
-        info: CertValidationInfo,
+        info: Option<CertValidationInfo>,
     }
     impl ConnectionFuture for AsyncFuture {
         fn poll(
@@ -141,10 +136,15 @@ mod tests {
 
             if self.counter < POLL_COUNT {
                 Poll::Pending
-            } else if context.accept {
-                Poll::Ready(self.info.accept())
+            } else if let Some(info) = self.info.take() {
+                match context.accept {
+                    true => Poll::Ready(info.accept()),
+                    false => Poll::Ready(info.reject()),
+                }
             } else {
-                Poll::Ready(self.info.reject())
+                Poll::Ready(Err(error::Error::application(
+                    "missing validation info".into(),
+                )))
             }
         }
     }
@@ -157,7 +157,10 @@ mod tests {
             info: CertValidationInfo,
         ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
             self.0.increment();
-            let future = AsyncFuture { counter: 0, info };
+            let future = AsyncFuture {
+                counter: 0,
+                info: Some(info),
+            };
             Ok(Some(Box::pin(future)))
         }
     }

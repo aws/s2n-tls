@@ -3,8 +3,6 @@
 
 #[cfg(feature = "unstable-cert_authorities")]
 use crate::cert_authorities::CertificateRequestCallback;
-#[cfg(feature = "unstable-crl")]
-use crate::cert_validation::*;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
