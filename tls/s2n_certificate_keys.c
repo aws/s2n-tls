@@ -17,6 +17,7 @@
 
 #include <openssl/objects.h>
 
+#include "crypto/s2n_mldsa.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_certificate_key s2n_rsa_rsae_1024 = {
@@ -83,6 +84,12 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .public_key_libcrypto_nid = NID_secp521r1,
     .name = "ecdsa_p521",
     .bits = 521,
+};
+
+const struct s2n_certificate_key s2n_mldsa_87_cert_key = {
+    .public_key_libcrypto_nid = S2N_NID_MLDSA87,
+    .name = "mldsa_87",
+    .bits = 256,
 };
 
 const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
