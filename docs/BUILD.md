@@ -138,27 +138,15 @@ The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specif
 
 s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. See the [AWS-LC FIPS documentation](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md) for more information. The security policy listed for each FIPS validation includes instructions for how to build the validated version.
 
-### Openssl FIPS
+### OpenSSL FIPS
 
 You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). You can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls if AWS-LC symbols would conflict with Openssl symbols in your environment.
 
-But if you must use Openssl instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS-validated version of Openssl. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS-validated version of Openssl.
+But if you must use OpenSSL instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS-validated version of OpenSSL. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS-validated version of OpenSSL. Only attempt this if your OS or 3rd-party vendor doesn't already provide a FIPS provider for your installation of OpenSSL.
 
-Note that currently s2n-tls only supports the Openssl-3.0 version of FIPS-validated Openssl. Openssl-3.0 has a FIPS 140-2 certificate, NOT a FIPS 140-3 certificate. If you require FIPS 140-3, consider using AWS-LC instead. Once Openssl releases a FIPS 140-3 validated version (currently planned for Openssl-3.5), then the s2n-tls integration can be updated. Because of the significant changes made in FIPS 140-3, simply building s2n-tls with a FIPS 140-3 validated version of Openssl will not meet all FIPS 140-3 requirements.
+The FIPS certificate depends on the version of the FIPS provider, and not of the libcrypto/libssl version that can be higher or lower. Multiple validations exists for 3.0.8 and 3.1.2 providers with FIPS 140-3 standard from multiple vendors. Also alternative providers exist for OpenSSL which might be operating in FIPS mode (Symcrypt, Wolfcrypt, Keypair, and others). The certification of your OpenSSL installation depends on the loaded providers and the certifications they have. Testing all vendors providers is out of scope for s2n-tls, but it may work. Please consider using aws-lc-fips build configuration instead.
 
-When running in FIPS mode with Openssl, s2n-tls does not support RSA 1024 certificates (https://github.com/aws/s2n-tls/issues/5200) or ChaChaPoly (https://github.com/aws/s2n-tls/issues/5199), even if allowed by the configured security policy. As with non-FIPS Openssl, RC4 is also not supported.
-
-s2n-tls requires that Openssl be configured with the default provider in addition to the FIPS provider. The base provider is NOT sufficient. s2n-tls assumes that non-FIPS algorithms like MD5 and SHA1 are available even when built with FIPS-validated Openssl. If you are following the [Openssl documentation for how to configure FIPS](https://docs.openssl.org/master/man7/fips_module/), your openssl.cnf must include:
-```
-[provider_sect]
-default = default_sect
-fips = fips_sect
-
-[default_sect]
-activate = 1
-```
-Note the use of `default` instead of `base`. You can see the openssl.cnf that s2n-tls uses for testing [here](https://github.com/aws/s2n-tls/blob/main/codebuild/bin/s2n_fips_openssl.cnf).
-
+When running in FIPS mode with OpenSSL, precise supported runtime configurations depend on the security policy of your FIPS provider. For example, key sizes and algorithms will be enforced by the FIPS provider, even if s2n-tls is configured to attempt to use them. Note runtime indicators are not checked, some usage might be successful but in unapproved mode. Please check approved and unapproved services and service indicators in the security policy of your FIPS provider. In additiona, s2n-tls in FIPS mode blocks support for RSA 1024 certificates (https://github.com/aws/s2n-tls/issues/5200) or ChaChaPoly (https://github.com/aws/s2n-tls/issues/5199), even if allowed by the configured security policy. As with non-FIPS OpenSSL, RC4 is also not supported.
 
 ## Other build methods
 
@@ -266,4 +254,4 @@ When both of the above concerns are known to be mitigated in the linked libcrypt
 
 The s2n-tls RAND engine may conflict with some environments that use the same libcrypto as s2n-tls. For example, other applications or libraries may have certain requirements for the libcrypto RAND engine that the s2n-tls implementation doesn't provide. Other applications or libraries might also need to implement their own custom RAND engines. If the s2n-tls RAND engine conflicts with your environment, consider enabling libcrypto interning with the `S2N_INTERN_LIBCRYPTO` CMake option, which will build s2n-tls with its own copy of the libcrypto that's isolated from the rest of the environment.
 
-If the s2n-tls RAND engine conflicts with your environment and enabling libcrypto interning is not a viable option, s2n-tls can be forced to disable overriding the RAND engine by setting the `S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE` CMake flag to false when building s2n-tls. This is not recommended unless both of the concerns described above are confirmed to be inapplicable to your use case.
+If the s2n-tls RAND engine conflicts with your environment and enabling libcrypto interning is not a viable option, s2n-tls can be forced to disable overriding the RAND engine by setting the `S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE` CMake flag to false when building s2n-tls. One noteworthy scenario when one should use this option is when using system OpenSSL 3.4+ with certified statically linked jitterentropy source in libcrypto, with callbacks reconfigured to use such entropy source for the OpenSSL FIPS providers, as shipped by Chainguard OS. In all other cases, this is not recommended unless both of the concerns described above are confirmed to be inapplicable to your use case.
