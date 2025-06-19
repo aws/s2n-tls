@@ -1,4 +1,4 @@
-name: csna_1
+name: cnsa_1
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: no
