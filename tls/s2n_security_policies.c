@@ -1145,6 +1145,20 @@ const struct s2n_security_policy security_policy_rfc9151 = {
 };
 
 /*
+ * CNSA_1.0 policy is an alias for the existing rfc9151 TLS Security policy.
+ */
+const struct s2n_security_policy security_policy_cnsa_1_20250616 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_rfc9151,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_rfc9151,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
+    .certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .certificate_preferences_apply_locally = true
+};
+
+/*
  * This security policy is a mix of default_tls13 (20240503) and rfc9151, with
  * a primary requirement that AES-256 is the ciphersuite chosen. Other
  * requirements are generally picked to raise minimum thresholds (e.g.,
@@ -1382,6 +1396,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20250211", .security_policy = &security_policy_20250211, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250414", .security_policy = &security_policy_20250414, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "rfc9151", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "cnsa_1", .security_policy = &security_policy_cnsa_1_20250616, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_fips", .security_policy = &security_policy_test_all_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_ecdsa", .security_policy = &security_policy_test_all_ecdsa, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
