@@ -68,10 +68,10 @@ curves:
 - secp521r1
 pq:
 - revision: 5
-- kems:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
+-- SecP384r1MLKEM1024
 -- SecP256r1Kyber768Draft00
 -- X25519Kyber768Draft00
 -- secp384r1_kyber-768-r3

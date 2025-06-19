@@ -446,6 +446,26 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
+    const struct s2n_kem_group *mlkem1024_test_groups[] = {
+        &s2n_secp384r1_mlkem_1024,
+    };
+
+    const struct s2n_kem_preferences mlkem1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(mlkem1024_test_groups),
+        .tls13_kem_groups = mlkem1024_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy mlkem1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &mlkem1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
+    };
+
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -508,10 +528,17 @@ int main()
 
     /* ML-KEM is only available on newer versions of AWS-LC. If it's
      * unavailable, we must downgrade the assertions to Kyber or EC. */
-    const struct s2n_kem_group *null_if_no_mlkem = &s2n_x25519_mlkem_768;
+    const struct s2n_kem_group *null_if_no_mlkem_768 = &s2n_x25519_mlkem_768;
+    const struct s2n_kem_group *null_if_no_mlkem_1024 = &s2n_secp384r1_mlkem_1024;
     const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+
+    printf("s2n_libcrypto_supports_mlkem: %s\n", s2n_libcrypto_supports_mlkem() ? "true" : "false");
+    printf("mlkem_1024 is available: %s\n", s2n_kem_is_available(&s2n_mlkem_1024) ? "true" : "false");
+    printf("mlkem_768 is available: %s\n", s2n_kem_is_available(&s2n_mlkem_768) ? "true" : "false");
+
     if (!s2n_libcrypto_supports_mlkem()) {
-        null_if_no_mlkem = NULL;
+        null_if_no_mlkem_768 = NULL;
+        null_if_no_mlkem_1024 = NULL;
         ec_if_no_mlkem = default_curve;
     }
 
@@ -733,7 +760,16 @@ int main()
         {
                 .client_policy = &mlkem768_test_policy,
                 .server_policy = &mlkem768_test_policy,
-                .expected_kem_group = null_if_no_mlkem,
+                .expected_kem_group = null_if_no_mlkem_768,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        {
+                .client_policy = &mlkem1024_test_policy,
+                .server_policy = &mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
