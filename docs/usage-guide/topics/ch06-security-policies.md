@@ -54,6 +54,7 @@ The following chart maps the security policy version to protocol version and cip
 |   20190802    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 |   20200207    |        |        |        |    X   |         |    X    |      X     |      |     |     |   X   |        |
 |    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |    X   |
+|    cnsa_1     |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |    X   |
 
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. **Warning**: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.
 
@@ -111,6 +112,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20190802    |     X     |   X   |       X      |    X    |
 |   20200207    |           |   X   |              |    X    |
 |    rfc9151    |     X     |   X   |              |    X    |
+|    cnsa_1     |     X     |   X   |              |    X    |
 
 *NOTE*: Legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported only if TLS1.2 has been negotiated and the security policy allows them.
 
@@ -146,6 +148,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20190802    |     X     |     X     |        |
 |   20200207    |     X     |     X     |    X   |
 |    rfc9151    |           |     X     |        |
+|    cnsa_1     |           |     X     |        |
 
 ### Default Policy History
 |  Version   | "default" | "default_fips" | "default_tls13" |
