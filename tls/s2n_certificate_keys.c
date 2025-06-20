@@ -86,10 +86,6 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
-/**
-     *= https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.ipd.pdf
-     *# Section 4 states mldsa_87 public key size is 2592 bytes or 20736 bits
-     **/
 const struct s2n_certificate_key s2n_mldsa_87_cert_key = {
     .public_key_libcrypto_nid = S2N_NID_MLDSA87,
     .name = "mldsa_87",
