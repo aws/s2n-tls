@@ -42,10 +42,10 @@ typedef uint16_t kem_ciphertext_key_size;
 #endif
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
-    #define S2N_NID_MLKEM768 NID_MLKEM768
+    #define S2N_NID_MLKEM768  NID_MLKEM768
     #define S2N_NID_MLKEM1024 NID_MLKEM1024
 #else
-    #define S2N_NID_MLKEM768 NID_undef
+    #define S2N_NID_MLKEM768  NID_undef
     #define S2N_NID_MLKEM1024 NID_undef
 #endif
 
