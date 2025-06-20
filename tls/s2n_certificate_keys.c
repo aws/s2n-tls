@@ -86,10 +86,14 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
+    /**
+     *= https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.ipd.pdf
+     *# Section 4 2592 bytes public key size
+     **/
 const struct s2n_certificate_key s2n_mldsa_87_cert_key = {
     .public_key_libcrypto_nid = S2N_NID_MLDSA87,
     .name = "mldsa_87",
-    .bits = 256,
+    .bits = 20736,
 };
 
 const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
