@@ -106,6 +106,10 @@ class Provider(object):
     def supports_certificate(cls, cert: Cert):
         return True
 
+    @classmethod
+    def get_name(cls, cmd_line):
+        return cmd_line[0]
+
 
 class Tcpdump(Provider):
     """
@@ -594,6 +598,10 @@ class OpenSSL(Provider):
             cmd_line.extend(self.options.extra_flags)
 
         return cmd_line
+
+    @classmethod
+    def get_name(cls, cmd_line):
+        return cmd_line[1]
 
 
 class SSLv3Provider(OpenSSL):
