@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 import os
-import platform
 import pytest
 
 from configuration import (
@@ -321,9 +320,6 @@ def test_tls13_session_resumption_s2n_client(
             )
 
 
-@pytest.mark.flaky(
-    reruns=7, reruns_delay=2, condition=platform.machine().startswith("aarch")
-)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -371,8 +367,14 @@ def test_s2nd_falls_back_to_full_connection(
     server_options.cert = certificate.cert
     server_options.extra_flags = None
 
-    server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(provider, server_options)
+
+    # The send_marker prevents us from closing stdin until the client receives
+    # the session ticket. If we close stdin too early, then the client will exit
+    # the echo loop and stop listening for new messages.
+    client = managed_process(
+        provider, client_options, send_marker="TLS read server session ticket"
+    )
 
     # The client should have received a session ticket
     for results in client.get_results():
