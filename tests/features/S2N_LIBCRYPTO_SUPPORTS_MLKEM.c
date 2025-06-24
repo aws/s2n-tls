@@ -23,7 +23,7 @@ int main()
         return 1;
     }
 
-    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM768)) || {
+    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM768)) {
         EVP_PKEY_CTX_free(ctx);
         return 1;
     }
