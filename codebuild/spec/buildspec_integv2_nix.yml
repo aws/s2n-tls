@@ -4,10 +4,6 @@
 version: 0.2
 env:
   shell: bash
-  variables:
-    # --ignore-environment prevents existing environment variables from being carried forward into the new shell.
-    # This allows for a clean, sterile environment.
-    NIXDEV_ARGS: --max-jobs auto --ignore-environment
 
 batch:
   build-graph:
@@ -19,6 +15,8 @@ batch:
         privileged-mode: false
         type: LINUX_CONTAINER
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
@@ -30,6 +28,8 @@ batch:
         privileged-mode: false
         type: ARM_CONTAINER
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -151,6 +151,7 @@ phases:
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
+    # Dynamic_record_sizes is being excluded in nix/shell.sh and needs a rewrite.
     commands:
       - |
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
