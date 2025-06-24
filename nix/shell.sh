@@ -81,28 +81,14 @@ function unit {(set -e
     fi
 )}
 
-function integ {(set -e
-    if [[ -z "$1" ]]; then
-        echo "Running all integ tests."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
-    else
-        for test in $@; do
-            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
-            if [ "$?" -ne 0 ]; then
-               echo "Test failed, stopping execution"
-               return 1
-            fi
-        done
-    fi
-)}
-
 function uvinteg_snapshot {(
-   set -e
-   echo "Gathering the top level tests pytest would run..."
-   echo "PYTEST_ARGS: $PYTEST_ARGS"
-   PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
-   echo "Comparing the current list of integ tests against what is checked-in..."
-   diff -q /tmp/uvinteg_tests.txt uvinteg_tests.txt
+    # Use pytest --collect-only to gather the top level tests
+    set -e
+    echo "Gathering the top level tests pytest would run..."
+    echo "PYTEST_ARGS: $PYTEST_ARGS"
+    PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
+    echo "Comparing the current list of integ tests against what is checked-in..."
+    diff -q /tmp/uvinteg_tests.txt uvinteg_tests.txt
 )}
 
 # Function to launch pytest with uv.
