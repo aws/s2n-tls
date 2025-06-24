@@ -480,11 +480,7 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return false;
     }
 
-    if (!s2n_libcrypto_supports_evp_kem()) {
-        return false;
-    }
-
-    bool available = false;
+    bool available = s2n_libcrypto_supports_evp_kem();
 
     /* Only newer versions of libcrypto have ML-KEM support. */
     if (kem == &s2n_mlkem_768 || kem == &s2n_mlkem_1024) {
