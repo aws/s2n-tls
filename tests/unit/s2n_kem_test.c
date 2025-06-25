@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         bool mlkem_supported = s2n_libcrypto_supports_mlkem();
         if (mlkem_supported) {
             EXPECT_TRUE(s2n_kem_is_available(&s2n_mlkem_768));
-            EXPECT_FALSE(s2n_kem_is_available(&s2n_mlkem_1024));
+            EXPECT_TRUE(s2n_kem_is_available(&s2n_mlkem_1024));
         } else {
             EXPECT_FALSE(s2n_kem_is_available(&s2n_mlkem_768));
             EXPECT_FALSE(s2n_kem_is_available(&s2n_mlkem_1024));

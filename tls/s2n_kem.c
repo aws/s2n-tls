@@ -484,7 +484,7 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return true;
     }
 
-    if (s2n_libcrypto_supports_mlkem()) {
+    if (s2n_libcrypto_supports_mlkem() && kem == &s2n_mlkem_768) {
         return true;
     }
 
