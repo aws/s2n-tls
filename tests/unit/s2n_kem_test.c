@@ -196,28 +196,18 @@ int main(int argc, char **argv)
     };
     {
         /* Unit test for s2n_kem_is_available() */
+        /* Check known ML-KEMs */
         bool mlkem_supported = s2n_libcrypto_supports_mlkem();
-        if (mlkem_supported) {
-            EXPECT_TRUE(s2n_kem_is_available(&s2n_mlkem_768));
-            EXPECT_TRUE(s2n_kem_is_available(&s2n_mlkem_1024));
-        } else {
-            EXPECT_FALSE(s2n_kem_is_available(&s2n_mlkem_768));
-            EXPECT_FALSE(s2n_kem_is_available(&s2n_mlkem_1024));
-        }
+        EXPECT_EQUAL(s2n_kem_is_available(&s2n_mlkem_768), mlkem_supported);
+        EXPECT_EQUAL(s2n_kem_is_available(&s2n_mlkem_1024), mlkem_supported);
 
-        // bool evp_supported = s2n_libcrypto_supports_evp_kem();
-        // if (evp_supported) {
-        //     EXPECT_TRUE(s2n_kem_is_available(&s2n_kyber_512_r3));
-        //     EXPECT_TRUE(s2n_kem_is_available(&s2n_kyber_768_r3));
-        //     EXPECT_TRUE(s2n_kem_is_available(&s2n_kyber_1024_r3));
-        // } else {
-        //     EXPECT_FALSE(s2n_kem_is_available(&s2n_kyber_512_r3));
-        //     EXPECT_FALSE(s2n_kem_is_available(&s2n_kyber_768_r3));
-        //     EXPECT_FALSE(s2n_kem_is_available(&s2n_kyber_1024_r3));
-        // }
+        /* Check known Kyber KEMs (EVP-based) */
+        bool evp_supported = s2n_libcrypto_supports_evp_kem();
+        EXPECT_EQUAL(s2n_kem_is_available(&s2n_kyber_512_r3), evp_supported);
+        EXPECT_EQUAL(s2n_kem_is_available(&s2n_kyber_768_r3), evp_supported);
+        EXPECT_EQUAL(s2n_kem_is_available(&s2n_kyber_1024_r3), evp_supported);
 
-        // EXPECT_FALSE(s2n_kem_is_available(NULL));
-
+        EXPECT_FALSE(s2n_kem_is_available(NULL));
         const struct s2n_kem bogus_kem = {
             .name = "bogus",
             .kem_nid = NID_undef,

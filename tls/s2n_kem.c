@@ -479,25 +479,16 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
     if (kem == NULL || kem->kem_nid == NID_undef) {
         return false;
     }
+    
+    if (kem->kem_nid == S2N_NID_MLKEM768) {
+        return s2n_libcrypto_supports_mlkem();
+    }
 
     if (s2n_libcrypto_supports_evp_kem()) {
         return true;
     }
 
-    if (s2n_libcrypto_supports_mlkem() && kem == &s2n_mlkem_768) {
-        return true;
-    }
-
     return false;
-    // bool available = s2n_libcrypto_supports_evp_kem();
-
-    // /* Only newer versions of libcrypto have ML-KEM support. */
-    // // if (kem == &s2n_mlkem_768) {
-    // //     available &= s2n_libcrypto_supports_mlkem();
-    // // }
-    // available &= s2n_libcrypto_supports_mlkem();
-
-    // return available;
 }
 
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
