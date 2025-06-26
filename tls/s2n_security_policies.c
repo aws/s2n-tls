@@ -872,6 +872,17 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq = {
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
+const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_aws_crt_sdk_tls_13,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .signature_preferences = &s2n_signature_preferences_20250512,
+    .ecc_preferences = &s2n_ecc_preferences_null,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
 /* Same as security_policy_pq_tls_1_2_2023_10_07, but with TLS 1.2 Kyber removed, and added ML-KEM support */
 const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_07 = {
     .minimum_protocol_version = S2N_TLS12,
@@ -1326,6 +1337,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "AWS-CRT-SDK-TLSv1.2-2023", .security_policy = &security_policy_aws_crt_sdk_tls_12_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.2-2023-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_12_06_23_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.3-2023", .security_policy = &security_policy_aws_crt_sdk_tls_13_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.3-2025-PQ-KX-Required", .security_policy = &security_policy_aws_crt_sdk_tls_13_06_25_pq_kx_required, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* KMS TLS Policies*/
     { .version = "KMS-TLS-1-0-2018-10", .security_policy = &security_policy_kms_tls_1_0_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-TLS-1-0-2021-08", .security_policy = &security_policy_kms_tls_1_0_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1413,6 +1425,29 @@ const char *deprecated_security_policies[] = {
 };
 const size_t deprecated_security_policies_len = s2n_array_len(deprecated_security_policies);
 
+int s2n_security_policy_is_available(const struct s2n_security_policy *security_policy)
+{
+    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
+    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    /* If Security Policy only has PQ Key Exchange algorithms, ensure that libcrypto supports at least 1 PQ KEM Group */
+    if (security_policy->ecc_preferences->count == 0 && security_policy->minimum_protocol_version >= S2N_TLS13) {
+        bool has_supported_tls13_kem = false;
+        for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count && !has_supported_tls13_kem; i++) {
+            const struct s2n_kem_group **tls13_kem_groups = security_policy->kem_preferences->tls13_kem_groups;
+            POSIX_ENSURE_REF(tls13_kem_groups);
+            if (s2n_kem_group_is_available(tls13_kem_groups[i])) {
+                has_supported_tls13_kem = true;
+            }
+        }
+        if (!has_supported_tls13_kem) {
+            POSIX_BAIL(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
 {
     POSIX_ENSURE_REF(version);
@@ -1444,8 +1479,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     POSIX_ENSURE_REF(security_policy->signature_preferences);
     POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
-    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
-    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    POSIX_GUARD(s2n_security_policy_is_available(security_policy));
 
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
@@ -1464,8 +1498,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     POSIX_ENSURE_REF(security_policy->signature_preferences);
     POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
-    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
-    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    POSIX_GUARD(s2n_security_policy_is_available(security_policy));
 
     /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */
@@ -1493,9 +1526,18 @@ int s2n_security_policies_init()
             POSIX_GUARD_RESULT(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
         }
 
+        uint16_t tls12_supported_group_count = ecc_preference->count;
+        uint16_t tls13_supported_group_count = ecc_preference->count + kem_preference->tls13_kem_group_count;
+
         if (security_policy != &security_policy_null) {
-            /* All policies must have at least one ecc curve configured. */
-            S2N_ERROR_IF(ecc_preference->count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            if (security_policy->minimum_protocol_version <= S2N_TLS12) {
+                /* All policies with TLS 1.2 support must have at least one ecc curve configured. */
+                S2N_ERROR_IF(tls12_supported_group_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            }
+            if (security_policy->minimum_protocol_version >= S2N_TLS13) {
+                /* All TLS 1.3 policies must have at least one ECC or PQ-Hybrid supported group configured. */
+                S2N_ERROR_IF(tls13_supported_group_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            }
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
