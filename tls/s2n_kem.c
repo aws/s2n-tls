@@ -480,14 +480,6 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return false;
     }
 
-    if (kem->kem_nid == S2N_NID_MLKEM768 || kem->kem_nid == S2N_NID_MLKEM1024) {
-        return s2n_libcrypto_supports_mlkem();
-    }
-
-    if (kem->kem_nid == S2N_NID_KYBER512 || kem->kem_nid == S2N_NID_KYBER768 || kem->kem_nid == S2N_NID_KYBER1024) {
-        return s2n_libcrypto_supports_evp_kem();
-    }
-
     return false;
 }
 
