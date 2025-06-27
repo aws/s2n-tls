@@ -190,6 +190,11 @@ unless a close_notify alert is successfully both sent and received. As a result,
 `s2n_shutdown()` may fail when interacting with a non-conformant TLS implementation
 or if called on a connection in a bad state.
 
+`s2n_shutdown()` may also read and decrypt multiple application data records while waiting
+for the close_notify alert. This could result in calls to `s2n_shutdown()` taking a long
+time to complete. If this is a problem, `s2n_shutdown_send()` may be preferrable.
+See [Closing the connection for writes](#closing-the-connection-for-writes) below.
+
 Once `s2n_shutdown()` is complete:
 * The s2n_connection handle cannot be used for reading or writing.
 * The underlying transport can be closed, most likely via `shutdown()` or `close()`.
