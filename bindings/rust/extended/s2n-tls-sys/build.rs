@@ -184,7 +184,7 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
         .flag_if_supported("-z relro")
         .flag_if_supported("-z now")
         .flag_if_supported("-z noexecstack")
-        // we use some deprecated libcrypto features so don't warn here
+        // we use some deprecated libcrypto features so don't warn here s
         .flag_if_supported("-Wno-deprecated-declarations")
         .flag_if_supported("-Wa,-mbranches-within-32B-boundaries");
 
