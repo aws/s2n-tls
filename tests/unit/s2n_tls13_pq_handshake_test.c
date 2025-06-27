@@ -446,6 +446,26 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
+    const struct s2n_kem_group *mlkem1024_test_groups[] = {
+        &s2n_secp384r1_mlkem_1024,
+    };
+
+    const struct s2n_kem_preferences mlkem1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(mlkem1024_test_groups),
+        .tls13_kem_groups = mlkem1024_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy mlkem1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &mlkem1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20201021,
+    };
+
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -508,11 +528,16 @@ int main()
 
     /* ML-KEM is only available on newer versions of AWS-LC. If it's
      * unavailable, we must downgrade the assertions to Kyber or EC. */
-    const struct s2n_kem_group *null_if_no_mlkem = &s2n_x25519_mlkem_768;
-    const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    const struct s2n_kem_group *mlkem768_if_supported = &s2n_x25519_mlkem_768;
+    const struct s2n_kem_group *mlkem1024_if_supported = &s2n_secp384r1_mlkem_1024;
+    const struct s2n_ecc_named_curve *ec_if_no_mlkem_768 = NULL;
+    const struct s2n_ecc_named_curve *ec_if_no_mlkem_1024 = NULL;
+
     if (!s2n_libcrypto_supports_mlkem()) {
-        null_if_no_mlkem = NULL;
-        ec_if_no_mlkem = default_curve;
+        mlkem768_if_supported = NULL;
+        mlkem1024_if_supported = NULL;
+        ec_if_no_mlkem_768 = default_curve;
+        ec_if_no_mlkem_1024 = &s2n_ecc_curve_secp384r1;
     }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -733,12 +758,31 @@ int main()
         {
                 .client_policy = &mlkem768_test_policy,
                 .server_policy = &mlkem768_test_policy,
-                .expected_kem_group = null_if_no_mlkem,
-                .expected_curve = ec_if_no_mlkem,
+                .expected_kem_group = mlkem768_if_supported,
+                .expected_curve = ec_if_no_mlkem_768,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
         }
     };
+
+    /* Conditionally test MLKEM1024 only if supported */
+    if (s2n_libcrypto_supports_mlkem() && !s2n_is_in_fips_mode()) {
+        const struct pq_handshake_test_vector mlkem1024_vector = {
+            .client_policy = &mlkem1024_test_policy,
+            .server_policy = &mlkem1024_test_policy,
+            .expected_kem_group = mlkem1024_if_supported,
+            .expected_curve = ec_if_no_mlkem_1024,
+            .hrr_expected = false,
+            .len_prefix_expected = false,
+        };
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(
+                mlkem1024_vector.client_policy,
+                mlkem1024_vector.server_policy,
+                mlkem1024_vector.expected_kem_group,
+                mlkem1024_vector.expected_curve,
+                mlkem1024_vector.hrr_expected,
+                mlkem1024_vector.len_prefix_expected));
+    }
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
         const struct pq_handshake_test_vector *vector = &test_vectors[i];

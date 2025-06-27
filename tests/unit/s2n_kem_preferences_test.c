@@ -67,6 +67,7 @@ int main(int argc, char **argv)
 
             if (s2n_libcrypto_supports_mlkem()) {
                 EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_mlkem_768));
+                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp384r1_mlkem_1024));
                 if (s2n_is_evp_apis_supported()) {
                     EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_mlkem_768));
                 } else {
@@ -82,6 +83,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
             EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp256r1_mlkem_768));
             EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_mlkem_768));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp384r1_mlkem_1024));
         }
     };
 
