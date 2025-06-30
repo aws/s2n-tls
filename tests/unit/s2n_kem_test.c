@@ -194,14 +194,13 @@ int main(int argc, char **argv)
         kem_extension_size non_existent_kem_id = 65535;
         EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     };
+
+    /* Test: s2n_kem_is_available() returns correct availability for known and unknown KEMs */
     {
-        /* Unit test for s2n_kem_is_available() */
-        /* Check known ML-KEMs */
         bool mlkem_supported = s2n_libcrypto_supports_mlkem();
         EXPECT_EQUAL(s2n_kem_is_available(&s2n_mlkem_768), mlkem_supported);
         EXPECT_EQUAL(s2n_kem_is_available(&s2n_mlkem_1024), mlkem_supported);
 
-        /* Check known Kyber KEMs (EVP-based) */
         bool evp_supported = s2n_libcrypto_supports_evp_kem();
         EXPECT_EQUAL(s2n_kem_is_available(&s2n_kyber_512_r3), evp_supported);
         EXPECT_EQUAL(s2n_kem_is_available(&s2n_kyber_768_r3), evp_supported);
