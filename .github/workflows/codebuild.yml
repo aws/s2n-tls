@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request_target:
-    branches: [main]
+    branches: [main, lrstewart2]
   merge_group:
     types: [checks_requested]
     branches: [main]
