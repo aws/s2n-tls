@@ -480,7 +480,7 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return false;
     }
 
-    return true;
+    return s2n_libcrypto_supports_evp_kem();
 }
 
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
