@@ -70,6 +70,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    EXPECT_EQUAL(0, 0);
+
     /* Test S2N_IO_RETRY_EINTR */
     {
         const uint8_t n_times = 5;
