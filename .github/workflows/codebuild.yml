@@ -1,0 +1,78 @@
+---
+name: Codebuild
+
+on:
+  push:
+    branches: [main]
+  pull_request_target:
+    branches: [main, lrstewart]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+jobs:
+  us-west-2:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        project:
+          - AddressSanitizer
+          - S2nIntegrationV2SmallBatch
+          - Valgrind
+          - s2nFuzzBatch
+          - s2nGeneralBatch
+          - s2nUnitNix
+          - kTLS
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get credentials
+        uses: aws-actions/configure-aws-credentials@v4.2.1
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}
+          aws-region: us-west-2
+      - name: Run Codebuild job
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            SOURCE=pr/${{ github.event.pull_request.number }}
+          else
+            SOURCE=${{ github.sha }}
+          fi
+          ./.github/bin/run_codebuild.sh \
+              ${{ github.repository }} \
+              $SOURCE \
+              us-west-2 \
+              ${{matrix.project}}
+
+  us-east-2:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        project:
+          - Integv2NixBatchBF1FB83F-7tcZOiMDWPH0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get credentials
+        uses: aws-actions/configure-aws-credentials@v4.2.1
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}
+          aws-region: us-east-2
+      - name: Run Codebuild job
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            SOURCE=pr/${{ github.event.pull_request.number }}
+          else
+            SOURCE=${{ github.sha }}
+          fi
+          ./.github/bin/run_codebuild.sh \
+              ${{ github.repository }} \
+              $SOURCE \
+              us-east-2 \
+              ${{matrix.project}}
