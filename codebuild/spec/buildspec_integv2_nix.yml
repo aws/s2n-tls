@@ -10,7 +10,7 @@ env:
     NIXDEV_ARGS: --max-jobs auto --ignore-environment
     # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
     # renegotiate covers both renegotiate.py and renegotiate_apache.py
-    INTEGV2_TEST:
+    INTEGV2_TESTS:
       happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
       ocsp external_psk pq_handshake serialization
       signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
