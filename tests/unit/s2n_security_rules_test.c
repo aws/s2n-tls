@@ -63,19 +63,6 @@ static S2N_RESULT s2n_test_curve_rule(const struct s2n_ecc_named_curve *curve, b
     return S2N_RESULT_OK;
 }
 
-const struct s2n_kem_group *VALID_HYBRID_GROUP = &s2n_secp256r1_mlkem_768;
-const struct s2n_kem_group *EXAMPLE_INVALID_HYBRID_GROUP = &s2n_x25519_kyber_512_r3;
-static S2N_RESULT s2n_test_hybrid_group_rule(const struct s2n_kem_group *hybrid_group, bool *valid)
-{
-    RESULT_ENSURE_REF(valid);
-    if (hybrid_group == VALID_HYBRID_GROUP) {
-        *valid = true;
-    } else {
-        *valid = false;
-    }
-    return S2N_RESULT_OK;
-}
-
 static const struct s2n_kem_group *VALID_HYBRID_GROUPS[] = {
     &s2n_secp256r1_mlkem_768,
     &s2n_secp384r1_mlkem_1024,
