@@ -63,16 +63,23 @@ static S2N_RESULT s2n_test_curve_rule(const struct s2n_ecc_named_curve *curve, b
     return S2N_RESULT_OK;
 }
 
-const struct s2n_kem_group *VALID_HYBRID_GROUP = &s2n_secp256r1_mlkem_768;
+static const struct s2n_kem_group *VALID_HYBRID_GROUPS[] = {
+    &s2n_secp256r1_mlkem_768,
+    &s2n_secp384r1_mlkem_1024,
+};
 const struct s2n_kem_group *EXAMPLE_INVALID_HYBRID_GROUP = &s2n_x25519_kyber_512_r3;
 static S2N_RESULT s2n_test_hybrid_group_rule(const struct s2n_kem_group *hybrid_group, bool *valid)
 {
     RESULT_ENSURE_REF(valid);
-    if (hybrid_group == VALID_HYBRID_GROUP) {
-        *valid = true;
-    } else {
-        *valid = false;
+    *valid = false;
+
+    for (size_t i = 0; i < s2n_array_len(VALID_HYBRID_GROUPS); i++) {
+        if (hybrid_group == VALID_HYBRID_GROUPS[i]) {
+            *valid = true;
+            break;
+        }
     }
+
     return S2N_RESULT_OK;
 }
 
@@ -138,8 +145,8 @@ int main(int argc, char **argv)
     const struct s2n_kem_preferences valid_kem_preferences = {
         .kem_count = 0,
         .kems = NULL,
-        .tls13_kem_groups = &VALID_HYBRID_GROUP,
-        .tls13_kem_group_count = 1,
+        .tls13_kem_groups = &VALID_HYBRID_GROUPS,
+        .tls13_kem_group_count = 2,
     };
 
     const struct s2n_kem_preferences invalid_kem_preferences = {
