@@ -154,6 +154,7 @@ phases:
   pre_build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
@@ -161,12 +162,14 @@ phases:
   build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TESTS"
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg $INTEG_UV_TESTS"

@@ -46,6 +46,7 @@ phases:
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
   build:
     commands:
+      - set -e
       - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
       - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
 
