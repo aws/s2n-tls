@@ -2,53 +2,63 @@ echo nix/shell.sh: Entering a devShell
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
 
-banner()
-{
-    echo "+---------------------------------------------------------+"
-    printf "| %-55s |\n" "$1"
-    echo "+---------------------------------------------------------+"
-}
+# The GnuTlS config may restrict TLS versions in some environments,
+# so do not use any existing config file.
+export GNUTLS_SYSTEM_PRIORITY_FILE=
 
+# Function to create aliases for different libcrypto implementations
 function libcrypto_alias {
     local libcrypto_name=$1
     local libcrypto_binary_path=$2
+    # Check both bin and lib directories for the binary
+    local binary_dir=$(dirname $libcrypto_binary_path)
+    local install_dir=$(dirname $binary_dir)
+    local lib_binary_path="$install_dir/lib/$(basename $libcrypto_binary_path)"
+
     if [[ -f $libcrypto_binary_path ]]; then
       alias $libcrypto_name=$libcrypto_binary_path
       echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+    elif [[ -f $lib_binary_path ]]; then
+      alias $libcrypto_name=$lib_binary_path
+      echo "Libcrypto binary $lib_binary_path available as $libcrypto_name"
     else
-      banner "Could not find libcrypto $libcrypto_binary_path for alias"
+      echo "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
-libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
+libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
-#No need to alias gnutls because it is included in common_packages (see flake.nix).
+# No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    banner "Cleanup ./build"
+    echo "Cleanup ./build"
     rm -rf ./build ./s2n_head
 )}
 
 function configure {(set -e
-    banner "Configuring with cmake"
+    echo "Configuring with cmake"
     cmake -S . -B./build \
           -DBUILD_TESTING=ON \
           -DS2N_INTEG_TESTS=ON \
           -DS2N_INSTALL_S2NC_S2ND=ON \
           -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
-          $S2N_CMAKE_OPTIONS \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          "$S2N_CMAKE_OPTIONS" \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 )}
 
 function build {(set -e
-    banner "Running Build"
+    echo "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
-    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
         $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
 )}
@@ -59,8 +69,7 @@ function unit {(set -e
         ctest --test-dir build -L unit -j $(nproc) --verbose
     else
         tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
-        echo "Tests:"
-        echo "$tests"
+        # Split the tests string into words
         for test in $tests
         do
             cmake --build build -j $(nproc) --target $test
@@ -72,7 +81,7 @@ function unit {(set -e
 function integ {(set -e
     apache2_start
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests."
+        echo "Running all integ tests."
         (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
     else
         for test in $@; do
@@ -85,8 +94,34 @@ function integ {(set -e
     fi
 )}
 
+# Function to launch pytest with uv.
+function uvinteg {(
+    set -e
+    cd ./tests/integrationv2
+    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
+    if [[ -z "$1" ]]; then
+        echo "Running all integ tests with uv"
+        PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+    else
+        for test in "$@"; do
+            PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+        done
+    fi
+)}
+
+# Wrap a command with stress to simulate a high-load environment.
+# Not intended for CI, but local troubleshooting.
+function highstress({
+    set -e
+    local STRESSARGS="--cpu $(nproc) --io $(nproc) --quiet"
+    echo "Running: stress $STRESSARGS"
+    stress $STRESSARGS &
+    trap 'pkill stress' ERR EXIT
+    "$@"
+})
+
 function check-clang-format {(set -e
-    banner "Dry run of clang-format"
+    echo "Dry run of clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
@@ -110,7 +145,7 @@ function check-clang-format {(set -e
 )}
 
 function do-clang-format {(set -e
-    banner "In place clang-format"
+    echo "In place clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
     src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
@@ -136,15 +171,15 @@ function do-clang-format {(set -e
 function test_toolchain_counts {(set -e
     # This is a starting point for a unit test of the devShell.
     # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
-    banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
+    echo "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
     echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
       /openssl-1.1/{o11++}
       /openssl-1.0/{o10++}
       /aws-lc/{awslc++}
       /libressl/{libre++}
-      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
-    banner "Checking tooling counts (these should all be 1)"
+      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAws-lc:\t\t",awslc,"\nLibreSSL:\t", libre}'
+    echo "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
     echo -e "Corretto 17:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto-17')"
     echo -e "gnutls-cli:\t $(gnutls-cli --version |grep -c 'gnutls-cli 3.7')"
@@ -188,6 +223,6 @@ function apache2_start(){
         httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
         trap 'pkill httpd' ERR EXIT
     else
-      echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
+      echo "Apache is already running. If \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
 }

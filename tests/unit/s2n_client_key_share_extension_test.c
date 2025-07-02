@@ -1109,7 +1109,6 @@ int main(int argc, char **argv)
     };
 
     END_TEST();
-    return 0;
 }
 
 static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer)

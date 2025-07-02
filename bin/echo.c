@@ -29,6 +29,8 @@
 #include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_pkey.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 #define STDIO_BUFSIZE 10240
 
@@ -38,6 +40,7 @@ const char *sig_alg_strs[] = {
     [S2N_TLS_SIGNATURE_ECDSA] = "ECDSA",
     [S2N_TLS_SIGNATURE_RSA_PSS_RSAE] = "RSA-PSS-RSAE",
     [S2N_TLS_SIGNATURE_RSA_PSS_PSS] = "RSA-PSS-PSS",
+    [S2N_TLS_SIGNATURE_MLDSA] = "MLDSA",
 };
 
 const char *sig_hash_strs[] = {
@@ -300,7 +303,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
-int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
+int renegotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint8_t buffer[STDIO_BUFSIZE] = { 0 };
@@ -311,13 +314,6 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
 
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
-
-    /* Do not proceed with renegotiation until we receive more data from the server */
-    if (wait_for_more_data) {
-        fd_set fds = { 0 };
-        FD_SET(fd, &fds);
-        select(FD_SETSIZE, &fds, NULL, NULL, NULL);
-    }
 
     while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
         uint8_t *data_ptr = buffer;

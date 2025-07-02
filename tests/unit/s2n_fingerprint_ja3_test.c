@@ -142,9 +142,6 @@ int main(int argc, char **argv)
     uint8_t empty_md5_hash[MD5_DIGEST_LENGTH] = { 0 };
     DEFER_CLEANUP(struct s2n_hash_state md5_hash = { 0 }, s2n_hash_free);
     EXPECT_SUCCESS(s2n_hash_new(&md5_hash));
-    if (s2n_is_in_fips_mode()) {
-        EXPECT_SUCCESS(s2n_hash_allow_md5_for_fips(&md5_hash));
-    }
     EXPECT_SUCCESS(s2n_hash_init(&md5_hash, S2N_HASH_MD5));
     EXPECT_SUCCESS(s2n_hash_digest(&md5_hash, empty_md5_hash, MD5_DIGEST_LENGTH));
 
@@ -256,8 +253,8 @@ int main(int argc, char **argv)
              * not when processing the actual ClientHello message.
              * So we need to set the versions manually.
              */
-            server->client_hello_version = S2N_SSLv2;
-            server->client_protocol_version = S2N_TLS12;
+            server->client_hello.sslv2 = true;
+            server->client_hello.legacy_version = S2N_TLS12;
 
             uint8_t sslv2_client_hello[] = {
                 SSLv2_CLIENT_HELLO_PREFIX,

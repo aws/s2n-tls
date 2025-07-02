@@ -20,7 +20,6 @@
 #include <sys/socket.h>
 
 #include "crypto/s2n_libcrypto.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "crypto/s2n_pkey.h"
 #include "tls/extensions/s2n_extension_list.h"
@@ -150,6 +149,8 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
+    validator->cert_validation_info = (struct s2n_cert_validation_info){ 0 };
+    validator->cert_validation_cb_invoked = false;
 
     return 0;
 }
@@ -169,6 +170,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
+    validator->cert_validation_info = (struct s2n_cert_validation_info){ 0 };
+    validator->cert_validation_cb_invoked = false;
 
     return 0;
 }
@@ -645,6 +648,42 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
+int s2n_no_op_verify_custom_crit_oids_cb(X509_STORE_CTX *ctx, X509 *x509, STACK_OF(ASN1_OBJECT) *oids)
+{
+    return 1;
+}
+
+static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_validator *validator, struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(validator->store_ctx);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
+    if (conn->config->custom_x509_extension_oids) {
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+        size_t custom_oid_count = sk_ASN1_OBJECT_num(conn->config->custom_x509_extension_oids);
+        for (size_t i = 0; i < custom_oid_count; i++) {
+            ASN1_OBJECT *critical_oid = sk_ASN1_OBJECT_value(conn->config->custom_x509_extension_oids, i);
+            RESULT_ENSURE_REF(critical_oid);
+            RESULT_GUARD_OSSL(X509_STORE_CTX_add_custom_crit_oid(validator->store_ctx, critical_oid),
+                    S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        }
+        /* To enable AWS-LC accepting custom extensions, an X509_STORE_CTX_verify_crit_oids_cb must be set.
+         * See https://github.com/aws/aws-lc/blob/f0b4afedd7d45fc2517643d890b654856c57f994/include/openssl/x509.h#L2913-L2918.
+         * 
+         * The `X509_STORE_CTX_verify_crit_oids_cb` callback can be used to implement the validation for the
+         * custom certificate extensions. However, s2n-tls consumers are expected to implement this validation
+         * in the `s2n_cert_validation_callback` instead. So, a no-op callback is provided to AWS-LC.
+         */
+        X509_STORE_CTX_set_verify_crit_oids(validator->store_ctx, s2n_no_op_verify_custom_crit_oids_cb);
+#else
+        RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+#endif
+    }
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
@@ -698,6 +737,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
      */
     X509_STORE_CTX_set_flags(validator->store_ctx, X509_V_FLAG_PARTIAL_CHAIN);
 
+    RESULT_GUARD(s2n_x509_validator_add_custom_extensions(validator, conn));
+
     int verify_ret = X509_verify_cert(validator->store_ctx);
     if (verify_ret <= 0) {
         int ossl_error = X509_STORE_CTX_get_error(validator->store_ctx);
@@ -717,6 +758,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
                 RESULT_BAIL(S2N_ERR_CRL_ISSUER);
             case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
                 RESULT_BAIL(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION);
+            case X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION:
+                RESULT_BAIL(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION);
             default:
                 RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
@@ -751,8 +794,8 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-        uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out)
+S2N_RESULT s2n_x509_validator_validate_cert_chain_pre_cb(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+        uint8_t *cert_chain_in, uint32_t cert_chain_len)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
@@ -789,12 +832,37 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
-    if (conn->config->cert_validation_cb) {
-        struct s2n_cert_validation_info info = { 0 };
-        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
-                S2N_ERR_CANCELLED);
-        RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
-        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_x509_validator_handle_cert_validation_callback_result(struct s2n_x509_validator *validator)
+{
+    RESULT_ENSURE_REF(validator);
+
+    if (!validator->cert_validation_info.finished) {
+        RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
+
+    RESULT_ENSURE(validator->cert_validation_info.accepted, S2N_ERR_CERT_REJECTED);
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+        uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out)
+{
+    RESULT_ENSURE_REF(validator);
+
+    if (validator->cert_validation_cb_invoked) {
+        RESULT_GUARD(s2n_x509_validator_handle_cert_validation_callback_result(validator));
+    } else {
+        RESULT_GUARD(s2n_x509_validator_validate_cert_chain_pre_cb(validator, conn, cert_chain_in, cert_chain_len));
+
+        if (conn->config->cert_validation_cb) {
+            RESULT_ENSURE(conn->config->cert_validation_cb(conn, &(validator->cert_validation_info), conn->config->cert_validation_ctx) == S2N_SUCCESS,
+                    S2N_ERR_CANCELLED);
+            validator->cert_validation_cb_invoked = true;
+            RESULT_GUARD(s2n_x509_validator_handle_cert_validation_callback_result(validator));
+        }
     }
 
     /* retrieve information from leaf cert */

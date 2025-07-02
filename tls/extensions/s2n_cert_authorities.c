@@ -95,6 +95,27 @@ int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *o
     return S2N_SUCCESS;
 }
 
+int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
+
+    /* For now, we don't support receiving certificate authorities on the
+     * server side. s2n-tls doesn't send them from clients today.
+     *
+     * Only allocate the buffer if the callback which reads it is set, to save
+     * time and memory for other customers.
+     */
+    if (conn->mode == S2N_CLIENT && conn->config->cert_request_cb) {
+        uint16_t length = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &length));
+        POSIX_GUARD(s2n_stuffer_extract_blob(in, &conn->cert_authorities));
+        POSIX_ENSURE_EQ(conn->cert_authorities.size, length);
+    }
+
+    return S2N_SUCCESS;
+}
+
 static bool s2n_cert_authorities_should_send(struct s2n_connection *conn)
 {
     return conn && conn->config && conn->config->cert_authorities.size > 0;
@@ -106,17 +127,13 @@ const s2n_extension_type s2n_cert_authorities_extension = {
     .is_response = false,
     .send = s2n_cert_authorities_send,
     .should_send = s2n_cert_authorities_should_send,
-    /* s2n-tls supports sending the extension, but does not support parsing it.
-     * If received, the extension is ignored.
-     *
+    /*
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
-     *= type=exception
-     *= reason=Extension ignored when received - No customer use case
      *# The "certificate_authorities" extension is used to indicate the
      *# certificate authorities (CAs) which an endpoint supports and which
      *# SHOULD be used by the receiving endpoint to guide certificate
      *# selection.
      */
-    .recv = s2n_extension_recv_noop,
+    .recv = s2n_cert_authorities_recv,
     .if_missing = s2n_extension_noop_if_missing,
 };

@@ -39,15 +39,16 @@ jobs:
         run: cargo criterion --message-format json > criterion_output.log
 
       - name: Configure AWS Credentials
-        if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v4.0.2
+        # Only continue with the workflow to emit metrics on code that has been merged to main.
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4.2.1
         with:
           role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
           role-session-name: s2ntlsghabenchsession
           aws-region: us-west-2
 
       - name: Emit CloudWatch metrics
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: |
           python3 .github/bin/criterion_to_cloudwatch.py \
             --criterion_output_path bindings/rust/standard/bench/criterion_output.log \

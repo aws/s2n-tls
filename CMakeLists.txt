@@ -32,6 +32,8 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
+option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "Allow s2n-tls to override the libcrypto random implementation with the custom
+s2n-tls implementation, when appropriate. Disabling this flag is not recommended. See docs/BUILD.md for details." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(BUILD_TESTING "Build tests for s2n-tls. By default only unit tests are built." ON)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
@@ -163,7 +165,7 @@ endif ()
 if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS=1)
 endif()
 
 if(S2N_LTO)
@@ -187,7 +189,7 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
-target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PRIVATE -fPIC)
 
 set(S2N_PRELUDE "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
 target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
@@ -195,7 +197,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
 # Match on Release, RelWithDebInfo and MinSizeRel
 # See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
 if(CMAKE_BUILD_TYPE MATCHES Rel)
-    add_definitions(-DS2N_BUILD_RELEASE)
+    add_definitions(-DS2N_BUILD_RELEASE=1)
 endif()
 
 if(NO_STACK_PROTECTOR)
@@ -245,6 +247,11 @@ if (COVERAGE)
     endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+endif()
+
+if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
+    message(STATUS "Disabling libcrypto RAND engine override")
+    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE=1)
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs
@@ -309,7 +316,7 @@ function(feature_probe_result PROBE_NAME IS_AVAILABLE)
 
     # define the probe if available
     if(NORMALIZED)
-        add_definitions(-D${PROBE_NAME})
+        add_definitions(-D${PROBE_NAME}=1)
     endif()
 endfunction()
 
@@ -366,6 +373,10 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
+if (S2N_COMPILER_SUPPORTS_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
+    target_compile_options(${PROJECT_NAME} PRIVATE "-Wa,-mbranches-within-32B-boundaries")
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
 
     # Check if the AWS::crypto target has beeen added and handle it
@@ -419,14 +430,14 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
-    add_definitions(-DS2N_INTERN_LIBCRYPTO)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO=1)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
         add_custom_command(
             TARGET ${PROJECT_NAME} PRE_LINK
             COMMAND
-              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols --preserve-dates {} \\\;
         )
     endif()
 
@@ -445,9 +456,8 @@ if (S2N_INTERN_LIBCRYPTO)
         # add all of the prefixed symbols to the archive
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
-            DEPENDS libcrypto.symbols
             COMMAND
-                bash -c "${CMAKE_AR} -r lib/libs2n.a s2n_libcrypto/*.o"
+                bash -c "${CMAKE_AR} -r $<TARGET_FILE:${PROJECT_NAME}> s2n_libcrypto/*.o"
             VERBATIM
         )
     endif()
@@ -475,7 +485,7 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     # make sure all linked tests include the prelude
-    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}")
+    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}" -fPIC)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
     if (SECCOMP)
         message(STATUS "Linking tests with seccomp")
@@ -634,6 +644,7 @@ if (BUILD_TESTING)
                         COMMAND
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
+			--junitxml=../../build/junit/${test_target}.xml
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2

@@ -459,9 +459,9 @@ let s2n_generate_new_client_session_id_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-// Specification for s2n_resume_decrypt_session_ticket_spec. This is essentially
+// Specification for s2n_resume_decrypt_session_spec. This is essentially
 // a noop function that returns 0 from the perspective of our current proof
-let s2n_resume_decrypt_session_ticket_spec = do {
+let s2n_resume_decrypt_session_spec = do {
     pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
     from <- crucible_alloc_readonly (llvm_struct "struct.s2n_stuffer");
 

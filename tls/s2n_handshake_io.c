@@ -1046,7 +1046,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
             /* We reuse the session if a valid TLS12 ticket is provided.
              * Otherwise, we will perform a full handshake and then generate
              * a new session ticket. */
-            if (s2n_result_is_ok(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt))) {
+            if (s2n_result_is_ok(s2n_resume_decrypt_session(conn, &conn->client_ticket_to_decrypt))) {
                 return S2N_SUCCESS;
             }
 
@@ -1326,8 +1326,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 
     /* Handle an SSLv2 client hello */
     POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
-    /* Set the client hello version */
-    conn->client_hello_version = S2N_SSLv2;
+    conn->client_hello.sslv2 = true;
     /* Execute the state machine handler */
     int r = ACTIVE_STATE(conn).handler[conn->mode](conn);
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));

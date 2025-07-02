@@ -105,6 +105,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
     ERR_ENTRY(S2N_ERR_CERT_REJECTED, "Certificate failed custom application validation") \
+    ERR_ENTRY(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, "Unhandled critical certificate extension") \
     ERR_ENTRY(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, "Incompatibility found between loaded certificates and chosen security policy") \
     ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
@@ -255,6 +256,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_EXTENSION, "Illegal use of a known, supported extension") \
     ERR_ENTRY(S2N_ERR_MISSING_EXTENSION, "Mandatory extension not received") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_EXTENSION, "Extension block contains two or more extensions of the same type") \
+    ERR_ENTRY(S2N_ERR_DEPRECATED_SECURITY_POLICY, "Deprecated security policy. Please choose a different security policy.") \
     ERR_ENTRY(S2N_ERR_INVALID_SECURITY_POLICY, "Invalid security policy") \
     ERR_ENTRY(S2N_ERR_INVALID_KEM_PREFERENCES, "Invalid kem preferences version") \
     ERR_ENTRY(S2N_ERR_INVALID_PARSED_EXTENSIONS, "Invalid parsed extension data") \
@@ -269,6 +271,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities") \
     ERR_ENTRY(S2N_ERR_OFFERED_PSKS_TOO_LONG, "The total pre-shared key data is too long to send over the wire") \
     ERR_ENTRY(S2N_ERR_INVALID_SESSION_TICKET, "Session ticket data is not valid") \
+    ERR_ENTRY(S2N_ERR_ZERO_LIFETIME_TICKET, "Calculated session lifetime is zero") \
     ERR_ENTRY(S2N_ERR_REENTRANCY, "Original execution must complete before method can be called again") \
     ERR_ENTRY(S2N_ERR_INVALID_CERT_STATE, "Certificate validation entered an invalid state and is not able to continue") \
     ERR_ENTRY(S2N_ERR_INVALID_EARLY_DATA_STATE, "Early data in invalid state") \

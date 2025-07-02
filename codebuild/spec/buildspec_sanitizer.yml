@@ -51,6 +51,12 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
+    - identifier: clang_openssl_3_fips
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0-fips
+          COMPILER: clang
     - identifier: clang_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -74,6 +80,12 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
+          COMPILER: gcc
+    - identifier: gcc_openssl_3_fips
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0-fips
           COMPILER: gcc
     - identifier: gcc_openssl_1_1_1
       env:

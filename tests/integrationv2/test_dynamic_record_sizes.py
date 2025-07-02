@@ -3,11 +3,25 @@
 import copy
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS
+from configuration import (
+    available_ports,
+    ALL_TEST_CIPHERS,
+    ALL_TEST_CURVES,
+    MINIMAL_TEST_CERTS,
+    PROTOCOLS,
+)
 from common import ProviderOptions, data_bytes
-from fixtures import custom_mtu, managed_process  # lgtm [py/unused-import]
+from fixtures import (
+    custom_mtu,  # noqa: F401
+    managed_process,  # noqa: F401
+)
 from providers import Provider, S2N, OpenSSL, Tcpdump
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from utils import (
+    invalid_test_parameters,
+    get_parameter_name,
+    get_expected_s2n_version,
+    to_bytes,
+)
 
 
 def find_fragmented_packet(results):
@@ -19,15 +33,15 @@ def find_fragmented_packet(results):
     to the output line. This happens even when using `-nn` on the command line.
     That is why we need two ways to detect the length of the packet.
     """
-    for line in results.decode('utf-8').split('\n'):
-        pieces = line.split(' ')
+    for line in results.decode("utf-8").split("\n"):
+        pieces = line.split(" ")
         if len(pieces) < 3:
             continue
 
         packet_len = 0
-        if pieces[-2] == 'length':
+        if pieces[-2] == "length":
             packet_len = int(pieces[-1])
-        elif pieces[-3] == 'length':
+        elif pieces[-3] == "length":
             # In this case the length has a colon `1234:`, so we must trim it.
             packet_len = int(pieces[-2][:-1])
 
@@ -43,9 +57,17 @@ def find_fragmented_packet(results):
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, provider, other_provider, protocol,
-                                   certificate):
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
+def test_s2n_client_dynamic_record(
+    custom_mtu,  # noqa: F811
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    provider,
+    other_provider,
+    protocol,
+    certificate,
+):
     port = next(available_ports)
 
     # 16384 bytes is enough to reliably get a packet that will exceed the MTU
@@ -56,7 +78,8 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
         cipher=cipher,
         data_to_send=bytes_to_send,
         insecure=True,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -74,8 +97,10 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
 
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in results.stdout
+        )
 
     for results in server.get_results():
         results.assert_success()

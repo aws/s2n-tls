@@ -39,3 +39,5 @@ f5351ef6629d1f6de144ab478bf4294ec277b321
 e8cdc1ae63ff1de6f14cf91e3c317fbf57c198ec
 # clang-format `utils/` and enforce in ci (#3651)
 be8ad6c027b50e9dc86d8f8eb729ce88f2d4206d
+# Ruff format updated CI and code (#5138)
+ac1d09851b4d625f83d1fa68b467abbca8fdd408

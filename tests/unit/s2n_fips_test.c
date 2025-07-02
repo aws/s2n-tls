@@ -16,6 +16,7 @@
 #include "crypto/s2n_fips.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 
 int main()

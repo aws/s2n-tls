@@ -108,30 +108,11 @@ struct s2n_array *cbmc_allocate_s2n_array()
     return array;
 }
 
-bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size)
-{
-    return s2n_array_is_bounded(set->data, max_len, max_element_size);
-}
-
 static int nondet_comparator(const void *a, const void *b)
 {
     __CPROVER_assert(a != NULL, "a is not NULL");
     __CPROVER_assert(b != NULL, "b is not NULL");
     return nondet_int();
-}
-
-void cbmc_populate_s2n_set(struct s2n_set *set)
-{
-    CBMC_ENSURE_REF(set);
-    set->data       = cbmc_allocate_s2n_array();
-    set->comparator = nondet_comparator;
-}
-
-struct s2n_set *cbmc_allocate_s2n_set()
-{
-    struct s2n_set *set = malloc(sizeof(*set));
-    cbmc_populate_s2n_set(set);
-    return set;
 }
 
 void cbmc_populate_s2n_dh_params(struct s2n_dh_params *s2n_dh_params)
@@ -244,33 +225,15 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
     return evp_digest;
 }
 
-void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state)
-{
-    CBMC_ENSURE_REF(evp_hmac_state);
-    cbmc_populate_s2n_evp_digest(&(evp_hmac_state->evp_digest));
-    if (s2n_libcrypto_is_awslc() || s2n_libcrypto_is_boringssl()) {
-        evp_hmac_state->ctx.hmac_ctx = malloc(sizeof(*(evp_hmac_state->ctx.hmac_ctx)));
-    } else {
-        evp_hmac_state->ctx.evp_pkey = malloc(sizeof(*(evp_hmac_state->ctx.evp_pkey)));
-    }
-}
-
-struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state()
-{
-    struct s2n_evp_hmac_state *evp_hmac_state = malloc(sizeof(*evp_hmac_state));
-    cbmc_populate_s2n_evp_hmac_state(evp_hmac_state);
-    return evp_hmac_state;
-}
+void __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl(struct s2n_hash_state *);
 
 void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
 {
     CBMC_ENSURE_REF(state);
-    /* `state->hash_impl` is never allocated.
-     * It is always initialized based on the hashing algorithm.
-     * If required, this initialization should be done in the validation function.
-     */
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp);
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
+    /* By populating the EVP fields, we have chosen to test the EVP implementation */
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_evp_impl(state);
 }
 
 struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
@@ -396,8 +359,7 @@ struct s2n_config *cbmc_allocate_s2n_config()
     s2n_config->monotonic_clock_ctx  = malloc(sizeof(*(s2n_config->monotonic_clock_ctx)));
     s2n_config->client_hello_cb      = malloc(sizeof(*(s2n_config->client_hello_cb))); /* Function pointer. */
     s2n_config->client_hello_cb_ctx  = malloc(sizeof(*(s2n_config->client_hello_cb_ctx)));
-    s2n_config->ticket_keys          = cbmc_allocate_s2n_set();
-    s2n_config->ticket_key_hashes    = cbmc_allocate_s2n_set();
+    s2n_config->ticket_keys          = cbmc_allocate_s2n_array();
     s2n_config->cache_store_data     = malloc(sizeof(*(s2n_config->cache_store_data)));
     s2n_config->cache_retrieve_data  = malloc(sizeof(*(s2n_config->cache_retrieve_data)));
     s2n_config->cache_delete_data    = malloc(sizeof(*(s2n_config->cache_delete_data)));
@@ -409,32 +371,15 @@ struct s2n_config *cbmc_allocate_s2n_config()
     return s2n_config;
 }
 
-void cbmc_populate_s2n_rsa_key(struct s2n_rsa_key *s2n_rsa_key)
-{
-    CBMC_ENSURE_REF(s2n_rsa_key);
-    s2n_rsa_key->rsa = malloc(sizeof(*(s2n_rsa_key->rsa)));
-}
-
-void cbmc_populate_s2n_ecdsa_key(struct s2n_ecdsa_key *s2n_ecdsa_key)
-{
-    CBMC_ENSURE_REF(s2n_ecdsa_key);
-    s2n_ecdsa_key->ec_key = malloc(sizeof(*(s2n_ecdsa_key->ec_key)));
-}
-
 void cbmc_populate_s2n_pkey(struct s2n_pkey *s2n_pkey)
 {
     CBMC_ENSURE_REF(s2n_pkey);
-    cbmc_populate_s2n_rsa_key(&(s2n_pkey->key.rsa_key));
-    cbmc_populate_s2n_ecdsa_key(&(s2n_pkey->key.ecdsa_key));
     /* `s2n_pkey->pkey`
      * `s2n_pkey->size`
      * `s2n_pkey->sign`
      * `s2n_pkey->verify`
      * `s2n_pkey->encrypt`
      * `s2n_pkey->decrypt`
-     * `s2n_pkey->match`
-     * `s2n_pkey->free`
-     * `s2n_pkey->check_key` are never allocated.
      * If required, these initializations should be done in the proof harness.
      */
 }
@@ -716,7 +661,6 @@ void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_w
      * If required, this initialization should be done in the validation function.
      */
     cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
-    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.evp_hmac));
 }
 
 struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()

@@ -31,12 +31,10 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hmac.c
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
-PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_evp.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_digest
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_digest
 
 UNWINDSET +=
 

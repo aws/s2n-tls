@@ -45,6 +45,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
@@ -276,6 +277,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->initial));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->secure));
     POSIX_GUARD(s2n_free_object((uint8_t **) &conn, sizeof(struct s2n_connection)));
@@ -453,6 +455,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->our_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
 
     return 0;
 }
@@ -531,6 +534,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
     POSIX_GUARD(s2n_free(&conn->cookie));
+    POSIX_GUARD(s2n_free(&conn->cert_authorities));
 
     /* Allocate memory for handling handshakes */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
@@ -1004,6 +1008,25 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     return conn->kex_params.server_kem_group_params.kem_group->name;
 }
 
+int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(group_name);
+
+    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if 
+       the negotiated group was a hybrid PQ key exchange also containing a KEM. Therefore,
+       we use the result of s2n_connection_get_kem_group_name if the connection supports PQ. */
+    if (s2n_tls13_pq_hybrid_supported(conn)) {
+        *group_name = s2n_connection_get_kem_group_name(conn);
+    } else {
+        *group_name = s2n_connection_get_curve(conn);
+    }
+
+    POSIX_ENSURE(*group_name != NULL && strcmp(*group_name, "NONE"), S2N_ERR_INVALID_STATE);
+
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_connection_get_client_supported_version(struct s2n_connection *conn,
         uint8_t *client_supported_version)
 {
@@ -1077,7 +1100,11 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    return conn->client_hello_version;
+    if (conn->client_hello.sslv2) {
+        return S2N_SSLv2;
+    } else {
+        return MIN(conn->client_hello.legacy_version, S2N_TLS12);
+    }
 }
 
 int s2n_connection_client_cert_used(struct s2n_connection *conn)
@@ -1572,6 +1599,7 @@ static S2N_RESULT s2n_signature_scheme_to_tls_iana(const struct s2n_signature_sc
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
+    *converted_scheme = S2N_TLS_HASH_NONE;
 
     switch (sig_scheme->hash_alg) {
         case S2N_HASH_MD5:
@@ -1595,7 +1623,9 @@ static S2N_RESULT s2n_signature_scheme_to_tls_iana(const struct s2n_signature_sc
         case S2N_HASH_MD5_SHA1:
             *converted_scheme = S2N_TLS_HASH_MD5_SHA1;
             break;
-        default:
+        case S2N_HASH_NONE:
+        case S2N_HASH_SHAKE256_64:
+        case S2N_HASH_ALGS_COUNT:
             *converted_scheme = S2N_TLS_HASH_NONE;
             break;
     }
@@ -1631,6 +1661,7 @@ static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(const struct s2n_s
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
+    *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
 
     switch (sig_scheme->sig_alg) {
         case S2N_SIGNATURE_RSA:
@@ -1645,7 +1676,10 @@ static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(const struct s2n_s
         case S2N_SIGNATURE_RSA_PSS_PSS:
             *converted_scheme = S2N_TLS_SIGNATURE_RSA_PSS_PSS;
             break;
-        default:
+        case S2N_SIGNATURE_MLDSA:
+            *converted_scheme = S2N_TLS_SIGNATURE_MLDSA;
+            break;
+        case S2N_SIGNATURE_ANONYMOUS:
             *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
             break;
     }

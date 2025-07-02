@@ -1,0 +1,61 @@
+[package]
+name = "s2n-tls-sys"
+description = "A C99 implementation of the TLS/SSL protocols"
+version = "0.3.21"
+authors = ["AWS s2n"]
+edition = "2021"
+rust-version = "1.63.0"
+links = "s2n-tls"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+include = [
+  "build.rs",
+  "Cargo.toml",
+  "files.rs",
+  "lib/**/*.c",
+  "lib/**/*.h",
+  "lib/**/*.S",
+  "lib/CMakeLists.txt",
+  "lib/**/*.cmake",
+  "lib/**/*.flags", # for feature probes
+  "src/**/*.rs",
+  "tests/**/*.rs",
+]
+
+[features]
+default = []
+# preserve the cmake feature in case any consumers had it enabled before
+cmake = []
+quic = []
+fips = ["aws-lc-rs/fips"]
+pq = []
+internal = []
+stacktrace = []
+unstable-cert_authorities = []
+unstable-cleanup = []
+unstable-crl = []
+unstable-custom_x509_extensions = []
+unstable-fingerprint = []
+unstable-ktls = []
+unstable-npn = []
+unstable-renegotiate = []
+# e.g. something like
+# unstable-foo = []
+
+[dependencies]
+# aws-lc-rs 1.6.4 adds DEP_AWS_LC environment variables which are required to build s2n-tls-sys:
+# https://github.com/aws/aws-lc-rs/pull/335
+# aws-lc-rs >=1.12.6 removes unmaintained paste dependencies:
+# https://github.com/aws/aws-lc-rs/pull/731
+aws-lc-rs = { version = ">=1.12.6" }
+# aws-lc-rs >=1.6.4 depends on aws-lc-sys 0.14.0, which requires libc 0.2.121:
+# https://github.com/aws/aws-lc-rs/blob/2298ca861234d4f43aecef2c7d7e822c60bc488a/aws-lc-sys/Cargo.toml#L65
+libc = "0.2.121"
+
+[build-dependencies]
+cc = { version = "1.0.100", features = ["parallel"] }
+
+[dev-dependencies]
+home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
+regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
+zeroize = "=1.7.0" # newer versions require rust 1.72, see https://github.com/aws/s2n-tls/issues/4518

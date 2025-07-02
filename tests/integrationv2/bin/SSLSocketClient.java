@@ -1,5 +1,6 @@
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.security.KeyStore;
 import java.io.FileInputStream;
 import java.io.OutputStream;
@@ -18,14 +19,18 @@ public class SSLSocketClient {
     public static void main(String[] args) throws Exception {
         int port = Integer.parseInt(args[0]);
         String certificatePath = args[1];
-        String protocol = sslProtocols(args[2]);
-        String[] protocolList = new String[] {protocol};
-        String[] cipher = new String[] {args[3]};
+        String[] cipher = new String[] {args[2]};
+        // We assume that args[3] is the intended protocol to negotiate, like "TLS1.3"
+        // or "TLS1.2". args[4] is optional, and if included its value must be "SSLv2Hello".
+        String[] protocolList = Arrays.copyOfRange(args, 3, args.length);
+        for (int i = 0; i < protocolList.length; i++) {
+            protocolList[i] = sslProtocols(protocolList[i]);
+        }
 
         String host = "localhost";
         byte[] buffer = new byte[100];
 
-        SSLSocketFactory socketFactory = createSocketFactory(certificatePath, protocol);
+        SSLSocketFactory socketFactory = createSocketFactory(certificatePath, protocolList[0]);
 
         try (
             SSLSocket socket = (SSLSocket)socketFactory.createSocket(host, port);
@@ -92,8 +97,11 @@ public class SSLSocketClient {
                 return "TLSv1.1";
             case "TLS1.0":
                 return "TLSv1.0";
+            // This "protocol" forces the ClientHello message to use SSLv2 format.
+            case "SSLv2Hello":
+                return "SSLv2Hello";
         }
 
-        return null;
+        throw new RuntimeException("unrecognized protocol version:" + s2nProtocol);
     }
 }

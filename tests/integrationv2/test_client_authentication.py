@@ -3,11 +3,16 @@
 import copy
 import pytest
 
-from configuration import (available_ports, ALL_TEST_CIPHERS, PROTOCOLS)
+from configuration import available_ports, ALL_TEST_CIPHERS, PROTOCOLS
 from common import Certificates, ProviderOptions, Protocols, data_bytes, Signatures
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, GnuTLS, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from utils import (
+    invalid_test_parameters,
+    get_parameter_name,
+    get_expected_s2n_version,
+    to_bytes,
+)
 
 # If we test every available cert, the test takes too long.
 # Choose a good representative subset.
@@ -22,20 +27,27 @@ CERTS_TO_TEST = [
 
 def assert_openssl_handshake_complete(results, is_complete=True):
     if is_complete:
-        assert b'read finished' in results.stderr
-        assert b'write finished' in results.stderr
+        assert b"read finished" in results.stderr
+        assert b"write finished" in results.stderr
     else:
-        assert b'read finished' not in results.stderr or b'write finished' not in results.stderr
+        assert (
+            b"read finished" not in results.stderr
+            or b"write finished" not in results.stderr
+        )
 
 
 def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True):
     expected_version = get_expected_s2n_version(protocol, provider)
     if is_complete:
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            in results.stdout
+        )
     else:
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) not in results.stdout
+        assert (
+            to_bytes("Actual protocol version: {}".format(expected_version))
+            not in results.stdout
+        )
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -45,8 +57,15 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_server(managed_process, provider, other_provider, protocol, cipher, certificate,
-                                     client_certificate):
+def test_client_auth_with_s2n_server(
+    managed_process,  # noqa: F811
+    provider,
+    other_provider,
+    protocol,
+    cipher,
+    certificate,
+    client_certificate,
+):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -60,7 +79,8 @@ def test_client_auth_with_s2n_server(managed_process, provider, other_provider, 
         cert=client_certificate.cert,
         trust_store=certificate.cert,
         insecure=False,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -75,8 +95,8 @@ def test_client_auth_with_s2n_server(managed_process, provider, other_provider, 
     # Openssl should send a client certificate and complete the handshake
     for results in client.get_results():
         results.assert_success()
-        assert b'write client certificate' in results.stderr
-        assert b'write certificate verify' in results.stderr
+        assert b"write client certificate" in results.stderr
+        assert b"write certificate verify" in results.stderr
         assert_openssl_handshake_complete(results)
 
     # S2N should successfully connect
@@ -93,21 +113,29 @@ def test_client_auth_with_s2n_server(managed_process, provider, other_provider, 
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, provider, other_provider, protocol,
-                                                             cipher, certificate, client_certificate):
+def test_client_auth_with_s2n_server_using_nonmatching_certs(
+    managed_process,  # noqa: F811
+    provider,
+    other_provider,
+    protocol,
+    cipher,
+    certificate,
+    client_certificate,
+):
     port = next(available_ports)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
         cipher=cipher,
-        data_to_send=b'',
+        data_to_send=b"",
         use_client_auth=True,
         key=client_certificate.key,
         cert=client_certificate.cert,
         trust_store=certificate.cert,
         insecure=False,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -124,8 +152,8 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, pr
     # Openssl should tell us that a certificate was sent, but the handshake did not complete
     for results in client.get_results():
         assert results.exception is None
-        assert b'write client certificate' in results.stderr
-        assert b'write certificate verify' in results.stderr
+        assert b"write client certificate" in results.stderr
+        assert b"write certificate verify" in results.stderr
         # TLS1.3 OpenSSL fails after the handshake, but pre-TLS1.3 fails during
         if protocol is not Protocols.TLS13:
             assert results.exit_code != 0
@@ -135,8 +163,8 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, pr
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code != 0
-        assert b'Certificate is untrusted' in results.stderr
-        assert b'Error: Mutual Auth was required, but not negotiated' in results.stderr
+        assert b"Certificate is untrusted" in results.stderr
+        assert b"Error: Mutual Auth was required, but not negotiated" in results.stderr
         assert_s2n_handshake_complete(results, protocol, provider, False)
 
 
@@ -146,7 +174,14 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, pr
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_provider, protocol, cipher, certificate):
+def test_client_auth_with_s2n_client_no_cert(
+    managed_process,  # noqa: F811
+    provider,
+    other_provider,
+    protocol,
+    cipher,
+    certificate,
+):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -158,7 +193,8 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_pr
         use_client_auth=True,
         trust_store=certificate.cert,
         insecure=False,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -172,8 +208,8 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_pr
     # Openssl should tell us that a cert was requested but not received
     for results in server.get_results():
         results.assert_success()
-        assert b'write certificate request' in results.stderr
-        assert b'read client certificate' not in results.stderr
+        assert b"write certificate request" in results.stderr
+        assert b"read client certificate" not in results.stderr
         assert b"peer did not return a certificate" in results.stderr
         assert_openssl_handshake_complete(results, False)
 
@@ -181,7 +217,7 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_pr
         assert results.exception is None
         # TLS1.3 OpenSSL fails after the handshake, but pre-TLS1.3 fails during
         if protocol is not Protocols.TLS13:
-            assert (results.exit_code != 0)
+            assert results.exit_code != 0
             assert b"Failed to negotiate: 'TLS alert received'" in results.stderr
             assert_s2n_handshake_complete(results, protocol, provider, False)
 
@@ -193,8 +229,15 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_pr
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_provider, protocol, cipher, certificate,
-                                               client_certificate):
+def test_client_auth_with_s2n_client_with_cert(
+    managed_process,  # noqa: F811
+    provider,
+    other_provider,
+    protocol,
+    cipher,
+    certificate,
+    client_certificate,
+):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -208,7 +251,8 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
         cert=client_certificate.cert,
         trust_store=certificate.cert,
         insecure=False,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -229,8 +273,8 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
     for results in server.get_results():
         results.assert_success()
         assert random_bytes[1:] in results.stdout
-        assert b'read client certificate' in results.stderr
-        assert b'read certificate verify' in results.stderr
+        assert b"read client certificate" in results.stderr
+        assert b"read certificate verify" in results.stderr
         assert_openssl_handshake_complete(results)
 
 
@@ -245,8 +289,12 @@ TLS1.3, even if its security policy would normally allow TLS1.3.
 """
 
 
-@pytest.mark.parametrize("certificate", [Certificates.RSA_2048_PKCS1, Certificates.ECDSA_256], ids=get_parameter_name)
-def test_tls_12_client_auth_downgrade(managed_process, certificate):
+@pytest.mark.parametrize(
+    "certificate",
+    [Certificates.RSA_2048_PKCS1, Certificates.ECDSA_256],
+    ids=get_parameter_name,
+)
+def test_tls_12_client_auth_downgrade(managed_process, certificate):  # noqa: F811
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -306,9 +354,11 @@ def test_tls_12_client_auth_downgrade(managed_process, certificate):
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes(
-            f"Actual protocol version: {expected_protocol_version}"
-        ) in results.stdout
-        assert to_bytes(
-            f"Client signature negotiated: {expected_signature_type}"
-        ) in results.stdout
+        assert (
+            to_bytes(f"Actual protocol version: {expected_protocol_version}")
+            in results.stdout
+        )
+        assert (
+            to_bytes(f"Client signature negotiated: {expected_signature_type}")
+            in results.stdout
+        )

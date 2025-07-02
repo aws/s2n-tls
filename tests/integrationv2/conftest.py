@@ -3,7 +3,7 @@
 import os
 import pytest
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from providers import S2N, JavaSSL
+from providers import S2N, JavaSSL, OpenSSL
 
 PATH_CONFIGURATION_KEY = pytest.StashKey()
 
@@ -24,18 +24,27 @@ def available_providers():
         bin_path = f"{expected_location}/{binary}"
         if not os.path.exists(bin_path):
             pytest.fail(f"unable to locate {binary}")
-    os.environ['PATH'] += os.pathsep + expected_location
+    os.environ["PATH"] += os.pathsep + expected_location
     providers.add(S2N)
 
     if os.path.exists("./bin/SSLSocketClient.class"):
         providers.add(JavaSSL)
 
+    if OpenSSL.get_provider() == "OpenSSL" and OpenSSL.get_version() >= "3.0":
+        providers.add(OpenSSL)
+
     return providers
 
 
 def pytest_addoption(parser: pytest.Parser):
-    parser.addoption("--provider-version", action="store", dest="provider-version",
-                     default=None, type=str, help="Set the version of the TLS provider")
+    parser.addoption(
+        "--provider-version",
+        action="store",
+        dest="provider-version",
+        default=None,
+        type=str,
+        help="Set the version of the TLS provider",
+    )
     parser.addoption(
         "--best-effort-NOT-FOR-CI",
         action="store_true",
@@ -54,14 +63,17 @@ def pytest_configure(config: pytest.Config):
     This is executed once per pytest session on process startup.
     """
     config.addinivalue_line(
-        "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
+        "markers",
+        "uncollect_if(*, func): function to unselect tests from parametrization",
     )
 
     if config.getoption("--best-effort-NOT-FOR-CI"):
         config.stash[PATH_CONFIGURATION_KEY] = available_providers()
 
-    provider_version = config.getoption('provider-version', None)
-    if "fips" in provider_version:
+    provider_version = config.getoption("provider-version", None)
+    # By default, any libcrypto with "fips" in its name should be in fips mode.
+    # However, s2n-tls no longer supports fips mode with openssl-1.0.2-fips.
+    if "fips" in provider_version and "openssl-1.0.2-fips" not in provider_version:
         set_flag(S2N_FIPS_MODE, True)
     set_flag(S2N_PROVIDER_VERSION, provider_version)
 
@@ -73,9 +85,9 @@ def pytest_collection_modifyitems(config, items):
     removed = []
     kept = []
     for item in items:
-        m = item.get_closest_marker('uncollect_if')
+        m = item.get_closest_marker("uncollect_if")
         if m:
-            func = m.kwargs['func']
+            func = m.kwargs["func"]
             if func(**item.callspec.params):
                 removed.append(item)
                 continue

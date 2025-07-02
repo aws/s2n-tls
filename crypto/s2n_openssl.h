@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include <stdbool.h>
-
 /**
  * openssl with OPENSSL_VERSION_NUMBER < 0x10100003L made data type details unavailable
  * libressl use openssl with data type details available, but mandatorily set
@@ -49,8 +47,3 @@
     #define s2n_evp_ctx_init(ctx)    EVP_CIPHER_CTX_init(ctx)
     #define RESULT_EVP_CTX_INIT(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
-
-bool s2n_libcrypto_is_openssl(void);
-bool s2n_libcrypto_is_awslc();
-bool s2n_libcrypto_is_boringssl();
-bool s2n_libcrypto_is_libressl();

@@ -7,6 +7,7 @@ use libc::c_char;
 use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
 
+/// Corresponds to [s2n_error_type].
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ErrorType {
@@ -174,7 +175,7 @@ impl Error {
         Self(Context::Application(error))
     }
 
-    /// An error occured while running bindings code.
+    /// An error occurred while running bindings code.
     pub(crate) const fn bindings(
         kind: ErrorType,
         name: &'static str,
@@ -198,6 +199,7 @@ impl Error {
         }
     }
 
+    /// Corresponds to [s2n_strerror_name] for ErrorSource::Library errors.
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, name, _) => name,
@@ -209,6 +211,7 @@ impl Error {
         }
     }
 
+    /// Corresponds to [s2n_strerror] for ErrorSource::Library errors.
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, _, msg) => msg,
@@ -220,6 +223,7 @@ impl Error {
         }
     }
 
+    /// Corresponds to [s2n_strerror_debug] for ErrorSource::Library errors.
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
@@ -240,6 +244,7 @@ impl Error {
         }
     }
 
+    /// Corresponds to [s2n_error_get_type] for ErrorSource::Library errors.
     pub fn kind(&self) -> ErrorType {
         match self.0 {
             Context::Bindings(error_type, _, _) => error_type,
@@ -280,6 +285,8 @@ impl Error {
     /// that we would have sent if we sent alerts.
     ///
     /// This API is currently incomplete and should not be relied upon.
+    ///
+    /// Corresponds to [s2n_error_get_alert] for ErrorSource::Library errors.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
@@ -336,6 +343,12 @@ impl From<Error> for std::io::Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Application errors don't carry any interesting s2n context, so
+        // forward directly to the underyling error.
+        if let Self(Context::Application(err)) = self {
+            return err.fmt(f);
+        }
+
         let mut s = f.debug_struct("Error");
         if let Context::Code(code, _) = self.0 {
             s.field("code", &code);
@@ -461,6 +474,11 @@ mod tests {
 
             let app_error = error.application_error().unwrap();
             let _custom_error = app_error.downcast_ref::<CustomError>().unwrap();
+
+            let display = format!("{}", error);
+            assert_eq!(display, "custom error");
+            let debug = format!("{:?}", error);
+            assert_eq!(debug, "CustomError");
         }
 
         // make sure nested errors work

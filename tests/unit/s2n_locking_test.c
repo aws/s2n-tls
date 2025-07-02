@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 
+#include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 
 #define LOCK_N 1

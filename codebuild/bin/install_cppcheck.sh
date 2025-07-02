@@ -32,8 +32,14 @@ cd "$INSTALL_DIR"
 git clone --branch 2.3 --depth 1 https://github.com/danmar/cppcheck.git cppcheck-src
 cd cppcheck-src
 
-# See https://github.com/danmar/cppcheck#gnu-make for build recommendations
-make -j $JOBS MATCHCOMPILER=yes CXXFLAGS="-O2 -DNDEBUG -Wall -Wno-sign-compare -Wno-unused-function"
+# The cppcheck 2.3 build fails without this import. This should be removed after cppcheck is
+# updated: https://github.com/aws/s2n-tls/issues/5239
+sed -i '1s/^/#include <limits>\n/' ./lib/programmemory.cpp
+
+# -DNO_UNIX_SIGNAL_HANDLING is added to support the cppcheck 2.3 build, and should also be removed
+# after cppcheck is updated: https://github.com/aws/s2n-tls/issues/5239
+# These build instructions are based on https://github.com/danmar/cppcheck#gnu-make.
+make -j $JOBS MATCHCOMPILER=yes CXXFLAGS="-O2 -DNDEBUG -DNO_UNIX_SIGNAL_HANDLING"
 
 mv cppcheck ..
 mv cfg ..
