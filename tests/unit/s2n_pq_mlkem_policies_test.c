@@ -89,7 +89,8 @@ static S2N_RESULT s2n_policy_in_list(const char *policy_name, const char **excep
 
 /* List of all ML-KEM Parameter sizes */
 const struct s2n_kem *mlkem_list[] = {
-    &s2n_mlkem_768
+    &s2n_mlkem_768,
+    &s2n_mlkem_1024
 };
 
 /* Ciphers that should not be present in TLS Policies that have ML-KEM */
