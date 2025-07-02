@@ -38,6 +38,8 @@ def test_s2n_server_happy_path(
 ):
     port = next(available_ports)
 
+    assert(False)
+
     # s2nd can receive large amounts of data because all the data is
     # echo'd to stdout unmodified. This lets us compare received to
     # expected easily.
