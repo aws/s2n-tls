@@ -768,7 +768,7 @@ int main()
                 .expected_kem_group = null_if_no_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
-                .len_prefix_expected = false
+                .len_prefix_expected = false,
         }
     };
 
