@@ -1,7 +1,9 @@
 [workspace]
 members = [
-    "client-hello-config-resolution",
-    "hyper-server-client", "key-logging",
+    "async-pkey-offload",
+    "client-hello-config-resolution", 
+    "hyper-server-client", 
+    "key-logging",
     "tokio-server-client",
 ]
 resolver = "2"
