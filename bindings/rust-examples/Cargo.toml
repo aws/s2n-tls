@@ -1,7 +1,10 @@
 [workspace]
 members = [
     "client-hello-config-resolution",
-    "hyper-server-client", "key-logging",
+    "hyper-server-client", 
+    "key-logging", 
+    "kms-tls-psk",
+    "kms-tls-psk/fuzz",
     "tokio-server-client",
 ]
 resolver = "2"

@@ -1,0 +1,30 @@
+[package]
+name = "kms-tls-psk"
+version = "0.0.1"
+publish = true
+description = "a utility package for TLS auth with AWS Key Management Service (KMS)"
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[features]
+test-network = []
+
+[dependencies]
+anyhow = "1.0.98"
+aws-config = {version = "1.8.0", features = ["behavior-version-latest"]}
+aws-sdk-kms = "1.76.0"
+aws-lc-rs = "1.13.1"
+byteorder = "1.5.0"
+hex = "0.4.3"
+moka = {version = "0.12.10", features = ["sync"]}
+pin-project = "1.1.10"
+s2n-tls = { version = "0.3.21", path = "../../rust/extended/s2n-tls" }
+s2n-tls-tokio = { version = "0.3.21", path = "../../rust/extended/s2n-tls-tokio" }
+tokio = {version = "1.45.1", features = ["rt", "macros"]}
+tracing = "0.1.41"
+
+[dev-dependencies]
+aws-sdk-kms = {version = "1.76.0", features = ["test-util"]}
+aws-smithy-mocks = "0.1.1"
+tracing-subscriber = "0.3.19"
