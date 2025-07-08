@@ -88,7 +88,7 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, con
 S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
 S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
-#define S2N_MAX_TEST_PEM_SIZE        8192
+#define S2N_MAX_TEST_PEM_SIZE        12000
 #define S2N_MAX_TEST_PEM_PATH_LENGTH 512
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
@@ -115,6 +115,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_CA_CERT   "../pems/rsa_pss_2048_sha256_CA_cert.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+
+#define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
+#define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"
 
 #define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 

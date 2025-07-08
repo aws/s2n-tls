@@ -8,19 +8,18 @@ publish = false
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3"
 libc = "0.2"
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 rustls = { version = "0.23" }
 rustls-pemfile = { version = "2" }
 openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
-criterion = "0.5"
-pprof = { version = "0.14", features = ["criterion", "flamegraph"] }
+criterion = "0.6"
+pprof = { version = "0.15", features = ["criterion", "flamegraph"] }
 # env_logger and log are used to enable logging for rustls, which can help with
 # debugging interop failures
-env_logger = "0.10"
+env_logger = "0.11"
 log = "0.4"
-symbolic-common = { version = "=12.13.4" } # newer versions require rust 1.82.0, see https://github.com/aws/s2n-tls/issues/5165
 
 [[bench]]
 name = "handshake"

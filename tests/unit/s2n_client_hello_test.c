@@ -749,7 +749,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -768,7 +768,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -789,7 +789,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(client_conn->client_hello.legacy_version, S2N_TLS12);
 
             /* Server configured with TLS 1.2 negotiates TLS12 version */
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -809,7 +809,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -1538,12 +1538,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_handshake_type_set_tls13_flag(server_conn, HELLO_RETRY_REQUEST));
 
         /* Second client hello has version SSLv2 */
-        server_conn->client_hello_version = S2N_SSLv2;
+        server_conn->client_hello.sslv2 = true;
 
         /* Mock having some data in the client hello */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
     };
 
     /* Test s2n_client_hello_parse_message

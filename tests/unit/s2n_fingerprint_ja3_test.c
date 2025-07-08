@@ -253,8 +253,8 @@ int main(int argc, char **argv)
              * not when processing the actual ClientHello message.
              * So we need to set the versions manually.
              */
-            server->client_hello_version = S2N_SSLv2;
-            server->client_protocol_version = S2N_TLS12;
+            server->client_hello.sslv2 = true;
+            server->client_hello.legacy_version = S2N_TLS12;
 
             uint8_t sslv2_client_hello[] = {
                 SSLv2_CLIENT_HELLO_PREFIX,

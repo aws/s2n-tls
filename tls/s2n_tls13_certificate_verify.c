@@ -85,6 +85,9 @@ int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_hash_new(&message_hash));
     POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
 
+    const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
+    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
+
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
     POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->mode));
 
@@ -184,17 +187,19 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
         POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_CLIENT));
     }
 
+    struct s2n_pkey *pkey = NULL;
+    if (conn->mode == S2N_CLIENT) {
+        pkey = &conn->handshake_params.server_public_key;
+    } else {
+        pkey = &conn->handshake_params.client_public_key;
+    }
+
     POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
+    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
     POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data,
             s2n_stuffer_data_available(&unsigned_content)));
 
-    if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_pkey_verify(&conn->handshake_params.server_public_key, chosen_sig_scheme->sig_alg,
-                &message_hash, &signed_content));
-    } else {
-        POSIX_GUARD(s2n_pkey_verify(&conn->handshake_params.client_public_key, chosen_sig_scheme->sig_alg,
-                &message_hash, &signed_content));
-    }
-
+    POSIX_GUARD(s2n_pkey_verify(pkey, chosen_sig_scheme->sig_alg,
+            &message_hash, &signed_content));
     return 0;
 }

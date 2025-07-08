@@ -61,10 +61,10 @@ jobs:
         working-directory: ${{env.STANDARD_PATH}}
         run: cargo test
 
-      - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, PQ, and unstable-custom_x509_extensions"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq,unstable-custom_x509_extensions
 
       - name: "Feature Test: Renegotiate"
         working-directory: ${{env.ROOT_PATH}}
@@ -192,6 +192,10 @@ jobs:
       - name: build examples
         working-directory: ${{env.EXAMPLE_WORKSPACE}}
         run: cargo build
+
+      - name: test examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo test
 
   generate-openssl-102:
     runs-on: ubuntu-latest
@@ -463,12 +467,12 @@ jobs:
       # cargo-minimal-versions requires cargo-hack:
       # https://crates.io/crates/cargo-minimal-versions#user-content-prerequisites
       - name: Install cargo-hack
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.1
         with:
           crate: cargo-hack
 
       - name: Install cargo-minimal-versions
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.1
         with:
           crate: cargo-minimal-versions
 
