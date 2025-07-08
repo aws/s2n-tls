@@ -55,7 +55,6 @@ curves:
 - secp384r1
 pq:
 - revision: 0
-- kems:
 - kem groups:
 -- x25519_kyber-512-r3
 -- secp256r1_kyber-512-r3

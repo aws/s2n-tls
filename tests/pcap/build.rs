@@ -75,10 +75,7 @@ fn add_github_urls(
     assert!(hex::decode(commit).is_ok());
 
     for file in files {
-        let url = format!(
-            "https://raw.githubusercontent.com/{}/{}/{}/{}",
-            repo, commit, path, file
-        );
+        let url = format!("https://raw.githubusercontent.com/{repo}/{commit}/{path}/{file}");
         let name = format!("{}_{}", repo.replace('/', "_"), file);
         if output.insert(name, url).is_some() {
             panic!("Duplicate download path for {repo}:{file}")
@@ -115,11 +112,9 @@ fn assert_tshark_version() -> Result<()> {
     let min_version = Version::new(4, 2, 0);
     assert!(
         version >= &min_version,
-        "tshark {} required. tshark {} found.",
-        min_version,
-        version
+        "tshark {min_version} required. tshark {version} found."
     );
-    println!("tshark version: {}", version);
+    println!("tshark version: {version}");
     Ok(())
 }
 

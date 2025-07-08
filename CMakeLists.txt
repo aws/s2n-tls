@@ -437,7 +437,7 @@ if (S2N_INTERN_LIBCRYPTO)
         add_custom_command(
             TARGET ${PROJECT_NAME} PRE_LINK
             COMMAND
-              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols --preserve-dates {} \\\;
         )
     endif()
 
