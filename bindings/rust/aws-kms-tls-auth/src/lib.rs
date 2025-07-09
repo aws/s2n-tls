@@ -61,3 +61,7 @@
 mod client_hello_parser;
 mod codec;
 mod prefixed_list;
+
+// public exports to enable fuzz testing
+pub use client_hello_parser::{ClientHello, PresharedKeyClientHello};
+pub use codec::DecodeValue;
