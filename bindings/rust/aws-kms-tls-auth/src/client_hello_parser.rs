@@ -72,31 +72,6 @@ impl DecodeValue for ExtensionType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum Protocol {
-    SSLv3,
-    TLSv1_0,
-    TLSv1_1,
-    TLSv1_2,
-    TLSv1_3,
-    Unknown(u16),
-}
-
-impl DecodeValue for Protocol {
-    fn decode_from(buffer: &[u8]) -> std::io::Result<(Self, &[u8])> {
-        let (value, remaining) = u16::decode_from(buffer)?;
-        let protocol = match value {
-            0x0300 => Self::SSLv3,
-            0x0301 => Self::TLSv1_0,
-            0x0302 => Self::TLSv1_1,
-            0x0303 => Self::TLSv1_2,
-            0x0304 => Self::TLSv1_3,
-            x => Self::Unknown(x),
-        };
-        Ok((protocol, remaining))
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PskIdentity {
     pub identity: PrefixedBlob<u16>,
     obfuscated_ticket_age: u32,
@@ -153,7 +128,7 @@ impl DecodeValue for PresharedKeyClientHello {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClientHello {
-    protocol_version: Protocol,
+    protocol_version: u16,
     random: [u8; 32],
     session_id: PrefixedBlob<u8>,
     offered_ciphers: PrefixedBlob<u16>,
@@ -200,5 +175,50 @@ impl DecodeValue for Extension {
         };
 
         Ok((value, buffer))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use s2n_tls::{enums::PskHmac, testing::TestPair};
+
+    const PSK_IDENTITY: &[u8] = b"hello there imma psk";
+    const PSK_SECRET: &[u8] = b"secret material for the psk";
+
+    fn client_hello_with_psk() -> Result<Vec<u8>, s2n_tls::error::Error> {
+        let mut config = s2n_tls::config::Config::builder();
+        config.set_security_policy(&s2n_tls::security::DEFAULT_TLS13)?;
+        let config = config.build()?;
+
+        let psk = {
+            let mut psk = s2n_tls::psk::Psk::builder()?;
+            psk.set_hmac(PskHmac::SHA384)?;
+            psk.set_identity(PSK_IDENTITY)?;
+            psk.set_secret(PSK_SECRET)?;
+            psk.build()?
+        };
+
+        let mut pair = TestPair::from_config(&config);
+        pair.client.append_psk(&psk)?;
+        pair.server.append_psk(&psk)?;
+
+        pair.handshake()?;
+
+        pair.server.client_hello()?.raw_message()
+    }
+
+    #[test]
+    fn parse_from_handshake() -> std::io::Result<()> {
+        let client_hello = client_hello_with_psk().unwrap();
+        let client_hello = ClientHello::decode_from_exact(&client_hello)?;
+
+        // find psk extension
+        let psk_extension = client_hello.extensions.list().iter().find(|ext| ext.extension_type == ExtensionType::PreSharedKey).unwrap();
+        let psk_data = PresharedKeyClientHello::decode_from_exact(psk_extension.extension_data.blob())?;
+
+        assert_eq!(psk_data.identities.list().len(), 1);
+        assert_eq!(psk_data.identities.list()[0].identity.blob(), PSK_IDENTITY);
+        Ok(())
     }
 }

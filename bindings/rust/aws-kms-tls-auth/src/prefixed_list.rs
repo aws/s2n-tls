@@ -10,21 +10,6 @@ use std::{fmt::Debug, io::ErrorKind};
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct PrefixedBlob<L>(pub PrefixedList<u8, L>);
 
-impl<L: TryFrom<usize>> PrefixedBlob<L> {
-    pub fn new(inner_blob: Vec<u8>) -> Self {
-        let length: L = match inner_blob.len().try_into() {
-            Ok(length) => length,
-            _ => panic!("failed to convert"),
-        };
-
-        let list = PrefixedList::<u8, L> {
-            length,
-            items: inner_blob,
-        };
-        Self(list)
-    }
-}
-
 impl<L> PrefixedBlob<L> {
     pub fn blob(&self) -> &[u8] {
         &self.0.items
@@ -98,7 +83,7 @@ where
         }
         let target_buffer_size = current_buffer_size - length_usize;
 
-        let mut list: Vec<T> = Vec::new();
+        let mut list: Vec<T> = Vec::with_capacity(length_usize);
         while buffer.len() > target_buffer_size {
             let (item, remaining_buffer) = buffer.decode_value()?;
             list.push(item);

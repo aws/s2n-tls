@@ -43,7 +43,7 @@ jobs:
       - run: cargo test
 
   fuzz:
-    name: build and test
+    name: fuzz tests
     runs-on: ubuntu-latest
     defaults:
       run:

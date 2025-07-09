@@ -8,7 +8,7 @@
 //! [`s2n_codec`](https://crates.io/crates/s2n-codec) provides much richer functionality,
 //! but that richer functionality comes at the cost of generic lifetimes, non-std
 //! structs, and more generics. For example, s2n-codec requires a specialized
-//! `DecoderBuffer<'a>`, but the proctor codec just uses a plain byte slice `&[u8]`.
+//! `DecoderBuffer<'a>`, but this codec module just uses a plain byte slice `&[u8]`.
 //!
 //! [`binary_serde`](https://crates.io/crates/binary_serde) doesn't support dynamically
 //! sized types like `Vec<T>`, which makes it a no-go for TLS use cases, because
