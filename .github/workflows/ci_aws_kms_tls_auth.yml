@@ -1,4 +1,4 @@
-name: Rust Bindings
+name: aws kms tls auth ci
 
 on:
   push:
