@@ -39,7 +39,9 @@ fn bench_handshake_for_library<T>(
             |conn_pair| {
                 conn_pair.handshake().unwrap();
                 match handshake_type {
-                    HandshakeType::ServerAuth | HandshakeType::MutualAuth => assert!(!conn_pair.server.resumed_connection()),
+                    HandshakeType::ServerAuth | HandshakeType::MutualAuth => {
+                        assert!(!conn_pair.server.resumed_connection())
+                    }
                     HandshakeType::Resumption => assert!(conn_pair.server.resumed_connection()),
                 }
             },
