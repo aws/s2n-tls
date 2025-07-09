@@ -214,8 +214,14 @@ mod tests {
         let client_hello = ClientHello::decode_from_exact(&client_hello)?;
 
         // find psk extension
-        let psk_extension = client_hello.extensions.list().iter().find(|ext| ext.extension_type == ExtensionType::PreSharedKey).unwrap();
-        let psk_data = PresharedKeyClientHello::decode_from_exact(psk_extension.extension_data.blob())?;
+        let psk_extension = client_hello
+            .extensions
+            .list()
+            .iter()
+            .find(|ext| ext.extension_type == ExtensionType::PreSharedKey)
+            .unwrap();
+        let psk_data =
+            PresharedKeyClientHello::decode_from_exact(psk_extension.extension_data.blob())?;
 
         assert_eq!(psk_data.identities.list().len(), 1);
         assert_eq!(psk_data.identities.list()[0].identity.blob(), PSK_IDENTITY);
