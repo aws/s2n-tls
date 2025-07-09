@@ -8,9 +8,6 @@ rust-version = "1.85.0"
 repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
-[features]
-test-network = []
-
 [dependencies]
 anyhow = "1.0.98"
 aws-config = {version = "1.8.0", features = ["behavior-version-latest"]}
