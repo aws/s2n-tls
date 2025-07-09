@@ -2,5 +2,5 @@
 members = [
     "bench",
     "integration",
-    "s2n-tls-hyper",
+    "s2n-tls-hyper"
 ]
