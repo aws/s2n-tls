@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_from_handshake() -> std::io::Result<()> {
+    fn retrieve_identities() -> std::io::Result<()> {
         let client_hello = client_hello_with_psk().unwrap();
         let client_hello = ClientHello::decode_from_exact(&client_hello)?;
 
