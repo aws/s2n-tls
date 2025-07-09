@@ -3,10 +3,10 @@
 
 #![no_main]
 
-use kms_tls_psk::DecodeValue;
-use kms_tls_psk::PresharedKeyClientHello;
+use aws_kms_tls_auth::ClientHello;
+use aws_kms_tls_auth::DecodeValue;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
-    let _ = PresharedKeyClientHello::decode_from(data);
+    let _ = ClientHello::decode_from(data);
 });

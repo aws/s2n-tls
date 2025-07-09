@@ -46,7 +46,7 @@ pub struct KmsPskProvider {
 
 impl KmsPskProvider {
     /// Initialize a `KmsPskProvider`.
-    /// 
+    ///
     /// This method will call the KMS generate-data-key API to create the initial
     /// PSK that will be used for TLS connections.
     pub async fn initialize(

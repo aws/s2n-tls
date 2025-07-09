@@ -105,15 +105,13 @@ mod tests {
     }
 }
 
-// #[cfg(feature = "test-network")]
+#[cfg(feature = "test-network")]
 #[cfg(test)]
 mod integration_tests {
     use super::*;
     use crate::{
         identity::ObfuscationKey,
-        test_utils::{
-            configs_from_callbacks, handshake,
-        },
+        test_utils::{configs_from_callbacks, handshake},
         KmsPskProvider, KmsPskReceiver,
     };
     use aws_config::Region;
