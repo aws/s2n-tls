@@ -99,7 +99,7 @@ impl DecodeValue for Protocol {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PskIdentity {
     pub identity: PrefixedBlob<u16>,
-    pub obfuscated_ticket_age: u32,
+    obfuscated_ticket_age: u32,
 }
 
 impl DecodeValue for PskIdentity {
