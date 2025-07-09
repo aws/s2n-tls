@@ -30,7 +30,7 @@ impl DecodeValue for KmsPskFormat {
             1 => Ok((Self::V1, buffer)),
             _ => Err(std::io::Error::new(
                 ErrorKind::InvalidData,
-                format!("{value} in not a valid KmsPskFormat"),
+                format!("{value} is not a valid KmsPskFormat"),
             )),
         }
     }
@@ -43,8 +43,11 @@ pub struct ObfuscationKey {
 }
 
 impl ObfuscationKey {
-    pub fn new(name: Vec<u8>, material: [u8; AES_256_GCM_KEY_LEN]) -> Self {
-        ObfuscationKey { name, material }
+    pub fn new(name: Vec<u8>, material: [u8; AES_256_GCM_KEY_LEN]) -> anyhow::Result<Self> {
+        if material.iter().all(|b| *b == 0) {
+            anyhow::bail!("material can not be all zeros");
+        }
+        Ok(ObfuscationKey { name, material })
     }
     #[cfg(test)]
     pub(crate) fn random_test_key() -> Self {

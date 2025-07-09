@@ -178,7 +178,8 @@ impl ClientHelloCallback for KmsPskReceiver {
         };
 
         // parse the identity bytes to a KmsTlsPskIdentity
-        let (identity, remaining) = KmsTlsPskIdentity::decode_from(psk_identity).unwrap();
+        let (identity, remaining) = KmsTlsPskIdentity::decode_from(psk_identity)
+            .map_err(|e| s2n_tls::error::Error::application(e.into()))?;
         if !remaining.is_empty() {
             return Err(s2n_tls::error::Error::application(
                 "invalid psk identity".into(),

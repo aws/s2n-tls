@@ -200,7 +200,7 @@ mod tests {
         let last_update = *last_update_handle.read().unwrap();
         let (client_config, server_config) = configs_from_callbacks(psk_provider, psk_receiver);
 
-        // on the first handshake, no updated happen
+        // on the first handshake, no update happened
         handshake(&client_config, &server_config).await.unwrap();
         assert_eq!(last_update, last_update_handle.read().unwrap().clone());
 

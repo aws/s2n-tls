@@ -5,7 +5,7 @@ members = [
     "key-logging",
     "tokio-server-client",
 ]
-resolver = "1"
+resolver = "2"
 
 [workspace.package]
 version = "0.0.1"
