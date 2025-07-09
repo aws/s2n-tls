@@ -43,6 +43,12 @@ pub struct ObfuscationKey {
 }
 
 impl ObfuscationKey {
+    pub fn new(name: Vec<u8>, material: [u8; AES_256_GCM_KEY_LEN]) -> Self {
+        ObfuscationKey {
+            name,
+            material
+        }
+    }
     #[cfg(test)]
     pub(crate) fn random_test_key() -> Self {
         use aws_lc_rs::rand::SecureRandom;

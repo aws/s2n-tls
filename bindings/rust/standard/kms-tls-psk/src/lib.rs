@@ -36,7 +36,7 @@
 //!
 //! ## PSK Identity
 //! The ciphertext datakey is not directly used as the PSK identity. KMS ciphertexts
-//! have observable regularities, so we first obfuscate the ciphertext using the 
+//! have observable regularities, so we first obfuscate the ciphertext using the
 //! provided obfuscation key.
 //!
 //! ## Deployment Concerns
@@ -47,7 +47,7 @@
 //! to the [`KmsPskReceiver`]. Otherwise handshakes will fail.
 //!
 //! Note that the [`KmsPskReceiver`] supports lists for both of these items, so
-//! zero-downtime migrations are possible. _Example_: if the client fleet wanted 
+//! zero-downtime migrations are possible. _Example_: if the client fleet wanted
 //! to switch from Key A to Key B it would go through the following stages
 //! 1. client -> [A], server -> [A]
 //! 2. client -> [A], server -> [A, B]
@@ -93,19 +93,66 @@ fn psk_from_material(identity: &[u8], secret: &[u8]) -> Result<s2n_tls::psk::Psk
 
 #[cfg(test)]
 mod tests {
+    use crate::{AES_256_GCM_KEY_LEN, AES_256_GCM_NONCE_LEN};
+    use aws_lc_rs::aead::AES_256_GCM;
+
+    /// `key_len()` and `nonce_len()` aren't const functions, so we define
+    /// our own constants to let us use those values in things like array sizes.
+    #[test]
+    fn constant_check() {
+        assert_eq!(AES_256_GCM_KEY_LEN, AES_256_GCM.key_len());
+        assert_eq!(AES_256_GCM_NONCE_LEN, AES_256_GCM.nonce_len());
+    }
+}
+
+// #[cfg(feature = "test-network")]
+#[cfg(test)]
+mod integration_tests {
     use super::*;
     use crate::{
         identity::ObfuscationKey,
         test_utils::{
-            configs_from_callbacks, existing_kms_key, get_kms_key, handshake, test_kms_client,
+            configs_from_callbacks, handshake,
         },
         KmsPskProvider, KmsPskReceiver,
     };
-    use aws_lc_rs::aead::AES_256_GCM;
+    use aws_config::Region;
+    use aws_sdk_kms::Client;
+
+    pub async fn existing_kms_key(client: &Client) -> Option<KeyArn> {
+        let output = client.list_keys().send().await.unwrap();
+        let key = output.keys().first();
+        key.map(|key| key.key_arn().unwrap().to_string())
+    }
+
+    async fn create_kms_key(client: &Client) -> KeyArn {
+        let resp = client.create_key().send().await.unwrap();
+        resp.key_metadata
+            .as_ref()
+            .unwrap()
+            .arn()
+            .unwrap()
+            .to_string()
+    }
+
+    pub async fn get_kms_key(client: &Client) -> KeyArn {
+        if let Some(key) = existing_kms_key(client).await {
+            key
+        } else {
+            create_kms_key(client).await
+        }
+    }
+
+    pub async fn test_kms_client() -> Client {
+        let shared_config = aws_config::from_env()
+            .region(Region::new("us-west-2"))
+            .load()
+            .await;
+        Client::new(&shared_config)
+    }
 
     /// sanity check for our testing environment
     #[tokio::test]
-    #[cfg(feature = "test-network")]
     async fn retrieve_key() {
         let client = test_kms_client().await;
         let key_arn = existing_kms_key(&client).await;
@@ -113,7 +160,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[cfg(feature = "test-network")]
     async fn network_kms_integ_test() -> Result<(), s2n_tls::error::Error> {
         tracing_subscriber::fmt()
             .with_max_level(tracing::level_filters::LevelFilter::INFO)
@@ -129,7 +175,7 @@ mod tests {
                 .unwrap();
 
         let server_psk_receiver =
-            KmsPskReceiver::new(client.clone(), vec![obfuscation_key], vec![key_arn]);
+            KmsPskReceiver::new(client.clone(), vec![key_arn], vec![obfuscation_key]);
 
         let (client_config, server_config) =
             configs_from_callbacks(client_psk_provider, server_psk_receiver);
@@ -140,13 +186,5 @@ mod tests {
         handshake(&client_config, &server_config).await.unwrap();
 
         Ok(())
-    }
-
-    /// `key_len()` and `nonce_len()` aren't const functions, so we define
-    /// our own constants to let us use those values in things like array sizes.
-    #[test]
-    fn constant_check() {
-        assert_eq!(AES_256_GCM_KEY_LEN, AES_256_GCM.key_len());
-        assert_eq!(AES_256_GCM_NONCE_LEN, AES_256_GCM.nonce_len());
     }
 }

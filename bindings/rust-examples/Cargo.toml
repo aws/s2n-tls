@@ -2,12 +2,10 @@
 members = [
     "client-hello-config-resolution",
     "hyper-server-client", 
-    "key-logging", 
-    "kms-tls-psk",
-    "kms-tls-psk/fuzz",
+    "key-logging",
     "tokio-server-client",
 ]
-resolver = "2"
+resolver = "1"
 
 [workspace.package]
 version = "0.0.1"

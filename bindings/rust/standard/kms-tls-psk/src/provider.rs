@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     codec::EncodeValue,
     identity::{KmsTlsPskIdentity, ObfuscationKey},
@@ -17,8 +20,8 @@ use std::{
 /// This struct can be enabled on a config with [`s2n_tls::config::Builder::set_connection_initializer`].
 ///
 /// The PSK is automatically rotated every 24 hours. Any errors in this rotation
-/// are logger through `tracing::error!`. Consider using something like
-/// [`tracing_subcriber`](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/)
+/// are logged through `tracing::error!`. Consider using something like
+/// [`tracing_subscriber`](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/)
 /// to ensure visibility into these failures.
 #[derive(Debug, Clone)]
 pub struct KmsPskProvider {
@@ -42,6 +45,10 @@ pub struct KmsPskProvider {
 }
 
 impl KmsPskProvider {
+    /// Initialize a `KmsPskProvider`.
+    /// 
+    /// This method will call the KMS generate-data-key API to create the initial
+    /// PSK that will be used for TLS connections.
     pub async fn initialize(
         client: Client,
         key: KeyArn,
@@ -62,7 +69,6 @@ impl KmsPskProvider {
     /// Check if a key update is needed. If it is, kick off a background task
     /// to call KMS and create a new PSK.
     fn maybe_trigger_key_update(&self) {
-        println!("checking if key update needed");
         let last_update = match *self.last_update.read().unwrap() {
             Some(update) => update,
             None => {
@@ -186,8 +192,8 @@ mod tests {
         let (_decrypt_rule, decrypt_client) = decrypt_mocks();
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![OBFUSCATION_KEY.clone()],
             vec![KMS_KEY_ARN.to_owned()],
+            vec![OBFUSCATION_KEY.clone()],
         );
 
         let last_update_handle = psk_provider.last_update.clone();

@@ -3,4 +3,6 @@ members = [
     "bench",
     "integration",
     "s2n-tls-hyper"
+    "kms-tls-psk",
+    "kms-tls-psk/fuzz",
 ]

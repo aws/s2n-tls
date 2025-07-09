@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     client_hello_parser::retrieve_identities,
     codec::DecodeValue,
@@ -90,8 +93,8 @@ impl KmsPskReceiver {
     ///                      from AttackerKeyArn.
     pub fn new(
         client: Client,
-        obfuscation_keys: Vec<ObfuscationKey>,
         trusted_key_arns: Vec<KeyArn>,
+        obfuscation_keys: Vec<ObfuscationKey>,
     ) -> Self {
         let key_cache = moka::sync::Cache::builder()
             .max_capacity(MAXIMUM_KEY_CACHE_SIZE as u64)
@@ -99,8 +102,8 @@ impl KmsPskReceiver {
             .build();
         Self {
             client,
-            obfuscation_keys,
             trusted_key_arns: Arc::new(trusted_key_arns),
+            obfuscation_keys,
             key_cache,
         }
     }
@@ -160,7 +163,6 @@ impl ClientHelloCallback for KmsPskReceiver {
         let identities = match retrieve_identities(client_hello) {
             Ok(identities) => identities,
             Err(e) => {
-                tracing::error!("{e}");
                 return Err(s2n_tls::error::Error::application(Box::new(e)));
             }
         };
@@ -190,7 +192,7 @@ impl ClientHelloCallback for KmsPskReceiver {
 
         let maybe_cached = self.key_cache.get(&ciphertext_datakey);
         if let Some(plaintext_datakey) = maybe_cached {
-            // if we already had it cached, then our work is done
+            // if we already had it cached, then append the PSK and return
             let psk = psk_from_material(psk_identity, &plaintext_datakey)?;
             connection.append_psk(&psk)?;
             Ok(None)
@@ -236,8 +238,8 @@ mod tests {
         let (decrypt_rule, decrypt_client) = decrypt_mocks();
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![OBFUSCATION_KEY.clone()],
             vec![KMS_KEY_ARN.to_owned()],
+            vec![OBFUSCATION_KEY.clone()],
         );
 
         let cache_handle = psk_receiver.key_cache.clone();
@@ -265,9 +267,9 @@ mod tests {
         let (_decrypt_rule, decrypt_client) = decrypt_mocks();
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![OBFUSCATION_KEY.clone()],
             // use an ARN different from the one KMS will return
             vec!["arn::wont-be-seen".to_string()],
+            vec![OBFUSCATION_KEY.clone()],
         );
 
         let (client_config, server_config) = configs_from_callbacks(psk_provider, psk_receiver);
@@ -285,8 +287,8 @@ mod tests {
         let (decrypt_rule, decrypt_client) = decrypt_mocks();
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![ObfuscationKey::random_test_key()],
             vec![KMS_KEY_ARN.to_owned()],
+            vec![ObfuscationKey::random_test_key()],
         );
 
         let (client_config, server_config) = configs_from_callbacks(psk_provider, psk_receiver);
@@ -317,8 +319,8 @@ mod tests {
 
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![obfuscation_key],
             vec![KMS_KEY_ARN.to_owned()],
+            vec![obfuscation_key],
         );
 
         let cache_handle = psk_receiver.key_cache.clone();
@@ -350,8 +352,8 @@ mod tests {
 
         let psk_receiver = KmsPskReceiver::new(
             decrypt_client,
-            vec![OBFUSCATION_KEY.clone()],
             vec![KMS_KEY_ARN.to_owned()],
+            vec![OBFUSCATION_KEY.clone()],
         );
 
         let (client_config, server_config) = configs_from_callbacks(psk_provider, psk_receiver);

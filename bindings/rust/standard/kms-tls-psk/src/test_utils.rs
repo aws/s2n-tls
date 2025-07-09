@@ -1,6 +1,8 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::S2NError;
-use crate::{identity::ObfuscationKey, receiver::KmsPskReceiver, KeyArn, KmsPskProvider};
-use aws_config::Region;
+use crate::{identity::ObfuscationKey, receiver::KmsPskReceiver, KmsPskProvider};
 use aws_sdk_kms::{
     operation::{decrypt::DecryptOutput, generate_data_key::GenerateDataKeyOutput},
     primitives::Blob,
@@ -23,47 +25,6 @@ pub const KMS_KEY_ARN: &str =
     "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
 pub static OBFUSCATION_KEY: LazyLock<ObfuscationKey> =
     LazyLock::new(ObfuscationKey::random_test_key);
-
-////////////////////////////////////////////////////////////////////////////////
-///////////////////////////    KMS UTILITIES   /////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-/// get a KMS key arn if one is available.
-///
-/// This is just used for testing. Production use cases should be specifying a
-/// KeyId with the permissions configured such that client and server roles have
-/// the correct permissions.
-pub async fn existing_kms_key(client: &Client) -> Option<KeyArn> {
-    let output = client.list_keys().send().await.unwrap();
-    let key = output.keys().first();
-    key.map(|key| key.key_arn().unwrap().to_string())
-}
-
-async fn create_kms_key(client: &Client) -> KeyArn {
-    let resp = client.create_key().send().await.unwrap();
-    resp.key_metadata
-        .as_ref()
-        .unwrap()
-        .arn()
-        .unwrap()
-        .to_string()
-}
-
-pub async fn get_kms_key(client: &Client) -> KeyArn {
-    if let Some(key) = existing_kms_key(client).await {
-        key
-    } else {
-        create_kms_key(client).await
-    }
-}
-
-pub async fn test_kms_client() -> Client {
-    let shared_config = aws_config::from_env()
-        .region(Region::new("us-west-2"))
-        .load()
-        .await;
-    Client::new(&shared_config)
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////    MOCKS & FIXTURES   ////////////////////////////////
