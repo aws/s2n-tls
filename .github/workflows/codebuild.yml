@@ -16,6 +16,10 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      event_name: ${{ github.event_name }}
+      source_pr: pr/${{ github.event.pull_request.number }}
+      source_sha: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - name: Get credentials
@@ -26,9 +30,9 @@ jobs:
           aws-region: us-west-2
       - name: Start Codebuild
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
-            SOURCE=pr/${{ github.event.pull_request.number }}
+          if [[ "$event_name" == "pull_request_target" ]]; then
+            source=$source_pr
           else
-            SOURCE=${{ github.sha }}
+            source=$source_sha
           fi
-          ./codebuild/bin/start_codebuild.sh $SOURCE
+          ./codebuild/bin/start_codebuild.sh $source
