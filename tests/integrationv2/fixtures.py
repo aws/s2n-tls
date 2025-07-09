@@ -66,6 +66,7 @@ def managed_process(request: pytest.FixtureRequest):
         p = ManagedProcess(
             cmd_line,
             provider.set_provider_ready,
+            name=provider.get_name(cmd_line),
             wait_for_marker=provider.ready_to_test_marker,
             send_marker_list=provider.ready_to_send_input_marker,
             close_marker=close_marker,
