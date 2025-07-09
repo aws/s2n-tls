@@ -58,9 +58,6 @@ jobs:
           rustup override set nightly
       
       - run: cargo install cargo-fuzz
-        
-      - name: run client-hello fuzzer
-        run: cargo fuzz run client_hello -- -max_total_time=30
 
       - name: run psk-identities fuzzer
         run: cargo fuzz run psk_client_hello -- -max_total_time=30
