@@ -110,18 +110,16 @@ impl PskIdentity {
     /// Create a KmsTlsPskIdentity
     ///
     /// * `ciphertext_data_key`: The ciphertext returned from the KMS generateDataKey
-    ///                          API.
+    ///   API.
     /// * `obfuscation_key`: The key that will be used to obfuscate the ciphertext,
-    ///                      preventing any details about the ciphertext from being
-    ///                      read on the wire.
+    ///   preventing any details about the ciphertext from being on the wire.
     pub fn new(
         ciphertext_datakey: &[u8],
         obfuscation_key: &ObfuscationKey,
     ) -> anyhow::Result<Self> {
         let mut in_out = ciphertext_datakey.to_vec();
         let key = RandomizedNonceKey::new(&AES_256_GCM, &obfuscation_key.material)?;
-        let nonce = key
-            .seal_in_place_append_tag(Aad::empty(), &mut in_out)?;
+        let nonce = key.seal_in_place_append_tag(Aad::empty(), &mut in_out)?;
         let nonce_bytes = nonce.as_ref();
 
         let identity = Self {
