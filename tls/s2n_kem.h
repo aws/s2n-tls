@@ -145,7 +145,7 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 #define S2N_MLKEM_768_SHARED_SECRET_BYTES 32
 
 /* mlkem1024 */
-#define S2N_MLKEM_1024_PUBLIC_KEY_BYTES    1522
+#define S2N_MLKEM_1024_PUBLIC_KEY_BYTES    1568
 #define S2N_MLKEM_1024_SECRET_KEY_BYTES    3168
 #define S2N_MLKEM_1024_CIPHERTEXT_BYTES    1568
 #define S2N_MLKEM_1024_SHARED_SECRET_BYTES 32
