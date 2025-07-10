@@ -26,7 +26,7 @@
 //! is able to continue and complete successfully.
 //!
 //! ## Caching
-//! The server component [`KmsPskReceiver`] will cache successfully decrypted ciphertexts.
+//! The server component [`PskReceiver`] will cache successfully decrypted ciphertexts.
 //! This means that the first handshake from a new client will result in a network
 //! call to KMS, but future handshakes from that client will be able to retrieve
 //! the plaintext datakey from memory.
@@ -34,7 +34,7 @@
 //! Note that this cache is bounded to a size of [`MAXIMUM_KEY_CACHE_SIZE`].
 //!
 //! ## Rotation
-//! The client component [`KmsPskProvider`] will automatically rotate the PSK. This
+//! The client component [`PskProvider`] will automatically rotate the PSK. This
 //! is controlled by the [`KEY_ROTATION_PERIOD`] which is currently 24 hours.
 //!
 //! ## PSK Identity
@@ -43,13 +43,13 @@
 //! the obfuscation key. This prevents any possible data leakage of ciphertext details.
 //!
 //! ## Deployment Concerns
-//! The obfuscation key that the [`KmsPskProvider`] is configured with must also
-//! be supplied to the [`KmsPskReceiver`]. Otherwise handshakes will fail.
+//! The obfuscation key that the [`PskProvider`] is configured with must also
+//! be supplied to the [`PskReceiver`]. Otherwise handshakes will fail.
 //!
-//! The KMS Key ARN that the [`KmsPskProvider`] is configured with must be supplied
-//! to the [`KmsPskReceiver`]. Otherwise handshakes will fail.
+//! The KMS Key ARN that the [`PskProvider`] is configured with must be supplied
+//! to the [`PskReceiver`]. Otherwise handshakes will fail.
 //!
-//! Note that the [`KmsPskReceiver`] supports lists for both of these items, so
+//! Note that the [`PskReceiver`] supports lists for both of these items, so
 //! zero-downtime migrations are possible. _Example_: if the client fleet wanted
 //! to switch from Key A to Key B it would go through the following stages
 //! 1. client -> [A], server -> [A]
@@ -59,9 +59,31 @@
 //! 5. client ->    [B], server ->    [B]
 
 mod codec;
+mod identity;
 mod prefixed_list;
 mod psk_parser;
 
-// public exports to enable fuzz testing
+pub type KeyArn = String;
+pub use identity::ObfuscationKey;
+
+// We have "pub" use statement so these can be fuzz tested
 pub use codec::DecodeValue;
 pub use psk_parser::PresharedKeyClientHello;
+
+const PSK_SIZE: usize = 32;
+const AES_256_GCM_KEY_LEN: usize = 32;
+const AES_256_GCM_NONCE_LEN: usize = 12;
+
+#[cfg(test)]
+mod tests {
+    use crate::{AES_256_GCM_KEY_LEN, AES_256_GCM_NONCE_LEN};
+    use aws_lc_rs::aead::AES_256_GCM;
+
+    /// `key_len()` and `nonce_len()` aren't const functions, so we define
+    /// our own constants to let us use those values in things like array sizes.
+    #[test]
+    fn constant_check() {
+        assert_eq!(AES_256_GCM_KEY_LEN, AES_256_GCM.key_len());
+        assert_eq!(AES_256_GCM_NONCE_LEN, AES_256_GCM.nonce_len());
+    }
+}
