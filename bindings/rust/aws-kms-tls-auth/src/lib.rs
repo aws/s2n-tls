@@ -58,10 +58,10 @@
 //! 4. client ->    [B], server -> [A, B]
 //! 5. client ->    [B], server ->    [B]
 
-mod psk_parser;
 mod codec;
 mod prefixed_list;
+mod psk_parser;
 
 // public exports to enable fuzz testing
-pub use psk_parser::{PresharedKeyClientHello};
 pub use codec::DecodeValue;
+pub use psk_parser::PresharedKeyClientHello;

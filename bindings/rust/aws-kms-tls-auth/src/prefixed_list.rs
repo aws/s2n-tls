@@ -44,14 +44,18 @@ where
     }
 }
 
-/// A list of `T`, where the size of the list is prefixed on the wire as `L`.
+/// A list of `T`, where the byte length of the list is prefixed on the wire as `L`.
 ///
-/// Note that size != count. A list of 100 u16's, has count 100 and size 200.
+/// NOTE: length != count. A list of 100 u16's, has count 100 and size 200.
+///
+/// This unfortunately conflicts with the `.len()` function on rust `std` collections,
+/// which will return the count of elements, and not their serialized length.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct PrefixedList<T, L> {
     // We could remove the length since it's implicit in the items and their
     // encode implementation, but it makes the writing much uglier because you need
     // to use a "skip write" pattern.
+    /// The length of the list in bytes
     length: L,
     items: Vec<T>,
 }
