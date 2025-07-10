@@ -38,9 +38,9 @@
 //! is controlled by the [`KEY_ROTATION_PERIOD`] which is currently 24 hours.
 //!
 //! ## PSK Identity
-//! The ciphertext datakey is not directly used as the PSK identity. KMS ciphertexts
-//! have observable regularities, so we first obfuscate the ciphertext using the
-//! provided obfuscation key.
+//! The ciphertext datakey is not directly used as the PSK identity. Because PSK
+//! identities can be observed on the wire, the ciphertext is first encrypted using
+//! the obfuscation key. This prevents any possible data leakage of ciphertext details.
 //!
 //! ## Deployment Concerns
 //! The obfuscation key that the [`KmsPskProvider`] is configured with must also
