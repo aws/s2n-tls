@@ -36,6 +36,19 @@ const struct s2n_kem s2n_mlkem_768 = {
     .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
+const struct s2n_kem s2n_mlkem_1024 = {
+    .name = "mlkem1024",
+    .kem_nid = S2N_NID_MLKEM1024,
+    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
+    .public_key_length = S2N_MLKEM_1024_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_MLKEM_1024_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_MLKEM_1024_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_MLKEM_1024_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
+};
+
 const struct s2n_kem s2n_kyber_512_r3 = {
     .name = "kyber512r3",
     .kem_nid = S2N_NID_KYBER512,
@@ -467,14 +480,7 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return false;
     }
 
-    bool available = s2n_libcrypto_supports_evp_kem();
-
-    /* Only newer versions of libcrypto have ML-KEM support. */
-    if (kem == &s2n_mlkem_768) {
-        available &= s2n_libcrypto_supports_mlkem();
-    }
-
-    return available;
+    return s2n_libcrypto_supports_evp_kem();
 }
 
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
