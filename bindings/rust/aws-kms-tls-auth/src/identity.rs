@@ -178,15 +178,14 @@ mod tests {
 
     #[test]
     fn invalid_keys() {
-        // correct length, but all zeros
-        let name = b"obfuscation key name".to_vec();
+        let test_name = b"obfuscation key name".to_vec();
 
-        let all_zero_err = ObfuscationKey::new(name.clone(), vec![0; 32]).unwrap_err();
+        let all_zero_err = ObfuscationKey::new(test_name.clone(), vec![0; 32]).unwrap_err();
         assert_eq!(all_zero_err.to_string(), "material can not be all zeros");
 
         let mut invalid_length = vec![0; 53];
         invalid_length[3] = 1;
-        let invalid_length_err = ObfuscationKey::new(name, invalid_length).unwrap_err();
+        let invalid_length_err = ObfuscationKey::new(test_name, invalid_length).unwrap_err();
         assert_eq!(
             invalid_length_err.to_string(),
             "material must be 32 bytes, but was 53"
