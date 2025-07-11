@@ -239,9 +239,9 @@ input_vectors = [
     {
         "group_name": "secp384r1_MLKEM1024",
         "cipher_suite": "TLS_AES_128_GCM_SHA256",
-        "ec_shared_secret": "b72536062cd8e8eced91046e33413b027cabde057674747863b8dcb914100585c600fafc8ff4927a34abb0aa6b69",
-        "pq_shared_secret": "23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13add59",
-        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2das",
+        "ec_shared_secret": "b72536062cd8e8eced91046e33413b027cabde0576747aa47863b8dcb914100585c600fafc8ff4927a34abb0aa6b3b68",
+        "pq_shared_secret": "23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13a52",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
     },
     {
         "group_name": "secp384r1_MLKEM1024",
