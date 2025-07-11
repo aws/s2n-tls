@@ -39,11 +39,22 @@ impl DecodeValue for PskVersion {
 #[derive(Debug, Clone)]
 pub struct ObfuscationKey {
     name: Vec<u8>,
-    material: [u8; AES_256_GCM_KEY_LEN],
+    material: Vec<u8>,
 }
 
 impl ObfuscationKey {
-    pub fn new(name: Vec<u8>, material: [u8; AES_256_GCM_KEY_LEN]) -> anyhow::Result<Self> {
+    /// Create an obfuscation key.
+    ///
+    /// Currently, the `material` field must be 32 bytes.
+    pub fn new(name: Vec<u8>, material: Vec<u8>) -> anyhow::Result<Self> {
+        if name.is_empty() {
+            // While we could support this, it is easier to constrain inputs to
+            // "normal" values.
+            anyhow::bail!("name must not be empty");
+        }
+        if material.len() != AES_256_GCM_KEY_LEN {
+            anyhow::bail!("material must be 32 bytes, but was {}", material.len())
+        }
         if material.iter().all(|b| *b == 0) {
             anyhow::bail!("material can not be all zeros");
         }
@@ -56,7 +67,7 @@ impl ObfuscationKey {
 
         let rng = aws_lc_rs::rand::SystemRandom::new();
         debug_assert_eq!(AES_256_GCM.key_len(), AES_256_GCM_KEY_LEN);
-        let mut key = [0; AES_256_GCM_KEY_LEN];
+        let mut key = vec![0; AES_256_GCM_KEY_LEN];
         let mut name = [0; 16];
 
         rng.fill(&mut key).unwrap();
@@ -165,6 +176,31 @@ impl PskIdentity {
 mod tests {
     use super::*;
 
+    #[test]
+    fn invalid_keys() {
+        // correct length, but all zeros
+        let name = b"obfuscation key name".to_vec();
+
+        let all_zero_err = ObfuscationKey::new(name.clone(), vec![0; 32]).unwrap_err();
+        assert_eq!(all_zero_err.to_string(), "material can not be all zeros");
+
+        let mut invalid_length = vec![0; 53];
+        invalid_length[3] = 1;
+        let invalid_length_err = ObfuscationKey::new(name, invalid_length).unwrap_err();
+        assert_eq!(
+            invalid_length_err.to_string(),
+            "material must be 32 bytes, but was 53"
+        );
+
+        let valid_material = {
+            let mut material = vec![0; 32];
+            material[3] = 1;
+            material
+        };
+        let invalid_name_err = ObfuscationKey::new(Vec::new(), valid_material).unwrap_err();
+        assert_eq!(invalid_name_err.to_string(), "name must not be empty");
+    }
+
     /// serializing and deserializing a PSK Identity should result in the same struct
     #[test]
     fn round_trip() {
@@ -259,7 +295,7 @@ mod tests {
 
         let obfuscation_key = ObfuscationKey {
             name: OBFUSCATION_KEY_NAME.to_vec(),
-            material: OBFUSCATION_KEY_MATERIAL,
+            material: OBFUSCATION_KEY_MATERIAL.to_vec(),
         };
 
         let (deserialized_identity, remaining) =
