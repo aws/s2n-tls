@@ -138,8 +138,8 @@ int main(int argc, char **argv)
     const struct s2n_kem_preferences valid_kem_preferences = {
         .kem_count = 0,
         .kems = NULL,
-        .tls13_kem_groups = &VALID_HYBRID_GROUPS,
-        .tls13_kem_group_count = 2,
+        .tls13_kem_groups = &VALID_HYBRID_GROUP,
+        .tls13_kem_group_count = 1,
     };
 
     const struct s2n_kem_preferences invalid_kem_preferences = {
