@@ -1,6 +1,6 @@
 # aws-kms-tls-auth
 
-This package provides a way to perform TLS authentication using the AWS Key Management Service (KMS) and Identity and Access Management (IAM). The only supported TLS implementation is currently [s2n-tls](https://github.com/aws/s2n-tls), but if are interested in support for other TLS implementations please open a [github issue](https://github.com/aws/s2n-tls/issues/new/choose).
+This crate provides a way to perform TLS authentication using the AWS Key Management Service (KMS) and Identity and Access Management (IAM). The only supported TLS implementation is currently [s2n-tls](https://github.com/aws/s2n-tls), but if you are interested in support for other TLS implementations please open a [github issue](https://github.com/aws/s2n-tls/issues/new/choose).
 
 ## Overview
 
@@ -22,11 +22,13 @@ When the `PskProvider` is initialized, the client will call will call the KMS ge
 ### 2: server psk decrypt
 The client sends the PSK to the server, which give it access to the PSK identity (ciphertext datakey). The server then decrypts the ciphertext datakey using KMS, getting back the plaintext datakey which is the actual PSK secret.
 
+At this point the handshake can complete. This results in an mTLS connection between the `client-iam-role` and `server-iam-role`.
+
 ### Caching
-The server will cache plaintext datakeys. So the first connection between a client and server will result in a KMS Decrypt API call, but future TLS handshake between that same client and server will use the cached key.
+The server will cache plaintext datakeys. The first connection between a client and server will result in a KMS Decrypt API call, but future TLS handshakes between that same client and server will use the cached key.
 
 ### Rotation
-The client will automatically rotate it's PSK every 24 hours.
+The client will automatically rotate its PSK every 24 hours.
 
 ## Authentication
 When the handshake is complete there is a mutually authenticated connection where 
@@ -35,6 +37,6 @@ When the handshake is complete there is a mutually authenticated connection wher
 
 For this reason, it is important to configure the key with minimal permissions. If you only want mTLS to be allowed between `client-iam-role` as a client and `server-iam-role` as a server, then `client-iam-role` must be the only IAM identity with `kms:GenerateDataKey` permissions on the KMS key, and `server-iam-role` must be the only IAM identity with `kms:Decrypt` permissions on the key.
 
-While it is possible to configure multiple client roles with `kms:GenerateDataKey` permissions so that the server will trust multiple identities, it's important to notes that the server will _not_ authenticate that actual client identity.
+While it is possible to configure multiple client roles with `kms:GenerateDataKey` permissions so  the server will trust multiple identities, the server will not authenticate the specific client identity.
 
-**Example**: `client-iam-role-A` and `client-iam-role-B` are the only identities with `kms:GenerateDataKey` permissions on a trusted KMS Key ARN. If the server successfully handshakes then the server knows that it is talking to `client-iam-role-A` OR `client-iam-role-B`, but it does not know which one. 
+**Example**: `client-iam-role-A` and `client-iam-role-B` are the only identities with `kms:GenerateDataKey` permissions on a trusted KMS Key ARN. If the server successfully handshakes then it is talking to `client-iam-role-A` OR `client-iam-role-B`, but it does not know which one. 
