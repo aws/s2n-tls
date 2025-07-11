@@ -2,13 +2,33 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::codec::{DecodeByteSource, DecodeValue, EncodeBytesSink, EncodeValue};
-use std::{fmt::Debug, io::ErrorKind};
+use std::{any::type_name, fmt::Debug, io::ErrorKind};
 
 /// An opaque list of bytes, where the size of the list is prefixed on the wire as `L`.
 ///
 /// This is just a convenience wrapper for `PrefixedList<u8, L>`.
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct PrefixedBlob<L>(pub PrefixedList<u8, L>);
+
+impl<L: TryFrom<usize>> PrefixedBlob<L> {
+    pub fn new(inner_blob: Vec<u8>) -> anyhow::Result<Self> {
+        let length_usize = inner_blob.len();
+        let length = match length_usize.try_into() {
+            Ok(length) => length,
+            _ => anyhow::bail!(
+                "failed to convert list length of {} into {}",
+                length_usize,
+                type_name::<L>()
+            ),
+        };
+
+        let list = PrefixedList::<u8, L> {
+            length,
+            items: inner_blob,
+        };
+        Ok(Self(list))
+    }
+}
 
 impl<L> PrefixedBlob<L> {
     pub fn blob(&self) -> &[u8] {
@@ -26,7 +46,7 @@ impl<L> Debug for PrefixedBlob<L> {
 
 impl<L> DecodeValue for PrefixedBlob<L>
 where
-    L: Copy + Into<usize> + DecodeValue,
+    L: Copy + TryInto<usize> + DecodeValue,
 {
     fn decode_from(buffer: &[u8]) -> std::io::Result<(Self, &[u8])> {
         let (inner, remaining) = buffer.decode_value()?;
@@ -71,12 +91,22 @@ where
 
 impl<T, L> DecodeValue for PrefixedList<T, L>
 where
-    L: Copy + Into<usize> + DecodeValue,
+    L: Copy + TryInto<usize> + DecodeValue,
     T: DecodeValue,
 {
     fn decode_from(buffer: &[u8]) -> std::io::Result<(Self, &[u8])> {
         let (length, mut buffer): (L, &[u8]) = buffer.decode_value()?;
-        let length_usize: usize = length.into();
+        let length_usize: usize = match length.try_into() {
+            Ok(length) => length,
+            // this error should never happen except on 16 bit platforms. And we
+            // don't ever expect to run on 16 bit platforms.
+            Err(_) => {
+                return Err(std::io::Error::new(
+                    ErrorKind::FileTooLarge,
+                    "failed to convert to usize",
+                ))
+            }
+        };
 
         let current_buffer_size = buffer.len();
         if current_buffer_size < length_usize {
@@ -124,5 +154,19 @@ where
             buffer.encode_value(item)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prefixed_list::PrefixedBlob;
+
+    #[test]
+    fn list_too_long() {
+        let error = PrefixedBlob::<u8>::new(vec![0; 257]).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "failed to convert list length of 257 into u8"
+        );
     }
 }
