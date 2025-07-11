@@ -31,9 +31,6 @@ pub struct PskProvider {
     /// used as TLS Psk's.
     kms_key_arn: Arc<KeyArn>,
     /// The key used to obfuscate the ciphertext datakey from KMS.
-    ///
-    /// KMS ciphertexts have observable regularities in their structure. Obfuscating
-    /// the identity prevents any of that from being observable over the wire.
     obfuscation_key: Arc<ObfuscationKey>,
     /// The current Psk being set on all new connections.
     ///
