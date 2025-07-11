@@ -118,7 +118,7 @@ impl DecodeValue for PskIdentity {
 }
 
 impl PskIdentity {
-    /// Create a KmsTlsPskIdentity
+    /// Create a PskIdentity
     ///
     /// * `ciphertext_data_key`: The ciphertext returned from the KMS generateDataKey
     ///   API.
