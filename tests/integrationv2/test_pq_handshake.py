@@ -31,6 +31,7 @@ KEM_GROUPS = [
     KemGroups.P256_KYBER512R3,
     KemGroups.P384_KYBER768R3,
     KemGroups.P521_KYBER1024R3,
+    KemGroups.P384_MLKEM1024,
 ]
 
 EXPECTED_RESULTS = {
@@ -71,6 +72,10 @@ EXPECTED_RESULTS = {
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_TLS_1_0_2018_10): {
         "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
         "kem_group": None,
+    },
+    (Ciphers.PQ_TLS_1_3_2023_06_01, KemGroups.P384_MLKEM1024): {
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "kem_group": "secp384r1_mlkem-1024",
     },
 }
 

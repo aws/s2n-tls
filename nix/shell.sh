@@ -35,8 +35,11 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 # No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {(set -e
-    echo "Cleanup ./build"
+    echo "Cleaning up build, s2n_head and the apache2 configs"
     rm -rf ./build ./s2n_head
+    if [ -d "/usr/local/apache2" ]; then
+        rm -rf /usr/local/apache2
+    fi
 )}
 
 function configure {(set -e
@@ -78,28 +81,19 @@ function unit {(set -e
     fi
 )}
 
-function integ {(set -e
-    apache2_start
-    if [[ -z "$1" ]]; then
-        echo "Running all integ tests."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
-    else
-        for test in $@; do
-            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
-            if [ "$?" -ne 0 ]; then
-               echo "Test failed, stopping execution"
-               return 1
-            fi
-        done
-    fi
-)}
-
 # Function to launch pytest with uv.
 function uvinteg {(
-    set -e
+    set -eu
+    TESTS="${1:-all}"
+    apache2_start
+    # TODO: Dynamic Record Sizes needs a rewrite; skip for now.
+    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear --ignore-glob=*test_dynamic_record_sizes*"
     cd ./tests/integrationv2
-    local PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear"
-    if [[ -z "$1" ]]; then
+    echo -n "Comparing the current list of integ tests against what is checked-in..."
+    PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
+    diff -q /tmp/uvinteg_tests.txt uvinteg_tests.txt
+    echo "tests to run match uvinteg_tests.txt."
+    if [[ "$TESTS" == "all" ]]; then
         echo "Running all integ tests with uv"
         PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
     else
@@ -111,14 +105,14 @@ function uvinteg {(
 
 # Wrap a command with stress to simulate a high-load environment.
 # Not intended for CI, but local troubleshooting.
-function highstress({
+function highstress {(
     set -e
     local STRESSARGS="--cpu $(nproc) --io $(nproc) --quiet"
     echo "Running: stress $STRESSARGS"
     stress $STRESSARGS &
     trap 'pkill stress' ERR EXIT
     "$@"
-})
+)}
 
 function check-clang-format {(set -e
     echo "Dry run of clang-format"

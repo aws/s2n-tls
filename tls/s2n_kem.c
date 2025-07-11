@@ -135,7 +135,7 @@ const struct s2n_kem_group s2n_x25519_mlkem_768 = {
 };
 
 const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
-    .name = "P384MLKEM1024",
+    .name = "SecP384r1MLKEM1024",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_MLKEM_1024,
     .curve = &s2n_ecc_curve_secp384r1,
     .kem = &s2n_mlkem_1024,
