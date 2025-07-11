@@ -475,9 +475,9 @@ mod tests {
             let app_error = error.application_error().unwrap();
             let _custom_error = app_error.downcast_ref::<CustomError>().unwrap();
 
-            let display = format!("{}", error);
+            let display = format!("{error}");
             assert_eq!(display, "custom error");
-            let debug = format!("{:?}", error);
+            let debug = format!("{error:?}");
             assert_eq!(debug, "CustomError");
         }
 

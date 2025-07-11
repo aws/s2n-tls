@@ -39,7 +39,7 @@ mod tests {
         println!("All pcaps: ");
         let paths: HashSet<String> = pcaps
             .map(|file_str| {
-                println!("{}", file_str);
+                println!("{file_str}");
                 let (path, _file) = file_str.rsplit_once("/").expect("No path");
                 path.to_owned()
             })

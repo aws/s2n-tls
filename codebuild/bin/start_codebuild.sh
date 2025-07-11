@@ -39,14 +39,12 @@ usage() {
 
 if [ "$#" -lt "1" ]; then
     usage
-    # Return instead of exit so we can `source` this script
-    # in order to get access to BUILDS.
-    return 1
+    exit 1
 fi
 SOURCE_VERSION=$1
 REPO=${2:-aws/s2n-tls}
 
-add_command() {
+start_build() {
     NAME=$1
     REGION=${2:-"us-west-2"}
     BATCH=${3:-"batch"}
@@ -55,29 +53,13 @@ add_command() {
     if [ "$BATCH" = "no-batch" ]; then
         START_COMMAND="start-build"
     fi
-    COMMANDS+=("aws --region $REGION codebuild $START_COMMAND --project-name $NAME
-        --source-location-override https://github.com/$REPO
-        --source-version $SOURCE_VERSION")
+    aws --region $REGION codebuild $START_COMMAND \
+        --project-name $NAME \
+        --source-location-override https://github.com/$REPO \
+        --source-version $SOURCE_VERSION | jq -re "(.buildBatch.id // .build.id)"
 }
 
 for args in "${BUILDS[@]}"; do
-    add_command $args
+    start_build $args
 done
-
-echo "Builds:"
-for command in "${COMMANDS[@]}"; do
-    echo "$command"
-done
-
-select yn in "Start ${#COMMANDS[@]} builds" "Exit"; do
-    case $REPLY in
-        "1" ) echo "Starting builds..."; break;;
-        "2" ) echo "No builds started."; exit;;
-    esac
-done
-
-for command in "${COMMANDS[@]}"; do
-    $command | grep '"id":'
-done
-
-echo "All builds successfully launched."
+echo "All builds successfully started."

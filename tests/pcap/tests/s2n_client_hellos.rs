@@ -11,7 +11,7 @@ use s2n_tls::fingerprint;
 fn get_s2n_hello(pcap_hello: &PcapHello) -> Result<Box<S2NHello>> {
     let bytes = pcap_hello.message().bytes();
     let r = S2NHello::parse_client_hello(&bytes);
-    println!("Result: {:?}", r);
+    println!("Result: {r:?}");
     Ok(r?)
 }
 

@@ -1,0 +1,63 @@
+name: aws kms tls auth ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+jobs:
+  lint:
+    name: rustfmt and clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bindings/rust/aws-kms-tls-auth
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy -- -D warnings
+
+  build-and-test:
+    name: build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bindings/rust/aws-kms-tls-auth
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+      
+      - run: cargo build
+      - run: cargo test
+
+  fuzz:
+    name: fuzz tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bindings/rust/aws-kms-tls-auth/fuzz
+    steps:
+      - uses: actions/checkout@v4
+
+      # the nightly toolchain is needed for ASAN, which is turned on for fuzz tests
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install nightly
+          rustup override set nightly
+      
+      - run: cargo install cargo-fuzz
+
+      - name: run psk-identities fuzzer
+        run: cargo fuzz run psk_client_hello -- -max_total_time=30

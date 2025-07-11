@@ -120,7 +120,7 @@ impl HandshakeMessage {
     fn from_packet(packet: Packet, tcp_packets: &HashMap<PacketId, Packet>) -> Result<Self> {
         let packet_id = packet.id();
         Self::parse_fields(packet, tcp_packets)
-            .with_context(|| format!("Failed to parse frame {}", packet_id))
+            .with_context(|| format!("Failed to parse frame {packet_id}"))
     }
 
     pub fn builder() -> Builder {

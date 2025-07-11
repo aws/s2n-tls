@@ -1,0 +1,38 @@
+---
+name: Codebuild
+
+on:
+  push:
+    branches: [main]
+  pull_request_target:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      event_name: ${{ github.event_name }}
+      source_pr: pr/${{ github.event.pull_request.number }}
+      source_sha: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get credentials
+        uses: aws-actions/configure-aws-credentials@v4.2.1
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}
+          aws-region: us-west-2
+      - name: Start Codebuild
+        run: |
+          if [[ "$event_name" == "pull_request_target" ]]; then
+            source=$source_pr
+          else
+            source=$source_sha
+          fi
+          ./codebuild/bin/start_codebuild.sh $source
