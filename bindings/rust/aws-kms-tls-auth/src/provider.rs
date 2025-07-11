@@ -26,7 +26,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct PskProvider {
     /// The KMS client
-    client: Client,
+    kms_client: Client,
     /// The KMS key arn that will be used to generate the datakey which are
     /// used as TLS Psk's.
     kms_key_arn: Arc<KeyArn>,
@@ -54,7 +54,7 @@ impl PskProvider {
         let psk = Self::generate_psk(&client, &key, &obfuscation_key).await?;
 
         let value = Self {
-            client: client.clone(),
+            kms_client: client.clone(),
             kms_key_arn: Arc::new(key),
             obfuscation_key: Arc::new(obfuscation_key),
             psk: Arc::new(RwLock::new(psk)),
@@ -90,8 +90,8 @@ impl PskProvider {
         }
     }
 
-    pub async fn rotate_key(&self, previous_update: Instant) {
-        match Self::generate_psk(&self.client, &self.kms_key_arn, &self.obfuscation_key).await {
+    async fn rotate_key(&self, previous_update: Instant) {
+        match Self::generate_psk(&self.kms_client, &self.kms_key_arn, &self.obfuscation_key).await {
             Ok(psk) => {
                 *self.psk.write().unwrap() = psk;
                 *self.last_update.write().unwrap() = Some(Instant::now());

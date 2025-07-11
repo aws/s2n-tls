@@ -17,10 +17,10 @@ use s2n_tls::{
 };
 use std::{future::Future, pin::Pin, sync::Arc, task::Poll};
 
-/// DecryptFuture wraps a future from the SDK into a format the s2n-tls understands
+/// DecryptFuture wraps a future from the SDK into a format that s2n-tls understands
 /// and can poll.
 ///
-/// Specifically, it implement ConnectionFuture for the interior future type.
+/// Specifically, it implements ConnectionFuture for the interior future type.
 #[pin_project]
 struct DecryptFuture<F> {
     #[pin]
@@ -65,7 +65,7 @@ where
 ///
 /// This struct can be enabled on a config with [`s2n_tls::config::Builder::set_client_hello_callback`].
 pub struct PskReceiver {
-    client: Client,
+    kms_client: Client,
     obfuscation_keys: Vec<ObfuscationKey>,
     trusted_key_arns: Arc<Vec<KeyArn>>,
     /// The key_cache maps from the ciphertext datakey to the plaintext datakey.
@@ -81,10 +81,10 @@ impl PskReceiver {
     /// then decrypt them using KMS. This establishes a mutually authenticated TLS
     /// handshake between parties with IAM permissions to generate and decrypt data keys
     ///
-    /// * `client`: The KMS Client that will be used for the decrypt calls
+    /// * `kms_client`: The KMS Client that will be used for the decrypt calls
     /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
     ///                       identities. The client `PskProvider` must be using
-    ///                       one of the obfuscation keys in this list. If the KmsPskReciever
+    ///                       one of the obfuscation keys in this list. If the PskReceiver
     ///                       receives a Psk identity obfuscated using a key _not_
     ///                       on this list, then the handshake will fail.
     /// * `trusted_key_arns`: The list of KMS KeyArns that the PskReceiver will
@@ -102,7 +102,7 @@ impl PskReceiver {
             .time_to_live(KEY_ROTATION_PERIOD * 2)
             .build();
         Self {
-            client,
+            kms_client: client,
             trusted_key_arns: Arc::new(trusted_key_arns),
             obfuscation_keys,
             key_cache,
@@ -178,7 +178,7 @@ impl ClientHelloCallback for PskReceiver {
             }
         };
 
-        // parse the identity bytes to a KmsTlsPskIdentity
+        // parse the identity bytes to a PskIdentity
         let identity = PskIdentity::decode_from_exact(psk_identity)
             .map_err(|e| s2n_tls::error::Error::application(e.into()))?;
 
@@ -198,7 +198,7 @@ impl ClientHelloCallback for PskReceiver {
             let future = Self::kms_decrypt_and_update(
                 psk_identity.to_vec(),
                 ciphertext_datakey,
-                self.client.clone(),
+                self.kms_client.clone(),
                 self.trusted_key_arns.clone(),
                 self.key_cache.clone(),
             );
