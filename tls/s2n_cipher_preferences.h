@@ -50,7 +50,6 @@ extern const struct s2n_cipher_preferences cipher_preferences_20190801;
 extern const struct s2n_cipher_preferences cipher_preferences_20190120;
 extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190122;
-extern const struct s2n_cipher_preferences cipher_preferences_rfc9151;
 extern const struct s2n_cipher_preferences cipher_preferences_20210816;
 extern const struct s2n_cipher_preferences cipher_preferences_20210816_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20210825;
@@ -63,6 +62,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20241008;
 extern const struct s2n_cipher_preferences cipher_preferences_20241008_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20241009;
 extern const struct s2n_cipher_preferences cipher_preferences_20250211;
+extern const struct s2n_cipher_preferences cipher_preferences_20250429;
 
 extern const struct s2n_cipher_preferences cipher_preferences_default_fips;
 
