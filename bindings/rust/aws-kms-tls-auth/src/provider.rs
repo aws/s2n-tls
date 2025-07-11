@@ -140,7 +140,7 @@ impl ConnectionInitializer for PskProvider {
         connection: &mut s2n_tls::connection::Connection,
     ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, s2n_tls::error::Error> {
         let psk = self.psk.read().unwrap();
-        connection.append_psk(&psk).unwrap();
+        connection.append_psk(&psk)?;
         self.maybe_trigger_key_update();
         Ok(None)
     }

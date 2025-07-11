@@ -87,7 +87,7 @@ impl PskReceiver {
     ///                       one of the obfuscation keys in this list. If the KmsPskReciever
     ///                       receives a Psk identity obfuscated using a key _not_
     ///                       on this list, then the handshake will fail.
-    /// * `trusted_key_arns`: The list of KMS KeyIds that the PskReceiver will
+    /// * `trusted_key_arns`: The list of KMS KeyArns that the PskReceiver will
     ///                      accept PSKs from. This is necessary because an attacker
     ///                      could grant the server decrypt permissions on AttackerKeyArn,
     ///                      but the PskReceiver should _not_ trust any Psk's
@@ -179,13 +179,8 @@ impl ClientHelloCallback for PskReceiver {
         };
 
         // parse the identity bytes to a KmsTlsPskIdentity
-        let (identity, remaining) = PskIdentity::decode_from(psk_identity)
+        let identity = PskIdentity::decode_from_exact(psk_identity)
             .map_err(|e| s2n_tls::error::Error::application(e.into()))?;
-        if !remaining.is_empty() {
-            return Err(s2n_tls::error::Error::application(
-                "invalid psk identity".into(),
-            ));
-        }
 
         // deobfuscate the identity to get the ciphertext datakey
         let ciphertext_datakey = identity
