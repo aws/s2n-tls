@@ -25,8 +25,10 @@ static_assertions = "1.1.0"
 
 [dev-dependencies]
 s2n-tls-tokio = { version = "0.3.16" }
-s2n-tls = { version = "0.3.16", features = ["unstable-testing"]}
 aws-sdk-kms = {version = "1.76.0", features = ["test-util"]}
 aws-smithy-mocks = "0.1.1"
 tracing-subscriber = "0.3.19"
 rcgen = "0.14.1"
+
+s2n-tls = { version = "0.3.16", features = ["unstable-testing"]}
+tokio = {version = "1.45.1", features = ["rt", "macros", "test-util"]}

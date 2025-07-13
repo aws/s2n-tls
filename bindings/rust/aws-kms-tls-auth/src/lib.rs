@@ -81,10 +81,11 @@ pub use psk_parser::PresharedKeyClientHello;
 
 const MAXIMUM_KEY_CACHE_SIZE: usize = 100_000;
 const PSK_SIZE: usize = 32;
-const AES_256_GCM_KEY_LEN: usize = 32;
-const AES_256_GCM_NONCE_LEN: usize = 12;
+const AES_256_GCM_SIV_KEY_LEN: usize = 32;
+const AES_256_GCM_SIV_NONCE_LEN: usize = 12;
 /// The key is automatically rotated every period. Currently 24 hours.
 const KEY_ROTATION_PERIOD: Duration = Duration::from_secs(3_600 * 24);
+const PSK_IDENTITY_VALIDITY: Duration = Duration::from_secs(60);
 
 fn psk_from_material(identity: &[u8], secret: &[u8]) -> Result<s2n_tls::psk::Psk, S2NError> {
     let mut psk = s2n_tls::psk::Psk::builder()?;
@@ -96,19 +97,18 @@ fn psk_from_material(identity: &[u8], secret: &[u8]) -> Result<s2n_tls::psk::Psk
 
 #[cfg(test)]
 mod tests {
-    use crate::{AES_256_GCM_KEY_LEN, AES_256_GCM_NONCE_LEN};
-    use aws_lc_rs::aead::AES_256_GCM;
+    use crate::{AES_256_GCM_SIV_KEY_LEN, AES_256_GCM_SIV_NONCE_LEN};
+    use aws_lc_rs::aead::AES_256_GCM_SIV;
 
     /// `key_len()` and `nonce_len()` aren't const functions, so we define
     /// our own constants to let us use those values in things like array sizes.
     #[test]
     fn constant_check() {
-        assert_eq!(AES_256_GCM_KEY_LEN, AES_256_GCM.key_len());
-        assert_eq!(AES_256_GCM_NONCE_LEN, AES_256_GCM.nonce_len());
+        assert_eq!(AES_256_GCM_SIV_KEY_LEN, AES_256_GCM_SIV.key_len());
+        assert_eq!(AES_256_GCM_SIV_NONCE_LEN, AES_256_GCM_SIV.nonce_len());
     }
 }
 
-#[cfg(feature = "test-network")]
 #[cfg(test)]
 mod integration_tests {
     use super::*;
@@ -170,10 +170,14 @@ mod integration_tests {
         let client = test_kms_client().await;
         let key_arn = get_kms_key(&client).await;
 
-        let client_psk_provider =
-            PskProvider::initialize(client.clone(), key_arn.clone(), obfuscation_key.clone())
-                .await
-                .unwrap();
+        let client_psk_provider = PskProvider::initialize(
+            client.clone(),
+            key_arn.clone(),
+            obfuscation_key.clone(),
+            |_| {},
+        )
+        .await
+        .unwrap();
 
         let server_psk_receiver =
             PskReceiver::new(client.clone(), vec![key_arn], vec![obfuscation_key]);

@@ -82,16 +82,16 @@ impl PskReceiver {
     /// handshake between parties with IAM permissions to generate and decrypt data keys
     ///
     /// * `kms_client`: The KMS Client that will be used for the decrypt calls
+    /// 
     /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
-    ///                       identities. The client `PskProvider` must be using
-    ///                       one of the obfuscation keys in this list. If the PskReceiver
-    ///                       receives a Psk identity obfuscated using a key _not_
-    ///                       on this list, then the handshake will fail.
+    ///   identities. The client `PskProvider` must be using one of the obfuscation
+    ///   keys in this list. If the PskReceiver receives a Psk identity obfuscated
+    ///   using a key _not_ on this list, then the handshake will fail.
+    /// 
     /// * `trusted_key_arns`: The list of KMS KeyArns that the PskReceiver will
-    ///                      accept PSKs from. This is necessary because an attacker
-    ///                      could grant the server decrypt permissions on AttackerKeyArn,
-    ///                      but the PskReceiver should _not_ trust any Psk's
-    ///                      from AttackerKeyArn.
+    ///   accept PSKs from. This is necessary because an attacker could grant the 
+    ///   server decrypt permissions on AttackerKeyArn, but the PskReceiver should
+    ///   _not_ trust any Psk's from AttackerKeyArn.
     pub fn new(
         client: Client,
         trusted_key_arns: Vec<KeyArn>,
@@ -99,7 +99,7 @@ impl PskReceiver {
     ) -> Self {
         let key_cache = moka::sync::Cache::builder()
             .max_capacity(MAXIMUM_KEY_CACHE_SIZE as u64)
-            .time_to_live(KEY_ROTATION_PERIOD * 2)
+            .time_to_idle(KEY_ROTATION_PERIOD)
             .build();
         Self {
             kms_client: client,
@@ -213,7 +213,8 @@ mod tests {
     use crate::{
         test_utils::{
             configs_from_callbacks, decrypt_mocks, gdk_mocks, handshake, test_psk_provider,
-            CIPHERTEXT_DATAKEY, KMS_KEY_ARN, OBFUSCATION_KEY, PLAINTEXT_DATAKEY,
+            CIPHERTEXT_DATAKEY_A, CONSTANT_OBFUSCATION_KEY, KMS_KEY_ARN, OBFUSCATION_KEY,
+            PLAINTEXT_DATAKEY_A,
         },
         PskProvider,
     };
@@ -222,6 +223,7 @@ mod tests {
     use aws_sdk_kms::{operation::decrypt::DecryptError, types::error::InvalidKeyUsageException};
     // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/testing-smithy-mocks.html
     use aws_smithy_mocks::{mock, mock_client};
+    use s2n_tls::config::ConnectionInitializer;
 
     /// When a new identity isn't in the cache, we
     /// 1. call KMS to decrypt it
@@ -247,8 +249,8 @@ mod tests {
         handshake(&client_config, &server_config).await.unwrap();
         assert_eq!(decrypt_rule.num_calls(), 1);
         assert_eq!(
-            cache_handle.get(CIPHERTEXT_DATAKEY).unwrap().as_slice(),
-            PLAINTEXT_DATAKEY
+            cache_handle.get(CIPHERTEXT_DATAKEY_A).unwrap().as_slice(),
+            PLAINTEXT_DATAKEY_A
         );
 
         // no additional decrypt calls, the cached key was used
@@ -272,7 +274,6 @@ mod tests {
         let (client_config, server_config) = configs_from_callbacks(psk_provider, psk_receiver);
 
         let err = handshake(&client_config, &server_config).await.unwrap_err();
-        println!("{err}");
         assert!(err.to_string().contains("untrusted KMS Key: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab is not trusted"));
     }
 
@@ -306,10 +307,14 @@ mod tests {
         let (_gdk_rule, gdk_client) = gdk_mocks();
 
         let obfuscation_key = ObfuscationKey::random_test_key();
-        let psk_provider =
-            PskProvider::initialize(gdk_client, KMS_KEY_ARN.to_string(), obfuscation_key.clone())
-                .await
-                .unwrap();
+        let psk_provider = PskProvider::initialize(
+            gdk_client,
+            KMS_KEY_ARN.to_string(),
+            obfuscation_key.clone(),
+            |_| {},
+        )
+        .await
+        .unwrap();
 
         let psk_receiver = PskReceiver::new(
             decrypt_client,
@@ -354,5 +359,38 @@ mod tests {
 
         let decrypt_error = handshake(&client_config, &server_config).await.unwrap_err();
         assert!(decrypt_error.to_string().contains("service error"));
+    }
+
+    /// When an old PskIdentity is received, the handshake should fail, and no
+    /// decrypt calls should be made.
+    #[tokio::test]
+    async fn receiver_rejects_old_identity() {
+        const OLD_IDENTITY: &[u8] = include_bytes!("../resources/psk_identity.bin");
+        struct OldIdentityInitializer;
+        impl ConnectionInitializer for OldIdentityInitializer {
+            fn initialize_connection(
+                &self,
+                connection: &mut s2n_tls::connection::Connection,
+            ) -> Result<Option<Pin<Box<(dyn ConnectionFuture)>>>, s2n_tls::error::Error>
+            {
+                let psk =
+                    psk_from_material(OLD_IDENTITY, b"doesn't matter, should fail before using")?;
+                connection.append_psk(&psk)?;
+                Ok(None)
+            }
+        }
+
+        let (decrypt_rule, decrypt_client) = decrypt_mocks();
+        let psk_receiver = PskReceiver::new(
+            decrypt_client,
+            vec![KMS_KEY_ARN.to_owned()],
+            vec![CONSTANT_OBFUSCATION_KEY.clone()],
+        );
+
+        let (client_config, server_config) =
+            configs_from_callbacks(OldIdentityInitializer, psk_receiver);
+        let too_old_error = handshake(&client_config, &server_config).await.unwrap_err();
+        assert_eq!(decrypt_rule.num_calls(), 0);
+        assert!(too_old_error.to_string().contains("Too Old"));
     }
 }
