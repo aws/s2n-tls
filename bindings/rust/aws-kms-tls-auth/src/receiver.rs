@@ -212,6 +212,7 @@ impl ClientHelloCallback for PskReceiver {
 #[cfg(test)]
 mod tests {
     use crate::{
+        identity::PskVersion,
         test_utils::{
             configs_from_callbacks, decrypt_mocks, gdk_mocks, handshake, test_psk_provider,
             CIPHERTEXT_DATAKEY_A, CONSTANT_OBFUSCATION_KEY, KMS_KEY_ARN, OBFUSCATION_KEY,
@@ -309,6 +310,7 @@ mod tests {
 
         let obfuscation_key = ObfuscationKey::random_test_key();
         let psk_provider = PskProvider::initialize(
+            PskVersion::V1,
             gdk_client,
             KMS_KEY_ARN.to_string(),
             obfuscation_key.clone(),

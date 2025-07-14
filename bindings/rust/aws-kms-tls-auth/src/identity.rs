@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(u8)]
-enum PskVersion {
+pub enum PskVersion {
     V1 = 1,
 }
 

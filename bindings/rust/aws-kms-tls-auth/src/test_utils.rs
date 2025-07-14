@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::identity::PskVersion;
 use crate::{identity::ObfuscationKey, receiver::PskReceiver, PskProvider};
 use crate::{S2NError, AES_256_GCM_SIV_KEY_LEN};
 use aws_sdk_kms::{
@@ -94,6 +95,7 @@ pub fn gdk_mocks() -> (Rule, Client) {
 pub async fn test_psk_provider() -> PskProvider {
     let (_gdk_rule, gdk_client) = gdk_mocks();
     PskProvider::initialize(
+        PskVersion::V1,
         gdk_client,
         KMS_KEY_ARN.to_string(),
         OBFUSCATION_KEY.clone(),

@@ -3,7 +3,7 @@
 
 use crate::{
     codec::EncodeValue,
-    identity::{KmsDataKey, ObfuscationKey, PskIdentity},
+    identity::{KmsDataKey, ObfuscationKey, PskIdentity, PskVersion},
     psk_from_material, KeyArn, KEY_ROTATION_PERIOD, PSK_SIZE,
 };
 use aws_sdk_kms::Client;
@@ -26,6 +26,9 @@ use tokio::time::Instant;
 /// to ensure visibility into these failures.
 #[derive(Clone)]
 pub struct PskProvider {
+    /// The version of PSK identities sent on the wire. Currently this is unused
+    /// because there is only a single version.
+    _psk_version: PskVersion,
     /// The KMS client
     kms_client: Client,
     /// The KMS key arn that will be used to generate the datakey which are
@@ -48,6 +51,10 @@ pub struct PskProvider {
 impl PskProvider {
     /// Initialize a `PskProvider`.
     ///
+    /// * `psk_version`: The PSK version that the PSK provider will use.
+    ///   Versions are backwards compatible but will not necessarily be forwards
+    ///   compatible. For further information see the "Versioning" section in the
+    ///   main module documentation.
     /// * `kms_client`: The KMS client that will be used to make generateDataKey calls.
     /// * `key`: The KeyArn which will be used in the API calls
     /// * `obfuscation_key`: The key used to obfuscate any ciphertext details over the wire.
@@ -71,6 +78,7 @@ impl PskProvider {
     /// });
     /// ```
     pub async fn initialize(
+        psk_version: PskVersion,
         kms_client: Client,
         key: KeyArn,
         obfuscation_key: ObfuscationKey,
@@ -79,6 +87,7 @@ impl PskProvider {
         let datakey = Self::generate_psk(&kms_client, &key).await?;
 
         let value = Self {
+            _psk_version: psk_version,
             kms_client: kms_client.clone(),
             kms_key_arn: Arc::new(key),
             obfuscation_key: Arc::new(obfuscation_key),
@@ -226,6 +235,7 @@ mod tests {
         let gdk_client = mock_client!(aws_sdk_kms, [&gdk_rule]);
 
         let psk_provider = PskProvider::initialize(
+            PskVersion::V1,
             gdk_client,
             KMS_KEY_ARN.to_string(),
             OBFUSCATION_KEY.clone(),
@@ -283,6 +293,7 @@ mod tests {
             let error_count = Arc::new(AtomicU64::default());
             let error_handle = Arc::clone(&error_count);
             let psk_provider = PskProvider::initialize(
+                PskVersion::V1,
                 gdk_client,
                 KMS_KEY_ARN.to_string(),
                 OBFUSCATION_KEY.clone(),
