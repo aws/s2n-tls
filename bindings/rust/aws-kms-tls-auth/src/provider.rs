@@ -33,7 +33,7 @@ pub struct PskProvider {
     kms_key_arn: Arc<KeyArn>,
     /// The key used to obfuscate the ciphertext datakey from KMS.
     obfuscation_key: Arc<ObfuscationKey>,
-    /// The current Psk being set on all new connections.
+    /// The current datakey being used to create the PSKs on new connections.
     ///
     /// The lock is necessary because this is updated every 24 hours by the
     /// background updater.
@@ -76,13 +76,13 @@ impl PskProvider {
         obfuscation_key: ObfuscationKey,
         failure_notification: impl Fn(anyhow::Error) + Send + Sync + 'static,
     ) -> anyhow::Result<Self> {
-        let psk = Self::generate_psk(&kms_client, &key).await?;
+        let datakey = Self::generate_psk(&kms_client, &key).await?;
 
         let value = Self {
             kms_client: kms_client.clone(),
             kms_key_arn: Arc::new(key),
             obfuscation_key: Arc::new(obfuscation_key),
-            datakey: Arc::new(RwLock::new(psk)),
+            datakey: Arc::new(RwLock::new(datakey)),
             last_update_attempt: Arc::new(RwLock::new(Some(Instant::now()))),
             failure_notification: Arc::new(failure_notification),
         };

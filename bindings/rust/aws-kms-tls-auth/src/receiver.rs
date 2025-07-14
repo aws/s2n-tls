@@ -82,14 +82,14 @@ impl PskReceiver {
     /// handshake between parties with IAM permissions to generate and decrypt data keys
     ///
     /// * `kms_client`: The KMS Client that will be used for the decrypt calls
-    /// 
+    ///
     /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
     ///   identities. The client `PskProvider` must be using one of the obfuscation
     ///   keys in this list. If the PskReceiver receives a Psk identity obfuscated
     ///   using a key _not_ on this list, then the handshake will fail.
-    /// 
+    ///
     /// * `trusted_key_arns`: The list of KMS KeyArns that the PskReceiver will
-    ///   accept PSKs from. This is necessary because an attacker could grant the 
+    ///   accept PSKs from. This is necessary because an attacker could grant the
     ///   server decrypt permissions on AttackerKeyArn, but the PskReceiver should
     ///   _not_ trust any Psk's from AttackerKeyArn.
     pub fn new(
