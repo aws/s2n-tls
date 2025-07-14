@@ -83,17 +83,17 @@ impl PskReceiver {
     ///
     /// * `kms_client`: The KMS Client that will be used for the decrypt calls
     ///
-    /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
-    ///   identities. The client `PskProvider` must be using one of the obfuscation
-    ///   keys in this list. If the PskReceiver receives a Psk identity obfuscated
-    ///   using a key _not_ on this list, then the handshake will fail.
-    ///
     /// * `trusted_key_arns`: The list of KMS KeyArns that the PskReceiver will
     ///   accept PSKs from. This is necessary because an attacker could grant the
     ///   server decrypt permissions on AttackerKeyArn, but the PskReceiver should
     ///   _not_ trust any Psk's from AttackerKeyArn.
+    /// 
+    /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
+    ///   identities. The client `PskProvider` must be using one of the obfuscation
+    ///   keys in this list. If the PskReceiver receives a Psk identity obfuscated
+    ///   using a key _not_ on this list, then the handshake will fail.
     pub fn new(
-        client: Client,
+        kms_client: Client,
         trusted_key_arns: Vec<KeyArn>,
         obfuscation_keys: Vec<ObfuscationKey>,
     ) -> Self {
@@ -102,7 +102,7 @@ impl PskReceiver {
             .time_to_idle(KEY_ROTATION_PERIOD)
             .build();
         Self {
-            kms_client: client,
+            kms_client,
             trusted_key_arns: Arc::new(trusted_key_arns),
             obfuscation_keys,
             key_cache,

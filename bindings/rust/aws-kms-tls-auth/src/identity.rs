@@ -105,7 +105,7 @@ pub(crate) struct PskIdentity {
     obfuscated_fields: PrefixedBlob<u32>,
 }
 
-pub(crate) struct ObfuscatedIdentityFields {
+struct ObfuscatedIdentityFields {
     seconds_since_epoch: u64,
     ciphertext_datakey: PrefixedBlob<u32>,
 }
