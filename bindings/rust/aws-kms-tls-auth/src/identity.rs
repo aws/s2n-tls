@@ -41,12 +41,6 @@ impl DecodeValue for PskVersion {
 }
 
 #[derive(Debug, Clone)]
-pub struct KmsDatakey {
-    pub ciphertext: Vec<u8>,
-    pub plaintext: Vec<u8>,
-}
-
-#[derive(Debug, Clone)]
 pub struct ObfuscationKey {
     name: Vec<u8>,
     material: Vec<u8>,
@@ -68,7 +62,6 @@ impl ObfuscationKey {
         if material.iter().all(|b| *b == 0) {
             anyhow::bail!("material can not be all zeros");
         }
-
         Ok(ObfuscationKey { name, material })
     }
 
@@ -90,8 +83,7 @@ impl ObfuscationKey {
         }
     }
 
-    // While this could be a member of the
-    fn aes_256_gcm_siv_key(&self) -> anyhow::Result<LessSafeKey> {
+    fn aes_256_key(&self) -> anyhow::Result<LessSafeKey> {
         Ok(LessSafeKey::new(UnboundKey::new(
             &AES_256_GCM_SIV,
             &self.material,
@@ -99,6 +91,7 @@ impl ObfuscationKey {
     }
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct KmsDataKey {
     pub ciphertext: Vec<u8>,
     pub plaintext: Vec<u8>,
@@ -235,7 +228,7 @@ impl ObfuscatedIdentityFields {
     ) -> anyhow::Result<(Vec<u8>, [u8; AES_256_GCM_SIV_NONCE_LEN])> {
         let mut in_out = self.encode_to_vec()?;
 
-        let key = obfuscation_key.aes_256_gcm_siv_key()?;
+        let key = obfuscation_key.aes_256_key()?;
         let nonce_bytes = Self::random_nonce()?;
         key.seal_in_place_append_tag(
             Nonce::assume_unique_for_key(nonce_bytes),
@@ -253,7 +246,7 @@ impl ObfuscatedIdentityFields {
     ) -> anyhow::Result<Self> {
         let mut in_out = obfuscated_blob.to_vec();
 
-        let key = obfuscation_key.aes_256_gcm_siv_key()?;
+        let key = obfuscation_key.aes_256_key()?;
         let decrypted_length = key
             .open_in_place(Nonce::from(nonce), Aad::empty(), &mut in_out)?
             .len();

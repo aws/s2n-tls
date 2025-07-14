@@ -168,7 +168,8 @@ impl ClientHelloCallback for PskReceiver {
             }
         };
 
-        // extract the identity bytes
+        // extract the identity bytes from the first PSK entry. We assume that we
+        // are talking to a PskProvider, so we don't look at any additional entries.
         let psk_identity = match identities.list().first() {
             Some(id) => id.identity.blob(),
             None => {

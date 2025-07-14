@@ -3,7 +3,7 @@
 
 use crate::{
     codec::EncodeValue,
-    identity::{KmsDatakey, ObfuscationKey, PskIdentity},
+    identity::{KmsDataKey, ObfuscationKey, PskIdentity},
     psk_from_material, KeyArn, KEY_ROTATION_PERIOD, PSK_SIZE,
 };
 use aws_sdk_kms::Client;
@@ -37,7 +37,7 @@ pub struct PskProvider {
     ///
     /// The lock is necessary because this is updated every 24 hours by the
     /// background updater.
-    datakey: Arc<RwLock<KmsDatakey>>,
+    datakey: Arc<RwLock<KmsDataKey>>,
     /// The last time we attempted a key update.
     ///
     /// If `None`, then a key update is in progress.
@@ -131,7 +131,7 @@ impl PskProvider {
     // This method accepts owned arguments instead of `&self` so that the same
     // code can be used in the constructor as well as the background updater.
     /// Call the KMS `generate datakey` API to gather materials to be used as a TLS PSK.
-    async fn generate_psk(client: &Client, key: &KeyArn) -> anyhow::Result<KmsDatakey> {
+    async fn generate_psk(client: &Client, key: &KeyArn) -> anyhow::Result<KmsDataKey> {
         let data_key = client
             .generate_data_key()
             .key_id(key.clone())
@@ -140,7 +140,7 @@ impl PskProvider {
             .await?;
 
         match (data_key.plaintext, data_key.ciphertext_blob) {
-            (Some(plaintext), Some(ciphertext)) => Ok(KmsDatakey {
+            (Some(plaintext), Some(ciphertext)) => Ok(KmsDataKey {
                 ciphertext: ciphertext.into_inner(),
                 plaintext: plaintext.into_inner(),
             }),

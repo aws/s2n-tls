@@ -85,6 +85,10 @@ const AES_256_GCM_SIV_KEY_LEN: usize = 32;
 const AES_256_GCM_SIV_NONCE_LEN: usize = 12;
 /// The key is automatically rotated every period. Currently 24 hours.
 const KEY_ROTATION_PERIOD: Duration = Duration::from_secs(3_600 * 24);
+/// The maximum allowed age of a PSK identity.
+/// 
+/// PSK identities include their creation time. The server will reject the PSK 
+/// identity and fail the handshake if the PSK identity is older than this value.
 const PSK_IDENTITY_VALIDITY: Duration = Duration::from_secs(60);
 
 fn psk_from_material(identity: &[u8], secret: &[u8]) -> Result<s2n_tls::psk::Psk, S2NError> {
