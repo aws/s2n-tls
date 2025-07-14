@@ -17,10 +17,10 @@ We start with
     - `server-iam-role` must have `kms:Decrypt` permissions on the key
 
 ### 1: client psk generation
-When the `PskProvider` is initialized, the client will call will call the KMS generateDataKey api. This returns both a plaintext data key and a ciphertext datakey. The client will create a PSK using the ciphertext datakey as the PSK identity, and the plaintext datakey as the PSK secret.
+When the `PskProvider` is initialized, the client will call the KMS generateDataKey api. This returns both a plaintext data key and a ciphertext datakey. The client will create a PSK using the ciphertext datakey as the PSK identity, and the plaintext datakey as the PSK secret.
 
 ### 2: server psk decrypt
-The client sends the PSK to the server, which give it access to the PSK identity (ciphertext datakey). The server then decrypts the ciphertext datakey using KMS, getting back the plaintext datakey which is the actual PSK secret.
+The client sends the PSK to the server, which gives it access to the PSK identity (ciphertext datakey). The server then decrypts the ciphertext datakey using KMS, getting back the plaintext datakey which is the actual PSK secret.
 
 At this point the handshake can complete. This results in an mTLS connection between the `client-iam-role` and `server-iam-role`.
 
