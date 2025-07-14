@@ -84,7 +84,7 @@ impl PskProvider {
         obfuscation_key: ObfuscationKey,
         failure_notification: impl Fn(anyhow::Error) + Send + Sync + 'static,
     ) -> anyhow::Result<Self> {
-        let datakey = Self::generate_psk(&kms_client, &key).await?;
+        let datakey = Self::generate_datakey(&kms_client, &key).await?;
 
         let value = Self {
             _psk_version: psk_version,
@@ -126,7 +126,7 @@ impl PskProvider {
     }
 
     async fn rotate_key(&self) {
-        match Self::generate_psk(&self.kms_client, &self.kms_key_arn).await {
+        match Self::generate_datakey(&self.kms_client, &self.kms_key_arn).await {
             Ok(psk) => {
                 *self.datakey.write().unwrap() = psk;
             }
@@ -140,7 +140,7 @@ impl PskProvider {
     // This method accepts owned arguments instead of `&self` so that the same
     // code can be used in the constructor as well as the background updater.
     /// Call the KMS `generate datakey` API to gather materials to be used as a TLS PSK.
-    async fn generate_psk(client: &Client, key: &KeyArn) -> anyhow::Result<KmsDataKey> {
+    async fn generate_datakey(client: &Client, key: &KeyArn) -> anyhow::Result<KmsDataKey> {
         let data_key = client
             .generate_data_key()
             .key_id(key.clone())
@@ -169,8 +169,8 @@ impl ConnectionInitializer for PskProvider {
         let psk = {
             let datakey = self.datakey.read().unwrap();
 
-            let psk_identity =
-                PskIdentity::new(&datakey.ciphertext, &self.obfuscation_key).unwrap();
+            let psk_identity = PskIdentity::new(&datakey.ciphertext, &self.obfuscation_key)
+                .map_err(|e| s2n_tls::error::Error::application(e.into_boxed_dyn_error()))?;
             let psk_identity_bytes = psk_identity
                 .encode_to_vec()
                 .map_err(|e| s2n_tls::error::Error::application(e.into()))?;

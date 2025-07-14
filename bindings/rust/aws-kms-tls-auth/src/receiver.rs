@@ -145,10 +145,8 @@ impl PskReceiver {
         }
 
         let plaintext_datakey = decrypted.plaintext.unwrap().into_inner();
-
         key_cache.insert(ciphertext_datakey, plaintext_datakey.clone());
-
-        let psk = psk_from_material(&psk_identity, &plaintext_datakey).unwrap();
+        let psk = psk_from_material(&psk_identity, &plaintext_datakey)?;
 
         Ok(psk)
     }
