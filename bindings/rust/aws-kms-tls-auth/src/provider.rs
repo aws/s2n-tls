@@ -20,10 +20,12 @@ use tokio::time::Instant;
 ///
 /// This struct can be enabled on a config with [`s2n_tls::config::Builder::set_connection_initializer`].
 ///
-/// The PSK is automatically rotated every 24 hours. Any errors in this rotation
-/// are logged through `tracing::error!`. Consider using something like
-/// [`tracing_subscriber`](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/)
-/// to ensure visibility into these failures.
+/// The datakey is automatically rotated every 24 hours. Any errors in this rotation
+/// are reported through the configured `failure_notification` callback.
+///
+/// Note that the "rotation check" only happens when a new connection is created.
+/// So if a new connection is only created every 2 hours, rotation might not be
+/// attempted until 26 hours have elapsed.
 #[derive(Clone)]
 pub struct PskProvider {
     /// The version of PSK identities sent on the wire. Currently this is unused

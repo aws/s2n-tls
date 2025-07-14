@@ -274,16 +274,29 @@ impl ObfuscatedIdentityFields {
             }
         };
 
-        let identity_age = creation_time.elapsed()?;
-        if identity_age > PSK_IDENTITY_VALIDITY {
-            anyhow::bail!(
-                "Too Old: PSK age was {:?}, but must be less than {:?}",
-                identity_age,
-                PSK_IDENTITY_VALIDITY
-            );
-        } else {
-            Ok(())
+        match creation_time.elapsed() {
+            Ok(identity_age) => {
+                if identity_age > PSK_IDENTITY_VALIDITY {
+                    anyhow::bail!(
+                        "too old: PSK age was {:?}, but must be less than {:?}",
+                        identity_age,
+                        PSK_IDENTITY_VALIDITY
+                    );
+                }
+            }
+            Err(future_clock_skew) => {
+                // The client's clock is skewed ahead of the server. We tolerate
+                // some small amount of clock skew.
+                if future_clock_skew.duration() > PSK_IDENTITY_VALIDITY {
+                    anyhow::bail!(
+                        "client clock skew: client was {:?} in the future, maximum allowed is {:?}",
+                        future_clock_skew.duration(),
+                        PSK_IDENTITY_VALIDITY
+                    );
+                }
+            }
         }
+        Ok(())
     }
 }
 
@@ -292,6 +305,31 @@ mod tests {
     use crate::test_utils::{CIPHERTEXT_DATAKEY_A, CONSTANT_OBFUSCATION_KEY};
 
     use super::*;
+
+    /// return a PskIdentity with a creation time set to `creation_time`
+    fn psk_identity_with_arbitrary_age(
+        obfuscation_key: &ObfuscationKey,
+        creation_time: SystemTime,
+    ) -> PskIdentity {
+        let seconds_since_epoch = creation_time
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let inner_fields = ObfuscatedIdentityFields {
+            seconds_since_epoch,
+            ciphertext_datakey: PrefixedBlob::new(CIPHERTEXT_DATAKEY_A.to_vec()).unwrap(),
+        };
+
+        let (inner_fields, nonce_bytes) = inner_fields.obfuscate(&obfuscation_key).unwrap();
+
+        PskIdentity {
+            version: PskVersion::V1,
+            obfuscation_key_name: PrefixedBlob::new(obfuscation_key.name.clone()).unwrap(),
+            nonce: nonce_bytes,
+            obfuscated_fields: PrefixedBlob::new(inner_fields).unwrap(),
+        }
+    }
 
     #[test]
     fn invalid_keys() {
@@ -395,35 +433,58 @@ mod tests {
     }
 
     #[test]
-    fn deobfuscation_with_old_identity() {
+    fn deobfuscation_with_ages() {
         let obfuscation_key = ObfuscationKey::random_test_key();
-        let one_minute_old_identity = {
-            let one_minute_ago = SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .saturating_sub(PSK_IDENTITY_VALIDITY + Duration::from_secs(10))
-                .as_secs();
 
-            let inner_fields = ObfuscatedIdentityFields {
-                seconds_since_epoch: one_minute_ago,
-                ciphertext_datakey: PrefixedBlob::new(CIPHERTEXT_DATAKEY_A.to_vec()).unwrap(),
-            };
+        // 70 seconds old -> fails
+        {
+            let creation_time = SystemTime::now()
+                .checked_sub(PSK_IDENTITY_VALIDITY + Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            let age_err = identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap_err();
+            // e.g. "too old: PSK age was 1762.201972884s, but must be less than 60s"
+            assert!(age_err.to_string().contains("too old: PSK age was"));
+        }
 
-            let (inner_fields, nonce_bytes) = inner_fields.obfuscate(&obfuscation_key).unwrap();
+        // 50 seconds old -> succeeds
+        {
+            let creation_time = SystemTime::now()
+                .checked_sub(PSK_IDENTITY_VALIDITY - Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap();
+        }
 
-            PskIdentity {
-                version: PskVersion::V1,
-                obfuscation_key_name: PrefixedBlob::new(obfuscation_key.name.clone()).unwrap(),
-                nonce: nonce_bytes,
-                obfuscated_fields: PrefixedBlob::new(inner_fields).unwrap(),
-            }
-        };
+        // 50 seconds into the future -> succeeds
+        {
+            let creation_time = SystemTime::now()
+                .checked_add(PSK_IDENTITY_VALIDITY - Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap();
+        }
 
-        let too_old_err = one_minute_old_identity
-            .deobfuscate_datakey(&[obfuscation_key])
-            .unwrap_err();
-        // e.g. "Too Old: PSK age was 1762.201972884s, but must be less than 60s"
-        assert!(too_old_err.to_string().contains("Too Old: PSK age was"));
+        // 70 seconds into the future -> fails
+        {
+            let creation_time = SystemTime::now()
+                .checked_add(PSK_IDENTITY_VALIDITY + Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            let age_error = identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap_err();
+            // e.g. "client clock skew: client was 69.1910384s in the future, maximum allowed is 60s"
+            assert!(age_error
+                .to_string()
+                .contains("client clock skew: client was"));
+        }
     }
 
     /// The encoded PSK Identity from the 0.0.1 version of the library was checked
@@ -448,7 +509,7 @@ mod tests {
             .deobfuscate_datakey(&[CONSTANT_OBFUSCATION_KEY.clone()])
             .unwrap_err();
 
-        // e.g. "Too Old: PSK age was 1762.201972884s, but must be less than 60s"
-        assert!(too_old_err.to_string().contains("Too Old: PSK age was"));
+        // e.g. "too old: PSK age was 1762.201972884s, but must be less than 60s"
+        assert!(too_old_err.to_string().contains("too old: PSK age was"));
     }
 }

@@ -20,14 +20,12 @@ pin-project = "1.1.10"
 s2n-tls = "0.3.16" 
 s2n-tls-sys = "0.3.16"
 tokio = {version = "1.45.1", features = ["rt", "macros"]}
-tracing = "0.1.41"
 static_assertions = "1.1.0"
 
 [dev-dependencies]
 s2n-tls-tokio = { version = "0.3.16" }
 aws-sdk-kms = {version = "1.76.0", features = ["test-util"]}
 aws-smithy-mocks = "0.1.1"
-tracing-subscriber = "0.3.19"
 rcgen = "0.14.1"
 
 s2n-tls = { version = "0.3.16", features = ["unstable-testing"]}

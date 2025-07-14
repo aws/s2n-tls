@@ -392,6 +392,6 @@ mod tests {
             configs_from_callbacks(OldIdentityInitializer, psk_receiver);
         let too_old_error = handshake(&client_config, &server_config).await.unwrap_err();
         assert_eq!(decrypt_rule.num_calls(), 0);
-        assert!(too_old_error.to_string().contains("Too Old"));
+        assert!(too_old_error.to_string().contains("too old"));
     }
 }
