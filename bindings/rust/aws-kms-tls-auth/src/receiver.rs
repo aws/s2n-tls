@@ -87,7 +87,7 @@ impl PskReceiver {
     ///   accept PSKs from. This is necessary because an attacker could grant the
     ///   server decrypt permissions on AttackerKeyArn, but the PskReceiver should
     ///   _not_ trust any Psk's from AttackerKeyArn.
-    /// 
+    ///
     /// * `obfuscation_keys`: The keys that will be used to deobfuscate the received
     ///   identities. The client `PskProvider` must be using one of the obfuscation
     ///   keys in this list. If the PskReceiver receives a Psk identity obfuscated
