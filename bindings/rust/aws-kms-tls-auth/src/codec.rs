@@ -103,6 +103,13 @@ impl DecodeValue for u32 {
     }
 }
 
+impl DecodeValue for u64 {
+    fn decode_from(mut buffer: &[u8]) -> std::io::Result<(Self, &[u8])> {
+        let value = buffer.read_u64::<BigEndian>()?;
+        Ok((value, buffer))
+    }
+}
+
 impl EncodeValue for u8 {
     fn encode_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<()> {
         buffer.write_all(&[*self])?;
@@ -118,6 +125,13 @@ impl EncodeValue for u16 {
 }
 
 impl EncodeValue for u32 {
+    fn encode_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<()> {
+        buffer.write_all(&self.to_be_bytes())?;
+        Ok(())
+    }
+}
+
+impl EncodeValue for u64 {
     fn encode_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<()> {
         buffer.write_all(&self.to_be_bytes())?;
         Ok(())
