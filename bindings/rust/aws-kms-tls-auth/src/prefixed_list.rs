@@ -34,6 +34,10 @@ impl<L> PrefixedBlob<L> {
     pub fn blob(&self) -> &[u8] {
         &self.0.items
     }
+
+    pub fn take_blob(self) -> Vec<u8> {
+        self.0.items
+    }
 }
 
 impl<L> Debug for PrefixedBlob<L> {
