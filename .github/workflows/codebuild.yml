@@ -34,10 +34,12 @@ jobs:
           aws-region: us-west-2
 
       - name: Start Codebuild for SHA
+        # This version runs when PRs are added to the merge queue or merged to main
         if: github.event_name != 'pull_request_target'
         run: ./codebuild/bin/start_codebuild.sh $source_sha
 
       - name: Start Codebuild for PR
+        # This version runs when PRs are created or updated
         if: github.event_name == 'pull_request_target'
         run: |
           pattern="^  - '@$pr_author'$"
