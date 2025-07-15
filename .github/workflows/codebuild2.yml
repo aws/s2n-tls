@@ -33,6 +33,10 @@ jobs:
           role-session-name: ${{ github.run_id }}
           aws-region: us-west-2
 
+      - name: Debug
+        run: |
+          echo ${{ github.event.pull_request.author_association }}
+
       - name: Start Codebuild for SHA
         # This version runs when PRs are added to the merge queue or merged to main
         if: github.event_name != 'pull_request_target'
