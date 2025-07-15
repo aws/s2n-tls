@@ -1,5 +1,7 @@
 <img src="docs/images/s2n_logo_github.png" alt="s2n">
 
+lrstewart was here
+
 s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache License 2.0.
 
 > s2n-tls is short for "signal to noise" and is a nod to the almost magical act of encryption — disguising meaningful signals, like your critical data, as seemingly random noise.
