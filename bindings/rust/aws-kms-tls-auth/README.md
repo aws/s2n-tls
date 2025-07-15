@@ -37,6 +37,6 @@ When the handshake is complete there is a mutually authenticated connection wher
 
 For this reason, it is important to configure the key with minimal permissions. If you only want mTLS to be allowed between `client-iam-role` as a client and `server-iam-role` as a server, then `client-iam-role` must be the only IAM identity with `kms:GenerateDataKey` permissions on the KMS key, and `server-iam-role` must be the only IAM identity with `kms:Decrypt` permissions on the key.
 
-While it is possible to configure multiple client roles with `kms:GenerateDataKey` permissions so  the server will trust multiple identities, the server will not authenticate the specific client identity.
+While it is possible to configure multiple client roles with `kms:GenerateDataKey` permissions so the server will trust multiple identities, the server will not authenticate the specific client identity.
 
 **Example**: `client-iam-role-A` and `client-iam-role-B` are the only identities with `kms:GenerateDataKey` permissions on a trusted KMS Key ARN. If the server successfully handshakes then it is talking to `client-iam-role-A` OR `client-iam-role-B`, but it does not know which one. 
