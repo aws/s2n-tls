@@ -87,7 +87,7 @@
 //! 1. Deploy `0.0.2` across all clients and server. This will allow all `PskReceiver`s
 //!    to understand both `PskVersion::V1` and `PskVersion::V2`.
 //! 2. Enable `PskVersion::V2` on the `PskProvider` through the `psk_version`
-//!    argument in [`PskProvider::initialize`]. Because all of servers understand
+//!    argument in [`PskProvider::initialize`]. Because all of the servers understand
 //!    both V1 and V2 formats this can be deployed without any downtime.
 //!
 //! Note that these steps MUST NOT overlap. A `0.0.1` `PskReceiver` will fail to
