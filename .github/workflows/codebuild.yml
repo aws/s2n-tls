@@ -40,12 +40,5 @@ jobs:
 
       - name: Start Codebuild for PR
         # This version runs when PRs are created or updated
-        if: github.event_name == 'pull_request_target'
-        run: |
-          pattern="^  - '@$pr_author'$"
-          if grep "$pattern" .github/teams.yml; then
-            ./codebuild/bin/start_codebuild.sh $source_pr
-          else
-            echo "$pr_author is not part of s2n-core."
-            echo "A member of s2n-core will need to start the Codebuild jobs manually using the start_codebuild.sh script."
-          fi
+        if: github.event.pull_request.author_association == 'MEMBER'
+        run: ./codebuild/bin/start_codebuild.sh $source_pr
