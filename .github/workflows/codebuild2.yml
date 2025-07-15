@@ -8,7 +8,7 @@ on:
   # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target
   # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
   pull_request_target:
-    branches: [main]
+    branches: [main, lrstewart2]
   merge_group:
     types: [checks_requested]
     branches: [main]
