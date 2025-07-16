@@ -211,7 +211,7 @@ def test_s2nc_to_s2nd_pq_handshake(
 )
 @pytest.mark.parametrize(
     "awslc_server_group",
-    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00],
+    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00, KemGroups.P384_MLKEM1024],
     ids=get_parameter_name,
 )
 def test_s2nc_to_awslc_pq_handshake(
@@ -267,7 +267,7 @@ def test_s2nc_to_awslc_pq_handshake(
 )
 @pytest.mark.parametrize(
     "awslc_client_group",
-    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00],
+    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00, KemGroups.P384_MLKEM1024],
     ids=get_parameter_name,
 )
 def test_s2nd_to_awslc_pq_handshake(
