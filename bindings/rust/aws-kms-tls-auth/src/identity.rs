@@ -84,17 +84,15 @@ impl ObfuscationKey {
     }
 
     fn aes_256_key(&self) -> anyhow::Result<LessSafeKey> {
+        // The "LessSafe" key refers to the fact that we have to create our own
+        // random nonces. A feature request is open to aws-lc-rs to support 
+        // AES-256-GCM-SIV for the safer RandomizedNonceKey.
+        // https://github.com/aws/aws-lc-rs/issues/842
         Ok(LessSafeKey::new(UnboundKey::new(
             &AES_256_GCM_SIV,
             &self.material,
         )?))
     }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct KmsDataKey {
-    pub ciphertext: Vec<u8>,
-    pub plaintext: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

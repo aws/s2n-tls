@@ -3,7 +3,7 @@
 
 use crate::{
     codec::EncodeValue,
-    identity::{KmsDataKey, ObfuscationKey, PskIdentity, PskVersion},
+    identity::{ObfuscationKey, PskIdentity, PskVersion},
     psk_from_material, KeyArn, KEY_ROTATION_PERIOD, PSK_SIZE,
 };
 use aws_sdk_kms::Client;
@@ -15,6 +15,13 @@ use std::{
 };
 use tokio::time::Instant;
 
+#[derive(Debug, Clone)]
+struct KmsDataKey {
+    pub ciphertext: Vec<u8>,
+    pub plaintext: Vec<u8>,
+}
+
+
 /// The `PskProvider` is used along with the [`PskReceiver`] to perform TLS
 /// 1.3 out-of-band PSK authentication, using PSK's generated from KMS.
 ///
@@ -25,7 +32,15 @@ use tokio::time::Instant;
 ///
 /// Note that the "rotation check" only happens when a new connection is created.
 /// So if a new connection is only created every 2 hours, rotation might not be
-/// attempted until 26 hours have elapsed.
+/// attempted until 26 hours have elapsed. This results in a 26 hour old PSK being
+/// used for the connection.
+/// 
+/// ### ⚠️ WARNING ⚠️
+/// Because of the above behavior, this solution is not good a good fit for 
+/// extremely low tps scenarios. When performing ~ 1 connection per week or less,
+/// the low tps significantly slows key rotation. This does not cause any specific
+/// system failure, but long lived secrets do not align with cryptographic best
+/// practices.
 #[derive(Clone)]
 pub struct PskProvider {
     /// The version of PSK identities sent on the wire. Currently this is unused
@@ -79,6 +94,14 @@ impl PskProvider {
     ///     tracing::error!("failed to rotate key: {error}");
     /// });
     /// ```
+    /// 
+    /// ### ⚠️ WARNING ⚠️
+    /// Failing to take action on the `failure_notification` will result in the 
+    /// Provider continuing to use the same data key indefinitely. While this doesn't
+    /// cause any specific system failure, long lived secrets do not align with
+    /// cryptographic best practices. Longer lived secrets have a higher change
+    /// of exposure, so customers should ensure that they alarm and troubleshoot
+    /// rotation failures.
     pub async fn initialize(
         psk_version: PskVersion,
         kms_client: Client,
