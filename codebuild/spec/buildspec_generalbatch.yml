@@ -109,6 +109,7 @@ batch:
         type: ARM_CONTAINER
         variables:
           TESTS: unit
+          S2N_LIBCRYPTO: default
       identifier: s2nUnitAl2Arm
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
