@@ -1,7 +1,7 @@
 # Managing Algorithm & Format Changes.
 
 ## Backwards Compatibility: Required
-Changes must always be backwards compatible. More specifically, server's must always be able to deserialize earlier versions of PskIdentities, otherwise all of the in-flight communications would fail when an upgrade happens.
+Changes must always be backwards compatible. More specifically, servers must always be able to deserialize earlier versions of PskIdentities, otherwise all of the in-flight communications would fail when an upgrade happens.
 
 ## Forward Compatibility: Customer Responsibility
 We generally do not promise forwards compatibility: A `0.0.1` V1 enabled server might not be able to handshake with a `0.0.2` V2 enabled client. We will strive to maintain forward compatibility, but if there was ever an upgrade from `AES_256_GCM_SIV` to `AES_512_GCM_SIV`, that would not be forward compatible. 
