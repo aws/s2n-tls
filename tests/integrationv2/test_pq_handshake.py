@@ -73,9 +73,13 @@ EXPECTED_RESULTS = {
         "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
         "kem_group": None,
     },
+    (KemGroups.P384_MLKEM1024, Ciphers.PQ_TLS_1_3_2023_06_01): {
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "kem_group": "secp384r1_mlkem-111124",
+    },
     (Ciphers.PQ_TLS_1_3_2023_06_01, KemGroups.P384_MLKEM1024): {
         "cipher": "TLS_AES_256_GCM_SHA384",
-        "kem_group": "secp384r1_mlkem-1024",
+        "kem_group": "secp384r1_mlkem-111124",
     },
 }
 
