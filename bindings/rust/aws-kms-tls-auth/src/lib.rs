@@ -52,11 +52,11 @@
 //! Note that the [`PskReceiver`] supports lists for both of these items, so
 //! zero-downtime migrations are possible. _Example_: if the client fleet wanted
 //! to switch from Key A to Key B it would go through the following stages
-//! 1. client -> [A], server -> [A]
-//! 2. client -> [A], server -> [A, B]
-//! 3. client -> [A, B], server -> [A, B]
-//! 4. client ->    [B], server -> [A, B]
-//! 5. client ->    [B], server ->    [B]
+//! 1. clients -> [A]     server -> [A]
+//! 2. clients -> [A]     server -> [A & B]
+//! 3. clients -> [A][B], server -> [A & B]
+//! 4. clients ->    [B], server -> [A & B]
+//! 5. clients ->    [B], server ->     [B]
 //!
 //! ## Versioning
 //!
