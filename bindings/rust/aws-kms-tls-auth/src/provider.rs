@@ -35,7 +35,7 @@ struct KmsDataKey {
 /// used for the connection.
 ///
 /// ### ⚠️ WARNING ⚠️
-/// Because of the above behavior, this solution is not good a good fit for
+/// Because of the above behavior, this solution is not a good fit for
 /// extremely low tps scenarios. When performing ~ 1 connection per week or less,
 /// the low tps significantly slows key rotation. This does not cause any specific
 /// system failure, but long lived secrets do not align with cryptographic best
