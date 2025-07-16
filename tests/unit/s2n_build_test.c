@@ -133,14 +133,6 @@ int main()
     }
 
     /* Ensure that FIPS mode is enabled only when linked to a fips library */
-    printf("INFO: s2n_libcrypto = %s\n", s2n_libcrypto);
-    printf("INFO: s2n_libcrypto_is_fips() = %d\n", s2n_libcrypto_is_fips());
-    printf("INFO: s2n_is_in_fips_mode() = %d\n", s2n_is_in_fips_mode());
-
-    /* Check if awslc-fips detection is working */
-    printf("INFO: s2n_libcrypto_is_awslc() = %d\n", s2n_libcrypto_is_awslc());
-    printf("INFO: s2n_libcrypto_is_awslc_fips() = %d\n", s2n_libcrypto_is_awslc_fips());
-
     s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
     EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
     printf("INFO: s2n_get_fips_mode(&fips_mode) returned: %d\n", fips_mode);
