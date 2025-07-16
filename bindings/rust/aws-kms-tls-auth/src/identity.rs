@@ -85,7 +85,7 @@ impl ObfuscationKey {
 
     fn aes_256_key(&self) -> anyhow::Result<LessSafeKey> {
         // The "LessSafe" key refers to the fact that we have to create our own
-        // random nonces. A feature request is open to aws-lc-rs to support 
+        // random nonces. A feature request is open to aws-lc-rs to support
         // AES-256-GCM-SIV for the safer RandomizedNonceKey.
         // https://github.com/aws/aws-lc-rs/issues/842
         Ok(LessSafeKey::new(UnboundKey::new(

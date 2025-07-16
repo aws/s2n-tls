@@ -21,7 +21,6 @@ struct KmsDataKey {
     pub plaintext: Vec<u8>,
 }
 
-
 /// The `PskProvider` is used along with the [`PskReceiver`] to perform TLS
 /// 1.3 out-of-band PSK authentication, using PSK's generated from KMS.
 ///
@@ -34,9 +33,9 @@ struct KmsDataKey {
 /// So if a new connection is only created every 2 hours, rotation might not be
 /// attempted until 26 hours have elapsed. This results in a 26 hour old PSK being
 /// used for the connection.
-/// 
+///
 /// ### ⚠️ WARNING ⚠️
-/// Because of the above behavior, this solution is not good a good fit for 
+/// Because of the above behavior, this solution is not good a good fit for
 /// extremely low tps scenarios. When performing ~ 1 connection per week or less,
 /// the low tps significantly slows key rotation. This does not cause any specific
 /// system failure, but long lived secrets do not align with cryptographic best
@@ -94,9 +93,9 @@ impl PskProvider {
     ///     tracing::error!("failed to rotate key: {error}");
     /// });
     /// ```
-    /// 
+    ///
     /// ### ⚠️ WARNING ⚠️
-    /// Failing to take action on the `failure_notification` will result in the 
+    /// Failing to take action on the `failure_notification` will result in the
     /// Provider continuing to use the same data key indefinitely. While this doesn't
     /// cause any specific system failure, long lived secrets do not align with
     /// cryptographic best practices. Longer lived secrets have a higher change
