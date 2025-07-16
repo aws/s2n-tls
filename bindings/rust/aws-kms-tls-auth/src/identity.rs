@@ -4,14 +4,18 @@
 use crate::{
     codec::{DecodeByteSource, DecodeValue, EncodeBytesSink, EncodeValue},
     prefixed_list::PrefixedBlob,
-    AES_256_GCM_KEY_LEN, AES_256_GCM_NONCE_LEN,
+    AES_256_GCM_SIV_KEY_LEN, AES_256_GCM_SIV_NONCE_LEN, PSK_IDENTITY_VALIDITY,
 };
-use aws_lc_rs::aead::{Aad, Nonce, RandomizedNonceKey, AES_256_GCM};
-use std::{hash::Hash, io::ErrorKind};
+use aws_lc_rs::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM_SIV};
+use std::{
+    hash::Hash,
+    io::ErrorKind,
+    time::{Duration, SystemTime},
+};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(u8)]
-enum PskVersion {
+pub enum PskVersion {
     V1 = 1,
 }
 
@@ -52,7 +56,7 @@ impl ObfuscationKey {
             // "normal" values.
             anyhow::bail!("name must not be empty");
         }
-        if material.len() != AES_256_GCM_KEY_LEN {
+        if material.len() != AES_256_GCM_SIV_KEY_LEN {
             anyhow::bail!("material must be 32 bytes, but was {}", material.len())
         }
         if material.iter().all(|b| *b == 0) {
@@ -66,8 +70,8 @@ impl ObfuscationKey {
         use aws_lc_rs::rand::SecureRandom;
 
         let rng = aws_lc_rs::rand::SystemRandom::new();
-        debug_assert_eq!(AES_256_GCM.key_len(), AES_256_GCM_KEY_LEN);
-        let mut key = vec![0; AES_256_GCM_KEY_LEN];
+        debug_assert_eq!(AES_256_GCM_SIV.key_len(), AES_256_GCM_SIV_KEY_LEN);
+        let mut key = vec![0; AES_256_GCM_SIV_KEY_LEN];
         let mut name = [0; 16];
 
         rng.fill(&mut key).unwrap();
@@ -78,15 +82,30 @@ impl ObfuscationKey {
             material: key,
         }
     }
+
+    fn aes_256_key(&self) -> anyhow::Result<LessSafeKey> {
+        // The "LessSafe" key refers to the fact that we have to create our own
+        // random nonces. A feature request is open to aws-lc-rs to support
+        // AES-256-GCM-SIV for the safer RandomizedNonceKey.
+        // https://github.com/aws/aws-lc-rs/issues/842
+        Ok(LessSafeKey::new(UnboundKey::new(
+            &AES_256_GCM_SIV,
+            &self.material,
+        )?))
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) struct PskIdentity {
     version: PskVersion,
     obfuscation_key_name: PrefixedBlob<u16>,
-    nonce: [u8; AES_256_GCM_NONCE_LEN],
-    /// the KMS datakey ciphertext, encrypted under the obfuscation key
-    obfuscated_identity: PrefixedBlob<u32>,
+    nonce: [u8; AES_256_GCM_SIV_NONCE_LEN],
+    obfuscated_fields: PrefixedBlob<u32>,
+}
+
+struct ObfuscatedIdentityFields {
+    seconds_since_epoch: u64,
+    ciphertext_datakey: PrefixedBlob<u32>,
 }
 
 impl EncodeValue for PskIdentity {
@@ -94,7 +113,7 @@ impl EncodeValue for PskIdentity {
         buffer.encode_value(&self.version)?;
         buffer.encode_value(&self.obfuscation_key_name)?;
         buffer.encode_value(&self.nonce)?;
-        buffer.encode_value(&self.obfuscated_identity)?;
+        buffer.encode_value(&self.obfuscated_fields)?;
         Ok(())
     }
 }
@@ -110,7 +129,29 @@ impl DecodeValue for PskIdentity {
             version,
             obfuscation_key_name,
             nonce,
-            obfuscated_identity,
+            obfuscated_fields: obfuscated_identity,
+        };
+
+        Ok((value, buffer))
+    }
+}
+
+impl EncodeValue for ObfuscatedIdentityFields {
+    fn encode_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<()> {
+        buffer.encode_value(&self.seconds_since_epoch)?;
+        buffer.encode_value(&self.ciphertext_datakey)?;
+        Ok(())
+    }
+}
+
+impl DecodeValue for ObfuscatedIdentityFields {
+    fn decode_from(buffer: &[u8]) -> std::io::Result<(Self, &[u8])> {
+        let (seconds_since_epoch, buffer) = buffer.decode_value()?;
+        let (ciphertext_datakey, buffer) = buffer.decode_value()?;
+
+        let value = Self {
+            seconds_since_epoch,
+            ciphertext_datakey,
         };
 
         Ok((value, buffer))
@@ -118,7 +159,7 @@ impl DecodeValue for PskIdentity {
 }
 
 impl PskIdentity {
-    /// Create a KmsTlsPskIdentity
+    /// Create a PskIdentity
     ///
     /// * `ciphertext_data_key`: The ciphertext returned from the KMS generateDataKey
     ///   API.
@@ -128,22 +169,29 @@ impl PskIdentity {
         ciphertext_datakey: &[u8],
         obfuscation_key: &ObfuscationKey,
     ) -> anyhow::Result<Self> {
-        let mut in_out = ciphertext_datakey.to_vec();
-        let key = RandomizedNonceKey::new(&AES_256_GCM, &obfuscation_key.material)?;
-        let nonce = key.seal_in_place_append_tag(Aad::empty(), &mut in_out)?;
-        let nonce_bytes = nonce.as_ref();
+        let inner_fields = ObfuscatedIdentityFields {
+            seconds_since_epoch: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)?
+                .as_secs(),
+            ciphertext_datakey: PrefixedBlob::new(ciphertext_datakey.to_vec())?,
+        };
+
+        let (inner_fields, nonce_bytes) = inner_fields.obfuscate(obfuscation_key)?;
 
         let identity = Self {
             version: PskVersion::V1,
             obfuscation_key_name: PrefixedBlob::new(obfuscation_key.name.clone())?,
-            nonce: *nonce_bytes,
-            obfuscated_identity: PrefixedBlob::new(in_out)?,
+            nonce: nonce_bytes,
+            obfuscated_fields: PrefixedBlob::new(inner_fields)?,
         };
         Ok(identity)
     }
 
     /// de-obfuscate the Psk Identity, returning the ciphertext datakey to be decrypted
     /// with KMS.
+    ///
+    /// This method is time aware, and will fail if the age is greater than
+    /// [`PSK_IDENTITY_VALIDITY`].
     pub fn deobfuscate_datakey(
         &self,
         available_obfuscation_keys: &[ObfuscationKey],
@@ -161,20 +209,125 @@ impl PskIdentity {
             }
         };
 
-        let key = RandomizedNonceKey::new(&AES_256_GCM, &obfuscation_key.material)?;
+        let obfuscated_fields = ObfuscatedIdentityFields::deobfuscate(
+            obfuscation_key,
+            self.obfuscated_fields.blob(),
+            &self.nonce,
+        )?;
 
-        let mut in_out = Vec::from(self.obfuscated_identity.blob());
+        Ok(obfuscated_fields.ciphertext_datakey.take_blob())
+    }
+}
+
+impl ObfuscatedIdentityFields {
+    fn obfuscate(
+        &self,
+        obfuscation_key: &ObfuscationKey,
+    ) -> anyhow::Result<(Vec<u8>, [u8; AES_256_GCM_SIV_NONCE_LEN])> {
+        let mut in_out = self.encode_to_vec()?;
+
+        let key = obfuscation_key.aes_256_key()?;
+        let nonce_bytes = Self::random_nonce()?;
+        key.seal_in_place_append_tag(
+            Nonce::assume_unique_for_key(nonce_bytes),
+            Aad::empty(),
+            &mut in_out,
+        )?;
+
+        Ok((in_out, nonce_bytes))
+    }
+
+    fn deobfuscate(
+        obfuscation_key: &ObfuscationKey,
+        obfuscated_blob: &[u8],
+        nonce: &[u8; AES_256_GCM_SIV_NONCE_LEN],
+    ) -> anyhow::Result<Self> {
+        let mut in_out = obfuscated_blob.to_vec();
+
+        let key = obfuscation_key.aes_256_key()?;
         let decrypted_length = key
-            .open_in_place(Nonce::from(&self.nonce), Aad::empty(), &mut in_out)?
+            .open_in_place(Nonce::from(nonce), Aad::empty(), &mut in_out)?
             .len();
         in_out.truncate(decrypted_length);
-        Ok(in_out)
+
+        let obfuscated_fields = ObfuscatedIdentityFields::decode_from_exact(&in_out)?;
+        obfuscated_fields.check_age()?;
+        Ok(obfuscated_fields)
+    }
+
+    fn random_nonce() -> anyhow::Result<[u8; AES_256_GCM_SIV_NONCE_LEN]> {
+        let mut nonce = [0; AES_256_GCM_SIV_NONCE_LEN];
+        aws_lc_rs::rand::fill(&mut nonce)?;
+        Ok(nonce)
+    }
+
+    fn check_age(&self) -> anyhow::Result<()> {
+        let creation_time = {
+            let since_epoch = Duration::from_secs(self.seconds_since_epoch);
+            let maybe_creation_time = SystemTime::UNIX_EPOCH.checked_add(since_epoch);
+            if let Some(creation_time) = maybe_creation_time {
+                creation_time
+            } else {
+                anyhow::bail!("identity creation time could not be represented");
+            }
+        };
+
+        match creation_time.elapsed() {
+            Ok(identity_age) => {
+                if identity_age > PSK_IDENTITY_VALIDITY {
+                    anyhow::bail!(
+                        "too old: PSK age was {:?}, but must be less than {:?}",
+                        identity_age,
+                        PSK_IDENTITY_VALIDITY
+                    );
+                }
+            }
+            Err(future_clock_skew) => {
+                // The client's clock is skewed ahead of the server. We tolerate
+                // some small amount of clock skew.
+                if future_clock_skew.duration() > PSK_IDENTITY_VALIDITY {
+                    anyhow::bail!(
+                        "client clock skew: client was {:?} in the future, maximum allowed is {:?}",
+                        future_clock_skew.duration(),
+                        PSK_IDENTITY_VALIDITY
+                    );
+                }
+            }
+        }
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::{CIPHERTEXT_DATAKEY_A, CONSTANT_OBFUSCATION_KEY};
+
     use super::*;
+
+    /// return a PskIdentity with a creation time set to `creation_time`
+    fn psk_identity_with_arbitrary_age(
+        obfuscation_key: &ObfuscationKey,
+        creation_time: SystemTime,
+    ) -> PskIdentity {
+        let seconds_since_epoch = creation_time
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let inner_fields = ObfuscatedIdentityFields {
+            seconds_since_epoch,
+            ciphertext_datakey: PrefixedBlob::new(CIPHERTEXT_DATAKEY_A.to_vec()).unwrap(),
+        };
+
+        let (inner_fields, nonce_bytes) = inner_fields.obfuscate(&obfuscation_key).unwrap();
+
+        PskIdentity {
+            version: PskVersion::V1,
+            obfuscation_key_name: PrefixedBlob::new(obfuscation_key.name.clone()).unwrap(),
+            nonce: nonce_bytes,
+            obfuscated_fields: PrefixedBlob::new(inner_fields).unwrap(),
+        }
+    }
 
     #[test]
     fn invalid_keys() {
@@ -277,6 +430,61 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn deobfuscation_with_ages() {
+        let obfuscation_key = ObfuscationKey::random_test_key();
+
+        // 70 seconds old -> fails
+        {
+            let creation_time = SystemTime::now()
+                .checked_sub(PSK_IDENTITY_VALIDITY + Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            let age_err = identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap_err();
+            // e.g. "too old: PSK age was 1762.201972884s, but must be less than 60s"
+            assert!(age_err.to_string().contains("too old: PSK age was"));
+        }
+
+        // 50 seconds old -> succeeds
+        {
+            let creation_time = SystemTime::now()
+                .checked_sub(PSK_IDENTITY_VALIDITY - Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap();
+        }
+
+        // 50 seconds into the future -> succeeds
+        {
+            let creation_time = SystemTime::now()
+                .checked_add(PSK_IDENTITY_VALIDITY - Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap();
+        }
+
+        // 70 seconds into the future -> fails
+        {
+            let creation_time = SystemTime::now()
+                .checked_add(PSK_IDENTITY_VALIDITY + Duration::from_secs(10))
+                .unwrap();
+            let identity = psk_identity_with_arbitrary_age(&obfuscation_key, creation_time);
+            let age_error = identity
+                .deobfuscate_datakey(&[obfuscation_key.clone()])
+                .unwrap_err();
+            // e.g. "client clock skew: client was 69.1910384s in the future, maximum allowed is 60s"
+            assert!(age_error
+                .to_string()
+                .contains("client clock skew: client was"));
+        }
+    }
+
     /// The encoded PSK Identity from the 0.0.1 version of the library was checked
     /// in. If we ever fail to deserialize this STOP! You are about to make a
     /// breaking change. You must find a way to make your change backwards
@@ -286,24 +494,20 @@ mod tests {
         const ENCODED_IDENTITY: &[u8] = include_bytes!("../resources/psk_identity.bin");
         const CIPHERTEXT: &[u8] = b"this is a test KMS ciphertext";
 
-        const OBFUSCATION_KEY_NAME: &[u8] = b"alice the obfuscator";
-        const OBFUSCATION_KEY_MATERIAL: [u8; AES_256_GCM_KEY_LEN] = [
-            91, 109, 160, 46, 132, 41, 29, 134, 11, 41, 208, 78, 101, 132, 138, 80, 88, 32, 182,
-            207, 80, 45, 37, 93, 83, 11, 69, 218, 200, 203, 55, 66,
-        ];
-
-        let obfuscation_key = ObfuscationKey {
-            name: OBFUSCATION_KEY_NAME.to_vec(),
-            material: OBFUSCATION_KEY_MATERIAL.to_vec(),
-        };
-
         let (deserialized_identity, remaining) =
             PskIdentity::decode_from(ENCODED_IDENTITY).unwrap();
         assert!(remaining.is_empty());
 
-        let datakey_ciphertext = deserialized_identity
-            .deobfuscate_datakey(&[obfuscation_key])
-            .unwrap();
-        assert_eq!(datakey_ciphertext, CIPHERTEXT);
+        // The API is deliberately designed to make it difficult to avoid checking
+        // the age of the PSK. This is still a useful test because age validation
+        // happens after parsing everything. As long as we are seeing the age
+        // error, then there is a high degree of confidence that there are no
+        // backwards incompatible changes.
+        let too_old_err = deserialized_identity
+            .deobfuscate_datakey(&[CONSTANT_OBFUSCATION_KEY.clone()])
+            .unwrap_err();
+
+        // e.g. "too old: PSK age was 1762.201972884s, but must be less than 60s"
+        assert!(too_old_err.to_string().contains("too old: PSK age was"));
     }
 }
