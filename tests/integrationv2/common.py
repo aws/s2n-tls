@@ -600,7 +600,6 @@ class KemGroups(object):
     P521_KYBER1024R3 = KemGroup("p521_kyber1024")
     SecP256r1Kyber768Draft00 = KemGroup("SecP256r1Kyber768Draft00")
     X25519Kyber768Draft00 = KemGroup("X25519Kyber768Draft00")
-    P384_MLKEM1024 = KemGroup("p384_mlkem1024")
 
 
 class Signature(object):

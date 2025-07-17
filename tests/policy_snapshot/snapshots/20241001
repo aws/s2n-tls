@@ -55,4 +55,3 @@ pq:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
--- secp384r1_mlkem_1024
