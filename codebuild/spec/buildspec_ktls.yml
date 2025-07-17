@@ -39,6 +39,8 @@ phases:
       - export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
       - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+      # On Sunday, run a nix store cleanup
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from the nix cache
       - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
       # Load the TLS kernel module
