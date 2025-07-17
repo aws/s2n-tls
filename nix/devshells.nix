@@ -80,9 +80,13 @@ let
   openssl351 = default.overrideAttrs (finalAttrs: previousAttrs: {
   buildInputs = [ pkgs.cmake openssl_3_5_1 ];
   S2N_LIBCRYPTO = "openssl-3.5.1";
+  # Integ s_client/server tests expect openssl 3.5.1
   shellHook = ''
     echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-    export PATH=${openssl_3_5_1}/bin:$PATH
+    export OPENSSL_PATH=${openssl_3_5_1}
+    export PATH=$OPENSSL_PATH/bin:$PATH
+    export LD_LIBRARY_PATH=$OPENSSL_PATH/lib:$LD_LIBRARY_PATH
+
     export PS1="[nix $S2N_LIBCRYPTO] $PS1"
     source ${writeScript ./shell.sh}
   '';
