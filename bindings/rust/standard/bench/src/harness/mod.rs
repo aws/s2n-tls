@@ -151,9 +151,6 @@ pub trait TlsConnection: Sized {
     /// Library-specific config struct
     type Config;
 
-    /// Name of the connection type
-    fn name() -> String;
-
     /// Make connection from existing config and buffer
     fn new_from_config(
         mode: Mode,
@@ -166,6 +163,19 @@ pub trait TlsConnection: Sized {
 
     fn handshake_completed(&self) -> bool;
 
+    /// Send application data to ConnectedBuffer
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Read application data from ConnectedBuffer
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+
+    /// shutdown send
+    fn send_shutdown(&mut self);
+    fn shutdown_completed(&mut self) -> bool;
+}
+
+pub trait TlsMetrics: Sized {
+    fn name() -> String;
     fn get_negotiated_cipher_suite(&self) -> CipherSuite;
 
     fn negotiated_tls13(&self) -> bool;
@@ -173,16 +183,10 @@ pub trait TlsConnection: Sized {
     /// Describes whether a connection was resumed. This method is only valid on
     /// server connections because of rustls API limitations.
     fn resumed_connection(&self) -> bool;
-
-    /// Send application data to ConnectedBuffer
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
-
-    /// Read application data from ConnectedBuffer
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
 }
 
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
-pub struct TlsConnPair<C: TlsConnection, S: TlsConnection> {
+pub struct TlsConnPair<C, S> {
     pub client: C,
     pub server: S,
     pub io: TestPairIO,
@@ -295,18 +299,6 @@ where
         self.client.handshake_completed() && self.server.handshake_completed()
     }
 
-    pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        assert!(self.handshake_completed());
-        assert!(
-            self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
-        );
-        self.client.get_negotiated_cipher_suite()
-    }
-
-    pub fn negotiated_tls13(&self) -> bool {
-        self.client.negotiated_tls13() && self.server.negotiated_tls13()
-    }
-
     /// Send data from client to server, and then from server to client
     pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
         // send data from client to server
@@ -318,6 +310,39 @@ where
         self.client.recv(data)?;
 
         Ok(())
+    }
+
+    pub fn shutdown(&mut self) -> Result<(), Box<dyn Error>> {
+        // These assertions to not _have_ to be true, but you are likely making
+        // a mistake if you are hitting it. Generally all data should have been
+        // read before attempting to shutdown
+        assert_eq!(self.io.client_tx_stream.borrow().len(), 0);
+        assert_eq!(self.io.server_tx_stream.borrow().len(), 0);
+
+        self.client.send_shutdown();
+        self.server.send_shutdown();
+
+        let client_shutdown = self.client.shutdown_completed();
+        let server_shutdown = self.server.shutdown_completed();
+        if client_shutdown && server_shutdown {
+            Ok(())
+        } else {
+            Err("failed to shutdown".into())
+        }
+    }
+}
+
+impl<C, S> TlsConnPair<C, S>
+where C: TlsMetrics, S: TlsMetrics {
+    pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        assert!(
+            self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
+        );
+        self.client.get_negotiated_cipher_suite()
+    }
+
+    pub fn negotiated_tls13(&self) -> bool {
+        self.client.negotiated_tls13() && self.server.negotiated_tls13()
     }
 }
 
@@ -349,8 +374,8 @@ mod tests {
 
     fn test_type<C, S>()
     where
-        S: TlsConnection,
-        C: TlsConnection,
+        S: TlsConnection + TlsMetrics,
+        C: TlsConnection + TlsMetrics,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -361,8 +386,8 @@ mod tests {
 
     fn handshake_configs<C, S>()
     where
-        S: TlsConnection,
-        C: TlsConnection,
+        S: TlsConnection + TlsMetrics,
+        C: TlsConnection + TlsMetrics,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -381,6 +406,15 @@ mod tests {
 
                         assert!(conn_pair.negotiated_tls13());
                         assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
+
+                        // read in "application data" handshake messages. 
+                        // "Client Finished" in the case of MutualAuth,
+                        // "NewSessionTicket" in the case of resumption
+                        let err = conn_pair.client_mut().recv(&mut[0]).unwrap_err();
+                        assert_eq!(&err.to_string(), "blocking");
+
+                        conn_pair.shutdown().unwrap();
+
                     }
                 }
             }
@@ -389,8 +423,8 @@ mod tests {
 
     fn session_resumption<C, S>()
     where
-        S: TlsConnection,
-        C: TlsConnection,
+        S: TlsConnection + TlsMetrics,
+        C: TlsConnection + TlsMetrics,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -399,7 +433,13 @@ mod tests {
             TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
                 .unwrap();
         conn_pair.handshake().unwrap();
+        // read the session tickets which were sent
+        let err = conn_pair.client_mut().recv(&mut[0]).unwrap_err();
+        assert_eq!(&err.to_string(), "blocking");
+
         assert!(conn_pair.server().resumed_connection());
+        conn_pair.shutdown().unwrap();
+
     }
 
     #[test]
@@ -439,6 +479,7 @@ mod tests {
                     .unwrap();
             conn_pair.handshake().unwrap();
             conn_pair.round_trip_transfer(&mut buf).unwrap();
+            conn_pair.shutdown().unwrap();
         }
     }
 }

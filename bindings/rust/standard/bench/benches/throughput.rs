@@ -1,17 +1,17 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use bench::harness::TlsMetrics;
 use bench::OpenSslConnection;
 use bench::RustlsConnection;
 use bench::{
     harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
-use pprof::criterion::{Output, PProfProfiler};
 use strum::IntoEnumIterator;
 
 fn bench_throughput_for_library<T>(
@@ -19,7 +19,7 @@ fn bench_throughput_for_library<T>(
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
 ) where
-    T: TlsConnection,
+    T: TlsConnection + TlsMetrics,
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());

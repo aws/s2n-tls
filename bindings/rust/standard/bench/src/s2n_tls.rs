@@ -4,7 +4,7 @@
 use crate::{
     harness::{
         self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, LocalDataBuffer,
-        Mode, TlsConnection,
+        Mode, TlsConnection, TlsMetrics,
     },
     PemType::*,
 };
@@ -208,10 +208,6 @@ impl S2NConnection {
 impl TlsConnection for S2NConnection {
     type Config = S2NConfig;
 
-    fn name() -> String {
-        "s2n-tls".to_string()
-    }
-
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
@@ -268,6 +264,47 @@ impl TlsConnection for S2NConnection {
         self.handshake_completed
     }
 
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            match self.connection.poll_send(&data[write_offset..]) {
+                Poll::Ready(bytes_written) => write_offset += bytes_written?,
+                Poll::Pending => return Err("blocking".into()),
+            }
+            assert!(self.connection.poll_flush().is_ready());
+        }
+        Ok(())
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data_len {
+            match self.connection.poll_recv(data) {
+                Poll::Ready(bytes_read) => read_offset += bytes_read?,
+                Poll::Pending => return Err("blocking".into()),
+            }
+        }
+        Ok(())
+    }
+    
+    fn send_shutdown(&mut self) {
+        // This will return `Ready` if the peer already closed their connection.
+        // It will return `Pending` if the peer hasn't responded yet. 
+        let _ = self.connection.poll_shutdown();
+    }
+
+    fn shutdown_completed(&mut self) -> bool {
+        assert!(matches!(self.connection.poll_shutdown(), Poll::Ready(_)));
+        true
+    }
+}
+
+impl TlsMetrics for S2NConnection {
+    fn name() -> String {
+        "s2n-tls".to_string()
+    }
+    
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         match self.connection.cipher_suite().unwrap() {
             "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
@@ -286,29 +323,5 @@ impl TlsConnection for S2NConnection {
             .handshake_type()
             .unwrap()
             .contains("FULL_HANDSHAKE")
-    }
-
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut write_offset = 0;
-        while write_offset < data.len() {
-            match self.connection.poll_send(&data[write_offset..]) {
-                Poll::Ready(bytes_written) => write_offset += bytes_written?,
-                Poll::Pending => return Err("unexpected pending".into()),
-            }
-            assert!(self.connection.poll_flush().is_ready());
-        }
-        Ok(())
-    }
-
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let data_len = data.len();
-        let mut read_offset = 0;
-        while read_offset < data_len {
-            match self.connection.poll_recv(data) {
-                Poll::Ready(bytes_read) => read_offset += bytes_read?,
-                Poll::Pending => return Err("unexpected pending".into()),
-            }
-        }
-        Ok(())
     }
 }

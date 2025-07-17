@@ -5,13 +5,12 @@ use crate::{
     get_cert_path,
     harness::{
         self, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
-        TlsConnection, ViewIO,
+        TlsConnection, TlsMetrics, ViewIO,
     },
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslSession, SslSessionCacheMode, SslStream,
-    SslVerifyMode, SslVersion,
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslSession, SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion
 };
 use std::{
     error::Error,
@@ -141,21 +140,6 @@ impl TlsBenchConfig for OpenSslConfig {
 impl TlsConnection for OpenSslConnection {
     type Config = OpenSslConfig;
 
-    fn name() -> String {
-        let version_num = openssl::version::number() as u64;
-        let patch: u8 = (version_num >> 4) as u8;
-        let fix = (version_num >> 12) as u8;
-        let minor = (version_num >> 20) as u8;
-        let major = (version_num >> 28) as u8;
-        format!(
-            "openssl{}.{}.{}{}",
-            major,
-            minor,
-            fix,
-            (b'a' + patch - 1) as char
-        )
-    }
-
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
@@ -212,6 +196,49 @@ impl TlsConnection for OpenSslConnection {
         self.connection.ssl().is_init_finished()
     }
 
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += self.connection.write(&data[write_offset..data.len()])?;
+            self.connection.flush()?; // make sure internal buffers don't fill up
+        }
+        Ok(())
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            read_offset += self.connection.read(&mut data[read_offset..data_len])?
+        }
+        Ok(())
+    }
+
+    fn send_shutdown(&mut self) {
+        self.connection.shutdown().unwrap();
+    }
+
+    fn shutdown_completed(&mut self) -> bool {
+        self.connection.shutdown().unwrap() == ShutdownResult::Received
+    }
+}
+
+impl TlsMetrics for OpenSslConnection {
+    fn name() -> String {
+        let version_num = openssl::version::number() as u64;
+        let patch: u8 = (version_num >> 4) as u8;
+        let fix = (version_num >> 12) as u8;
+        let minor = (version_num >> 20) as u8;
+        let major = (version_num >> 28) as u8;
+        format!(
+            "openssl{}.{}.{}{}",
+            major,
+            minor,
+            fix,
+            (b'a' + patch - 1) as char
+        )
+    }
+
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         let cipher_suite = self
             .connection
@@ -232,24 +259,6 @@ impl TlsConnection for OpenSslConnection {
             .version2() // version() -> &str is deprecated, version2() returns an enum instead
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
-    }
-
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut write_offset = 0;
-        while write_offset < data.len() {
-            write_offset += self.connection.write(&data[write_offset..data.len()])?;
-            self.connection.flush()?; // make sure internal buffers don't fill up
-        }
-        Ok(())
-    }
-
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let data_len = data.len();
-        let mut read_offset = 0;
-        while read_offset < data.len() {
-            read_offset += self.connection.read(&mut data[read_offset..data_len])?
-        }
-        Ok(())
     }
 
     fn resumed_connection(&self) -> bool {

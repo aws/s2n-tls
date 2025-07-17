@@ -3,8 +3,7 @@
 
 use crate::{
     harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsBenchConfig, TlsConnection, ViewIO,
+        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection, TlsMetrics, ViewIO
     },
     PemType::{self, *},
     SigType,
@@ -178,10 +177,6 @@ impl TlsBenchConfig for RustlsConfig {
 impl TlsConnection for RustlsConnection {
     type Config = RustlsConfig;
 
-    fn name() -> String {
-        "rustls".to_string()
-    }
-
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
@@ -214,21 +209,6 @@ impl TlsConnection for RustlsConnection {
         !self.connection.is_handshaking()
     }
 
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self.connection.negotiated_cipher_suite().unwrap().suite() {
-            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
-            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
-            _ => panic!("Unknown cipher suite"),
-        }
-    }
-
-    fn negotiated_tls13(&self) -> bool {
-        self.connection
-            .protocol_version()
-            .expect("Handshake not completed")
-            == TLSv1_3
-    }
-
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         let mut write_offset = 0;
         while write_offset < data.len() {
@@ -254,6 +234,47 @@ impl TlsConnection for RustlsConnection {
             )?;
         }
         Ok(())
+    }
+
+    fn send_shutdown(&mut self) {
+        match &mut self.connection {
+            Connection::Client(client_connection) => client_connection.send_close_notify(),
+            Connection::Server(server_connection) => server_connection.send_close_notify(),
+        }
+        // send the close notify
+        self.connection.complete_io(&mut self.io).unwrap();
+    }
+
+    fn shutdown_completed(&mut self) -> bool {
+        self.connection.complete_io(&mut self.io).unwrap();
+
+        let res = self.connection.reader().read(&mut [0]);
+        if let Ok(0) = res {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl TlsMetrics for RustlsConnection {
+
+    fn name() -> String {
+        "rustls".to_string()
+    }
+    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        match self.connection.negotiated_cipher_suite().unwrap().suite() {
+            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
+            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
+            _ => panic!("Unknown cipher suite"),
+        }
+    }
+
+    fn negotiated_tls13(&self) -> bool {
+        self.connection
+            .protocol_version()
+            .expect("Handshake not completed")
+            == TLSv1_3
     }
 
     fn resumed_connection(&self) -> bool {
