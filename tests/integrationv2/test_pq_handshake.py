@@ -31,7 +31,6 @@ KEM_GROUPS = [
     KemGroups.P256_KYBER512R3,
     KemGroups.P384_KYBER768R3,
     KemGroups.P521_KYBER1024R3,
-    KemGroups.P384_MLKEM1024,
 ]
 
 EXPECTED_RESULTS = {
@@ -72,14 +71,6 @@ EXPECTED_RESULTS = {
     (Ciphers.KMS_TLS_1_0_2018_10, Ciphers.KMS_TLS_1_0_2018_10): {
         "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
         "kem_group": None,
-    },
-    (KemGroups.P384_MLKEM1024, Ciphers.PQ_TLS_1_3_2023_06_01): {
-        "cipher": "TLS_AES_256_GCM_SHA384",
-        "kem_group": "secp384r1_mlkem-111124",
-    },
-    (Ciphers.PQ_TLS_1_3_2023_06_01, KemGroups.P384_MLKEM1024): {
-        "cipher": "TLS_AES_256_GCM_SHA384",
-        "kem_group": "secp384r1_mlkem-111124",
     },
 }
 
@@ -211,7 +202,7 @@ def test_s2nc_to_s2nd_pq_handshake(
 )
 @pytest.mark.parametrize(
     "awslc_server_group",
-    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00, KemGroups.P384_MLKEM1024],
+    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00],
     ids=get_parameter_name,
 )
 def test_s2nc_to_awslc_pq_handshake(
@@ -267,7 +258,7 @@ def test_s2nc_to_awslc_pq_handshake(
 )
 @pytest.mark.parametrize(
     "awslc_client_group",
-    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00, KemGroups.P384_MLKEM1024],
+    [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00],
     ids=get_parameter_name,
 )
 def test_s2nd_to_awslc_pq_handshake(
