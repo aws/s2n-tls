@@ -1,5 +1,5 @@
-{ pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0
-, libressl, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
+{ pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0,
+openssl_3_5_1, libressl, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
   # Define the default devShell
@@ -18,6 +18,7 @@ let
       if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
     OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
     OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
+    OPENSSL_3_5_1_INSTALL_DIR = "${openssl_3_5_1}";
     AWSLC_INSTALL_DIR = "${aws-lc}";
     AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
     AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
@@ -76,6 +77,17 @@ let
     '';
   });
 
+  openssl351 = default.overrideAttrs (finalAttrs: previousAttrs: {
+  buildInputs = [ pkgs.cmake openssl_3_5_1 ];
+  S2N_LIBCRYPTO = "openssl-3.5.1";
+  shellHook = ''
+    echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+    export PATH=${openssl_3_5_1}/bin:$PATH
+    export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+    source ${writeScript ./shell.sh}
+  '';
+});
+
   # Define the awslc devShell
   awslc_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
     # Re-include cmake to update the environment with a new libcrypto.
@@ -118,6 +130,7 @@ let
 in {
   default = default;
   openssl111 = openssl111;
+  openssl351 = openssl351;
   libressl = libressl_shell;
   openssl102 = openssl102;
   awslc = awslc_shell;
