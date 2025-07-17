@@ -2195,4 +2195,20 @@ const struct s2n_cipher_preferences cipher_preferences_20250211 = {
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_20250717[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20250717 = {
+    .count = s2n_array_len(cipher_suites_20250717),
+    .suites = cipher_suites_20250717,
+    .allow_chacha20_boosting = false,
+};
+
 /* clang-format on */
