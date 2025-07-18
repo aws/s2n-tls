@@ -10,7 +10,7 @@ use crate::{
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslSession, SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslOptions, SslSession, SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion
 };
 use std::{
     error::Error,
@@ -127,6 +127,13 @@ impl TlsBenchConfig for OpenSslConfig {
                 }
                 if handshake_type == HandshakeType::Resumption {
                     builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                } else {
+                    builder.set_options(SslOptions::NO_TICKET);
+                    builder.set_session_cache_mode(SslSessionCacheMode::OFF);
+                    // OpenSSL Bug: https://github.com/openssl/openssl/issues/8077
+                    // even with the above configuration, we must explicitly specify
+                    // 0 tickets
+                    builder.set_num_tickets(0)?;
                 }
             }
         }
@@ -214,11 +221,11 @@ impl TlsConnection for OpenSslConnection {
         Ok(())
     }
 
-    fn send_shutdown(&mut self) {
+    fn shutdown(&mut self) {
         self.connection.shutdown().unwrap();
     }
 
-    fn shutdown_completed(&mut self) -> bool {
+    fn shutdown_finish(&mut self) -> bool {
         self.connection.shutdown().unwrap() == ShutdownResult::Received
     }
 }

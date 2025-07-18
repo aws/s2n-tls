@@ -18,7 +18,7 @@ use rustls::{
         CryptoProvider,
     },
     pki_types::{CertificateDer, PrivateKeyDer, ServerName},
-    server::WebPkiClientVerifier,
+    server::{ProducesTickets, WebPkiClientVerifier},
     version::TLS13,
     ClientConfig, ClientConnection, Connection,
     ProtocolVersion::TLSv1_3,
@@ -51,6 +51,27 @@ impl RustlsConnection {
                 _ => Err(err),
             },
         }
+    }
+}
+
+#[derive(Debug)]
+struct NoOpTicketer {}
+
+impl ProducesTickets for NoOpTicketer {
+    fn enabled(&self) -> bool {
+        false
+    }
+
+    fn lifetime(&self) -> u32 {
+        panic!("session resumption is disabled");
+    }
+
+    fn encrypt(&self, _plain: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
+    }
+
+    fn decrypt(&self, _cipher: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
     }
 }
 
@@ -163,10 +184,15 @@ impl TlsBenchConfig for RustlsConfig {
                     }
                 };
 
-                let config = builder.with_single_cert(
+                let mut config = builder.with_single_cert(
                     Self::get_cert_chain(ServerCertChain, crypto_config.sig_type),
                     Self::get_key(ServerKey, crypto_config.sig_type),
                 )?;
+
+                if handshake_type != HandshakeType::Resumption {
+                    config.session_storage = Arc::new(rustls::server::NoServerSessionStorage {});
+                    config.ticketer = Arc::new(NoOpTicketer {});
+                }
 
                 Ok(RustlsConfig::Server(Arc::new(config)))
             }
@@ -236,7 +262,7 @@ impl TlsConnection for RustlsConnection {
         Ok(())
     }
 
-    fn send_shutdown(&mut self) {
+    fn shutdown(&mut self) {
         match &mut self.connection {
             Connection::Client(client_connection) => client_connection.send_close_notify(),
             Connection::Server(server_connection) => server_connection.send_close_notify(),
@@ -245,7 +271,7 @@ impl TlsConnection for RustlsConnection {
         self.connection.complete_io(&mut self.io).unwrap();
     }
 
-    fn shutdown_completed(&mut self) -> bool {
+    fn shutdown_finish(&mut self) -> bool {
         self.connection.complete_io(&mut self.io).unwrap();
 
         let res = self.connection.reader().read(&mut [0]);

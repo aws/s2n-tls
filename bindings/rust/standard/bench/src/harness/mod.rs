@@ -163,15 +163,28 @@ pub trait TlsConnection: Sized {
 
     fn handshake_completed(&self) -> bool;
 
-    /// Send application data to ConnectedBuffer
+    /// Send `data` to the peer.
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
 
-    /// Read application data from ConnectedBuffer
+    /// Read application data from the peer into `data`.
     fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
 
-    /// shutdown send
-    fn send_shutdown(&mut self);
-    fn shutdown_completed(&mut self) -> bool;
+    /// Send a `CloseNotify` to the peer.
+    ///
+    /// Must be followed by a call to [`TlsConnection::shutdown_finish`] to ensure
+    /// that any `CloseNotify` alerts from the peer are read.
+    ///
+    /// This might also read the `CloseNotify` sent by the peer, because most TLS
+    /// implementations attempt both reading and writing on this method.
+    fn shutdown(&mut self);
+
+    /// Attempt to read the `CloseNotify` from the peer.
+    ///
+    /// Returns `true` if the connection was successfully shutdown, `false otherwise.`
+    ///
+    /// The `CloseNotify` might already have been read by `send_shutdown`, depending
+    /// on the order of client/server [`TlsConnection::shutdown`] calls.
+    fn shutdown_finish(&mut self) -> bool;
 }
 
 pub trait TlsMetrics: Sized {
@@ -319,21 +332,27 @@ where
         assert_eq!(self.io.client_tx_stream.borrow().len(), 0);
         assert_eq!(self.io.server_tx_stream.borrow().len(), 0);
 
-        self.client.send_shutdown();
-        self.server.send_shutdown();
+        self.client.shutdown();
+        self.server.shutdown();
 
-        let client_shutdown = self.client.shutdown_completed();
-        let server_shutdown = self.server.shutdown_completed();
+        let client_shutdown = self.client.shutdown_finish();
+        let server_shutdown = self.server.shutdown_finish();
         if client_shutdown && server_shutdown {
             Ok(())
         } else {
-            Err("failed to shutdown".into())
+            Err(
+                format!("Shutdown Failed: client - {client_shutdown} server - {server_shutdown}")
+                    .into(),
+            )
         }
     }
 }
 
 impl<C, S> TlsConnPair<C, S>
-where C: TlsMetrics, S: TlsMetrics {
+where
+    C: TlsMetrics,
+    S: TlsMetrics,
+{
     pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         assert!(
             self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
@@ -407,14 +426,12 @@ mod tests {
                         assert!(conn_pair.negotiated_tls13());
                         assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
 
-                        // read in "application data" handshake messages. 
-                        // "Client Finished" in the case of MutualAuth,
+                        // read in "application data" handshake messages.
                         // "NewSessionTicket" in the case of resumption
-                        let err = conn_pair.client_mut().recv(&mut[0]).unwrap_err();
+                        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
                         assert_eq!(&err.to_string(), "blocking");
 
                         conn_pair.shutdown().unwrap();
-
                     }
                 }
             }
@@ -434,12 +451,11 @@ mod tests {
                 .unwrap();
         conn_pair.handshake().unwrap();
         // read the session tickets which were sent
-        let err = conn_pair.client_mut().recv(&mut[0]).unwrap_err();
+        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
         assert_eq!(&err.to_string(), "blocking");
 
         assert!(conn_pair.server().resumed_connection());
         conn_pair.shutdown().unwrap();
-
     }
 
     #[test]
