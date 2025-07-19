@@ -3,7 +3,7 @@
 
 use crate::{
     harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection, TlsMetrics, ViewIO
+        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection, TlsInfo, ViewIO
     },
     PemType::{self, *},
     SigType,
@@ -283,7 +283,7 @@ impl TlsConnection for RustlsConnection {
     }
 }
 
-impl TlsMetrics for RustlsConnection {
+impl TlsInfo for RustlsConnection {
 
     fn name() -> String {
         "rustls".to_string()

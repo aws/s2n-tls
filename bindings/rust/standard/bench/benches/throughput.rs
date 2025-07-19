@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::harness::TlsMetrics;
+use bench::harness::TlsInfo;
 use bench::OpenSslConnection;
 use bench::RustlsConnection;
 use bench::{
@@ -19,7 +19,7 @@ fn bench_throughput_for_library<T>(
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
 ) where
-    T: TlsConnection + TlsMetrics,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());

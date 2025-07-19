@@ -4,7 +4,7 @@
 use crate::{
     harness::{
         self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, LocalDataBuffer,
-        Mode, TlsConnection, TlsMetrics,
+        Mode, TlsConnection, TlsInfo,
     },
     PemType::*,
 };
@@ -299,7 +299,7 @@ impl TlsConnection for S2NConnection {
     }
 }
 
-impl TlsMetrics for S2NConnection {
+impl TlsInfo for S2NConnection {
     fn name() -> String {
         "s2n-tls".to_string()
     }

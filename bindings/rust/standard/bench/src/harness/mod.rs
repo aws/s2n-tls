@@ -187,7 +187,7 @@ pub trait TlsConnection: Sized {
     fn shutdown_finish(&mut self) -> bool;
 }
 
-pub trait TlsMetrics: Sized {
+pub trait TlsInfo: Sized {
     fn name() -> String;
     fn get_negotiated_cipher_suite(&self) -> CipherSuite;
 
@@ -326,7 +326,7 @@ where
     }
 
     pub fn shutdown(&mut self) -> Result<(), Box<dyn Error>> {
-        // These assertions to not _have_ to be true, but you are likely making
+        // These assertions do not _have_ to be true, but you are likely making
         // a mistake if you are hitting it. Generally all data should have been
         // read before attempting to shutdown
         assert_eq!(self.io.client_tx_stream.borrow().len(), 0);
@@ -350,8 +350,8 @@ where
 
 impl<C, S> TlsConnPair<C, S>
 where
-    C: TlsMetrics,
-    S: TlsMetrics,
+    C: TlsInfo,
+    S: TlsInfo,
 {
     pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         assert!(
@@ -393,8 +393,8 @@ mod tests {
 
     fn test_type<C, S>()
     where
-        S: TlsConnection + TlsMetrics,
-        C: TlsConnection + TlsMetrics,
+        S: TlsConnection + TlsInfo,
+        C: TlsConnection + TlsInfo,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -405,8 +405,8 @@ mod tests {
 
     fn handshake_configs<C, S>()
     where
-        S: TlsConnection + TlsMetrics,
-        C: TlsConnection + TlsMetrics,
+        S: TlsConnection + TlsInfo,
+        C: TlsConnection + TlsInfo,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -440,8 +440,8 @@ mod tests {
 
     fn session_resumption<C, S>()
     where
-        S: TlsConnection + TlsMetrics,
-        C: TlsConnection + TlsMetrics,
+        S: TlsConnection + TlsInfo,
+        C: TlsConnection + TlsInfo,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {

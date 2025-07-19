@@ -5,7 +5,7 @@ use crate::{
     get_cert_path,
     harness::{
         self, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
-        TlsConnection, TlsMetrics, ViewIO,
+        TlsConnection, TlsInfo, ViewIO,
     },
     PemType::*,
 };
@@ -230,7 +230,7 @@ impl TlsConnection for OpenSslConnection {
     }
 }
 
-impl TlsMetrics for OpenSslConnection {
+impl TlsInfo for OpenSslConnection {
     fn name() -> String {
         let version_num = openssl::version::number() as u64;
         let patch: u8 = (version_num >> 4) as u8;
