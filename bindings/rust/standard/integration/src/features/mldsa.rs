@@ -8,8 +8,7 @@ use std::{fs, path::Path, pin::Pin};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_openssl::SslStream;
 
-const TEST_PEMS_PATH: &'static str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
+const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
 
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();

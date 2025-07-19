@@ -349,9 +349,13 @@ jobs:
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: Run cargo fmt
+      - name: Run cargo fmt - extended packages
         run: |
           cargo fmt --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
+
+      - name: Run cargo fmt - standard packages
+        run: |
+          cargo fmt --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
@@ -384,10 +388,15 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh
 
       # TODO translate json reports to in-action warnings
-      - name: Run cargo clippy
+      - name: Run cargo clippy - extended packages
         run: |
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Run cargo clippy - standard packages
+        run: |
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
 
   msrv:
     runs-on: ubuntu-latest
