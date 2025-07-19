@@ -20,7 +20,6 @@ pprof = { version = "0.15", features = ["criterion", "flamegraph"] }
 # debugging interop failures
 env_logger = "0.11"
 log = "0.4"
-brass-aphid-wire = {path = "/home/ubuntu/workspace/brass-aphid/brass-aphid-wire"}
 
 [[bench]]
 name = "handshake"
