@@ -32,8 +32,7 @@ fn bench_handshake_for_library<T>(
             || -> TlsConnPair<T, T> {
                 if handshake_type == HandshakeType::Resumption {
                     // generate a session ticket to store on the config
-                    let mut pair =
-                        TlsConnPair::<T, T>::from_configs(client_config, server_config);
+                    let mut pair = TlsConnPair::<T, T>::from_configs(client_config, server_config);
                     pair.handshake().unwrap();
                     pair.round_trip_transfer(&mut [0]).unwrap();
                 }

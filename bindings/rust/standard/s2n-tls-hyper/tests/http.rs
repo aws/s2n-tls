@@ -62,9 +62,7 @@ async fn test_http_methods() -> Result<(), Box<dyn Error + Send + Sync>> {
                 Client::builder(TokioExecutor::new()).build(connector);
             let request: Request<Full<Bytes>> = Request::builder()
                 .method(method)
-                .uri(Uri::from_str(
-                    format!("https://localhost:{port}").as_str(),
-                )?)
+                .uri(Uri::from_str(format!("https://localhost:{port}").as_str())?)
                 .body(Full::from(TEST_DATA))?;
 
             let response = client.request(request).await?;
@@ -89,9 +87,7 @@ async fn test_large_request() -> Result<(), Box<dyn Error + Send + Sync>> {
         let client: Client<_, Full<Bytes>> = Client::builder(TokioExecutor::new()).build(connector);
         let request: Request<Full<Bytes>> = Request::builder()
             .method(Method::POST)
-            .uri(Uri::from_str(
-                format!("https://localhost:{port}").as_str(),
-            )?)
+            .uri(Uri::from_str(format!("https://localhost:{port}").as_str())?)
             .body(Full::from(LARGE_TEST_DATA))?;
 
         let response = client.request(request).await?;
