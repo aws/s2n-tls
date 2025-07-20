@@ -12,7 +12,7 @@ const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../t
 
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();
-    let listener = TcpListener::bind(format!("{}:0", localhost)).await?;
+    let listener = TcpListener::bind(format!("{localhost}:0")).await?;
     let addr = listener.local_addr()?;
     let client_stream = TcpStream::connect(&addr).await?;
     let (server_stream, _) = listener.accept().await?;
