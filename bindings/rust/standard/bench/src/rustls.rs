@@ -3,7 +3,8 @@
 
 use crate::{
     harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig, TlsConnection, TlsInfo, ViewIO
+        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+        TlsBenchConfig, TlsConnection, TlsInfo, ViewIO,
     },
     PemType::{self, *},
     SigType,
@@ -99,7 +100,7 @@ impl RustlsConfig {
             pkcs_8_key.into()
         } else {
             // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
-            panic!("unexpected key type: {:?}", key);
+            panic!("unexpected key type: {key:?}");
         }
     }
 }
@@ -284,7 +285,6 @@ impl TlsConnection for RustlsConnection {
 }
 
 impl TlsInfo for RustlsConnection {
-
     fn name() -> String {
         "rustls".to_string()
     }

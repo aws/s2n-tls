@@ -10,7 +10,8 @@ use crate::{
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslOptions, SslSession, SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslOptions, SslSession,
+    SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion,
 };
 use std::{
     error::Error,

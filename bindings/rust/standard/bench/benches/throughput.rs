@@ -1,12 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::harness::TlsInfo;
-use bench::OpenSslConnection;
-use bench::RustlsConnection;
 use bench::{
     harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -48,7 +45,7 @@ pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     let mut shared_buf = [0u8; 100000];
 
     for cipher_suite in CipherSuite::iter() {
-        let mut bench_group = c.benchmark_group(format!("throughput-{:?}", cipher_suite));
+        let mut bench_group = c.benchmark_group(format!("throughput-{cipher_suite:?}"));
         bench_group.throughput(Throughput::Bytes(shared_buf.len() as u64));
         bench_throughput_for_library::<S2NConnection>(
             &mut bench_group,

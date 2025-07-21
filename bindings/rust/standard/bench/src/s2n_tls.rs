@@ -287,10 +287,10 @@ impl TlsConnection for S2NConnection {
         }
         Ok(())
     }
-    
+
     fn shutdown(&mut self) {
         // This will return `Ready` if the peer already closed their connection.
-        // It will return `Pending` if the peer hasn't responded yet. 
+        // It will return `Pending` if the peer hasn't responded yet.
         let _ = self.connection.poll_shutdown();
     }
 
@@ -303,7 +303,7 @@ impl TlsInfo for S2NConnection {
     fn name() -> String {
         "s2n-tls".to_string()
     }
-    
+
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         match self.connection.cipher_suite().unwrap() {
             "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
