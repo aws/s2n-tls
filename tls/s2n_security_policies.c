@@ -109,7 +109,6 @@ const struct s2n_security_policy security_policy_20250721 = {
     },
 };
 
-
 const struct s2n_security_policy security_policy_20241001_pq_mixed = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2019,
