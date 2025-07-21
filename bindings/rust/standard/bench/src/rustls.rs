@@ -79,7 +79,7 @@ impl RustlsConfig {
             pkcs_8_key.into()
         } else {
             // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
-            panic!("unexpected key type: {:?}", key);
+            panic!("unexpected key type: {key:?}");
         }
     }
 }
