@@ -33,30 +33,32 @@ Listening on localhost:8000
 
 Post-quantum algorithms are enabled by configuring a security policy (see [Security Policies](./ch06-security-policies.md)) that supports post-quantum algorithms. 
 
-"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250512". For previous defaults, see the "Default Policy History" section below.
+"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.
 
 Other available PQ policies are compared in the tables below.
 
 ### Chart: Security Policy Version To PQ Hybrid Key Exchange Methods
 
-|        Version        | secp256r1+kyber768 | x25519+kyber768 | secp384r1+kyber768 | secp521r1+kyber1024 | secp256r1+kyber512 | x25519+kyber512 | 
-|-----------------------|--------------------|-----------------|--------------------|---------------------|--------------------|-----------------|
-| default_pq / 20250512 |          X         |         X       |         X          |          X          |         X          |        X        |
-| 20240730              |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-2-2023-12-15 |          X         |                 |         X          |          X          |         X          |                 |
-| PQ-TLS-1-2-2023-12-14 |          X         |                 |         X          |          X          |         X          |                 |
-| PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |
-| PQ-TLS-1-2-2023-10-10 |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-2-2023-10-09 |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-2-2023-10-07 |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-3-2023-06-01 |          X         |         X       |         X          |          X          |         X          |        X        |
+|        Version        | secp256r1+kyber768 | x25519+kyber768 | secp384r1+kyber768 | secp521r1+kyber1024 | secp256r1+kyber512 | x25519+kyber512 | x25519+mlkem768 | secp384r1+mlkem768 | secp384r1+mlkem1024 |
+|-----------------------|--------------------|-----------------|--------------------|---------------------|--------------------|-----------------|-----------------|--------------------|---------------------|
+| default_pq / 20250721 |                    |                 |                    |                     |                    |                 |        X        |          X         |          X          |  
+| 20250512              |                    |                 |                    |                     |                    |                 |        X        |          X         |                     |  
+| 20240730              |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+| PQ-TLS-1-2-2023-12-15 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
+| PQ-TLS-1-2-2023-12-14 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
+| PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
+| PQ-TLS-1-2-2023-10-10 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+| PQ-TLS-1-2-2023-10-09 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+| PQ-TLS-1-2-2023-10-07 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+| PQ-TLS-1-3-2023-06-01 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
 
 ### Chart: Security Policy Version To Signature Schemes
 
 |        Version        | ML-DSA | ECDSA | RSA | RSA-PSS | Legacy SHA1 |
 |-----------------------|--------|-------|-----|---------|-------------|
-| default_pq / 20250512 |   X    |   X   |  X  |    X    |             |
+| default_pq / 20250721 |   X    |   X   |  X  |    X    |             |
+| 20250512              |   X    |   X   |  X  |    X    |             |
 | 20240730              |        |   X   |  X  |    X    |             |
 | PQ-TLS-1-2-2023-12-15 |        |   X   |  X  |    X    |             |
 | PQ-TLS-1-2-2023-12-14 |        |   X   |  X  |    X    |             |
@@ -73,7 +75,8 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 
 |        Version        | secp256r1 | x25519 | secp384r1 | secp521r1 | DHE | RSA |
 |-----------------------|-----------|--------|-----------|-----------|-----|-----|
-| default_pq / 20250512 |     X     |   X    |     X     |     X     |     |     |
+| default_pq / 20250721 |     X     |   X    |     X     |     X     |     |     |
+| 20250512              |     X     |   X    |     X     |     X     |     |     |
 | 20240730              |     X     |   X    |     X     |     X     |     |     |
 | PQ-TLS-1-2-2023-12-15 |     X     |        |     X     |     X     |  X  |     |
 | PQ-TLS-1-2-2023-12-14 |     X     |        |     X     |     X     |     |     |
@@ -88,7 +91,8 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 
 |        Version        | AES-CBC | AES-GCM | CHACHAPOLY | 3DES |
 |-----------------------|---------|---------|------------|------|
-| default_pq / 20250512 |    X    |    X    |     X      |      |
+| default_pq / 20250721 |    X    |    X    |     X      |      |
+| 20250512              |    X    |    X    |     X      |      |
 | 20240730              |    X    |    X    |     X      |      |
 | PQ-TLS-1-2-2023-12-15 |    X    |    X    |            |      |
 | PQ-TLS-1-2-2023-12-14 |    X    |    X    |            |      |
@@ -104,7 +108,8 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 
 |        Version        | 1.2 | 1.3 |
 |-----------------------|-----|-----|
-| default_pq / 20250512 |  X  |  X  |
+| default_pq / 20250721 |  X  |  X  |
+| 20250512              |  X  |  X  |
 | 20240730              |  X  |  X  |
 | PQ-TLS-1-2-2023-12-15 |  X  |  X  |
 | PQ-TLS-1-2-2023-12-14 |  X  |  X  |
@@ -118,6 +123,7 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 #### Default Policy History
 |  Version   | "default_pq" |
 |------------|--------------|
+|  v1.5.20   |   20250721   |
 |  v1.5.19   |   20250512   |
 |  v1.5.0    |   20240730   |
 
