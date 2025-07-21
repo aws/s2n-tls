@@ -180,7 +180,7 @@ pub trait TlsConnection: Sized {
 
     /// Attempt to read the `CloseNotify` from the peer.
     ///
-    /// Returns `true` if the connection was successfully shutdown, `false otherwise.`
+    /// Returns `true` if the connection was successfully shutdown, `false` otherwise.
     ///
     /// The `CloseNotify` might already have been read by `send_shutdown`, depending
     /// on the order of client/server [`TlsConnection::shutdown`] calls.
