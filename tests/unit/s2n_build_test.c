@@ -32,8 +32,6 @@
 
 #define MAX_LIBCRYPTO_NAME_LEN 100
 
-bool s2n_libcrypto_is_fips(void);
-
 int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
 {
     if (name == NULL || version == NULL || s2n_libcrypto == NULL) {
@@ -135,7 +133,6 @@ int main()
     /* Ensure that FIPS mode is enabled only when linked to a fips library */
     s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
     EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
-    printf("INFO: s2n_get_fips_mode(&fips_mode) returned: %d\n", fips_mode);
     if (strstr(s2n_libcrypto, "fips") && !strstr(s2n_libcrypto, "1.0.2")) {
         EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_ENABLED);
     } else {
