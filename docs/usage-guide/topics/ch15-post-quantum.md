@@ -37,21 +37,37 @@ Post-quantum algorithms are enabled by configuring a security policy (see [Secur
 
 Other available PQ policies are compared in the tables below.
 
-### Chart: Security Policy Version To PQ Hybrid Key Exchange Methods
+### Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (ML-KEM)
 
-|        Version        | secp256r1+kyber768 | x25519+kyber768 | secp384r1+kyber768 | secp521r1+kyber1024 | secp256r1+kyber512 | x25519+kyber512 | x25519+mlkem768 | secp384r1+mlkem768 | secp384r1+mlkem1024 |
-|-----------------------|--------------------|-----------------|--------------------|---------------------|--------------------|-----------------|-----------------|--------------------|---------------------|
-| default_pq / 20250721 |                    |                 |                    |                     |                    |                 |        X        |          X         |          X          |  
-| 20250512              |                    |                 |                    |                     |                    |                 |        X        |          X         |                     |  
-| 20240730              |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
-| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
-| PQ-TLS-1-2-2023-12-15 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
-| PQ-TLS-1-2-2023-12-14 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
-| PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |                 |                    |                     |  
-| PQ-TLS-1-2-2023-10-10 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
-| PQ-TLS-1-2-2023-10-09 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
-| PQ-TLS-1-2-2023-10-07 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
-| PQ-TLS-1-3-2023-06-01 |          X         |         X       |         X          |          X          |         X          |        X        |                 |                    |                     |  
+|        Version        | x25519+mlkem768 | secp256r1+mlkem768 | secp384r1+mlkem1024 |
+|-----------------------|-----------------|--------------------|---------------------|
+| default_pq / 20250721 |        X        |          X         |          X          |
+| 20250512              |        X        |          X         |                     |
+| 20240730              |                 |                    |                     |
+| PQ-TLS-1-2-2023-10-08 |                 |                    |                     |
+| PQ-TLS-1-2-2023-12-15 |                 |                    |                     |
+| PQ-TLS-1-2-2023-12-14 |                 |                    |                     |
+| PQ-TLS-1-2-2023-12-13 |                 |                    |                     |
+| PQ-TLS-1-2-2023-10-10 |                 |                    |                     |
+| PQ-TLS-1-2-2023-10-09 |                 |                    |                     |
+| PQ-TLS-1-2-2023-10-07 |                 |                    |                     |
+| PQ-TLS-1-3-2023-06-01 |                 |                    |                     |
+
+### Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (Kyber)
+
+|        Version        | secp256r1+kyber768 | x25519+kyber768 | secp384r1+kyber768 | secp521r1+kyber1024 | secp256r1+kyber512 | x25519+kyber512 |
+|-----------------------|--------------------|-----------------|--------------------|---------------------|--------------------|-----------------|
+| default_pq / 20250721 |                    |                 |                    |                     |                    |                 |
+| 20250512              |                    |                 |                    |                     |                    |                 |
+| 20240730              |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-2-2023-12-15 |          X         |                 |         X          |          X          |         X          |                 |
+| PQ-TLS-1-2-2023-12-14 |          X         |                 |         X          |          X          |         X          |                 |
+| PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |
+| PQ-TLS-1-2-2023-10-10 |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-2-2023-10-09 |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-2-2023-10-07 |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-3-2023-06-01 |          X         |         X       |         X          |          X          |         X          |        X        |
 
 ### Chart: Security Policy Version To Signature Schemes
 
@@ -123,7 +139,7 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 #### Default Policy History
 |  Version   | "default_pq" |
 |------------|--------------|
-|  v1.5.20   |   20250721   |
+|  v1.5.23   |   20250721   |
 |  v1.5.19   |   20250512   |
 |  v1.5.0    |   20240730   |
 
