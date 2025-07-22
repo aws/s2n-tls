@@ -21,7 +21,6 @@
         aws-lc = awslc.packages.${system}.aws-lc;
         aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
-        # TODO: submit a flake PR
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
         openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
