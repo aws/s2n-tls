@@ -5,6 +5,8 @@ pub mod harness;
 pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
+#[cfg(test)]
+pub mod test_utilities;
 
 pub use crate::{
     harness::{
