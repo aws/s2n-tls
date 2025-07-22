@@ -4,7 +4,7 @@
 use crate::{
     harness::{
         self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsBenchConfig, TlsConnection, ViewIO,
+        TlsBenchConfig, TlsConnection, TlsInfo, ViewIO,
     },
     PemType::{self, *},
     SigType,
@@ -19,7 +19,7 @@ use rustls::{
         CryptoProvider,
     },
     pki_types::{CertificateDer, PrivateKeyDer, ServerName},
-    server::WebPkiClientVerifier,
+    server::{ProducesTickets, WebPkiClientVerifier},
     version::TLS13,
     ClientConfig, ClientConnection, Connection,
     ProtocolVersion::TLSv1_3,
@@ -52,6 +52,27 @@ impl RustlsConnection {
                 _ => Err(err),
             },
         }
+    }
+}
+
+#[derive(Debug)]
+struct NoOpTicketer {}
+
+impl ProducesTickets for NoOpTicketer {
+    fn enabled(&self) -> bool {
+        false
+    }
+
+    fn lifetime(&self) -> u32 {
+        panic!("session resumption is disabled");
+    }
+
+    fn encrypt(&self, _plain: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
+    }
+
+    fn decrypt(&self, _cipher: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
     }
 }
 
@@ -164,10 +185,15 @@ impl TlsBenchConfig for RustlsConfig {
                     }
                 };
 
-                let config = builder.with_single_cert(
+                let mut config = builder.with_single_cert(
                     Self::get_cert_chain(ServerCertChain, crypto_config.sig_type),
                     Self::get_key(ServerKey, crypto_config.sig_type),
                 )?;
+
+                if handshake_type != HandshakeType::Resumption {
+                    config.session_storage = Arc::new(rustls::server::NoServerSessionStorage {});
+                    config.ticketer = Arc::new(NoOpTicketer {});
+                }
 
                 Ok(RustlsConfig::Server(Arc::new(config)))
             }
@@ -177,10 +203,6 @@ impl TlsBenchConfig for RustlsConfig {
 
 impl TlsConnection for RustlsConnection {
     type Config = RustlsConfig;
-
-    fn name() -> String {
-        "rustls".to_string()
-    }
 
     fn new_from_config(
         mode: harness::Mode,
@@ -214,21 +236,6 @@ impl TlsConnection for RustlsConnection {
         !self.connection.is_handshaking()
     }
 
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self.connection.negotiated_cipher_suite().unwrap().suite() {
-            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
-            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
-            _ => panic!("Unknown cipher suite"),
-        }
-    }
-
-    fn negotiated_tls13(&self) -> bool {
-        self.connection
-            .protocol_version()
-            .expect("Handshake not completed")
-            == TLSv1_3
-    }
-
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         let mut write_offset = 0;
         while write_offset < data.len() {
@@ -254,6 +261,44 @@ impl TlsConnection for RustlsConnection {
             )?;
         }
         Ok(())
+    }
+
+    fn shutdown_send(&mut self) {
+        match &mut self.connection {
+            Connection::Client(client_connection) => client_connection.send_close_notify(),
+            Connection::Server(server_connection) => server_connection.send_close_notify(),
+        }
+        // this sends the close notify, but never reads
+        let (read, written) = self.connection.complete_io(&mut self.io).unwrap();
+        assert_eq!(read, 0);
+        assert!(written > 0);
+    }
+
+    fn shutdown_finish(&mut self) -> bool {
+        self.connection.complete_io(&mut self.io).unwrap();
+
+        let res = self.connection.reader().read(&mut [0]);
+        matches!(res, Ok(0))
+    }
+}
+
+impl TlsInfo for RustlsConnection {
+    fn name() -> String {
+        "rustls".to_string()
+    }
+    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        match self.connection.negotiated_cipher_suite().unwrap().suite() {
+            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
+            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
+            _ => panic!("Unknown cipher suite"),
+        }
+    }
+
+    fn negotiated_tls13(&self) -> bool {
+        self.connection
+            .protocol_version()
+            .expect("Handshake not completed")
+            == TLSv1_3
     }
 
     fn resumed_connection(&self) -> bool {

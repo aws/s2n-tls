@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::{TlsBenchConfig, TlsInfo},
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, OpenSslConnection, RustlsConnection,
+    S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -16,7 +17,7 @@ fn bench_handshake_for_library<T>(
     kx_group: KXGroup,
     sig_type: SigType,
 ) where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
