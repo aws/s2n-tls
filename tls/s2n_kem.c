@@ -134,6 +134,14 @@ const struct s2n_kem_group s2n_x25519_mlkem_768 = {
     .send_kem_first = 1,
 };
 
+const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
+    .name = "SecP384r1MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_MLKEM_1024,
+    .curve = &s2n_ecc_curve_secp384r1,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
+};
+
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
@@ -185,6 +193,7 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
+    &s2n_secp384r1_mlkem_1024,
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
