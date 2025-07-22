@@ -67,6 +67,7 @@ Other available PQ policies are compared in the tables below.
 | PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |
 | PQ-TLS-1-2-2023-10-10 |          X         |         X       |         X          |          X          |         X          |        X        |
 | PQ-TLS-1-2-2023-10-09 |          X         |         X       |         X          |          X          |         X          |        X        |
+| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |
 | PQ-TLS-1-2-2023-10-07 |          X         |         X       |         X          |          X          |         X          |        X        |
 | PQ-TLS-1-3-2023-06-01 |          X         |         X       |         X          |          X          |         X          |        X        |
 
