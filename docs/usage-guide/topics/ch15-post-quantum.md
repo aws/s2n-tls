@@ -44,7 +44,6 @@ Other available PQ policies are compared in the tables below.
 | default_pq / 20250721 |        X        |          X         |          X          |
 | 20250512              |        X        |          X         |                     |
 | 20240730              |                 |                    |                     |
-| PQ-TLS-1-2-2023-10-08 |                 |                    |                     |
 | PQ-TLS-1-2-2023-12-15 |                 |                    |                     |
 | PQ-TLS-1-2-2023-12-14 |                 |                    |                     |
 | PQ-TLS-1-2-2023-12-13 |                 |                    |                     |
@@ -61,7 +60,6 @@ Other available PQ policies are compared in the tables below.
 | default_pq / 20250721 |                    |                 |                    |                     |                    |                 |
 | 20250512              |                    |                 |                    |                     |                    |                 |
 | 20240730              |          X         |         X       |         X          |          X          |         X          |        X        |
-| PQ-TLS-1-2-2023-10-08 |          X         |         X       |         X          |          X          |         X          |        X        |
 | PQ-TLS-1-2-2023-12-15 |          X         |                 |         X          |          X          |         X          |                 |
 | PQ-TLS-1-2-2023-12-14 |          X         |                 |         X          |          X          |         X          |                 |
 | PQ-TLS-1-2-2023-12-13 |          X         |                 |         X          |          X          |         X          |                 |
