@@ -276,11 +276,7 @@ impl TlsConnection for RustlsConnection {
         self.connection.complete_io(&mut self.io).unwrap();
 
         let res = self.connection.reader().read(&mut [0]);
-        if let Ok(0) = res {
-            true
-        } else {
-            false
-        }
+        matches!(res, Ok(0))
     }
 }
 
