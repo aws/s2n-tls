@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection,
-    SigType, TlsConnPair, TlsConnection,
+    harness::{TlsBenchConfig, TlsInfo},
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection, SigType, TlsConnPair,
+    TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -11,7 +12,7 @@ use criterion::{
 
 fn bench_handshake_pair<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
@@ -38,7 +39,7 @@ where
 
 fn bench_handshake_server_1rtt<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     for handshake in [HandshakeType::Resumption, HandshakeType::ServerAuth] {
