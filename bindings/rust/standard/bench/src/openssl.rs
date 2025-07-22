@@ -222,8 +222,9 @@ impl TlsConnection for OpenSslConnection {
         Ok(())
     }
 
-    fn shutdown(&mut self) {
-        self.connection.shutdown().unwrap();
+    fn shutdown_send(&mut self) {
+        // this method will not read in a CloseNotify
+        assert_eq!(self.connection.shutdown().unwrap(), ShutdownResult::Sent);
     }
 
     fn shutdown_finish(&mut self) -> bool {

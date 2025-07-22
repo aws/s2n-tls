@@ -263,13 +263,15 @@ impl TlsConnection for RustlsConnection {
         Ok(())
     }
 
-    fn shutdown(&mut self) {
+    fn shutdown_send(&mut self) {
         match &mut self.connection {
             Connection::Client(client_connection) => client_connection.send_close_notify(),
             Connection::Server(server_connection) => server_connection.send_close_notify(),
         }
-        // send the close notify
-        self.connection.complete_io(&mut self.io).unwrap();
+        // this sends the close notify, but never reads
+        let (read, written) = self.connection.complete_io(&mut self.io).unwrap();
+        assert_eq!(read, 0);
+        assert!(written > 0);
     }
 
     fn shutdown_finish(&mut self) -> bool {

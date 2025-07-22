@@ -171,19 +171,18 @@ pub trait TlsConnection: Sized {
 
     /// Send a `CloseNotify` to the peer.
     ///
+    /// This does not read the `CloseNotify` from the peer.
+    ///
     /// Must be followed by a call to [`TlsConnection::shutdown_finish`] to ensure
     /// that any `CloseNotify` alerts from the peer are read.
-    ///
-    /// This might also read the `CloseNotify` sent by the peer, because most TLS
-    /// implementations attempt both reading and writing on this method.
-    fn shutdown(&mut self);
+    fn shutdown_send(&mut self);
 
     /// Attempt to read the `CloseNotify` from the peer.
     ///
     /// Returns `true` if the connection was successfully shutdown, `false` otherwise.
     ///
-    /// The `CloseNotify` might already have been read by `send_shutdown`, depending
-    /// on the order of client/server [`TlsConnection::shutdown`] calls.
+    /// The `CloseNotify` might already have been read by `shutdown_send`, depending
+    /// on the order of client/server [`TlsConnection::shutdown_send`] calls.
     fn shutdown_finish(&mut self) -> bool;
 }
 
@@ -332,8 +331,8 @@ where
         assert_eq!(self.io.client_tx_stream.borrow().len(), 0);
         assert_eq!(self.io.server_tx_stream.borrow().len(), 0);
 
-        self.client.shutdown();
-        self.server.shutdown();
+        self.client.shutdown_send();
+        self.server.shutdown_send();
 
         let client_shutdown = self.client.shutdown_finish();
         let server_shutdown = self.server.shutdown_finish();

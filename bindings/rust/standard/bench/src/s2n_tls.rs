@@ -288,10 +288,11 @@ impl TlsConnection for S2NConnection {
         Ok(())
     }
 
-    fn shutdown(&mut self) {
-        // This will return `Ready` if the peer already closed their connection.
-        // It will return `Pending` if the peer hasn't responded yet.
-        let _ = self.connection.poll_shutdown();
+    fn shutdown_send(&mut self) {
+        assert!(matches!(
+            self.connection.poll_shutdown_send(),
+            Poll::Ready(_)
+        ));
     }
 
     fn shutdown_finish(&mut self) -> bool {
