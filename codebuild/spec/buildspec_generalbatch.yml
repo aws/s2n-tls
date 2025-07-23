@@ -110,7 +110,6 @@ batch:
         variables:
           TESTS: unit
           S2N_LIBCRYPTO: default
-          LIBCRYPTO_ROOT: /usr
       identifier: s2nUnitAl2Arm
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
@@ -120,7 +119,6 @@ batch:
         variables:
           TESTS: unit
           S2N_LIBCRYPTO: default
-          LIBCRYPTO_ROOT: /usr
       identifier: s2nUnitAL2
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
@@ -139,7 +137,6 @@ batch:
         variables:
           TESTS: unit
           S2N_LIBCRYPTO: default
-          LIBCRYPTO_ROOT: /usr
       identifier: UnitAl2023x86
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
@@ -150,7 +147,6 @@ batch:
         variables:
           TESTS: unit
           S2N_LIBCRYPTO: default
-          LIBCRYPTO_ROOT: /usr
       identifier: UnitAl2023arm
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
