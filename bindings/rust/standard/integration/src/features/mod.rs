@@ -3,3 +3,4 @@
 
 #[cfg(feature = "pq")]
 mod mldsa;
+mod mlkem;
