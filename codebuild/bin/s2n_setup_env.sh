@@ -154,7 +154,10 @@ fi
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
 #check if the path contains test dep X, if not and X exists, add to path
-path_overrides="$PYTHON_INSTALL_DIR/bin
+# AWSLC is only used for the PQ test, with the integration BoringSSL provider, and does not need to match the libcrypto used to build s2n.
+# OpenSSL 1.1.1 is used by the integ tests, and does not need to match the libcrypto used to build s2n.
+path_overrides="$AWSLC_INSTALL_DIR/bin
+$PYTHON_INSTALL_DIR/bin
 $OPENSSL_1_1_1_INSTALL_DIR/bin
 $SAW_INSTALL_DIR/bin
 $Z3_INSTALL_DIR/bin
