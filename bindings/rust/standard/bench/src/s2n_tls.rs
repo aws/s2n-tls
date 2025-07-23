@@ -3,8 +3,8 @@
 
 use crate::{
     harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup,
-        Mode, TlsConnection, TlsInfo, ViewIO,
+        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+        TlsConnection, TlsInfo, ViewIO,
     },
     PemType::*,
 };
@@ -197,7 +197,7 @@ impl crate::harness::TlsBenchConfig for S2NConfig {
     }
 }
 
-// We allow dead_code, because otherwise the compiler sees `io` as unused because 
+// We allow dead_code, because otherwise the compiler sees `io` as unused because
 // it can't reason through the pointers that were passed into the s2n-tls connection
 // io contexts.
 #[allow(dead_code)]

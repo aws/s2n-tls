@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::harness::{TlsBenchConfig, TlsInfo};
 use crate::{
     CipherSuite, CryptoConfig, HandshakeType, KXGroup, SigType, TlsConnPair, TlsConnection,
