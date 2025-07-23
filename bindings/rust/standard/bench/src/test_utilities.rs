@@ -9,7 +9,7 @@ use std::io::ErrorKind;
 use strum::IntoEnumIterator;
 
 /// Perform a simple server-auth handshake.
-pub fn sanity_check<T>()
+pub fn basic_handshake<T>()
 where
     T: TlsConnection,
     T::Config: TlsBenchConfig,

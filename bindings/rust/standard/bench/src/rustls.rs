@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn sanity_check() {
-        test_utilities::sanity_check::<RustlsConnection>();
+        test_utilities::basic_handshake::<RustlsConnection>();
     }
 
     #[test]

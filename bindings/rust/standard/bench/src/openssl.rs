@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn sanity_check() {
-        test_utilities::sanity_check::<OpenSslConnection>();
+        test_utilities::basic_handshake::<OpenSslConnection>();
     }
 
     #[test]

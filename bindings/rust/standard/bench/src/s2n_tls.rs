@@ -239,10 +239,9 @@ impl TlsConnection for S2NConnection {
             .set_send_callback(Some(generic_send_cb::<ViewIO>))?
             .set_receive_callback(Some(generic_recv_cb::<ViewIO>))?;
         unsafe {
-            let raw_view_io = *(&mut io as *mut Pin<Box<ViewIO>> as *mut *mut ViewIO);
             connection
-                .set_send_context(raw_view_io as *mut c_void)?
-                .set_receive_context(raw_view_io as *mut c_void)?;
+                .set_send_context(&mut *io as *mut ViewIO as *mut c_void)?
+                .set_receive_context(&mut *io as *mut ViewIO as *mut c_void)?;
         }
 
         if let Some(ticket) = config.ticket_storage.0.lock().unwrap().borrow_mut().take() {
@@ -295,6 +294,7 @@ impl TlsConnection for S2NConnection {
         }
         Ok(())
     }
+
     fn shutdown_send(&mut self) {
         assert!(matches!(
             self.connection.poll_shutdown_send(),
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn sanity_check() {
-        test_utilities::sanity_check::<S2NConnection>();
+        test_utilities::basic_handshake::<S2NConnection>();
     }
 
     #[test]
