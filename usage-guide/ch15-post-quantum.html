@@ -194,11 +194,16 @@ Listening on localhost:8000
 </code></pre>
 <h3 id="security-policy"><a class="header" href="#security-policy">Security Policy</a></h3>
 <p>Post-quantum algorithms are enabled by configuring a security policy (see <a href="./ch06-security-policies.html">Security Policies</a>) that supports post-quantum algorithms.</p>
-<p>"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250512". For previous defaults, see the "Default Policy History" section below.</p>
+<p>"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.</p>
 <p>Other available PQ policies are compared in the tables below.</p>
-<h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods</a></h3>
+<h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods-ml-kem"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods-ml-kem">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (ML-KEM)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>x25519+mlkem768</th><th>secp256r1+mlkem768</th><th>secp384r1+mlkem1024</th></tr></thead><tbody>
+<tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>20250512</td><td>X</td><td>X</td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods-kyber"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods-kyber">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (Kyber)</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1+kyber768</th><th>x25519+kyber768</th><th>secp384r1+kyber768</th><th>secp521r1+kyber1024</th><th>secp256r1+kyber512</th><th>x25519+kyber512</th></tr></thead><tbody>
-<tr><td>default_pq / 20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
@@ -212,7 +217,8 @@ Listening on localhost:8000
 </div>
 <h3 id="chart-security-policy-version-to-signature-schemes"><a class="header" href="#chart-security-policy-version-to-signature-schemes">Chart: Security Policy Version To Signature Schemes</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>ML-DSA</th><th>ECDSA</th><th>RSA</th><th>RSA-PSS</th><th>Legacy SHA1</th></tr></thead><tbody>
-<tr><td>default_pq / 20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20240730</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
@@ -227,7 +233,8 @@ Listening on localhost:8000
 <h3 id="chart-security-policy-version-to-classic-key-exchange"><a class="header" href="#chart-security-policy-version-to-classic-key-exchange">Chart: Security Policy Version To Classic Key Exchange</a></h3>
 <p>If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall back to a classical option.</p>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1</th><th>x25519</th><th>secp384r1</th><th>secp521r1</th><th>DHE</th><th>RSA</th></tr></thead><tbody>
-<tr><td>default_pq / 20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td></tr>
@@ -241,7 +248,8 @@ Listening on localhost:8000
 </div>
 <h3 id="chart-security-policy-version-to-ciphers"><a class="header" href="#chart-security-policy-version-to-ciphers">Chart: Security Policy Version To Ciphers</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th></tr></thead><tbody>
-<tr><td>default_pq / 20250512</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td>X</td><td></td><td></td></tr>
@@ -256,7 +264,8 @@ Listening on localhost:8000
 </div>
 <h3 id="chart-security-policy-version-to-tls-protocol-version"><a class="header" href="#chart-security-policy-version-to-tls-protocol-version">Chart: Security Policy Version To TLS Protocol Version</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>1.2</th><th>1.3</th></tr></thead><tbody>
-<tr><td>default_pq / 20250512</td><td>X</td><td>X</td></tr>
+<tr><td>default_pq / 20250721</td><td>X</td><td>X</td></tr>
+<tr><td>20250512</td><td>X</td><td>X</td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td>X</td></tr>
@@ -270,6 +279,7 @@ Listening on localhost:8000
 </div>
 <h4 id="default-policy-history"><a class="header" href="#default-policy-history">Default Policy History</a></h4>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default_pq"</th></tr></thead><tbody>
+<tr><td>v1.5.23</td><td>20250721</td></tr>
 <tr><td>v1.5.19</td><td>20250512</td></tr>
 <tr><td>v1.5.0</td><td>20240730</td></tr>
 </tbody></table>
