@@ -204,16 +204,18 @@ impl TlsConnection for OpenSslConnection {
         self.connection.ssl().is_init_finished()
     }
 
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+    fn send(&mut self, data: &[u8]) {
         let mut write_offset = 0;
         while write_offset < data.len() {
-            write_offset += self.connection.write(&data[write_offset..data.len()])?;
-            self.connection.flush()?; // make sure internal buffers don't fill up
+            write_offset += self
+                .connection
+                .write(&data[write_offset..data.len()])
+                .unwrap();
+            self.connection.flush().unwrap(); // make sure internal buffers don't fill up
         }
-        Ok(())
     }
 
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         let data_len = data.len();
         let mut read_offset = 0;
         while read_offset < data.len() {
@@ -272,5 +274,27 @@ impl TlsInfo for OpenSslConnection {
 
     fn resumed_connection(&self) -> bool {
         self.connection.ssl().session_reused()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utilities;
+
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        test_utilities::basic_handshake::<OpenSslConnection>();
+    }
+
+    #[test]
+    fn all_handshakes() {
+        test_utilities::all_handshakes::<OpenSslConnection>();
+    }
+
+    #[test]
+    fn transfer() {
+        test_utilities::transfer::<OpenSslConnection>();
     }
 }

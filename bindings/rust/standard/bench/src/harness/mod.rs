@@ -3,7 +3,7 @@
 mod io;
 pub use io::{LocalDataBuffer, TestPairIO, ViewIO};
 
-use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
+use std::{error::Error, fmt::Debug, fs::read_to_string};
 use strum::EnumIter;
 
 #[derive(Clone, Copy, EnumIter)]
@@ -164,10 +164,12 @@ pub trait TlsConnection: Sized {
     fn handshake_completed(&self) -> bool;
 
     /// Send `data` to the peer.
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
+    ///
+    /// Send is infailable because it communicates over local memory.
+    fn send(&mut self, data: &[u8]);
 
     /// Read application data from the peer into `data`.
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()>;
 
     /// Send a `CloseNotify` to the peer.
     ///
@@ -270,8 +272,8 @@ where
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
         let io = TestPairIO {
-            server_tx_stream: Rc::pin(Default::default()),
-            client_tx_stream: Rc::pin(Default::default()),
+            server_tx_stream: Default::default(),
+            client_tx_stream: Default::default(),
         };
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
@@ -314,11 +316,11 @@ where
     /// Send data from client to server, and then from server to client
     pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
         // send data from client to server
-        self.client.send(data)?;
+        self.client.send(data);
         self.server.recv(data)?;
 
         // send data from server to client
-        self.server.send(data)?;
+        self.server.send(data);
         self.client.recv(data)?;
 
         Ok(())
@@ -368,7 +370,7 @@ where
 mod tests {
     use super::*;
     use crate::{OpenSslConnection, RustlsConnection, S2NConnection, TlsConnPair};
-    use std::path::Path;
+    use std::{io::ErrorKind, path::Path};
     use strum::IntoEnumIterator;
 
     #[test]
@@ -379,60 +381,6 @@ mod tests {
                     Path::new(&get_cert_path(pem_type, sig_type)).exists(),
                     "cert not found"
                 );
-            }
-        }
-    }
-
-    #[test]
-    fn test_all() {
-        test_type::<S2NConnection, S2NConnection>();
-        test_type::<RustlsConnection, RustlsConnection>();
-        test_type::<OpenSslConnection, OpenSslConnection>();
-    }
-
-    fn test_type<C, S>()
-    where
-        S: TlsConnection + TlsInfo,
-        C: TlsConnection + TlsInfo,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        println!("{} client --- {} server", C::name(), S::name());
-        handshake_configs::<C, S>();
-        transfer::<C, S>();
-    }
-
-    fn handshake_configs<C, S>()
-    where
-        S: TlsConnection + TlsInfo,
-        C: TlsConnection + TlsInfo,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        for handshake_type in HandshakeType::iter() {
-            for cipher_suite in CipherSuite::iter() {
-                for kx_group in KXGroup::iter() {
-                    for sig_type in SigType::iter() {
-                        let crypto_config = CryptoConfig::new(cipher_suite, kx_group, sig_type);
-                        let mut conn_pair =
-                            TlsConnPair::<C, S>::new_bench_pair(crypto_config, handshake_type)
-                                .unwrap();
-
-                        assert!(!conn_pair.handshake_completed());
-                        conn_pair.handshake().unwrap();
-                        assert!(conn_pair.handshake_completed());
-
-                        assert!(conn_pair.negotiated_tls13());
-                        assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
-
-                        // read in "application data" handshake messages.
-                        // "NewSessionTicket" in the case of resumption
-                        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
-                        assert_eq!(&err.to_string(), "blocking");
-
-                        conn_pair.shutdown().unwrap();
-                    }
-                }
             }
         }
     }
@@ -451,7 +399,7 @@ mod tests {
         conn_pair.handshake().unwrap();
         // read the session tickets which were sent
         let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
-        assert_eq!(&err.to_string(), "blocking");
+        assert_eq!(err.kind(), ErrorKind::WouldBlock);
 
         assert!(conn_pair.server().resumed_connection());
         conn_pair.shutdown().unwrap();
@@ -475,26 +423,5 @@ mod tests {
         session_resumption::<OpenSslConnection, OpenSslConnection>();
         session_resumption::<OpenSslConnection, S2NConnection>();
         session_resumption::<OpenSslConnection, RustlsConnection>();
-    }
-
-    fn transfer<C, S>()
-    where
-        S: TlsConnection,
-        C: TlsConnection,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        // use a large buffer to test across TLS record boundaries
-        let mut buf = [0x56u8; 1000000];
-        for cipher_suite in CipherSuite::iter() {
-            let crypto_config =
-                CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-            let mut conn_pair =
-                TlsConnPair::<C, S>::new_bench_pair(crypto_config, HandshakeType::default())
-                    .unwrap();
-            conn_pair.handshake().unwrap();
-            conn_pair.round_trip_transfer(&mut buf).unwrap();
-            conn_pair.shutdown().unwrap();
-        }
     }
 }

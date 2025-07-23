@@ -3,8 +3,8 @@
 
 use crate::{
     harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, LocalDataBuffer,
-        Mode, TlsConnection, TlsInfo,
+        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+        TlsConnection, TlsInfo, ViewIO,
     },
     PemType::*,
 };
@@ -19,8 +19,9 @@ use std::{
     borrow::BorrowMut,
     error::Error,
     ffi::c_void,
-    io::{Read, Write},
+    io::ErrorKind,
     os::raw::c_int,
+    pin::Pin,
     sync::{Arc, Mutex},
     task::Poll,
     time::SystemTime,
@@ -34,6 +35,44 @@ struct HostNameHandler {
 impl VerifyHostNameCallback for HostNameHandler {
     fn verify_host_name(&self, hostname: &str) -> bool {
         self.expected_server_name == hostname
+    }
+}
+
+/// An s2n send callback for some generic type `T` where `T: Write`.
+///
+/// # Safety
+/// The context must be semantically `Pin`, because it is stored as a raw pointer.
+/// The pointer must be one layer of indirection, e.g. `*mut T`.
+pub unsafe extern "C" fn generic_send_cb<T: std::io::Write>(
+    context: *mut c_void,
+    data: *const u8,
+    len: u32,
+) -> c_int {
+    let context: &mut T = &mut *(context as *mut T);
+    let data = core::slice::from_raw_parts(data, len as _);
+    let bytes_written = context.write(data).unwrap();
+    bytes_written as c_int
+}
+
+/// An s2n recv callback for some generic type `T` where `T: Read`.
+///
+/// # Safety
+/// The context must be semantically `Pin`, because it is stored as a raw pointer.
+/// The pointer must be one layer of indirection, e.g. `*mut T`.
+pub unsafe extern "C" fn generic_recv_cb<T: std::io::Read>(
+    context: *mut c_void,
+    data: *mut u8,
+    len: u32,
+) -> c_int {
+    let context: &mut T = &mut *(context as *mut T);
+    let data = core::slice::from_raw_parts_mut(data, len as _);
+    match context.read(data) {
+        Ok(len) => len as c_int,
+        Err(err) if err.kind() == ErrorKind::WouldBlock => {
+            errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+            -1
+        }
+        Err(unrecognized) => panic!("unexpected error: {unrecognized}"),
     }
 }
 
@@ -158,48 +197,16 @@ impl crate::harness::TlsBenchConfig for S2NConfig {
     }
 }
 
+// We allow dead_code, because otherwise the compiler sees `io` as unused because
+// it can't reason through the pointers that were passed into the s2n-tls connection
+// io contexts.
+#[allow(dead_code)]
 pub struct S2NConnection {
+    io: Pin<Box<ViewIO>>,
     connection: Connection,
-    handshake_completed: bool,
 }
 
 impl S2NConnection {
-    /// Unsafe callback for custom IO C API
-    ///
-    /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
-    /// reduce overhead and outside noise with a local buffer for benchmarking
-    unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
-        let context = &*(context as *const LocalDataBuffer);
-        let data = core::slice::from_raw_parts(data, len as _);
-        let bytes_written = context.borrow_mut().write(data).unwrap();
-        bytes_written as c_int
-    }
-
-    // Note: this callback will be invoked multiple times in the event that
-    // the byte-slices of the VecDeque are not contiguous (wrap around).
-    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
-        let context = &*(context as *const LocalDataBuffer);
-        let data = core::slice::from_raw_parts_mut(data, len as _);
-        match context.borrow_mut().read(data) {
-            Ok(len) => {
-                if len == 0 {
-                    // returning a length of 0 indicates a channel close (e.g. a
-                    // TCP Close) which would not be correct. To just communicate
-                    // "no more data", we instead set the errno to WouldBlock and
-                    // return -1.
-                    errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
-                    -1
-                } else {
-                    len as c_int
-                }
-            }
-            Err(err) => {
-                // VecDeque IO Operations should never fail
-                panic!("{err:?}");
-            }
-        }
-    }
-
     pub fn connection(&self) -> &Connection {
         &self.connection
     }
@@ -223,66 +230,66 @@ impl TlsConnection for S2NConnection {
             Mode::Server => io.server_view(),
         };
 
-        let io = Box::pin(io);
+        let mut io = Box::pin(io);
 
         let mut connection = Connection::new(s2n_mode);
         connection
             .set_blinding(Blinding::SelfService)?
             .set_config(config.config.clone())?
-            .set_send_callback(Some(Self::send_cb))?
-            .set_receive_callback(Some(Self::recv_cb))?;
+            .set_send_callback(Some(generic_send_cb::<ViewIO>))?
+            .set_receive_callback(Some(generic_recv_cb::<ViewIO>))?;
         unsafe {
             connection
-                .set_send_context(
-                    &io.send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
-                )?
-                .set_receive_context(
-                    &io.recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
-                )?;
+                .set_send_context(&mut *io as *mut ViewIO as *mut c_void)?
+                .set_receive_context(&mut *io as *mut ViewIO as *mut c_void)?;
         }
 
         if let Some(ticket) = config.ticket_storage.0.lock().unwrap().borrow_mut().take() {
             connection.set_session_ticket(&ticket)?;
         }
 
-        Ok(Self {
-            connection,
-            handshake_completed: false,
-        })
+        Ok(Self { io, connection })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        self.handshake_completed = self
-            .connection
-            .poll_negotiate()
-            .map(|res| res.unwrap()) // unwrap `Err` if present
-            .is_ready();
-        Ok(())
-    }
-
-    fn handshake_completed(&self) -> bool {
-        self.handshake_completed
-    }
-
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut write_offset = 0;
-        while write_offset < data.len() {
-            match self.connection.poll_send(&data[write_offset..]) {
-                Poll::Ready(bytes_written) => write_offset += bytes_written?,
-                Poll::Pending => return Err("blocking".into()),
-            }
-            assert!(self.connection.poll_flush().is_ready());
+        if let Poll::Ready(res) = self.connection.poll_negotiate() {
+            res?;
         }
         Ok(())
     }
 
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    fn handshake_completed(&self) -> bool {
+        let complete = self
+            .connection
+            .handshake_type()
+            .unwrap()
+            .contains("NEGOTIATED");
+        complete
+    }
+
+    fn send(&mut self, data: &[u8]) {
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            match self.connection.poll_send(&data[write_offset..]) {
+                Poll::Ready(bytes_written) => write_offset += bytes_written.unwrap(),
+                Poll::Pending => panic!("unexpected `Pending` poll"),
+            }
+            assert!(self.connection.poll_flush().is_ready());
+        }
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         let data_len = data.len();
         let mut read_offset = 0;
         while read_offset < data_len {
             match self.connection.poll_recv(data) {
                 Poll::Ready(bytes_read) => read_offset += bytes_read?,
-                Poll::Pending => return Err("blocking".into()),
+                Poll::Pending => {
+                    return Err(std::io::Error::new(
+                        ErrorKind::WouldBlock,
+                        "poll_recv returned pending",
+                    ))
+                }
             }
         }
         Ok(())
@@ -323,5 +330,27 @@ impl TlsInfo for S2NConnection {
             .handshake_type()
             .unwrap()
             .contains("FULL_HANDSHAKE")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utilities;
+
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        test_utilities::basic_handshake::<S2NConnection>();
+    }
+
+    #[test]
+    fn all_handshakes() {
+        test_utilities::all_handshakes::<S2NConnection>();
+    }
+
+    #[test]
+    fn transfer() {
+        test_utilities::transfer::<S2NConnection>();
     }
 }
