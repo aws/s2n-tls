@@ -55,7 +55,11 @@ async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
     let conn = client.as_ref();
 
     let kem_group = conn.kem_group_name().ok_or("No KEM group negotiated")?;
-    assert_eq!(kem_group, "SecP384r1MLKEM1024", "Unexpected KEM group: {:?}", kem_group);
+    assert_eq!(
+        kem_group, "SecP384r1MLKEM1024",
+        "Unexpected KEM group: {:?}",
+        kem_group
+    );
     Ok(())
 }
 
@@ -92,6 +96,10 @@ async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
     let conn = server.as_ref();
     let kem_group = conn.kem_group_name().ok_or("No KEM group negotiated")?;
     println!("Negotiated KEM group: {}", kem_group);
-    assert_eq!(kem_group, "SecP384r1MLKEM1024", "Unexpected KEM group: {:?}", kem_group);
+    assert_eq!(
+        kem_group, "SecP384r1MLKEM1024",
+        "Unexpected KEM group: {:?}",
+        kem_group
+    );
     Ok(())
 }
