@@ -95,7 +95,7 @@ async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
     let server = server_result?;
     let conn = server.as_ref();
     let kem_group = conn.kem_group_name().ok_or("No KEM group negotiated")?;
-    println!("Negotiated KEM group: {}", kem_group);
+
     assert_eq!(
         kem_group, "SecP384r1MLKEM1024",
         "Unexpected KEM group: {:?}",
