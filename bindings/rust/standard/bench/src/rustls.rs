@@ -44,6 +44,16 @@ impl RustlsConnection {
     }
 
     /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
+    ///
+    /// Blocking is expected during the initial negotiation. Calls to "read_tls"
+    /// will eventually block, because the peer hasn't actually responded to the
+    /// written messages.
+    ///
+    /// Blocking is expected during the reading of application data, because rustls
+    /// will return a WouldBlock error when the record is too large to fit into
+    /// its internal buffer. Following this error Rustls will increase the size
+    /// of the buffer, so that the read call eventually succeeds.
+    /// https://github.com/rustls/rustls/blob/87f37dd44e32b2771fa471a5d8111749ca9e7aa7/rustls/src/msgs/deframer/buffers.rs#L220
     fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
         match res {
             Ok(t) => Ok(t),
@@ -236,20 +246,20 @@ impl TlsConnection for RustlsConnection {
         !self.connection.is_handshaking()
     }
 
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+    fn send(&mut self, data: &[u8]) {
         let mut write_offset = 0;
         while write_offset < data.len() {
             write_offset += self
                 .connection
                 .writer()
-                .write(&data[write_offset..data.len()])?;
-            self.connection.writer().flush()?;
-            self.connection.complete_io(&mut self.io)?;
+                .write(&data[write_offset..data.len()])
+                .unwrap();
+            self.connection.writer().flush().unwrap();
+            self.connection.complete_io(&mut self.io).unwrap();
         }
-        Ok(())
     }
 
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         let data_len = data.len();
         let mut read_offset = 0;
         while read_offset < data.len() {
@@ -268,14 +278,12 @@ impl TlsConnection for RustlsConnection {
             Connection::Client(client_connection) => client_connection.send_close_notify(),
             Connection::Server(server_connection) => server_connection.send_close_notify(),
         }
-        // this sends the close notify, but never reads
-        let (read, written) = self.connection.complete_io(&mut self.io).unwrap();
-        assert_eq!(read, 0);
-        assert!(written > 0);
+        self.connection.write_tls(&mut self.io).unwrap();
     }
 
     fn shutdown_finish(&mut self) -> bool {
-        self.connection.complete_io(&mut self.io).unwrap();
+        self.connection.read_tls(&mut self.io).unwrap();
+        self.connection.process_new_packets().unwrap();
 
         let res = self.connection.reader().read(&mut [0]);
         matches!(res, Ok(0))
@@ -307,5 +315,27 @@ impl TlsInfo for RustlsConnection {
         } else {
             panic!("rustls connection resumption status must be check on the server side");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utilities;
+
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        test_utilities::basic_handshake::<RustlsConnection>();
+    }
+
+    #[test]
+    fn all_handshakes() {
+        test_utilities::all_handshakes::<RustlsConnection>();
+    }
+
+    #[test]
+    fn transfer() {
+        test_utilities::transfer::<RustlsConnection>();
     }
 }
