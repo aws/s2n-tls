@@ -21,8 +21,8 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
 
 #[test_log::test(tokio::test)]
 async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
-    let cert_path = format!("{TEST_PEMS_PATH}mlkem/server-chain.pem");
-    let key_path = format!("{TEST_PEMS_PATH}mlkem/server-key.pem");
+    let cert_path = format!("{TEST_PEMS_PATH}mlkem/secp384r1.crt");
+    let key_path = format!("{TEST_PEMS_PATH}mlkem/secp384r1.priv");
 
     let (server_stream, client_stream) = get_streams().await?;
 
@@ -61,8 +61,8 @@ async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test_log::test(tokio::test)]
 async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
-    let cert_path = format!("{TEST_PEMS_PATH}mlkem/server-chain.pem");
-    let key_path = format!("{TEST_PEMS_PATH}mlkem/server-key.pem");
+    let cert_path = format!("{TEST_PEMS_PATH}mlkem/secp384r1.crt");
+    let key_path = format!("{TEST_PEMS_PATH}mlkem/secp384r1.priv");
 
     let (server_stream, client_stream) = get_streams().await?;
 
