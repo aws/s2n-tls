@@ -331,9 +331,7 @@ impl TlsInfo for S2NConnection {
     }
 
     fn mutual_auth(&self) -> bool {
-        let handshake_type = self.connection.handshake_type().unwrap();
-        assert!(handshake_type.contains("NEGOTIATED"));
-        handshake_type.contains("CLIENT_AUTH")
+        self.connection.client_cert_used()
     }
 }
 
