@@ -275,6 +275,11 @@ impl TlsInfo for OpenSslConnection {
     fn resumed_connection(&self) -> bool {
         self.connection.ssl().session_reused()
     }
+
+    fn mutual_auth(&self) -> bool {
+        assert!(self.connection.ssl().is_server());
+        self.connection.ssl().verified_chain().is_some()
+    }
 }
 
 #[cfg(test)]
