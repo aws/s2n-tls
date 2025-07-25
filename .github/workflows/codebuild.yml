@@ -59,5 +59,9 @@ jobs:
             ./codebuild/bin/start_codebuild.sh $source_pr
           else
             echo "$pr_author does not have write permissions."
-            echo "A maintainer will need to manually run start_codebuild.sh."
+            echo "A maintainer will need to manually run the Codebuild jobs."
+            echo ""
+            echo "Review the latest version of the PR to ensure that the code is safe to execute."
+            echo "Note the SHA of the commit that you are reviewing."
+            echo "Run: start_codebuild.sh <sha>"
           fi
