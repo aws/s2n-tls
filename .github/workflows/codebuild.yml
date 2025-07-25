@@ -63,5 +63,5 @@ jobs:
             echo ""
             echo "Review the latest version of the PR to ensure that the code is safe to execute."
             echo "Note the SHA of the commit that you are reviewing."
-            echo "Run: start_codebuild.sh <sha>"
+            echo "Run: ./codebuild/bin/start_codebuild.sh <sha>"
           fi
