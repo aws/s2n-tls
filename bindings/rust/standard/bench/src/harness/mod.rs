@@ -75,6 +75,8 @@ pub enum Mode {
     Server,
 }
 
+/// While ServerAuth and Resumption are not mutually exclusive, they are treated
+/// as such for the purpose of benchmarking.
 #[derive(Clone, Copy, Default, EnumIter, Eq, PartialEq)]
 pub enum HandshakeType {
     #[default]
@@ -194,9 +196,11 @@ pub trait TlsInfo: Sized {
 
     fn negotiated_tls13(&self) -> bool;
 
-    /// Describes whether a connection was resumed. This method is only valid on
-    /// server connections because of rustls API limitations.
+    /// Describes whether a connection was resumed.
     fn resumed_connection(&self) -> bool;
+
+    /// For the rustls & openssl implementations, this only works for servers.
+    fn mutual_auth(&self) -> bool;
 }
 
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
