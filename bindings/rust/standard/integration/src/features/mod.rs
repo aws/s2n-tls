@@ -2,5 +2,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(feature = "pq")]
-mod mldsa;
-mod mlkem;
+mod pq;
