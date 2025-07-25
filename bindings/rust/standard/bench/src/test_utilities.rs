@@ -66,6 +66,20 @@ where
 
                     assert!(conn_pair.negotiated_tls13());
                     assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
+                    match handshake_type {
+                        HandshakeType::ServerAuth => {
+                            assert!(!conn_pair.server.mutual_auth());
+                            assert!(!conn_pair.server.resumed_connection());
+                        }
+                        HandshakeType::MutualAuth => {
+                            assert!(conn_pair.server.mutual_auth());
+                            assert!(!conn_pair.server.resumed_connection());
+                        }
+                        HandshakeType::Resumption => {
+                            assert!(!conn_pair.server.mutual_auth());
+                            assert!(conn_pair.server.resumed_connection());
+                        }
+                    }
 
                     // read in "application data" handshake messages.
                     // "NewSessionTicket" in the case of resumption
