@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 

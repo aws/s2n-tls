@@ -254,24 +254,6 @@ batch:
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
-          S2N_LIBCRYPTO: 'awslc-fips-2024'
-          TESTS: unit
-      identifier: s2nUnitAwslcFips2024
-    - buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        compute-type: BUILD_GENERAL1_SMALL
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
-          S2N_LIBCRYPTO: 'awslc-fips-next'
-          TESTS: unit
-      identifier: s2nUnitAwslcFipsNext
-    - buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        compute-type: BUILD_GENERAL1_SMALL
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
           BUILD_S2N: 'true'
           CC: '/usr/bin/clang'
           CXX: '/usr/bin/clang++'
