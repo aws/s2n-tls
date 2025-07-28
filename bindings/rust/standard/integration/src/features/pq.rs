@@ -20,7 +20,7 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
 }
 
 #[test_log::test(tokio::test)]
-async fn s2n_client_mldsa() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_mldsa_client() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -63,7 +63,7 @@ async fn s2n_client_mldsa() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test_log::test(tokio::test)]
-async fn s2n_server_mldsa() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_mldsa_server() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -100,6 +100,7 @@ async fn s2n_server_mldsa() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[tokio::test]
 async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
@@ -133,12 +134,12 @@ async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = client_result?;
     let conn = client.as_ref();
-
-    let kem_group = conn.kem_group_name().unwrap();
+    let kem_group = conn.kem_group_name()?;
     assert_eq!(kem_group, "SecP384r1MLKEM1024");
     Ok(())
 }
 
+#[tokio::test]
 async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
@@ -168,7 +169,7 @@ async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
 
     let server = server_result?;
     let conn = server.as_ref();
-    let kem_group = conn.kem_group_name().unwrap();
+    let kem_group = conn.kem_group_name()?;
     assert_eq!(kem_group, "SecP384r1MLKEM1024");
     Ok(())
 }
