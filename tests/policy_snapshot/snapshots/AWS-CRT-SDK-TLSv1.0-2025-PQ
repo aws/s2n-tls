@@ -1,4 +1,4 @@
-name: AWS-CRT-SDK-TLSv1.0-2023-PQ
+name: AWS-CRT-SDK-TLSv1.0-2025-PQ
 min version: TLS1.0
 rules:
 - Perfect Forward Secrecy: no
@@ -53,3 +53,4 @@ pq:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
+-- SecP384r1MLKEM1024

@@ -888,10 +888,28 @@ const struct s2n_security_policy security_policy_pq_20231215 = {
 };
 
 /* Same as security_policy_aws_crt_sdk_tls_10_06_23 but with (IETF-standardized) ML-KEM Support */
-const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_06_23_pq = {
+const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_07_25_pq = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+/* Same as security_policy_aws_crt_sdk_tls_12_06_23 but with (IETF-standardized) ML-KEM Support */
+const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_07_25_pq = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+/* Same as security_policy_aws_crt_sdk_tls_13_06_23 but with (IETF-standardized) ML-KEM Support */
+const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_07_25_pq = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
@@ -900,7 +918,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_06_23_pq = {
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
@@ -1356,12 +1374,14 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "AWS-CRT-SDK-TLSv1.3", .security_policy = &security_policy_aws_crt_sdk_tls_13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-SSLv3.0-2023", .security_policy = &security_policy_aws_crt_sdk_ssl_v3_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.0-2023", .security_policy = &security_policy_aws_crt_sdk_tls_10_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "AWS-CRT-SDK-TLSv1.0-2023-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_10_06_23_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.0-2025-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_10_07_25_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.1-2023", .security_policy = &security_policy_aws_crt_sdk_tls_11_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.2-2023", .security_policy = &security_policy_aws_crt_sdk_tls_12_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.2-2023-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_12_06_23_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.2-2025", .security_policy = &security_policy_aws_crt_sdk_tls_30_06_25, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.2-2025-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_12_07_25_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "AWS-CRT-SDK-TLSv1.3-2023", .security_policy = &security_policy_aws_crt_sdk_tls_13_06_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.3-2025-PQ", .security_policy = &security_policy_aws_crt_sdk_tls_13_07_25_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* KMS TLS Policies*/
     { .version = "KMS-TLS-1-0-2018-10", .security_policy = &security_policy_kms_tls_1_0_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-TLS-1-0-2021-08", .security_policy = &security_policy_kms_tls_1_0_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

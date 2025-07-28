@@ -1,5 +1,5 @@
-name: AWS-CRT-SDK-TLSv1.2-2023-PQ
-min version: TLS1.2
+name: AWS-CRT-SDK-TLSv1.3-2025-PQ
+min version: TLS1.3
 rules:
 - Perfect Forward Secrecy: no
 - FIPS 140-3 (2019): no
@@ -53,9 +53,4 @@ pq:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
--- SecP256r1Kyber768Draft00
--- X25519Kyber768Draft00
--- secp384r1_kyber-768-r3
--- secp521r1_kyber-1024-r3
--- secp256r1_kyber-512-r3
--- x25519_kyber-512-r3
+-- SecP384r1MLKEM1024

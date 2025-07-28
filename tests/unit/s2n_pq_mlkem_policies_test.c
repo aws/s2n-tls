@@ -111,7 +111,7 @@ const char *cipher_exceptions[] = {
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
 const char *tls_version_exceptions[] = {
-    "AWS-CRT-SDK-TLSv1.0-2023-PQ",
+    "AWS-CRT-SDK-TLSv1.0-2025-PQ",
     "test_all",
 };
 
