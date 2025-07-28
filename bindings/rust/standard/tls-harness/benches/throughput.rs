@@ -1,16 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{
-    harness::{TlsBenchConfig, TlsInfo},
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, OpenSslConnection, RustlsConnection,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
-};
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
 use strum::IntoEnumIterator;
+use tls_harness::bench_config::*;
+use tls_harness::cohort::{OpenSslConnection, RustlsConnection, S2NConnection};
+use tls_harness::{harness::TlsInfo, Mode, SigType, TlsConnPair, TlsConnection};
 
 fn bench_throughput_for_library<T>(
     bench_group: &mut BenchmarkGroup<WallTime>,
@@ -43,7 +41,7 @@ fn bench_throughput_for_library<T>(
 
 pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
-    let mut shared_buf = [0u8; 100000];
+    let mut shared_buf = [0u8; 1_000_000];
 
     for cipher_suite in CipherSuite::iter() {
         let mut bench_group = c.benchmark_group(format!("throughput-{cipher_suite:?}"));

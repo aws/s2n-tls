@@ -1,19 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsConnection, TlsInfo, ViewIO,
-    },
-    PemType::*,
-};
+use crate::harness::{self, Mode, TlsConnection, TlsInfo, ViewIO};
 use s2n_tls::{
     callbacks::{SessionTicketCallback, VerifyHostNameCallback},
-    config::Builder,
     connection::Connection,
-    enums::{Blinding, ClientAuthType, Version},
-    security::Policy,
+    enums::{Blinding, Version},
 };
 use std::{
     borrow::BorrowMut,
@@ -24,13 +16,16 @@ use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::Poll,
-    time::SystemTime,
+};
+
+pub const LOCALHOST_VERIFY_CALLBACK: HostNameHandler = HostNameHandler {
+    expected_server_name: "localhost",
 };
 
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
 /// so this is to make a fair comparison
-struct HostNameHandler {
-    expected_server_name: &'static str,
+pub struct HostNameHandler {
+    pub expected_server_name: &'static str,
 }
 impl VerifyHostNameCallback for HostNameHandler {
     fn verify_host_name(&self, hostname: &str) -> bool {
@@ -91,13 +86,13 @@ impl SessionTicketCallback for SessionTicketStorage {
     }
 }
 
-const KEY_NAME: &str = "InsecureTestKey";
-const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
+pub const KEY_NAME: &str = "InsecureTestKey";
+pub const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
 
 /// s2n-tls has mode-independent configs, so this struct wraps the config with the mode
 pub struct S2NConfig {
-    config: s2n_tls::config::Config,
-    ticket_storage: SessionTicketStorage,
+    pub config: s2n_tls::config::Config,
+    pub ticket_storage: SessionTicketStorage,
 }
 
 impl From<s2n_tls::config::Config> for S2NConfig {
@@ -106,94 +101,6 @@ impl From<s2n_tls::config::Config> for S2NConfig {
             config: value,
             ticket_storage: Default::default(),
         }
-    }
-}
-
-impl crate::harness::TlsBenchConfig for S2NConfig {
-    fn make_config(
-        mode: Mode,
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Self, Box<dyn Error>> {
-        // these security policies negotiate the given cipher suite and key
-        // exchange group as their top choice
-        let security_policy = match (crypto_config.cipher_suite, crypto_config.kx_group) {
-            (CipherSuite::AES_128_GCM_SHA256, KXGroup::Secp256R1) => "20230317",
-            (CipherSuite::AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
-            (CipherSuite::AES_128_GCM_SHA256, KXGroup::X25519) => "20240417",
-            (CipherSuite::AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
-        };
-
-        let mut builder = Builder::new();
-        builder
-            .set_security_policy(&Policy::from_version(security_policy)?)?
-            .with_system_certs(false)?
-            .set_client_auth_type(match handshake_type {
-                HandshakeType::MutualAuth => ClientAuthType::Required,
-                _ => ClientAuthType::None, // ServerAuth or resumption handshake
-            })?;
-
-        if handshake_type == HandshakeType::Resumption {
-            builder.enable_session_tickets(true)?;
-        }
-
-        let session_ticket_storage = SessionTicketStorage::default();
-
-        match mode {
-            Mode::Client => {
-                builder
-                    .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
-                    .set_verify_host_callback(HostNameHandler {
-                        expected_server_name: "localhost",
-                    })?;
-
-                match handshake_type {
-                    HandshakeType::MutualAuth => {
-                        builder.load_pem(
-                            read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
-                            read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
-                        )?;
-                    }
-                    HandshakeType::Resumption => {
-                        builder.set_session_ticket_callback(session_ticket_storage.clone())?;
-                    }
-                    // no special configuration
-                    HandshakeType::ServerAuth => {}
-                }
-            }
-            Mode::Server => {
-                builder.load_pem(
-                    read_to_bytes(ServerCertChain, crypto_config.sig_type).as_slice(),
-                    read_to_bytes(ServerKey, crypto_config.sig_type).as_slice(),
-                )?;
-
-                match handshake_type {
-                    HandshakeType::MutualAuth => {
-                        builder
-                            .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
-                            .set_verify_host_callback(HostNameHandler {
-                                expected_server_name: "localhost",
-                            })?;
-                    }
-                    HandshakeType::Resumption => {
-                        builder.add_session_ticket_key(
-                            KEY_NAME.as_bytes(),
-                            KEY_VALUE.as_slice(),
-                            // use a time that we are sure is in the past to
-                            // make the key immediately available
-                            SystemTime::UNIX_EPOCH,
-                        )?;
-                    }
-                    // no special configuration for normal handshake
-                    HandshakeType::ServerAuth => {}
-                };
-            }
-        }
-
-        Ok(S2NConfig {
-            config: builder.build()?,
-            ticket_storage: session_ticket_storage,
-        })
     }
 }
 
@@ -312,12 +219,8 @@ impl TlsInfo for S2NConnection {
         "s2n-tls".to_string()
     }
 
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self.connection.cipher_suite().unwrap() {
-            "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
-            "TLS_AES_256_GCM_SHA384" => CipherSuite::AES_256_GCM_SHA384,
-            _ => panic!("Unknown cipher suite"),
-        }
+    fn get_negotiated_cipher_suite(&self) -> String {
+        self.connection.cipher_suite().unwrap().to_string()
     }
 
     fn negotiated_tls13(&self) -> bool {

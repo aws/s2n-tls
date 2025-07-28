@@ -1,17 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    get_cert_path,
-    harness::{
-        self, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
-        TlsConnection, TlsInfo, ViewIO,
-    },
-    PemType::*,
-};
+use crate::harness::{self, Mode, TlsConnection, TlsInfo, ViewIO};
 use openssl::ssl::{
-    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslOptions, SslSession,
-    SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion,
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslSession, SslStream, SslVersion,
 };
 use std::{
     error::Error,
@@ -22,7 +14,7 @@ use std::{
 // Creates session ticket callback handler
 #[derive(Clone, Default)]
 pub struct SessionTicketStorage {
-    stored_ticket: Arc<Mutex<Option<SslSession>>>,
+    pub stored_ticket: Arc<Mutex<Option<SslSession>>>,
 }
 
 pub struct OpenSslConnection {
@@ -38,8 +30,8 @@ impl Drop for OpenSslConnection {
 }
 
 pub struct OpenSslConfig {
-    config: SslContext,
-    session_ticket_storage: SessionTicketStorage,
+    pub config: SslContext,
+    pub session_ticket_storage: SessionTicketStorage,
 }
 
 impl From<SslContext> for OpenSslConfig {
@@ -48,100 +40,6 @@ impl From<SslContext> for OpenSslConfig {
             config: value,
             session_ticket_storage: Default::default(),
         }
-    }
-}
-
-impl TlsBenchConfig for OpenSslConfig {
-    fn make_config(
-        mode: Mode,
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Self, Box<dyn Error>> {
-        let cipher_suite = match crypto_config.cipher_suite {
-            CipherSuite::AES_128_GCM_SHA256 => "TLS_AES_128_GCM_SHA256",
-            CipherSuite::AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
-        };
-
-        let ec_key = match crypto_config.kx_group {
-            KXGroup::Secp256R1 => "P-256",
-            KXGroup::X25519 => "X25519",
-        };
-
-        let ssl_method = match mode {
-            Mode::Client => SslMethod::tls_client(),
-            Mode::Server => SslMethod::tls_server(),
-        };
-
-        let session_ticket_storage = SessionTicketStorage::default();
-
-        let mut builder = SslContext::builder(ssl_method)?;
-        builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
-        builder.set_ciphersuites(cipher_suite)?;
-        builder.set_groups_list(ec_key)?;
-
-        match mode {
-            Mode::Client => {
-                builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
-                builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
-
-                match handshake_type {
-                    HandshakeType::MutualAuth => {
-                        builder.set_certificate_chain_file(get_cert_path(
-                            ClientCertChain,
-                            crypto_config.sig_type,
-                        ))?;
-                        builder.set_private_key_file(
-                            get_cert_path(ClientKey, crypto_config.sig_type),
-                            SslFiletype::PEM,
-                        )?;
-                    }
-                    HandshakeType::Resumption => {
-                        builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
-                        // do not attempt to define the callback outside of an
-                        // expression directly passed into the function, because
-                        // the compiler's type inference doesn't work for this
-                        // scenario
-                        // https://github.com/rust-lang/rust/issues/70263
-                        builder.set_new_session_callback({
-                            let sts = session_ticket_storage.clone();
-                            move |_, ticket| {
-                                let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
-                            }
-                        });
-                    }
-                    HandshakeType::ServerAuth => {}
-                }
-            }
-            Mode::Server => {
-                builder.set_certificate_chain_file(get_cert_path(
-                    ServerCertChain,
-                    crypto_config.sig_type,
-                ))?;
-                builder.set_private_key_file(
-                    get_cert_path(ServerKey, crypto_config.sig_type),
-                    SslFiletype::PEM,
-                )?;
-
-                if handshake_type == HandshakeType::MutualAuth {
-                    builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
-                    builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
-                }
-                if handshake_type == HandshakeType::Resumption {
-                    builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
-                } else {
-                    builder.set_options(SslOptions::NO_TICKET);
-                    builder.set_session_cache_mode(SslSessionCacheMode::OFF);
-                    // OpenSSL Bug: https://github.com/openssl/openssl/issues/8077
-                    // even with the above configuration, we must explicitly specify
-                    // 0 tickets
-                    builder.set_num_tickets(0)?;
-                }
-            }
-        }
-        Ok(Self {
-            config: builder.build(),
-            session_ticket_storage,
-        })
     }
 }
 
@@ -250,18 +148,14 @@ impl TlsInfo for OpenSslConnection {
         )
     }
 
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+    fn get_negotiated_cipher_suite(&self) -> String {
         let cipher_suite = self
             .connection
             .ssl()
             .current_cipher()
             .expect("Handshake not completed")
             .name();
-        match cipher_suite {
-            "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
-            "TLS_AES_256_GCM_SHA384" => CipherSuite::AES_256_GCM_SHA384,
-            _ => panic!("Unknown cipher suite"),
-        }
+        cipher_suite.to_string()
     }
 
     fn negotiated_tls13(&self) -> bool {

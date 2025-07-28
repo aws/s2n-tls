@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{TlsBenchConfig, TlsInfo},
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, SigType, TlsConnPair, TlsConnection,
+    bench_config::{CipherSuite, CryptoConfig, HandshakeType, KXGroup, TlsBenchConfig},
+    harness::TlsInfo,
+    SigType, TlsConnPair, TlsConnection,
 };
 use std::io::ErrorKind;
 use strum::IntoEnumIterator;
@@ -65,7 +66,10 @@ where
                     assert!(conn_pair.handshake_completed());
 
                     assert!(conn_pair.negotiated_tls13());
-                    assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
+                    assert_eq!(
+                        format!("{cipher_suite:?}"),
+                        conn_pair.get_negotiated_cipher_suite()
+                    );
                     match handshake_type {
                         HandshakeType::ServerAuth => {
                             assert!(!conn_pair.server.mutual_auth());

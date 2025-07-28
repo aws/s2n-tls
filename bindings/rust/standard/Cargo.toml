@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "bench",
+    "tls-harness",
     "integration",
     "s2n-tls-hyper"
 ]
