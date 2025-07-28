@@ -134,7 +134,7 @@ async fn s2n_mlkem_client() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = client_result?;
     let conn = client.as_ref();
-    let kem_group = conn.kem_group_name()?;
+    let kem_group = conn.kem_group_name().unwrap();
     assert_eq!(kem_group, "SecP384r1MLKEM1024");
     Ok(())
 }
@@ -169,7 +169,7 @@ async fn s2n_mlkem_server() -> Result<(), Box<dyn std::error::Error>> {
 
     let server = server_result?;
     let conn = server.as_ref();
-    let kem_group = conn.kem_group_name()?;
+    let kem_group = conn.kem_group_name().unwrap();
     assert_eq!(kem_group, "SecP384r1MLKEM1024");
     Ok(())
 }
