@@ -325,11 +325,13 @@ impl TlsInfo for S2NConnection {
     }
 
     fn resumed_connection(&self) -> bool {
-        !self
-            .connection
-            .handshake_type()
-            .unwrap()
-            .contains("FULL_HANDSHAKE")
+        let handshake_type = self.connection.handshake_type().unwrap();
+        assert!(handshake_type.contains("NEGOTIATED"));
+        !handshake_type.contains("FULL_HANDSHAKE")
+    }
+
+    fn mutual_auth(&self) -> bool {
+        self.connection.client_cert_used()
     }
 }
 

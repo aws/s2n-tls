@@ -21,7 +21,7 @@ use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, ServerName},
     server::{ProducesTickets, WebPkiClientVerifier},
     version::TLS13,
-    ClientConfig, ClientConnection, Connection,
+    ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
     RootCertStore, ServerConfig, ServerConnection,
 };
@@ -61,6 +61,13 @@ impl RustlsConnection {
                 std::io::ErrorKind::WouldBlock => Ok(T::default()),
                 _ => Err(err),
             },
+        }
+    }
+
+    fn connection_common(&self) -> &CommonState {
+        match &self.connection {
+            Connection::Client(client_connection) => client_connection,
+            Connection::Server(server_connection) => server_connection,
         }
     }
 }
@@ -310,11 +317,15 @@ impl TlsInfo for RustlsConnection {
     }
 
     fn resumed_connection(&self) -> bool {
-        if let rustls::Connection::Server(s) = &self.connection {
-            s.received_resumption_data().is_some()
-        } else {
-            panic!("rustls connection resumption status must be check on the server side");
-        }
+        self.connection_common().handshake_kind().unwrap() == HandshakeKind::Resumed
+    }
+
+    fn mutual_auth(&self) -> bool {
+        assert!(matches!(self.connection, Connection::Server(_)));
+        //> For servers, this is the certificate chain or the raw public key of
+        //> the client, if client authentication was completed.
+        //> https://docs.rs/rustls/latest/rustls/struct.CommonState.html#method.peer_certificates
+        self.connection_common().peer_certificates().is_some()
     }
 }
 

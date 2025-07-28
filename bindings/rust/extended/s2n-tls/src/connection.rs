@@ -937,7 +937,7 @@ impl Connection {
 
     /// Check if client auth was used for a connection.
     ///
-    /// This is only relevant if [`ClientAuthType::Optional] was used.
+    /// This is especially useful when the server has [`ClientAuthType::Optional`] configured.
     ///
     /// Corresponds to [s2n_connection_client_cert_used].
     pub fn client_cert_used(&self) -> bool {
