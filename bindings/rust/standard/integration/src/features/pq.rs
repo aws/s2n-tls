@@ -101,7 +101,7 @@ async fn s2n_mldsa_server() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_mlkem_client() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
 
@@ -140,7 +140,7 @@ async fn s2n_client_mlkem() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn s2n_server_mlkem() -> Result<(), Box<dyn std::error::Error>> {
+async fn s2n_mlkem_server() -> Result<(), Box<dyn std::error::Error>> {
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
     let (server_stream, client_stream) = get_streams().await?;
