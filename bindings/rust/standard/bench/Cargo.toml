@@ -14,7 +14,7 @@ rustls-pemfile = { version = "2" }
 openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
-criterion = "0.6"
+criterion = "0.7"
 pprof = { version = "0.15", features = ["criterion", "flamegraph"] }
 # env_logger and log are used to enable logging for rustls, which can help with
 # debugging interop failures
