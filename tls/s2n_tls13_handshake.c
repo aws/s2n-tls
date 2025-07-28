@@ -129,16 +129,46 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
+int s2n_tls13_compute_pure_pq_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(shared_secret);
+
+    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
+    POSIX_ENSURE_REF(kem_group);
+    POSIX_ENSURE_REF(kem_group->kem);
+
+    struct s2n_blob *pq_shared_secret = &conn->kex_params.client_kem_group_params.kem_params.shared_secret;
+    POSIX_ENSURE_REF(pq_shared_secret);
+    POSIX_ENSURE_REF(pq_shared_secret->data);
+
+    POSIX_ENSURE_EQ(pq_shared_secret->size, kem_group->kem->shared_secret_key_length);
+
+    /* Allocate and copy directly */
+    POSIX_GUARD(s2n_alloc(shared_secret, pq_shared_secret->size));
+    POSIX_CHECKED_MEMCPY(shared_secret->data, pq_shared_secret->data, pq_shared_secret->size);
+
+    return S2N_SUCCESS;
+}
+
 int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
 {
     return conn->kex_params.server_kem_group_params.kem_group != NULL;
+}
+
+int s2n_tls13_pure_pq_supported(struct s2n_connection *conn)
+{
+    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
+    return kem_group && kem_group->curve == &s2n_ecc_curve_mlkem_placeholder;
 }
 
 int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(conn);
 
-    if (s2n_tls13_pq_hybrid_supported(conn)) {
+    if (s2n_tls13_pure_pq_supported(conn)) {
+        POSIX_GUARD(s2n_tls13_compute_pure_pq_shared_secret(conn, shared_secret));
+    } else if (s2n_tls13_pq_hybrid_supported(conn)) {
         POSIX_GUARD(s2n_tls13_compute_pq_hybrid_shared_secret(conn, shared_secret));
     } else {
         POSIX_GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));

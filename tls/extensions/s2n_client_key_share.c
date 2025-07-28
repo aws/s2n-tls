@@ -67,6 +67,11 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
+    /* Skip if the highest-priority curve is the mlkem_placeholder */
+    if (ecc_pref->count > 0 && ecc_pref->ecc_curves[0] == &s2n_ecc_curve_mlkem_placeholder) {
+        return S2N_SUCCESS;
+    }
+
     /* We only ever send a single EC key share: either the share requested by the server
      * during a retry, or the most preferred share according to local preferences.
      */
@@ -135,7 +140,33 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_pure_pq_key_share(struct s2n_stuffer *out,
+        struct s2n_kem_group_params *kem_group_params)
+{
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(kem_group_params);
+    POSIX_ENSURE_REF(kem_group_params->kem_group);
+    POSIX_ENSURE_REF(kem_group_params->kem_group->kem);
+
+    /* Write group ID */
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group_params->kem_group->iana_id));
+
+    /* Reserve space for total share size */
+    struct s2n_stuffer_reservation total_share_size = { 0 };
+    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
+
+    /* Write KEM public key */
+    struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
+    kem_params->kem = kem_group_params->kem_group->kem;
+    POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+
+    /* Fill in the reserved size field */
+    POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_generate_pq_or_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(out);
@@ -187,7 +218,11 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
-    POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, client_params));
+    if (client_params->kem_group == &s2n_pure_mlkem_1024 || client_params->kem_group->curve == &s2n_ecc_curve_mlkem_placeholder) {
+        POSIX_GUARD(s2n_generate_pure_pq_key_share(out, client_params));
+    } else {
+        POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, client_params));
+    }
 
     return S2N_SUCCESS;
 }
@@ -206,7 +241,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
     struct s2n_stuffer_reservation shares_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
-    POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
+    POSIX_GUARD(s2n_generate_pq_or_hybrid_key_share(conn, out));
     POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
 
@@ -232,6 +267,33 @@ static int s2n_client_key_share_parse_ecc(struct s2n_stuffer *key_share, const s
         ecc_params->negotiated_curve = NULL;
         POSIX_GUARD(s2n_ecc_evp_params_free(ecc_params));
     }
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_key_share_recv_pure_kem(
+        struct s2n_connection *conn,
+        struct s2n_stuffer *key_share,
+        uint16_t kem_group_iana_id)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(key_share);
+
+    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
+    client_params->kem_group = &s2n_pure_mlkem_1024;
+    client_params->ecc_params.negotiated_curve = &s2n_ecc_curve_mlkem_placeholder;
+    client_params->kem_params.kem = s2n_pure_mlkem_1024.kem;
+
+    uint16_t actual_share_size = key_share->blob.size;
+    uint16_t unprefixed_size = client_params->kem_params.kem->public_key_length;
+    uint16_t prefixed_size = S2N_SIZE_OF_KEY_SHARE_SIZE + unprefixed_size;
+
+    if (actual_share_size != unprefixed_size && actual_share_size != prefixed_size) {
+        return S2N_SUCCESS;
+    }
+
+    client_params->kem_params.len_prefixed = (actual_share_size == prefixed_size);
+    POSIX_GUARD(s2n_kem_recv_public_key(key_share, &client_params->kem_params));
 
     return S2N_SUCCESS;
 }
@@ -453,8 +515,11 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;
 
-        /* Try to parse the share as ECC, then as PQ/hybrid; will ignore
-         * shares for unrecognized groups. */
+        if (named_group == s2n_pure_mlkem_1024.iana_id) {
+            POSIX_GUARD(s2n_client_key_share_recv_pure_kem(conn, &key_share, named_group));
+            continue;
+        }
+
         POSIX_GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group));
         POSIX_GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group));
     }
