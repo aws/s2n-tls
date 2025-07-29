@@ -5,13 +5,13 @@ use crate::{
     get_cert_path,
     harness::{
         self, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, TlsBenchConfig,
-        TlsConnection, ViewIO,
+        TlsConnection, TlsInfo, ViewIO,
     },
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslSession, SslSessionCacheMode, SslStream,
-    SslVerifyMode, SslVersion,
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslFiletype, SslMethod, SslOptions, SslSession,
+    SslSessionCacheMode, SslStream, SslVerifyMode, SslVersion,
 };
 use std::{
     error::Error,
@@ -128,6 +128,13 @@ impl TlsBenchConfig for OpenSslConfig {
                 }
                 if handshake_type == HandshakeType::Resumption {
                     builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                } else {
+                    builder.set_options(SslOptions::NO_TICKET);
+                    builder.set_session_cache_mode(SslSessionCacheMode::OFF);
+                    // OpenSSL Bug: https://github.com/openssl/openssl/issues/8077
+                    // even with the above configuration, we must explicitly specify
+                    // 0 tickets
+                    builder.set_num_tickets(0)?;
                 }
             }
         }
@@ -140,21 +147,6 @@ impl TlsBenchConfig for OpenSslConfig {
 
 impl TlsConnection for OpenSslConnection {
     type Config = OpenSslConfig;
-
-    fn name() -> String {
-        let version_num = openssl::version::number() as u64;
-        let patch: u8 = (version_num >> 4) as u8;
-        let fix = (version_num >> 12) as u8;
-        let minor = (version_num >> 20) as u8;
-        let major = (version_num >> 28) as u8;
-        format!(
-            "openssl{}.{}.{}{}",
-            major,
-            minor,
-            fix,
-            (b'a' + patch - 1) as char
-        )
-    }
 
     fn new_from_config(
         mode: harness::Mode,
@@ -212,6 +204,52 @@ impl TlsConnection for OpenSslConnection {
         self.connection.ssl().is_init_finished()
     }
 
+    fn send(&mut self, data: &[u8]) {
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += self
+                .connection
+                .write(&data[write_offset..data.len()])
+                .unwrap();
+            self.connection.flush().unwrap(); // make sure internal buffers don't fill up
+        }
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            read_offset += self.connection.read(&mut data[read_offset..data_len])?
+        }
+        Ok(())
+    }
+
+    fn shutdown_send(&mut self) {
+        // this method will not read in a CloseNotify
+        assert_eq!(self.connection.shutdown().unwrap(), ShutdownResult::Sent);
+    }
+
+    fn shutdown_finish(&mut self) -> bool {
+        self.connection.shutdown().unwrap() == ShutdownResult::Received
+    }
+}
+
+impl TlsInfo for OpenSslConnection {
+    fn name() -> String {
+        let version_num = openssl::version::number() as u64;
+        let patch: u8 = (version_num >> 4) as u8;
+        let fix = (version_num >> 12) as u8;
+        let minor = (version_num >> 20) as u8;
+        let major = (version_num >> 28) as u8;
+        format!(
+            "openssl{}.{}.{}{}",
+            major,
+            minor,
+            fix,
+            (b'a' + patch - 1) as char
+        )
+    }
+
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         let cipher_suite = self
             .connection
@@ -234,25 +272,34 @@ impl TlsConnection for OpenSslConnection {
             == SslVersion::TLS1_3
     }
 
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut write_offset = 0;
-        while write_offset < data.len() {
-            write_offset += self.connection.write(&data[write_offset..data.len()])?;
-            self.connection.flush()?; // make sure internal buffers don't fill up
-        }
-        Ok(())
-    }
-
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let data_len = data.len();
-        let mut read_offset = 0;
-        while read_offset < data.len() {
-            read_offset += self.connection.read(&mut data[read_offset..data_len])?
-        }
-        Ok(())
-    }
-
     fn resumed_connection(&self) -> bool {
         self.connection.ssl().session_reused()
+    }
+
+    fn mutual_auth(&self) -> bool {
+        assert!(self.connection.ssl().is_server());
+        self.connection.ssl().verified_chain().is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utilities;
+
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        test_utilities::basic_handshake::<OpenSslConnection>();
+    }
+
+    #[test]
+    fn all_handshakes() {
+        test_utilities::all_handshakes::<OpenSslConnection>();
+    }
+
+    #[test]
+    fn transfer() {
+        test_utilities::transfer::<OpenSslConnection>();
     }
 }

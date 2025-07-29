@@ -19,8 +19,8 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::InvalidScheme => write!(f, "The provided URI contains an invalid scheme."),
-            Error::HttpError(err) => write!(f, "{}", err),
-            Error::TlsError(err) => write!(f, "{}", err),
+            Error::HttpError(err) => write!(f, "{err}"),
+            Error::TlsError(err) => write!(f, "{err}"),
         }
     }
 }

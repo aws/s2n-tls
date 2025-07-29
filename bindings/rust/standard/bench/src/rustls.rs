@@ -4,7 +4,7 @@
 use crate::{
     harness::{
         self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsBenchConfig, TlsConnection, ViewIO,
+        TlsBenchConfig, TlsConnection, TlsInfo, ViewIO,
     },
     PemType::{self, *},
     SigType,
@@ -19,9 +19,9 @@ use rustls::{
         CryptoProvider,
     },
     pki_types::{CertificateDer, PrivateKeyDer, ServerName},
-    server::WebPkiClientVerifier,
+    server::{ProducesTickets, WebPkiClientVerifier},
     version::TLS13,
-    ClientConfig, ClientConnection, Connection,
+    ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
     RootCertStore, ServerConfig, ServerConnection,
 };
@@ -44,6 +44,16 @@ impl RustlsConnection {
     }
 
     /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
+    ///
+    /// Blocking is expected during the initial negotiation. Calls to "read_tls"
+    /// will eventually block, because the peer hasn't actually responded to the
+    /// written messages.
+    ///
+    /// Blocking is expected during the reading of application data, because rustls
+    /// will return a WouldBlock error when the record is too large to fit into
+    /// its internal buffer. Following this error Rustls will increase the size
+    /// of the buffer, so that the read call eventually succeeds.
+    /// https://github.com/rustls/rustls/blob/87f37dd44e32b2771fa471a5d8111749ca9e7aa7/rustls/src/msgs/deframer/buffers.rs#L220
     fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
         match res {
             Ok(t) => Ok(t),
@@ -52,6 +62,34 @@ impl RustlsConnection {
                 _ => Err(err),
             },
         }
+    }
+
+    fn connection_common(&self) -> &CommonState {
+        match &self.connection {
+            Connection::Client(client_connection) => client_connection,
+            Connection::Server(server_connection) => server_connection,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct NoOpTicketer {}
+
+impl ProducesTickets for NoOpTicketer {
+    fn enabled(&self) -> bool {
+        false
+    }
+
+    fn lifetime(&self) -> u32 {
+        panic!("session resumption is disabled");
+    }
+
+    fn encrypt(&self, _plain: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
+    }
+
+    fn decrypt(&self, _cipher: &[u8]) -> Option<Vec<u8>> {
+        panic!("session resumption is disabled");
     }
 }
 
@@ -79,7 +117,7 @@ impl RustlsConfig {
             pkcs_8_key.into()
         } else {
             // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
-            panic!("unexpected key type: {:?}", key);
+            panic!("unexpected key type: {key:?}");
         }
     }
 }
@@ -164,10 +202,15 @@ impl TlsBenchConfig for RustlsConfig {
                     }
                 };
 
-                let config = builder.with_single_cert(
+                let mut config = builder.with_single_cert(
                     Self::get_cert_chain(ServerCertChain, crypto_config.sig_type),
                     Self::get_key(ServerKey, crypto_config.sig_type),
                 )?;
+
+                if handshake_type != HandshakeType::Resumption {
+                    config.session_storage = Arc::new(rustls::server::NoServerSessionStorage {});
+                    config.ticketer = Arc::new(NoOpTicketer {});
+                }
 
                 Ok(RustlsConfig::Server(Arc::new(config)))
             }
@@ -177,10 +220,6 @@ impl TlsBenchConfig for RustlsConfig {
 
 impl TlsConnection for RustlsConnection {
     type Config = RustlsConfig;
-
-    fn name() -> String {
-        "rustls".to_string()
-    }
 
     fn new_from_config(
         mode: harness::Mode,
@@ -214,6 +253,54 @@ impl TlsConnection for RustlsConnection {
         !self.connection.is_handshaking()
     }
 
+    fn send(&mut self, data: &[u8]) {
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += self
+                .connection
+                .writer()
+                .write(&data[write_offset..data.len()])
+                .unwrap();
+            self.connection.writer().flush().unwrap();
+            self.connection.complete_io(&mut self.io).unwrap();
+        }
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            self.connection.complete_io(&mut self.io)?;
+            read_offset += Self::ignore_block(
+                self.connection
+                    .reader()
+                    .read(&mut data[read_offset..data_len]),
+            )?;
+        }
+        Ok(())
+    }
+
+    fn shutdown_send(&mut self) {
+        match &mut self.connection {
+            Connection::Client(client_connection) => client_connection.send_close_notify(),
+            Connection::Server(server_connection) => server_connection.send_close_notify(),
+        }
+        self.connection.write_tls(&mut self.io).unwrap();
+    }
+
+    fn shutdown_finish(&mut self) -> bool {
+        self.connection.read_tls(&mut self.io).unwrap();
+        self.connection.process_new_packets().unwrap();
+
+        let res = self.connection.reader().read(&mut [0]);
+        matches!(res, Ok(0))
+    }
+}
+
+impl TlsInfo for RustlsConnection {
+    fn name() -> String {
+        "rustls".to_string()
+    }
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
         match self.connection.negotiated_cipher_suite().unwrap().suite() {
             rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
@@ -229,38 +316,37 @@ impl TlsConnection for RustlsConnection {
             == TLSv1_3
     }
 
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut write_offset = 0;
-        while write_offset < data.len() {
-            write_offset += self
-                .connection
-                .writer()
-                .write(&data[write_offset..data.len()])?;
-            self.connection.writer().flush()?;
-            self.connection.complete_io(&mut self.io)?;
-        }
-        Ok(())
-    }
-
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let data_len = data.len();
-        let mut read_offset = 0;
-        while read_offset < data.len() {
-            self.connection.complete_io(&mut self.io)?;
-            read_offset += Self::ignore_block(
-                self.connection
-                    .reader()
-                    .read(&mut data[read_offset..data_len]),
-            )?;
-        }
-        Ok(())
-    }
-
     fn resumed_connection(&self) -> bool {
-        if let rustls::Connection::Server(s) = &self.connection {
-            s.received_resumption_data().is_some()
-        } else {
-            panic!("rustls connection resumption status must be check on the server side");
-        }
+        self.connection_common().handshake_kind().unwrap() == HandshakeKind::Resumed
+    }
+
+    fn mutual_auth(&self) -> bool {
+        assert!(matches!(self.connection, Connection::Server(_)));
+        //> For servers, this is the certificate chain or the raw public key of
+        //> the client, if client authentication was completed.
+        //> https://docs.rs/rustls/latest/rustls/struct.CommonState.html#method.peer_certificates
+        self.connection_common().peer_certificates().is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utilities;
+
+    use super::*;
+
+    #[test]
+    fn sanity_check() {
+        test_utilities::basic_handshake::<RustlsConnection>();
+    }
+
+    #[test]
+    fn all_handshakes() {
+        test_utilities::all_handshakes::<RustlsConnection>();
+    }
+
+    #[test]
+    fn transfer() {
+        test_utilities::transfer::<RustlsConnection>();
     }
 }

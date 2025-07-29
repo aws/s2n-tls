@@ -3,7 +3,7 @@
 mod io;
 pub use io::{LocalDataBuffer, TestPairIO, ViewIO};
 
-use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
+use std::{error::Error, fmt::Debug, fs::read_to_string};
 use strum::EnumIter;
 
 #[derive(Clone, Copy, EnumIter)]
@@ -75,6 +75,8 @@ pub enum Mode {
     Server,
 }
 
+/// While ServerAuth and Resumption are not mutually exclusive, they are treated
+/// as such for the purpose of benchmarking.
 #[derive(Clone, Copy, Default, EnumIter, Eq, PartialEq)]
 pub enum HandshakeType {
     #[default]
@@ -151,9 +153,6 @@ pub trait TlsConnection: Sized {
     /// Library-specific config struct
     type Config;
 
-    /// Name of the connection type
-    fn name() -> String;
-
     /// Make connection from existing config and buffer
     fn new_from_config(
         mode: Mode,
@@ -166,23 +165,46 @@ pub trait TlsConnection: Sized {
 
     fn handshake_completed(&self) -> bool;
 
+    /// Send `data` to the peer.
+    ///
+    /// Send is infailable because it communicates over local memory.
+    fn send(&mut self, data: &[u8]);
+
+    /// Read application data from the peer into `data`.
+    fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()>;
+
+    /// Send a `CloseNotify` to the peer.
+    ///
+    /// This does not read the `CloseNotify` from the peer.
+    ///
+    /// Must be followed by a call to [`TlsConnection::shutdown_finish`] to ensure
+    /// that any `CloseNotify` alerts from the peer are read.
+    fn shutdown_send(&mut self);
+
+    /// Attempt to read the `CloseNotify` from the peer.
+    ///
+    /// Returns `true` if the connection was successfully shutdown, `false` otherwise.
+    ///
+    /// The `CloseNotify` might already have been read by `shutdown_send`, depending
+    /// on the order of client/server [`TlsConnection::shutdown_send`] calls.
+    fn shutdown_finish(&mut self) -> bool;
+}
+
+pub trait TlsInfo: Sized {
+    fn name() -> String;
     fn get_negotiated_cipher_suite(&self) -> CipherSuite;
 
     fn negotiated_tls13(&self) -> bool;
 
-    /// Describes whether a connection was resumed. This method is only valid on
-    /// server connections because of rustls API limitations.
+    /// Describes whether a connection was resumed.
     fn resumed_connection(&self) -> bool;
 
-    /// Send application data to ConnectedBuffer
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
-
-    /// Read application data from ConnectedBuffer
-    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+    /// For the rustls & openssl implementations, this only works for servers.
+    fn mutual_auth(&self) -> bool;
 }
 
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
-pub struct TlsConnPair<C: TlsConnection, S: TlsConnection> {
+pub struct TlsConnPair<C, S> {
     pub client: C,
     pub server: S,
     pub io: TestPairIO,
@@ -254,8 +276,8 @@ where
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
         let io = TestPairIO {
-            server_tx_stream: Rc::pin(Default::default()),
-            client_tx_stream: Rc::pin(Default::default()),
+            server_tx_stream: Default::default(),
+            client_tx_stream: Default::default(),
         };
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
@@ -295,8 +317,48 @@ where
         self.client.handshake_completed() && self.server.handshake_completed()
     }
 
+    /// Send data from client to server, and then from server to client
+    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        // send data from client to server
+        self.client.send(data);
+        self.server.recv(data)?;
+
+        // send data from server to client
+        self.server.send(data);
+        self.client.recv(data)?;
+
+        Ok(())
+    }
+
+    pub fn shutdown(&mut self) -> Result<(), Box<dyn Error>> {
+        // These assertions do not _have_ to be true, but you are likely making
+        // a mistake if you are hitting it. Generally all data should have been
+        // read before attempting to shutdown
+        assert_eq!(self.io.client_tx_stream.borrow().len(), 0);
+        assert_eq!(self.io.server_tx_stream.borrow().len(), 0);
+
+        self.client.shutdown_send();
+        self.server.shutdown_send();
+
+        let client_shutdown = self.client.shutdown_finish();
+        let server_shutdown = self.server.shutdown_finish();
+        if client_shutdown && server_shutdown {
+            Ok(())
+        } else {
+            Err(
+                format!("Shutdown Failed: client - {client_shutdown} server - {server_shutdown}")
+                    .into(),
+            )
+        }
+    }
+}
+
+impl<C, S> TlsConnPair<C, S>
+where
+    C: TlsInfo,
+    S: TlsInfo,
+{
     pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        assert!(self.handshake_completed());
         assert!(
             self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
         );
@@ -306,26 +368,13 @@ where
     pub fn negotiated_tls13(&self) -> bool {
         self.client.negotiated_tls13() && self.server.negotiated_tls13()
     }
-
-    /// Send data from client to server, and then from server to client
-    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        // send data from client to server
-        self.client.send(data)?;
-        self.server.recv(data)?;
-
-        // send data from server to client
-        self.server.send(data)?;
-        self.client.recv(data)?;
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{OpenSslConnection, RustlsConnection, S2NConnection, TlsConnPair};
-    use std::path::Path;
+    use std::{io::ErrorKind, path::Path};
     use strum::IntoEnumIterator;
 
     #[test]
@@ -340,57 +389,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_all() {
-        test_type::<S2NConnection, S2NConnection>();
-        test_type::<RustlsConnection, RustlsConnection>();
-        test_type::<OpenSslConnection, OpenSslConnection>();
-    }
-
-    fn test_type<C, S>()
-    where
-        S: TlsConnection,
-        C: TlsConnection,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        println!("{} client --- {} server", C::name(), S::name());
-        handshake_configs::<C, S>();
-        transfer::<C, S>();
-    }
-
-    fn handshake_configs<C, S>()
-    where
-        S: TlsConnection,
-        C: TlsConnection,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        for handshake_type in HandshakeType::iter() {
-            for cipher_suite in CipherSuite::iter() {
-                for kx_group in KXGroup::iter() {
-                    for sig_type in SigType::iter() {
-                        let crypto_config = CryptoConfig::new(cipher_suite, kx_group, sig_type);
-                        let mut conn_pair =
-                            TlsConnPair::<C, S>::new_bench_pair(crypto_config, handshake_type)
-                                .unwrap();
-
-                        assert!(!conn_pair.handshake_completed());
-                        conn_pair.handshake().unwrap();
-                        assert!(conn_pair.handshake_completed());
-
-                        assert!(conn_pair.negotiated_tls13());
-                        assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
-                    }
-                }
-            }
-        }
-    }
-
     fn session_resumption<C, S>()
     where
-        S: TlsConnection,
-        C: TlsConnection,
+        S: TlsConnection + TlsInfo,
+        C: TlsConnection + TlsInfo,
         C::Config: TlsBenchConfig,
         S::Config: TlsBenchConfig,
     {
@@ -399,7 +401,12 @@ mod tests {
             TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
                 .unwrap();
         conn_pair.handshake().unwrap();
+        // read the session tickets which were sent
+        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::WouldBlock);
+
         assert!(conn_pair.server().resumed_connection());
+        conn_pair.shutdown().unwrap();
     }
 
     #[test]
@@ -420,25 +427,5 @@ mod tests {
         session_resumption::<OpenSslConnection, OpenSslConnection>();
         session_resumption::<OpenSslConnection, S2NConnection>();
         session_resumption::<OpenSslConnection, RustlsConnection>();
-    }
-
-    fn transfer<C, S>()
-    where
-        S: TlsConnection,
-        C: TlsConnection,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        // use a large buffer to test across TLS record boundaries
-        let mut buf = [0x56u8; 1000000];
-        for cipher_suite in CipherSuite::iter() {
-            let crypto_config =
-                CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-            let mut conn_pair =
-                TlsConnPair::<C, S>::new_bench_pair(crypto_config, HandshakeType::default())
-                    .unwrap();
-            conn_pair.handshake().unwrap();
-            conn_pair.round_trip_transfer(&mut buf).unwrap();
-        }
     }
 }

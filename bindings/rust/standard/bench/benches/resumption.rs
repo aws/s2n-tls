@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection,
-    SigType, TlsConnPair, TlsConnection,
+    harness::{TlsBenchConfig, TlsInfo},
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection, SigType, TlsConnPair,
+    TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -11,7 +12,7 @@ use criterion::{
 
 fn bench_handshake_pair<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
@@ -38,7 +39,7 @@ where
 
 fn bench_handshake_server_1rtt<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     for handshake in [HandshakeType::Resumption, HandshakeType::ServerAuth] {
@@ -70,14 +71,14 @@ where
 pub fn bench_resumption(c: &mut Criterion) {
     // compare resumption savings across both client and server
     for sig_type in [SigType::Rsa2048, SigType::Ecdsa256] {
-        let mut bench_group = c.benchmark_group(format!("resumption-pair-{:?}", sig_type));
+        let mut bench_group = c.benchmark_group(format!("resumption-pair-{sig_type:?}"));
         bench_handshake_pair::<S2NConnection>(&mut bench_group, sig_type);
     }
 
     // only look at resumption savings for the server, specifically the work
     // done in the first rtt.
     for sig_type in [SigType::Rsa2048, SigType::Ecdsa384] {
-        let mut bench_group = c.benchmark_group(format!("resumption-server-1rtt-{:?}", sig_type));
+        let mut bench_group = c.benchmark_group(format!("resumption-server-1rtt-{sig_type:?}"));
         bench_handshake_server_1rtt::<S2NConnection>(&mut bench_group, sig_type);
     }
 }

@@ -4,24 +4,6 @@
 version: 0.2
 env:
   shell: bash
-  variables:
-    # --ignore-environment prevents existing environment variables from being carried forward into the new shell.
-    # This allows for a clean, sterile environment.
-    NIXDEV_ARGS: --max-jobs auto --ignore-environment
-    # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
-    # renegotiate covers both renegotiate.py and renegotiate_apache.py
-    INTEGV2_TESTS:
-      happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
-      ocsp external_psk pq_handshake serialization
-      signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
-      fragmentation key_update session_resumption version_negotiation
-    # Excluded from nix:
-    # - dynamic_record_sizes (fails on aarch64)
-
-    # Run with uv/pytest and not ctest.
-    # The final state of this buildspec is to not specify any specific tests, but to run all of them.
-    INTEG_UV_TESTS:
-      sslyze
 
 batch:
   build-graph:
@@ -33,6 +15,8 @@ batch:
         privileged-mode: false
         type: LINUX_CONTAINER
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
@@ -44,6 +28,8 @@ batch:
         privileged-mode: false
         type: ARM_CONTAINER
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -167,12 +153,10 @@ phases:
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
+    # Dynamic_record_sizes is being excluded in nix/shell.sh and needs a rewrite.
     commands:
       - |
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TESTS"
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg $INTEG_UV_TESTS"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
         fi
-
-

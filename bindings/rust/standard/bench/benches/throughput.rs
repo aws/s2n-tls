@@ -1,17 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::OpenSslConnection;
-use bench::RustlsConnection;
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::{TlsBenchConfig, TlsInfo},
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, OpenSslConnection, RustlsConnection,
+    S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
-use pprof::criterion::{Output, PProfProfiler};
 use strum::IntoEnumIterator;
 
 fn bench_throughput_for_library<T>(
@@ -19,7 +17,7 @@ fn bench_throughput_for_library<T>(
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
 ) where
-    T: TlsConnection,
+    T: TlsConnection + TlsInfo,
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
@@ -48,7 +46,7 @@ pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     let mut shared_buf = [0u8; 100000];
 
     for cipher_suite in CipherSuite::iter() {
-        let mut bench_group = c.benchmark_group(format!("throughput-{:?}", cipher_suite));
+        let mut bench_group = c.benchmark_group(format!("throughput-{cipher_suite:?}"));
         bench_group.throughput(Throughput::Bytes(shared_buf.len() as u64));
         bench_throughput_for_library::<S2NConnection>(
             &mut bench_group,
