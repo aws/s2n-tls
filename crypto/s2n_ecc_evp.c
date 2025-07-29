@@ -101,6 +101,14 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
     .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
+const struct s2n_ecc_named_curve s2n_ecc_curve_mlkem_placeholder = {
+    .iana_id = 0,
+    .name = "mlkem_placeholder",
+    .libcrypto_nid = 0,
+    .share_size = 0,
+    .generate_key = s2n_ecc_evp_generate_key_noop,
+};
+
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */
@@ -163,6 +171,12 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(kctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
+    return 0;
+}
+
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
+{
+    *evp_pkey = NULL;
     return 0;
 }
 
