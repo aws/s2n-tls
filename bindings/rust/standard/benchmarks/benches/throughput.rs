@@ -1,12 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use benchmarks::*;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
 use strum::IntoEnumIterator;
-use tls_harness::bench_config::*;
 use tls_harness::cohort::{OpenSslConnection, RustlsConnection, S2NConnection};
 use tls_harness::{harness::TlsInfo, Mode, SigType, TlsConnPair, TlsConnection};
 

@@ -1,10 +1,10 @@
 [package]
-name = "tls-harness"
+name = "benchmarks"
 version = "0.1.0"
 edition = "2021"
-publish = false
 
 [dependencies]
+tls-harness = { path = "../tls-harness" }
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3"
 libc = "0.2"
@@ -14,7 +14,24 @@ rustls-pemfile = { version = "2" }
 openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
+criterion = "0.6"
 # env_logger and log are used to enable logging for rustls, which can help with
 # debugging interop failures
 env_logger = "0.11"
 log = "0.4"
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[[bench]]
+name = "resumption"
+harness = false
+
+[[bench]]
+name = "connection_creation"
+harness = false

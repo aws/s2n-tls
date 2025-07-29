@@ -1,9 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::harness::{self, Mode, TlsConnection, TlsInfo, ViewIO};
+use crate::{
+    get_cert_path,
+    harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
+    PemType,
+};
 use openssl::ssl::{
-    ErrorCode, ShutdownResult, Ssl, SslContext, SslSession, SslStream, SslVersion,
+    ErrorCode, ShutdownResult, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod,
+    SslSession, SslStream, SslVersion,
 };
 use std::{
     error::Error,
@@ -176,6 +181,41 @@ impl TlsInfo for OpenSslConnection {
     }
 }
 
+impl TlsConfigBuilder for SslContextBuilder {
+    type Config = OpenSslConfig;
+
+    fn new_integration_config(mode: Mode) -> Self {
+        let mut builder = match mode {
+            Mode::Client => SslContext::builder(SslMethod::tls_client()).unwrap(),
+            Mode::Server => SslContext::builder(SslMethod::tls_server()).unwrap(),
+        };
+        builder.set_security_level(0);
+        builder
+    }
+
+    fn set_chain(&mut self, sig_type: crate::SigType) {
+        self.set_certificate_chain_file(get_cert_path(PemType::ServerCertChain, sig_type))
+            .unwrap();
+        self.set_private_key_file(
+            get_cert_path(PemType::ServerKey, sig_type),
+            SslFiletype::PEM,
+        )
+        .unwrap();
+    }
+
+    fn set_trust(&mut self, sig_type: crate::SigType) {
+        self.set_ca_file(get_cert_path(PemType::CACert, sig_type))
+            .unwrap();
+    }
+
+    fn build(self) -> Self::Config {
+        OpenSslConfig {
+            config: self.build(),
+            session_ticket_storage: SessionTicketStorage::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_utilities;
@@ -183,17 +223,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sanity_check() {
-        test_utilities::basic_handshake::<OpenSslConnection>();
-    }
-
-    #[test]
-    fn all_handshakes() {
-        test_utilities::all_handshakes::<OpenSslConnection>();
+    fn handshake() {
+        test_utilities::handshake::<OpenSslConnection, SslContextBuilder>();
     }
 
     #[test]
     fn transfer() {
-        test_utilities::transfer::<OpenSslConnection>();
+        test_utilities::transfer::<OpenSslConnection, SslContextBuilder>();
     }
 }

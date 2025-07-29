@@ -1,115 +1,117 @@
-use crate::{
-    bench_config::{CipherSuite, CryptoConfig, HandshakeType, KXGroup, TlsBenchConfig},
+use crate::{CipherSuite, CryptoConfig, HandshakeType, KXGroup, TlsBenchConfig};
+
+use std::{error::Error, sync::Arc};
+use tls_harness::{
     cohort::{self, S2NConfig},
     get_cert_path,
     harness::{read_to_bytes, Mode},
     PemType::*,
 };
-use openssl::ssl::{
-    SslContext, SslFiletype, SslMethod, SslOptions,
-    SslSessionCacheMode, SslVerifyMode, SslVersion,
-};
-use std::{
-    error::Error,
-    sync::Arc,
-};
 
-impl TlsBenchConfig for cohort::OpenSslConfig {
-    fn make_config(
-        mode: Mode,
-        crypto_config: super::CryptoConfig,
-        handshake_type: super::HandshakeType,
-    ) -> Result<Self, Box<dyn Error>> {
-        let cipher_suite = match crypto_config.cipher_suite {
-            CipherSuite::TLS_AES_128_GCM_SHA256 => "TLS_AES_128_GCM_SHA256",
-            super::CipherSuite::TLS_AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
-        };
+mod openssl_bench_setup {
+    use super::*;
+    use openssl::ssl::{
+        SslContext, SslFiletype, SslMethod, SslOptions, SslSessionCacheMode, SslVerifyMode,
+        SslVersion,
+    };
+    impl TlsBenchConfig for cohort::OpenSslConfig {
+        fn make_config(
+            mode: Mode,
+            crypto_config: super::CryptoConfig,
+            handshake_type: super::HandshakeType,
+        ) -> Result<Self, Box<dyn Error>> {
+            let cipher_suite = match crypto_config.cipher_suite {
+                CipherSuite::TLS_AES_128_GCM_SHA256 => "TLS_AES_128_GCM_SHA256",
+                super::CipherSuite::TLS_AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
+            };
 
-        let ec_key = match crypto_config.kx_group {
-            KXGroup::Secp256R1 => "P-256",
-            KXGroup::X25519 => "X25519",
-        };
+            let ec_key = match crypto_config.kx_group {
+                KXGroup::Secp256R1 => "P-256",
+                KXGroup::X25519 => "X25519",
+            };
 
-        let ssl_method = match mode {
-            Mode::Client => SslMethod::tls_client(),
-            Mode::Server => SslMethod::tls_server(),
-        };
+            let ssl_method = match mode {
+                Mode::Client => SslMethod::tls_client(),
+                Mode::Server => SslMethod::tls_server(),
+            };
 
-        let session_ticket_storage = cohort::openssl::SessionTicketStorage::default();
+            let session_ticket_storage = cohort::openssl::SessionTicketStorage::default();
 
-        let mut builder = SslContext::builder(ssl_method)?;
-        builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
-        builder.set_ciphersuites(cipher_suite)?;
-        builder.set_groups_list(ec_key)?;
+            let mut builder = SslContext::builder(ssl_method)?;
+            builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
+            builder.set_ciphersuites(cipher_suite)?;
+            builder.set_groups_list(ec_key)?;
 
-        match mode {
-            Mode::Client => {
-                builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
-                builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
-
-                match handshake_type {
-                    HandshakeType::MutualAuth => {
-                        builder.set_certificate_chain_file(get_cert_path(
-                            ClientCertChain,
-                            crypto_config.sig_type,
-                        ))?;
-                        builder.set_private_key_file(
-                            get_cert_path(ClientKey, crypto_config.sig_type),
-                            SslFiletype::PEM,
-                        )?;
-                    }
-                    HandshakeType::Resumption => {
-                        builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
-                        // do not attempt to define the callback outside of an
-                        // expression directly passed into the function, because
-                        // the compiler's type inference doesn't work for this
-                        // scenario
-                        // https://github.com/rust-lang/rust/issues/70263
-                        builder.set_new_session_callback({
-                            let sts = session_ticket_storage.clone();
-                            move |_, ticket| {
-                                let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
-                            }
-                        });
-                    }
-                    HandshakeType::ServerAuth => {}
-                }
-            }
-            Mode::Server => {
-                builder.set_certificate_chain_file(get_cert_path(
-                    ServerCertChain,
-                    crypto_config.sig_type,
-                ))?;
-                builder.set_private_key_file(
-                    get_cert_path(ServerKey, crypto_config.sig_type),
-                    SslFiletype::PEM,
-                )?;
-
-                if handshake_type == HandshakeType::MutualAuth {
+            match mode {
+                Mode::Client => {
                     builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
                     builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
+
+                    match handshake_type {
+                        HandshakeType::MutualAuth => {
+                            builder.set_certificate_chain_file(get_cert_path(
+                                ClientCertChain,
+                                crypto_config.sig_type,
+                            ))?;
+                            builder.set_private_key_file(
+                                get_cert_path(ClientKey, crypto_config.sig_type),
+                                SslFiletype::PEM,
+                            )?;
+                        }
+                        HandshakeType::Resumption => {
+                            builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                            // do not attempt to define the callback outside of an
+                            // expression directly passed into the function, because
+                            // the compiler's type inference doesn't work for this
+                            // scenario
+                            // https://github.com/rust-lang/rust/issues/70263
+                            builder.set_new_session_callback({
+                                let sts = session_ticket_storage.clone();
+                                move |_, ticket| {
+                                    let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
+                                }
+                            });
+                        }
+                        HandshakeType::ServerAuth => {}
+                    }
                 }
-                if handshake_type == HandshakeType::Resumption {
-                    builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
-                } else {
-                    builder.set_options(SslOptions::NO_TICKET);
-                    builder.set_session_cache_mode(SslSessionCacheMode::OFF);
-                    // OpenSSL Bug: https://github.com/openssl/openssl/issues/8077
-                    // even with the above configuration, we must explicitly specify
-                    // 0 tickets
-                    builder.set_num_tickets(0)?;
+                Mode::Server => {
+                    builder.set_certificate_chain_file(get_cert_path(
+                        ServerCertChain,
+                        crypto_config.sig_type,
+                    ))?;
+                    builder.set_private_key_file(
+                        get_cert_path(ServerKey, crypto_config.sig_type),
+                        SslFiletype::PEM,
+                    )?;
+
+                    if handshake_type == HandshakeType::MutualAuth {
+                        builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
+                        builder
+                            .set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
+                    }
+                    if handshake_type == HandshakeType::Resumption {
+                        builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                    } else {
+                        builder.set_options(SslOptions::NO_TICKET);
+                        builder.set_session_cache_mode(SslSessionCacheMode::OFF);
+                        // OpenSSL Bug: https://github.com/openssl/openssl/issues/8077
+                        // even with the above configuration, we must explicitly specify
+                        // 0 tickets
+                        builder.set_num_tickets(0)?;
+                    }
                 }
             }
+            Ok(Self {
+                config: builder.build(),
+                session_ticket_storage,
+            })
         }
-        Ok(Self {
-            config: builder.build(),
-            session_ticket_storage,
-        })
     }
 }
 
 mod rustls_bench_setup {
-    use crate::cohort::rustls::NoOpTicketer;
+    use tls_harness::cohort::rustls::NoOpTicketer;
 
     use super::*;
 

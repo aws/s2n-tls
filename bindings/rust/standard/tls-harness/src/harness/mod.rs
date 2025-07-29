@@ -56,11 +56,15 @@ impl Debug for SigType {
 }
 
 pub fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
-    format!(
-        "certs/{}/{}",
+    const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/certs");
+
+    let res = format!(
+        "{TEST_PEMS_PATH}/{}/{}",
         sig_type.get_dir_name(),
         pem_type.get_filename()
-    )
+    );
+    println!("{res}");
+    res
 }
 
 pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
@@ -69,7 +73,7 @@ pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
         .into_bytes()
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Mode {
     Client,
     Server,
@@ -132,6 +136,25 @@ pub trait TlsInfo: Sized {
 
     /// For the rustls & openssl implementations, this only works for servers.
     fn mutual_auth(&self) -> bool;
+}
+
+pub trait TlsConfigBuilder {
+    /// The config produced by the [`TlsConfigBuilder::build`] operation.
+    type Config;
+
+    fn new_integration_config(mode: Mode) -> Self;
+
+    /// Load a chain onto a config.
+    ///
+    /// This is most often used for servers.
+    fn set_chain(&mut self, sig_type: SigType);
+
+    /// Load a cert into a trust store.
+    ///
+    /// This is most often used for clients.
+    fn set_trust(&mut self, sig_type: SigType);
+
+    fn build(self) -> Self::Config;
 }
 
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
@@ -242,14 +265,52 @@ where
     }
 }
 
+pub struct ConfigBuilderPair<C, S> {
+    pub client: C,
+    pub server: S,
+}
+
+impl<C, S> Default for ConfigBuilderPair<C, S>
+where
+    C: TlsConfigBuilder,
+    S: TlsConfigBuilder,
+{
+    fn default() -> Self {
+        Self {
+            client: C::new_integration_config(Mode::Client),
+            server: S::new_integration_config(Mode::Server),
+        }
+    }
+}
+
+impl<C, S> ConfigBuilderPair<C, S>
+where
+    C: TlsConfigBuilder,
+    S: TlsConfigBuilder,
+{
+    pub fn set_cert(&mut self, sigtype: SigType) {
+        self.client.set_trust(sigtype);
+        self.server.set_chain(sigtype);
+    }
+
+    pub fn build(self) -> (C::Config, S::Config) {
+        (self.client.build(), self.server.build())
+    }
+
+    pub fn connection_pair<ClientConn, ServerConn>(self) -> TlsConnPair<ClientConn, ServerConn>
+    where
+        ClientConn: TlsConnection<Config = C::Config>,
+        ServerConn: TlsConnection<Config = S::Config>,
+    {
+        let (client_config, server_config) = self.build();
+        TlsConnPair::from_configs(&client_config, &server_config)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        bench_config::{CryptoConfig, HandshakeType, TlsBenchConfig},
-        cohort::{OpenSslConnection, RustlsConnection, S2NConnection},
-    };
-    use std::{io::ErrorKind, path::Path};
+    use std::path::Path;
     use strum::IntoEnumIterator;
 
     #[test]
@@ -262,45 +323,5 @@ mod tests {
                 );
             }
         }
-    }
-
-    fn session_resumption<C, S>()
-    where
-        S: TlsConnection + TlsInfo,
-        C: TlsConnection + TlsInfo,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        println!("testing with client:{} server:{}", C::name(), S::name());
-        let mut conn_pair =
-            TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
-                .unwrap();
-        conn_pair.handshake().unwrap();
-        // read the session tickets which were sent
-        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
-        assert_eq!(err.kind(), ErrorKind::WouldBlock);
-
-        assert!(conn_pair.server().resumed_connection());
-        conn_pair.shutdown().unwrap();
-    }
-
-    #[test]
-    fn session_resumption_interop() {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Debug)
-            .is_test(true)
-            .try_init()
-            .unwrap();
-        session_resumption::<S2NConnection, S2NConnection>();
-        session_resumption::<S2NConnection, RustlsConnection>();
-        session_resumption::<S2NConnection, OpenSslConnection>();
-
-        session_resumption::<RustlsConnection, RustlsConnection>();
-        session_resumption::<RustlsConnection, S2NConnection>();
-        session_resumption::<RustlsConnection, OpenSslConnection>();
-
-        session_resumption::<OpenSslConnection, OpenSslConnection>();
-        session_resumption::<OpenSslConnection, S2NConnection>();
-        session_resumption::<OpenSslConnection, RustlsConnection>();
     }
 }

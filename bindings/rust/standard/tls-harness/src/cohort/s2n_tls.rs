@@ -1,11 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::harness::{self, Mode, TlsConnection, TlsInfo, ViewIO};
+use crate::{
+    harness::{self, read_to_bytes, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
+    PemType,
+};
 use s2n_tls::{
     callbacks::{SessionTicketCallback, VerifyHostNameCallback},
     connection::Connection,
     enums::{Blinding, Version},
+    security::Policy,
 };
 use std::{
     borrow::BorrowMut,
@@ -238,24 +242,56 @@ impl TlsInfo for S2NConnection {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::test_utilities;
+impl TlsConfigBuilder for s2n_tls::config::Builder {
+    type Config = S2NConfig;
 
-    use super::*;
-
-    #[test]
-    fn sanity_check() {
-        test_utilities::basic_handshake::<S2NConnection>();
+    fn new_integration_config(_mode: Mode) -> Self {
+        let mut builder = s2n_tls::config::Builder::new();
+        builder.with_system_certs(false).unwrap();
+        builder
+            .set_security_policy(&Policy::from_version("test_all").unwrap())
+            .unwrap();
+        builder
     }
 
+    fn set_chain(&mut self, sig_type: crate::SigType) {
+        self.load_pem(
+            read_to_bytes(PemType::ClientCertChain, sig_type).as_slice(),
+            read_to_bytes(PemType::ClientKey, sig_type).as_slice(),
+        )
+        .unwrap();
+    }
+
+    fn set_trust(&mut self, sig_type: crate::SigType) {
+        self.trust_pem(read_to_bytes(PemType::CACert, sig_type).as_slice())
+            .unwrap();
+        self.set_verify_host_callback(HostNameHandler {
+            expected_server_name: "localhost",
+        })
+        .unwrap();
+    }
+
+    fn build(self) -> Self::Config {
+        S2NConfig {
+            config: self.build().unwrap(),
+            ticket_storage: SessionTicketStorage::default(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utilities;
+    use s2n_tls::config;
+
     #[test]
-    fn all_handshakes() {
-        test_utilities::all_handshakes::<S2NConnection>();
+    fn handshake() {
+        test_utilities::handshake::<S2NConnection, config::Builder>();
     }
 
     #[test]
     fn transfer() {
-        test_utilities::transfer::<S2NConnection>();
+        test_utilities::transfer::<S2NConnection, config::Builder>();
     }
 }
