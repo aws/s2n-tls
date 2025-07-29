@@ -15,7 +15,10 @@
 version: 0.2
 # This is designed to work with CodeBuild's reserved instances fleet and
 # curated Ec2 AMI for AL2023.
-# TODO: Move to a NixOS AMI
+#
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to 
+# prevent the disk from filling up.
 env:
   shell: bash
   variables:
@@ -39,7 +42,6 @@ phases:
       - export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
       - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-      # On Sunday, run a nix store cleanup
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from the nix cache
       - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
