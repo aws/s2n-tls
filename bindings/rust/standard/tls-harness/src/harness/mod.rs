@@ -58,13 +58,11 @@ impl Debug for SigType {
 pub fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
     const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/certs");
 
-    let res = format!(
+    format!(
         "{TEST_PEMS_PATH}/{}/{}",
         sig_type.get_dir_name(),
         pem_type.get_filename()
-    );
-    println!("{res}");
-    res
+    )
 }
 
 pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
