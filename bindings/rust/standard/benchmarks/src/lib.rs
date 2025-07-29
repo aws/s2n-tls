@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 //! This module holds all of the "benchmark specific" configuration logic that is
 //! used in the benchmark suites.
 //!

@@ -265,12 +265,12 @@ where
     }
 }
 
-pub struct ConfigBuilderPair<C, S> {
+pub struct TlsConfigBuilderPair<C, S> {
     pub client: C,
     pub server: S,
 }
 
-impl<C, S> Default for ConfigBuilderPair<C, S>
+impl<C, S> Default for TlsConfigBuilderPair<C, S>
 where
     C: TlsConfigBuilder,
     S: TlsConfigBuilder,
@@ -283,14 +283,14 @@ where
     }
 }
 
-impl<C, S> ConfigBuilderPair<C, S>
+impl<C, S> TlsConfigBuilderPair<C, S>
 where
     C: TlsConfigBuilder,
     S: TlsConfigBuilder,
 {
-    pub fn set_cert(&mut self, sigtype: SigType) {
-        self.client.set_trust(sigtype);
-        self.server.set_chain(sigtype);
+    pub fn set_cert(&mut self, cert: SigType) {
+        self.client.set_trust(cert);
+        self.server.set_chain(cert);
     }
 
     pub fn build(self) -> (C::Config, S::Config) {

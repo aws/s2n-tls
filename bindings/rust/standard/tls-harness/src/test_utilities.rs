@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{ConfigBuilderPair, TlsConfigBuilder},
+    harness::{TlsConfigBuilder, TlsConfigBuilderPair},
     SigType, TlsConnPair, TlsConnection,
 };
 
@@ -13,7 +13,7 @@ where
     B: TlsConfigBuilder<Config = C::Config>,
 {
     let mut conn_pair: TlsConnPair<C, C> = {
-        let mut config_pair: ConfigBuilderPair<B, B> = ConfigBuilderPair::default();
+        let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
         config_pair.set_cert(SigType::Rsa2048);
         config_pair.connection_pair()
     };
@@ -29,7 +29,7 @@ where
     B: TlsConfigBuilder<Config = C::Config>,
 {
     let mut conn_pair: TlsConnPair<C, C> = {
-        let mut config_pair: ConfigBuilderPair<B, B> = ConfigBuilderPair::default();
+        let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
         config_pair.set_cert(SigType::Rsa2048);
         config_pair.connection_pair()
     };
