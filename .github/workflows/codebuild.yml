@@ -64,5 +64,5 @@ jobs:
             echo "Review the latest version of the PR to ensure that the code is safe to execute."
             echo "Note the full SHA of the commit that you are reviewing."
             echo "Run: ./codebuild/bin/start_codebuild.sh <full sha>"
-            ehco "Warning: use the full SHA, NOT the PR number. The PR could be updated after your review."
+            echo "Warning: use the full SHA, NOT the PR number. The PR could be updated after your review."
           fi
