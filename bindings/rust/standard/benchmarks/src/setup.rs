@@ -114,18 +114,16 @@ mod openssl_bench_setup {
 }
 
 mod rustls_bench_setup {
-    use tls_harness::cohort::rustls::NoOpTicketer;
-
     use super::*;
-
-    use rustls::server::WebPkiClientVerifier;
     use rustls::{
         crypto::{
             aws_lc_rs::{self, kx_group},
             CryptoProvider,
         },
+        server::WebPkiClientVerifier,
         version, ClientConfig, ServerConfig,
     };
+    use tls_harness::cohort::rustls::NoOpTicketer;
 
     impl TlsBenchConfig for cohort::RustlsConfig {
         fn make_config(

@@ -7,8 +7,11 @@ use criterion::{
     Throughput,
 };
 use strum::IntoEnumIterator;
-use tls_harness::cohort::{OpenSslConnection, RustlsConnection, S2NConnection};
-use tls_harness::{harness::TlsInfo, Mode, SigType, TlsConnPair, TlsConnection};
+use tls_harness::{
+    cohort::{OpenSslConnection, RustlsConnection, S2NConnection},
+    harness::TlsInfo,
+    Mode, SigType, TlsConnPair, TlsConnection,
+};
 
 fn bench_throughput_for_library<T>(
     bench_group: &mut BenchmarkGroup<WallTime>,

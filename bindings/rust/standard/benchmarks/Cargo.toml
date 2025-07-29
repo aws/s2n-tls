@@ -11,7 +11,7 @@ libc = "0.2"
 strum = { version = "0.27", features = ["derive"] }
 rustls = { version = "0.23" }
 rustls-pemfile = { version = "2" }
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10.73", features = ["vendored"] }
 
 [dev-dependencies]
 criterion = "0.6"

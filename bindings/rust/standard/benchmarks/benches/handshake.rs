@@ -6,8 +6,11 @@ use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use strum::IntoEnumIterator;
-use tls_harness::cohort::{OpenSslConnection, RustlsConnection, S2NConnection};
-use tls_harness::{harness::TlsInfo, Mode, SigType, TlsConnPair, TlsConnection};
+use tls_harness::{
+    cohort::{OpenSslConnection, RustlsConnection, S2NConnection},
+    harness::TlsInfo,
+    Mode, SigType, TlsConnPair, TlsConnection,
+};
 
 fn bench_handshake_for_library<T>(
     bench_group: &mut BenchmarkGroup<WallTime>,
