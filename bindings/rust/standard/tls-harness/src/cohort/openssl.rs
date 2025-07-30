@@ -184,7 +184,7 @@ impl TlsInfo for OpenSslConnection {
 impl TlsConfigBuilder for SslContextBuilder {
     type Config = OpenSslConfig;
 
-    fn new_integration_config(mode: Mode) -> Self {
+    fn new_test_config(mode: Mode) -> Self {
         let mut builder = match mode {
             Mode::Client => SslContext::builder(SslMethod::tls_client()).unwrap(),
             Mode::Server => SslContext::builder(SslMethod::tls_server()).unwrap(),

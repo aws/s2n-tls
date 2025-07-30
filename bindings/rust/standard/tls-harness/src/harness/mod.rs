@@ -140,7 +140,7 @@ pub trait TlsConfigBuilder {
     /// The config produced by the [`TlsConfigBuilder::build`] operation.
     type Config;
 
-    fn new_integration_config(mode: Mode) -> Self;
+    fn new_test_config(mode: Mode) -> Self;
 
     /// Load a chain onto a config.
     ///
@@ -275,8 +275,8 @@ where
 {
     fn default() -> Self {
         Self {
-            client: C::new_integration_config(Mode::Client),
-            server: S::new_integration_config(Mode::Server),
+            client: C::new_test_config(Mode::Client),
+            server: S::new_test_config(Mode::Server),
         }
     }
 }

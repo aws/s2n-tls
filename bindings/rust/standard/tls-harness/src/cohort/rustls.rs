@@ -257,7 +257,7 @@ pub struct RustlsConfigBuilder {
 impl TlsConfigBuilder for RustlsConfigBuilder {
     type Config = RustlsConfig;
 
-    fn new_integration_config(mode: Mode) -> Self {
+    fn new_test_config(mode: Mode) -> Self {
         Self {
             mode: Some(mode),
             ..Default::default()

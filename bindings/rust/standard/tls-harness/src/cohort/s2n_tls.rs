@@ -244,7 +244,7 @@ impl TlsInfo for S2NConnection {
 impl TlsConfigBuilder for s2n_tls::config::Builder {
     type Config = S2NConfig;
 
-    fn new_integration_config(_mode: Mode) -> Self {
+    fn new_test_config(_mode: Mode) -> Self {
         let mut builder = s2n_tls::config::Builder::new();
         builder.with_system_certs(false).unwrap();
         builder
