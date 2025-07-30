@@ -75,6 +75,18 @@ batch:
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
+    - identifier: gcc_awslc_fips_2024
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc-fips-2024
+          COMPILER: gcc
+    - identifier: gcc_awslc_fips_next
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc-fips-next
+          COMPILER: gcc
     - identifier: gcc_openssl_3_0
       env:
         compute-type: BUILD_GENERAL1_LARGE
