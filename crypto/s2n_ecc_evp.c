@@ -51,6 +51,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 

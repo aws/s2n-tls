@@ -28,7 +28,7 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
         s2n_mode mode, struct s2n_blob *secret);
 
 /* PQ shared secret taken from Python-generated KAT */
-#define MLKEM1024_SECRET "23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13a52"
+#define MLKEM1024_SECRET "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035"
 
 /* Expected traffic secrets from Python KAT for MLKEM1024 + AES_128_GCM_SHA256 */
 #define AES_128_MLKEM1024_CLIENT_TRAFFIC_SECRET "8ab94e7f368d1327b624defe057dc31a8f103184f4ac28ff8026a75315a7f8b5"
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(set_up_pure_pq_conns(client_conn, server_conn,
                 test_vector->kem_group, test_vector->pq_secret));
 
-        /* Compute transcript hash */
+        /* Compute transcript hash for both client and server */
         DEFER_CLEANUP(struct s2n_tls13_keys secrets = { 0 }, s2n_tls13_keys_free);
         EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, test_vector->cipher_suite->prf_alg));
         client_conn->secure->cipher_suite = test_vector->cipher_suite;
@@ -127,16 +127,41 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hash_init(&hash_state, secrets.hash_algorithm));
         EXPECT_SUCCESS(s2n_hash_update(&hash_state, test_vector->transcript, strlen(test_vector->transcript)));
         EXPECT_SUCCESS(s2n_hash_digest(&hash_state, client_conn->handshake.hashes->transcript_hash_digest, secrets.size));
-
+    
         client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         while (s2n_conn_get_current_message_type(client_conn) != SERVER_HELLO) {
             client_conn->handshake.message_number++;
         }
 
+        printf("[DEBUG] Client transcript hash: ");
+        for (size_t j = 0; j < secrets.size; j++) {
+            printf("%02x", client_conn->handshake.hashes->transcript_hash_digest[j]);
+        }
+        printf("\n");
+
+        printf("[DEBUG] Server transcript hash: ");
+        for (size_t j = 0; j < secrets.size; j++) {
+            printf("%02x", server_conn->handshake.hashes->transcript_hash_digest[j]);
+        }
+        printf("\n");
+
+        /* Derive traffic secrets */
         s2n_tls13_key_blob(client_traffic_secret, secrets.size);
         s2n_tls13_key_blob(server_traffic_secret, secrets.size);
         EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &client_traffic_secret));
         EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_SERVER, &server_traffic_secret));
+
+        printf("[DEBUG] Client Traffic Secret (%d bytes): ", client_traffic_secret.size);
+        for (size_t b = 0; b < client_traffic_secret.size; b++) {
+            printf("%02x", client_traffic_secret.data[b]);
+        }
+        printf("\n");
+
+        printf("[DEBUG] Server Traffic Secret (%d bytes): ", server_traffic_secret.size);
+        for (size_t b = 0; b < server_traffic_secret.size; b++) {
+            printf("%02x", server_traffic_secret.data[b]);
+        }
+        printf("\n");
 
         EXPECT_EQUAL(test_vector->expected_client_traffic_secret->size, client_traffic_secret.size);
         EXPECT_BYTEARRAY_EQUAL(test_vector->expected_client_traffic_secret->data, client_traffic_secret.data,
@@ -156,20 +181,22 @@ int main(int argc, char **argv)
 static int set_up_pure_pq_conns(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
         const struct s2n_kem_group *kem_group, struct s2n_blob *pq_shared_secret)
 {
-    /* No ECC params: only KEM group */
+    /* Assign KEM groups */
     server_conn->kex_params.server_kem_group_params.kem_group = kem_group;
     server_conn->kex_params.client_kem_group_params.kem_group = kem_group;
     client_conn->kex_params.server_kem_group_params.kem_group = kem_group;
     client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
 
+    /* Assign KEM params */
     server_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
     server_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
     client_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
     client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
 
-    /* Both peers just have PQ shared secret from test vector */
+    /* Copy shared secret into both ends */
     POSIX_GUARD(s2n_dup(pq_shared_secret, &server_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
     POSIX_GUARD(s2n_dup(pq_shared_secret, &client_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
 
     return S2N_SUCCESS;
 }
+
