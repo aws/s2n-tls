@@ -93,7 +93,6 @@ impl SessionTicketCallback for SessionTicketStorage {
 pub const KEY_NAME: &str = "InsecureTestKey";
 pub const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
 
-/// s2n-tls has mode-independent configs, so this struct wraps the config with the mode
 pub struct S2NConfig {
     pub config: s2n_tls::config::Config,
     pub ticket_storage: SessionTicketStorage,
