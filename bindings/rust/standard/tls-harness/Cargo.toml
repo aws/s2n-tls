@@ -12,6 +12,7 @@ strum = { version = "0.27", features = ["derive"] }
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }
+openssl-sys = "0.9.109"
 
 [dev-dependencies]
 # env_logger and log are used to enable logging for rustls, which can help with
