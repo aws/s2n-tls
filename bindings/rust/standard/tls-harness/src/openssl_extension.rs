@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! This module defines "extension" trait to add our own bindings to the openssl
+//! This module defines an "extension" trait to add our own bindings to the openssl
 //! crate. Ideally all of this logic would live _in_ the openssl crate, but they
 //! don't always accept PRs.
 
