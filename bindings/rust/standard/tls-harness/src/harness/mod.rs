@@ -211,7 +211,7 @@ where
     }
 
     /// Send data from client to server, and then from server to client
-    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         // send data from client to server
         self.client.send(data);
         self.server.recv(data)?;
@@ -243,6 +243,13 @@ where
                     .into(),
             )
         }
+    }
+
+    /// transfer `data_size` bytes between the client and the server.
+    pub fn round_trip_assert(&mut self, data_size: usize) -> std::io::Result<()> {
+        // we don't need "cryptographically random" data, just some non-zero data
+        let mut random_data: Vec<u8> = (0..data_size).map(|i| (i * 101 % 256) as u8).collect();
+        self.round_trip_transfer(&mut random_data)
     }
 }
 
