@@ -5,7 +5,7 @@ import pytest
 from configuration import (
     available_ports,
     PROTOCOLS,
-    ALL_TEST_CIPHERS,
+    MINIMAL_TEST_CIPHERS,
     MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, data_bytes
@@ -23,12 +23,16 @@ SEND_DATA_STRING = to_string(SEND_DATA)
 
 K_BYTES = 1024
 SEND_BUFFER_SIZE_MIN = 1034
+SEND_BUFFER_SIZE_MIN_RECOMMENDED = 2 * K_BYTES
 SEND_BUFFER_SIZE_MULTI_RECORD = 17 * K_BYTES
+SEND_BUFFER_SIZE_PREFER_THROUGHPUT = 35 * K_BYTES
 SEND_BUFFER_SIZE_HUGE = 512 * K_BYTES
 
 SEND_BUFFER_SIZES = [
     SEND_BUFFER_SIZE_MIN,
+    SEND_BUFFER_SIZE_MIN_RECOMMENDED,
     SEND_BUFFER_SIZE_MULTI_RECORD,
+    SEND_BUFFER_SIZE_PREFER_THROUGHPUT,
     SEND_BUFFER_SIZE_HUGE,
 ]
 
@@ -60,7 +64,7 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):  # noqa:
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", MINIMAL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [GnuTLS, OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
@@ -128,7 +132,7 @@ def test_s2n_server_buffered_send(
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", MINIMAL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)

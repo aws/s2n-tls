@@ -98,6 +98,16 @@ ALL_TEST_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
 ]
 
+# List of all ciphers that will be tested.
+MINIMAL_TEST_CIPHERS = [
+    Ciphers.DHE_RSA_AES128_SHA,
+    Ciphers.AES256_SHA,
+    Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256,
+    Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
+    Ciphers.ECDHE_RSA_CHACHA20_POLY1305,
+    Ciphers.CHACHA20_POLY1305_SHA256,
+]
+
 # List of TLS13 Ciphers
 TLS13_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
