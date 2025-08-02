@@ -61,23 +61,23 @@ int main(int argc, char **argv)
     {
         uint8_t secret_bytes[TEST_BLOB_SIZE] = "secret";
         struct s2n_blob secret = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&secret, secret_bytes, sizeof(secret_bytes)));
+        EXPECT_OK(s2n_blob_init(&secret, secret_bytes, sizeof(secret_bytes)));
 
         uint8_t label_bytes[TEST_BLOB_SIZE] = "label";
         struct s2n_blob label = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&label, label_bytes, sizeof(label_bytes)));
+        EXPECT_OK(s2n_blob_init(&label, label_bytes, sizeof(label_bytes)));
 
         uint8_t seed_a_bytes[TEST_BLOB_SIZE] = "seed a";
         struct s2n_blob seed_a = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seed_a, seed_a_bytes, sizeof(seed_a_bytes)));
+        EXPECT_OK(s2n_blob_init(&seed_a, seed_a_bytes, sizeof(seed_a_bytes)));
 
         uint8_t seed_b_bytes[TEST_BLOB_SIZE] = "seed b";
         struct s2n_blob seed_b = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seed_b, seed_b_bytes, sizeof(seed_b_bytes)));
+        EXPECT_OK(s2n_blob_init(&seed_b, seed_b_bytes, sizeof(seed_b_bytes)));
 
         uint8_t seed_c_bytes[TEST_BLOB_SIZE] = "seed c";
         struct s2n_blob seed_c = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seed_c, seed_c_bytes, sizeof(seed_c_bytes)));
+        EXPECT_OK(s2n_blob_init(&seed_c, seed_c_bytes, sizeof(seed_c_bytes)));
 
         /* Safety */
         {
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
 
         struct s2n_blob pms = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.version.tls12.rsa_premaster_secret, sizeof(conn->secrets.version.tls12.rsa_premaster_secret)));
+        EXPECT_OK(s2n_blob_init(&pms, conn->secrets.version.tls12.rsa_premaster_secret, sizeof(conn->secrets.version.tls12.rsa_premaster_secret)));
         EXPECT_SUCCESS(s2n_prf_tls_master_secret(conn, &pms));
         EXPECT_EQUAL(memcmp(conn->secrets.version.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
     };
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
 
         struct s2n_blob pms = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.version.tls12.rsa_premaster_secret, sizeof(conn->secrets.version.tls12.rsa_premaster_secret)));
+        EXPECT_OK(s2n_blob_init(&pms, conn->secrets.version.tls12.rsa_premaster_secret, sizeof(conn->secrets.version.tls12.rsa_premaster_secret)));
 
         /* Errors when handshake is not at the Client Key Exchange message */
         EXPECT_FAILURE_WITH_ERRNO(s2n_prf_calculate_master_secret(conn, &pms), S2N_ERR_SAFETY);
@@ -404,14 +404,14 @@ int main(int argc, char **argv)
 
         uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
         struct s2n_blob digest_for_ems = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&digest_for_ems, data, sizeof(data)));
+        EXPECT_OK(s2n_blob_init(&digest_for_ems, data, sizeof(data)));
 
         /* Get the Client Key transcript */
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
         uint8_t client_key_message_length = s2n_stuffer_data_available(&client_to_server);
         uint8_t *client_key_message = s2n_stuffer_raw_read(&client_to_server, client_key_message_length);
         struct s2n_blob message = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&message, client_key_message, client_key_message_length));
+        EXPECT_OK(s2n_blob_init(&message, client_key_message, client_key_message_length));
 
         s2n_hmac_algorithm prf_alg = server_conn->secure->cipher_suite->prf_alg;
         s2n_hash_algorithm hash_alg = 0;
@@ -498,7 +498,7 @@ int main(int argc, char **argv)
         /* PRF usable throughout connection lifecycle */
         {
             struct s2n_blob pms = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
+            EXPECT_OK(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);

@@ -142,7 +142,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* Decrypt the pre-master secret */
     struct s2n_blob encrypted = { 0 };
-    POSIX_GUARD(s2n_blob_init(&encrypted, s2n_stuffer_raw_read(in, length), length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&encrypted, s2n_stuffer_raw_read(in, length), length));
     POSIX_ENSURE_REF(encrypted.data);
     POSIX_ENSURE_GT(encrypted.size, 0);
 

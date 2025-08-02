@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 
             struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t sct_list[] = { 0xff, 0xff, 0xff };
-            EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.sct_list, sct_list, sizeof(sct_list)));
+            EXPECT_OK(s2n_blob_init(&fake_chain_and_key.sct_list, sct_list, sizeof(sct_list)));
 
             conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
             struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
-            EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
+            EXPECT_OK(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
 
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
@@ -549,7 +549,7 @@ int main(int argc, char **argv)
 
         struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
         static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
-        EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
+        EXPECT_OK(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
 
         /* For our test status_request extension */
         server_conn->status_type = S2N_STATUS_REQUEST_OCSP;

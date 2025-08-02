@@ -172,7 +172,7 @@ int main(int argc, char **argv)
         {
             uint8_t message_bytes[] = "hello world";
             struct s2n_blob message = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&message, message_bytes, sizeof(message_bytes)));
+            EXPECT_OK(s2n_blob_init(&message, message_bytes, sizeof(message_bytes)));
 
             const char ciphertext_hex[] =
                     "38 ab 9c 83 57 17 13 46 3d 5b 6f c6 44 30 8e 40 78 ac d2 "

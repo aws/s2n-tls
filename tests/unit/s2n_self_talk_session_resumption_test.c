@@ -125,7 +125,7 @@ static S2N_RESULT s2n_test_negotiate(struct s2n_connection *server_conn, struct 
 
     uint8_t early_data_recv_data[sizeof(early_data)] = { 0 };
     struct s2n_blob early_data_recv = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&early_data_recv, early_data_recv_data, sizeof(early_data_recv_data)));
+    RESULT_GUARD(s2n_blob_init(&early_data_recv, early_data_recv_data, sizeof(early_data_recv_data)));
 
     if (early_data_case->server_supported) {
         RESULT_GUARD_POSIX(s2n_connection_set_server_max_early_data_size(server_conn, UINT16_MAX));
@@ -135,7 +135,7 @@ static S2N_RESULT s2n_test_negotiate(struct s2n_connection *server_conn, struct 
 
     struct s2n_blob early_data_send = { 0 };
     if (early_data_case->client_supported) {
-        RESULT_GUARD_POSIX(s2n_blob_init(&early_data_send, early_data, sizeof(early_data)));
+        RESULT_GUARD(s2n_blob_init(&early_data_send, early_data, sizeof(early_data)));
     }
 
     RESULT_GUARD(s2n_negotiate_test_server_and_client_with_early_data(server_conn, client_conn,
@@ -159,7 +159,7 @@ static int s2n_wipe_psk_ke_ext(struct s2n_connection *conn, void *ctx)
     s2n_parsed_extension *parsed_extension = NULL;
     POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension));
     POSIX_ENSURE_REF(parsed_extension);
-    POSIX_GUARD(s2n_blob_zero(&parsed_extension->extension));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&parsed_extension->extension));
 
     return S2N_SUCCESS;
 }

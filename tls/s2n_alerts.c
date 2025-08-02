@@ -364,7 +364,7 @@ S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
 
     struct s2n_blob alert = { 0 };
     uint8_t alert_bytes[] = { level, code };
-    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+    RESULT_GUARD(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
 
     RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
     conn->alert_sent = true;
@@ -382,7 +382,7 @@ S2N_RESULT s2n_alerts_write_warning(struct s2n_connection *conn)
 
     struct s2n_blob alert = { 0 };
     uint8_t alert_bytes[] = { level, code };
-    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+    RESULT_GUARD(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
 
     RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
     return S2N_RESULT_OK;

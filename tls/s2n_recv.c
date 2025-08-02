@@ -50,7 +50,7 @@ S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint3
     uint8_t *data = s2n_stuffer_raw_read(&conn->buffer_in, written);
     RESULT_ENSURE_REF(data);
     RESULT_GUARD_POSIX(s2n_stuffer_free(&conn->in));
-    RESULT_GUARD_POSIX(s2n_blob_init(&conn->in.blob, data, total));
+    RESULT_GUARD(s2n_blob_init(&conn->in.blob, data, total));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&conn->in, written));
     return S2N_RESULT_OK;
 }
@@ -162,7 +162,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
     size_t size = size_signed;
     ssize_t bytes_read = 0;
     struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, (uint8_t *) buf, 0));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out, (uint8_t *) buf, 0));
 
     /*
      * Set the `blocked` status to BLOCKED_ON_READ by default

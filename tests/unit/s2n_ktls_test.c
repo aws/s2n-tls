@@ -105,7 +105,7 @@ static S2N_RESULT s2n_test_setsockopt_set_ktls_info(struct s2n_ktls_crypto_info_
     S2N_BLOB_EXPECT_EQUAL(inputs->iv, s2n_test_setsockopt_expected.crypto_info_inputs.iv);
     S2N_BLOB_EXPECT_EQUAL(inputs->key, s2n_test_setsockopt_expected.crypto_info_inputs.key);
     S2N_BLOB_EXPECT_EQUAL(inputs->seq, s2n_test_setsockopt_expected.crypto_info_inputs.seq);
-    RESULT_GUARD_POSIX(s2n_blob_init(&crypto_info->value,
+    RESULT_GUARD(s2n_blob_init(&crypto_info->value,
             (void *) &s2n_test_setsockopt_expected.crypto_info_inputs,
             sizeof(s2n_test_setsockopt_expected.crypto_info_inputs)));
     return S2N_RESULT_OK;
@@ -158,12 +158,12 @@ int main(int argc, char **argv)
         struct s2n_crypto_parameters crypto_params = { 0 };
 
         struct s2n_blob test_iv = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&test_iv, crypto_params.client_implicit_iv,
+        EXPECT_OK(s2n_blob_init(&test_iv, crypto_params.client_implicit_iv,
                 sizeof(crypto_params.client_implicit_iv)));
         EXPECT_OK(s2n_get_public_random_data(&test_iv));
 
         struct s2n_blob test_seq = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&test_seq, crypto_params.client_sequence_number,
+        EXPECT_OK(s2n_blob_init(&test_seq, crypto_params.client_sequence_number,
                 sizeof(crypto_params.client_sequence_number)));
         EXPECT_OK(s2n_get_public_random_data(&test_seq));
 
@@ -482,17 +482,17 @@ int main(int argc, char **argv)
             crypto_params.cipher_suite = &test_cipher_suite;
 
             struct s2n_blob server_iv = { 0 }, client_iv = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&server_iv, crypto_params.server_implicit_iv,
+            EXPECT_OK(s2n_blob_init(&server_iv, crypto_params.server_implicit_iv,
                     sizeof(crypto_params.server_implicit_iv)));
-            EXPECT_SUCCESS(s2n_blob_init(&client_iv, crypto_params.client_implicit_iv,
+            EXPECT_OK(s2n_blob_init(&client_iv, crypto_params.client_implicit_iv,
                     sizeof(crypto_params.client_implicit_iv)));
             EXPECT_OK(s2n_get_public_random_data(&server_iv));
             EXPECT_OK(s2n_get_public_random_data(&client_iv));
 
             struct s2n_blob server_seq = { 0 }, client_seq = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&server_seq, crypto_params.server_sequence_number,
+            EXPECT_OK(s2n_blob_init(&server_seq, crypto_params.server_sequence_number,
                     sizeof(crypto_params.server_sequence_number)));
-            EXPECT_SUCCESS(s2n_blob_init(&client_seq, crypto_params.client_sequence_number,
+            EXPECT_OK(s2n_blob_init(&client_seq, crypto_params.client_sequence_number,
                     sizeof(crypto_params.client_sequence_number)));
             EXPECT_OK(s2n_get_public_random_data(&server_seq));
             EXPECT_OK(s2n_get_public_random_data(&client_seq));

@@ -572,7 +572,7 @@ int main(int argc, char **argv)
                 uint8_t iana_buffer[2];
                 struct s2n_blob iana_blob = { 0 };
                 struct s2n_stuffer iana_stuffer = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&iana_blob, iana_buffer, 2));
+                EXPECT_OK(s2n_blob_init(&iana_blob, iana_buffer, 2));
                 EXPECT_SUCCESS(s2n_stuffer_init(&iana_stuffer, &iana_blob));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer, test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
 
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
                         uint8_t truncated_extension[10];
                         EXPECT_MEMCPY_SUCCESS(truncated_extension, key_share_payload.blob.data, 10);
                         struct s2n_blob trunc_ext_blob = { 0 };
-                        EXPECT_SUCCESS(s2n_blob_init(&trunc_ext_blob, truncated_extension, 10));
+                        EXPECT_OK(s2n_blob_init(&trunc_ext_blob, truncated_extension, 10));
                         struct s2n_stuffer trunc_ext_stuffer = { 0 };
                         EXPECT_SUCCESS(s2n_stuffer_init(&trunc_ext_stuffer, &trunc_ext_blob));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &trunc_ext_stuffer),

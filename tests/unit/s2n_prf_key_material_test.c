@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     /* prepare test data */
     uint8_t test_data[S2N_MAX_KEY_BLOCK_LEN] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
+    EXPECT_OK(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
     /* fuzz s2n_key_material_init with different mac, key, iv sizes */
