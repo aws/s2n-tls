@@ -98,7 +98,8 @@ ALL_TEST_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
 ]
 
-# List of all ciphers that will be tested.
+# List of ciphers containing a small variety of symmetric ciphers
+# with a small variety of auth methods.
 MINIMAL_TEST_CIPHERS = [
     Ciphers.DHE_RSA_AES128_SHA,
     Ciphers.AES256_SHA,
