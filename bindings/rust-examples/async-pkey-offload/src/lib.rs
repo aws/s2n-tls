@@ -7,11 +7,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use aws_sdk_kms::{
-    primitives::Blob,
-    types::{KeySpec, SigningAlgorithmSpec},
-    Client,
-};
+use aws_sdk_kms::{primitives::Blob, types::KeySpec, Client};
 use pin_project::pin_project;
 use rcgen::CertificateParams;
 use s2n_tls::{
@@ -123,7 +119,7 @@ impl KmsAsymmetricKey {
         // > also known as SubjectPublicKeyInfo (SPKI), as defined in RFC 5280.
         // > When you use the HTTP API or the AWS CLI, the value is Base64-encoded.
         // > Otherwise, it is not Base64-encoded.
-        // https://docs.aws.amazon.com/kms/latest/developerguide/download-public-key.html
+        // > https://docs.aws.amazon.com/kms/latest/developerguide/download-public-key.html
         // Note that the rust sdk seems to handle common encoding tasks for
         // us, so `encoded_public_key` is binary, not base64 encoded.
         let encoded_public_key = public_key_output.public_key.unwrap().into_inner();
@@ -138,58 +134,24 @@ impl KmsAsymmetricKey {
 
     /// Perform an async pkey offload.
     ///
+    /// 1. takes the private key operation and converts it to a KMS keyspec
+    /// 2. calls KMS to create a signature
+    ///
     /// s2n-tls requires that future have 'static bounds, so this function can not
     /// operation on `&self`. Instead we clone all of the necessary elements and
     /// capture them in the closure.
-    async fn async_pkey_offload(
-        kms_client: Client,
-        key_id: String,
-        operation: s2n_tls::callbacks::PrivateKeyOperation,
-        kms_key_spec: SigningAlgorithmSpec,
-    ) -> Result<(PrivateKeyOperation, Vec<u8>), s2n_tls::error::Error> {
-        //> If this is an OperationType::Sign operation, then this input has
-        //> already been hashed and is the resultant digest.
-        let mut data_to_sign = vec![0; operation.input_size().unwrap()];
-        operation.input(&mut data_to_sign).unwrap();
-
-        // This is necessary as ConnectionFuture requires Sync
-        // but this is not implemented by many Futures, including
-        // those returned by the aws_sdk_kms client
-        let spawned_result = tokio::spawn(async move {
-            kms_client
-                .sign()
-                .key_id(key_id.clone())
-                .message_type(aws_sdk_kms::types::MessageType::Digest)
-                .message(Blob::new(data_to_sign))
-                .signing_algorithm(kms_key_spec)
-                .send()
-                .await
-                .unwrap()
-        });
-        let signature_output = spawned_result.await.unwrap();
-
-        let signature = signature_output.signature.unwrap().into_inner();
-
-        Ok((operation, signature))
-    }
-
-    /// Perform an async pkey offload.
-    ///
-    /// 1. takes the private key operation and converts it to a KMS keyspec
-    /// 2. calls KMS to create a signature
-    /// 3. sets the result on the private key operation with the connection
     async fn async_pkey_offload_with_self(
         client: Client,
         key_id: String,
         operation: s2n_tls::callbacks::PrivateKeyOperation,
-    ) -> Result<(Vec<u8>, PrivateKeyOperation), s2n_tls::error::Error> {
+    ) -> Result<(PrivateKeyOperation, Vec<u8>), s2n_tls::error::Error> {
         let hash = match operation.kind()? {
             // success!
             OperationType::Sign(Self::EXPECTED_SIG, hash_algorithm) => Ok(hash_algorithm),
 
             // errors
             OperationType::Sign(s, _) => Err(s2n_tls::error::Error::application(
-                format!("Unsupported signature type: {:?}", s).into(),
+                format!("Unsupported signature type: {s:?}").into(),
             )),
             OperationType::Decrypt => Err(s2n_tls::error::Error::application(
                 "Decrypt operation not supported".into(),
@@ -212,16 +174,20 @@ impl KmsAsymmetricKey {
             }
             h => {
                 return Err(s2n_tls::error::Error::application(
-                    format!("requested hash type {:?} is not supported by KMS", h).into(),
+                    format!("requested hash type {h:?} is not supported by KMS").into(),
                 ))
             }
         };
 
         //> If this is an OperationType::Sign operation, then this input has
         //> already been hashed and is the resultant digest.
+        //> https://docs.rs/s2n-tls/latest/s2n_tls/callbacks/struct.PrivateKeyOperation.html#method.input
         let mut data_to_sign = vec![0; operation.input_size().unwrap()];
         operation.input(&mut data_to_sign).unwrap();
 
+        // This is necessary as ConnectionFuture requires Sync
+        // but this is not implemented by many Futures, including
+        // those returned by the aws_sdk_kms client
         let spawned_result = tokio::spawn({
             let client = client.clone();
             let key_id = key_id.clone();
@@ -240,47 +206,7 @@ impl KmsAsymmetricKey {
         let signature_output = spawned_result.await.unwrap();
 
         let signature = signature_output.signature.unwrap().into_inner();
-        Ok((signature, operation))
-        // operation.set_output(connection, &signature)?;
-        // Ok(())
-    }
-}
-
-pub struct SimplePrivateKeyFuture<F> {
-    future: F,
-}
-
-impl<F> SimplePrivateKeyFuture<F> {
-    fn project_future(self: Pin<&mut Self>) -> Pin<&mut F> {
-        // This is okay because `field` is pinned when `self` is.
-        unsafe { self.map_unchecked_mut(|s| &mut s.future) }
-    }
-}
-
-impl<F> SimplePrivateKeyFuture<F>
-where
-    F: 'static + Send + Future<Output = Result<(Vec<u8>, PrivateKeyOperation), s2n_tls::error::Error>>,
-{
-    pub fn new(future: F) -> Self {
-        SimplePrivateKeyFuture { future }
-    }
-}
-
-impl<F> s2n_tls::callbacks::ConnectionFuture for SimplePrivateKeyFuture<F>
-where
-    F: 'static + Send + Sync + Future<Output = Result<(Vec<u8>, PrivateKeyOperation), s2n_tls::error::Error>>,
-{
-    fn poll(
-        self: Pin<&mut Self>,
-        connection: &mut Connection,
-        ctx: &mut core::task::Context,
-    ) -> Poll<Result<(), s2n_tls::error::Error>> {
-        let (signature, op) = match self.project_future().poll(ctx) {
-            Poll::Ready(result) => result?,
-            Poll::Pending => return Poll::Pending,
-        };
-        op.set_output(connection, &signature)?;
-        Poll::Ready(Ok(()))
+        Ok((operation, signature))
     }
 }
 
@@ -326,7 +252,9 @@ where
 impl s2n_tls::callbacks::PrivateKeyCallback for KmsAsymmetricKey {
     fn handle_operation(
         &self,
-        connection: &mut s2n_tls::connection::Connection,
+        // The connection can not be captured in the future, because the future
+        // requires 'static lifetime.
+        _connection: &mut s2n_tls::connection::Connection,
         operation: s2n_tls::callbacks::PrivateKeyOperation,
     ) -> Result<
         Option<std::pin::Pin<Box<dyn s2n_tls::callbacks::ConnectionFuture>>>,
@@ -339,12 +267,10 @@ impl s2n_tls::callbacks::PrivateKeyCallback for KmsAsymmetricKey {
             operation,
         );
 
-        // We wrap the async closure in a SimplePrivateKeyFuture. SimplePrivateKeyFuture
+        // We wrap the async closure in a PrivateKeyFuture. PrivateKeyFuture
         // implements s2n_tls::callbacks::ConnectionFuture, so s2n-tls knows how to poll
         // this type to completion.
-        let wrapped_future = SimplePrivateKeyFuture {
-            future: signing_future,
-        };
+        let wrapped_future = PrivateKeyFuture::new(signing_future);
 
         // Finally we pin the future, allowing it to be safely polled.
         Ok(Some(Box::pin(wrapped_future)))

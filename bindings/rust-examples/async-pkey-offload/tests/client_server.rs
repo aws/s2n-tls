@@ -27,7 +27,7 @@ async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
             .await;
         let kms_client = Client::new(&shared_config);
         let key_id = get_key(&kms_client).await?;
-        println!("Using KMS Key: {:?}", key_id);
+        println!("Using KMS Key: {key_id:?}");
         KmsAsymmetricKey::new(kms_client.clone(), key_id)
             .await
             .unwrap()
@@ -88,7 +88,7 @@ async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
         let stream = TcpStream::connect(addr).await?;
         let mut tls = client.connect(DEMO_DOMAIN, stream).await?;
         println!("client successfully connected");
-        println!("{:#?}", tls);
+        println!("{tls:#?}");
 
         // client reads expected message from server
         let mut buffer = [0; MESSAGE.len()];

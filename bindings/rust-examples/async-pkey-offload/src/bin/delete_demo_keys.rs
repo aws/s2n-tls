@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     for k in demo_key_ids {
-        println!("scheduling {:?} for deletion", k);
+        println!("scheduling {k:?} for deletion");
         client.schedule_key_deletion().key_id(k).send().await?;
     }
 
