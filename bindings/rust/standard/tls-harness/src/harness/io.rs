@@ -1,16 +1,16 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{cell::RefCell, collections::VecDeque, io::ErrorKind, pin::Pin, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, io::ErrorKind, rc::Rc};
 
 pub type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
 #[derive(Debug)]
 pub struct TestPairIO {
     /// a data buffer that the server writes to and the client reads from
-    pub server_tx_stream: Pin<Rc<LocalDataBuffer>>,
+    pub server_tx_stream: Rc<LocalDataBuffer>,
     /// a data buffer that the client writes to and the server reads from
-    pub client_tx_stream: Pin<Rc<LocalDataBuffer>>,
+    pub client_tx_stream: Rc<LocalDataBuffer>,
 }
 
 impl TestPairIO {
@@ -38,8 +38,8 @@ impl TestPairIO {
 // which implements read and write. This is not used by s2n-tls, which relies on
 // lower level callbacks.
 pub struct ViewIO {
-    pub send_ctx: Pin<Rc<LocalDataBuffer>>,
-    pub recv_ctx: Pin<Rc<LocalDataBuffer>>,
+    pub send_ctx: Rc<LocalDataBuffer>,
+    pub recv_ctx: Rc<LocalDataBuffer>,
 }
 
 impl std::io::Read for ViewIO {

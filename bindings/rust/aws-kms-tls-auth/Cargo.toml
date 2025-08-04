@@ -1,0 +1,32 @@
+[package]
+name = "aws-kms-tls-auth"
+description = "a utility package for performing pre-shared key TLS authentication through AWS Key Management Service (KMS)"
+version = "0.0.1"
+authors = ["AWS s2n"]
+edition = "2021"
+rust-version = "1.85.0"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1.0.98"
+aws-config = {version = "1.8.0", features = ["behavior-version-latest"]}
+aws-sdk-kms = "1.76.0"
+aws-lc-rs = "1.13.1"
+byteorder = "1.5.0"
+hex = "0.4.3"
+moka = {version = "0.12.10", features = ["sync"]}
+pin-project = "1.1.10"
+s2n-tls = "0.3.16" 
+s2n-tls-sys = "0.3.16"
+tokio = {version = "1.45.1", features = ["rt", "macros"]}
+static_assertions = "1.1.0"
+
+[dev-dependencies]
+s2n-tls-tokio = { version = "0.3.16" }
+aws-sdk-kms = {version = "1.76.0", features = ["test-util"]}
+aws-smithy-mocks = "0.1.1"
+rcgen = "0.14.1"
+
+s2n-tls = { version = "0.3.16", features = ["unstable-testing"]}
+tokio = {version = "1.45.1", features = ["rt", "macros", "test-util"]}

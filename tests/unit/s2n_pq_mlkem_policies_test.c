@@ -89,7 +89,8 @@ static S2N_RESULT s2n_policy_in_list(const char *policy_name, const char **excep
 
 /* List of all ML-KEM Parameter sizes */
 const struct s2n_kem *mlkem_list[] = {
-    &s2n_mlkem_768
+    &s2n_mlkem_768,
+    &s2n_mlkem_1024
 };
 
 /* Ciphers that should not be present in TLS Policies that have ML-KEM */
@@ -110,6 +111,7 @@ const char *cipher_exceptions[] = {
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
 const char *tls_version_exceptions[] = {
+    "AWS-CRT-SDK-TLSv1.0-2025-PQ",
     "test_all",
 };
 
