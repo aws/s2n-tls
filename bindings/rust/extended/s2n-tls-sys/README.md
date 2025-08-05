@@ -14,7 +14,7 @@ You can customize above build process to use your own pre-built libs2n. This is 
 
 1. Clone [s2n-tls](https://github.com/aws/s2n-tls) and compile your preferred configuration of s2n-tls.
 
-You may choose to link against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto).
+You may choose to lik against a specific libcrypto at this step. For more information, see [Building with a specific libcrypto](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto).
 Also see [Building s2n-tls](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-s2n-tls) for further guidance on configuring s2n-tls for your own use case.
 
 2. `cd` into your rust project and set environment variables to your libs2n artifacts. 
