@@ -62,7 +62,7 @@ impl TestPairIO {
     /// therefore includes padding.
     ///
     /// Data is expected to be well formed. If `buffer` contains partial records
-    /// this method will panic.
+    /// this method will return an error.
     fn record_sizes(mut buffer: &[u8]) -> std::io::Result<Vec<u16>> {
         let mut record_lengths = Vec::new();
         while !buffer.is_empty() {

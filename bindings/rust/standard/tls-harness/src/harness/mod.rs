@@ -283,8 +283,8 @@ where
             server: S::new_test_config(Mode::Server),
         };
 
-        // set an RSA2048 certs as the default, because it is the most common
-        // cert deployed.
+        // set an RSA2048 cert as the default, because it is the most common
+        // cert type.
         pair.client.set_trust(SigType::Rsa2048);
         pair.server.set_chain(SigType::Rsa2048);
         pair
