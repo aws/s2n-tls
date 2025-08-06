@@ -64,12 +64,6 @@ impl TestPairIO {
     /// Data is expected to be well formed. If `buffer` contains partial records
     /// this method will panic.
     fn record_sizes(mut buffer: &[u8]) -> std::io::Result<Vec<u16>> {
-        struct RecordHeader {
-            content_type: u8,
-            protocol: u16,
-            length: u16,
-        }
-
         let mut record_lengths = Vec::new();
         while !buffer.is_empty() {
             let _content_type = buffer.read_u8()?;
