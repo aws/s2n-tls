@@ -3,7 +3,7 @@
 
 use crate::{
     harness::{TlsConfigBuilder, TlsConfigBuilderPair},
-    SigType, TlsConnPair, TlsConnection,
+    TlsConnPair, TlsConnection,
 };
 
 /// Perform a simple server-auth handshake.
@@ -14,7 +14,6 @@ where
 {
     let mut conn_pair: TlsConnPair<C, C> = {
         let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
-        config_pair.set_cert(SigType::Rsa2048);
         config_pair.connection_pair()
     };
     conn_pair.handshake().unwrap();
@@ -30,7 +29,6 @@ where
 {
     let mut conn_pair: TlsConnPair<C, C> = {
         let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
-        config_pair.set_cert(SigType::Rsa2048);
         config_pair.connection_pair()
     };
     conn_pair.handshake().unwrap();

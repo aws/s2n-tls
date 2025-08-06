@@ -168,10 +168,7 @@ where
     S: TlsConnection,
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
-        let io = TestPairIO {
-            server_tx_stream: Default::default(),
-            client_tx_stream: Default::default(),
-        };
+        let io = TestPairIO::default();
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
         Self { client, server, io }
@@ -281,10 +278,16 @@ where
     S: TlsConfigBuilder,
 {
     fn default() -> Self {
-        Self {
+        let mut pair = Self {
             client: C::new_test_config(Mode::Client),
             server: S::new_test_config(Mode::Server),
-        }
+        };
+
+        // set an RSA2048 certs as the default, because it is the most common
+        // cert deployed.
+        pair.client.set_trust(SigType::Rsa2048);
+        pair.server.set_chain(SigType::Rsa2048);
+        pair
     }
 }
 
