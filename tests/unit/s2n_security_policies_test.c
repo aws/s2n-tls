@@ -919,6 +919,21 @@ int main(int argc, char **argv)
                     versioned_policies, s2n_array_len(versioned_policies),
                     supported_certs, s2n_array_len(supported_certs)));
         };
+
+        /* "rfc9151" */
+        {
+            const struct s2n_security_policy *versioned_policies[] = {
+                &security_policy_20250429,
+            };
+
+            const struct s2n_supported_cert supported_certs[] = {
+                { .cert = ecdsa_sha384_chain_and_key },
+            };
+
+            EXPECT_OK(s2n_test_default_backwards_compatible("rfc9151",
+                    versioned_policies, s2n_array_len(versioned_policies),
+                    supported_certs, s2n_array_len(supported_certs)));
+        };
     };
 
     /* Test that default_pq always matches default_tls13 */

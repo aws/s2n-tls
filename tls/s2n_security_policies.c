@@ -1317,7 +1317,9 @@ const struct s2n_security_policy security_policy_null = {
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
-    /* If changing named policies, please update the usage guide's docs on the corresponding policy. */
+    /* If changing named policies, please update the usage guide's docs on the corresponding policy.
+     * You likely also want to update the compatibility unit tests in (tests/unit/s2n_security_rules_test.c).
+     */
     { .version = "default", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

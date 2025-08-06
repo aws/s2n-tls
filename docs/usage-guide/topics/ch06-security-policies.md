@@ -62,7 +62,6 @@ In contrast, numbered or dated versions are fixed and will never change.
 The numbered equivalents for the named policies for the current version and
 historical s2n versions are in the "Named Policy History" below. The current
 matching fixed versions are:
-current versions:
 
 | "default" | "default_fips" | "default_tls13" | "rfc9151" |
 |-----------|----------------|-----------------|-----------|
