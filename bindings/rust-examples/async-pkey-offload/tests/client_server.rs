@@ -16,8 +16,8 @@ use tokio::{
 
 const MESSAGE: &[u8] = b"hello world";
 
-// we need multiple threads, because block_on can only be used in multi-threaded
-// runtimes
+// We need multiple threads, because the block_on (used in cert generation) can
+// only be used in multi-threaded runtimes.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
     let kms_key = {
