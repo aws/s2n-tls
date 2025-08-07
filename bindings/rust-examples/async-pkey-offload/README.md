@@ -7,16 +7,16 @@ It will
 2. create a public (self-signed) x509 certificate corresponding to the private key in KMS
 3. handle TLS connections for that certificate, offloading all private key operations to KMS
 
-```
-                      server (s2n-tls)                  KMS      
-                     ┌───────────────┐            ┌─────────────┐
-                     │               │            │             │
-Client──────────────►│  Public Key   ┼───────────►│ Private Key │
-            ▲        │ (certificate) │      ▲     │             │
-            │        │               │      │     └─────────────┘
-            │        └───────────────┘      │                    
-     TLS Connection                    pkey offload              
-                                      through AWS SDK            
+```  
+                          server (s2n-tls)                                   
+                          ┌───────────────┐                      KMS         
+                          │               │ sign(payload)  ┌─────────────┐   
+    Client◄──────────────►│ Public Key    ┼───────────────►│             │   
+                  ▲       │ (certificate) │                │ Private Key │   
+                  │       │               │◄───────────────┼             │   
+                  │       │               │    signature   └─────────────┘   
+           TLS Connection └───────────────┘                                  
+                                                                             
 ```
 
 The client will talk to an s2n-tls server. This server only contains the public key in the form of an x509 certificate. The server does _not_ hold a copy of a private key. The only copy of the key is stored in KMS, and it can not be removed from KMS. The advantage of this is that if an attacker were able to compromise the server, they could not steal the private key. 
