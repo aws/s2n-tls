@@ -84,7 +84,8 @@ pub async fn get_key(client: &Client) -> Result<String, Box<dyn std::error::Erro
     Ok(key)
 }
 
-/// KmsAsymmetricKey is a container used to implement application-specific traits.
+/// This represents an asymmetric key created in KMS. For more information see the
+/// [KMS Developer Guide](https://docs.aws.amazon.com/kms/latest/developerguide/symmetric-asymmetric.html).
 ///
 /// It implements [rcgen::RemoteKeyPair] which allows us to create a self-signed
 /// x509 cert corresponding to the key pair.
