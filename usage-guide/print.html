@@ -339,13 +339,14 @@ for certificate validation.</p>
 </tbody></table>
 </div>
 <p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. <strong>Warning</strong>: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.</p>
-<p>In contrast, numbered or dated versions are fixed and will never change. The numbered equivalents of the default policies are currently:</p>
-<ul>
-<li>"default": "20240501"</li>
-<li>"default_fips": "20240502"</li>
-<li>"default_tls13": "20240503"
-For previous defaults, see the "Default Policy History" section below.</li>
-</ul>
+<p>In contrast, numbered or dated versions are fixed and will never change.</p>
+<p>The numbered equivalents for the named policies for the current version and
+historical s2n versions are in the "Named Policy History" below. The current
+matching fixed versions are:</p>
+<div class="table-wrapper"><table><thead><tr><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th><th>"rfc9151"</th></tr></thead><tbody>
+<tr><td>20240501</td><td>20240502</td><td>20240503</td><td>20250429</td></tr>
+</tbody></table>
+</div>
 <p>"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.</p>
 <p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.</p>
@@ -421,12 +422,15 @@ Like the default policies, this policy may also change if the source RFC definit
 <tr><td>rfc9151</td><td></td><td>X</td><td></td></tr>
 </tbody></table>
 </div>
-<h3 id="default-policy-history"><a class="header" href="#default-policy-history">Default Policy History</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th></tr></thead><tbody>
-<tr><td>v1.4.16</td><td>20240501</td><td>20240502</td><td>20240503</td></tr>
-<tr><td>Older</td><td>20170210</td><td>20240416</td><td>20240417</td></tr>
+<h3 id="named-policy-history"><a class="header" href="#named-policy-history">Named Policy History</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th><th>"rfc9151"</th></tr></thead><tbody>
+<tr><td>v1.5.25</td><td>20240501</td><td>20240502</td><td>20240503</td><td>20250429</td></tr>
+<tr><td>v1.4.16</td><td>20240501</td><td>20240502</td><td>20240503</td><td>(*)</td></tr>
+<tr><td>Older</td><td>20170210</td><td>20240416</td><td>20240417</td><td>(*)</td></tr>
 </tbody></table>
-</div><div style="break-before: page; page-break-before: always;"></div><h1 id="sending-and-receiving"><a class="header" href="#sending-and-receiving">Sending and Receiving</a></h1>
+</div>
+<p>(*): No fixed policy available.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sending-and-receiving"><a class="header" href="#sending-and-receiving">Sending and Receiving</a></h1>
 <h2 id="basic-io-setup"><a class="header" href="#basic-io-setup">Basic IO setup</a></h2>
 <p>By default, s2n-tls sends and receives data using a provided file descriptor
 (usually a socket) and the read/write system calls. The file descriptor can be set with
@@ -1100,7 +1104,7 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td></tr>
 </tbody></table>
 </div>
-<h4 id="default-policy-history-1"><a class="header" href="#default-policy-history-1">Default Policy History</a></h4>
+<h4 id="default-policy-history"><a class="header" href="#default-policy-history">Default Policy History</a></h4>
 <div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default_pq"</th></tr></thead><tbody>
 <tr><td>v1.5.23</td><td>20250721</td></tr>
 <tr><td>v1.5.19</td><td>20250512</td></tr>
