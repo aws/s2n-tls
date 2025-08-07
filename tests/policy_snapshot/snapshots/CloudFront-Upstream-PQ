@@ -1,5 +1,5 @@
-name: CloudFront-Upstream-TLS-1-2
-min version: TLS1.2
+name: CloudFront-Upstream-PQ
+min version: SSLv3
 rules:
 - Perfect Forward Secrecy: no
 - FIPS 140-3 (2019): no
