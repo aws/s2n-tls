@@ -13,7 +13,7 @@ where
     B: TlsConfigBuilder<Config = C::Config>,
 {
     let mut conn_pair: TlsConnPair<C, C> = {
-        let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
+        let config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
         config_pair.connection_pair()
     };
     conn_pair.handshake().unwrap();
@@ -28,7 +28,7 @@ where
     B: TlsConfigBuilder<Config = C::Config>,
 {
     let mut conn_pair: TlsConnPair<C, C> = {
-        let mut config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
+        let config_pair: TlsConfigBuilderPair<B, B> = TlsConfigBuilderPair::default();
         config_pair.connection_pair()
     };
     conn_pair.handshake().unwrap();

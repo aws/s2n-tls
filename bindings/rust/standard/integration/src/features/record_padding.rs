@@ -6,7 +6,7 @@ use tls_harness::{
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
     openssl_extension::SslContextExtension,
-    SigType, TlsConnPair,
+    TlsConnPair,
 };
 
 const AES_GCM_TAG_LEN: u16 = 16;
@@ -27,6 +27,14 @@ fn record_padding() {
     const SEND_SIZES: [usize; 6] = [1, 10, 100, 1_000, 5_000, 10_000];
     const PAD_TO_CASES: [usize; 4] = [512, 1_024, 4_096, 16_000];
 
+    fn correctly_padded(record_sizes: &[u16], pad_to: usize) -> bool {
+        // skip the first two records, because unencrypted records are not padded
+        record_sizes.iter().skip(2).all(|record_length| {
+            let record_without_tag = record_length - AES_GCM_TAG_LEN;
+            record_without_tag % (pad_to as u16) == 0
+        })
+    }
+
     fn s2n_server_case(pad_to: usize) {
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
@@ -37,22 +45,13 @@ fn record_padding() {
         pair.io.enable_recording();
 
         pair.handshake().unwrap();
+        assert!(pair.negotiated_tls13());
         for send in SEND_SIZES {
             assert!(pair.round_trip_assert(send).is_ok());
         }
         pair.shutdown().unwrap();
 
-        let correctly_padded = pair
-            .io
-            .client_record_sizes()
-            .into_iter()
-            // skip the first two records, because unencrypted records are not padded
-            .skip(2)
-            .all(|record_length| {
-                let record_without_tag = record_length - AES_GCM_TAG_LEN;
-                record_without_tag % (pad_to as u16) == 0
-            });
-        assert!(correctly_padded);
+        assert!(correctly_padded(&pair.io.client_record_sizes(), pad_to));
     }
 
     fn s2n_client_case(pad_to: usize) {
@@ -65,22 +64,13 @@ fn record_padding() {
         pair.io.enable_recording();
 
         pair.handshake().unwrap();
+        assert!(pair.negotiated_tls13());
         for send in SEND_SIZES {
             assert!(pair.round_trip_assert(send).is_ok());
         }
         pair.shutdown().unwrap();
 
-        let correctly_padded = pair
-            .io
-            .server_record_sizes()
-            .into_iter()
-            // skip the first two records, because unencrypted records are not padded
-            .skip(2)
-            .all(|record_length| {
-                let record_without_tag = record_length - AES_GCM_TAG_LEN;
-                record_without_tag % (pad_to as u16) == 0
-            });
-        assert!(correctly_padded);
+        assert!(correctly_padded(&pair.io.server_record_sizes(), pad_to));
     }
 
     PAD_TO_CASES.into_iter().for_each(|pad_to| {
