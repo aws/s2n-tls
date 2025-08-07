@@ -48,14 +48,14 @@ batch:
           NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # AWSLC-FIPS-2022
-    - identifier: Integ_awslcfips2022_aarch64_0
+    - identifier: Integ_awslcfips2022_x86_64_0
       depend-on:
         - nixCache_aarch64
       env:
-        fleet: ubuntu24_aarch64_nix
+        fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslcfips2022
-          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
 
     # AWSLC-FIPS-2024
     - identifier: Integ_awslcfips2024_aarch64_0
