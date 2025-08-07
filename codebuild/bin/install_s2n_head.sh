@@ -52,9 +52,9 @@ if [[ -f "$s2nc_head" ]]; then
     fi
 fi
 
-# Workaround cases where the CI only featches one branch.
-git fetch
+# Workaround cases where the CI only fetches one branch.
 git switch -c PR
+git fetch origin main
 git switch main
 git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
