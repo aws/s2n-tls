@@ -27,6 +27,7 @@ IGNORES=$(
         docker-images \
         docs \
         error \
+        policy \
         lib \
         libcrypto-build \
         libcrypto-root \

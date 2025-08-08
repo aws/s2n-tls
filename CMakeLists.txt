@@ -53,6 +53,9 @@ file(GLOB CRYPTO_SRC "crypto/*.c")
 file(GLOB ERROR_HEADERS "error/*.h")
 file(GLOB ERROR_SRC "error/*.c")
 
+file(GLOB POLICY_HEADERS "policy/*.h")
+file(GLOB POLICY_SRC "policy/*.c")
+
 file(GLOB STUFFER_HEADERS "stuffer/*.h")
 file(GLOB STUFFER_SRC "stuffer/*.c")
 
@@ -75,12 +78,14 @@ if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS} ${API_UNSTABLE_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
     source_group("Header Files\\s2n\\error" FILES ${ERROR_HEADERS})
+    source_group("Header Files\\s2n\\policy" FILES ${POLICY_HEADERS})
     source_group("Header Files\\s2n\\stuffer" FILES ${STUFFER_HEADERS})
     source_group("Header Files\\s2n\\tls" FILES ${TLS_HEADERS})
     source_group("Header Files\\s2n\\utils" FILES ${UTILS_HEADERS})
 
     source_group("Source Files\\crypto" FILES ${CRYPTO_SRC})
     source_group("Source Files\\error" FILES ${ERROR_SRC})
+    source_group("Source Files\\policy" FILES ${POLICY_SRC})
     source_group("Source Files\\stuffer" FILES ${STUFFER_SRC})
     source_group("Source Files\\tls" FILES ${TLS_SRC})
     source_group("Source Files\\utils" FILES ${UTILS_SRC})
@@ -108,6 +113,7 @@ file(GLOB S2N_HEADERS
     ${API_UNSTABLE_HEADERS}
     ${CRYPTO_HEADERS}
     ${ERROR_HEADERS}
+    ${POLICY_HEADERS}
     ${STUFFER_HEADERS}
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
@@ -116,6 +122,7 @@ file(GLOB S2N_HEADERS
 file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
+    ${POLICY_SRC}
     ${STUFFER_SRC}
     ${TLS_SRC}
     ${UTILS_SRC}

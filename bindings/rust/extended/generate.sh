@@ -19,6 +19,7 @@ cp -r \
   ../../../api \
   ../../../crypto \
   ../../../error \
+  ../../../policy \
   ../../../stuffer \
   ../../../tls \
   ../../../utils \

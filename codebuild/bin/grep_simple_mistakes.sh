@@ -245,7 +245,7 @@ done
 ## Assert that there are no new uses of S2N_ERROR_IF
 # TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
 #############################################
-S2N_ERROR_IF_FREE="bin error scram stuffer utils tests"
+S2N_ERROR_IF_FREE="bin error policy scram stuffer utils tests"
 for dir in $S2N_ERROR_IF_FREE; do
   files=$(find "$dir" -type f -name "*.c" -path "*")
   for file in $files; do
