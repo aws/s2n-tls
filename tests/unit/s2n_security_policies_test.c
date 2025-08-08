@@ -360,6 +360,15 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
             "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
+            /* CloudFront upstream facing */
+            "CloudFront-Upstream-2025-08-08",
+            "CloudFront-Upstream-2025-08-08-PQ",
+            "CloudFront-Upstream-2025-08-08-TLS-1-0",
+            "CloudFront-Upstream-2025-08-08-TLS-1-0-PQ",
+            "CloudFront-Upstream-2025-08-08-TLS-1-1",
+            "CloudFront-Upstream-2025-08-08-TLS-1-1-PQ",
+            "CloudFront-Upstream-2025-08-08-TLS-1-2",
+            "CloudFront-Upstream-2025-08-08-TLS-1-2-PQ",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
