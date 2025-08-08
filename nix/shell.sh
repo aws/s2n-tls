@@ -128,6 +128,8 @@ function check-clang-format {(set -e
     src_files+=" ";
     src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
+    src_files+=`find ./policy -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
     src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
     src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
@@ -151,6 +153,8 @@ function do-clang-format {(set -e
     src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
     src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./policy -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";
     src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     src_files+=" ";

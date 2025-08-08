@@ -25,7 +25,7 @@ if [ "$#" -ne "0" ]; then
 fi
 
 FUZZ_TEST_DIR="tests/fuzz"
-FUZZCOV_SOURCES="api bin crypto error stuffer tls utils"
+FUZZCOV_SOURCES="api bin crypto error policy stuffer tls utils"
 
 # generate coverage report for each fuzz test
 printf "Generating coverage reports... \n"

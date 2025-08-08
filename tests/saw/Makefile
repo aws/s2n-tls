@@ -165,9 +165,15 @@ API_DIRS = $(sort $(dir $(API_COPY)))
 ERROR_C = $(wildcard ../../error/*.c) $(wildcard ../../error/*.h) ../../error/Makefile
 ERROR_COPY = $(addprefix s2n/error/, $(notdir $(ERROR_C)))
 
+POLICY_C = $(wildcard ../../policy/*.c) $(wildcard ../../policy/*.h) ../../policy/Makefile
+POLICY_COPY = $(addprefix s2n/policy/, $(notdir $(POLICY_C)))
+
 LIB_COPY = s2n/lib/Makefile
 
 s2n/error :
+	mkdir -p $@
+
+s2n/policy :
 	mkdir -p $@
 
 s2n/api :
@@ -193,12 +199,12 @@ export BITCODE_DIR := $(CURDIR)/bitcode/
 tmp:
 	mkdir -p tmp
 
-bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/tls s2n/api s2n/error s2n/policy s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(POLICY_COPY) $(STUFFER_COPY)
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
 
-s2n/lib/libs2n.so : s2n/crypto s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
+s2n/lib/libs2n.so : s2n/crypto s2n/utils s2n/tls s2n/api s2n/error s2n/policy s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(POLICY_COPY) $(STUFFER_COPY) $(LIB_COPY)
 	${MAKE} -C s2n libs NO_STACK_PROTECTOR=1 NO_INLINE=1
 
 s2n/%.h : ../../%.h

@@ -49,6 +49,7 @@ include s2n.mk
 libs:
 	$(MAKE) -C utils
 	$(MAKE) -C error
+	$(MAKE) -C policy
 	$(MAKE) -C stuffer
 	$(MAKE) -C crypto
 	$(MAKE) -C tls
@@ -70,6 +71,7 @@ run-lcov:
 	$(MAKE) -C bin lcov
 	$(MAKE) -C crypto lcov
 	$(MAKE) -C error lcov
+	$(MAKE) -C policy lcov
 	$(MAKE) -C stuffer lcov
 	$(MAKE) -C tests lcov
 	$(MAKE) -C tls run-lcov
@@ -88,6 +90,7 @@ indent:
 	$(MAKE) -C crypto indentsource
 	$(MAKE) -C utils indentsource
 	$(MAKE) -C error indentsource
+	$(MAKE) -C policy indentsource
 	$(MAKE) -C tls indent
 	$(MAKE) -C bin indentsource
 
@@ -119,6 +122,7 @@ clean:
 	$(MAKE) -C crypto decruft
 	$(MAKE) -C utils decruft
 	$(MAKE) -C error decruft
+	$(MAKE) -C policy decruft
 	$(MAKE) -C tls clean
 	$(MAKE) -C bin decruft
 	$(MAKE) -C lib decruft

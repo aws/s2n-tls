@@ -46,7 +46,7 @@ LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -max_total_time=$
 TEST_SPECIFIC_OVERRIDES="${S2N_ROOT}/build/lib/lib${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${S2N_ROOT}/build/lib/libglobal_overrides.so"
 
-FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
+FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/policy ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
 # Use LD_PRELOAD_ to prevent symbol lookup errors in commands like mkdir.
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
