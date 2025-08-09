@@ -1495,10 +1495,9 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
-int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
+int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *security_policy)
 {
-    const struct s2n_security_policy *security_policy = NULL;
-    POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(security_policy);
     POSIX_ENSURE_REF(security_policy->cipher_preferences);
     POSIX_ENSURE_REF(security_policy->kem_preferences);
@@ -1514,11 +1513,17 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return 0;
 }
 
-int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
+int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
-    POSIX_ENSURE_REF(conn);
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_GUARD(s2n_config_set_security_policy(config, security_policy));
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *security_policy)
+{
+    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(security_policy);
     POSIX_ENSURE_REF(security_policy->cipher_preferences);
     POSIX_ENSURE_REF(security_policy->kem_preferences);
@@ -1534,6 +1539,14 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 
     conn->security_policy_override = security_policy;
     return 0;
+}
+
+int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
+{
+    const struct s2n_security_policy *security_policy = NULL;
+    POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_GUARD(s2n_connection_set_security_policy(conn, security_policy));
+    return S2N_SUCCESS;
 }
 
 int s2n_security_policies_init()
