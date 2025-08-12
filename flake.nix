@@ -49,7 +49,7 @@
           pkgs.shellcheck
           # There are 2 nix formatters; use the old one for now.
           pkgs.nixfmt-classic
-          # This will eventually replace everything in nix/pyenv.nix
+          # Let uv handle all the python things.
           pkgs.uv
 
           # Rust

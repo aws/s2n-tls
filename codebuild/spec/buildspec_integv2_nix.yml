@@ -122,9 +122,6 @@ phases:
     commands:
       - |
         set -e
-        echo "Cleaning up gnutls config"
-        cat /etc/gnutls/config || true
-        rm /etc/gnutls/config || true
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
@@ -134,5 +131,5 @@ phases:
       - |
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;ldd $(which gnutls-serv);uvinteg"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
         fi
