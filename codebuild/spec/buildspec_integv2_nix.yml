@@ -25,7 +25,7 @@ batch:
           # max-jobs tell nix to use all available cores for building derivations.
           NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # AWSLC  x86
     - identifier: Integ_awslc_x86_0
