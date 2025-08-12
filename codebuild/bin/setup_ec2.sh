@@ -3,14 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
-if [[ -f /etc/os-release ]]; then
-    source "/etc/os-release"
-    if [[ "$UBUNTU_CODENAME" == "noble" ]]; then
-        echo "=== Turning off gnuTLS overrides"
-        sudo rm -f /etc/gnutls/config
-    fi
-fi
-
 setupnix() {
     echo "=== Setting up nix user, groups and permissions ==="
     sudo groupadd nixbld
@@ -30,15 +22,14 @@ setupnix() {
 }
 
 setupsudo() {
-    echo "=== Setting up sudo for the nix user, needed for installation ==="
-    # The nix installer refuses to install as root, so we need to set up a user, with sudo.
+    echo "Setting up sudo for the nix user, needed for installation ==="
+    # The nix installer refuses to install as root, so we need to set up sudo for the nix user.
     sudo bash -c "echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix"
 }
 # main
-if [[ "$UBUNTU_CODENAME" == "noble" ]]; then
-    # system defaults for gnuTLS disable older algorithms we need for testing.
-    echo "=== Turning off gnuTLS overrides"
-    rm /etc/gnutls/config
+if [[ -f "/etc/gnutls/config" ]]; then
+    echo "Turning off gnuTLS overrides"
+    sudo rm -f /etc/gnutls/config
 fi
 
 sudo apt update
