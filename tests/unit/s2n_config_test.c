@@ -1249,7 +1249,7 @@ int main(int argc, char **argv)
         };
 
         struct s2n_blob client_hello = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&client_hello, sslv2_client_hello, sizeof(sslv2_client_hello)));
+        EXPECT_OK(s2n_blob_init(&client_hello, sslv2_client_hello, sizeof(sslv2_client_hello)));
 
         /* Checks that the handshake gets as far as the client hello callback with a NULL config */
         {

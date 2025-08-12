@@ -86,13 +86,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) leaf_cert_pem, strlen(leaf_cert_pem) + 1));
+    EXPECT_OK(s2n_blob_init(&b, (uint8_t *) leaf_cert_pem, strlen(leaf_cert_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
-    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) private_key_pem, strlen(private_key_pem) + 1));
+    EXPECT_OK(s2n_blob_init(&b, (uint8_t *) private_key_pem, strlen(private_key_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b));
 
-    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) dhparams_pem, strlen(dhparams_pem) + 1));
+    EXPECT_OK(s2n_blob_init(&b, (uint8_t *) dhparams_pem, strlen(dhparams_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
     int type = 0;
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
     uint32_t available_size = 0;
     available_size = s2n_stuffer_data_available(&certificate_out);
-    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+    EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_OK(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
     /* Test without a type hint */
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(wrong_type, EVP_PKEY_RSA);
 
     available_size = s2n_stuffer_data_available(&rsa_key_out);
-    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
+    EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
     EXPECT_OK(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
 
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
     struct s2n_dh_params dh_params = { 0 };
     available_size = s2n_stuffer_data_available(&dhparams_out);
-    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
+    EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));

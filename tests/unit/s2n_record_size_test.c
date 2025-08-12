@@ -63,12 +63,12 @@ int main(int argc, char **argv)
 
     uint8_t random_data[S2N_LARGE_RECORD_LENGTH + 1];
     struct s2n_blob r = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
+    EXPECT_OK(s2n_blob_init(&r, random_data, sizeof(random_data)));
     EXPECT_OK(s2n_get_public_random_data(&r));
 
     uint8_t aes128_key[] = "123456789012345";
     struct s2n_blob aes128 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
+    EXPECT_OK(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
 
     /* Test record sizes with s2n_record_write */
     {
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
             server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_3des_sha;
             uint8_t des3_key[] = "12345678901234567890123";
             struct s2n_blob des3 = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&des3, des3_key, sizeof(des3_key)));
+            EXPECT_OK(s2n_blob_init(&des3, des3_key, sizeof(des3_key)));
             server_conn->server = server_conn->secure;
             EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->server_key));
             EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->client_key));
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
             server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
             uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
             struct s2n_blob chacha20_poly1305_key = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
+            EXPECT_OK(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
 
             EXPECT_SUCCESS(setup_server_keys(server_conn, &chacha20_poly1305_key));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
             server_conn->initial->cipher_suite->record_alg = &s2n_tls13_record_alg_chacha20_poly1305;
             uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
             struct s2n_blob chacha20_poly1305_key = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
+            EXPECT_OK(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
 
             EXPECT_SUCCESS(setup_server_keys(server_conn, &chacha20_poly1305_key));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));

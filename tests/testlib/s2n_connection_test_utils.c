@@ -297,13 +297,13 @@ S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
 
     uint8_t client_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "client key";
     struct s2n_blob client_key = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
+    RESULT_GUARD(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
     RESULT_GUARD(cipher->init(&conn->secure->client_key));
     RESULT_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &client_key));
 
     uint8_t server_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "server key";
     struct s2n_blob server_key = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
+    RESULT_GUARD(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
     RESULT_GUARD(cipher->init(&conn->secure->server_key));
     RESULT_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &server_key));
 

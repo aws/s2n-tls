@@ -102,7 +102,7 @@ static S2N_RESULT s2n_stuffer_hex_read_n_bytes(struct s2n_stuffer *stuffer, uint
 
     uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&b, hex_data, n * 2));
+    RESULT_GUARD(s2n_blob_init(&b, hex_data, n * 2));
 
     RESULT_ENSURE_REF(stuffer);
     RESULT_ENSURE(s2n_stuffer_read(stuffer, &b) == S2N_SUCCESS, S2N_ERR_BAD_HEX);
@@ -145,7 +145,7 @@ static S2N_RESULT s2n_stuffer_hex_write_n_bytes(struct s2n_stuffer *stuffer, uin
 
     uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&b, hex_data, n * 2));
+    RESULT_GUARD(s2n_blob_init(&b, hex_data, n * 2));
 
     for (size_t i = b.size; i > 0; i--) {
         b.data[i - 1] = value_to_hex[u & 0x0f];

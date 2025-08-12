@@ -399,7 +399,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob blob = { 0 };
         struct s2n_stuffer stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+        EXPECT_OK(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 
             uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
             struct s2n_blob state_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+            EXPECT_OK(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
             struct s2n_stuffer output = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
@@ -705,7 +705,7 @@ int main(int argc, char **argv)
         /* Deserialize ticket with incorrect format errors */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, faulty_format_ticket, sizeof(faulty_format_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, faulty_format_ticket, sizeof(faulty_format_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(faulty_format_ticket)));
@@ -722,7 +722,7 @@ int main(int argc, char **argv)
         /* Deserialized ticket without EMS data errors */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket, sizeof(tls12_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls12_ticket, sizeof(tls12_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls12_ticket) - S2N_TLS_SECRET_LEN));
@@ -742,7 +742,7 @@ int main(int argc, char **argv)
         /* Client processes hardcoded TLS1.2 ticket with EMS data correctly */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket_with_ems, sizeof(tls12_ticket_with_ems)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls12_ticket_with_ems, sizeof(tls12_ticket_with_ems)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls12_ticket_with_ems) - S2N_TLS_SECRET_LEN - 1));
@@ -778,7 +778,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_OK(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
@@ -786,7 +786,7 @@ int main(int argc, char **argv)
 
             uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
             struct s2n_blob state_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+            EXPECT_OK(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_OK(s2n_blob_init(&blob, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
@@ -818,7 +818,7 @@ int main(int argc, char **argv)
 
             uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
             struct s2n_blob state_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+            EXPECT_OK(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
@@ -865,7 +865,7 @@ int main(int argc, char **argv)
         /* Deserialized ticket sets correct PSK values for session resumption in TLS1.3 */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls13_ticket)));
@@ -908,7 +908,7 @@ int main(int argc, char **argv)
         /* Deserialized TLS1.3 server ticket sets correct keying material value */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
@@ -942,7 +942,7 @@ int main(int argc, char **argv)
         /* Deserializing TLS1.3 server ticket fails for expired keying material */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
@@ -974,7 +974,7 @@ int main(int argc, char **argv)
             const uint8_t expected_context[] = { EARLY_DATA_CONTEXT };
 
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket_with_early_data, sizeof(tls13_ticket_with_early_data)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_ticket_with_early_data, sizeof(tls13_ticket_with_early_data)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
@@ -1047,7 +1047,7 @@ int main(int argc, char **argv)
         /* Any existing psks are removed when creating a new resumption psk */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls13_ticket)));
@@ -1090,7 +1090,7 @@ int main(int argc, char **argv)
         /* Fails if external PSKs already set */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls13_ticket)));
@@ -1236,7 +1236,7 @@ int main(int argc, char **argv)
 
                 uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
                 struct s2n_blob state_blob = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+                EXPECT_OK(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
                 struct s2n_stuffer stuffer = { 0 };
 
                 EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &state_blob));
@@ -1335,7 +1335,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_OK(s2n_blob_init(&secret, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -1695,7 +1695,7 @@ int main(int argc, char **argv)
         {
             uint8_t ticket_data[] = "session ticket data";
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
             struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
 
             size_t data_len = 0;
@@ -1719,7 +1719,7 @@ int main(int argc, char **argv)
         {
             uint8_t ticket_data[] = "session ticket data";
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
             struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
 
             uint8_t data[sizeof(ticket_data)];
@@ -1732,7 +1732,7 @@ int main(int argc, char **argv)
         {
             uint8_t ticket_data[] = "session ticket data";
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
             struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
 
             uint8_t data[sizeof(ticket_data) - 1];

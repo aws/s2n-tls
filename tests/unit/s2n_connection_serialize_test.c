@@ -204,7 +204,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
 
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, buffer, sizeof(buffer)));
+            EXPECT_OK(s2n_blob_init(&blob, buffer, sizeof(buffer)));
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init_written(&stuffer, &blob));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
 
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, buffer, sizeof(buffer)));
+            EXPECT_OK(s2n_blob_init(&blob, buffer, sizeof(buffer)));
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init_written(&stuffer, &blob));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
