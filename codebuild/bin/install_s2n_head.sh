@@ -52,8 +52,9 @@ if [[ -f "$s2nc_head" ]]; then
     fi
 fi
 
+NOW=$(date +%s)
 # Workaround cases where the CI only fetches one branch.
-git switch -c PR
+git switch -c PR$NOW || git switch PR$NOW
 git fetch origin main
 git switch main
 git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
@@ -69,5 +70,5 @@ cp -f "$BUILD_DIR"/build/bin/s2nc "$s2nc_head"
 cp -f "$BUILD_DIR"/build/bin/s2nd "$DEST_DIR"/s2nd_head
 
 # Put us back on the PR branch.
-git switch PR
+git switch PR$NOW
 exit 0
