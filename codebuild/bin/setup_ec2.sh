@@ -7,7 +7,7 @@ if [[ -f /etc/os-release ]]; then
     source "/etc/os-release"
     if [[ "$UBUNTU_CODENAME" == "noble" ]]; then
         echo "=== Turning off gnuTLS overrides"
-        rm /etc/gnutls/config
+        sudo rm -f /etc/gnutls/config
     fi
 fi
 
