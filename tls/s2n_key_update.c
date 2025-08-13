@@ -20,6 +20,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_safety.h"
@@ -41,7 +42,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
-    POSIX_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_KEYUPDATE);
+    //POSIX_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
     uint8_t key_update_request = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
@@ -57,6 +58,10 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, S2N_SERVER, RECEIVING));
     } else {
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, S2N_CLIENT, RECEIVING));
+    }
+
+    if (conn->ktls_recv_enabled) {
+        POSIX_GUARD_RESULT(s2n_ktls_key_update_recv(conn));
     }
 
     return S2N_SUCCESS;

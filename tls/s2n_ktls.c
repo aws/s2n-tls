@@ -39,6 +39,15 @@ bool s2n_ktls_is_supported_on_platform()
 #endif
 }
 
+bool s2n_ktls_keyupdate_is_supported_on_platform()
+{
+#if defined(S2N_KTLS_KEYUPDATE_SUPPORTED)
+    return true;
+#else
+    return false;
+#endif
+}
+
 static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     POSIX_BAIL(S2N_ERR_IO);
@@ -157,7 +166,7 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_ktls_crypto_info *crypto_info)
 {
     RESULT_ENSURE_REF(conn);

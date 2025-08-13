@@ -32,6 +32,8 @@
 #include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_key_update.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_io.h"
 #include "utils/s2n_result.h"
@@ -284,6 +286,63 @@ static S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn) {
+    RESULT_ENSURE_REF(conn);
+
+    if (s2n_atomic_flag_test(&conn->key_update_pending)) {
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        struct s2n_blob key_update_blob = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+
+        /* Write key update message */
+        RESULT_GUARD_POSIX(s2n_key_update_write(&key_update_blob));
+
+        /* Send Keyupdate message */
+        const struct iovec iov = {
+            .iov_base = (void *) (uintptr_t) key_update_data,
+            .iov_len = sizeof(key_update_data),
+        };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        size_t bytes_written = 0;
+        RESULT_GUARD(s2n_ktls_sendmsg(conn->send_io_context, TLS_HANDSHAKE, &iov, 1, &blocked, &bytes_written));
+        RESULT_ENSURE_EQ(bytes_written, sizeof(key_update_data));
+
+        /* Create new encryption key */
+        RESULT_GUARD_POSIX(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+
+        struct s2n_ktls_crypto_info crypto_info = { 0 };
+        RESULT_GUARD(s2n_ktls_crypto_info_init(conn, S2N_KTLS_MODE_SEND, &crypto_info));
+
+        int fd = 0;
+        RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &fd));
+
+        /* Update the socket with new key */
+        int ret = setsockopt(fd, S2N_SOL_TLS, S2N_TLS_TX, crypto_info.value.data, crypto_info.value.size);
+        /* TODO: Probably not correct error */
+        RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_ENABLE);
+
+        s2n_atomic_flag_clear(&conn->key_update_pending);
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn) {
+    RESULT_ENSURE_REF(conn);
+
+    struct s2n_ktls_crypto_info crypto_info = { 0 };
+    RESULT_GUARD(s2n_ktls_crypto_info_init(conn, S2N_KTLS_MODE_RECV, &crypto_info));
+
+    int fd = 0;
+    RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_RECV, &fd));
+
+    /* Update the socket with new key */
+    int ret = setsockopt(fd, S2N_SOL_TLS, S2N_TLS_RX, crypto_info.value.data, crypto_info.value.size);
+    /* TODO: Probably not correct error */
+    RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_ENABLE);
+
+    return S2N_RESULT_OK;
+}
+
 /* ktls does not currently support updating keys, so we should kill the connection
  * when the key encryption limit is reached. We could get the current record
  * sequence number from the kernel with getsockopt, but that requires a surprisingly
@@ -316,7 +375,14 @@ static S2N_RESULT s2n_ktls_check_estimated_record_limit(
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
-    RESULT_ENSURE(total_records_sent <= encryption_limit, S2N_ERR_KTLS_KEY_LIMIT);
+    if (total_records_sent > encryption_limit && s2n_ktls_keyupdate_is_supported_on_platform()) {
+        s2n_atomic_flag_set(&conn->key_update_pending);
+    } else {
+        // TODO FIX ME
+        RESULT_BAIL(S2N_ERR_KTLS_KEYUPDATE);
+    }
+    RESULT_GUARD(s2n_ktls_key_update_send(conn));
+
     return S2N_RESULT_OK;
 }
 
