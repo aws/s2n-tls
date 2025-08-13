@@ -21,7 +21,7 @@ const MESSAGE: &[u8] = b"hello world";
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn handshake() -> Result<(), Box<dyn std::error::Error>> {
     let kms_key = {
-        let shared_config = aws_config::defaults(BehaviorVersion::v2024_03_28())
+        let shared_config = aws_config::defaults(BehaviorVersion::v2025_01_17())
             .region(Region::from_static(DEMO_REGION))
             .load()
             .await;

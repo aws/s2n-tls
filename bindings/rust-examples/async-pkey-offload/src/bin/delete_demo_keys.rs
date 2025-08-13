@@ -12,7 +12,7 @@ use aws_sdk_kms::Client;
 /// where the key description is [crate::KEY_DESCRIPTION]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let shared_config = aws_config::defaults(BehaviorVersion::v2024_03_28())
+    let shared_config = aws_config::defaults(BehaviorVersion::v2025_01_17())
         .region(Region::from_static(DEMO_REGION))
         .load()
         .await;

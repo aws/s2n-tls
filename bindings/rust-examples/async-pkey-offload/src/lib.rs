@@ -141,7 +141,7 @@ impl KmsAsymmetricKey {
     /// s2n-tls requires that future have 'static bounds, so this function can not
     /// operation on `&self`. Instead we clone all of the necessary elements and
     /// capture them in the closure.
-    async fn async_pkey_offload_with_self(
+    async fn async_pkey_offload(
         client: Client,
         key_id: String,
         operation: s2n_tls::callbacks::PrivateKeyOperation,
@@ -262,7 +262,7 @@ impl s2n_tls::callbacks::PrivateKeyCallback for KmsAsymmetricKey {
         s2n_tls::error::Error,
     > {
         // This is the async closure that will actually call out to KMS.
-        let signing_future = KmsAsymmetricKey::async_pkey_offload_with_self(
+        let signing_future = KmsAsymmetricKey::async_pkey_offload(
             self.kms_client.clone(),
             self.key_id.clone(),
             operation,
