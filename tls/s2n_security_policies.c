@@ -1184,13 +1184,13 @@ const struct s2n_security_policy security_policy_20210816_gcm = {
  * This security policy is derived from the following specification:
  * https://datatracker.ietf.org/doc/html/rfc9151
  */
-const struct s2n_security_policy security_policy_rfc9151 = {
+const struct s2n_security_policy security_policy_20250429 = {
     .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_rfc9151,
+    .cipher_preferences = &cipher_preferences_20250429,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_rfc9151,
-    .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
-    .certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151,
+    .signature_preferences = &s2n_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .certificate_key_preferences = &s2n_certificate_key_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .certificate_preferences_apply_locally = true,
 };
@@ -1206,7 +1206,7 @@ const struct s2n_security_policy security_policy_20250211 = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_20250211,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_rfc9151,
+    .signature_preferences = &s2n_signature_preferences_20250429,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
@@ -1317,6 +1317,9 @@ const struct s2n_security_policy security_policy_null = {
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
+    /* If changing named policies, please update the usage guide's docs on the corresponding policy.
+     * You likely also want to update the compatibility unit tests in (tests/unit/s2n_security_rules_test.c).
+     */
     { .version = "default", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1437,7 +1440,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20240603", .security_policy = &security_policy_20240603, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250211", .security_policy = &security_policy_20250211, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250414", .security_policy = &security_policy_20250414, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "rfc9151", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20250429", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    /* If changing this, please update the usage guide's docs on the corresponding policy. */
+    { .version = "rfc9151", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_fips", .security_policy = &security_policy_test_all_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_ecdsa", .security_policy = &security_policy_test_all_ecdsa, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
