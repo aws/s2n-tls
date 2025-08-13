@@ -38,6 +38,7 @@ typedef enum {
 } s2n_ktls_mode;
 
 bool s2n_ktls_is_supported_on_platform();
+bool s2n_ktls_keyupdate_is_supported_on_platform();
 S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 
 int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len);
@@ -51,6 +52,9 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
         const struct iovec *in, int in_count, size_t offs, size_t to_write);
 int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type);
+S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+        struct s2n_ktls_crypto_info *crypto_info);
+S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn);
 
 /* Testing */
 typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name, const void *option_value,

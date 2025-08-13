@@ -460,22 +460,6 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
             }
         };
-
-        /* Test: receiving KeyUpdate message */
-        {
-            EXPECT_SUCCESS(s2n_connection_set_blinding(reader, S2N_SELF_SERVICE_BLINDING));
-
-            /* Write KeyUpdate message */
-            s2n_atomic_flag_set(&writer->key_update_pending);
-            int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
-            EXPECT_EQUAL(written, sizeof(test_data));
-
-            /* Read KeyUpdate message */
-            uint8_t buffer[sizeof(test_data)] = { 0 };
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_recv(reader, buffer, sizeof(buffer), &blocked),
-                    S2N_ERR_KTLS_KEYUPDATE);
-        };
     };
 
     /* Test: s2n_shutdown
@@ -697,6 +681,93 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    /* Test: Sending key update with KTLS */
+    if (ktls_send_supported && s2n_is_tls13_fully_supported()){
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
+        s2n_atomic_flag_set(&server->key_update_pending);
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
+        EXPECT_EQUAL(written, sizeof(test_data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        EXPECT_EQUAL(server->recv_key_updated, 0);
+        EXPECT_EQUAL(server->send_key_updated, 1);
+
+        uint8_t buffer[sizeof(test_data)] = { 0 };
+        int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+        EXPECT_EQUAL(read, sizeof(test_data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        EXPECT_EQUAL(client->recv_key_updated, 1);
+        EXPECT_EQUAL(client->send_key_updated, 0);
+
+        EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
+    };
+
+    /* Test: Receiving key update with KTLS */
+    if (ktls_recv_supported && s2n_is_tls13_fully_supported()){
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
+        s2n_atomic_flag_set(&server->key_update_pending);
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
+        EXPECT_EQUAL(written, sizeof(test_data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        EXPECT_EQUAL(server->recv_key_updated, 0);
+        EXPECT_EQUAL(server->send_key_updated, 1);
+
+        uint8_t buffer[sizeof(test_data)] = { 0 };
+        int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+        EXPECT_EQUAL(read, sizeof(test_data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        EXPECT_EQUAL(client->recv_key_updated, 1);
+        EXPECT_EQUAL(client->send_key_updated, 0);
+
+        EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
+    };
 
     END_TEST();
 }
