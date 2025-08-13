@@ -1,4 +1,4 @@
-name: CloudFront-Upstream-2025-08-08-TLS-1-1-PQ
+name: CloudFront-Upstream-TLS-1-1-2025-PQ
 min version: TLS1.1
 rules:
 - Perfect Forward Secrecy: no

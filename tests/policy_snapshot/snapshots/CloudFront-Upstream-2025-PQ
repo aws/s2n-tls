@@ -1,5 +1,5 @@
-name: CloudFront-Upstream-2025-08-08-TLS-1-2
-min version: TLS1.2
+name: CloudFront-Upstream-2025-PQ
+min version: SSLv3
 rules:
 - Perfect Forward Secrecy: no
 - FIPS 140-3 (2019): no
@@ -47,3 +47,9 @@ curves:
 - secp256r1
 - x25519
 - secp384r1
+pq:
+- revision: 5
+- kem groups:
+-- X25519MLKEM768
+-- SecP256r1MLKEM768
+-- SecP384r1MLKEM1024
