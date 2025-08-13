@@ -110,6 +110,7 @@ const char *cipher_exceptions[] = {
     "CloudFront-Upstream-TLS-1-0-2025-PQ",
     "CloudFront-Upstream-TLS-1-1-2025-PQ",
     "CloudFront-Upstream-TLS-1-2-2025-PQ",
+    "CloudFront-Upstream-TLS-1-3-2025-PQ",
     "test_all",
 };
 

@@ -369,6 +369,8 @@ int main(int argc, char **argv)
             "CloudFront-Upstream-TLS-1-1-2025-PQ",
             "CloudFront-Upstream-TLS-1-2-2025",
             "CloudFront-Upstream-TLS-1-2-2025-PQ",
+            "CloudFront-Upstream-TLS-1-3-2025",
+            "CloudFront-Upstream-TLS-1-3-2025-PQ",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
