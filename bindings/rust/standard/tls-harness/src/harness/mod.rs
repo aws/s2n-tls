@@ -168,10 +168,7 @@ where
     S: TlsConnection,
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
-        let io = TestPairIO {
-            server_tx_stream: Default::default(),
-            client_tx_stream: Default::default(),
-        };
+        let io = TestPairIO::default();
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
         Self { client, server, io }
@@ -211,7 +208,7 @@ where
     }
 
     /// Send data from client to server, and then from server to client
-    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         // send data from client to server
         self.client.send(data);
         self.server.recv(data)?;
@@ -244,6 +241,13 @@ where
             )
         }
     }
+
+    /// transfer `data_size` bytes between the client and the server.
+    pub fn round_trip_assert(&mut self, data_size: usize) -> std::io::Result<()> {
+        // we don't need "cryptographically random" data, just some non-zero data
+        let mut random_data: Vec<u8> = (0..data_size).map(|i| (i * 101 % 256) as u8).collect();
+        self.round_trip_transfer(&mut random_data)
+    }
 }
 
 impl<C, S> TlsConnPair<C, S>
@@ -274,10 +278,16 @@ where
     S: TlsConfigBuilder,
 {
     fn default() -> Self {
-        Self {
+        let mut pair = Self {
             client: C::new_test_config(Mode::Client),
             server: S::new_test_config(Mode::Server),
-        }
+        };
+
+        // set an RSA2048 cert as the default, because it is the most common
+        // cert type.
+        pair.client.set_trust(SigType::Rsa2048);
+        pair.server.set_chain(SigType::Rsa2048);
+        pair
     }
 }
 

@@ -47,7 +47,7 @@ impl Contract {
 
     /// Returns a new [`Context`] to be checked
     #[inline]
-    pub fn context(&self) -> Context {
+    pub fn context(&self) -> Context<'_> {
         Context::from_waker(&self.waker)
     }
 
