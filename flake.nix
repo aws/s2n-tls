@@ -37,8 +37,6 @@
           pkgs.procps
           # stress testing tool for linux
           pkgs.stress
-          # Libressl from nixpkgs
-          pkgs.libressl
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
           pkgs.tshark
@@ -117,11 +115,6 @@
           (finalAttrs: previousAttrs: {
             doCheck = true;
             buildInputs = [ pkgs.openssl_1_1 ];
-          });
-        packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs
-          (finalAttrs: previousAttrs: {
-            doCheck = true;
-            buildInputs = [ pkgs.libressl ];
           });
         formatter = pkgs.nixfmt;
       });
