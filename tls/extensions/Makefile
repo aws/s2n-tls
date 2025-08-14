@@ -16,8 +16,9 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BCS_1=$(SRCS:.c=.bc)
-BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+# We currently don't need any of these files
+# Update this list as necessary. See tls/Makefile.
+BCS=
 
 .PHONY : all
 all: $(OBJS)
