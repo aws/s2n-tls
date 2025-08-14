@@ -104,8 +104,7 @@
         # Import devShells from the separate module
         devShells = import ./nix/devshells.nix {
           inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1
-            openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024
-            writeScript;
+            openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024 writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
