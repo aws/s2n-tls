@@ -1,5 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to
+# prevent the disk from filling up.
 ---
 version: 0.2
 env:
@@ -100,6 +104,7 @@ batch:
 phases:
   install:
     commands:
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       - |
         if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           echo "Refreshing nix cache..."
