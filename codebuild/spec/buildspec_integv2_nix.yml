@@ -54,7 +54,7 @@ batch:
     # AWSLC-FIPS-2022
     - identifier: Integ_awslcfips2022_x86_64_0
       depend-on:
-        - nixCache_aarch64
+        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
