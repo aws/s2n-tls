@@ -26,7 +26,6 @@
         openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
-        libressl = import ./nix/libressl.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
@@ -38,6 +37,8 @@
           pkgs.procps
           # stress testing tool for linux
           pkgs.stress
+          # Libressl from nixpkgs
+          pkgs.libressl
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
           pkgs.tshark
@@ -105,7 +106,7 @@
         # Import devShells from the separate module
         devShells = import ./nix/devshells.nix {
           inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1
-            openssl_3_0 libressl aws-lc aws-lc-fips-2022 aws-lc-fips-2024
+            openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024
             writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
