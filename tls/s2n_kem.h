@@ -118,6 +118,9 @@ extern const struct s2n_kem_group s2n_x25519_mlkem_768;
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 extern const struct s2n_kem_group s2n_x25519_kyber_768_r3;
 
+/* Pure ML-KEM Groups */
+extern const struct s2n_kem_group s2n_pure_mlkem_1024;
+
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
 S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);

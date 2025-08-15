@@ -112,8 +112,11 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected, bool len_prefix_expected)
 {
-    /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
-    POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
+    /* Skip XOR check for pure MLKEM since we have a KEM group and a curve (placeholder), otherwise enforce XOR check
+     * XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
+    if (!(expected_kem_group && expected_kem_group->curve == &s2n_ecc_curve_mlkem_placeholder)) {
+        POSIX_ENSURE((expected_kem_group != NULL) != (expected_curve != NULL), S2N_ERR_SAFETY);
+    }
 
     /* Set up connections */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
@@ -466,6 +469,26 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
+    const struct s2n_kem_group *mlkem1024_pure_test_groups[] = {
+        &s2n_pure_mlkem_1024,
+    };
+
+    const struct s2n_kem_preferences mlkem1024_pure_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(mlkem1024_pure_test_groups),
+        .tls13_kem_groups = mlkem1024_pure_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy mlkem1024_pure_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &mlkem1024_pure_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_pure_mlkem,
+    };
+
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -530,11 +553,16 @@ int main()
      * unavailable, we must downgrade the assertions to Kyber or EC. */
     const struct s2n_kem_group *null_if_no_mlkem_768 = &s2n_x25519_mlkem_768;
     const struct s2n_kem_group *null_if_no_mlkem_1024 = &s2n_secp384r1_mlkem_1024;
+    const struct s2n_kem_group *null_if_no_pure_mlkem_1024 = &s2n_pure_mlkem_1024;
     const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    const struct s2n_ecc_named_curve *ec_if_no_pure_mlkem = &s2n_ecc_curve_mlkem_placeholder;
+
     if (!s2n_libcrypto_supports_mlkem()) {
         null_if_no_mlkem_768 = NULL;
         null_if_no_mlkem_1024 = NULL;
+        null_if_no_pure_mlkem_1024 = NULL;
         ec_if_no_mlkem = default_curve;
+        ec_if_no_pure_mlkem = default_curve;
     }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -769,7 +797,17 @@ int main()
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
-        }
+        },
+
+        /* Confirm that pure MLKEM1024 is negotiable */
+        {
+                .client_policy = &mlkem1024_pure_test_policy,
+                .server_policy = &mlkem1024_pure_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_pure_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
     };
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
@@ -782,6 +820,11 @@ int main()
         bool len_prefix_expected = vector->len_prefix_expected;
 
         if (!s2n_pq_is_enabled()) {
+            /* Skip pure ML-KEM when PQ is disabled */
+            if (client_policy->ecc_preferences == &s2n_ecc_preferences_pure_mlkem) {
+                continue;
+            }
+
             EXPECT_TRUE(client_policy->ecc_preferences->count > 0);
             const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
             const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
