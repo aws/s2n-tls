@@ -1564,6 +1564,16 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_2025_08_08_tls13[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_08_08_tls13 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_2025_08_08_tls13),
+    .suites = cipher_suites_cloudfront_upstream_2025_08_08_tls13,
+    .allow_chacha20_boosting = false,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
