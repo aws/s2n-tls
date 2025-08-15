@@ -2,25 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{
-        self, read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsBenchConfig, TlsConnection, TlsInfo, ViewIO,
-    },
+    harness::{self, read_to_bytes, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
     PemType::{self, *},
     SigType,
 };
 use rustls::{
-    crypto::{
-        aws_lc_rs::{
-            self,
-            cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
-            kx_group::{SECP256R1, X25519},
-        },
-        CryptoProvider,
-    },
     pki_types::{CertificateDer, PrivateKeyDer, ServerName},
-    server::{ProducesTickets, WebPkiClientVerifier},
-    version::TLS13,
+    server::ProducesTickets,
     ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
     RootCertStore, ServerConfig, ServerConnection,
@@ -73,7 +61,7 @@ impl RustlsConnection {
 }
 
 #[derive(Debug)]
-struct NoOpTicketer {}
+pub struct NoOpTicketer {}
 
 impl ProducesTickets for NoOpTicketer {
     fn enabled(&self) -> bool {
@@ -94,7 +82,7 @@ impl ProducesTickets for NoOpTicketer {
 }
 
 impl RustlsConfig {
-    fn get_root_cert_store(sig_type: SigType) -> RootCertStore {
+    pub fn get_root_cert_store(sig_type: SigType) -> RootCertStore {
         let mut root_store = RootCertStore::empty();
         root_store.add_parsable_certificates(
             rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))
@@ -103,13 +91,13 @@ impl RustlsConfig {
         root_store
     }
 
-    fn get_cert_chain(pem_type: PemType, sig_type: SigType) -> Vec<CertificateDer<'static>> {
+    pub fn get_cert_chain(pem_type: PemType, sig_type: SigType) -> Vec<CertificateDer<'static>> {
         rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
             .map(|result| result.unwrap())
             .collect()
     }
 
-    fn get_key(pem_type: PemType, sig_type: SigType) -> PrivateKeyDer<'static> {
+    pub fn get_key(pem_type: PemType, sig_type: SigType) -> PrivateKeyDer<'static> {
         let key =
             rustls_pemfile::read_one(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
                 .unwrap();
@@ -137,84 +125,6 @@ impl From<ClientConfig> for RustlsConfig {
 impl From<ServerConfig> for RustlsConfig {
     fn from(value: ServerConfig) -> Self {
         RustlsConfig::Server(value.into())
-    }
-}
-
-impl TlsBenchConfig for RustlsConfig {
-    fn make_config(
-        mode: Mode,
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Self, Box<dyn Error>> {
-        let cipher_suite = match crypto_config.cipher_suite {
-            CipherSuite::AES_128_GCM_SHA256 => TLS13_AES_128_GCM_SHA256,
-            CipherSuite::AES_256_GCM_SHA384 => TLS13_AES_256_GCM_SHA384,
-        };
-
-        let kx_group = match crypto_config.kx_group {
-            KXGroup::Secp256R1 => &SECP256R1,
-            KXGroup::X25519 => &X25519,
-        };
-
-        let crypto_provider = Arc::new(CryptoProvider {
-            cipher_suites: vec![cipher_suite],
-            kx_groups: vec![*kx_group],
-            ..aws_lc_rs::default_provider()
-        });
-
-        match mode {
-            Mode::Client => {
-                let builder = ClientConfig::builder_with_provider(crypto_provider)
-                    .with_protocol_versions(&[&TLS13])?
-                    .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type));
-
-                let config = match handshake_type {
-                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
-                        builder.with_no_client_auth()
-                    }
-                    HandshakeType::MutualAuth => builder.with_client_auth_cert(
-                        Self::get_cert_chain(ClientCertChain, crypto_config.sig_type),
-                        Self::get_key(ClientKey, crypto_config.sig_type),
-                    )?,
-                };
-
-                if handshake_type != HandshakeType::Resumption {
-                    rustls::client::Resumption::disabled();
-                }
-
-                Ok(RustlsConfig::Client(Arc::new(config)))
-            }
-            Mode::Server => {
-                let builder = ServerConfig::builder_with_provider(crypto_provider)
-                    .with_protocol_versions(&[&TLS13])?;
-
-                let builder = match handshake_type {
-                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
-                        builder.with_no_client_auth()
-                    }
-                    HandshakeType::MutualAuth => {
-                        let client_cert_verifier = WebPkiClientVerifier::builder(
-                            Self::get_root_cert_store(crypto_config.sig_type).into(),
-                        )
-                        .build()
-                        .unwrap();
-                        builder.with_client_cert_verifier(client_cert_verifier)
-                    }
-                };
-
-                let mut config = builder.with_single_cert(
-                    Self::get_cert_chain(ServerCertChain, crypto_config.sig_type),
-                    Self::get_key(ServerKey, crypto_config.sig_type),
-                )?;
-
-                if handshake_type != HandshakeType::Resumption {
-                    config.session_storage = Arc::new(rustls::server::NoServerSessionStorage {});
-                    config.ticketer = Arc::new(NoOpTicketer {});
-                }
-
-                Ok(RustlsConfig::Server(Arc::new(config)))
-            }
-        }
     }
 }
 
@@ -301,12 +211,21 @@ impl TlsInfo for RustlsConnection {
     fn name() -> String {
         "rustls".to_string()
     }
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self.connection.negotiated_cipher_suite().unwrap().suite() {
-            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
-            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
-            _ => panic!("Unknown cipher suite"),
-        }
+
+    fn get_negotiated_cipher_suite(&self) -> String {
+        // let rustls cipher
+        let version_prefixed_cipher = self
+            .connection
+            .negotiated_cipher_suite()
+            .unwrap()
+            .suite()
+            .as_str()
+            .unwrap();
+        debug_assert!(version_prefixed_cipher.starts_with("TLS13_"));
+        format!(
+            "TLS_{}",
+            version_prefixed_cipher.strip_prefix("TLS13_").unwrap()
+        )
     }
 
     fn negotiated_tls13(&self) -> bool {
@@ -329,24 +248,68 @@ impl TlsInfo for RustlsConnection {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::test_utilities;
+#[derive(Debug, Default)]
+pub struct RustlsConfigBuilder {
+    mode: Option<Mode>,
+    cert: Option<SigType>,
+}
 
-    use super::*;
+impl TlsConfigBuilder for RustlsConfigBuilder {
+    type Config = RustlsConfig;
 
-    #[test]
-    fn sanity_check() {
-        test_utilities::basic_handshake::<RustlsConnection>();
+    fn new_test_config(mode: Mode) -> Self {
+        Self {
+            mode: Some(mode),
+            ..Default::default()
+        }
     }
 
+    fn set_chain(&mut self, sig_type: SigType) {
+        self.cert = Some(sig_type)
+    }
+
+    fn set_trust(&mut self, sig_type: SigType) {
+        self.cert = Some(sig_type)
+    }
+
+    fn build(self) -> Self::Config {
+        let mode = self.mode.unwrap();
+        let cert = self.cert.unwrap();
+
+        let crypto_provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+        match mode {
+            Mode::Client => ClientConfig::builder_with_provider(crypto_provider)
+                .with_protocol_versions(&[&rustls::version::TLS13])
+                .unwrap()
+                .with_root_certificates(RustlsConfig::get_root_cert_store(cert))
+                .with_no_client_auth()
+                .into(),
+            Mode::Server => ServerConfig::builder_with_provider(crypto_provider)
+                .with_protocol_versions(&[&rustls::version::TLS13])
+                .unwrap()
+                .with_no_client_auth()
+                .with_single_cert(
+                    RustlsConfig::get_cert_chain(ServerCertChain, cert),
+                    RustlsConfig::get_key(ServerKey, cert),
+                )
+                .unwrap()
+                .into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utilities;
+
     #[test]
-    fn all_handshakes() {
-        test_utilities::all_handshakes::<RustlsConnection>();
+    fn handshake() {
+        test_utilities::handshake::<RustlsConnection, RustlsConfigBuilder>();
     }
 
     #[test]
     fn transfer() {
-        test_utilities::transfer::<RustlsConnection>();
+        test_utilities::transfer::<RustlsConnection, RustlsConfigBuilder>();
     }
 }

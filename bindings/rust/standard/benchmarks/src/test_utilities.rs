@@ -1,31 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    harness::{TlsBenchConfig, TlsInfo},
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, SigType, TlsConnPair, TlsConnection,
-};
 use std::io::ErrorKind;
+
+use tls_harness::{harness::TlsInfo, SigType, TlsConnection};
+
+use crate::{new_bench_pair, CipherSuite, CryptoConfig, HandshakeType, KXGroup, TlsBenchConfig};
 use strum::IntoEnumIterator;
-
-/// Perform a simple server-auth handshake.
-pub fn basic_handshake<T>()
-where
-    T: TlsConnection,
-    T::Config: TlsBenchConfig,
-{
-    let crypto_config = CryptoConfig::default();
-    let mut conn_pair =
-        TlsConnPair::<T, T>::new_bench_pair(crypto_config, HandshakeType::ServerAuth).unwrap();
-
-    assert!(!conn_pair.handshake_completed());
-    conn_pair.handshake().unwrap();
-    assert!(conn_pair.handshake_completed());
-
-    conn_pair.round_trip_transfer(&mut [0, 1, 2, 3, 4]).unwrap();
-
-    conn_pair.shutdown().unwrap();
-}
 
 /// Transfer a large amount of application data
 pub fn transfer<T>()
@@ -38,7 +19,7 @@ where
     for cipher_suite in CipherSuite::iter() {
         let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
         let mut conn_pair =
-            TlsConnPair::<T, T>::new_bench_pair(crypto_config, HandshakeType::default()).unwrap();
+            new_bench_pair::<T, T>(crypto_config, HandshakeType::default()).unwrap();
         conn_pair.handshake().unwrap();
         conn_pair.round_trip_transfer(&mut buf).unwrap();
         conn_pair.shutdown().unwrap();
@@ -58,14 +39,17 @@ where
                 for sig_type in SigType::iter() {
                     let crypto_config = CryptoConfig::new(cipher_suite, kx_group, sig_type);
                     let mut conn_pair =
-                        TlsConnPair::<T, T>::new_bench_pair(crypto_config, handshake_type).unwrap();
+                        new_bench_pair::<T, T>(crypto_config, handshake_type).unwrap();
 
                     assert!(!conn_pair.handshake_completed());
                     conn_pair.handshake().unwrap();
                     assert!(conn_pair.handshake_completed());
 
                     assert!(conn_pair.negotiated_tls13());
-                    assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
+                    assert_eq!(
+                        format!("{cipher_suite:?}"),
+                        conn_pair.get_negotiated_cipher_suite()
+                    );
                     match handshake_type {
                         HandshakeType::ServerAuth => {
                             assert!(!conn_pair.server.mutual_auth());

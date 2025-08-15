@@ -1,14 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{
-    harness::{TlsBenchConfig, TlsInfo},
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection, SigType, TlsConnPair,
-    TlsConnection,
-};
+use benchmarks::*;
+use tls_harness::cohort::S2NConnection;
+
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
+use tls_harness::{harness::TlsInfo, SigType, TlsConnection};
 
 fn bench_handshake_pair<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
@@ -21,7 +20,7 @@ where
         bench_group.bench_function(format!("{:?}-{}", handshake, T::name()), |b| {
             b.iter_batched_ref(
                 || {
-                    TlsConnPair::<T, T>::new_bench_pair(
+                    new_bench_pair::<T, T>(
                         CryptoConfig::new(CipherSuite::default(), KXGroup::default(), sig_type),
                         handshake,
                     )
@@ -46,7 +45,7 @@ where
         bench_group.bench_function(format!("{:?}-{}", handshake, T::name()), |b| {
             b.iter_batched_ref(
                 || {
-                    let mut pair = TlsConnPair::<T, T>::new_bench_pair(
+                    let mut pair = new_bench_pair::<T, T>(
                         CryptoConfig::new(CipherSuite::default(), KXGroup::default(), sig_type),
                         handshake,
                     )
