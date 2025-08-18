@@ -73,8 +73,10 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
 }
 
 /* Computes the ECDHE+PQKEM hybrid shared secret as defined in
- * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
-int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+ * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design
+ * Also supports "pure PQ" mode when kem_group->curve == &s2n_ecc_curve_none.
+ */
+int s2n_tls13_compute_pq_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(shared_secret);
@@ -93,15 +95,6 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(client_ecc_params);
 
-    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_free_or_wipe);
-
-    /* Compute the ECDHE shared secret, and retrieve the PQ shared secret. */
-    if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
-    } else {
-        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
-    }
-
     struct s2n_blob *pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     POSIX_ENSURE_REF(pq_shared_secret);
     POSIX_ENSURE_REF(pq_shared_secret->data);
@@ -109,6 +102,16 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     const struct s2n_kem_group *negotiated_kem_group = conn->kex_params.server_kem_group_params.kem_group;
     POSIX_ENSURE_REF(negotiated_kem_group);
     POSIX_ENSURE_REF(negotiated_kem_group->kem);
+
+    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_free_or_wipe);
+
+    if (negotiated_kem_group->curve == &s2n_ecc_curve_none) {
+        POSIX_ENSURE_EQ(ecdhe_shared_secret.size, 0);
+    } else if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
+    } else {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
+    }
 
     POSIX_ENSURE_EQ(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
 
@@ -129,46 +132,18 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-int s2n_tls13_compute_pure_pq_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(shared_secret);
-
-    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    POSIX_ENSURE_REF(kem_group);
-    POSIX_ENSURE_REF(kem_group->kem);
-
-    struct s2n_blob *pq_shared_secret = &conn->kex_params.client_kem_group_params.kem_params.shared_secret;
-    POSIX_ENSURE_REF(pq_shared_secret);
-    POSIX_ENSURE_REF(pq_shared_secret->data);
-
-    POSIX_ENSURE_EQ(pq_shared_secret->size, kem_group->kem->shared_secret_key_length);
-
-    /* Allocate and copy directly */
-    POSIX_GUARD(s2n_alloc(shared_secret, pq_shared_secret->size));
-    POSIX_CHECKED_MEMCPY(shared_secret->data, pq_shared_secret->data, pq_shared_secret->size);
-
-    return S2N_SUCCESS;
-}
-
 int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
 {
     return conn->kex_params.server_kem_group_params.kem_group != NULL;
-}
-
-int s2n_tls13_pure_pq_supported(struct s2n_connection *conn)
-{
-    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    return kem_group && kem_group->curve == &s2n_ecc_curve_mlkem_placeholder;
 }
 
 int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(conn);
 
-    if (s2n_tls13_pure_pq_supported(conn)) {
-        POSIX_GUARD(s2n_tls13_compute_pure_pq_shared_secret(conn, shared_secret));
-    } else if (s2n_tls13_pq_hybrid_supported(conn)) {
+    if (s2n_tls13_pq_hybrid_supported(conn)) {
+        POSIX_GUARD(s2n_tls13_compute_pq_shared_secret(conn, shared_secret));
+    } else {
         POSIX_GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));
     }
 

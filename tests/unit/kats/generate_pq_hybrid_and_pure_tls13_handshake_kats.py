@@ -2,14 +2,16 @@ import hashlib
 import hmac
 
 # The PEM-encoded ECC private keys were used to generate the ECC shared secrets
-# are located in in s2n/tests/unit/s2n_tls13_hybrid_shared_secret_test.c with
+# are located in in s2n/tests/unit/s2n_tls13_hybrid_pq_shared_secret_test.c and
+# s2n/tests/unit/s2n_tls13_pure_pq_shared_secret_test.c with
 # names like "CLIENT_{CURVE}_PRIV_KEY" and "SERVER_{CURVE}_PRIV_KEY".
 
 # We aren't really concerned with the actual bytes of the transcript, only the hash.
 # The transcript_hash values were calculated as:
 # hashlib.sha256(b"client_hello || server_hello").hexdigest()
 # hashlib.sha384(b"client_hello || server_hello").hexdigest()
-# The string "client_hello || server_hello" is used in s2n/tests/unit/s2n_tls13_hybrid_shared_secret_test.c.
+# The string "client_hello || server_hello" is used in s2n/tests/unit/s2n_tls13_hybrid_pq_shared_secret_test.c and
+# s2n/tests/unit/s2n_tls13_pure_pq_shared_secret_test.c
 
 # The PQ shared secrets come from the first test vector in the corresponding NIST KAT.
 input_vectors = [

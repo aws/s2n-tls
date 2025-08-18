@@ -102,14 +102,13 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
     .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
-const struct s2n_ecc_named_curve s2n_ecc_curve_mlkem_placeholder = {
+const struct s2n_ecc_named_curve s2n_ecc_curve_none = {
     .iana_id = 0,
-    .name = "mlkem_placeholder",
+    .name = "none",
     .libcrypto_nid = 0,
     .share_size = 0,
     .generate_key = s2n_ecc_evp_generate_key_noop,
 };
-
 
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
@@ -178,6 +177,9 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 
 static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
 {
+    /* We should never hit this function — pure ML-KEM doesn’t generate an EC keypair.
+    * The placeholder curve only acts as a filter, so if this ever runs it indicates a bug.
+    */
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
