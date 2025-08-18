@@ -250,6 +250,20 @@ input_vectors = [
         "pq_shared_secret": "23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13a52",
         "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
     },
+    {
+        "group_name": "MLKEM1024",
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "ec_shared_secret": "",
+        "pq_shared_secret": "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
+    },
+    {
+        "group_name": "MLKEM1024",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "ec_shared_secret": "",
+        "pq_shared_secret": "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035",
+        "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
+    }
 ]
 
 
@@ -277,6 +291,9 @@ def compute_secrets(input_vector: dict):
     shared_secret = bytes.fromhex(input_vector["ec_shared_secret"] + input_vector["pq_shared_secret"])
     if (input_vector["group_name"] == "X25519MLKEM768"):
         shared_secret = bytes.fromhex(input_vector["pq_shared_secret"] + input_vector["ec_shared_secret"])
+
+    if input_vector["group_name"].startswith("MLKEM"):
+        shared_secret = bytes.fromhex(input_vector["pq_shared_secret"])
 
     hash_alg = input_vector["cipher_suite"].split("_")[-1].lower()
     zeros = bytearray([0] * hashlib.new(hash_alg).digest_size)
