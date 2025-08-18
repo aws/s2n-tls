@@ -132,35 +132,11 @@ int main(int argc, char **argv)
             client_conn->handshake.message_number++;
         }
 
-        printf("[DEBUG] Client transcript hash: ");
-        for (size_t j = 0; j < secrets.size; j++) {
-            printf("%02x", client_conn->handshake.hashes->transcript_hash_digest[j]);
-        }
-        printf("\n");
-
-        printf("[DEBUG] Server transcript hash: ");
-        for (size_t j = 0; j < secrets.size; j++) {
-            printf("%02x", server_conn->handshake.hashes->transcript_hash_digest[j]);
-        }
-        printf("\n");
-
         /* Derive traffic secrets */
         s2n_tls13_key_blob(client_traffic_secret, secrets.size);
         s2n_tls13_key_blob(server_traffic_secret, secrets.size);
         EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &client_traffic_secret));
         EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_SERVER, &server_traffic_secret));
-
-        printf("[DEBUG] Client Traffic Secret (%d bytes): ", client_traffic_secret.size);
-        for (size_t b = 0; b < client_traffic_secret.size; b++) {
-            printf("%02x", client_traffic_secret.data[b]);
-        }
-        printf("\n");
-
-        printf("[DEBUG] Server Traffic Secret (%d bytes): ", server_traffic_secret.size);
-        for (size_t b = 0; b < server_traffic_secret.size; b++) {
-            printf("%02x", server_traffic_secret.data[b]);
-        }
-        printf("\n");
 
         EXPECT_EQUAL(test_vector->expected_client_traffic_secret->size, client_traffic_secret.size);
         EXPECT_BYTEARRAY_EQUAL(test_vector->expected_client_traffic_secret->data, client_traffic_secret.data,
