@@ -3,6 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
+display_usage() {
+    cat <<EOF
+Usage: $0 [OPTIONS]
+
+Sets up an AWS EC2 instance for CodeBuild fleets by:
+  1) Installing Nix package manager on a bare EC2 instance
+  2) Configuring Nix to be usable by the root user for CodeBuild compatibility
+     (Note: This is not officially supported by Nix)
+
+Options:
+  -h, --help    Display this help message and exit
+EOF
+}
+
 setupnix() {
     echo "=== Setting up nix user, groups and permissions ==="
     sudo groupadd nixbld
@@ -27,6 +41,14 @@ setupsudo() {
     sudo bash -c "echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix"
 }
 # main
+for arg in "$@"; do
+    case $arg in
+        -h|--help)
+            display_usage
+            exit 0
+            ;;
+    esac
+done
 if [[ -f "/etc/gnutls/config" ]]; then
     echo "Turning off gnuTLS overrides"
     sudo rm -f /etc/gnutls/config
