@@ -36,7 +36,7 @@ setup_nix() {
 }
 
 setup_sudo() {
-    echo "Setting up sudo for the nix user, needed for installation ==="
+    echo "=== Setting up sudo for the nix user, needed for installation ==="
     # The nix installer refuses to install as root, so we need to set up sudo for the nix user.
     sudo bash -c "echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix"
 }
