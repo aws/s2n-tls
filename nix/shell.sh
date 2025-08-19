@@ -97,7 +97,7 @@ function uvinteg {(
         echo "Running all integ tests with uv"
         # If the first attempt has any failures, try rerunning with only the failed tests.
         PYTHONPATH="" uv run pytest --cache-clear $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml || \
-        PYTHONPATH="" uv run pytest --last-failed --last-failed-no-failures none $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+        PYTHONPATH="" uv run pytest --last-failed --last-failed-no-failures none $PYTEST_ARGS --junitxml=../../build/junit/uv_integ_retry.xml
     else
         # We're clearing state between test runs when individual tests are specified.
         for test in "$@"; do
