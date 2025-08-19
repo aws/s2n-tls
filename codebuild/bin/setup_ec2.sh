@@ -17,7 +17,7 @@ Options:
 EOF
 }
 
-setupnix() {
+setup_nix() {
     echo "=== Setting up nix user, groups and permissions ==="
     sudo groupadd nixbld
     sudo useradd -m -g nixbld -G nixbld nix
@@ -35,10 +35,22 @@ setupnix() {
     sudo -u root bash -c "ln -s /home/nix/.config ~/"
 }
 
-setupsudo() {
+setup_sudo() {
     echo "Setting up sudo for the nix user, needed for installation ==="
     # The nix installer refuses to install as root, so we need to set up sudo for the nix user.
     sudo bash -c "echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix"
+}
+
+check_gnutls_config() {
+    if [[ -f "/etc/gnutls/config" ]]; then
+        echo "Turning off gnuTLS overrides"
+        sudo rm -f /etc/gnutls/config
+    fi
+}
+
+update_ubuntu_packages() {
+    sudo apt update
+    sudo apt upgrade -y
 }
 # main
 for arg in "$@"; do
@@ -49,12 +61,7 @@ for arg in "$@"; do
             ;;
     esac
 done
-if [[ -f "/etc/gnutls/config" ]]; then
-    echo "Turning off gnuTLS overrides"
-    sudo rm -f /etc/gnutls/config
-fi
-
-sudo apt update
-sudo apt upgrade -y
-setupsudo
-setupnix
+check_gnutls_config
+update_ubuntu_packages
+setup_sudo
+setup_nix
