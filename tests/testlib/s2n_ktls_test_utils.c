@@ -14,6 +14,7 @@
  */
 
 #include "testlib/s2n_ktls_test_utils.h"
+#include "testlib/s2n_testlib.h"
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
         int cmsg_type, uint8_t record_type);
@@ -245,5 +246,46 @@ S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_i
 
     RESULT_ENSURE_EQ(records, expected_records);
     RESULT_ENSURE_EQ(extra, 0);
+    return S2N_RESULT_OK;
+}
+
+int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
+{
+    return S2N_SUCCESS;
+}
+
+int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
+{
+    POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
+    if (level == S2N_SOL_TLS) {
+        POSIX_ENSURE_EQ(optname, S2N_TLS_TX);
+        POSIX_ENSURE_EQ(optlen, sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128));
+    } else if (level == S2N_SOL_TCP) {
+        POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
+        POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
+    } else {
+        POSIX_BAIL(S2N_ERR_SAFETY);
+    }
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn, uint8_t version, struct s2n_cipher_suite *cipher)
+{
+    RESULT_ENSURE_REF(conn);
+
+    RESULT_GUARD(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_noop));
+
+    /* config I/O */
+    RESULT_GUARD_POSIX(s2n_connection_set_write_fd(conn, S2N_TEST_SEND_FD));
+    RESULT_GUARD_POSIX(s2n_connection_set_read_fd(conn, S2N_TEST_RECV_FD));
+    conn->ktls_send_enabled = false;
+    conn->ktls_recv_enabled = false;
+
+    /* set kTLS supported cipher */
+    conn->secure->cipher_suite = cipher;
+    conn->actual_protocol_version = version;
+    /* configure connection so that the handshake is complete */
+    RESULT_GUARD(s2n_skip_handshake(conn));
+
     return S2N_RESULT_OK;
 }

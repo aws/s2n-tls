@@ -16,19 +16,12 @@
 #include "tls/s2n_ktls.h"
 
 #include "s2n_test.h"
+#include "testlib/s2n_ktls_test_utils.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ktls_parameters.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_socket.h"
-
-#define S2N_TEST_SEND_FD 66
-#define S2N_TEST_RECV_FD 55
-
-static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
-{
-    return S2N_SUCCESS;
-}
 
 static int s2n_test_setsockopt_tcp_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
@@ -46,21 +39,6 @@ static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const v
         return -1;
     }
     return 0;
-}
-
-static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
-{
-    POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
-    if (level == S2N_SOL_TLS) {
-        POSIX_ENSURE_EQ(optname, S2N_TLS_TX);
-        POSIX_ENSURE_EQ(optlen, sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128));
-    } else if (level == S2N_SOL_TCP) {
-        POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
-        POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
-    } else {
-        POSIX_BAIL(S2N_ERR_SAFETY);
-    }
-    return S2N_SUCCESS;
 }
 
 static int s2n_test_setsockopt_aes128_rx(int fd, int level, int optname, const void *optval, socklen_t optlen)
@@ -111,27 +89,6 @@ static S2N_RESULT s2n_test_setsockopt_set_ktls_info(struct s2n_ktls_crypto_info_
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
-{
-    RESULT_ENSURE_REF(conn);
-
-    RESULT_GUARD(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_noop));
-
-    /* config I/O */
-    RESULT_GUARD_POSIX(s2n_connection_set_write_fd(conn, S2N_TEST_SEND_FD));
-    RESULT_GUARD_POSIX(s2n_connection_set_read_fd(conn, S2N_TEST_RECV_FD));
-    conn->ktls_send_enabled = false;
-    conn->ktls_recv_enabled = false;
-
-    /* set kTLS supported cipher */
-    conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
-    conn->actual_protocol_version = S2N_TLS12;
-    /* configure connection so that the handshake is complete */
-    RESULT_GUARD(s2n_skip_handshake(conn));
-
-    return S2N_RESULT_OK;
-}
-
 static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
         s2n_renegotiate_response *response)
 {
@@ -145,7 +102,7 @@ int main(int argc, char **argv)
     if (!s2n_ktls_is_supported_on_platform()) {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
-        EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+        EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
@@ -238,7 +195,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             const struct s2n_cipher *cipher = NULL;
             EXPECT_OK(s2n_connection_get_secure_cipher(server_conn, &cipher));
@@ -257,7 +214,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tcp_error));
 
             /* The error does not prevent us from enabling ktls */
@@ -269,7 +226,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_error));
 
             /* The error prevents us from enabling ktls */
@@ -283,7 +240,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             server_conn->ktls_send_enabled = true;
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
@@ -296,7 +253,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             server_conn->handshake.message_number = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
@@ -309,7 +266,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
@@ -327,7 +284,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             server_conn->actual_protocol_version = S2N_TLS13 + 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
@@ -351,7 +308,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             server_conn->secure->cipher_suite = &ktls_temp_unsupported_cipher_suite;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
@@ -362,7 +319,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             uint8_t write_byte = 8;
             uint8_t read_byte = 0;
@@ -393,7 +350,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->buffer_in, 1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn),
@@ -407,7 +364,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             /* expect failure if connection is using custom IO */
             server_conn->managed_send_io = false;
@@ -422,7 +379,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
 
             /* recv managed io */
             server_conn->managed_recv_io = false;
@@ -439,12 +396,12 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(client, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(server));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
             EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
@@ -458,7 +415,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(client, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
@@ -501,7 +458,7 @@ int main(int argc, char **argv)
             {
                 DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
-                EXPECT_OK(s2n_test_configure_connection_for_ktls(server));
+                EXPECT_OK(s2n_test_configure_connection_for_ktls(server, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
                 EXPECT_OK(s2n_crypto_parameters_free(&server->secure));
                 server->secure = &crypto_params;
@@ -541,7 +498,7 @@ int main(int argc, char **argv)
             {
                 DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                         s2n_connection_ptr_free);
-                EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+                EXPECT_OK(s2n_test_configure_connection_for_ktls(client, S2N_TLS12, &s2n_rsa_with_aes_128_gcm_sha256));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
                 EXPECT_OK(s2n_crypto_parameters_free(&client->secure));
                 client->secure = &crypto_params;
