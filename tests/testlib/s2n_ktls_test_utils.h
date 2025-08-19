@@ -18,6 +18,8 @@
 
 #define S2N_TEST_KTLS_MOCK_HEADER_SIZE     3
 #define S2N_TEST_KTLS_MOCK_HEADER_TAG_SIZE 1
+#define S2N_TEST_SEND_FD 66
+#define S2N_TEST_RECV_FD 55
 
 /* The record_type is communicated via ancillary data when using kTLS. For this
  * reason s2n must use `send/recvmsg` syscalls rather than `send/read`. To mimic
@@ -74,3 +76,6 @@ S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
         uint8_t expected_record_type, uint16_t expected_len);
 S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
         uint16_t expected_records);
+int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen);
+int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen);
+S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn, uint8_t version, struct s2n_cipher_suite *cipher);
