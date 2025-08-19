@@ -17,5 +17,5 @@
 
 #include "tls/policy/s2n_policy_feature.h"
 
-#define S2N_BASE_POLICIES_COUNT 2
-#define S2N_MAX_POLICY_VERSIONS 10
+#define S2N_MAX_DEFAULT_POLICIES    3
+#define S2N_MAX_POLICY_VERSIONS     10

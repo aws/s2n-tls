@@ -19,7 +19,7 @@
 
 /* clang-format off */
 S2N_INLINE_SECURITY_POLICY_V1(
-    base_policy_strict,
+    default_policy_strict,
     S2N_TLS13,
     S2N_CIPHER_PREF_LIST(
         &s2n_tls13_aes_128_gcm_sha256,
@@ -54,7 +54,7 @@ S2N_INLINE_SECURITY_POLICY_V1(
 
 /* clang-format off */
 S2N_INLINE_SECURITY_POLICY_V1(
-    base_policy_compat,
+    default_policy_compat,
     S2N_TLS12,
     S2N_CIPHER_PREF_LIST(
         &s2n_tls13_aes_128_gcm_sha256,
@@ -102,26 +102,26 @@ S2N_INLINE_SECURITY_POLICY_V1(
 );
 /* clang-format on */
 
-const struct s2n_security_policy *base_policies[S2N_BASE_POLICIES_COUNT][S2N_MAX_POLICY_VERSIONS] = {
+const struct s2n_security_policy *default_policies[S2N_MAX_DEFAULT_POLICIES][S2N_MAX_POLICY_VERSIONS] = {
     [S2N_POLICY_STRICT] = {
-            [S2N_STRICT_2025_1] = &base_policy_strict,
+            [S2N_STRICT_2025_1] = &default_policy_strict,
     },
     [S2N_POLICY_COMPATIBLE] = {
-            [S2N_COMPAT_2025_1] = &base_policy_compat,
+            [S2N_COMPAT_2025_1] = &default_policy_compat,
     },
 };
 
-const struct s2n_security_policy *s2n_security_policy_get(s2n_base_policy policy, uint64_t version)
+const struct s2n_security_policy *s2n_security_policy_get(s2n_default_policy policy, uint64_t version)
 {
     /* The uint64_t cast here is required for some older compilers to avoid a
      * "tautological-constant-out-of-range-compare" error. That error assumes
-     * "policy" will be a valid s2n_base_policy, but that is not guaranteed by
+     * "policy" will be a valid s2n_default_policy, but that is not guaranteed by
      * the standard.
      */
-    PTR_ENSURE((uint64_t) policy < S2N_BASE_POLICIES_COUNT, S2N_ERR_INVALID_SECURITY_POLICY);
+    PTR_ENSURE((uint64_t) policy < S2N_MAX_DEFAULT_POLICIES, S2N_ERR_INVALID_SECURITY_POLICY);
     PTR_ENSURE(version < S2N_MAX_POLICY_VERSIONS, S2N_ERR_INVALID_SECURITY_POLICY);
 
-    const struct s2n_security_policy *match = base_policies[policy][version];
+    const struct s2n_security_policy *match = default_policies[policy][version];
     PTR_ENSURE(match, S2N_ERR_INVALID_SECURITY_POLICY);
 
     return match;

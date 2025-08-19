@@ -30,7 +30,7 @@ typedef enum {
      * but assumed reasonably modern and standard.
      * If you are unsure which policy to choose, this is a safe choice.
      */
-    S2N_POLICY_COMPATIBLE,
+    S2N_POLICY_COMPATIBLE = 1,
     /**
      * A security policy that supports a narrow selection of the most preferred options.
      * It is intended for use cases where the peer is known to support that narrow
@@ -38,7 +38,7 @@ typedef enum {
      * and servers involved in connections.
      */
     S2N_POLICY_STRICT,
-} s2n_base_policy;
+} s2n_default_policy;
 
 typedef enum {
     /**
@@ -70,11 +70,11 @@ typedef enum {
 /**
  * Retrieves a security policy by name and version.
  * 
- * @param policy The s2n_base_policy defining a policy.
+ * @param policy The s2n_default_policy defining a policy.
  * @param version The specific version of the policy.
  * @returns A static library security policy
  */
-const struct s2n_security_policy *s2n_security_policy_get(s2n_base_policy policy, uint64_t version);
+const struct s2n_security_policy *s2n_security_policy_get(s2n_default_policy policy, uint64_t version);
 
 /**
  * Sets the security policy on the config.
