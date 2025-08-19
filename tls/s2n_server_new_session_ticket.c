@@ -124,7 +124,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
 
     uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob session_ticket = { 0 };
-    POSIX_GUARD(s2n_blob_init(&session_ticket, data, sizeof(data)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&session_ticket, data, sizeof(data)));
 
     uint32_t lifetime_hint_in_secs = 0;
 
@@ -291,7 +291,7 @@ static int s2n_generate_session_secret(struct s2n_connection *conn, struct s2n_b
 
     s2n_tls13_connection_keys(secrets, conn);
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls13.resumption_master_secret, secrets.size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&master_secret, conn->secrets.version.tls13.resumption_master_secret, secrets.size));
     POSIX_GUARD(s2n_realloc(output, secrets.size));
     POSIX_GUARD_RESULT(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, nonce, output));
 
@@ -323,7 +323,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Get random data to use as ticket_age_add value */
     uint8_t data[sizeof(uint32_t)] = { 0 };
     struct s2n_blob random_data = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&random_data, data, sizeof(data)));
+    RESULT_GUARD(s2n_blob_init(&random_data, data, sizeof(data)));
     /** 
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *#  The server MUST generate a fresh value
@@ -336,7 +336,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Write ticket nonce */
     uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
     struct s2n_blob nonce = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
+    RESULT_GUARD(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
     RESULT_GUARD(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, nonce.size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, nonce.data, nonce.size));
@@ -411,7 +411,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(input, &ticket_nonce_len));
     uint8_t nonce_data[UINT8_MAX] = { 0 };
     struct s2n_blob nonce = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&nonce, nonce_data, ticket_nonce_len));
+    RESULT_GUARD(s2n_blob_init(&nonce, nonce_data, ticket_nonce_len));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, nonce.data, ticket_nonce_len));
     RESULT_GUARD_POSIX(s2n_generate_session_secret(conn, &nonce, &ticket_fields->session_secret));
 

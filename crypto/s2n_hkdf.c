@@ -105,7 +105,7 @@ static int s2n_custom_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
 {
     uint8_t prk_pad[MAX_DIGEST_SIZE] = { 0 };
     struct s2n_blob pseudo_rand_key = { 0 };
-    POSIX_GUARD(s2n_blob_init(&pseudo_rand_key, prk_pad, sizeof(prk_pad)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&pseudo_rand_key, prk_pad, sizeof(prk_pad)));
 
     POSIX_GUARD(s2n_custom_hkdf_extract(hmac, alg, salt, key, &pseudo_rand_key));
     POSIX_GUARD(s2n_custom_hkdf_expand(hmac, alg, &pseudo_rand_key, info, output));
@@ -360,7 +360,7 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
 
     POSIX_ENSURE_LTE(label->size, S2N_MAX_HKDF_EXPAND_LABEL_LENGTH);
 
-    POSIX_GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
     POSIX_GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
     POSIX_GUARD(s2n_stuffer_write_uint16(&hkdf_label, output->size));
     POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, label->size + sizeof("tls13 ") - 1));

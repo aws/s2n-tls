@@ -135,7 +135,7 @@ static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
     /* allocate memory */
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_async_pkey_op)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
+    RESULT_GUARD(s2n_blob_zero(&mem));
 
     *op = (void *) mem.data;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
@@ -391,8 +391,8 @@ S2N_RESULT s2n_async_pkey_decrypt_free(struct s2n_async_pkey_op *op)
 
     struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
 
-    RESULT_GUARD_POSIX(s2n_blob_zero(&decrypt->decrypted));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&decrypt->encrypted));
+    RESULT_GUARD(s2n_blob_zero(&decrypt->decrypted));
+    RESULT_GUARD(s2n_blob_zero(&decrypt->encrypted));
     RESULT_GUARD_POSIX(s2n_free(&decrypt->decrypted));
     RESULT_GUARD_POSIX(s2n_free(&decrypt->encrypted));
 

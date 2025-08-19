@@ -46,7 +46,7 @@ struct s2n_fingerprint *s2n_fingerprint_new(s2n_fingerprint_type type)
 {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_fingerprint)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&mem));
+    PTR_GUARD_RESULT(s2n_blob_zero(&mem));
     struct s2n_fingerprint *fingerprint = (struct s2n_fingerprint *) (void *) mem.data;
     PTR_ENSURE_REF(fingerprint);
     PTR_GUARD_RESULT(s2n_fingerprint_init(fingerprint, type));
@@ -121,7 +121,7 @@ int s2n_fingerprint_get_hash(struct s2n_fingerprint *fingerprint,
     POSIX_GUARD(s2n_hash_reset(&fingerprint->hash));
 
     struct s2n_stuffer output_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&output_stuffer.blob, output, max_output_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&output_stuffer.blob, output, max_output_size));
 
     POSIX_ENSURE(fingerprint->client_hello, S2N_ERR_INVALID_STATE);
     POSIX_GUARD_RESULT(method->fingerprint(fingerprint, &hash, &output_stuffer));
@@ -156,7 +156,7 @@ int s2n_fingerprint_get_raw(struct s2n_fingerprint *fingerprint,
     *output_size = 0;
 
     struct s2n_stuffer output_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&output_stuffer.blob, output, max_output_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&output_stuffer.blob, output, max_output_size));
     struct s2n_fingerprint_hash hash = {
         .buffer = &output_stuffer,
     };
@@ -288,9 +288,9 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
      * We need to translate back to the raw bytes.
      */
     struct s2n_blob bytes_out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&bytes_out, output, MD5_DIGEST_LENGTH));
+    POSIX_GUARD_RESULT(s2n_blob_init(&bytes_out, output, MD5_DIGEST_LENGTH));
     struct s2n_stuffer hex_in = { 0 };
-    POSIX_GUARD(s2n_blob_init(&hex_in.blob, hex_hash, hex_hash_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&hex_in.blob, hex_hash, hex_hash_size));
     POSIX_GUARD(s2n_stuffer_skip_write(&hex_in, hex_hash_size));
     POSIX_GUARD_RESULT(s2n_stuffer_read_hex(&hex_in, &bytes_out));
     *output_size = bytes_out.size;

@@ -292,7 +292,7 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
         RESULT_ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
 
         struct s2n_blob wire_binder = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
+        RESULT_GUARD(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
 
         if (wire_index == conn->psk_params.chosen_psk_wire_index) {
             RESULT_GUARD_POSIX(s2n_psk_verify_binder(conn, conn->psk_params.chosen_psk,
@@ -315,7 +315,7 @@ static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, st
     RESULT_ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
 
     struct s2n_blob identity_list_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
+    RESULT_GUARD(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
 
     struct s2n_stuffer identity_list = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&identity_list, &identity_list_blob));
@@ -335,7 +335,7 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
     RESULT_ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
 
     struct s2n_blob binder_list_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));
+    RESULT_GUARD(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));
 
     struct s2n_stuffer binder_list = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&binder_list, &binder_list_blob));
@@ -348,7 +348,7 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
     uint32_t binders_size = binder_list_blob.size + SIZE_OF_BINDER_LIST_SIZE;
     RESULT_ENSURE_GTE(client_hello->write_cursor, binders_size);
     uint16_t partial_client_hello_size = client_hello->write_cursor - binders_size;
-    RESULT_GUARD_POSIX(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
+    RESULT_GUARD(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
 
     return s2n_client_psk_recv_binder_list(conn, &partial_client_hello, &binder_list);
 }

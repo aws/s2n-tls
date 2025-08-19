@@ -42,7 +42,7 @@ static S2N_RESULT s2n_get_actual_record_count(uint8_t *cur_seq_num_bytes,
     uint64_t cur_seq_num = 0;
     struct s2n_blob blob = { 0 };
     struct s2n_stuffer stuffer = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&blob, cur_seq_num_bytes, S2N_TLS_SEQUENCE_NUM_LEN));
+    RESULT_GUARD(s2n_blob_init(&blob, cur_seq_num_bytes, S2N_TLS_SEQUENCE_NUM_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_init(&stuffer, &blob));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&stuffer, S2N_TLS_SEQUENCE_NUM_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(&stuffer, &cur_seq_num));

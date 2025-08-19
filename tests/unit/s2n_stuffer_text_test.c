@@ -38,9 +38,9 @@ int main(int argc, char **argv)
     /* Check whitespace reading */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
+        EXPECT_OK(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -71,9 +71,9 @@ int main(int argc, char **argv)
     /* Check read_until, rewinding, and expecting */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
+        EXPECT_OK(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -121,41 +121,41 @@ int main(int argc, char **argv)
         char lf_line_trailing_cr[] = "a LF terminated line with trailing CR\n\r\r\r\r\r\r";
         char not_a_line[] = "not a line";
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line, sizeof(lf_line)));
+        EXPECT_OK(s2n_blob_init(&line_blob, (uint8_t *) lf_line, sizeof(lf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a LF terminated line"), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("a LF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) crlf_line, sizeof(crlf_line)));
+        EXPECT_OK(s2n_blob_init(&line_blob, (uint8_t *) crlf_line, sizeof(crlf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a CRLF terminated line"), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("a CRLF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
+        EXPECT_OK(s2n_blob_init(&line_blob, (uint8_t *) lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a LF terminated line with trailing CR"), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("a LF terminated line with trailing CR", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) not_a_line, sizeof(not_a_line)));
+        EXPECT_OK(s2n_blob_init(&line_blob, (uint8_t *) not_a_line, sizeof(not_a_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
+        EXPECT_OK(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(sizeof(not_a_line), s2n_stuffer_data_available(&token));

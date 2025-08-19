@@ -527,7 +527,7 @@ int main(int argc, char **argv)
             SSLv2_CLIENT_HELLO_CIPHER_SUITES,
             SSLv2_CLIENT_HELLO_CHALLENGE,
         };
-        EXPECT_SUCCESS(s2n_blob_init(&server_in.blob,
+        EXPECT_OK(s2n_blob_init(&server_in.blob,
                 sslv2_client_hello_bytes, sizeof(sslv2_client_hello_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&server_in, server));
 

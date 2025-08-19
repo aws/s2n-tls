@@ -80,7 +80,7 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
     /* Set up resumption secret */
     struct s2n_blob secret = { 0 };
     struct s2n_stuffer secret_stuffer = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.version.tls13.resumption_master_secret, S2N_TLS_SECRET_LEN));
+    EXPECT_OK(s2n_blob_init(&secret, conn->secrets.version.tls13.resumption_master_secret, S2N_TLS_SECRET_LEN));
     EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_resumption_secret.data, test_resumption_secret.size));
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 
             uint8_t tickets_sent_array[sizeof(uint16_t)] = { 0 };
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, tickets_sent_array, sizeof(uint16_t)));
+            EXPECT_OK(s2n_blob_init(&blob, tickets_sent_array, sizeof(uint16_t)));
             EXPECT_OK(s2n_generate_ticket_nonce(test_tickets_sent, &blob));
             EXPECT_BYTEARRAY_EQUAL(ticket_nonce, blob.data, ticket_nonce_len);
 
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             uint8_t data[sizeof(uint16_t)] = { 0 };
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_OK(s2n_blob_init(&blob, data, sizeof(data)));
 
             EXPECT_OK(s2n_generate_ticket_nonce(test_cases[i].value, &blob));
 
@@ -500,7 +500,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             uint32_t output = 0;
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, test_cases[i].value, sizeof(test_cases[i].value)));
+            EXPECT_OK(s2n_blob_init(&blob, test_cases[i].value, sizeof(test_cases[i].value)));
             EXPECT_OK(s2n_generate_ticket_age_add(&blob, &output));
 
             EXPECT_EQUAL(output, test_cases[i].expected_output);
@@ -528,7 +528,7 @@ int main(int argc, char **argv)
 
         uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
         struct s2n_blob nonce = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
+        EXPECT_OK(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
 
         struct s2n_blob *output = &conn->tls13_ticket_fields.session_secret;
         EXPECT_SUCCESS(s2n_generate_session_secret(conn, &nonce, output));
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
             struct s2n_blob nst_message = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_OK(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
 
             EXPECT_OK(s2n_tls13_server_nst_recv(conn, &input));
@@ -588,7 +588,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
             struct s2n_blob nst_message = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_OK(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
             struct s2n_blob nst_message = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_OK(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
 
             EXPECT_OK(s2n_tls13_server_nst_recv(conn, &input));
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
             /* Initialize a stuffer to examine the serialized data returned in the session ticket callback */
             struct s2n_blob session_blob = { 0 };
             struct s2n_stuffer session_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&session_blob, cb_session_data, cb_session_data_len));
+            EXPECT_OK(s2n_blob_init(&session_blob, cb_session_data, cb_session_data_len));
             EXPECT_SUCCESS(s2n_stuffer_init(&session_stuffer, &session_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&session_stuffer, cb_session_data_len));
 

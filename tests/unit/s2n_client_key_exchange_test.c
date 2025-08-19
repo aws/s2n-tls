@@ -79,7 +79,7 @@ static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *
      */
     uint8_t EM_data[4096] = { 0 };
     struct s2n_blob EM_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&EM_blob, EM_data, sizeof(EM_data)));
+    RESULT_GUARD(s2n_blob_init(&EM_blob, EM_data, sizeof(EM_data)));
     struct s2n_stuffer EM_stuffer = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&EM_stuffer, &EM_blob));
 
@@ -92,7 +92,7 @@ static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *
     uint32_t PS_len = k - mLen - 3;
     uint8_t *PS_data = s2n_stuffer_raw_write(&EM_stuffer, PS_len);
     RESULT_ENSURE_REF(PS_data);
-    RESULT_GUARD_POSIX(s2n_blob_init(&PS_blob, PS_data, PS_len));
+    RESULT_GUARD(s2n_blob_init(&PS_blob, PS_data, PS_len));
     RESULT_GUARD(s2n_get_public_random_data(&PS_blob));
 
     /* Ensure random bytes are nonzero */
@@ -241,7 +241,7 @@ static int s2n_test_offload_pkey_decrypt_callback(struct s2n_connection *conn, s
 
     uint8_t input_data[4096] = { 0 };
     struct s2n_blob input_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&input_blob, input_data, sizeof(input_data)));
+    EXPECT_OK(s2n_blob_init(&input_blob, input_data, sizeof(input_data)));
 
     uint32_t input_size = 0;
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input_size(op, &input_size));
@@ -251,7 +251,7 @@ static int s2n_test_offload_pkey_decrypt_callback(struct s2n_connection *conn, s
 
     uint8_t output_data[S2N_TLS_SECRET_LEN] = { 0 };
     struct s2n_blob output_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&output_blob, output_data, sizeof(output_data)));
+    EXPECT_OK(s2n_blob_init(&output_blob, output_data, sizeof(output_data)));
 
     EXPECT_SUCCESS(s2n_pkey_decrypt(pkey, &input_blob, &output_blob));
     EXPECT_SUCCESS(s2n_async_pkey_op_set_output(op, output_blob.data, output_blob.size));

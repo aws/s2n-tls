@@ -52,9 +52,9 @@ int main(int argc, char **argv)
     uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
     uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
     struct s2n_blob chacha20_poly1305_key = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
+    EXPECT_OK(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
     struct s2n_blob r = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
+    EXPECT_OK(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
     for (size_t i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
+        EXPECT_OK(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
 
         /* TLS packet on the wire using ChaCha20-Poly1305:
