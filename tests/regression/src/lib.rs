@@ -301,7 +301,7 @@ mod tests {
             let diff = find_instruction_count(&diff_content)
                 .expect("Failed to parse cg_annotate --diff output");
             // percentage difference is the overall difference divided by the previous instruction count
-            let diff_percentage = diff as f64 / self.prev_profile_count as f64;
+            let diff_percentage = (diff as f64 / self.prev_profile_count as f64) * 100.0;
             assert!(
                 diff_percentage <= max_diff,
                 "Instruction count difference exceeds the threshold, regression of {diff_percentage}% ({diff} instructions). 
@@ -364,7 +364,7 @@ mod tests {
     /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
-        valgrind_test("test_set_config", 0.01, |ctrl| {
+        valgrind_test("test_set_config", 0.237, |ctrl| {
             ctrl.stop_instrumentation();
             ctrl.start_instrumentation();
             let keypair_rsa = CertKeyPair::default();
@@ -378,7 +378,7 @@ mod tests {
     /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
-        valgrind_test("test_rsa_handshake", 0.01, |ctrl| {
+        valgrind_test("test_rsa_handshake", 0.0039, |ctrl| {
             ctrl.stop_instrumentation();
             let keypair_rsa = CertKeyPair::default();
             let config = set_config(&security::DEFAULT_TLS13, keypair_rsa)?;
@@ -396,7 +396,7 @@ mod tests {
     fn test_session_resumption() {
         const KEY_NAME: &str = "InsecureTestKey";
         const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
-        valgrind_test("test_session_resumption", 0.01, |ctrl| {
+        valgrind_test("test_session_resumption", 0.0043, |ctrl| {
             ctrl.stop_instrumentation();
             let keypair_rsa = CertKeyPair::default();
 
