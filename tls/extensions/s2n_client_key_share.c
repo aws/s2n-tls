@@ -105,7 +105,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params)
+static int s2n_generate_pq_key_share(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params)
 {
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(kem_group_params);
@@ -116,49 +116,33 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     POSIX_ENSURE_REF(kem_group);
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
-
-    struct s2n_stuffer_reservation total_share_size = { 0 };
-    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
-
-    struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
-    ecc_params->negotiated_curve = kem_group->curve;
-
-    struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
-    kem_params->kem = kem_group->kem;
-
-    if (kem_group->send_kem_first) {
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-    } else {
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-    }
-
-    POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_generate_pure_pq_key_share(struct s2n_stuffer *out,
-        struct s2n_kem_group_params *kem_group_params)
-{
-    POSIX_ENSURE_REF(out);
-    POSIX_ENSURE_REF(kem_group_params);
-    POSIX_ENSURE_REF(kem_group_params->kem_group);
-    POSIX_ENSURE_REF(kem_group_params->kem_group->kem);
-
     /* Write group ID */
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group_params->kem_group->iana_id));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
 
     /* Reserve space for total share size */
     struct s2n_stuffer_reservation total_share_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
-    /* Write KEM public key */
+    /* Always set the KEM params */
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
-    kem_params->kem = kem_group_params->kem_group->kem;
-    POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    kem_params->kem = kem_group->kem;
+
+    /* If there’s an ECC component, send both (hybrid). Otherwise, PQ-only */
+    if (kem_group->curve != &s2n_ecc_curve_mlkem_placeholder) {
+        struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
+        ecc_params->negotiated_curve = kem_group->curve;
+
+        if (kem_group->send_kem_first) {
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+        } else {
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        }
+    } else {
+        /* Pure PQ: just send KEM public key */
+        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    }
 
     /* Fill in the reserved size field */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
@@ -166,7 +150,7 @@ static int s2n_generate_pure_pq_key_share(struct s2n_stuffer *out,
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_pq_or_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_hybrid_or_pure_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(out);
@@ -218,11 +202,7 @@ static int s2n_generate_pq_or_hybrid_key_share(struct s2n_connection *conn, stru
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
-    if (client_params->kem_group == &s2n_pure_mlkem_1024 || client_params->kem_group->curve == &s2n_ecc_curve_mlkem_placeholder) {
-        POSIX_GUARD(s2n_generate_pure_pq_key_share(out, client_params));
-    } else {
-        POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, client_params));
-    }
+    POSIX_GUARD(s2n_generate_pq_key_share(out, client_params));
 
     return S2N_SUCCESS;
 }
@@ -241,7 +221,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
     struct s2n_stuffer_reservation shares_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
-    POSIX_GUARD(s2n_generate_pq_or_hybrid_key_share(conn, out));
+    POSIX_GUARD(s2n_generate_hybrid_or_pure_key_share(conn, out));
     POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
 
