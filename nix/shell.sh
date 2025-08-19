@@ -28,6 +28,7 @@ function libcrypto_alias {
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl351 "${OPENSSL_3_5_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"
 libcrypto_alias awslcfips2022 "${AWSLC_FIPS_2022_INSTALL_DIR}/bin/bssl"
 libcrypto_alias awslcfips2024 "${AWSLC_FIPS_2024_INSTALL_DIR}/bin/bssl"
