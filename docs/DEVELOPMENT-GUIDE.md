@@ -260,7 +260,7 @@ C has a history of issues around memory and buffer handling. To avoid problems i
 
 ### s2n_blob: keeping track of memory ranges
 
-`s2n_blob` is a data structure representing allocated, "owned" memory or a reference to some other slice of memory.
+`s2n_blob` is a data structure representing either allocated, "owned" memory or a reference to some other non-owned slice of memory.
 
 ```c
 struct s2n_blob {

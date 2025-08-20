@@ -265,7 +265,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
 }
 
 /**
- * Copy the data in `from` to a new allocated blob.
+ * Allocate enough memory for `to` to contain all the data in `from`, then copy
+ * the data in `from` to `to`.
  */
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {

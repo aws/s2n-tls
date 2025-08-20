@@ -37,7 +37,7 @@ S2N_RESULT s2n_blob_validate(const struct s2n_blob *b)
 }
 
 /**
- * Initialize a blob to reference some mutable data.
+ * Initialize a blob to reference some data.
  *  
  * `b` will not free `data`. The caller is responsible for making sure that
  * `data` outlives `b`.

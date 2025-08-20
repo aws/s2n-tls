@@ -61,7 +61,7 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
 }
 
 /**
- * Initialize a stuffer to reference some mutable data `in`.
+ * Initialize a stuffer to reference some data `in`.
  * 
  * `stuffer` will not own the data, and the caller is responsible for ensuring that
  * the data pointed to by `in` outlives `stuffer`.
