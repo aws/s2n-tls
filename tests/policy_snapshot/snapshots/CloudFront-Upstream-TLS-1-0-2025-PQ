@@ -27,6 +27,9 @@ cipher suites:
 - TLS_RSA_WITH_3DES_EDE_CBC_SHA
 - TLS_RSA_WITH_RC4_128_MD5
 signature schemes:
+- mldsa44
+- mldsa65
+- mldsa87
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
