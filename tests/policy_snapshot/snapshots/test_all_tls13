@@ -8,9 +8,9 @@ cipher suites:
 - TLS_AES_256_GCM_SHA384
 - TLS_CHACHA20_POLY1305_SHA256
 signature schemes:
-- legacy_rsa_pkcs1_md5_sha1
+- legacy_rsa_md5_sha1
 - rsa_pkcs1_sha1
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
