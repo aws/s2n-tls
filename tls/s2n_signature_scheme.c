@@ -601,6 +601,12 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250820[] = {
     &s2n_mldsa65,
     &s2n_mldsa87,
 
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -614,12 +620,6 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250820[] = {
     &s2n_rsa_pkcs1_sha384,
     &s2n_rsa_pkcs1_sha512,
     &s2n_rsa_pkcs1_sha224,
-
-    /* ECDSA */
-    &s2n_ecdsa_sha256,
-    &s2n_ecdsa_sha384,
-    &s2n_ecdsa_sha512,
-    &s2n_ecdsa_sha224,
 
     /* SHA-1 Legacy */
     &s2n_rsa_pkcs1_sha1,
