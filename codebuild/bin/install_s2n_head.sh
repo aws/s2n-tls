@@ -39,7 +39,7 @@ else
     # Work around different pathing issues for internal rel.
     export CLONE_SRC="https://github.com/aws/s2n-tls"
 fi
-set -u
+set -eu
 
 s2nc_head="$DEST_DIR/s2nc_head"
 if [[ -f "$s2nc_head" ]]; then
@@ -52,7 +52,8 @@ if [[ -f "$s2nc_head" ]]; then
     fi
 fi
 
-git fetch origin main
+git status
+git fetch -v origin main
 git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
 cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
@@ -64,5 +65,12 @@ cmake --build "$BUILD_DIR"/build --target s2nd -- -j $(nproc)
 
 cp -f "$BUILD_DIR"/build/bin/s2nc "$s2nc_head"
 cp -f "$BUILD_DIR"/build/bin/s2nd "$DEST_DIR"/s2nd_head
+
+if [[ -f "$s2nc_head" ]]; then
+    echo "Successfully installed s2n?_head"
+else
+    echo "$s2nc_head not found, head build failed"
+    exit 255
+fi
 
 exit 0
