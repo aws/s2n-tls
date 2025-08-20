@@ -20,6 +20,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
+#include "testlib/s2n_ktls_test_utils.h"
 #include "utils/s2n_random.h"
 
 static S2N_RESULT s2n_test_get_seq_num(struct s2n_connection *conn, uint64_t *seq_num_out)
@@ -223,6 +224,7 @@ int main(int argc, char **argv)
 
     /* Test: key encryption limit tracked */
     {
+        /* Create a cipher_suite with an artificially lower encryption limit */
         struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
         test_record_alg.encryption_limit = 0;
         struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
@@ -231,8 +233,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
         conn->ktls_send_enabled = true;
-        conn->actual_protocol_version = S2N_TLS13;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -254,9 +256,16 @@ int main(int argc, char **argv)
         /* Test: Enforce the encryption limit */
         EXPECT_NOT_NULL(conn->secure);
         conn->secure->cipher_suite = &test_cipher_suite;
-        EXPECT_FAILURE_WITH_ERRNO(
+
+        if (s2n_ktls_keyupdate_is_supported_on_platform()) {
+            EXPECT_SUCCESS(s2n_sendfile(conn, ro_file, 0, sizeof(test_data), &bytes_written, &blocked));
+            EXPECT_EQUAL(conn->recv_key_updated, 0);
+            EXPECT_EQUAL(conn->send_key_updated, 1);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(
                 s2n_sendfile(conn, ro_file, 0, sizeof(test_data), &bytes_written, &blocked),
-                S2N_ERR_KTLS_KEY_LIMIT);
+                    S2N_ERR_KTLS_KEY_LIMIT);
+        }
     };
 
     EXPECT_EQUAL(close(ro_file), 0);
