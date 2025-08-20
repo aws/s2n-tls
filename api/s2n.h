@@ -2714,6 +2714,26 @@ S2N_API extern int s2n_connection_get_selected_client_cert_signature_algorithm(s
 S2N_API extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 /**
+ * Get the human readable signature scheme for the connection.
+ *
+ * This method will return the IANA "description" for the negotiated signature scheme.
+ * See: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme
+ *
+ * If TLS1.2 or earlier is negotiated, an official signature scheme may not be chosen.
+ * Before TLS1.3, a combination of "signature algorithm" and "hash algorithm" were
+ * used instead of signature schemes. Not all combinations were assigned to official
+ * signature schemes. If no signature scheme exists for the combination negotiated,
+ * this method will instead return "legacy_<signature algorithm>_<hash_algorithm>". See:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to the signature scheme name.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise.
+ */
+S2N_API extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name);
+
+/**
  * Get the certificate used during the TLS handshake
  *
  * - If `conn` is a server connection, the certificate selected will depend on the
