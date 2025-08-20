@@ -684,17 +684,14 @@ int main(int argc, char **argv)
 
     /* Test: Keyupdates with KTLS */
     if (s2n_ktls_keyupdate_is_supported_on_platform()) {
-
         /* Test: Sending key update with KTLS */
-        if (ktls_send_supported && s2n_is_tls13_fully_supported()){
-
+        if (ktls_send_supported && s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
-
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -731,14 +728,13 @@ int main(int argc, char **argv)
         };
 
         /* Test: Receiving key update with KTLS */
-        if (ktls_recv_supported && s2n_is_tls13_fully_supported()){
+        if (ktls_recv_supported && s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
-
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -774,7 +770,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         };
 
-    /* Test: Ensure correct failure when keyupdates are not supported */
+        /* Test: Ensure correct failure when keyupdates are not supported */
     } else {
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);

@@ -18,9 +18,9 @@
 
 #include "crypto/s2n_sequence.h"
 #include "s2n_test.h"
+#include "testlib/s2n_ktls_test_utils.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
-#include "testlib/s2n_ktls_test_utils.h"
 #include "utils/s2n_random.h"
 
 static S2N_RESULT s2n_test_get_seq_num(struct s2n_connection *conn, uint64_t *seq_num_out)
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->send_key_updated, 1);
         } else {
             EXPECT_FAILURE_WITH_ERRNO(
-                s2n_sendfile(conn, ro_file, 0, sizeof(test_data), &bytes_written, &blocked),
+                    s2n_sendfile(conn, ro_file, 0, sizeof(test_data), &bytes_written, &blocked),
                     S2N_ERR_KTLS_KEY_LIMIT);
         }
     };
