@@ -18,8 +18,10 @@
 #include "crypto/s2n_sequence.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "testlib/s2n_ktls_test_utils.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls13_handshake.h"
@@ -148,7 +150,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Key update messages not allowed with ktls */
+        /* Key update messages not allowed with ktls unless the platform supports it */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -156,26 +158,28 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_NOT_NULL(conn->secure);
-            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
 
-            /* Fails if receiving with ktls:
-             * Kernel key update would be required.
-             */
+            /* Only able to read ktls key updates if platform supports it */
             conn->ktls_send_enabled = true;
             conn->ktls_recv_enabled = true;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            if (s2n_ktls_keyupdate_is_supported_on_platform()) {
+                EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            }
             EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
 
-            /* Fails if only sending with ktls, but peer requested an update:
-             * Kernel key update would be required.
-             */
+            /* Only able to write ktls key updates if platform supports it */
             conn->ktls_send_enabled = true;
             conn->ktls_recv_enabled = false;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_REQUESTED));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            if (s2n_ktls_keyupdate_is_supported_on_platform()) {
+                EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            }
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
 
             /* Succeeds if only sending with ktls and no update requested:
