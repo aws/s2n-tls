@@ -1017,9 +1017,9 @@ int main(int argc, char **argv)
             struct s2n_connection conn = { 0 };
             const char *name = NULL;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(&conn, NULL),
-                S2N_ERR_NULL);
+                    S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(NULL, &name),
-                S2N_ERR_NULL);
+                    S2N_ERR_NULL);
         };
 
         /* Test: connection without a chosen signature scheme fails */
@@ -1028,7 +1028,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             const char *name = NULL;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(conn, &name),
-                S2N_ERR_INVALID_STATE);
+                    S2N_ERR_INVALID_STATE);
         };
 
         /* Test: all valid signature schemes succeed */
