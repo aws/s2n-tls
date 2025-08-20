@@ -104,14 +104,14 @@ S2N_INLINE_SECURITY_POLICY_V1(
 
 const struct s2n_security_policy *default_policies[S2N_MAX_DEFAULT_POLICIES][S2N_MAX_POLICY_VERSIONS] = {
     [S2N_POLICY_STRICT] = {
-            [S2N_STRICT_2025_1] = &default_policy_strict,
+            [S2N_STRICT_2025_08_20] = &default_policy_strict,
     },
     [S2N_POLICY_COMPATIBLE] = {
-            [S2N_COMPAT_2025_1] = &default_policy_compat,
+            [S2N_COMPAT_2025_08_20] = &default_policy_compat,
     },
 };
 
-const struct s2n_security_policy *s2n_security_policy_get(s2n_default_policy policy, uint64_t version)
+const struct s2n_security_policy *s2n_security_policy_get(s2n_policy_name policy, uint64_t version)
 {
     /* The uint64_t cast here is required for some older compilers to avoid a
      * "tautological-constant-out-of-range-compare" error. That error assumes

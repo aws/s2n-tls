@@ -38,7 +38,7 @@ typedef enum {
      * and servers involved in connections.
      */
     S2N_POLICY_STRICT,
-} s2n_default_policy;
+} s2n_policy_name;
 
 typedef enum {
     /**
@@ -51,7 +51,7 @@ typedef enum {
      * Supports only RSA-PSS padding for RSA signatures.
      * Supports forward secrecy.
      */
-    S2N_STRICT_2025_1 = 1,
+    S2N_STRICT_2025_08_20 = 1,
 } s2n_strict_policy_version;
 
 typedef enum {
@@ -64,24 +64,24 @@ typedef enum {
      * Supports only SHA256 and higher signatures.
      * Supports forward secrecy.
      */
-    S2N_COMPAT_2025_1 = 1,
+    S2N_COMPAT_2025_08_20 = 1,
 } s2n_compat_policy_version;
 
 /**
  * Retrieves a security policy by name and version.
- * 
- * @param policy The s2n_default_policy defining a policy.
+ *
+ * @param policy The s2n_policy_name defining a policy.
  * @param version The specific version of the policy.
  * @returns A static library security policy
  */
-const struct s2n_security_policy *s2n_security_policy_get(s2n_default_policy policy, uint64_t version);
+const struct s2n_security_policy *s2n_security_policy_get(s2n_policy_name policy, uint64_t version);
 
 /**
  * Sets the security policy on the config.
- * 
+ *
  * "security policies" were previously known as "cipher preferences".
  * See `s2n_config_set_cipher_preferences`.
- * 
+ *
  * @param config The config object being updated
  * @param policy The security policy being set
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
@@ -90,10 +90,10 @@ int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_s
 
 /**
  * Sets an override security policy on the connection.
- * 
+ *
  * "security policies" were previously known as "cipher preferences".
  * See `s2n_connection_set_cipher_preferences`.
- * 
+ *
  * @param conn The connection object being updated
  * @param policy The security policy being set
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
