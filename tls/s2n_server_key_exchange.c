@@ -18,6 +18,7 @@
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_async_generic.h"
 #include "tls/s2n_async_pkey.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
@@ -44,39 +45,44 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = { 0 };
 
-    /* Read the KEX data */
-    struct s2n_kex_raw_server_data kex_data = { 0 };
-    POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
+    if (conn->handshake.async_state == S2N_ASYNC_NOT_INVOKED) {
+        /* Read the KEX data */
+        struct s2n_kex_raw_server_data kex_data = { 0 };
+        POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
-    POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, in));
-    const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
-    POSIX_ENSURE_REF(active_sig_scheme);
+        /* Parse the KEX data into whatever form needed and save it to the connection object */
+        POSIX_GUARD_RESULT(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
 
-    POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+        POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, in));
+        const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
+        POSIX_ENSURE_REF(active_sig_scheme);
 
-    /* Add KEX specific data */
-    POSIX_GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
+        POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
+        POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+        POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* Verify the signature */
-    uint16_t signature_length = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_length));
+        /* Add KEX specific data */
+        POSIX_GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
 
-    struct s2n_blob signature = { 0 };
-    POSIX_GUARD(s2n_blob_init(&signature, s2n_stuffer_raw_read(in, signature_length), signature_length));
+        /* Verify the signature */
+        uint16_t signature_length = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_length));
 
-    POSIX_ENSURE_REF(signature.data);
-    POSIX_ENSURE_GT(signature_length, 0);
+        struct s2n_blob signature = { 0 };
+        POSIX_GUARD(s2n_blob_init(&signature, s2n_stuffer_raw_read(in, signature_length), signature_length));
 
-    S2N_ERROR_IF(s2n_pkey_verify(&conn->handshake_params.server_public_key, active_sig_scheme->sig_alg, signature_hash, &signature) < 0,
-            S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE_REF(signature.data);
+        POSIX_ENSURE_GT(signature_length, 0);
+
+        POSIX_GUARD(s2n_async_pkey_verify(conn, active_sig_scheme->sig_alg, signature_hash, &signature));
+    } else if (conn->handshake.async_state == S2N_ASYNC_INVOKED) {
+        POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
 
     /* We don't need the key any more, so free it */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
 
-    /* Parse the KEX data into whatever form needed and save it to the connection object */
-    POSIX_GUARD_RESULT(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
+    conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED;
     return 0;
 }
 
