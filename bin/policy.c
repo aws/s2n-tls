@@ -74,7 +74,7 @@ int main(int argc, char *const *argv)
 
     printf("signature schemes:\n");
     for (size_t i = 0; i < policy->signature_preferences->count; i++) {
-        printf("- %s\n", policy->signature_preferences->signature_schemes[i]->iana_name);
+        printf("- %s\n", policy->signature_preferences->signature_schemes[i]->name);
     }
 
     printf("curves:\n");
@@ -88,7 +88,7 @@ int main(int argc, char *const *argv)
         }
         printf("certificate signature schemes:\n");
         for (size_t i = 0; i < policy->certificate_signature_preferences->count; i++) {
-            printf("- %s\n", policy->certificate_signature_preferences->signature_schemes[i]->iana_name);
+            printf("- %s\n", policy->certificate_signature_preferences->signature_schemes[i]->name);
         }
     }
 
