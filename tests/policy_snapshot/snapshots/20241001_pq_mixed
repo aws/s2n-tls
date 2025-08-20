@@ -52,7 +52,6 @@ certificate signature schemes:
 - legacy_ecdsa_sha224
 pq:
 - revision: 5
-- kems:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768

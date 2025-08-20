@@ -21,10 +21,12 @@
 #include <strings.h>
 #include <time.h>
 
+#include "api/unstable/custom_x509_extensions.h"
 #include "api/unstable/npn.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -124,6 +126,11 @@ static int s2n_config_cleanup(struct s2n_config *config)
 {
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
+
+    if (config->custom_x509_extension_oids) {
+        sk_ASN1_OBJECT_pop_free(config->custom_x509_extension_oids, ASN1_OBJECT_free);
+        config->custom_x509_extension_oids = NULL;
+    }
 
     POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
     POSIX_GUARD(s2n_config_free_cert_chain_and_key(config));
@@ -806,6 +813,45 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     }
 
     return 0;
+}
+
+int s2n_config_add_custom_x509_extension(struct s2n_config *config, uint8_t *extension_oid, uint32_t extension_oid_len)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(extension_oid, S2N_ERR_INVALID_ARGUMENT);
+
+    POSIX_ENSURE(s2n_libcrypto_supports_custom_oid(), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+
+    if (config->custom_x509_extension_oids == NULL) {
+        config->custom_x509_extension_oids = sk_ASN1_OBJECT_new_null();
+    }
+    POSIX_ENSURE_REF(config->custom_x509_extension_oids);
+
+    DEFER_CLEANUP(struct s2n_blob oid_buffer = { 0 }, s2n_free);
+    POSIX_GUARD(s2n_alloc(&oid_buffer, extension_oid_len + 1));
+
+    POSIX_GUARD(s2n_blob_zero(&oid_buffer));
+    POSIX_CHECKED_MEMCPY(oid_buffer.data, extension_oid, extension_oid_len);
+    oid_buffer.data[extension_oid_len] = '\0';
+
+    const char *oid_string = (const char *) oid_buffer.data;
+    POSIX_ENSURE_REF(oid_string);
+
+    ASN1_OBJECT *critical_oid = OBJ_txt2obj(oid_string, 1);
+    POSIX_ENSURE_REF(critical_oid);
+    POSIX_ENSURE(sk_ASN1_OBJECT_push(config->custom_x509_extension_oids, critical_oid) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_cert_request_callback(struct s2n_config *config, s2n_cert_request_callback cert_request_cb, void *ctx)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+
+    config->cert_request_cb = cert_request_cb;
+    config->cert_request_cb_ctx = ctx;
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)

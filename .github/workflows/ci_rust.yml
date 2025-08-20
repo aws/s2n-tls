@@ -61,10 +61,10 @@ jobs:
         working-directory: ${{env.STANDARD_PATH}}
         run: cargo test
 
-      - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, PQ, and unstable-custom_x509_extensions"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq,unstable-custom_x509_extensions
 
       - name: "Feature Test: Renegotiate"
         working-directory: ${{env.ROOT_PATH}}
@@ -155,26 +155,6 @@ jobs:
           echo "${output}"
           echo "${output}" | grep -q "test result: ok. 1 passed; 0 failed; 0 ignored;"
 
-  # our benchmark testing includes interop tests between s2n-tls, rustls, and
-  # openssl
-  harness-interop-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        id: toolchain
-        run: |
-          rustup toolchain install stable
-          rustup override set stable
-
-      - name: generate bindings
-        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
-
-      - name: bench tests
-        working-directory: ${{env.STANDARD_PATH}}/bench
-        run: cargo test
-
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
@@ -192,6 +172,10 @@ jobs:
       - name: build examples
         working-directory: ${{env.EXAMPLE_WORKSPACE}}
         run: cargo build
+
+      - name: test examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo test
 
   generate-openssl-102:
     runs-on: ubuntu-latest
@@ -345,9 +329,13 @@ jobs:
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: Run cargo fmt
+      - name: Run cargo fmt - extended packages
         run: |
           cargo fmt --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
+
+      - name: Run cargo fmt - standard packages
+        run: |
+          cargo fmt --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
@@ -380,10 +368,15 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh
 
       # TODO translate json reports to in-action warnings
-      - name: Run cargo clippy
+      - name: Run cargo clippy - extended packages
         run: |
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Run cargo clippy - standard packages
+        run: |
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
 
   msrv:
     runs-on: ubuntu-latest
@@ -463,12 +456,12 @@ jobs:
       # cargo-minimal-versions requires cargo-hack:
       # https://crates.io/crates/cargo-minimal-versions#user-content-prerequisites
       - name: Install cargo-hack
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.1
         with:
           crate: cargo-hack
 
       - name: Install cargo-minimal-versions
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.1
         with:
           crate: cargo-minimal-versions
 

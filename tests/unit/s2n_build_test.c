@@ -79,6 +79,7 @@ S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
         { .libcrypto = "awslc-fips", .is_openssl = false },
         { .libcrypto = "awslc-fips-2022", .is_openssl = false },
         { .libcrypto = "awslc-fips-2024", .is_openssl = false },
+        { .libcrypto = "awslc-fips-next", .is_openssl = false },
         { .libcrypto = "boringssl", .is_openssl = false },
         { .libcrypto = "libressl", .is_openssl = false },
         { .libcrypto = "openssl-1.0.2", .is_openssl = true },

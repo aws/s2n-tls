@@ -47,7 +47,7 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
     struct s2n_cert **insert = &cert_chain_out->head;
     uint32_t chain_size = 0;
-    while (s2n_stuffer_pem_has_certificate(chain_in_stuffer)) {
+    while (s2n_stuffer_has_pem_encapsulated_block(chain_in_stuffer)) {
         int result = s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer);
         POSIX_ENSURE(result == S2N_SUCCESS, S2N_ERR_INVALID_PEM);
 
