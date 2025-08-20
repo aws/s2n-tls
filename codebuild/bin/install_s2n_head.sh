@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -eu
+set -eux
 
 usage() {
     echo "install_s2n_head.sh build_dir"
@@ -53,7 +53,8 @@ if [[ -f "$s2nc_head" ]]; then
 fi
 
 git status
-git fetch -v origin main
+git remote -v
+git fetch -v origin
 git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
 cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
