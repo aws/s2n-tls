@@ -1262,7 +1262,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode),
-                     s2n_connection_ptr_free);
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
@@ -1308,8 +1308,8 @@ int main(int argc, char **argv)
                     expected_seq_num = large_test_data_records;
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(
-                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                        S2N_ERR_KTLS_KEY_LIMIT);
+                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                            S2N_ERR_KTLS_KEY_LIMIT);
                 }
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
             };
@@ -1317,7 +1317,7 @@ int main(int argc, char **argv)
             /* Test: Exact encryption limit boundary */
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                     s2n_connection_ptr_free);
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
@@ -1339,16 +1339,16 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked));
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(
-                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                        S2N_ERR_KTLS_KEY_LIMIT);
+                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                            S2N_ERR_KTLS_KEY_LIMIT);
                 }
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
             };
 
             /* Test: Limit not tracked with TLS1.2 */
             {
-                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                     s2n_connection_ptr_free);
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
@@ -1379,8 +1379,8 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked));
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(
-                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                        S2N_ERR_KTLS_KEY_LIMIT);
+                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                            S2N_ERR_KTLS_KEY_LIMIT);
                 }
                 /* Passing the limit with TLS1.2 is NOT an error */
                 conn->actual_protocol_version = S2N_TLS12;

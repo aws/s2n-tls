@@ -17,8 +17,8 @@
 
 #include "crypto/s2n_sequence.h"
 #include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 #include "testlib/s2n_ktls_test_utils.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_ktls.h"

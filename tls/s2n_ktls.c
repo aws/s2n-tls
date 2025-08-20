@@ -16,9 +16,9 @@
 #include "tls/s2n_ktls.h"
 
 #include "crypto/s2n_ktls_crypto.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_key_update.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls13_key_schedule.h"
 
@@ -309,7 +309,8 @@ int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn) {
+S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn)
+{
     RESULT_ENSURE_REF(conn);
 
     if (s2n_atomic_flag_test(&conn->key_update_pending)) {
@@ -348,7 +349,8 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn) {
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn) {
+S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn)
+{
     RESULT_ENSURE_REF(conn);
 
     struct s2n_ktls_crypto_info crypto_info = { 0 };

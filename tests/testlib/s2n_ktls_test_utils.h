@@ -18,8 +18,8 @@
 
 #define S2N_TEST_KTLS_MOCK_HEADER_SIZE     3
 #define S2N_TEST_KTLS_MOCK_HEADER_TAG_SIZE 1
-#define S2N_TEST_SEND_FD 66
-#define S2N_TEST_RECV_FD 55
+#define S2N_TEST_SEND_FD                   66
+#define S2N_TEST_RECV_FD                   55
 
 /* The record_type is communicated via ancillary data when using kTLS. For this
  * reason s2n must use `send/recvmsg` syscalls rather than `send/read`. To mimic

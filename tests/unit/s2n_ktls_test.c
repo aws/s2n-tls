@@ -467,7 +467,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_prf_generate_key_material(server, &key_material));
 
                 /* Test server receive */
-                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct) {
                     .fd = S2N_TEST_RECV_FD,
                     .optname = S2N_TLS_RX,
                     .crypto_info_inputs = {
@@ -480,7 +480,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
 
                 /* Test server send */
-                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct) {
                     .fd = S2N_TEST_SEND_FD,
                     .optname = S2N_TLS_TX,
                     .crypto_info_inputs = {
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_prf_generate_key_material(client, &key_material));
 
                 /* Test client receive */
-                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct) {
                     .fd = S2N_TEST_RECV_FD,
                     .optname = S2N_TLS_RX,
                     .crypto_info_inputs = {
@@ -520,7 +520,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
 
                 /* Test client send */
-                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct) {
                     .fd = S2N_TEST_SEND_FD,
                     .optname = S2N_TLS_TX,
                     .crypto_info_inputs = {

@@ -14,6 +14,7 @@
  */
 
 #include "testlib/s2n_ktls_test_utils.h"
+
 #include "testlib/s2n_testlib.h"
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
