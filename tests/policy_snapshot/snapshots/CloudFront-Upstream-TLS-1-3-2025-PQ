@@ -11,6 +11,10 @@ signature schemes:
 - mldsa44
 - mldsa65
 - mldsa87
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- legacy_ecdsa_sha224
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
@@ -21,10 +25,6 @@ signature schemes:
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
 - legacy_rsa_pkcs1_sha224
-- ecdsa_sha256
-- ecdsa_sha384
-- ecdsa_sha512
-- legacy_ecdsa_sha224
 - rsa_pkcs1_sha1
 - ecdsa_sha1
 curves:
