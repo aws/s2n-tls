@@ -390,7 +390,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls13 = {
     .minimum_protocol_version = S2N_TLS13,
-    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
