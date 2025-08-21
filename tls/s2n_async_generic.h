@@ -15,11 +15,12 @@
 
 #pragma once
 
-#include "crypto/s2n_signature.h"
+// #include "crypto/s2n_signature.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
-struct s2n_connection;
+// struct s2n_connection;
 
 typedef S2N_RESULT (*s2n_async_perform_fn)(struct s2n_async_op *op);
 
@@ -34,10 +35,11 @@ struct s2n_async_op {
     s2n_async_op_type type;
     struct s2n_connection *conn;
     s2n_async_perform_fn perform;
+    /* Collect arguments required by each operation */
     union {
-        /* Add a new struct for each supported op type */
         struct s2n_async_pkey_verify_data verify;
-    } op_data;  // Collect arguments required by each operation
+        /* Add a new struct for each supported op type */
+    } op_data;
 };
 
 int s2n_async_op_perform(struct s2n_async_op *op);

@@ -3409,10 +3409,10 @@ S2N_API extern int s2n_config_set_async_generic_callback(struct s2n_config *conf
 S2N_API extern int s2n_async_op_perform(struct s2n_async_op *op);
 
 /**
- * Sets up the operation allow list for the generic async callback
+ * Sets up the operation allow list for the generic async callback. The default allow_list is NO_OP.
  *
  * @param config Config to set the callback
- * @param allow_list A bit representation of allowed operations
+ * @param allow_list A bit representation of allowed operations (Bit-OR of all the allowd s2n_async_op_type values)
  */
 S2N_API extern int s2n_config_set_async_op_allow_list(struct s2n_config *config, uint16_t allow_list);
 
