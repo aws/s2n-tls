@@ -23,7 +23,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
-// #include "tls/s2n_async_generic.h"
+#include "tls/s2n_async_generic.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
@@ -354,7 +354,7 @@ struct s2n_connection {
 
     struct s2n_x509_validator x509_validator;
 
-    // struct s2n_async_op op;
+    struct s2n_async_op op;
 
     /* After a connection is created this is the verification function that should always be used. At init time,
      * the config should be checked for a verify callback and each connection should default to that. However,
