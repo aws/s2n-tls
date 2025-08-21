@@ -64,13 +64,6 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_default_fips[] = {
     &s2n_ecc_curve_secp384r1,
 };
 
-const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_pure_mlkem[] = {
-#if EVP_APIS_SUPPORTED
-    &s2n_ecc_curve_x25519,
-#endif
-    &s2n_ecc_curve_mlkem_placeholder,
-};
-
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20201021[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
@@ -148,11 +141,6 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_test_all = {
 const struct s2n_ecc_preferences s2n_ecc_preferences_null = {
     .count = 0,
     .ecc_curves = NULL,
-};
-
-const struct s2n_ecc_preferences s2n_ecc_preferences_pure_mlkem = {
-    .count = s2n_array_len(s2n_ecc_pref_list_pure_mlkem),
-    .ecc_curves = s2n_ecc_pref_list_pure_mlkem,
 };
 
 /* Checks if the ecc_curves present in s2n_ecc_preferences list is a subset of s2n_all_supported_curves_list

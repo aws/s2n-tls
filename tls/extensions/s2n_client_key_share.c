@@ -67,8 +67,9 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    /* Skip if the highest-priority curve is the mlkem_placeholder */
-    if (ecc_pref->count > 0 && ecc_pref->ecc_curves[0] == &s2n_ecc_curve_mlkem_placeholder) {
+    /* If count == 0, this policy does not allow any ECC curves.
+     * This indicates a pure ML-KEM policy with no ECC fallback. */
+    if (ecc_pref->count == 0) {
         return S2N_SUCCESS;
     }
 
