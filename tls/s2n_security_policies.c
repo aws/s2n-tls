@@ -351,7 +351,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
-/* CloudFront upstream 2025 -- same as original upstream above , but with:
+/* CloudFront upstream 2025 -- same as original upstream above, but with:
  * 1. TLSv1.3 enabled and
  * 2. signature preferences updated to 2020-10-21, expanding support for RSA
  *    PSS while preserving support for legacy signature algorithms
