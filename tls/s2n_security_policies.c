@@ -351,6 +351,91 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
+/* CloudFront upstream 2025 -- same as original upstream above, but with:
+ * 1. TLSv1.3 enabled and
+ * 2. signature preferences updated to 2020-10-21, expanding support for RSA
+ *    PSS while preserving support for legacy signature algorithms
+ */
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08 = {
+    .minimum_protocol_version = S2N_SSLv3,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls10 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls11 = {
+    .minimum_protocol_version = S2N_TLS11,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls12 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls13 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_pq = {
+    .minimum_protocol_version = S2N_SSLv3,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250821,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls10_pq = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250821,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls11_pq = {
+    .minimum_protocol_version = S2N_TLS11,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250821,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls12_pq = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250821,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls13_pq = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250821,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
+};
+
 /* CloudFront viewer facing */
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3 = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -1352,6 +1437,16 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "CloudFront-Upstream-TLS-1-0", .security_policy = &security_policy_cloudfront_upstream_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-1", .security_policy = &security_policy_cloudfront_upstream_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-2", .security_policy = &security_policy_cloudfront_upstream_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-2025", .security_policy = &security_policy_cloudfront_upstream_2025_08_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-0-2025", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-1-2025", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-2-2025", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-3-2025", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-2025-PQ", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-0-2025-PQ", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls10_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-1-2025-PQ", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls11_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-2-2025-PQ", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls12_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-3-2025-PQ", .security_policy = &security_policy_cloudfront_upstream_2025_08_08_tls13_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Viewer Facing */
     { .version = "CloudFront-SSL-v-3", .security_policy = &security_policy_cloudfront_ssl_v_3, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2014", .security_policy = &security_policy_cloudfront_tls_1_0_2014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
