@@ -252,33 +252,6 @@ static int s2n_client_key_share_parse_ecc(struct s2n_stuffer *key_share, const s
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv_pure_kem(
-        struct s2n_connection *conn,
-        struct s2n_stuffer *key_share,
-        uint16_t kem_group_iana_id)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(key_share);
-
-    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
-    client_params->kem_group = &s2n_pure_mlkem_1024;
-    client_params->ecc_params.negotiated_curve = &s2n_ecc_curve_mlkem_placeholder;
-    client_params->kem_params.kem = s2n_pure_mlkem_1024.kem;
-
-    uint16_t actual_share_size = key_share->blob.size;
-    uint16_t unprefixed_size = client_params->kem_params.kem->public_key_length;
-    uint16_t prefixed_size = S2N_SIZE_OF_KEY_SHARE_SIZE + unprefixed_size;
-
-    if (actual_share_size != unprefixed_size && actual_share_size != prefixed_size) {
-        return S2N_SUCCESS;
-    }
-
-    client_params->kem_params.len_prefixed = (actual_share_size == prefixed_size);
-    POSIX_GUARD(s2n_kem_recv_public_key(key_share, &client_params->kem_params));
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t curve_iana_id)
 {
     POSIX_ENSURE_REF(conn);
@@ -364,81 +337,85 @@ static int s2n_client_key_share_recv_hybrid_partial_ecc(struct s2n_stuffer *key_
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t kem_group_iana_id)
+static int s2n_client_key_share_recv_pq(
+        struct s2n_connection *conn,
+        struct s2n_stuffer *key_share,
+        uint16_t kem_group_iana_id)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(key_share);
+
+    if (!s2n_pq_is_enabled()) {
+        return S2N_SUCCESS;
+    }
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
-    /* Ignore key share if PQ is not enabled */
-    if (!s2n_pq_is_enabled()) {
+    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
+
+    /* --- PURE ML-KEM PATH --- */
+    if (kem_group_iana_id == s2n_pure_mlkem_1024.iana_id) {
+        client_params->kem_group = &s2n_pure_mlkem_1024;
+        client_params->ecc_params.negotiated_curve = &s2n_ecc_curve_mlkem_placeholder;
+        client_params->kem_params.kem = s2n_pure_mlkem_1024.kem;
+
+        uint16_t actual_share_size = key_share->blob.size;
+        uint16_t unprefixed_size   = client_params->kem_params.kem->public_key_length;
+        uint16_t prefixed_size     = S2N_SIZE_OF_KEY_SHARE_SIZE + unprefixed_size;
+
+        if (actual_share_size != unprefixed_size && actual_share_size != prefixed_size) {
+            return S2N_SUCCESS; /* ignore malformed */
+        }
+
+        client_params->kem_params.len_prefixed = (actual_share_size == prefixed_size);
+        POSIX_GUARD(s2n_kem_recv_public_key(key_share, &client_params->kem_params));
+
         return S2N_SUCCESS;
     }
 
-    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
-
+    /* --- HYBRID PATH --- */
     const struct s2n_kem_group *kem_group = NULL;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        const struct s2n_kem_group *supported_group = kem_pref->tls13_kem_groups[i];
-        POSIX_ENSURE_REF(supported_group);
+        const struct s2n_kem_group *supported = kem_pref->tls13_kem_groups[i];
+        POSIX_ENSURE_REF(supported);
 
-        /* Skip if the group is not available */
-        if (!s2n_kem_group_is_available(supported_group)) {
+        if (!s2n_kem_group_is_available(supported)) {
             continue;
         }
-
-        /* Stop if we reach the current highest priority share.
-         * Any share of lower priority is discarded.
-         */
-        if (client_params->kem_group == supported_group) {
+        /* If we already negotiated this group, don't override with lower-priority ones */
+        if (client_params->kem_group == supported) {
             break;
         }
-
-        /* Skip if not supported by the client.
-         * The client must not send shares it doesn't support, but the server
-         * is not required to error if they are encountered.
-         */
         if (!conn->kex_params.mutually_supported_kem_groups[i]) {
             continue;
         }
-
-        /* Stop if we find a match */
-        if (kem_group_iana_id == supported_group->iana_id) {
-            kem_group = supported_group;
+        if (kem_group_iana_id == supported->iana_id) {
+            kem_group = supported;
             break;
         }
     }
 
-    /* Ignore unsupported KEM groups */
     if (!kem_group) {
+        return S2N_SUCCESS; /* ignore unsupported */
+    }
+
+    uint16_t actual_size     = key_share->blob.size;
+    uint16_t unprefixed_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
+    uint16_t prefixed_size   = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_size;
+
+    if (actual_size != unprefixed_size && actual_size != prefixed_size) {
         return S2N_SUCCESS;
     }
 
-    /* The length of the hybrid key share must be one of two possible lengths. Its internal values are either length
-     * prefixed, or they are not. */
-    uint16_t actual_hybrid_share_size = key_share->blob.size;
-    uint16_t unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
-    uint16_t prefixed_hybrid_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_hybrid_share_size;
-
-    /* Ignore KEM groups with unexpected overall total share sizes */
-    if ((actual_hybrid_share_size != unprefixed_hybrid_share_size) && (actual_hybrid_share_size != prefixed_hybrid_share_size)) {
-        return S2N_SUCCESS;
-    }
-
-    bool is_hybrid_share_length_prefixed = (actual_hybrid_share_size == prefixed_hybrid_share_size);
+    bool is_len_prefixed = (actual_size == prefixed_size);
 
     DEFER_CLEANUP(struct s2n_kem_group_params new_client_params = { 0 }, s2n_kem_group_free);
     new_client_params.kem_group = kem_group;
-
-    /* Need to save whether the client included the length prefix so that we can match their behavior in our response. */
-    new_client_params.kem_params.len_prefixed = is_hybrid_share_length_prefixed;
     new_client_params.kem_params.kem = kem_group->kem;
+    new_client_params.kem_params.len_prefixed = is_len_prefixed;
 
-    /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
-    /* Ignore PQ and ECC groups with public keys we can't parse */
     if (kem_group->send_kem_first) {
         if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
             return S2N_SUCCESS;
@@ -457,8 +434,8 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
 
     POSIX_GUARD(s2n_kem_group_free(client_params));
     *client_params = new_client_params;
-
     ZERO_TO_DISABLE_DEFER_CLEANUP(new_client_params);
+
     return S2N_SUCCESS;
 }
 
@@ -496,13 +473,8 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;
 
-        if (named_group == s2n_pure_mlkem_1024.iana_id) {
-            POSIX_GUARD(s2n_client_key_share_recv_pure_kem(conn, &key_share, named_group));
-            continue;
-        }
-
         POSIX_GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group));
-        POSIX_GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group));
+        POSIX_GUARD(s2n_client_key_share_recv_pq(conn, &key_share, named_group));
     }
 
     /* During a retry, the client should only have sent one keyshare */
