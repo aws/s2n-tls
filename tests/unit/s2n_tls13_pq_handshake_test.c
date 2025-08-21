@@ -562,7 +562,7 @@ int main()
         null_if_no_mlkem_1024 = NULL;
         null_if_no_pure_mlkem_1024 = NULL;
         ec_if_no_mlkem = default_curve;
-        ec_if_no_pure_mlkem = default_curve;
+        ec_if_no_pure_mlkem = NULL;
     }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -821,7 +821,8 @@ int main()
 
         if (!s2n_pq_is_enabled()) {
             /* Skip pure ML-KEM when PQ is disabled */
-            if (client_policy->ecc_preferences == &s2n_ecc_preferences_pure_mlkem) {
+            if (kem_group->curve == &s2n_ecc_curve_mlkem_placeholder) {
+                /* Pure ML-KEM: skip ECC-specific logic */
                 continue;
             }
 
