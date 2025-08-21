@@ -114,6 +114,8 @@ where
         // "read" on the client connection to ensure that the session ticket
         // gets received and stored in the config
         pair.round_trip_transfer(&mut [0]).unwrap();
+        // OpenSSL doesn't allow resumption unless the session was cleanly shutdown
+        pair.shutdown().unwrap();
 
         // new_from_config is called interally by the TlsConnPair::new
         // method and will check if a session ticket is available and set it
