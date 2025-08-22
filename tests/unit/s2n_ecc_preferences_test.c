@@ -18,8 +18,6 @@
 #include "s2n_test.h"
 #include "tls/s2n_tls_parameters.h"
 
-extern const struct s2n_ecc_named_curve s2n_ecc_curve_none;
-
 static const struct s2n_ecc_preferences *ALL_ECC_PREFERENCES[] = {
     &s2n_ecc_preferences_20140601,
     &s2n_ecc_preferences_20200310,
