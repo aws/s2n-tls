@@ -24,61 +24,44 @@
 
 #define MLKEM1024_SECRET "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035"
 
-static int s2n_configure_pure_pq_conns(struct s2n_connection *client_conn,
-        struct s2n_connection *server_conn, const struct s2n_kem_group *kem_group)
-{
-    server_conn->kex_params.server_kem_group_params.kem_group = kem_group;
-    server_conn->kex_params.client_kem_group_params.kem_group = kem_group;
-    client_conn->kex_params.server_kem_group_params.kem_group = kem_group;
-    client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
-
-    server_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
-    server_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
-    client_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
-    client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_inject_pq_secret(struct s2n_connection *client_conn,
-        struct s2n_connection *server_conn, struct s2n_blob *pq_shared_secret)
-{
-    POSIX_GUARD(s2n_dup(pq_shared_secret,
-            &server_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
-    POSIX_GUARD(s2n_dup(pq_shared_secret,
-            &client_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
-    return S2N_SUCCESS;
-}
-
-static int test_pure_mlkem_compute_shared_secret(void)
-{
-    S2N_BLOB_FROM_HEX(mlkem1024_secret, MLKEM1024_SECRET);
-
-    DEFER_CLEANUP(struct s2n_connection *client_conn = NULL, s2n_connection_ptr_free);
-    DEFER_CLEANUP(struct s2n_connection *server_conn = NULL, s2n_connection_ptr_free);
-
-    EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-
-    EXPECT_SUCCESS(s2n_configure_pure_pq_conns(client_conn, server_conn, &s2n_pure_mlkem_1024));
-    EXPECT_SUCCESS(s2n_inject_pq_secret(client_conn, server_conn, &mlkem1024_secret));
-
-    DEFER_CLEANUP(struct s2n_blob client_secret = { 0 }, s2n_free);
-    DEFER_CLEANUP(struct s2n_blob server_secret = { 0 }, s2n_free);
-
-    EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_secret));
-    EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_secret));
-
-    S2N_BLOB_EXPECT_EQUAL(client_secret, server_secret);
-    EXPECT_EQUAL(mlkem1024_secret.size, client_secret.size);
-    EXPECT_BYTEARRAY_EQUAL(mlkem1024_secret.data, client_secret.data, client_secret.size);
-
-    return S2N_SUCCESS;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(test_pure_mlkem_compute_shared_secret());
+
+    {
+        S2N_BLOB_FROM_HEX(expected_secret, MLKEM1024_SECRET);
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = NULL, s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = NULL, s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        client_conn->kex_params.server_kem_group_params.kem_group = &s2n_pure_mlkem_1024;
+        client_conn->kex_params.client_kem_group_params.kem_group = &s2n_pure_mlkem_1024;
+        server_conn->kex_params.server_kem_group_params.kem_group = &s2n_pure_mlkem_1024;
+        server_conn->kex_params.client_kem_group_params.kem_group = &s2n_pure_mlkem_1024;
+
+        client_conn->kex_params.server_kem_group_params.kem_params.kem = s2n_pure_mlkem_1024.kem;
+        client_conn->kex_params.client_kem_group_params.kem_params.kem = s2n_pure_mlkem_1024.kem;
+        server_conn->kex_params.server_kem_group_params.kem_params.kem = s2n_pure_mlkem_1024.kem;
+        server_conn->kex_params.client_kem_group_params.kem_params.kem = s2n_pure_mlkem_1024.kem;
+
+        POSIX_GUARD(s2n_dup(&expected_secret,
+            &client_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
+        POSIX_GUARD(s2n_dup(&expected_secret,
+            &server_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
+
+        DEFER_CLEANUP(struct s2n_blob client_secret = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob server_secret = { 0 }, s2n_free);
+
+        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_secret));
+        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_secret));
+
+        S2N_BLOB_EXPECT_EQUAL(client_secret, server_secret);
+
+        EXPECT_EQUAL(client_secret.size, expected_secret.size);
+        EXPECT_BYTEARRAY_EQUAL(client_secret.data, expected_secret.data, expected_secret.size);
+    };
+
     END_TEST();
 }

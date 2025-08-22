@@ -85,61 +85,48 @@ int s2n_tls13_compute_pq_shared_secret(struct s2n_connection *conn, struct s2n_b
     POSIX_ENSURE_EQ(NULL, conn->kex_params.server_ecc_evp_params.negotiated_curve);
     POSIX_ENSURE_EQ(NULL, conn->kex_params.server_ecc_evp_params.evp_pkey);
 
-    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    POSIX_ENSURE_REF(kem_group);
-    POSIX_ENSURE_REF(kem_group->kem);
+    struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
+    POSIX_ENSURE_REF(server_kem_group_params);
+    struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
+    POSIX_ENSURE_REF(server_ecc_params);
 
-    struct s2n_blob *pq_shared_secret = &conn->kex_params.client_kem_group_params.kem_params.shared_secret;
+    struct s2n_kem_group_params *client_kem_group_params = &conn->kex_params.client_kem_group_params;
+    POSIX_ENSURE_REF(client_kem_group_params);
+    struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
+    POSIX_ENSURE_REF(client_ecc_params);
+
+    struct s2n_blob *pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     POSIX_ENSURE_REF(pq_shared_secret);
     POSIX_ENSURE_REF(pq_shared_secret->data);
 
-    POSIX_ENSURE_EQ(pq_shared_secret->size, kem_group->kem->shared_secret_key_length);
+    const struct s2n_kem_group *negotiated_kem_group = conn->kex_params.server_kem_group_params.kem_group;
+    POSIX_ENSURE_REF(negotiated_kem_group);
+    POSIX_ENSURE_REF(negotiated_kem_group->kem);
 
-    struct s2n_blob ecdhe_shared_secret = { 0 };
-    bool has_ecc = kem_group->curve != &s2n_ecc_curve_none;
+    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_free_or_wipe);
 
-    if (has_ecc) {
-        struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
-        struct s2n_kem_group_params *client_kem_group_params = &conn->kex_params.client_kem_group_params;
-        POSIX_ENSURE_REF(server_kem_group_params);
-        POSIX_ENSURE_REF(client_kem_group_params);
-
-        struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
-        struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
-        POSIX_ENSURE_REF(server_ecc_params);
-        POSIX_ENSURE_REF(client_ecc_params);
-
-        DEFER_CLEANUP(struct s2n_blob ecc_tmp = { 0 }, s2n_free_or_wipe);
-
-        if (conn->mode == S2N_CLIENT) {
-            POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(
-                client_ecc_params, server_ecc_params, &ecc_tmp));
-        } else {
-            POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(
-                server_ecc_params, client_ecc_params, &ecc_tmp));
-        }
-        ecdhe_shared_secret = ecc_tmp;
-        ZERO_TO_DISABLE_DEFER_CLEANUP(ecc_tmp);
+    if (negotiated_kem_group->curve == &s2n_ecc_curve_none) {
+        POSIX_ENSURE_EQ(ecdhe_shared_secret.size, 0);
+    } else if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
+    } else {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
     }
 
-    uint32_t total_size = pq_shared_secret->size + (has_ecc ? ecdhe_shared_secret.size : 0);
-    POSIX_GUARD(s2n_alloc(shared_secret, total_size));
+    POSIX_ENSURE_EQ(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
 
+    /* Construct the concatenated/hybrid shared secret */
+    uint32_t hybrid_shared_secret_size = ecdhe_shared_secret.size + negotiated_kem_group->kem->shared_secret_key_length;
+    POSIX_GUARD(s2n_alloc(shared_secret, hybrid_shared_secret_size));
     struct s2n_stuffer stuffer_combiner = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&stuffer_combiner, shared_secret));
 
-    if (!has_ecc) {
-        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
-    } else if (kem_group->send_kem_first) {
+    if (negotiated_kem_group->send_kem_first) {
         POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
         POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
     } else {
         POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
         POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
-    }
-
-    if (has_ecc) {
-        POSIX_GUARD(s2n_free_or_wipe(&ecdhe_shared_secret));
     }
 
     return S2N_SUCCESS;

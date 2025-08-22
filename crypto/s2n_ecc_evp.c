@@ -104,7 +104,7 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
 
 const struct s2n_ecc_named_curve s2n_ecc_curve_none = {
     .iana_id = 0,
-    .name = "curve_none_placeholder",
+    .name = "none",
     .libcrypto_nid = 0,
     .share_size = 0,
     .generate_key = s2n_ecc_evp_generate_key_noop,
