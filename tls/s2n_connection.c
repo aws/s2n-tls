@@ -1715,14 +1715,15 @@ int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char 
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(scheme_name);
+    POSIX_ENSURE(IS_NEGOTIATED(conn), S2N_ERR_INVALID_STATE);
 
     const struct s2n_signature_scheme *scheme = conn->handshake_params.server_cert_sig_scheme;
-    POSIX_ENSURE(scheme, S2N_ERR_INVALID_STATE);
-    /* We use a placeholder to represent a missing signature scheme */
-    POSIX_ENSURE(scheme->iana_value, S2N_ERR_INVALID_STATE);
+    /* The scheme should never be NULL. A "none" placeholder is used if no
+     * scheme has been negotiated.
+     */
+    POSIX_ENSURE_REF(scheme);
 
     *scheme_name = scheme->name;
-
     if (scheme->signature_curve) {
         /* Some TLS1.2 and TLS1.3 signature schemes share an IANA value,
          * but are NOT the same. The TLS1.3 version implies a specific curve.
