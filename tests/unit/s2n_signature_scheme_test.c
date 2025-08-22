@@ -49,6 +49,9 @@ int main(int argc, char **argv)
             if (sig_scheme->sig_alg == S2N_SIGNATURE_ECDSA
                     && sig_scheme->maximum_protocol_version != S2N_TLS12) {
                 EXPECT_NOT_NULL(sig_scheme->signature_curve);
+                /* These schemes also require additional naming information */
+                EXPECT_NOT_NULL(sig_scheme->legacy_name);
+                EXPECT_NOT_NULL(sig_scheme->tls13_name);
             } else {
                 EXPECT_NULL(sig_scheme->signature_curve);
             }

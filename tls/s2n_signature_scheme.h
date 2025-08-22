@@ -24,7 +24,7 @@
 
 struct s2n_signature_scheme {
     uint16_t iana_value;
-    const char *iana_name;
+    const char *name;
     s2n_hash_algorithm hash_alg;
     s2n_signature_algorithm sig_alg;
     uint8_t minimum_protocol_version;
@@ -33,6 +33,12 @@ struct s2n_signature_scheme {
 
     /* Curve is only defined for TLS1.3 ECDSA Signatures */
     struct s2n_ecc_named_curve const *signature_curve;
+    /* Because of the different curve behavior, we should refer
+     * to TLS1.3 and pre-TLS1.3 versions of this scheme differently.
+     * Where the version is unknown, use the standard "name" field.
+     */
+    const char *legacy_name;
+    const char *tls13_name;
 };
 
 struct s2n_signature_preferences {

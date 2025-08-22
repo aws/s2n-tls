@@ -1711,6 +1711,34 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
     return S2N_SUCCESS;
 }
 
+int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(scheme_name);
+    POSIX_ENSURE(IS_NEGOTIATED(conn), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_signature_scheme *scheme = conn->handshake_params.server_cert_sig_scheme;
+    /* The scheme should never be NULL. A "none" placeholder is used if no
+     * scheme has been negotiated.
+     */
+    POSIX_ENSURE_REF(scheme);
+
+    *scheme_name = scheme->name;
+    if (scheme->signature_curve) {
+        /* Some TLS1.2 and TLS1.3 signature schemes share an IANA value,
+         * but are NOT the same. The TLS1.3 version implies a specific curve.
+         */
+        if (conn->actual_protocol_version >= S2N_TLS13) {
+            *scheme_name = scheme->tls13_name;
+        } else {
+            *scheme_name = scheme->legacy_name;
+        }
+    }
+
+    POSIX_ENSURE_REF(*scheme_name);
+    return S2N_SUCCESS;
+}
+
 /*
  * Gets the config set on the connection.
  */
