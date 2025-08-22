@@ -1022,7 +1022,7 @@ int main(int argc, char **argv)
                     S2N_ERR_NULL);
         };
 
-        /* Test: connection without a chosen signature scheme fails */
+        /* Test: connection without a handshake returns an error */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1038,6 +1038,7 @@ int main(int argc, char **argv)
                 for (size_t version = 0; version <= S2N_TLS13; version++) {
                     DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                             s2n_connection_ptr_free);
+                    conn->handshake.handshake_type = NEGOTIATED;
                     conn->handshake_params.server_cert_sig_scheme = all_prefs->signature_schemes[i];
                     conn->actual_protocol_version = version;
 
@@ -1052,6 +1053,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
 
             conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pss_rsae_sha256;
             const char *rsa_name = NULL;
@@ -1069,10 +1071,21 @@ int main(int argc, char **argv)
             EXPECT_STRING_EQUAL(legacy_ecdsa, "legacy_ecdsa_sha224");
         };
 
+        /* Test: connection without a chosen signature scheme returns "none" */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+            const char *name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &name));
+            EXPECT_STRING_EQUAL(name, "none");
+        };
+
         /* Test: chooses ECDSA name based on version */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
             conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
 
             const char *tls13_name = NULL;

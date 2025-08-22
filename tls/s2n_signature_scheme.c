@@ -25,7 +25,7 @@
 
 const struct s2n_signature_scheme s2n_null_sig_scheme = {
     .iana_value = 0,
-    .name = "null",
+    .name = "none",
     .hash_alg = S2N_HASH_NONE,
     .sig_alg = S2N_SIGNATURE_ANONYMOUS,
     .libcrypto_nid = 0,
