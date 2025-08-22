@@ -54,7 +54,7 @@ fi
 
 # Make sure main is available in our workspace.
 # This is a workaround for the merge queue workflow.
-git fetch -v origin
+git fetch origin
 git checkout main
 git checkout $CODEBUILD_SOURCE_VERSION
 git clone --branch "main" --single-branch "$CLONE_SRC" "$BUILD_DIR"
