@@ -47,9 +47,9 @@ int main(int argc, char **argv)
         server_conn->kex_params.client_kem_group_params.kem_params.kem = s2n_pure_mlkem_1024.kem;
 
         POSIX_GUARD(s2n_dup(&expected_secret,
-            &client_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
+                &client_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
         POSIX_GUARD(s2n_dup(&expected_secret,
-            &server_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
+                &server_conn->kex_params.client_kem_group_params.kem_params.shared_secret));
 
         DEFER_CLEANUP(struct s2n_blob client_secret = { 0 }, s2n_free);
         DEFER_CLEANUP(struct s2n_blob server_secret = { 0 }, s2n_free);
