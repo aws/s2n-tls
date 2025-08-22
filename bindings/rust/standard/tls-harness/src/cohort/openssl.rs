@@ -30,7 +30,7 @@ impl Drop for OpenSslConnection {
     fn drop(&mut self) {
         // shutdown must be called for session resumption to work
         // https://www.openssl.org/docs/man1.1.1/man3/SSL_set_session.html
-        self.connection.shutdown().unwrap();
+        let _ = self.connection.shutdown();
     }
 }
 

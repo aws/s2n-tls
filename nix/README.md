@@ -8,7 +8,7 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 
 ### Quickstart
 
-- `sudo bash -c “mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix”`
+- `sudo bash -c "mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix"`
 - Run the single-user command from `https://nixos.org/download.html#nix-install-linux`
 - Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf`
 - `cd s2n-tls`
