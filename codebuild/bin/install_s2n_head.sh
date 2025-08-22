@@ -52,9 +52,11 @@ if [[ -f "$s2nc_head" ]]; then
     fi
 fi
 
-git status
-git remote -v
+# Make sure main is available in our workspace.
+# This is a workaround for the merge queue workflow.
 git fetch -v origin
+git checkout main
+git checkout $CODEBUILD_SOURCE_VERSION
 git clone --branch "main" --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
 cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
