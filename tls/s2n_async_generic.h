@@ -16,16 +16,12 @@
 #pragma once
 
 #include "crypto/s2n_signature.h"
-// #include "tls/s2n_connection.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
-
-struct s2n_connection;
 
 typedef S2N_RESULT (*s2n_async_perform_fn)(struct s2n_async_op *op);
 
 struct s2n_async_pkey_verify_data {
-    struct s2n_pkey *pub_key;
     struct s2n_hash_state digest;
     s2n_signature_algorithm sig_alg;
     struct s2n_blob signature;
