@@ -82,7 +82,8 @@ static int s2n_custom_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorith
             POSIX_GUARD(s2n_hmac_update(hmac, prev, hash_len));
         }
         POSIX_GUARD(s2n_hmac_update(hmac, info->data, info->size));
-        POSIX_GUARD(s2n_hmac_update(hmac, &curr_round, 1));
+        uint8_t curr_round_byte = curr_round;
+        POSIX_GUARD(s2n_hmac_update(hmac, &curr_round_byte, 1));
         POSIX_GUARD(s2n_hmac_digest(hmac, prev, hash_len));
 
         cat_len = hash_len;
