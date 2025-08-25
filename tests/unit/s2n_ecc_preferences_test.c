@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_ECDH_X25519));
     };
 
-    /* Test: check all security policies don't contain the placeholder curve "s2n_ecc_curve_none" */
+    /* Test: validate all ecc preferences */
     {
         for (size_t policy_index = 0; security_policy_selection[policy_index].version != NULL; policy_index++) {
             const struct s2n_security_policy *security_policy = security_policy_selection[policy_index].security_policy;
@@ -53,6 +53,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             for (size_t curve_index = 0; curve_index < ecc_preferences->count; curve_index++) {
+                /* Ensure no placeholder curve "s2n_ecc_curve_none" is included in all security policies */
                 EXPECT_NOT_EQUAL(ecc_preferences->ecc_curves[curve_index], &s2n_ecc_curve_none);
             }
         }
