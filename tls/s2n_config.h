@@ -185,6 +185,10 @@ struct s2n_config {
     struct s2n_x509_trust_store trust_store;
     uint16_t max_verify_cert_chain_depth;
 
+    s2n_async_generic_cb generic_async_cb;
+    void *async_cb_ctx;
+    uint16_t async_allow_list;
+
     s2n_async_pkey_fn async_pkey_cb;
 
     s2n_psk_selection_callback psk_selection_cb;
