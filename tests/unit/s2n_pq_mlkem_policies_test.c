@@ -106,11 +106,20 @@ const struct s2n_cipher_suite *legacy_cipher_suites[] = {
 
 /* List of s2n TLS Security Policies that are allowed to have legacy TLS Ciphers and support ML-KEM */
 const char *cipher_exceptions[] = {
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
+    "CloudFront-Upstream-TLS-1-2-2025-PQ",
+    "CloudFront-Upstream-TLS-1-3-2025-PQ",
     "test_all",
 };
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
 const char *tls_version_exceptions[] = {
+    "AWS-CRT-SDK-TLSv1.0-2025-PQ",
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
     "test_all",
 };
 

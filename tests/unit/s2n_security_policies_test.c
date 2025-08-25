@@ -360,6 +360,17 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
             "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
+            /* CloudFront upstream facing */
+            "CloudFront-Upstream-2025",
+            "CloudFront-Upstream-2025-PQ",
+            "CloudFront-Upstream-TLS-1-0-2025",
+            "CloudFront-Upstream-TLS-1-0-2025-PQ",
+            "CloudFront-Upstream-TLS-1-1-2025",
+            "CloudFront-Upstream-TLS-1-1-2025-PQ",
+            "CloudFront-Upstream-TLS-1-2-2025",
+            "CloudFront-Upstream-TLS-1-2-2025-PQ",
+            "CloudFront-Upstream-TLS-1-3-2025",
+            "CloudFront-Upstream-TLS-1-3-2025-PQ",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
@@ -816,9 +827,9 @@ int main(int argc, char **argv)
         if (s2n_is_tls13_fully_supported()) {
             /* 20250211 */
             {
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250211", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "20250211", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
@@ -837,9 +848,9 @@ int main(int argc, char **argv)
 
             /* 20250414 */
             {
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_tls13", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "default_fips", ecdsa_sha384_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_rfc9151, "20250414", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_tls13", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "default_fips", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250429, "20250414", ecdsa_sha384_chain_and_key));
 
                 /* default_tls13 is currently 20240503 */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240503, "rfc9151", ecdsa_sha384_chain_and_key));
@@ -916,6 +927,21 @@ int main(int argc, char **argv)
             };
 
             EXPECT_OK(s2n_test_default_backwards_compatible("default_fips",
+                    versioned_policies, s2n_array_len(versioned_policies),
+                    supported_certs, s2n_array_len(supported_certs)));
+        };
+
+        /* "rfc9151" */
+        {
+            const struct s2n_security_policy *versioned_policies[] = {
+                &security_policy_20250429,
+            };
+
+            const struct s2n_supported_cert supported_certs[] = {
+                { .cert = ecdsa_sha384_chain_and_key },
+            };
+
+            EXPECT_OK(s2n_test_default_backwards_compatible("rfc9151",
                     versioned_policies, s2n_array_len(versioned_policies),
                     supported_certs, s2n_array_len(supported_certs)));
         };

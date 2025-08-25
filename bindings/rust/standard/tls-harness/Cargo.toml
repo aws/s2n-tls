@@ -1,0 +1,22 @@
+[package]
+name = "tls-harness"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+s2n-tls = { path = "../../extended/s2n-tls" }
+errno = "0.3.13"
+libc = "0.2.174"
+strum = { version = "0.27", features = ["derive"] }
+rustls = "0.23.31"
+rustls-pemfile = "2.2.0"
+openssl = { version = "0.10.73", features = ["vendored"] }
+openssl-sys = "0.9.109"
+byteorder = "1.5.0"
+
+[dev-dependencies]
+# env_logger and log are used to enable logging for rustls, which can help with
+# debugging interop failures
+env_logger = "0.11.8"
+log = "0.4.27"

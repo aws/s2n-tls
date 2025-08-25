@@ -306,6 +306,29 @@
         "nixpkgs-regression": "nixpkgs-regression"
       },
       "locked": {
+        "lastModified": 1754936648,
+        "narHash": "sha256-sgVPyBvBLV5BF8zIr2LsgoCDRnw8zbwqt8vWt2/o6G4=",
+        "owner": "NixOS",
+        "repo": "nix",
+        "rev": "f93d25c0e7f031c93744ad783833b440895389ed",
+        "type": "github"
+      },
+      "original": {
+        "id": "nix",
+        "type": "indirect"
+      }
+    },
+    "nix_2": {
+      "inputs": {
+        "flake-compat": "flake-compat_2",
+        "flake-parts": "flake-parts_2",
+        "git-hooks-nix": "git-hooks-nix_2",
+        "nixfmt": "nixfmt",
+        "nixpkgs": "nixpkgs_3",
+        "nixpkgs-23-11": "nixpkgs-23-11_2",
+        "nixpkgs-regression": "nixpkgs-regression_2"
+      },
+      "locked": {
         "lastModified": 1739205346,
         "narHash": "sha256-DnCGc1t8eRMnoRl/+OeVTfS/Tqxg511/3BxTEDLXCYc=",
         "owner": "NixOS",

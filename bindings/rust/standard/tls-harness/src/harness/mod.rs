@@ -56,8 +56,10 @@ impl Debug for SigType {
 }
 
 pub fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
+    const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/certs");
+
     format!(
-        "certs/{}/{}",
+        "{TEST_PEMS_PATH}/{}/{}",
         sig_type.get_dir_name(),
         pem_type.get_filename()
     )
@@ -69,83 +71,10 @@ pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
         .into_bytes()
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Mode {
     Client,
     Server,
-}
-
-/// While ServerAuth and Resumption are not mutually exclusive, they are treated
-/// as such for the purpose of benchmarking.
-#[derive(Clone, Copy, Default, EnumIter, Eq, PartialEq)]
-pub enum HandshakeType {
-    #[default]
-    ServerAuth,
-    MutualAuth,
-    Resumption,
-}
-
-impl Debug for HandshakeType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            HandshakeType::ServerAuth => write!(f, "server-auth"),
-            HandshakeType::MutualAuth => write!(f, "mTLS"),
-            HandshakeType::Resumption => write!(f, "resumption"),
-        }
-    }
-}
-
-// these parameters were the only ones readily usable for all three libaries:
-// s2n-tls, rustls, and openssl
-#[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, Default, EnumIter, Eq, PartialEq)]
-pub enum CipherSuite {
-    #[default]
-    AES_128_GCM_SHA256,
-    AES_256_GCM_SHA384,
-}
-
-#[derive(Clone, Copy, Default, EnumIter)]
-pub enum KXGroup {
-    Secp256R1,
-    #[default]
-    X25519,
-}
-
-impl Debug for KXGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Secp256R1 => write!(f, "secp256r1"),
-            Self::X25519 => write!(f, "x25519"),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct CryptoConfig {
-    pub cipher_suite: CipherSuite,
-    pub kx_group: KXGroup,
-    pub sig_type: SigType,
-}
-
-impl CryptoConfig {
-    pub fn new(cipher_suite: CipherSuite, kx_group: KXGroup, sig_type: SigType) -> Self {
-        Self {
-            cipher_suite,
-            kx_group,
-            sig_type,
-        }
-    }
-}
-
-/// The TlsBenchConfig trait allows us to map benchmarking parameters to
-/// a configuration object
-pub trait TlsBenchConfig: Sized {
-    fn make_config(
-        mode: Mode,
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Self, Box<dyn Error>>;
 }
 
 /// The TlsConnection object can be created from a corresponding config type.
@@ -192,7 +121,11 @@ pub trait TlsConnection: Sized {
 
 pub trait TlsInfo: Sized {
     fn name() -> String;
-    fn get_negotiated_cipher_suite(&self) -> CipherSuite;
+
+    /// Return the IANA Description of the negotiated cipher suite.
+    ///
+    /// e.g. `TLS_AES_256_GCM_SHA384`
+    fn get_negotiated_cipher_suite(&self) -> String;
 
     fn negotiated_tls13(&self) -> bool;
 
@@ -203,70 +136,30 @@ pub trait TlsInfo: Sized {
     fn mutual_auth(&self) -> bool;
 }
 
+pub trait TlsConfigBuilder {
+    /// The config produced by the [`TlsConfigBuilder::build`] operation.
+    type Config;
+
+    fn new_test_config(mode: Mode) -> Self;
+
+    /// Load a chain onto a config.
+    ///
+    /// This is most often used for servers.
+    fn set_chain(&mut self, sig_type: SigType);
+
+    /// Load a cert into a trust store.
+    ///
+    /// This is most often used for clients.
+    fn set_trust(&mut self, sig_type: SigType);
+
+    fn build(self) -> Self::Config;
+}
+
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
 pub struct TlsConnPair<C, S> {
     pub client: C,
     pub server: S,
     pub io: TestPairIO,
-}
-
-impl<C, S> Default for TlsConnPair<C, S>
-where
-    C: TlsConnection,
-    S: TlsConnection,
-    C::Config: TlsBenchConfig,
-    S::Config: TlsBenchConfig,
-{
-    fn default() -> Self {
-        Self::new_bench_pair(CryptoConfig::default(), HandshakeType::default()).unwrap()
-    }
-}
-
-impl<C, S> TlsConnPair<C, S>
-where
-    C: TlsConnection,
-    S: TlsConnection,
-    C::Config: TlsBenchConfig,
-    S::Config: TlsBenchConfig,
-{
-    /// Initialize buffers, configs, and connections (pre-handshake)
-    pub fn new_bench_pair(
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Self, Box<dyn Error>> {
-        // do an initial handshake to generate the session ticket
-        if handshake_type == HandshakeType::Resumption {
-            let server_config =
-                S::Config::make_config(Mode::Server, crypto_config, handshake_type)?;
-            let client_config =
-                C::Config::make_config(Mode::Client, crypto_config, handshake_type)?;
-
-            // handshake the client and server connections. This will result in
-            // session ticket getting stored in client_config
-            let mut pair = TlsConnPair::<C, S>::from_configs(&client_config, &server_config);
-            pair.handshake()?;
-            // NewSessionTicket messages are part of the application data and sent
-            // after the handshake is complete, so we must trigger an additional
-            // "read" on the client connection to ensure that the session ticket
-            // gets received and stored in the config
-            pair.round_trip_transfer(&mut [0]).unwrap();
-
-            // new_from_config is called interally by the TlsConnPair::new
-            // method and will check if a session ticket is available and set it
-            // on the connection. This results in the session ticket in
-            // client_config (from the previous handshake) getting set on the
-            // client connection.
-            return Ok(TlsConnPair::<C, S>::from_configs(
-                &client_config,
-                &server_config,
-            ));
-        }
-
-        Ok(TlsConnPair::<C, S>::from_configs(
-            &C::Config::make_config(Mode::Client, crypto_config, handshake_type).unwrap(),
-            &S::Config::make_config(Mode::Server, crypto_config, handshake_type).unwrap(),
-        ))
-    }
 }
 
 impl<C, S> TlsConnPair<C, S>
@@ -275,10 +168,7 @@ where
     S: TlsConnection,
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
-        let io = TestPairIO {
-            server_tx_stream: Default::default(),
-            client_tx_stream: Default::default(),
-        };
+        let io = TestPairIO::default();
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
         Self { client, server, io }
@@ -318,7 +208,7 @@ where
     }
 
     /// Send data from client to server, and then from server to client
-    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+    pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         // send data from client to server
         self.client.send(data);
         self.server.recv(data)?;
@@ -351,6 +241,13 @@ where
             )
         }
     }
+
+    /// transfer `data_size` bytes between the client and the server.
+    pub fn round_trip_assert(&mut self, data_size: usize) -> std::io::Result<()> {
+        // we don't need "cryptographically random" data, just some non-zero data
+        let mut random_data: Vec<u8> = (0..data_size).map(|i| (i * 101 % 256) as u8).collect();
+        self.round_trip_transfer(&mut random_data)
+    }
 }
 
 impl<C, S> TlsConnPair<C, S>
@@ -358,7 +255,7 @@ where
     C: TlsInfo,
     S: TlsInfo,
 {
-    pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+    pub fn get_negotiated_cipher_suite(&self) -> String {
         assert!(
             self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
         );
@@ -370,11 +267,58 @@ where
     }
 }
 
+pub struct TlsConfigBuilderPair<C, S> {
+    pub client: C,
+    pub server: S,
+}
+
+impl<C, S> Default for TlsConfigBuilderPair<C, S>
+where
+    C: TlsConfigBuilder,
+    S: TlsConfigBuilder,
+{
+    fn default() -> Self {
+        let mut pair = Self {
+            client: C::new_test_config(Mode::Client),
+            server: S::new_test_config(Mode::Server),
+        };
+
+        // set an RSA2048 cert as the default, because it is the most common
+        // cert type.
+        pair.client.set_trust(SigType::Rsa2048);
+        pair.server.set_chain(SigType::Rsa2048);
+        pair
+    }
+}
+
+impl<C, S> TlsConfigBuilderPair<C, S>
+where
+    C: TlsConfigBuilder,
+    S: TlsConfigBuilder,
+{
+    pub fn set_cert(&mut self, cert: SigType) {
+        self.client.set_trust(cert);
+        self.server.set_chain(cert);
+    }
+
+    pub fn build(self) -> (C::Config, S::Config) {
+        (self.client.build(), self.server.build())
+    }
+
+    pub fn connection_pair<ClientConn, ServerConn>(self) -> TlsConnPair<ClientConn, ServerConn>
+    where
+        ClientConn: TlsConnection<Config = C::Config>,
+        ServerConn: TlsConnection<Config = S::Config>,
+    {
+        let (client_config, server_config) = self.build();
+        TlsConnPair::from_configs(&client_config, &server_config)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OpenSslConnection, RustlsConnection, S2NConnection, TlsConnPair};
-    use std::{io::ErrorKind, path::Path};
+    use std::path::Path;
     use strum::IntoEnumIterator;
 
     #[test]
@@ -387,45 +331,5 @@ mod tests {
                 );
             }
         }
-    }
-
-    fn session_resumption<C, S>()
-    where
-        S: TlsConnection + TlsInfo,
-        C: TlsConnection + TlsInfo,
-        C::Config: TlsBenchConfig,
-        S::Config: TlsBenchConfig,
-    {
-        println!("testing with client:{} server:{}", C::name(), S::name());
-        let mut conn_pair =
-            TlsConnPair::<C, S>::new_bench_pair(CryptoConfig::default(), HandshakeType::Resumption)
-                .unwrap();
-        conn_pair.handshake().unwrap();
-        // read the session tickets which were sent
-        let err = conn_pair.client_mut().recv(&mut [0]).unwrap_err();
-        assert_eq!(err.kind(), ErrorKind::WouldBlock);
-
-        assert!(conn_pair.server().resumed_connection());
-        conn_pair.shutdown().unwrap();
-    }
-
-    #[test]
-    fn session_resumption_interop() {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Debug)
-            .is_test(true)
-            .try_init()
-            .unwrap();
-        session_resumption::<S2NConnection, S2NConnection>();
-        session_resumption::<S2NConnection, RustlsConnection>();
-        session_resumption::<S2NConnection, OpenSslConnection>();
-
-        session_resumption::<RustlsConnection, RustlsConnection>();
-        session_resumption::<RustlsConnection, S2NConnection>();
-        session_resumption::<RustlsConnection, OpenSslConnection>();
-
-        session_resumption::<OpenSslConnection, OpenSslConnection>();
-        session_resumption::<OpenSslConnection, S2NConnection>();
-        session_resumption::<OpenSslConnection, RustlsConnection>();
     }
 }
