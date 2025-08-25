@@ -222,6 +222,7 @@ function apache2_start(){
 }
 
 function rust_integration(){
+    rm -rf build/
     cmake -B build . \
 	    -D CMAKE_C_COMPILER=clang \
 	    -D CMAKE_BUILD_TYPE=RelWithDebInfo \
