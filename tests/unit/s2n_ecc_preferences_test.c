@@ -18,6 +18,21 @@
 #include "s2n_test.h"
 #include "tls/s2n_tls_parameters.h"
 
+static const struct s2n_ecc_preferences *ALL_ECC_PREFERENCES[] = {
+    &s2n_ecc_preferences_20140601,
+    &s2n_ecc_preferences_20200310,
+    &s2n_ecc_preferences_20201021,
+    &s2n_ecc_preferences_20210816,
+    &s2n_ecc_preferences_20230623,
+    &s2n_ecc_preferences_20240501,
+    &s2n_ecc_preferences_20240603,
+    &s2n_ecc_preferences_default_fips,
+    &s2n_ecc_preferences_test_all,
+    &s2n_ecc_preferences_null,
+};
+
+static const size_t ALL_ECC_PREFERENCES_COUNT = 10;
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -43,6 +58,17 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_384_R1));
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_521_R1));
         EXPECT_FALSE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_ECDH_X25519));
+    };
+
+    {
+        for (size_t i = 0; i < ALL_ECC_PREFERENCES_COUNT; i++) {
+            const struct s2n_ecc_preferences *prefs = ALL_ECC_PREFERENCES[i];
+            EXPECT_NOT_NULL(prefs);
+
+            for (size_t j = 0; j < prefs->count; j++) {
+                EXPECT_NOT_EQUAL(prefs->ecc_curves[j], &s2n_ecc_curve_none);
+            }
+        }
     };
 
     END_TEST();
