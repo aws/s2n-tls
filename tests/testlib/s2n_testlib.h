@@ -220,12 +220,12 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
  * See https://github.com/aws/s2n-tls/issues/4651 for more information.
  */
 int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
-        const char *type, const char *siganture, const char *size, const char *digest);
+        const char *type, const char *signature, const char *size, const char *digest);
 
-int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *siganture,
+int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
         const char *size, const char *digest);
 S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
-        const char *siganture, const char *size, const char *digest);
+        const char *signature, const char *size, const char *digest);
 
 S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer);

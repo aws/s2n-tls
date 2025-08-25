@@ -207,11 +207,17 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
 int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cert_chain_and_key **chosen_certs)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->handshake_params.server_cert_sig_scheme);
-    s2n_signature_algorithm sig_alg = conn->handshake_params.server_cert_sig_scheme->sig_alg;
+    const struct s2n_signature_scheme *sig_scheme = conn->handshake_params.server_cert_sig_scheme;
+    POSIX_ENSURE_REF(sig_scheme);
+    s2n_signature_algorithm sig_alg = sig_scheme->sig_alg;
 
     s2n_pkey_type cert_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD_RESULT(s2n_signature_algorithm_get_pkey_type(sig_alg, &cert_type));
+    if (sig_scheme == &s2n_null_sig_scheme) {
+        /* Only RSA auth (+ RSA kex) supports no signature scheme */
+        cert_type = S2N_PKEY_TYPE_RSA;
+    } else {
+        POSIX_GUARD_RESULT(s2n_signature_algorithm_get_pkey_type(sig_alg, &cert_type));
+    }
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
