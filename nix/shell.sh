@@ -87,7 +87,7 @@ function uvinteg {(
     TESTS="${1:-all}"
     apache2_start
     # TODO: Dynamic Record Sizes needs a rewrite; skip for now.
-    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --reruns=2 --durations=10 -rpfs --cache-clear --ignore-glob=*test_dynamic_record_sizes*"
+    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10 -rpfs --ignore-glob=*test_dynamic_record_sizes*"
     cd ./tests/integrationv2
     echo -n "Comparing the current list of integ tests against what is checked-in..."
     PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
@@ -95,10 +95,13 @@ function uvinteg {(
     echo "tests to run match uvinteg_tests.txt."
     if [[ "$TESTS" == "all" ]]; then
         echo "Running all integ tests with uv"
-        PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml
+        # If the first attempt has any failures, try rerunning with only the failed tests.
+        PYTHONPATH="" uv run pytest --cache-clear $PYTEST_ARGS --junitxml=../../build/junit/uv_integ.xml || \
+        PYTHONPATH="" uv run pytest --last-failed --last-failed-no-failures none $PYTEST_ARGS --junitxml=../../build/junit/uv_integ_retry.xml
     else
+        # We're clearing state between test runs when individual tests are specified.
         for test in "$@"; do
-            PYTHONPATH="" uv run pytest $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
+            PYTHONPATH="" uv run pytest --cache-clear $PYTEST_ARGS --junitxml=../../build/junit/$test.xml -k $test
         done
     fi
 )}

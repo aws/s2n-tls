@@ -1,5 +1,5 @@
 { pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0
-, libressl, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
+, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
   # Define the default devShell
@@ -22,7 +22,7 @@ let
     AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
     AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
     GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
-    LIBRESSL_INSTALL_DIR = "${libressl}";
+    LIBRESSL_INSTALL_DIR = "${pkgs.libressl}";
     # Integ s_client/server tests expect openssl 1.1.1.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
@@ -50,7 +50,7 @@ let
   # Define the libressl devShell
   libressl_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
     # Re-include cmake to update the environment with a new libcrypto.
-    buildInputs = [ pkgs.cmake libressl ];
+    buildInputs = [ pkgs.cmake pkgs.libressl ];
     S2N_LIBCRYPTO = "libressl";
     # Integ s_client/server tests expect openssl 1.1.1.
     # GnuTLS-cli and serv utilities needed for some integration tests.
