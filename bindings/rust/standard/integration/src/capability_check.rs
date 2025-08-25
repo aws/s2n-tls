@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::{future::Future, panic::AssertUnwindSafe};
+
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -40,7 +42,7 @@ pub enum Capability {
     /// Support for TLS 1.3
     Tls13,
     /// Support for ML-DSA and ML-KEM
-    _PQAlgorithms,
+    PQAlgorithms,
 }
 
 impl Capability {
@@ -53,7 +55,7 @@ impl Capability {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // PQ is only supported for AWS-LC
-            Capability::_PQAlgorithms => {
+            Capability::PQAlgorithms => {
                 libcrypto == Libcrypto::Awslc || libcrypto == Libcrypto::AwslcFips
             }
         }
@@ -65,10 +67,37 @@ impl Capability {
 /// If all the required capabilities are present then the test must pass. Otherwise
 /// we expect the test to panic/fail.
 pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
+    let result = std::panic::catch_unwind(test);
     if required_capabilities.iter().all(|c| c.supported()) {
-        test()
+        result.unwrap();
     } else {
-        let panic = std::panic::catch_unwind(test);
-        panic.unwrap_err();
+        println!("expecting test failure");
+        let panic = result.unwrap_err();
+        println!("panic was {panic:?}");
+    }
+}
+
+pub fn required_capability_async(
+    required_capabilities: &[Capability],
+    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
+) {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
+
+    if required_capabilities.iter().all(Capability::supported) {
+        // 1 -> no panic
+        // 2 -> returned "ok"
+        result.unwrap().unwrap();
+    } else {
+        println!("expecting test failure");
+        match result {
+            Ok(Ok(())) => panic!("test did not fail"),
+            Ok(Err(e)) => println!("err was {e:?}"),
+            Err(e) => println!("panic was {e:?}"),
+        }
     }
 }
