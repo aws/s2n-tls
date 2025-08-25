@@ -28,6 +28,7 @@ BUILDS=(
     "s2nUnitNix"
     "Integv2NixBatchBF1FB83F-7tcZOiMDWPH0 us-east-2 batch"
     "kTLS us-west-2 no-batch"
+    "kTLSKeyUpdate us-west-2 no-batch"
 )
 
 usage() {
