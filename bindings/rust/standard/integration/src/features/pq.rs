@@ -8,8 +8,6 @@ use std::{fs, path::Path, pin::Pin};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_openssl::SslStream;
 
-use crate::{capability_check::Capability, required_capability_or_skip_ok};
-
 const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
 
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
@@ -23,8 +21,6 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
 
 #[test_log::test(tokio::test)]
 async fn s2n_mldsa_client() -> Result<(), Box<dyn std::error::Error>> {
-    required_capability_or_skip_ok!(Capability::PQAlgorithms);
-
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -68,8 +64,6 @@ async fn s2n_mldsa_client() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test_log::test(tokio::test)]
 async fn s2n_mldsa_server() -> Result<(), Box<dyn std::error::Error>> {
-    required_capability_or_skip_ok!(Capability::PQAlgorithms);
-
     let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
     let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -108,8 +102,6 @@ async fn s2n_mldsa_server() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn s2n_mlkem_client() -> Result<(), Box<dyn std::error::Error>> {
-    required_capability_or_skip_ok!(Capability::PQAlgorithms);
-
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
 
@@ -149,8 +141,6 @@ async fn s2n_mlkem_client() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn s2n_mlkem_server() -> Result<(), Box<dyn std::error::Error>> {
-    required_capability_or_skip_ok!(Capability::PQAlgorithms);
-
     let cert_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
     let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
     let (server_stream, client_stream) = get_streams().await?;

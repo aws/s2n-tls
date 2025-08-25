@@ -9,9 +9,4 @@ mod features;
 mod network;
 
 #[cfg(test)]
-mod tests {
-    use s2n_tls::{
-        security::Policy,
-        testing::{self, TestPair},
-    };
-}
+mod tests {}

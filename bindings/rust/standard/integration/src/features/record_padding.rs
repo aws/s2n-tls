@@ -9,7 +9,7 @@ use tls_harness::{
     TlsConnPair,
 };
 
-use crate::{capability_check::Capability, required_capability_or_skip};
+use crate::capability_check::{required_capability, Capability};
 
 const AES_GCM_TAG_LEN: u16 = 16;
 
@@ -75,9 +75,10 @@ fn record_padding() {
         assert!(correctly_padded(&pair.io.server_record_sizes(), pad_to));
     }
 
-    required_capability_or_skip!(Capability::Tls13);
-    PAD_TO_CASES.into_iter().for_each(|pad_to| {
-        s2n_server_case(pad_to);
-        s2n_client_case(pad_to);
+    required_capability(&[Capability::Tls13], || {
+        PAD_TO_CASES.into_iter().for_each(|pad_to| {
+            s2n_server_case(pad_to);
+            s2n_client_case(pad_to);
+        })
     });
 }
