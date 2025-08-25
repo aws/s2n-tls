@@ -7,6 +7,3 @@ mod capability_check;
 mod features;
 #[cfg(all(not(feature = "no-network-tests"), test))]
 mod network;
-
-#[cfg(test)]
-mod tests {}

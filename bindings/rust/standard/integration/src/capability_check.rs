@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// The libcrypto that s2n-tls is linked against.
-///
-/// This is not the libcrypto that we are using as a TLS peer.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
     Awslc,
@@ -14,8 +12,8 @@ enum Libcrypto {
 }
 
 impl Libcrypto {
-    /// Retrieve the libcrypto from the `S2N_LIBCRYPTO` env var if available, otherwise
-    /// return "awslc".
+    /// Retrieve the libcrypto from the `S2N_LIBCRYPTO` env variable if available,
+    /// otherwise return "awslc".
     ///
     /// S2N_LIBCRYPTO is set in CI as well as the Nix devshell.
     fn from_env() -> Self {
@@ -37,12 +35,12 @@ impl Libcrypto {
 
 /// A `Capability` represents a functionality of s2n-tls that may or may not be
 /// available depending on the linked libcrypto.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Capability {
     /// Support for TLS 1.3
     Tls13,
     /// Support for ML-DSA and ML-KEM
-    PQAlgorithms,
+    _PQAlgorithms,
 }
 
 impl Capability {
@@ -55,7 +53,7 @@ impl Capability {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // PQ is only supported for AWS-LC
-            Capability::PQAlgorithms => {
+            Capability::_PQAlgorithms => {
                 libcrypto == Libcrypto::Awslc || libcrypto == Libcrypto::AwslcFips
             }
         }
@@ -64,8 +62,8 @@ impl Capability {
 
 /// Declare the required capabilities for a test to run.
 ///
-/// This will assert that if the capabilities are present, the test succeeds,
-/// and if the capability isn't present, then the test fails.
+/// If all the required capabilities are present then the test must pass. Otherwise
+/// we expect the test to panic/fail.
 pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
     if required_capabilities.iter().all(|c| c.supported()) {
         test()
