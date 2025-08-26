@@ -177,9 +177,6 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 
 static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
 {
-    /* We should never hit this function — pure ML-KEM doesn’t generate an EC keypair.
-    * The placeholder curve only acts as a filter, so if this ever runs it indicates a bug.
-    */
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
