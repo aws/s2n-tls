@@ -21,17 +21,14 @@
         aws-lc = awslc.packages.${system}.aws-lc;
         aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
-        pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
         openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
-        libressl = import ./nix/libressl.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
-          pythonEnv
           pkgs.corretto21
           pkgs.iproute2
           pkgs.apacheHttpd
@@ -51,10 +48,8 @@
           pkgs.shellcheck
           # There are 2 nix formatters; use the old one for now.
           pkgs.nixfmt-classic
-          # This will eventually replace everything in nix/pyenv.nix
+          # Let uv handle all the python things.
           pkgs.uv
-          pkgs.python310Packages.pep8
-          pkgs.python310Packages.ipython
 
           # Rust
           pkgs.rustup
@@ -105,8 +100,7 @@
         # Import devShells from the separate module
         devShells = import ./nix/devshells.nix {
           inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1
-            openssl_3_0 libressl aws-lc aws-lc-fips-2022 aws-lc-fips-2024
-            writeScript;
+            openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024 writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
@@ -116,11 +110,6 @@
           (finalAttrs: previousAttrs: {
             doCheck = true;
             buildInputs = [ pkgs.openssl_1_1 ];
-          });
-        packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs
-          (finalAttrs: previousAttrs: {
-            doCheck = true;
-            buildInputs = [ pkgs.libressl ];
           });
         formatter = pkgs.nixfmt;
       });
