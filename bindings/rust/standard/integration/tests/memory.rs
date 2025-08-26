@@ -214,7 +214,10 @@ mod memory_test {
         assert!(fuzzy_equals(handshake_in_progress, 112_265));
         assert!(fuzzy_equals(handshake_complete, 86_159));
         assert!(fuzzy_equals(application_data, 86_159));
-        assert!(fuzzy_equals(dhat::HeapStats::get().max_bytes - static_memory, 150_114));
+        assert!(fuzzy_equals(
+            dhat::HeapStats::get().max_bytes - static_memory,
+            150_114
+        ));
 
         Ok(())
     }
