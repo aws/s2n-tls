@@ -685,7 +685,7 @@ int main(int argc, char **argv)
     /* Test: Keyupdates with KTLS */
     if (s2n_ktls_keyupdate_is_supported_on_platform()) {
         /* Test: Sending key update with KTLS */
-        if (ktls_send_supported && s2n_is_tls13_fully_supported()) {
+        if (ktls_send_supported) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
@@ -728,7 +728,7 @@ int main(int argc, char **argv)
         };
 
         /* Test: Receiving key update with KTLS */
-        if (ktls_recv_supported && s2n_is_tls13_fully_supported()) {
+        if (ktls_recv_supported) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
@@ -772,37 +772,39 @@ int main(int argc, char **argv)
 
         /* Test: Ensure correct failure when keyupdates are not supported */
     } else {
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
-        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+        if (ktls_recv_supported && s2n_is_tls13_fully_supported()) {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
 
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server);
-        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
-        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
-        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+            EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
-        /* Force a key update */
-        s2n_atomic_flag_set(&server->key_update_pending);
-        EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
+            /* Force a key update */
+            s2n_atomic_flag_set(&server->key_update_pending);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
 
-        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
-        EXPECT_EQUAL(written, sizeof(test_data));
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
+            EXPECT_EQUAL(written, sizeof(test_data));
 
-        /* Read KeyUpdate message */
-        uint8_t buffer[sizeof(test_data)] = { 0 };
-        EXPECT_FAILURE_WITH_ERRNO(
-                s2n_recv(client, buffer, sizeof(buffer), &blocked),
-                S2N_ERR_KTLS_KEYUPDATE);
+            /* Read KeyUpdate message */
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_recv(client, buffer, sizeof(buffer), &blocked),
+                    S2N_ERR_KTLS_KEYUPDATE);
+        }
     }
     END_TEST();
 }
