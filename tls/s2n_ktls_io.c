@@ -319,7 +319,7 @@ static S2N_RESULT s2n_ktls_check_estimated_record_limit(
         if (s2n_ktls_keyupdate_is_supported_on_platform()) {
             s2n_atomic_flag_set(&conn->key_update_pending);
         } else {
-            RESULT_BAIL(S2N_ERR_KTLS_KEYUPDATE);
+            RESULT_BAIL(S2N_ERR_KTLS_KEY_LIMIT);
         }
     }
 
