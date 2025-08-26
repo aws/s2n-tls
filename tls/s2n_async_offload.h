@@ -15,7 +15,10 @@
 
 #pragma once
 
+#include "api/unstable/async_offload.h"
+
 #include "crypto/s2n_signature.h"
+#include "tls/s2n_handshake.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
@@ -29,17 +32,17 @@ struct s2n_async_pkey_verify_data {
 
 struct s2n_async_op {
     s2n_async_op_type type;
+    s2n_async_state async_op_state;
     struct s2n_connection *conn;
     s2n_async_perform_fn perform;
     /* Collect arguments required by each operation */
     union {
-        struct s2n_async_pkey_verify_data verify;
+        struct s2n_async_pkey_verify_data async_pkey_verify;
         /* Add a new struct for each supported op type */
     } op_data;
 };
 
+S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_op *op);
 int s2n_async_op_perform(struct s2n_async_op *op);
+int s2n_async_op_wipe(struct s2n_async_op *op);
 bool s2n_async_is_op_in_allow_list(struct s2n_config *config, s2n_async_op_type op_type);
-
-int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature);

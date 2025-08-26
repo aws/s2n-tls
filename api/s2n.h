@@ -3366,61 +3366,6 @@ S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_con
 S2N_API extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 /**
- * Opaque struct for the generic async operation
- */
-struct s2n_async_op;
-
-/**
- * The type of operations supported by the generic async callback.
- * 
- * Each type is represented by a different bit. The value of each type must be a power of 2.
- */
-typedef enum {
-    NO_OP = 0,
-    S2N_ASYNC_VERIFY = 0x01,
-    ALLOW_ALL = 0xFFFF,
-} s2n_async_op_type;
-
-/**
- * The callback function invoked every time an allowed async operation is encountered during the handshake.
- *
- * `op` is owned by s2n-tls and will be freed along with s2n_connection.
- *
- * @param conn Connection which triggered the generic async callback
- * @param op An opaque object representing the async operation
- * @param ctx Application data provided to the callback via s2n_config_set_async_generic_callback()
- */
-typedef int (*s2n_async_generic_cb)(struct s2n_connection *conn, struct s2n_async_op *op, void *ctx);
-
-/**
- * Sets up the generic async callback to offload a handshake operation 
- *
- * @param config Config to set the callback
- * @param fn The function that should be called for each supported async operation
- * @param ctx Optional application data passed to the callback
- */
-S2N_API extern int s2n_config_set_async_generic_callback(struct s2n_config *config, s2n_async_generic_cb fn, void *ctx);
-
-/**
- * Performs the operation triggered by the generic async callback. Each operation can only call op_perform() once.
- * 
- * To perform an operation asynchronously, the following condiditions must be satisfied:
- * 1) The op type must be included in the allow_list;
- * 2) Generic async callback returns success and s2n_async_op_perform() is invoked outside the callback.
- * 
- * @param op An opaque object representing the async operation
- */
-S2N_API extern int s2n_async_op_perform(struct s2n_async_op *op);
-
-/**
- * Sets up the operation allow list for the generic async callback. The default allow_list is NO_OP.
- *
- * @param config Config to set the callback
- * @param allow_list A bit representation of allowed operations (Bit-OR of all the allowd s2n_async_op_type values)
- */
-S2N_API extern int s2n_config_set_async_op_allow_list(struct s2n_config *config, uint16_t allow_list);
-
-/**
  * Opaque async private key operation handle
  */
 struct s2n_async_pkey_op;

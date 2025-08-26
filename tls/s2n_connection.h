@@ -23,7 +23,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_async_generic.h"
+#include "tls/s2n_async_offload.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"

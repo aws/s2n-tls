@@ -648,22 +648,14 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_async_generic_callback(struct s2n_config *config, s2n_async_generic_cb fn, void *ctx)
+int s2n_config_set_async_offload_callback(struct s2n_config *config, s2n_async_offload_cb fn, uint32_t allow_list, void *ctx)
 {
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(fn);
 
-    config->generic_async_cb = fn;
-    config->async_cb_ctx = ctx;
-
-    return S2N_SUCCESS;
-}
-
-int s2n_config_set_async_op_allow_list(struct s2n_config *config, uint16_t allow_list)
-{
-    POSIX_ENSURE_REF(config);
-
-    config->async_allow_list = allow_list;
+    config->async_offload_cb = fn;
+    config->async_offload_allow_list = allow_list;
+    config->async_offload_ctx = ctx;
 
     return S2N_SUCCESS;
 }

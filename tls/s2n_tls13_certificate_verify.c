@@ -20,7 +20,6 @@
 #include "crypto/s2n_hash.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_async_generic.h"
 #include "tls/s2n_async_pkey.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_handshake.h"
@@ -149,10 +148,10 @@ uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode)
 
 int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
 {
-    if (conn->handshake.async_state == S2N_ASYNC_INVOKED) {
+    if (conn->op.async_op_state == S2N_ASYNC_INVOKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
-    } else if (conn->handshake.async_state == S2N_ASYNC_COMPLETE) {
-        conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED;
+    } else if (conn->op.async_op_state == S2N_ASYNC_COMPLETE) {
+        POSIX_GUARD(s2n_async_op_wipe(&conn->op));
         return S2N_SUCCESS;
     }
 
@@ -210,6 +209,6 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg,
             &message_hash, &signed_content));
 
-    conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED;
+    POSIX_GUARD(s2n_async_op_wipe(&conn->op));
     return 0;
 }
