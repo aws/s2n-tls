@@ -25,7 +25,7 @@
 
 const struct s2n_signature_scheme s2n_null_sig_scheme = {
     .iana_value = 0,
-    .iana_name = "null_sha0",
+    .iana_name = "null",
     .hash_alg = S2N_HASH_NONE,
     .sig_alg = S2N_SIGNATURE_ANONYMOUS,
     .libcrypto_nid = 0,
@@ -36,7 +36,7 @@ const struct s2n_signature_scheme s2n_null_sig_scheme = {
 /* RSA PKCS1 */
 const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
     .iana_value = TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1,
-    .iana_name = "legacy_rsa_pkcs1_md5_sha1",
+    .iana_name = "legacy_rsa_md5_sha1",
     .hash_alg = S2N_HASH_MD5_SHA1,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_md5_sha1,
@@ -56,7 +56,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA224,
-    .iana_name = "legacy_rsa_pkcs1_sha224",
+    .iana_name = "legacy_rsa_sha224",
     .hash_alg = S2N_HASH_SHA224,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha224WithRSAEncryption,

@@ -21,7 +21,7 @@ signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - rsa_pkcs1_sha1
 - ecdsa_sha1
 curves:
