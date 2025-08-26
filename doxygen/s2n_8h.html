@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.25-ada693db</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.25-23cc0580</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -661,6 +661,8 @@ Functions</h2></td></tr>
 <tr class="separator:a4311542818a2f029b2f157803949faa4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3201f28508d383632996dcc861a521d4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a3201f28508d383632996dcc861a521d4">s2n_connection_get_selected_client_cert_digest_algorithm</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#a08eccb21b18130aef8c19a288801f379">s2n_tls_hash_algorithm</a> *chosen_alg)</td></tr>
 <tr class="separator:a3201f28508d383632996dcc861a521d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af42c827e46b894c9cbf5ed309852526f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#af42c827e46b894c9cbf5ed309852526f">s2n_connection_get_signature_scheme</a> (struct s2n_connection *conn, const char **scheme_name)</td></tr>
+<tr class="separator:af42c827e46b894c9cbf5ed309852526f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2ec12d27f27f757ddfaf2bcadc9956a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_cert_chain_and_key *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa2ec12d27f27f757ddfaf2bcadc9956a">s2n_connection_get_selected_cert</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:aa2ec12d27f27f757ddfaf2bcadc9956a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a346a183c22e8b394c17bd22ac54b1553"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a346a183c22e8b394c17bd22ac54b1553">s2n_cert_chain_get_length</a> (const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length)</td></tr>
@@ -7619,6 +7621,52 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption. </dd></dl>
+
+</div>
+</div>
+<a id="af42c827e46b894c9cbf5ed309852526f" name="af42c827e46b894c9cbf5ed309852526f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af42c827e46b894c9cbf5ed309852526f">&#9670;&#160;</a></span>s2n_connection_get_signature_scheme()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_get_signature_scheme </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>scheme_name</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Get the human readable signature scheme for the connection.</p>
+<p >This method will return:</p><ol type="1">
+<li>The IANA "description" for the negotiated signature scheme. For example, rsa_pss_rsae_sha384 or ecdsa_secp256r1_sha256.</li>
+<li>An unofficial description, if the server signature did not use an official IANA signature scheme. This description will take the form "legacy_&lt;signature_algorithm&gt;_&lt;hash_algorithm&gt;". For example, legacy_rsa_sha224 or legacy_ecdsa_sha256.</li>
+<li>"none", if the handshake did not include a server signature. This may happen if session resumption or RSA key exchange are used.</li>
+</ol>
+<p >If the connection has not yet performed a handshake, this method will error.</p>
+<p >A note on unofficial descriptions: If TLS1.2 or earlier is negotiated, an official IANA signature scheme may not be chosen. Before TLS1.3, a combination of "signature algorithm" and "hash algorithm" were used instead of signature schemes. Not all combinations were later assigned to official signature schemes.</p>
+<p >A note on ECDSA signature schemes: TLS1.3 and TLS1.2 ECDSA "signature schemes" share the same IANA value. However, this method assigns them different descriptions because the TLS1.3 versions (like ecdsa_secp256r1_sha256) imply specific curves, while the TLS1.2 versions (like legacy_ecdsa_sha256) do not.</p>
+<p >IANA signature schemes: <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme">https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme</a> IANA signature algorithms: <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16">https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16</a> IANA hash algorithms: <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18">https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
+    <tr><td class="paramname">group_name</td><td>A pointer that will be set to the signature scheme name. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE otherwise. </dd></dl>
 
 </div>
 </div>
