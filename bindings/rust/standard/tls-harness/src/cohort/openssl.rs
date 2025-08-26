@@ -26,14 +26,6 @@ pub struct OpenSslConnection {
     connection: SslStream<ViewIO>,
 }
 
-impl Drop for OpenSslConnection {
-    fn drop(&mut self) {
-        // shutdown must be called for session resumption to work
-        // https://www.openssl.org/docs/man1.1.1/man3/SSL_set_session.html
-        let _ = self.connection.shutdown();
-    }
-}
-
 pub struct OpenSslConfig {
     pub config: SslContext,
     pub session_ticket_storage: SessionTicketStorage,
