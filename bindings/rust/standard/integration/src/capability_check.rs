@@ -21,7 +21,10 @@ impl Libcrypto {
     fn from_env() -> Self {
         let libcrypto = match std::env::var("S2N_LIBCRYPTO") {
             Ok(libcrypto) => libcrypto,
-            Err(_) => "awslc".to_string(),
+            Err(_) => {
+                println!("S2N_LIBCRYPTO not set, assuming awslc");
+                "awslc".to_string()
+            },
         };
 
         match libcrypto.as_str() {
