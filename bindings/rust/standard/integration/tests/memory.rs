@@ -8,8 +8,8 @@ mod memory_test {
     // dhat can only be run in a single thread, so we use a single test case in an
     // "integration" test (tests/*) to fulfill those conditions.
 
-    use s2n_tls::error::Error as S2NError;
     use s2n_tls::{
+        error::Error as S2NError,
         security::Policy,
         testing::{self, TestPair},
     };

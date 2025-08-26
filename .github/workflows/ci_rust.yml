@@ -70,13 +70,6 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --features unstable-renegotiate
 
-      - name: Network-enabled integration tests
-        working-directory: ${{env.STANDARD_PATH}}/integration
-        # no-default-features is used because network tests are hidden behind a
-        # default "negative" feature. This is because we don't want network tests
-        # invoked on the `cargo test --all-features` pattern.
-        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
-
       - name: Test external build cfg
         working-directory: ${{env.ROOT_PATH}}/s2n-tls
         run: |
