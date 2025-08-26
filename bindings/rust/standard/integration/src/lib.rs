@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod features;
-#[cfg(all(not(feature = "no-network-tests"), test))]
+#[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;
 
 #[cfg(test)]
