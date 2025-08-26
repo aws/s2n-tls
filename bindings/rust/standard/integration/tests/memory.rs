@@ -3,7 +3,7 @@
 
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
-// #[cfg(not(feature = "no-sensitive-tests"))]
+#[cfg(not(feature = "no-sensitive-tests"))]
 mod memory_test {
     // dhat can only be run in a single thread, so we use a single test case in an
     // "integration" test (tests/*) to fulfill those conditions.
