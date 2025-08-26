@@ -1,45 +1,33 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to
+# prevent the disk from filling up.
 ---
 version: 0.2
 env:
   shell: bash
-  variables:
-    # --ignore-environment prevents existing environment variables from being carried forward into the new shell.
-    # This allows for a clean, sterile environment.
-    NIXDEV_ARGS: --max-jobs auto --ignore-environment
-    # Ctest is doing Regex matching of test names, with an implicit ".*" around these, so:
-    # renegotiate covers both renegotiate.py and renegotiate_apache.py
-    INTEGV2_TEST:
-      happy_path client_authentication sni_match buffered_send npn sslv2_client_hello
-      ocsp external_psk pq_handshake serialization
-      signature_algorithms record_padding renegotiate$ renegotiate_apache cross_compatibility early_data hello_retry_requests
-      fragmentation key_update session_resumption version_negotiation
-    # Excluded in nix:
-    # - dynamic_record_sizes (fails on aarch64)
-    # - sslyze (tooling not available on aarch64)
 
 batch:
   build-graph:
     # Cache job for x86
     - identifier: nixCache_x86_64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
-        privileged-mode: false
-        type: LINUX_CONTAINER
+        fleet: ubuntu24_x86_64_nix
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
     # Cache Job for aarch64
     - identifier: nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: false
-        type: ARM_CONTAINER
+        fleet: ubuntu24_aarch64_nix
         variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
@@ -48,10 +36,7 @@ batch:
       depend-on:
         - nixCache_x86_64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
-        privileged-mode: true
-        type: LINUX_CONTAINER
+        fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
@@ -61,36 +46,27 @@ batch:
       depend-on:
         - nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
+        fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslc
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
     # AWSLC-FIPS-2022
-    - identifier: Integ_awslcfips2022_aarch64_0
+    - identifier: Integ_awslcfips2022_x86_64_0
       depend-on:
-        - nixCache_aarch64
+        - nixCache_x86_64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
+        fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslcfips2022
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 
     # AWSLC-FIPS-2024
     - identifier: Integ_awslcfips2024_aarch64_0
       depend-on:
         - nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
+        fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslcfips2024
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
@@ -100,10 +76,7 @@ batch:
       depend-on:
         - nixCache_x86_64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
-        privileged-mode: true
-        type: LINUX_CONTAINER
+        fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
@@ -113,10 +86,7 @@ batch:
       depend-on:
         - nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
+        fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#default
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
@@ -126,10 +96,7 @@ batch:
       depend-on:
         - nixCache_aarch64
       env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
-        privileged-mode: true
-        type: ARM_CONTAINER
+        fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
@@ -137,6 +104,7 @@ batch:
 phases:
   install:
     commands:
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
         if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           echo "Refreshing nix cache..."
@@ -150,6 +118,7 @@ phases:
   pre_build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
@@ -157,14 +126,15 @@ phases:
   build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
+    # Dynamic_record_sizes is being excluded in nix/shell.sh and needs a rewrite.
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;integ $INTEGV2_TEST"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
         fi
-
-

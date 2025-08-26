@@ -35,7 +35,7 @@ signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - ecdsa_sha256
 - ecdsa_sha384
 - ecdsa_sha512
@@ -48,7 +48,6 @@ curves:
 - secp384r1
 pq:
 - revision: 5
-- kems:
 - kem groups:
 -- SecP256r1Kyber768Draft00
 -- X25519Kyber768Draft00

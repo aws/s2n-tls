@@ -51,14 +51,13 @@ certificate signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - ecdsa_sha256
 - ecdsa_sha384
 - ecdsa_sha512
 - legacy_ecdsa_sha224
 pq:
 - revision: 5
-- kems:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768

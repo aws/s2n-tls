@@ -45,10 +45,7 @@ mod kms_pq {
         let policy = Policy::from_version("PQ-TLS-1-2-2024-10-09")?;
         let tls = handshake_with_domain(DOMAIN, &policy).await?;
 
-        assert_eq!(
-            tls.as_ref().cipher_suite()?,
-            "TLS_AES_256_GCM_SHA384"
-        );
+        assert_eq!(tls.as_ref().cipher_suite()?, "TLS_AES_256_GCM_SHA384");
 
         // As of 2/5/25, some KMS hosts support ML-KEM, while other hosts still only support earlier
         // draft PQ KEM groups. As such, we currently assert that any KEM group was negotiated.

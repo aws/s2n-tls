@@ -41,9 +41,9 @@ cipher suites:
 - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
 - TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256
 signature schemes:
-- legacy_rsa_pkcs1_md5_sha1
+- legacy_rsa_md5_sha1
 - rsa_pkcs1_sha1
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
@@ -68,10 +68,10 @@ curves:
 - secp521r1
 pq:
 - revision: 5
-- kems:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
+-- SecP384r1MLKEM1024
 -- SecP256r1Kyber768Draft00
 -- X25519Kyber768Draft00
 -- secp384r1_kyber-768-r3

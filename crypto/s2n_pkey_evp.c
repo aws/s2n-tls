@@ -84,7 +84,7 @@ static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm has
 
 /* Our "digest-and-sign" EVP signing logic is intended to support FIPS 140-3.
  * FIPS 140-3 does not allow signing or verifying externally calculated digests
- * (except for signing, but not verifying, with ECDSA).
+ * for RSA and ECDSA verify.
  * See https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Digital-Signatures,
  * and note that "component" tests only exist for ECDSA sign.
  *
@@ -145,6 +145,16 @@ static int s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algori
     return S2N_SUCCESS;
 }
 
+/* See s2n_evp_digest_and_sign for more information */
+static bool s2n_pkey_evp_digest_and_sign_is_required(s2n_signature_algorithm sig_alg)
+{
+    if (sig_alg == S2N_SIGNATURE_MLDSA) {
+        /* The FIPS restrictions do not apply to ML-DSA */
+        return false;
+    }
+    return s2n_libcrypto_is_awslc_fips();
+}
+
 /* "digest-then-sign" means that we calculate the digest for a hash state,
  * then sign the digest bytes. That is not allowed by FIPS 140-3, but is allowed
  * in all other cases.
@@ -192,7 +202,7 @@ int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_a
         POSIX_GUARD_RESULT(s2n_evp_pkey_set_rsa_pss_saltlen(pctx));
     }
 
-    if (s2n_libcrypto_is_awslc_fips()) {
+    if (s2n_pkey_evp_digest_and_sign_is_required(sig_alg)) {
         POSIX_GUARD(s2n_pkey_evp_digest_and_sign(pctx, sig_alg, hash_state, signature));
     } else {
         POSIX_GUARD(s2n_pkey_evp_digest_then_sign(pctx, hash_state, signature));
@@ -265,7 +275,7 @@ int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_
         POSIX_GUARD_RESULT(s2n_evp_pkey_set_rsa_pss_saltlen(pctx));
     }
 
-    if (s2n_libcrypto_is_awslc_fips()) {
+    if (s2n_pkey_evp_digest_and_sign_is_required(sig_alg)) {
         POSIX_GUARD(s2n_pkey_evp_digest_and_verify(pctx, sig_alg, hash_state, signature));
     } else {
         POSIX_GUARD(s2n_pkey_evp_digest_then_verify(pctx, hash_state, signature));

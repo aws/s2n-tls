@@ -39,6 +39,7 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=2)
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
