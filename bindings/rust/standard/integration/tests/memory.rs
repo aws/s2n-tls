@@ -3,7 +3,7 @@
 
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
-#[cfg(not(feature = "no-sensitive-tests"))]
+// #[cfg(not(feature = "no-sensitive-tests"))]
 mod memory_test {
     // dhat can only be run in a single thread, so we use a single test case in an
     // "integration" test (tests/*) to fulfill those conditions.
@@ -214,6 +214,7 @@ mod memory_test {
         assert!(fuzzy_equals(handshake_in_progress, 112_265));
         assert!(fuzzy_equals(handshake_complete, 86_159));
         assert!(fuzzy_equals(application_data, 86_159));
+        assert!(fuzzy_equals(dhat::HeapStats::get().max_bytes - static_memory, 150_114));
 
         Ok(())
     }
