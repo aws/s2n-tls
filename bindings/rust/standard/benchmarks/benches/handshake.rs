@@ -37,6 +37,7 @@ fn bench_handshake_for_library<T>(
                     let mut pair = TlsConnPair::<T, T>::from_configs(client_config, server_config);
                     pair.handshake().unwrap();
                     pair.round_trip_transfer(&mut [0]).unwrap();
+                    pair.shutdown().unwrap();
                 }
                 TlsConnPair::from_configs(client_config, server_config)
             },
