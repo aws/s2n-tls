@@ -99,7 +99,7 @@ jobs:
           rustup override set stable
 
       - name: generate bindings
-        run: ${{env.ROOT_PATH}}/generate.sh
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # network tests are sensitive because there is inherent flakiness on the public internet
       # memory tests are sensitive because memory usage is platform/feature specific
