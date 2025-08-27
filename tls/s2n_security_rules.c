@@ -145,7 +145,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         RESULT_GUARD(rule->validate_sig_scheme(sig_scheme, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                 error_msg_format_name, rule->name, policy_name,
-                "signature scheme", sig_scheme->iana_name));
+                "signature scheme", sig_scheme->name));
     }
 
     const struct s2n_signature_preferences *cert_sig_prefs = policy->certificate_signature_preferences;
@@ -158,7 +158,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
             RESULT_GUARD(rule->validate_cert_sig_scheme(sig_scheme, &is_valid));
             RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                     error_msg_format_name, rule->name, policy_name,
-                    "certificate signature scheme", sig_scheme->iana_name));
+                    "certificate signature scheme", sig_scheme->name));
         }
     }
 

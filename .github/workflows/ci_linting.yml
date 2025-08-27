@@ -14,7 +14,7 @@ jobs:
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -37,7 +37,7 @@ jobs:
   headers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -48,7 +48,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -59,7 +59,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
@@ -90,7 +90,7 @@ jobs:
       - name: Check format exit code
         if: steps.ruff_format.outcome == 'failure'
         run: |
-            echo "Run 'ruff format .' to fix formatting issues"
+            echo "Run 'uv run ruff format .' to fix formatting issues"
             exit 1
 
       - name: Run Ruff lint check
@@ -102,13 +102,13 @@ jobs:
       - name: Check lint exit code
         if: steps.ruff_lint.outcome == 'failure'
         run: |
-          echo "Linting issues detected. Run 'ruff check .' locally to see errors and fix them."
+          echo "Linting issues detected. Run 'uv run ruff check .' locally to see errors and fix them."
           exit 1
 
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: clang-format check
         uses: harrisonkaiser/clang-format-action@verbose
         with:
@@ -118,7 +118,7 @@ jobs:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: nixbuild/nix-quick-install-action@v32
         with:
           nix_conf: experimental-features = nix-command flakes
@@ -127,7 +127,7 @@ jobs:
   nixfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: nixbuild/nix-quick-install-action@v32
         with:
           nix_conf: experimental-features = nix-command flakes

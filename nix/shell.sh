@@ -223,3 +223,17 @@ function apache2_start(){
       echo "Apache is already running. If \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
 }
+
+function rust_integration(){
+    rm -rf build/
+    cmake -B build . \
+	    -D CMAKE_C_COMPILER=clang \
+	    -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+        -D BUILD_TESTING=OFF \
+	    -D S2N_INTERN_LIBCRYPTO=ON
+    cmake --build ./build -j $(nproc)
+    bindings/rust/extended/generate.sh --skip-tests
+    export S2N_TLS_LIB_DIR=$(pwd)/build/lib
+    export S2N_TLS_INCLUDE_DIR=$(pwd)/api
+    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
+}

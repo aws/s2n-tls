@@ -51,6 +51,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
@@ -99,6 +100,14 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
     .libcrypto_nid = NID_X9_62_prime256v1,
     .share_size = SECP256R1_SHARE_SIZE,
     .generate_key = s2n_ecc_evp_generate_key_nist_curves,
+};
+
+const struct s2n_ecc_named_curve s2n_ecc_curve_none = {
+    .iana_id = 0,
+    .name = "none",
+    .libcrypto_nid = 0,
+    .share_size = 0,
+    .generate_key = s2n_ecc_evp_generate_key_noop,
 };
 
 /* All curves that s2n supports. New curves MUST be added here.
@@ -164,6 +173,11 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     return 0;
+}
+
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
