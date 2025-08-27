@@ -36,6 +36,10 @@ phases:
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
   build:
     commands:
-      - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
-      - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
-
+      # We need to install linux kernel headers. Our ktls key update feature probe requires it.
+      - sudo apt install linux-libc-dev
+      # Nix comes with its own linux header files. These are older than the linux kernel version that includes
+      # the key update patch. Therefore, we reference the /usr/include directory when running nix so that
+      # nix knows to use the system's /usr/include directory instead of its own.
+      - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -isystem /usr/include" configure && S2N_NO_HEADBUILD=1 build && unit'
+      - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -isystem /usr/include" configure && S2N_NO_HEADBUILD=1 build && unit'
