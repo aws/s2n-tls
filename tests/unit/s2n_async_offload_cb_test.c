@@ -53,14 +53,14 @@ int main(int argc, char *argv[])
     /* Safety Check */
     {
         struct s2n_async_offload_cb_test test_data = { 0 };
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(NULL, s2n_async_offload_test_callback,
-                S2N_ASYNC_ALLOW_ALL, &test_data), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(NULL, s2n_async_offload_test_callback, S2N_ASYNC_ALLOW_ALL, &test_data),
+                S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(test_config);
         EXPECT_EQUAL(test_config->async_offload_allow_list, S2N_ASYNC_OP_NONE);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(test_config, NULL,
-                S2N_ASYNC_ALLOW_ALL, &test_data), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(test_config, NULL, S2N_ASYNC_ALLOW_ALL, &test_data),
+                S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_config_set_async_offload_callback(test_config, s2n_async_offload_test_callback,
                 S2N_ASYNC_PKEY_VERIFY, &test_data));
