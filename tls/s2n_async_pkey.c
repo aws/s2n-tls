@@ -660,7 +660,7 @@ static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_op *op)
     DEFER_CLEANUP(struct s2n_hash_state digest = verify->digest, s2n_hash_free);
     DEFER_CLEANUP(struct s2n_blob signature = verify->signature, s2n_free);
 
-    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, &verify->digest, &verify->signature) == S2N_SUCCESS,
+    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, &digest, &signature) == S2N_SUCCESS,
             S2N_ERR_VERIFY_SIGNATURE);
 
     return S2N_RESULT_OK;

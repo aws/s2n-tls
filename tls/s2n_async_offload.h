@@ -16,7 +16,6 @@
 #pragma once
 
 #include "api/unstable/async_offload.h"
-
 #include "crypto/s2n_signature.h"
 #include "tls/s2n_handshake.h"
 #include "utils/s2n_blob.h"
