@@ -6,11 +6,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1756146133,
-        "narHash": "sha256-9aNRKoE9Ms+4GupONUZhepWCS4FCdJ7fOaH9k3lSf2I=",
+        "lastModified": 1756236942,
+        "narHash": "sha256-HsbIhcBiLHly/QMy7Hk7qhUBz3NsmyBcXxflT63YRU4=",
         "owner": "aws",
         "repo": "aws-lc",
-        "rev": "12b5dd5c55458165c59e0a339af26a816efc0bc1",
+        "rev": "6d2eb62ba375ebba7ab20ab277332f5bff9e13f0",
         "type": "github"
       },
       "original": {
