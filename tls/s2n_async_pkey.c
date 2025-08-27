@@ -642,6 +642,10 @@ S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_o
     return S2N_RESULT_OK;
 }
 
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_hash_state *, s2n_hash_free);
+
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_blob *, s2n_free);
+
 static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_op *op)
 {
     RESULT_ENSURE_REF(op);
@@ -657,10 +661,10 @@ static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_op *op)
 
     struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
     /* Free the memory allocated in s2n_async_pkey_verify_async() */
-    DEFER_CLEANUP(struct s2n_hash_state digest = verify->digest, s2n_hash_free);
-    DEFER_CLEANUP(struct s2n_blob signature = verify->signature, s2n_free);
+    DEFER_CLEANUP(struct s2n_hash_state *digest = &verify->digest, s2n_hash_free_pointer);
+    DEFER_CLEANUP(struct s2n_blob *signature = &verify->signature, s2n_free_pointer);
 
-    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, &digest, &signature) == S2N_SUCCESS,
+    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, digest, signature) == S2N_SUCCESS,
             S2N_ERR_VERIFY_SIGNATURE);
 
     return S2N_RESULT_OK;

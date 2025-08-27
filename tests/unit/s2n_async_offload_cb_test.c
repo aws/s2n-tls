@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
         {
             .allow_list = 0x10,         /* Test a random value that does not allow ASYNC_PKEY_VERIFY. */
             .cb_return = S2N_FAILURE,   /* Changing callback return value does not fail the handshake */
-            .cb_invoked = 0,            /* because the generic callback is not invoked. */
+            .cb_invoked = 0,            /* because the offloading callback is not invoked. */
         },
         {
             .allow_list = S2N_ASYNC_PKEY_VERIFY,     /* ASYNC_PKEY_VERIFY is allowed. */
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         },
         {
             .allow_list = S2N_ASYNC_ALLOW_ALL,    /* ASYNC_PKEY_VERIFY is allowed. */
-            .cb_return = S2N_FAILURE,   /* Handshake failed because the generic */
+            .cb_return = S2N_FAILURE,   /* Handshake failed because the offloading */
             .cb_invoked = 1,            /* callback failed in the first attempt. */
         },
     };
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         {
             .allow_list = S2N_ASYNC_ALLOW_ALL,
             .client_auth = false,       /* Client auth is not enabled. */
-            .cb_invoked = 1,            /* pkey_verify() is performed only by server side. */
+            .cb_invoked = 1,            /* pkey_verify() is performed only by client side. */
         },
     };
     /* clang-format on */
