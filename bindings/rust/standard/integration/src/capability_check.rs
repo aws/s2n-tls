@@ -24,7 +24,7 @@ impl Libcrypto {
             Err(_) => {
                 println!("S2N_LIBCRYPTO not set, assuming awslc");
                 "awslc".to_string()
-            },
+            }
         };
 
         match libcrypto.as_str() {
