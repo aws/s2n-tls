@@ -13,9 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include <dirent.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/types.h>
 
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_mldsa.h"
+#include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -36,23 +41,34 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_test_cert_permutation_load_server_chain_from_name(
+        struct s2n_cert_chain_and_key **chain_and_key, const char *name)
+{
+    char path_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
+
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    snprintf(path_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
+            "../pems/permutations/%s/server-chain.pem", name);
+    RESULT_GUARD_POSIX(s2n_read_test_pem(path_buffer, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    snprintf(path_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
+            "../pems/permutations/%s/server-key.pem", name);
+    RESULT_GUARD_POSIX(s2n_read_test_pem(path_buffer, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    RESULT_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
         const char *type, const char *signature, const char *size, const char *digest)
 {
-    char path_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH];
-
-    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
-
-    sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-chain.pem", type, signature, size, digest);
-    POSIX_GUARD(s2n_read_test_pem(path_buffer, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-
-    sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-key.pem", type, signature, size, digest);
-    POSIX_GUARD(s2n_read_test_pem(path_buffer, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-
-    POSIX_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
-    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
-
+    char name_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
+    snprintf(name_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
+            "%s_%s_%s_%s", type, signature, size, digest);
+    POSIX_GUARD_RESULT(s2n_test_cert_permutation_load_server_chain_from_name(chain_and_key, name_buffer));
     return S2N_SUCCESS;
 }
 
@@ -141,5 +157,109 @@ S2N_RESULT s2n_test_cert_chain_data_from_pem_data(struct s2n_connection *conn, u
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(cert_chain_stuffer, cert_chain_len));
     RESULT_GUARD_POSIX(s2n_stuffer_copy(&certificate_message_stuffer, cert_chain_stuffer, cert_chain_len));
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
+{
+    /* Load all permutations */
+    {
+        DIR *root = opendir("../pems/permutations");
+        RESULT_ENSURE_REF(root);
+        struct dirent *dir = NULL;
+        while ((dir = readdir(root)) != NULL) {
+            /* Skip ., .., the README, etc.
+             * This is pretty hacky: we can switch to stat later if necessary.
+-            */
+            if (strchr(dir->d_name, '_') == NULL) {
+                continue;
+            }
+            if (!s2n_is_rsa_pss_certs_supported() && strstr(dir->d_name, "pss")) {
+                continue;
+            }
+            if (s2n_libcrypto_is_openssl_fips() && strstr(dir->d_name, "rsae_pkcs_1024_sha1")) {
+                continue;
+            }
+
+            RESULT_ENSURE_LT(chains->count, S2N_MAX_TEST_CERT_CHAINS);
+            struct s2n_test_cert_chain_entry *entry = &chains->chains[chains->count];
+
+            RESULT_GUARD(s2n_test_cert_permutation_load_server_chain_from_name(
+                    &entry->chain, dir->d_name));
+            strcpy(entry->name, dir->d_name);
+
+            chains->count++;
+        }
+        closedir(root);
+    }
+
+    /* Load all MLDSA test certs.
+     * MLDSA is not yet included in permutations due to difficulties generating MLDSA certs.
+     * We instead continue to test with the example certs from the RFC.
+     */
+    if (s2n_mldsa_is_supported()) {
+        const char *mldsa_names[] = { "ML-DSA-44", "ML-DSA-65", "ML-DSA-87" };
+        for (size_t i = 0; i < s2n_array_len(mldsa_names); i++) {
+            RESULT_ENSURE_LT(chains->count, S2N_MAX_TEST_CERT_CHAINS);
+            struct s2n_test_cert_chain_entry *entry = &chains->chains[chains->count];
+
+            char path_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
+
+            char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            snprintf(path_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
+                    "../pems/mldsa/%s.crt", mldsa_names[i]);
+            RESULT_GUARD_POSIX(s2n_read_test_pem(path_buffer, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+
+            char private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            snprintf(path_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
+                    "../pems/mldsa/%s-seed.priv", mldsa_names[i]);
+            RESULT_GUARD_POSIX(s2n_read_test_pem(path_buffer, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+            entry->chain = s2n_cert_chain_and_key_new();
+            RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_pem(
+                    entry->chain, cert_chain_pem, private_key_pem));
+            strcpy(entry->name, mldsa_names[i]);
+
+            chains->count++;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/*
+ * Sets "supported" to a specific value for all chains of a given pkey_type.
+ * "supported" could indicate an index in an array of policies (as in s2n_security_policies_test),
+ * or could indicate a specific policy version, or could simply indicate true/false.
+ * The meaning of the value depends on the structure of the test.
+ */
+S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
+        s2n_pkey_type pkey_type, uint64_t supported)
+{
+    const char *filters[] = {
+        [S2N_PKEY_TYPE_RSA] = "rsae",
+        [S2N_PKEY_TYPE_ECDSA] = "ec_ecdsa",
+        [S2N_PKEY_TYPE_RSA_PSS] = "rsapss",
+        [S2N_PKEY_TYPE_MLDSA] = "ML-DSA",
+    };
+    for (size_t i = 0; i < chains->count; i++) {
+        RESULT_ENSURE(filters[pkey_type], S2N_ERR_INVALID_ARGUMENT);
+        RESULT_ENSURE(strlen(filters[pkey_type]) > 0, S2N_ERR_INVALID_ARGUMENT);
+        struct s2n_test_cert_chain_entry *entry = &chains->chains[i];
+        if (strstr(entry->name, filters[pkey_type])) {
+            entry->supported = supported;
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_test_cert_chains_free(struct s2n_test_cert_chain_list *chains)
+{
+    for (size_t i = 0; i < chains->count; i++) {
+        struct s2n_test_cert_chain_entry *entry = &chains->chains[i];
+        RESULT_GUARD_POSIX(s2n_cert_chain_and_key_free(entry->chain));
+        entry->supported = 0;
+    }
+    chains->count = 0;
     return S2N_RESULT_OK;
 }
