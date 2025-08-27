@@ -20,7 +20,15 @@
 /**
  * @file async_offload.h
  * 
+ * The following APIs enable applications to offload expensive handshake operations that do not require user input.
+ * Users should configure the types of operations to offload via an allow list.
  * 
+ * `s2n_negotiate()` will throw an `S2N_ERR_T_BLOCKED` error if the handshake is blocked by the async callback.
+ * s2n_async_op_perform() must be invoked to unblock the handshake.
+ * 
+ * To perform an operation asynchronously, the following condiditions must be satisfied:
+ * 1) This op type must be included in the allow list;
+ * 2) Async offloading callback returns success and s2n_async_op_perform() is invoked outside the callback.
  */
 
 /**
@@ -53,10 +61,6 @@ typedef int (*s2n_async_offload_cb)(struct s2n_connection *conn, struct s2n_asyn
  * 
  * The default allow list for s2n_config is S2N_ASYNC_OP_NONE.
  *
- * To perform an operation asynchronously, the following condiditions must be satisfied:
- * 1) The op type must be included in the allow_list;
- * 2) Generic async callback returns success and s2n_async_op_perform() is invoked outside the callback.
- * 
  * @param config Config to set the callback
  * @param fn The function that should be called for each supported async operation
  * @param allow_list A bit representation of allowed operations (Bit-OR of all the allowd s2n_async_op_type values)
