@@ -1251,25 +1251,25 @@ int main(int argc, char **argv)
         EXPECT_TRUE(large_test_data_records > 0);
         const size_t test_encryption_limit = large_test_data_records;
 
-        /* Create a cipher_suite with an artificially lower encryption limit */
         struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
         test_record_alg.encryption_limit = test_encryption_limit;
         struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
         test_cipher_suite.record_alg = &test_record_alg;
 
         for (s2n_mode mode = 0; mode <= 1; mode++) {
-            /* Test: Sequence number tracked correctly */
-            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            {
-                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(conn);
-                EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
-                EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
-                EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_mark_all_sent, conn->send_io_context));
-                conn->ktls_send_enabled = true;
-                conn->secure->cipher_suite = &test_cipher_suite;
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_mark_all_sent, conn));
+            conn->ktls_send_enabled = true;
+            EXPECT_NOT_NULL(conn->secure);
+            conn->secure->cipher_suite = &test_cipher_suite;
+            conn->actual_protocol_version = S2N_TLS13;
 
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            /* Test: Sequence number tracked correctly */
+            {
                 DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
                 EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
 
@@ -1301,30 +1301,14 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
 
                 /* Test: Send enough data to hit the encryption limit */
-                if (s2n_ktls_keyupdate_is_supported_on_platform()) {
-                    EXPECT_SUCCESS(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked));
-                    /* After a keyupdate, sequence number is reset to 0. Then the sequence number will
-                     * be incremented to the number of records needed to send large_test_data. */
-                    expected_seq_num = large_test_data_records;
-                } else {
-                    EXPECT_FAILURE_WITH_ERRNO(
-                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                            S2N_ERR_KTLS_KEY_LIMIT);
-                }
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
             };
 
             /* Test: Exact encryption limit boundary */
             {
-                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(conn);
-                EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
-                EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
-                EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_mark_all_sent, conn->send_io_context));
-                conn->ktls_send_enabled = true;
-                conn->secure->cipher_suite = &test_cipher_suite;
-
                 DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
                 EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
 
@@ -1335,27 +1319,14 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
 
                 /* One more record should exceed the encryption limit */
-                if (s2n_ktls_keyupdate_is_supported_on_platform()) {
-                    EXPECT_SUCCESS(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked));
-                } else {
-                    EXPECT_FAILURE_WITH_ERRNO(
-                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                            S2N_ERR_KTLS_KEY_LIMIT);
-                }
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
             };
 
             /* Test: Limit not tracked with TLS1.2 */
             {
-                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(conn);
-                EXPECT_OK(s2n_test_configure_connection_for_ktls(conn, S2N_TLS13, &s2n_tls13_aes_128_gcm_sha256));
-                EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
-                EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_mark_all_sent, conn->send_io_context));
-                conn->ktls_send_enabled = true;
-                conn->secure->cipher_suite = &test_cipher_suite;
-
                 DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
                 EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
 
@@ -1375,13 +1346,10 @@ int main(int argc, char **argv)
 
                 /* Passing the limit with TLS1.3 is an error if key updated is not supported */
                 conn->actual_protocol_version = S2N_TLS13;
-                if (s2n_ktls_keyupdate_is_supported_on_platform()) {
-                    EXPECT_SUCCESS(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked));
-                } else {
-                    EXPECT_FAILURE_WITH_ERRNO(
-                            s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                            S2N_ERR_KTLS_KEY_LIMIT);
-                }
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
+
                 /* Passing the limit with TLS1.2 is NOT an error */
                 conn->actual_protocol_version = S2N_TLS12;
                 EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
