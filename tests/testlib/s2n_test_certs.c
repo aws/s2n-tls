@@ -26,6 +26,9 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
+#define S2N_TEST_CERT_CHAIN_LIST_MAX         19
+#define S2N_TEST_CERT_CHAIN_LIST_MAX_SKIPPED 5
+
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file)
 {
@@ -175,9 +178,11 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
                 continue;
             }
             if (!s2n_is_rsa_pss_certs_supported() && strstr(dir->d_name, "pss")) {
+                chains->skipped++;
                 continue;
             }
             if (s2n_libcrypto_is_openssl_fips() && strstr(dir->d_name, "rsae_pkcs_1024_sha1")) {
+                chains->skipped++;
                 continue;
             }
 
@@ -186,8 +191,6 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
 
             RESULT_GUARD(s2n_test_cert_permutation_load_server_chain_from_name(
                     &entry->chain, dir->d_name));
-            strcpy(entry->name, dir->d_name);
-
             chains->count++;
         }
         closedir(root);
@@ -197,8 +200,8 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
      * MLDSA is not yet included in permutations due to difficulties generating MLDSA certs.
      * We instead continue to test with the example certs from the RFC.
      */
+    const char *mldsa_names[] = { "ML-DSA-44", "ML-DSA-65", "ML-DSA-87" };
     if (s2n_mldsa_is_supported()) {
-        const char *mldsa_names[] = { "ML-DSA-44", "ML-DSA-65", "ML-DSA-87" };
         for (size_t i = 0; i < s2n_array_len(mldsa_names); i++) {
             RESULT_ENSURE_LT(chains->count, S2N_MAX_TEST_CERT_CHAINS);
             struct s2n_test_cert_chain_entry *entry = &chains->chains[chains->count];
@@ -218,11 +221,16 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
             entry->chain = s2n_cert_chain_and_key_new();
             RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_pem(
                     entry->chain, cert_chain_pem, private_key_pem));
-            strcpy(entry->name, mldsa_names[i]);
 
             chains->count++;
         }
+    } else {
+        chains->skipped += s2n_array_len(mldsa_names);
     }
+
+    /* Sanity check result */
+    RESULT_ENSURE_LTE(chains->skipped, S2N_TEST_CERT_CHAIN_LIST_MAX_SKIPPED);
+    RESULT_ENSURE_EQ(chains->skipped + chains->count, S2N_TEST_CERT_CHAIN_LIST_MAX);
 
     return S2N_RESULT_OK;
 }
@@ -234,19 +242,12 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
  * The meaning of the value depends on the structure of the test.
  */
 S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
-        s2n_pkey_type pkey_type, uint64_t supported)
+        s2n_pkey_type target_type, uint64_t supported)
 {
-    const char *filters[] = {
-        [S2N_PKEY_TYPE_RSA] = "rsae",
-        [S2N_PKEY_TYPE_ECDSA] = "ec_ecdsa",
-        [S2N_PKEY_TYPE_RSA_PSS] = "rsapss",
-        [S2N_PKEY_TYPE_MLDSA] = "ML-DSA",
-    };
     for (size_t i = 0; i < chains->count; i++) {
-        RESULT_ENSURE(filters[pkey_type], S2N_ERR_INVALID_ARGUMENT);
-        RESULT_ENSURE(strlen(filters[pkey_type]) > 0, S2N_ERR_INVALID_ARGUMENT);
         struct s2n_test_cert_chain_entry *entry = &chains->chains[i];
-        if (strstr(entry->name, filters[pkey_type])) {
+        s2n_pkey_type entry_type = entry->chain->cert_chain->head->pkey_type;
+        if (entry_type == target_type) {
             entry->supported = supported;
         }
     }

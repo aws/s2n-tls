@@ -211,13 +211,14 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
 #define S2N_MAX_TEST_CERT_CHAINS 100
 struct s2n_test_cert_chain_entry {
     struct s2n_cert_chain_and_key *chain;
-    char name[S2N_MAX_TEST_PEM_PATH_LENGTH];
     /* Use this field to indicate support: by array index, version number, etc. */
     uint64_t supported;
 };
 struct s2n_test_cert_chain_list {
     struct s2n_test_cert_chain_entry chains[S2N_MAX_TEST_CERT_CHAINS];
     size_t count;
+    /* Certs skipped because they were not supported by the libcrypto. */
+    size_t skipped;
 };
 S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains);
 S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
