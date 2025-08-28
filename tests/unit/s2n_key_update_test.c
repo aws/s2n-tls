@@ -165,6 +165,7 @@ int main(int argc, char **argv)
              */
             conn->ktls_send_enabled = true;
             conn->ktls_recv_enabled = true;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
             EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
             EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
 
