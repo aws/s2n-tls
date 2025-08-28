@@ -316,11 +316,9 @@ static S2N_RESULT s2n_ktls_check_estimated_record_limit(
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
     if (total_records_sent > encryption_limit) {
-        if (s2n_ktls_keyupdate_is_supported_on_platform()) {
-            s2n_atomic_flag_set(&conn->key_update_pending);
-        } else {
-            RESULT_BAIL(S2N_ERR_KTLS_KEY_LIMIT);
-        }
+        RESULT_ENSURE_REF(conn->config);
+        RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEY_LIMIT);
+        s2n_atomic_flag_set(&conn->key_update_pending);
     }
 
     return S2N_RESULT_OK;

@@ -38,7 +38,6 @@ typedef enum {
 } s2n_ktls_mode;
 
 bool s2n_ktls_is_supported_on_platform();
-bool s2n_ktls_keyupdate_is_supported_on_platform();
 S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 
 int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len);
