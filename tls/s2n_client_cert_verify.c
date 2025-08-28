@@ -33,7 +33,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    if (conn->op.async_op_state == S2N_ASYNC_NOT_INVOKED) {
+    if (conn->async_op.async_state == S2N_ASYNC_NOT_INVOKED) {
         POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, in));
         const struct s2n_signature_scheme *chosen_sig_scheme = conn->handshake_params.client_cert_sig_scheme;
         POSIX_ENSURE_REF(chosen_sig_scheme);
@@ -51,14 +51,14 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
         /* Verify the signature */
         POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg, hash_state, &signature));
-    } else if (conn->op.async_op_state == S2N_ASYNC_INVOKED) {
+    } else if (conn->async_op.async_state == S2N_ASYNC_INVOKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
     }
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
-    POSIX_GUARD(s2n_async_op_wipe(&conn->op));
+    POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
     return S2N_SUCCESS;
 }
 

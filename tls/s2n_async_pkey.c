@@ -172,7 +172,7 @@ S2N_RESULT s2n_async_cb_execute(struct s2n_connection *conn, struct s2n_async_pk
     ZERO_TO_DISABLE_DEFER_CLEANUP(*owned_op);
 
     conn->handshake.async_state = S2N_ASYNC_INVOKED;
-    RESULT_ENSURE(conn->config->async_pkey_cb(conn, unowned_op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
+    RESULT_ENSURE(conn->config->async_pkey_cb(conn, unowned_op) == S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     /*
      * If the callback already completed the operation, continue.
@@ -677,7 +677,7 @@ static S2N_RESULT s2n_async_pkey_verify_async(struct s2n_connection *conn, struc
     RESULT_ENSURE_REF(digest);
     RESULT_ENSURE_REF(signature);
 
-    struct s2n_async_op *op = &conn->op;
+    struct s2n_async_op *op = &conn->async_op;
     op->conn = conn;
     op->type = S2N_ASYNC_PKEY_VERIFY;
     op->perform = s2n_async_pkey_verify_perform;
@@ -708,7 +708,6 @@ int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm s
     }
 
     if (s2n_async_is_op_in_allow_list(conn->config, S2N_ASYNC_PKEY_VERIFY)) {
-        POSIX_ENSURE_REF(conn->config->async_offload_cb);
         POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, pub_key, sig_alg, digest, signature));
     } else {
         POSIX_GUARD(s2n_pkey_verify(pub_key, sig_alg, digest, signature));

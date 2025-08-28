@@ -21,14 +21,10 @@
  * @file async_offload.h
  * 
  * The following APIs enable applications to offload expensive handshake operations that do not require user input.
- * Users should configure the types of operations to offload via an allow list.
+ * Use s2n_config_set_async_offload_callback() to configure the async callback and the set of operations to offload.
  * 
- * `s2n_negotiate()` will throw an `S2N_ERR_T_BLOCKED` error if the handshake is blocked by the async callback.
+ * `s2n_negotiate()` will throw an `S2N_ERR_T_BLOCKED` error if the handshake is blocked by the offloading callback.
  * s2n_async_op_perform() must be invoked to unblock the handshake.
- * 
- * To perform an operation asynchronously, the following condiditions must be satisfied:
- * 1) This op type must be included in the allow list;
- * 2) Async offloading callback returns success and s2n_async_op_perform() is invoked outside the callback.
  */
 
 /**
@@ -38,6 +34,8 @@ struct s2n_async_op;
 
 /**
  * The type of operations supported by the async offloading callback. Each type is represented by a different bit.
+ * 
+ * WARNING: S2N_ASYNC_ALLOW_ALL will automatically opt in to all the new types added in the future.
  */
 typedef enum {
     S2N_ASYNC_OP_NONE = 0,
@@ -47,7 +45,13 @@ typedef enum {
 
 /**
  * The callback function invoked every time an allowed async operation is encountered during the handshake.
+ * 
+ * To perform an operation asynchronously, the following condiditions must be satisfied:
+ * 1) This op type must be included in the allow list;
+ * 2) Async offloading callback returns success and s2n_async_op_perform() is invoked outside the callback.
  *
+ * If s2n_async_op_perform() is invoked inside the callback, it is equivalent to the synchronous use case.
+ * 
  * `op` is owned by s2n-tls and will be freed along with s2n_connection.
  *
  * @param conn Connection which triggered the async offloading callback
@@ -62,7 +66,7 @@ typedef int (*s2n_async_offload_cb)(struct s2n_connection *conn, struct s2n_asyn
  * The default allow list for s2n_config is S2N_ASYNC_OP_NONE.
  *
  * @param config Config to set the callback
- * @param fn The function that should be called for each supported async operation
+ * @param fn The function that should be called for each allowed async operation
  * @param allow_list A bit representation of allowed operations (Bit-OR of all the allowd s2n_async_op_type values)
  * @param ctx Optional application data passed to the callback
  */
@@ -70,7 +74,9 @@ S2N_API extern int s2n_config_set_async_offload_callback(struct s2n_config *conf
         uint32_t allow_list, void *ctx);
 
 /**
- * Performs the operation triggered by the async offloading callback. Each operation can only call op_perform() once.
+ * Performs the operation triggered by the async offloading callback.
+ * 
+ * op_perform() can only be called once for each triggered operation.
  * 
  * @param op An opaque object representing the async operation
  */

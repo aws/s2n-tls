@@ -31,7 +31,8 @@ struct s2n_async_pkey_verify_data {
 
 struct s2n_async_op {
     s2n_async_op_type type;
-    s2n_async_state async_op_state;
+    s2n_async_state async_state;
+    unsigned perform_invoked : 1;
     struct s2n_connection *conn;
     s2n_async_perform_fn perform;
     /* Collect arguments required by each operation */
@@ -43,5 +44,5 @@ struct s2n_async_op {
 
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_op *op);
 int s2n_async_op_perform(struct s2n_async_op *op);
-int s2n_async_op_wipe(struct s2n_async_op *op);
+S2N_RESULT s2n_async_op_wipe(struct s2n_async_op *op, s2n_async_op_type expected_type);
 bool s2n_async_is_op_in_allow_list(struct s2n_config *config, s2n_async_op_type op_type);

@@ -44,7 +44,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = { 0 };
 
-    if (conn->op.async_op_state == S2N_ASYNC_NOT_INVOKED) {
+    if (conn->async_op.async_state == S2N_ASYNC_NOT_INVOKED) {
         /* Read the KEX data */
         struct s2n_kex_raw_server_data kex_data = { 0 };
         POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
@@ -74,14 +74,14 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         POSIX_ENSURE_GT(signature_length, 0);
 
         POSIX_GUARD(s2n_async_pkey_verify(conn, active_sig_scheme->sig_alg, signature_hash, &signature));
-    } else if (conn->op.async_op_state == S2N_ASYNC_INVOKED) {
+    } else if (conn->async_op.async_state == S2N_ASYNC_INVOKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
     }
 
     /* We don't need the key any more, so free it */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
 
-    POSIX_GUARD(s2n_async_op_wipe(&conn->op));
+    POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
     return 0;
 }
 

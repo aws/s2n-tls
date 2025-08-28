@@ -183,7 +183,7 @@ struct s2n_handshake {
      * should always be APPLICATION_DATA. */
     message_type_t end_of_messages;
 
-    /* State of the async operation during handshake */
+    /* State of the async pkey operation during handshake */
     s2n_async_state async_state;
 
     /* State of the async early data callback.
