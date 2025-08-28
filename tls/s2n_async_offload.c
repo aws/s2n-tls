@@ -75,7 +75,7 @@ S2N_RESULT s2n_async_op_wipe(struct s2n_async_op *op, s2n_async_op_type expected
         return S2N_RESULT_OK;
     }
 
-    RESULT_ENSURE(op->type, expected_type);
+    RESULT_ENSURE_EQ(op->type, expected_type);
     RESULT_ENSURE(op->async_state == S2N_ASYNC_COMPLETE, S2N_ERR_INVALID_STATE);
     RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_op));
 

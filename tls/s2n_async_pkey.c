@@ -172,7 +172,7 @@ S2N_RESULT s2n_async_cb_execute(struct s2n_connection *conn, struct s2n_async_pk
     ZERO_TO_DISABLE_DEFER_CLEANUP(*owned_op);
 
     conn->handshake.async_state = S2N_ASYNC_INVOKED;
-    RESULT_ENSURE(conn->config->async_pkey_cb(conn, unowned_op) == S2N_SUCCESS, S2N_ERR_CANCELLED);
+    RESULT_ENSURE(conn->config->async_pkey_cb(conn, unowned_op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
 
     /*
      * If the callback already completed the operation, continue.
