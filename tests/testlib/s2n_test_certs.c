@@ -26,7 +26,6 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_TEST_CERT_CHAIN_LIST_MAX         19
 #define S2N_TEST_CERT_CHAIN_LIST_MAX_SKIPPED 5
 
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
@@ -186,7 +185,7 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
                 continue;
             }
 
-            RESULT_ENSURE_LT(chains->count, S2N_MAX_TEST_CERT_CHAINS);
+            RESULT_ENSURE_LT(chains->count, S2N_TEST_CERT_CHAIN_LIST_MAX);
             struct s2n_test_cert_chain_entry *entry = &chains->chains[chains->count];
 
             RESULT_GUARD(s2n_test_cert_permutation_load_server_chain_from_name(
@@ -203,7 +202,7 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
     const char *mldsa_names[] = { "ML-DSA-44", "ML-DSA-65", "ML-DSA-87" };
     if (s2n_mldsa_is_supported()) {
         for (size_t i = 0; i < s2n_array_len(mldsa_names); i++) {
-            RESULT_ENSURE_LT(chains->count, S2N_MAX_TEST_CERT_CHAINS);
+            RESULT_ENSURE_LT(chains->count, S2N_TEST_CERT_CHAIN_LIST_MAX);
             struct s2n_test_cert_chain_entry *entry = &chains->chains[chains->count];
 
             char path_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };

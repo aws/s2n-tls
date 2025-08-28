@@ -208,14 +208,14 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
-#define S2N_MAX_TEST_CERT_CHAINS 100
+#define S2N_TEST_CERT_CHAIN_LIST_MAX 19
 struct s2n_test_cert_chain_entry {
     struct s2n_cert_chain_and_key *chain;
     /* Use this field to indicate support: by array index, version number, etc. */
     uint64_t supported;
 };
 struct s2n_test_cert_chain_list {
-    struct s2n_test_cert_chain_entry chains[S2N_MAX_TEST_CERT_CHAINS];
+    struct s2n_test_cert_chain_entry chains[S2N_TEST_CERT_CHAIN_LIST_MAX];
     size_t count;
     /* Certs skipped because they were not supported by the libcrypto. */
     size_t skipped;
