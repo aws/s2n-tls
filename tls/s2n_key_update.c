@@ -67,7 +67,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
 
     /* We need to update the socket with the new keys in the case of ktls */
     if (conn->ktls_recv_enabled) {
-        POSIX_GUARD_RESULT(s2n_ktls_key_update_recv(conn));
+        POSIX_GUARD_RESULT(s2n_ktls_key_update_process(conn));
     }
 
     return S2N_SUCCESS;

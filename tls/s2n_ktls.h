@@ -54,7 +54,7 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
 S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_ktls_crypto_info *crypto_info);
 S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn);
-S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn);
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn);
 
 /* Testing */
 typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name, const void *option_value,
