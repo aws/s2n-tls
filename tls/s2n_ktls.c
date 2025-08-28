@@ -340,7 +340,7 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_key_update_recv(struct s2n_connection *conn)
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
