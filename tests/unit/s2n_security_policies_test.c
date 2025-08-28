@@ -975,6 +975,7 @@ int main(int argc, char **argv)
         {
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240730,
+                &security_policy_20241001,
                 &security_policy_20250512,
                 &security_policy_20250721,
             };
@@ -983,7 +984,7 @@ int main(int argc, char **argv)
                     s2n_test_cert_chains_free);
             EXPECT_OK(s2n_test_cert_chains_init(&cert_chains));
             EXPECT_OK(s2n_test_cert_chains_set_supported(&cert_chains,
-                    S2N_PKEY_TYPE_MLDSA, 1));
+                    S2N_PKEY_TYPE_MLDSA, 2));
 
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
