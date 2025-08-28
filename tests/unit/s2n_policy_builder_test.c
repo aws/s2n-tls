@@ -18,6 +18,46 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+S2N_RESULT s2n_test_strict_compatibility(uint64_t start, uint64_t end,
+        struct s2n_test_cert_chain_list *cert_chains)
+{
+    for (size_t client_i = start; client_i <= end; client_i++) {
+        for (size_t server_i = start; server_i <= end; server_i++) {
+            for (size_t cert_i = 0; cert_i < cert_chains->count; cert_i++) {
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config,
+                        cert_chains->chains[cert_i].chain));
+                EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+                EXPECT_SUCCESS(s2n_connection_set_security_policy(client,
+                        s2n_security_policy_get(S2N_POLICY_STRICT, client_i)));
+
+                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+                EXPECT_SUCCESS(s2n_connection_set_security_policy(server,
+                        s2n_security_policy_get(S2N_POLICY_STRICT, server_i)));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+                /* For now, consider a HRR a potential breaking change.
+                 * We can revisit later if necessary.
+                 */
+                EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server));
+            }
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -81,6 +121,14 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(s2n_security_policy_get(S2N_POLICY_STRICT, S2N_STRICT_2025_08_20));
             EXPECT_NOT_NULL(s2n_security_policy_get(S2N_POLICY_COMPATIBLE, S2N_COMPAT_2025_08_20));
         }
+    };
+
+    /* Test: S2N_POLICY_STRICT backwards compatibility promises enforced */
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 }, s2n_test_cert_chains_free);
+        EXPECT_OK(s2n_test_cert_chains_init(&cert_chains));
+
+        EXPECT_OK(s2n_test_strict_compatibility(1, S2N_STRICT_LATEST_1, &cert_chains));
     };
 
     END_TEST();

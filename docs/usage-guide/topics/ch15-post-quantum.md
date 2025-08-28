@@ -130,6 +130,7 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 |------------|--------------|
 |  v1.5.23   |   20250721   |
 |  v1.5.19   |   20250512   |
+|  v1.5.6    |   20241001   |
 |  v1.5.0    |   20240730   |
 
 ## Visibility

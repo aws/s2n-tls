@@ -36,6 +36,9 @@ typedef enum {
      * It is intended for use cases where the peer is known to support that narrow
      * selection of options, usually because the same owner maintains both the clients
      * and servers involved in connections.
+     *
+     * NOT usable with legacy libcryptos that do not fully support TLS1.3,
+     * like openssl-1.0.2.
      */
     S2N_POLICY_STRICT,
 } s2n_policy_name;
@@ -52,6 +55,14 @@ typedef enum {
      * Supports forward secrecy.
      */
     S2N_STRICT_2025_08_20 = 1,
+    /**
+     * The latest version of S2N_POLICY_STRICT. Currently S2N_STRICT_2025_08_20.
+     * Confirmed to successfully handshake with all previous versions of S2N_POLICY_STRICT,
+     * as well as all previous versions of "default_tls13" and "default_pq".
+     * If a breaking change is introduced to S2N_POLICY_STRICT, then `S2N_STRICT_LATEST_1`
+     * will be frozen and a new `S2N_STRICT_LATEST_2` version will track the latest.
+     */
+    S2N_STRICT_LATEST_1 = S2N_STRICT_2025_08_20,
 } s2n_strict_policy_version;
 
 typedef enum {
