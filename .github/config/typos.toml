@@ -5,7 +5,6 @@ extend-ignore-identifiers-re = [
     "PNGs",
     "_EDE_",
     "ETyp",
-    "(p)assing",
 ]
 
 [default.extend-words]
