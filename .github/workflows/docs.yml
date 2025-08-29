@@ -30,7 +30,7 @@ jobs:
 
       - name: Run typos
         run: |
-          ./scripts/typos --format json | tee /tmp/typos.json | jq -rs '.[] | "::error file=\(.path),line=\(.line_num),col=\(.byte_offset)::\(.typo) should be \"" + (.corrections // [] | join("\" or \"") + "\"")'
+          typos -c .github/config/typos.toml --format json | tee /tmp/typos.json | jq -rs '.[] | "::error file=\(.path),line=\(.line_num),col=\(.byte_offset)::\(.typo) should be \"" + (.corrections // [] | join("\" or \"") + "\"")'
           cat /tmp/typos.json
           ! grep -q '[^[:space:]]' /tmp/typos.json
 

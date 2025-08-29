@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-if ! command -v typos &> /dev/null; then
-    cargo install typos-cli
-fi
-
-eval typos -c .github/config/typos.toml $@
