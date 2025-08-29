@@ -10,6 +10,30 @@ on:
     branches: [main]
 
 jobs:
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup override set stable
+
+      - uses: camshaft/install@v1
+        with:
+          crate: typos-cli
+          bins: typos
+
+      - name: Run typos
+        run: |
+          ./scripts/typos --format json | tee /tmp/typos.json | jq -rs '.[] | "::error file=\(.path),line=\(.line_num),col=\(.byte_offset)::\(.typo) should be \"" + (.corrections // [] | join("\" or \"") + "\"")'
+          cat /tmp/typos.json
+          ! grep -q '[^[:space:]]' /tmp/typos.json
+
   generate-doxygen:
     runs-on: ubuntu-latest
     steps:
