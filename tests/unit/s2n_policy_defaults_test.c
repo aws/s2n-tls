@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/policy/s2n_policy_builder.h"
+#include "tls/policy/s2n_policy_defaults.h"
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
