@@ -33,9 +33,6 @@ thr = "thr"
 [type.rust]
 check-file = false
 
-[type.sh]
-check-file = false
-
 [files]
 extend-exclude = [
     "**/corpus/*",
