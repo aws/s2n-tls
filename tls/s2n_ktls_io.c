@@ -284,8 +284,7 @@ static S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
     return S2N_RESULT_OK;
 }
 
-/* ktls does not currently support updating keys, so we should kill the connection
- * when the key encryption limit is reached. We could get the current record
+/* We need to track when the key encryption limit is reached. We could get the current record
  * sequence number from the kernel with getsockopt, but that requires a surprisingly
  * expensive syscall.
  *
@@ -316,7 +315,12 @@ static S2N_RESULT s2n_ktls_check_estimated_record_limit(
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
-    RESULT_ENSURE(total_records_sent <= encryption_limit, S2N_ERR_KTLS_KEY_LIMIT);
+    if (total_records_sent > encryption_limit) {
+        RESULT_ENSURE_REF(conn->config);
+        RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEY_LIMIT);
+        s2n_atomic_flag_set(&conn->key_update_pending);
+    }
+
     return S2N_RESULT_OK;
 }
 
@@ -422,6 +426,7 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     ssize_t total_bytes = 0;
     POSIX_GUARD_RESULT(s2n_sendv_with_offset_total_size(bufs, count_in, offs_in, &total_bytes));
     POSIX_GUARD_RESULT(s2n_ktls_check_estimated_record_limit(conn, total_bytes));
+    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn));
 
     /* The order of new_bufs and new_bufs_mem matters. See https://github.com/aws/s2n-tls/issues/4354 */
     uint8_t new_bufs_mem[S2N_MAX_STACK_IOVECS_MEM] = { 0 };
@@ -500,6 +505,7 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(conn->ktls_send_enabled, S2N_ERR_KTLS_UNSUPPORTED_CONN);
     POSIX_GUARD_RESULT(s2n_ktls_check_estimated_record_limit(conn, count));
+    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn));
 
     int out_fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &out_fd));

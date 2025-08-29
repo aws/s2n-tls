@@ -148,7 +148,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Key update messages not allowed with ktls */
+        /* Key update messages not allowed with ktls by default */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));

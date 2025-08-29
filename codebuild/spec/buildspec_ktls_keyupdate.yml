@@ -25,6 +25,7 @@ env:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
     NIX_INSTALLER: "https://nixos.org/nix/install"
     S2N_KTLS_TESTING_EXPECTED: 1
+    S2N_KTLS_KEYUPDATE_TESTING_EXPECTED: 1
 phases:
   pre_build:
     commands:
