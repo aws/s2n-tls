@@ -192,7 +192,7 @@ or if called on a connection in a bad state.
 
 `s2n_shutdown()` may also read and decrypt multiple application data records while waiting
 for the close_notify alert. This could result in calls to `s2n_shutdown()` taking a long
-time to complete. If this is a problem, `s2n_shutdown_send()` may be preferrable.
+time to complete. If this is a problem, `s2n_shutdown_send()` may be preferable.
 See [Closing the connection for writes](#closing-the-connection-for-writes) below.
 
 Once `s2n_shutdown()` is complete:

@@ -73,7 +73,7 @@ if [[ -f "/etc/os-release" ]]; then
 elif [[ -x "/usr/bin/sw_vers" ]]; then
   export DISTRO="apple"
   export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
-  export VERSION_CODENAME="unknown"  # not queriable via CLI
+  export VERSION_CODENAME="unknown"  # not queryable via CLI
 else
   export DISTRO="unknown"
   export VERSION_ID="unknown"
