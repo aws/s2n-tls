@@ -211,7 +211,12 @@ S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct 
         .msg_iovlen = msg_iovlen,
     };
 
+#if defined(__QNX__) && (__QNX__ < 800)
+    char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE];
+    memset(control_data, 0, S2N_KTLS_CONTROL_BUFFER_SIZE);
+#else
     char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE] = { 0 };
+#endif
     RESULT_GUARD(s2n_ktls_set_control_data(&msg, control_data, sizeof(control_data),
             S2N_TLS_SET_RECORD_TYPE, record_type));
 
@@ -254,7 +259,12 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
      * member of the msghdr with the length of the control message
      * buffer.
      */
+#if defined(__QNX__) && (__QNX__ < 800)
+    char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE];
+    memset(control_data, 0, S2N_KTLS_CONTROL_BUFFER_SIZE);
+#else
     char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE] = { 0 };
+#endif
     msg.msg_controllen = sizeof(control_data);
     msg.msg_control = control_data;
 

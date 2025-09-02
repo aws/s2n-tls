@@ -28,6 +28,10 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_sslv2_record_header_parse(
         struct s2n_connection *conn,
         uint8_t *record_type,

@@ -21,6 +21,10 @@
 #include "tls/s2n_security_policies.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version)
 {
     RESULT_ENSURE_REF(min_version);

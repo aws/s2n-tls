@@ -30,6 +30,11 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 extern uint8_t s2n_unknown_protocol_version;
 
 /* In TLS1.3 the record type is obfuscated as APPLICATION_DATA once the handshake begins to be encrypted.

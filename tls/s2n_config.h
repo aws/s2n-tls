@@ -45,6 +45,10 @@
 #define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
 #define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 struct s2n_cipher_preferences;
 
 typedef enum {

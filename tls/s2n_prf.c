@@ -35,6 +35,10 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 /* The s2n p_hash implementation is abstracted to allow for separate implementations.
  * Currently the only implementation uses s2n-tls's custom HMAC implementation.
  */

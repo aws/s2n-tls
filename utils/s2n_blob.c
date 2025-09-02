@@ -23,6 +23,10 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_blob_validate(const struct s2n_blob *b)
 {
     RESULT_ENSURE_REF(b);

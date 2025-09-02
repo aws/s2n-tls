@@ -33,6 +33,10 @@
  * We may want to make this configurable someday, but just set a reasonable maximum for now. */
 #define MAX_REJECTED_TICKETS 3
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_client_psk_is_missing(struct s2n_connection *conn);

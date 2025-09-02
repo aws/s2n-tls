@@ -36,6 +36,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint32_t total)
 {
     RESULT_ENSURE_REF(conn);
