@@ -46,30 +46,27 @@ int s2n_async_offload_test_callback(struct s2n_connection *conn, struct s2n_asyn
     return data->result;
 }
 
-static int test_handshake_async(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
+static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
         struct s2n_async_offload_cb_test *data)
 {
-    /* Test retry while handshake is blocked */
-    for (int i = 0; i < 3; i++) {
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                S2N_ERR_ASYNC_BLOCKED);
-    }
-
     while (true) {
         int ret_val = s2n_negotiate_test_server_and_client(server_conn, client_conn);
 
-        if (ret_val == 0) {
-            break;
-        } else if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+        if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+            /* Handshake remains blocked as long as op_perform() is not invoked. */
+            for (int i = 0; i < 3; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_ASYNC_BLOCKED);
+            }
+
             EXPECT_SUCCESS(s2n_async_op_perform(data->op));
             /* Each operation can only be performed once. */
             EXPECT_FAILURE_WITH_ERRNO(s2n_async_op_perform(data->op), S2N_ERR_INVALID_STATE);
         } else {
-            return s2n_errno;
+            return ret_val;
         }
     }
-
-    return S2N_SUCCESS;
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -236,7 +233,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-            EXPECT_SUCCESS(test_handshake_async(server_conn, client_conn, &data));
+            EXPECT_SUCCESS(s2n_test_handshake_async(server_conn, client_conn, &data));
             EXPECT_EQUAL(data.invoked_count, async_tests[test_idx].cb_invoked);
         }
     }

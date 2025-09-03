@@ -81,7 +81,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     /* We don't need the key any more, so free it */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
 
-    POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
+    POSIX_GUARD_RESULT(s2n_async_op_reset(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
     return 0;
 }
 

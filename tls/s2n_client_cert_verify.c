@@ -58,7 +58,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
-    POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
+    POSIX_GUARD_RESULT(s2n_async_op_reset(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
     return S2N_SUCCESS;
 }
 

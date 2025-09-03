@@ -148,10 +148,11 @@ uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode)
 
 int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
     if (conn->async_op.async_state == S2N_ASYNC_INVOKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
     } else if (conn->async_op.async_state == S2N_ASYNC_COMPLETE) {
-        POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
+        POSIX_GUARD_RESULT(s2n_async_op_reset(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
         return S2N_SUCCESS;
     }
 
@@ -209,6 +210,6 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg,
             &message_hash, &signed_content));
 
-    POSIX_GUARD_RESULT(s2n_async_op_wipe(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
+    POSIX_GUARD_RESULT(s2n_async_op_reset(&conn->async_op, S2N_ASYNC_PKEY_VERIFY));
     return 0;
 }

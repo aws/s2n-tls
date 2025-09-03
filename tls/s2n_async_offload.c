@@ -65,9 +65,9 @@ int s2n_async_op_perform(struct s2n_async_op *op)
 
 /**
  * MUST be called at the end of each handshake state handler that may invoke async_offload_cb
- * to clean up the op object and async state.
+ * to clean up the op object for its next use.
  */
-S2N_RESULT s2n_async_op_wipe(struct s2n_async_op *op, s2n_async_op_type expected_type)
+S2N_RESULT s2n_async_op_reset(struct s2n_async_op *op, s2n_async_op_type expected_type)
 {
     RESULT_ENSURE_REF(op);
     /* Sync case: async_offload_cb not invoked in the current state */
@@ -75,8 +75,9 @@ S2N_RESULT s2n_async_op_wipe(struct s2n_async_op *op, s2n_async_op_type expected
         return S2N_RESULT_OK;
     }
 
-    RESULT_ENSURE_EQ(op->type, expected_type);
     RESULT_ENSURE(op->async_state == S2N_ASYNC_COMPLETE, S2N_ERR_INVALID_STATE);
+    /* Check op type in case that a previous handshake state forgot to call op_reset() */
+    RESULT_ENSURE_EQ(op->type, expected_type);
     RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_op));
 
     return S2N_RESULT_OK;

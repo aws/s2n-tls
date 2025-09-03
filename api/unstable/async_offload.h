@@ -52,7 +52,7 @@ typedef enum {
  *
  * If s2n_async_op_perform() is invoked inside the callback, it is equivalent to the synchronous use case.
  * 
- * `op` is owned by s2n-tls and will be freed along with s2n_connection.
+ * `op` is owned by s2n-tls and op data will be freed in the call to `s2n_async_op_perform()`.
  *
  * @param conn Connection which triggered the async offloading callback
  * @param op An opaque object representing the async operation
