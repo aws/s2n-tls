@@ -29,6 +29,10 @@
 #define OK_SEND_RESULT { .result = INT_MAX }
 /* clang-format on */
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 enum s2n_test_mfl {
     S2N_MFL_DEFAULT = 0,
     S2N_MFL_LARGE,

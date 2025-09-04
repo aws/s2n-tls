@@ -33,6 +33,10 @@
 #define OK_SEND_RESULT { .result = INT_MAX }
 /* clang-format on */
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size);
 

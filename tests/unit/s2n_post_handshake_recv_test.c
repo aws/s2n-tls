@@ -30,6 +30,10 @@
 
 #define S2N_TEST_MESSAGE_COUNT 5
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_key_update_write(struct s2n_blob *out);
 
 size_t tickets_count = 0;

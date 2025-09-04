@@ -50,6 +50,10 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 ssize_t get_vm_data_size()
 {
     long page_size = 0;

@@ -24,6 +24,9 @@
 #define S2N_LAST_TLS12_HANDSHAKE_FLAG   WITH_SESSION_TICKET
 #define S2N_FIRST_TLS13_HANDSHAKE_FLAG  HELLO_RETRY_REQUEST
 #define S2N_LAST_TLS13_HANDSHAKE_FLAG   EARLY_CLIENT_CCS
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
 
 int main(int argc, char **argv)
 {

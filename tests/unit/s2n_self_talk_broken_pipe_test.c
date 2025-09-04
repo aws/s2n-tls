@@ -146,7 +146,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Give client a chance to close pipe at the receiving end */
+#if !defined(__QNX__)
         sleep(1);
+#else
+        sleep(4);
+#endif
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
