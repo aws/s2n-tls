@@ -24,7 +24,7 @@ struct s2n_security_policy_builder {
  * Use a macro to avoid writing multiple copies of the same basic methods.
  */
 #define S2N_DEFINE_PREFERENCE_LIST_FUNCTIONS(pref_type, entry_type, list_name, count_name)              \
-    S2N_RESULT pref_type##_copy(const struct pref_type *original, const struct pref_type **copy)        \
+    static S2N_RESULT pref_type##_copy(const struct pref_type *original, const struct pref_type **copy) \
     {                                                                                                   \
         RESULT_ENSURE_REF(copy);                                                                        \
         if (original == NULL) {                                                                         \
@@ -49,7 +49,7 @@ struct s2n_security_policy_builder {
         return S2N_RESULT_OK;                                                                           \
     }                                                                                                   \
                                                                                                         \
-    S2N_CLEANUP_RESULT pref_type##_free(const struct pref_type **prefs_ptr)                             \
+    static S2N_CLEANUP_RESULT pref_type##_free(const struct pref_type **prefs_ptr)                      \
     {                                                                                                   \
         if (!prefs_ptr) {                                                                               \
             return S2N_RESULT_OK;                                                                       \
@@ -82,7 +82,13 @@ S2N_DEFINE_PREFERENCE_LIST_FUNCTIONS(
 S2N_DEFINE_PREFERENCE_LIST_FUNCTIONS(
         s2n_kem_preferences, const struct s2n_kem_group *, tls13_kem_groups, tls13_kem_group_count)
 
-S2N_RESULT s2n_security_policy_copy(const struct s2n_security_policy *original, struct s2n_security_policy **copy)
+/* Safety: this method does not break if new lists are added to s2n_security_policy.
+ * The copy will simply inherit the static version of the new list from the original,
+ * just like it inherits the values of non-list fields.
+ * The only requirement is that s2n_security_policy_free free every list created
+ * by s2n_security_policy_copy.
+ */
+static S2N_RESULT s2n_security_policy_copy(const struct s2n_security_policy *original, struct s2n_security_policy **copy)
 {
     RESULT_ENSURE_REF(original);
     RESULT_ENSURE_REF(copy);
@@ -94,6 +100,7 @@ S2N_RESULT s2n_security_policy_copy(const struct s2n_security_policy *original, 
                           (struct s2n_security_policy *) (void *) mem.data,
             s2n_security_policy_free);
     RESULT_CHECKED_MEMCPY(mem.data, original, mem.size);
+    policy->alloced = true;
 
     /* No existing policy still has TLS1.2 KEMs. Ignore them for simplicity. */
     RESULT_ENSURE(original->kem_preferences->kem_count == 0, S2N_ERR_DEPRECATED_SECURITY_POLICY);
@@ -153,7 +160,7 @@ struct s2n_security_policy_builder *s2n_security_policy_builder_from_version(con
 
     PTR_GUARD_POSIX(s2n_find_security_policy_from_version(version, &builder->base_policy));
     PTR_ENSURE_REF(builder->base_policy);
-    PTR_ENSURE(!builder->base_policy->alloced, S2N_ERR_INVALID_SECURITY_POLICY);
+    PTR_ENSURE_EQ(builder->base_policy->alloced, false);
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return builder;
@@ -164,12 +171,7 @@ int s2n_security_policy_builder_free(struct s2n_security_policy_builder **builde
     if (!builder_ptr) {
         return S2N_SUCCESS;
     }
-    struct s2n_security_policy_builder *builder = *builder_ptr;
-    *builder_ptr = NULL;
-    if (!builder) {
-        return S2N_SUCCESS;
-    }
-    POSIX_GUARD(s2n_free_object((uint8_t **) &builder, sizeof(struct s2n_security_policy_builder)));
+    POSIX_GUARD(s2n_free_object((uint8_t **) builder_ptr, sizeof(struct s2n_security_policy_builder)));
     return S2N_SUCCESS;
 }
 
@@ -182,6 +184,5 @@ struct s2n_security_policy *s2n_security_policy_build(struct s2n_security_policy
     struct s2n_security_policy *policy = NULL;
     PTR_GUARD_RESULT(s2n_security_policy_copy(builder->base_policy, &policy));
     PTR_ENSURE_REF(policy);
-    policy->alloced = true;
     return policy;
 }
