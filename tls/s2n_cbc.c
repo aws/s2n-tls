@@ -23,6 +23,11 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 /* A TLS CBC record looks like ..
  *
  * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]

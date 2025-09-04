@@ -77,6 +77,9 @@ const char *s2n_ja4_version_strings[] = {
  *# Unknown = “00”
  */
 #define S2N_JA4_UNKNOWN_STR "00"
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
 
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_stuffer *, s2n_stuffer_wipe);
 

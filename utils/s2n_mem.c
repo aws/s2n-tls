@@ -30,6 +30,10 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 static uint32_t page_size = 4096;
 static bool initialized = false;
 

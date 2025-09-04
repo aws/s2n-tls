@@ -59,6 +59,9 @@
 
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
 
 static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
         const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);

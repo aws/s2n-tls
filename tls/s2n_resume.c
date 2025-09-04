@@ -28,6 +28,10 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
     /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,

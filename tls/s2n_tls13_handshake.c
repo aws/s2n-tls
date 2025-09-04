@@ -19,6 +19,10 @@
 #include "tls/s2n_key_log.h"
 #include "tls/s2n_security_policies.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
 {
     POSIX_ENSURE_REF(conn);
