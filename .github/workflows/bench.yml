@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -41,7 +41,7 @@ jobs:
       - name: Configure AWS Credentials
         # Only continue with the workflow to emit metrics on code that has been merged to main.
         if: github.event_name != 'pull_request'
-        uses: aws-actions/configure-aws-credentials@v4.3.1
+        uses: aws-actions/configure-aws-credentials@v5.0.0
         with:
           role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
           role-session-name: s2ntlsghabenchsession
