@@ -25,6 +25,10 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.1
  *
