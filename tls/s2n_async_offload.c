@@ -69,6 +69,7 @@ int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
 S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
+    /* offload_op_reset() has been called */
     if (op->op_data_free == NULL) {
         return S2N_RESULT_OK;
     }

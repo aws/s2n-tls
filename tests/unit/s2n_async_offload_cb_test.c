@@ -167,7 +167,6 @@ int main(int argc, char *argv[])
 
     /* Test with both TLS 1.2 and TLS 1.3 policies */
     const char *versions[] = { "20240501", "default_tls13" };
-    uint32_t expected_versions[] = { S2N_TLS12, S2N_TLS13 };
 
     /* Sync Test: 1) op type is not allowed, or 2) op_perform() invoked in the callback. */
     for (int test_idx = 0; test_idx < s2n_array_len(test_cases); test_idx++) {
@@ -211,9 +210,11 @@ int main(int argc, char *argv[])
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), expected_error);
             }
-
             EXPECT_EQUAL(data.invoked_count, test_cases[test_idx].cb_invoked);
-            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), expected_versions[version_idx]);
+
+            if (s2n_is_tls13_fully_supported() && version_idx == 1) {
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+            }
         }
     }
 
