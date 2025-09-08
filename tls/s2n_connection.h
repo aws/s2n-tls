@@ -354,7 +354,7 @@ struct s2n_connection {
 
     struct s2n_x509_validator x509_validator;
 
-    struct s2n_async_op async_op;
+    struct s2n_async_offload_op async_offload_op;
 
     /* After a connection is created this is the verification function that should always be used. At init time,
      * the config should be checked for a verify callback and each connection should default to that. However,

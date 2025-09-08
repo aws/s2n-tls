@@ -21,7 +21,27 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
-typedef S2N_RESULT (*s2n_async_perform_fn)(struct s2n_async_op *op);
+/**
+ * Macro to handle async re-entry in a handshake state handler that may invoke the async offloading callback.
+ * Add this guard to the code that should only be executed in the initial entry (i.e. when async_state ==
+ * S2N_ASYNC_NOT_INVOKED). If the async operation is invoked but not completed, we throw an error to indicate
+ * the handshake is still blocked. After the async operation is completed and the user retries s2n_negotiate(),
+ * we reset the async_offload_op object and proceed with the remaining code in the current state.
+ */
+#define S2N_ASYNC_OFFLOAD_GUARD(conn, code)                               \
+    POSIX_ENSURE_REF(conn);                                               \
+    if (conn->async_offload_op.async_state == S2N_ASYNC_NOT_INVOKED) {    \
+        code;                                                             \
+    } else if (conn->async_offload_op.async_state == S2N_ASYNC_INVOKED) { \
+        POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);                                \
+    }                                                                     \
+    POSIX_GUARD_RESULT(s2n_async_offload_op_reset(&conn->async_offload_op));
+
+#define S2N_ASYNC_OFFLOAD_OP_NONE 0
+
+typedef S2N_RESULT (*s2n_async_offload_perform_fn)(struct s2n_async_offload_op *op);
+
+typedef S2N_RESULT (*s2n_async_offload_op_data_free)(struct s2n_async_offload_op *op);
 
 struct s2n_async_pkey_verify_data {
     struct s2n_hash_state digest;
@@ -29,12 +49,13 @@ struct s2n_async_pkey_verify_data {
     struct s2n_blob signature;
 };
 
-struct s2n_async_op {
-    s2n_async_op_type type;
+struct s2n_async_offload_op {
+    s2n_async_offload_op_type type;
     s2n_async_state async_state;
     unsigned perform_invoked : 1;
     struct s2n_connection *conn;
-    s2n_async_perform_fn perform;
+    s2n_async_offload_perform_fn perform;
+    s2n_async_offload_op_data_free op_data_free;
     /* Collect arguments required by each operation */
     union {
         struct s2n_async_pkey_verify_data async_pkey_verify;
@@ -42,7 +63,8 @@ struct s2n_async_op {
     } op_data;
 };
 
-S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_op *op);
-int s2n_async_op_perform(struct s2n_async_op *op);
-S2N_RESULT s2n_async_op_reset(struct s2n_async_op *op, s2n_async_op_type expected_type);
-bool s2n_async_is_op_in_allow_list(struct s2n_config *config, s2n_async_op_type op_type);
+S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op);
+int s2n_async_offload_op_perform(struct s2n_async_offload_op *op);
+S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op);
+S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op);
+bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);

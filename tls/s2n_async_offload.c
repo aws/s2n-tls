@@ -25,13 +25,16 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_op *op)
+S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_REF(conn->config->async_offload_cb);
+
     RESULT_ENSURE_REF(op);
     RESULT_ENSURE_REF(op->perform);
+    RESULT_ENSURE_REF(op->op_data_free);
     RESULT_ENSURE(op->async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
-    RESULT_ENSURE_REF(conn->config->async_offload_cb);
 
     op->async_state = S2N_ASYNC_INVOKED;
     RESULT_ENSURE(conn->config->async_offload_cb(conn, op, conn->config->async_offload_ctx) == S2N_SUCCESS,
@@ -47,12 +50,12 @@ S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_a
     RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
 }
 
-int s2n_async_op_perform(struct s2n_async_op *op)
+int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
 {
     POSIX_ENSURE_REF(op);
     POSIX_ENSURE(!op->perform_invoked, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(op->async_state == S2N_ASYNC_INVOKED, S2N_ERR_INVALID_STATE);
-    POSIX_ENSURE(op->type != S2N_ASYNC_OP_NONE, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(op->type != S2N_ASYNC_OFFLOAD_OP_NONE, S2N_ERR_INVALID_STATE);
 
     POSIX_ENSURE_REF(op->conn);
     POSIX_ENSURE_REF(op->perform);
@@ -63,27 +66,37 @@ int s2n_async_op_perform(struct s2n_async_op *op)
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op)
+{
+    RESULT_ENSURE_REF(op);
+    if (op->op_data_free == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD(op->op_data_free(op));
+    return S2N_RESULT_OK;
+}
+
 /**
  * MUST be called at the end of each handshake state handler that may invoke async_offload_cb
  * to clean up the op object for its next use.
  */
-S2N_RESULT s2n_async_op_reset(struct s2n_async_op *op, s2n_async_op_type expected_type)
+S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
-    /* Sync case: async_offload_cb not invoked in the current state */
+    /* Sync case without the callback: async_offload_cb not invoked in the current state */
     if (op->async_state == S2N_ASYNC_NOT_INVOKED) {
         return S2N_RESULT_OK;
     }
 
     RESULT_ENSURE(op->async_state == S2N_ASYNC_COMPLETE, S2N_ERR_INVALID_STATE);
-    /* Check op type in case that a previous handshake state forgot to call op_reset() */
-    RESULT_ENSURE_EQ(op->type, expected_type);
-    RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_op));
+    RESULT_GUARD(s2n_async_offload_free_op_data(op));
+    RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_offload_op));
 
     return S2N_RESULT_OK;
 }
 
-bool s2n_async_is_op_in_allow_list(struct s2n_config *config, s2n_async_op_type op_type)
+bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type)
 {
     return config && (config->async_offload_allow_list & op_type);
 }

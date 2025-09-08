@@ -642,15 +642,23 @@ S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_o
     return S2N_RESULT_OK;
 }
 
-DEFINE_POINTER_CLEANUP_FUNC(struct s2n_hash_state *, s2n_hash_free);
+static S2N_RESULT s2n_async_pkey_verify_data_free(struct s2n_async_offload_op *op) {
+    RESULT_ENSURE_REF(op);
 
-DEFINE_POINTER_CLEANUP_FUNC(struct s2n_blob *, s2n_free);
+    struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
+    RESULT_GUARD_POSIX(s2n_hash_free(&verify->digest));
+    RESULT_GUARD_POSIX(s2n_free(&verify->signature));
 
-static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_op *op)
+    return S2N_RESULT_OK;
+}
+
+// DEFINE_POINTER_CLEANUP_FUNC(struct s2n_async_pkey_verify_data *, s2n_async_pkey_verify_data_free);
+
+static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
     RESULT_ENSURE_REF(op->conn);
-    RESULT_ENSURE(op->type == S2N_ASYNC_PKEY_VERIFY, S2N_ERR_INVALID_ARGUMENT);
+    RESULT_ENSURE_EQ(op->type, S2N_ASYNC_OFFLOAD_PKEY_VERIFY);
 
     struct s2n_pkey *pub_key = NULL;
     if (op->conn->mode == S2N_CLIENT) {
@@ -659,12 +667,11 @@ static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_op *op)
         pub_key = &op->conn->handshake_params.client_public_key;
     }
 
-    struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
-    /* Free the memory allocated in s2n_async_pkey_verify_async() */
-    DEFER_CLEANUP(struct s2n_hash_state *digest = &verify->digest, s2n_hash_free_pointer);
-    DEFER_CLEANUP(struct s2n_blob *signature = &verify->signature, s2n_free_pointer);
+    // DEFER_CLEANUP(struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify,
+    //         s2n_async_pkey_verify_data_free_pointer);
 
-    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, digest, signature) == S2N_SUCCESS,
+    struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
+    RESULT_ENSURE(s2n_pkey_verify(pub_key, verify->sig_alg, &verify->digest, &verify->signature) == S2N_SUCCESS,
             S2N_ERR_VERIFY_SIGNATURE);
 
     return S2N_RESULT_OK;
@@ -677,10 +684,11 @@ static S2N_RESULT s2n_async_pkey_verify_async(struct s2n_connection *conn, struc
     RESULT_ENSURE_REF(digest);
     RESULT_ENSURE_REF(signature);
 
-    struct s2n_async_op *op = &conn->async_op;
+    struct s2n_async_offload_op *op = &conn->async_offload_op;
     op->conn = conn;
-    op->type = S2N_ASYNC_PKEY_VERIFY;
+    op->type = S2N_ASYNC_OFFLOAD_PKEY_VERIFY;
     op->perform = s2n_async_pkey_verify_perform;
+    op->op_data_free = s2n_async_pkey_verify_data_free;
 
     struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
     verify->sig_alg = sig_alg;
@@ -707,7 +715,7 @@ int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm s
         pub_key = &conn->handshake_params.client_public_key;
     }
 
-    if (s2n_async_is_op_in_allow_list(conn->config, S2N_ASYNC_PKEY_VERIFY)) {
+    if (s2n_async_offload_is_op_in_allow_list(conn->config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY)) {
         POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, pub_key, sig_alg, digest, signature));
     } else {
         POSIX_GUARD(s2n_pkey_verify(pub_key, sig_alg, digest, signature));
