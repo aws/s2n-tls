@@ -45,7 +45,7 @@ mod memory_test {
         /// ```
         ///
         /// This is necessary because the [`std::alloc::dealloc`] requires the length of
-        /// the blob to be deallocated, but the AWS-LC memory `free`` callback does not
+        /// the blob to be deallocated, but the AWS-LC memory `free` callback does not
         /// return the length.
         struct TaggedAllocation {
             /// the private view
