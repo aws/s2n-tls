@@ -98,8 +98,8 @@ jobs:
       # memory tests are sensitive because memory usage is platform/feature specific
       - name: sensitive integration tests
         working-directory: ${{env.STANDARD_PATH}}/integration
-        # no-default-features is used because network tests are hidden behind a
-        # default "negative" feature. This is because we don't want network tests
+        # no-default-features is used because sensitive tests are hidden behind a
+        # default "negative" feature. This is because we don't want sensitive tests
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
