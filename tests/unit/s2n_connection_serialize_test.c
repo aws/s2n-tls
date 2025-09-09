@@ -638,7 +638,6 @@ int main(int argc, char **argv)
             server_ptr = new_server;
         }
         EXPECT_SUCCESS(s2n_connection_free(server_ptr));
-
     };
 
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
