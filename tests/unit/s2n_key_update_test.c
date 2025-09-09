@@ -175,8 +175,10 @@ int main(int argc, char **argv)
             conn->ktls_send_enabled = true;
             conn->ktls_recv_enabled = false;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_REQUESTED));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_KTLS_KEYUPDATE);
 
             /* Succeeds if only sending with ktls and no update requested:
              * No kernel key update would be required.
@@ -527,7 +529,7 @@ int main(int argc, char **argv)
             /* Fails if KeyUpdate required */
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_key_update_send(conn, &blocked),
-                    S2N_ERR_KTLS_KEY_LIMIT);
+                    S2N_ERR_KTLS_KEYUPDATE);
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
         };
     };
