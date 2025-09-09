@@ -291,8 +291,7 @@ static S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
  * Instead, we track the estimated sequence number and enforce the limit based
  * on that estimate.
  */
-static S2N_RESULT s2n_ktls_check_estimated_record_limit(
-        struct s2n_connection *conn, size_t bytes_requested)
+S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested)
 {
     RESULT_ENSURE_REF(conn);
     if (conn->actual_protocol_version < S2N_TLS13) {
@@ -425,8 +424,7 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 
     ssize_t total_bytes = 0;
     POSIX_GUARD_RESULT(s2n_sendv_with_offset_total_size(bufs, count_in, offs_in, &total_bytes));
-    POSIX_GUARD_RESULT(s2n_ktls_check_estimated_record_limit(conn, total_bytes));
-    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn));
+    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn, total_bytes));
 
     /* The order of new_bufs and new_bufs_mem matters. See https://github.com/aws/s2n-tls/issues/4354 */
     uint8_t new_bufs_mem[S2N_MAX_STACK_IOVECS_MEM] = { 0 };
@@ -504,8 +502,7 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
     *bytes_written = 0;
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(conn->ktls_send_enabled, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    POSIX_GUARD_RESULT(s2n_ktls_check_estimated_record_limit(conn, count));
-    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn));
+    POSIX_GUARD_RESULT(s2n_ktls_key_update_send(conn, count));
 
     int out_fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &out_fd));

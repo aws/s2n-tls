@@ -43,16 +43,10 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     POSIX_ENSURE_REF(conn->config);
     POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
-    if (conn->ktls_recv_enabled) {
-        POSIX_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
-    }
 
     uint8_t key_update_request = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
     if (key_update_request == S2N_KEY_UPDATE_REQUESTED) {
-        if (conn->ktls_send_enabled) {
-            POSIX_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
-        }
         s2n_atomic_flag_set(&conn->key_update_pending);
     } else {
         POSIX_ENSURE(key_update_request == S2N_KEY_UPDATE_NOT_REQUESTED, S2N_ERR_BAD_MESSAGE);
@@ -84,7 +78,7 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
     POSIX_GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (s2n_atomic_flag_test(&conn->key_update_pending)) {
-        POSIX_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_KEY_LIMIT);
+        POSIX_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
         /* Flush any buffered records to ensure an empty output buffer.
          *
