@@ -597,8 +597,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        DEFER_CLEANUP(struct s2n_connection *first_server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
+        /* Not using DEFER_CLEANUP as we need to be specific about where this server is freed */
+        struct s2n_connection *first_server = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(first_server);
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_array[i]));
@@ -614,45 +614,28 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_and_recv_test(first_server, client_conn));
         EXPECT_OK(s2n_send_and_recv_test(client_conn, first_server));
 
-        /* First serialization */
-        uint8_t first_serialization[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_connection_serialize(first_server, first_serialization, sizeof(first_serialization)));
+        struct s2n_connection *server_ptr = first_server;
 
-        /* Second deserialization */
-        DEFER_CLEANUP(struct s2n_connection *second_server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(second_server);
-        EXPECT_SUCCESS(s2n_connection_deserialize(second_server, first_serialization, sizeof(first_serialization)));
+        for (size_t j = 0; j < 10; j++) {
+            uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_serialize(server_ptr, serialized_data, sizeof(serialized_data)));
+            EXPECT_SUCCESS(s2n_connection_free(server_ptr));
 
-        /* Wipe and re-initialize IO pipes */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, second_server, &io_pair));
+            struct s2n_connection *new_server = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(new_server);
+            EXPECT_SUCCESS(s2n_connection_set_config(new_server, config_array[i]));
+            EXPECT_SUCCESS(s2n_connection_deserialize(new_server, serialized_data, sizeof(serialized_data)));
 
-        /* Another send and recv */
-        EXPECT_OK(s2n_send_and_recv_test(second_server, client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(client_conn, second_server));
+            /* Wipe and re-initialize IO pipes */
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server, &io_pair));
 
-        /* Second serialization. Note that the server needs a config with the serialization version set. */
-        EXPECT_SUCCESS(s2n_connection_set_config(second_server, config_array[i]));
-        uint8_t second_serialization[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_connection_serialize(second_server, second_serialization, sizeof(second_serialization)));
-
-        /* Second deserialization */
-        DEFER_CLEANUP(struct s2n_connection *third_server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(third_server);
-        EXPECT_SUCCESS(s2n_connection_deserialize(third_server, second_serialization, sizeof(second_serialization)));
-
-        /* Wipe and re-initialize IO pipes */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, third_server, &io_pair));
-
-        /* Server can send and recv as usual */
-        for (size_t idx = 0; idx < 1000; idx++) {
-            EXPECT_OK(s2n_send_and_recv_test(third_server, client_conn));
-            EXPECT_OK(s2n_send_and_recv_test(client_conn, third_server));
+            for (size_t idx = 0; idx < 100; idx++) {
+                EXPECT_OK(s2n_send_and_recv_test(new_server, client_conn));
+                EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server));
+            }
+            server_ptr = new_server;
         }
     };
 
