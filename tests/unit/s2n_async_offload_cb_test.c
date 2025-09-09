@@ -23,6 +23,8 @@
 #include "tls/s2n_security_policies.h"
 #include "utils/s2n_safety.h"
 
+#define S2N_ASYNC_OFFLOAD_OP_NONE 0
+
 struct s2n_async_offload_cb_test {
     unsigned async_test : 1;
     int result;
@@ -203,7 +205,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             s2n_error expected_error = test_cases[test_idx].expected_error;
-            if (expected_error == S2N_ERR_ASYNC_BLOCKED) {
+            if (test_cases[test_idx].async_test) {
                 EXPECT_SUCCESS(s2n_test_handshake_async(server_conn, client_conn, &data));
             } else if (expected_error == S2N_ERR_OK) {
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

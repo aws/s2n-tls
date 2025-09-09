@@ -22,9 +22,6 @@
  * 
  * The following APIs enable applications to offload expensive handshake operations that do not require user input.
  * This model can be useful to move CPU-heavy operations (e.g. math calculation) out of the main event loop.
- * 
- * This async offloading callback do not rely on operation-specific information. If an operation needs additional
- * info from users (e.g. async_pkey_cb asks users for the private key), consider a specialized callback instead.
  */
 
 /**
@@ -36,11 +33,10 @@ struct s2n_async_offload_op;
  * The type of operations supported by the async offloading callback. Each type is represented by a different bit.
  * 
  * S2N_ASYNC_OFFLOAD_ALLOW_ALL will automatically opt in to all the new types added in the future.
- * 
- * Max value: ISO C restricts enumerator values to range of ‘int’ before C2X.
  */
 typedef enum {
     S2N_ASYNC_OFFLOAD_PKEY_VERIFY = 0x01,
+    /* Max value: ISO C restricts enumerator values to range of ‘int’ before C2X. */
     S2N_ASYNC_OFFLOAD_ALLOW_ALL = 0x7FFFFFFF,
 } s2n_async_offload_op_type;
 
@@ -53,7 +49,7 @@ typedef enum {
  *
  * If s2n_async_offload_op_perform() is invoked inside the callback, it is equivalent to the synchronous use case.
  * 
- * `op` is owned by s2n-tls and op data will be freed in the call to `s2n_async_offload_op_perform()`.
+ * `op` is owned by s2n-tls and will be freed along with s2n_connection eventually.
  *
  * @param conn Connection which triggered the async offloading callback
  * @param op An opaque object representing the async operation
@@ -66,8 +62,8 @@ typedef int (*s2n_async_offload_cb)(struct s2n_connection *conn, struct s2n_asyn
  * 
  * The value of allow_list should be the Bit-OR of all the allowd s2n_async_offload_op_type values.
  * 
- * Choose S2N_ASYNC_OFFLOAD_ALLOW_ALL for the performance benefit of offloading all the supported operations.
- * To prevent unintended future changes, only allow operations that fit your use cases.
+ * S2N_ASYNC_OFFLOAD_ALLOW_ALL provides the performance benefit of offloading all the supported operations;
+ * ensure your callback can support arbitrary operations. Otherwise, only allow operations that fit your use case.
  *
  * @param config Config to set the callback
  * @param allow_list A bit representation of allowed operations
@@ -86,7 +82,7 @@ S2N_API extern int s2n_config_set_async_offload_callback(struct s2n_config *conf
  * s2n_negotiate() will throw an `S2N_ERR_T_BLOCKED` error if the handshake is pending on the async offloading callback.
  * Retrying s2n_negotiate() will produce the same result until s2n_async_offload_op_perform() is completed.
  * 
- * op_perform() can only be called once for each triggered operation.
+ * s2n_async_offload_op_perform() can only be called once for each triggered operation.
  * 
  * @param op An opaque object representing the async operation
  */

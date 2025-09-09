@@ -55,7 +55,7 @@ int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
     POSIX_ENSURE_REF(op);
     POSIX_ENSURE(!op->perform_invoked, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(op->async_state == S2N_ASYNC_INVOKED, S2N_ERR_INVALID_STATE);
-    POSIX_ENSURE(op->type != S2N_ASYNC_OFFLOAD_OP_NONE, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(op->type != 0, S2N_ERR_INVALID_STATE);
 
     POSIX_ENSURE_REF(op->conn);
     POSIX_ENSURE_REF(op->perform);

@@ -645,6 +645,7 @@ S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_o
 static S2N_RESULT s2n_async_pkey_verify_data_free(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
+    RESULT_ENSURE_EQ(op->type, S2N_ASYNC_OFFLOAD_PKEY_VERIFY);
 
     struct s2n_async_pkey_verify_data *verify = &op->op_data.async_pkey_verify;
     RESULT_GUARD_POSIX(s2n_hash_free(&verify->digest));

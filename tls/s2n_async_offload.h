@@ -37,8 +37,6 @@
     }                                                                     \
     POSIX_GUARD_RESULT(s2n_async_offload_op_reset(&conn->async_offload_op));
 
-#define S2N_ASYNC_OFFLOAD_OP_NONE 0
-
 typedef S2N_RESULT (*s2n_async_offload_perform_fn)(struct s2n_async_offload_op *op);
 
 typedef S2N_RESULT (*s2n_async_offload_op_data_free)(struct s2n_async_offload_op *op);
@@ -64,7 +62,6 @@ struct s2n_async_offload_op {
 };
 
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op);
-int s2n_async_offload_op_perform(struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op);
 bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);

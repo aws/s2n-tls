@@ -536,6 +536,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
     POSIX_GUARD(s2n_free(&conn->cookie));
     POSIX_GUARD(s2n_free(&conn->cert_authorities));
+    POSIX_GUARD_RESULT(s2n_async_offload_free_op_data(&conn->async_offload_op));
 
     /* Allocate memory for handling handshakes */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
