@@ -148,18 +148,17 @@ uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode)
 
 int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
 {
-    S2N_ASYNC_OFFLOAD_GUARD(
-            conn,
-            POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, &conn->handshake.io));
-            /* Read the rest of the signature and verify */
-            if (conn->mode == S2N_SERVER) {
-                POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn,
-                        conn->handshake_params.client_cert_sig_scheme));
-            } else {
-                POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn,
-                        conn->handshake_params.server_cert_sig_scheme));
-            });
-
+    S2N_ASYNC_OFFLOAD_POSIX_GUARD(conn, {
+        POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, &conn->handshake.io));
+        /* Read the rest of the signature and verify */
+        if (conn->mode == S2N_SERVER) {
+            POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn,
+                    conn->handshake_params.client_cert_sig_scheme));
+        } else {
+            POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn,
+                    conn->handshake_params.server_cert_sig_scheme));
+        }
+    });
     return 0;
 }
 

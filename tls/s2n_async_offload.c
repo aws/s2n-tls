@@ -53,28 +53,26 @@ S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_a
 int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
 {
     POSIX_ENSURE_REF(op);
-    POSIX_ENSURE(!op->perform_invoked, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(op->async_state == S2N_ASYNC_INVOKED, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(op->type != 0, S2N_ERR_INVALID_STATE);
 
     POSIX_ENSURE_REF(op->conn);
     POSIX_ENSURE_REF(op->perform);
-    op->perform_invoked = true;
 
     POSIX_GUARD_RESULT(op->perform(op));
     op->async_state = S2N_ASYNC_COMPLETE;
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op)
+S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
-    /* offload_op_reset() has been called */
     if (op->op_data_free == NULL) {
         return S2N_RESULT_OK;
     }
 
     RESULT_GUARD(op->op_data_free(op));
+    RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_offload_op));
     return S2N_RESULT_OK;
 }
 
@@ -91,9 +89,7 @@ S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op)
     }
 
     RESULT_ENSURE(op->async_state == S2N_ASYNC_COMPLETE, S2N_ERR_INVALID_STATE);
-    RESULT_GUARD(s2n_async_offload_free_op_data(op));
-    RESULT_CHECKED_MEMSET(op, 0, sizeof(struct s2n_async_offload_op));
-
+    RESULT_GUARD(s2n_async_offload_op_wipe(op));
     return S2N_RESULT_OK;
 }
 

@@ -28,7 +28,7 @@
  * the handshake is still blocked. After the async operation is completed and the user retries s2n_negotiate(),
  * we reset the async_offload_op object and proceed with the remaining code in the current state.
  */
-#define S2N_ASYNC_OFFLOAD_GUARD(conn, code)                               \
+#define S2N_ASYNC_OFFLOAD_POSIX_GUARD(conn, code)                         \
     POSIX_ENSURE_REF(conn);                                               \
     if (conn->async_offload_op.async_state == S2N_ASYNC_NOT_INVOKED) {    \
         code;                                                             \
@@ -50,7 +50,6 @@ struct s2n_async_pkey_verify_data {
 struct s2n_async_offload_op {
     s2n_async_offload_op_type type;
     s2n_async_state async_state;
-    unsigned perform_invoked : 1;
     struct s2n_connection *conn;
     s2n_async_offload_perform_fn perform;
     s2n_async_offload_op_data_free op_data_free;
@@ -62,6 +61,6 @@ struct s2n_async_offload_op {
 };
 
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op);
-S2N_RESULT s2n_async_offload_free_op_data(struct s2n_async_offload_op *op);
+S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op);
 bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);

@@ -21,7 +21,7 @@
  * @file async_offload.h
  * 
  * The following APIs enable applications to offload expensive handshake operations that do not require user input.
- * This model can be useful to move CPU-heavy operations (e.g. math calculation) out of the main event loop.
+ * This model can be useful to move CPU-heavy operations (e.g. cryptographic calculations) out of the main event loop.
  */
 
 /**
@@ -60,7 +60,7 @@ typedef int (*s2n_async_offload_cb)(struct s2n_connection *conn, struct s2n_asyn
 /**
  * Sets up the custom async offloading callback and configures the offloaded handshake operations via allow_list.
  * 
- * The value of allow_list should be the Bit-OR of all the allowd s2n_async_offload_op_type values.
+ * The value of allow_list should be the Bit-OR of all the allowed s2n_async_offload_op_type values.
  * 
  * S2N_ASYNC_OFFLOAD_ALLOW_ALL provides the performance benefit of offloading all the supported operations;
  * ensure your callback can support arbitrary operations. Otherwise, only allow operations that fit your use case.

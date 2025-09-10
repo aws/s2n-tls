@@ -51,11 +51,9 @@ static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s
     while (true) {
         int ret_val = s2n_negotiate_test_server_and_client(server_conn, client_conn);
 
-        if (ret_val == 0) {
-            break;
-        } else if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+        if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
             /* Handshake remains blocked as long as op_perform() is not invoked. */
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 10; i++) {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         S2N_ERR_ASYNC_BLOCKED);
             }
@@ -80,15 +78,17 @@ int main(int argc, char *argv[])
     /* Safety Check */
     {
         struct s2n_async_offload_cb_test test_data = { 0 };
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(NULL, S2N_ASYNC_OFFLOAD_ALLOW_ALL,
-                                          s2n_async_offload_test_callback, &test_data),
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_config_set_async_offload_callback(NULL, S2N_ASYNC_OFFLOAD_ALLOW_ALL,
+                        s2n_async_offload_test_callback, &test_data),
                 S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_config *test_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(test_config);
         EXPECT_EQUAL(test_config->async_offload_allow_list, S2N_ASYNC_OFFLOAD_OP_NONE);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_async_offload_callback(test_config, S2N_ASYNC_OFFLOAD_ALLOW_ALL,
-                                          NULL, &test_data),
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_config_set_async_offload_callback(test_config, S2N_ASYNC_OFFLOAD_ALLOW_ALL,
+                        NULL, &test_data),
                 S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_config_set_async_offload_callback(test_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     }
 
     /* clang-format off */
-    struct {
+    struct s2n_async_offload_test_case {
         bool async_test;
         s2n_async_offload_op_type allow_list;
         int cb_return;
@@ -170,7 +170,6 @@ int main(int argc, char *argv[])
     /* Test with both TLS 1.2 and TLS 1.3 policies */
     const char *versions[] = { "20240501", "default_tls13" };
 
-    /* Sync Test: 1) op type is not allowed, or 2) op_perform() invoked in the callback. */
     for (int test_idx = 0; test_idx < s2n_array_len(test_cases); test_idx++) {
         for (int version_idx = 0; version_idx < s2n_array_len(versions); version_idx++) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -178,16 +177,17 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, versions[version_idx]));
-            if (test_cases[test_idx].client_auth) {
+
+            struct s2n_async_offload_test_case test_case = test_cases[test_idx];
+            if (test_case.client_auth) {
                 EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
             }
 
-            struct s2n_async_offload_cb_test data = {
-                .async_test = test_cases[test_idx].async_test,
-                .result = test_cases[test_idx].cb_return,
-            };
-            EXPECT_SUCCESS(s2n_config_set_async_offload_callback(config, test_cases[test_idx].allow_list,
-                    s2n_async_offload_test_callback, &data));
+            struct s2n_async_offload_cb_test data = { .async_test = test_case.async_test, .result = test_case.cb_return };
+            if (test_case.allow_list != S2N_ASYNC_OFFLOAD_OP_NONE) {
+                EXPECT_SUCCESS(s2n_config_set_async_offload_callback(config, test_case.allow_list,
+                        s2n_async_offload_test_callback, &data));
+            }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -204,18 +204,20 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-            s2n_error expected_error = test_cases[test_idx].expected_error;
-            if (test_cases[test_idx].async_test) {
+            s2n_error expected_error = test_case.expected_error;
+            if (test_case.async_test) {
                 EXPECT_SUCCESS(s2n_test_handshake_async(server_conn, client_conn, &data));
             } else if (expected_error == S2N_ERR_OK) {
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), expected_error);
             }
-            EXPECT_EQUAL(data.invoked_count, test_cases[test_idx].cb_invoked);
+            EXPECT_EQUAL(data.invoked_count, test_case.cb_invoked);
 
             if (s2n_is_tls13_fully_supported() && version_idx == 1) {
                 EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+            } else {
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS12);
             }
         }
     }

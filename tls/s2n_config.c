@@ -652,6 +652,7 @@ int s2n_config_set_async_offload_callback(struct s2n_config *config, uint32_t al
 {
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(fn);
+    POSIX_ENSURE(allow_list != 0, S2N_ERR_INVALID_ARGUMENT);
 
     config->async_offload_allow_list = allow_list;
     config->async_offload_cb = fn;
