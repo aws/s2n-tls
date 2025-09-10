@@ -1359,7 +1359,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_ktls_check_estimated_record_limit sets key_update_pending flag */
     {
-        // Create a cipher suite with an artificially lowered encryption limit
+        /* Create a cipher suite with an artificially lowered encryption limit */
         const size_t test_encryption_limit = 1;
         struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
         test_record_alg.encryption_limit = test_encryption_limit;
