@@ -327,7 +327,7 @@ int s2n_policy_builder_write_verbose(struct s2n_security_policy_builder *builder
     POSIX_ENSURE_REF(builder->base_policy);
 
     /* TODO: Currently outputs the base_policy. This needs to be updated once builder implements a "finalized" policy field */
-    const char *policy_name;
+    const char *policy_name = "unknown";
     extern struct s2n_security_policy_selection security_policy_selection[];
     for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == builder->base_policy) {
