@@ -153,3 +153,47 @@ struct s2n_security_policy *s2n_security_policy_build(struct s2n_security_policy
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 int s2n_security_policy_free(struct s2n_security_policy **policy);
+
+/**
+ * Output format types for verbose policy output.
+ */
+typedef enum {
+    /**
+     * FORMAT_V1: Human-readable YAML-style format
+     * 
+     * Produces structured output with the following sections:
+     * - name: <policy_name>
+     * - min version: <minimum_protocol_version>
+     * - rules:
+     *   - <rule_name>: <yes|no>
+     * - cipher suites:
+     *   - <cipher_suite_name>
+     * - signature schemes:
+     *   - <signature_scheme_name>
+     * - curves:
+     *   - <curve_name>
+     * - certificate signature schemes: (if present)
+     *   - <cert_signature_scheme_name>
+     * - certificate keys: (if present)
+     *   - <certificate_key_name>
+     * - pq: (if present)
+     *   - revision: <pq_hybrid_draft_revision>
+     *   - kems: (if present)
+     *     -- <kem_name>
+     *   - kem groups:
+     *     -- <kem_group_name>
+     */
+    S2N_POLICY_FORMAT_V1 = 1,
+    /* Future formats can be added here */
+} s2n_policy_format;
+
+/**
+ * Writes verbose, human-readable output of a security policy to a file descriptor.
+ * 
+ * @param builder The security policy builder
+ * @param format The output format to use  
+ * @param fd The file descriptor to write to (e.g., STDOUT_FILENO or an open file)
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
+ */
+int s2n_policy_builder_write_verbose(struct s2n_security_policy_builder *builder,
+        s2n_policy_format format, int fd);

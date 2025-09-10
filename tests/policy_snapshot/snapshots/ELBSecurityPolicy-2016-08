@@ -1,4 +1,4 @@
-name: ELBSecurityPolicy-2016-08
+name: ELBSecurityPolicy-TLS-1-0-2015-05
 min version: TLS1.0
 rules:
 - Perfect Forward Secrecy: no

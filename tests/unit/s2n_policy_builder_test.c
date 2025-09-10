@@ -13,9 +13,54 @@
  * permissions and limitations under the License.
  */
 
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/policy/s2n_policy_feature.h"
+
+static S2N_RESULT s2n_verify_format_v1_output(const char *output, const char *policy_name)
+{
+    RESULT_ENSURE_REF(output);
+    RESULT_ENSURE_REF(policy_name);
+
+    /* Required sections are present */
+    RESULT_ENSURE(strstr(output, "name: ") != NULL, S2N_ERR_TEST_ASSERTION);
+    RESULT_ENSURE(strstr(output, "min version: ") != NULL, S2N_ERR_TEST_ASSERTION);
+    RESULT_ENSURE(strstr(output, "rules:\n") != NULL, S2N_ERR_TEST_ASSERTION);
+    RESULT_ENSURE(strstr(output, "cipher suites:\n") != NULL, S2N_ERR_TEST_ASSERTION);
+    RESULT_ENSURE(strstr(output, "signature schemes:\n") != NULL, S2N_ERR_TEST_ASSERTION);
+    RESULT_ENSURE(strstr(output, "curves:\n") != NULL, S2N_ERR_TEST_ASSERTION);
+
+    /* Policy name matches */
+    RESULT_ENSURE(strstr(output, policy_name) != NULL, S2N_ERR_TEST_ASSERTION);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_capture_output_to_buffer(struct s2n_security_policy_builder *builder,
+        s2n_policy_format format,
+        char *buffer,
+        size_t buffer_size)
+{
+    RESULT_ENSURE_REF(builder);
+    RESULT_ENSURE_REF(buffer);
+    RESULT_ENSURE(buffer_size > 0, S2N_ERR_INVALID_ARGUMENT);
+
+    /* Use a pipe for capturing output */
+    int pipe_fds[2];
+    RESULT_ENSURE(pipe(pipe_fds) == 0, S2N_ERR_IO);
+    int write_result = s2n_policy_builder_write_verbose(builder, format, pipe_fds[1]);
+    close(pipe_fds[1]);
+    RESULT_GUARD_POSIX(write_result);
+    ssize_t bytes_read = read(pipe_fds[0], buffer, buffer_size - 1);
+    close(pipe_fds[0]);
+    RESULT_ENSURE(bytes_read > 0, S2N_ERR_IO);
+
+    return S2N_RESULT_OK;
+}
 
 static S2N_RESULT s2n_security_policies_assert_match(
         const struct s2n_security_policy *a, const struct s2n_security_policy *b)
@@ -228,6 +273,74 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_ARGUMENT);
         };
     }
+
+    /* Test: s2n_policy_builder_write_verbose */
+    {
+        /* Test: safety - NULL builder */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_policy_builder_write_verbose(NULL, S2N_POLICY_FORMAT_V1, STDOUT_FILENO),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: safety - invalid format */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("default"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_policy_builder_write_verbose(builder, 999, STDOUT_FILENO),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: safety - invalid file descriptor */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("default"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, -1),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: s2n_policy_builder_write_verbose - FORMAT_V1 structure verification */
+        {
+            /* Pick a few named policies for sanity checking. Snapshot tests verify the exact content. */
+            const char *test_policies[] = {
+                "default",
+                "default_fips",
+                "default_tls13",
+                "default_pq",
+                NULL
+            };
+
+            for (size_t i = 0; test_policies[i] != NULL; i++) {
+                const char *policy_version = test_policies[i];
+
+                DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                      s2n_security_policy_builder_from_version(policy_version),
+                        s2n_security_policy_builder_free);
+                EXPECT_NOT_NULL(builder);
+
+                char buffer[8192];
+                EXPECT_OK(s2n_capture_output_to_buffer(builder, S2N_POLICY_FORMAT_V1, buffer, sizeof(buffer)));
+                EXPECT_OK(s2n_verify_format_v1_output(buffer, policy_version));
+            }
+        };
+
+        /* Test: write to stdout */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("default"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+            EXPECT_SUCCESS(s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, STDOUT_FILENO));
+        };
+    };
 
     END_TEST();
 }
