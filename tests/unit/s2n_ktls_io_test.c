@@ -1368,7 +1368,7 @@ int main(int argc, char **argv)
         uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 10] = { 0 };
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
+                s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_ktls_enable_unsafe_tls13(config));
