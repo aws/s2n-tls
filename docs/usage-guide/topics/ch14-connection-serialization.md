@@ -56,8 +56,6 @@ To serialize a connection, applications must first obtain a large enough buffer 
 To deserialize the connection, call `s2n_connection_deserialize()`. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most handshake information will not be preserved, and connection-level getters may not function normally.
 
 ## Serialization Version Deployment
-When upgrading serialization versions, care must be taken to prevent serialization failures. Connection Serialization is not forwards compatible. This means that old versions of s2n-tls will not be able to deserialize connections using new serialization versions.
+Connection Serialization is backwards compatible, but not forwards compatible. This means that a new version of s2n-tls can deserialize old formats, but an old version of s2n-tls can not deserialize new formats.
 
-Consider the case where s2n-tls version `1.6.0` supports serialization version `V1`, and s2n-tls version `1.6.1` supports serialization versions `V1` and `V2`. To use serialization version `V2`, all application instances must first be updated to `1.6.1`, and only then is it safe to enable serialization version `V2`. Connection serialization is backwards compatible, so it is safe for s2n-tls version `1.6.1` to be deserializing both `V1` and `V2` connections.
-
-If `V2` connection serialization is enabled while some application instances are still running s2n-tls `1.6.0`, then `1.6.0` application instances will fail to deserialize `V2` connections.
+The serialization version controls what format is written, and the library version controls what formats can be read. To avoid deserialization failures every host in a fleet should support reading a new format before any hosts begin writing that format.
