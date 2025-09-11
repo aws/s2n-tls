@@ -17,6 +17,7 @@
 
 #include "api/unstable/async_offload.h"
 #include "crypto/s2n_signature.h"
+#include "tls/s2n_async_pkey.h"
 #include "tls/s2n_handshake.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
@@ -41,12 +42,6 @@ typedef S2N_RESULT (*s2n_async_offload_perform_fn)(struct s2n_async_offload_op *
 
 typedef S2N_RESULT (*s2n_async_offload_op_data_free)(struct s2n_async_offload_op *op);
 
-struct s2n_async_pkey_verify_data {
-    struct s2n_hash_state digest;
-    s2n_signature_algorithm sig_alg;
-    struct s2n_blob signature;
-};
-
 struct s2n_async_offload_op {
     s2n_async_offload_op_type type;
     s2n_async_state async_state;
@@ -63,4 +58,4 @@ struct s2n_async_offload_op {
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op);
-bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);
+bool s2n_async_offload_op_is_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);

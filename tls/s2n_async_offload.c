@@ -93,7 +93,7 @@ S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op)
     return S2N_RESULT_OK;
 }
 
-bool s2n_async_offload_is_op_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type)
+bool s2n_async_offload_op_is_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type)
 {
     return config && (config->async_offload_allow_list & op_type);
 }

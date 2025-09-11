@@ -48,15 +48,14 @@ int s2n_async_offload_test_callback(struct s2n_connection *conn, struct s2n_asyn
 static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
         struct s2n_async_offload_cb_test *data)
 {
-    while (true) {
+    for (size_t retry = 0; retry < 20; retry++) {
         int ret_val = s2n_negotiate_test_server_and_client(server_conn, client_conn);
 
         if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
             /* Handshake remains blocked as long as op_perform() is not invoked. */
-            for (int i = 0; i < 10; i++) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                        S2N_ERR_ASYNC_BLOCKED);
-            }
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_ASYNC_BLOCKED);
+
             EXPECT_SUCCESS(s2n_async_offload_op_perform(data->last_seen_op));
             /* Each operation can only be performed once. */
             EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(data->last_seen_op), S2N_ERR_INVALID_STATE);
@@ -64,7 +63,8 @@ static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s
             return ret_val;
         }
     }
-    return 0;
+
+    FAIL_MSG("Async offload operation does not terminate");
 }
 
 int main(int argc, char *argv[])
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
         EXPECT_SUCCESS(s2n_config_set_async_offload_callback(test_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
                 s2n_async_offload_test_callback, &test_data));
-        EXPECT_TRUE(s2n_async_offload_is_op_in_allow_list(test_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY));
+        EXPECT_TRUE(s2n_async_offload_op_is_in_allow_list(test_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(NULL), S2N_ERR_NULL);
         struct s2n_async_offload_op test_op = { 0 };

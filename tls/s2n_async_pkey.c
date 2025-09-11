@@ -18,6 +18,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
 #include "error/s2n_errno.h"
+#include "tls/s2n_async_offload.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "utils/s2n_blob.h"
@@ -89,6 +90,9 @@ static S2N_RESULT s2n_async_pkey_get_input_size_sign(struct s2n_async_pkey_op *o
 static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_op_set_output_sign(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op);
+
+S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature);
 
 static const struct s2n_async_pkey_op_actions s2n_async_pkey_decrypt_op = {
     .perform = &s2n_async_pkey_decrypt_perform,
@@ -712,7 +716,7 @@ int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm s
         pub_key = &conn->handshake_params.client_public_key;
     }
 
-    if (s2n_async_offload_is_op_in_allow_list(conn->config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY)) {
+    if (s2n_async_offload_op_is_in_allow_list(conn->config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY)) {
         POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, pub_key, sig_alg, digest, signature));
     } else {
         POSIX_GUARD(s2n_pkey_verify(pub_key, sig_alg, digest, signature));
