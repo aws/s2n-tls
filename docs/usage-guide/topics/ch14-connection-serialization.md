@@ -49,13 +49,13 @@ In this architecture the application server does not store any TLS certificate m
 
 ## Usage
 
-To enable connection serialization, applications must first set a serialization version on the config using `s2n_config_set_serialization_version()`. Setting a version prevents forwards-incompatible changes from causing deserialization failures. See [Serialization Version Deployment](ch13-serialization.md#serialization-version-upgrade) for more information.
+To enable connection serialization, applications must first set a serialization version on the config using `s2n_config_set_serialization_version()`. Setting a version prevents forwards-incompatible changes from causing deserialization failures. See [Serialization Version Deployment](ch14-connection-serialization.md#serialization-version-deployment) for more information.
 
 To serialize a connection, applications must first obtain a large enough buffer to store the serialized connection. The size of the serialized connection can be obtained with `s2n_connection_serialization_length()`. The serialized connection can then be written into the buffer with `s2n_connection_serialize()`.
 
 To deserialize the connection, call `s2n_connection_deserialize()`. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most connection level configuration will not be preserved, and connection getters may not function normally.
 
-## Serialization Version Upgrade
+## Serialization Version Deployment
 When upgrading serialization versions, care must be taken to prevent serialization failures. Connection Serialization is not forwards compatible. This means that old versions of s2n-tls will not be able to deserialize connections using new serialization versions.
 
 Consider the case where s2n-tls version `1.6.0` supports serialization version `V1`, and s2n-tls version `1.6.1` supports serialization versions `V1` and `V2`. To use serialization version `V2`, all application instances must first be updated to `1.6.1`, and only then is it safe to enable serialization version `V2`. Connection serialization is backwards compatible, so it is safe for s2n-tls version `1.6.1` to be deserializing both `V1` and `V2` connections.
