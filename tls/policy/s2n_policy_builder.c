@@ -24,7 +24,6 @@
 #define BOOL_STR(b) ((b) ? "yes" : "no")
 
 extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
-extern const struct s2n_kem_preferences kem_preferences_null;
 extern struct s2n_security_policy_selection security_policy_selection[];
 
 static const char *version_strs[] = {
