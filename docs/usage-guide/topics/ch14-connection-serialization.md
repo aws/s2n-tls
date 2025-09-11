@@ -53,7 +53,7 @@ To enable connection serialization, applications must first set a serialization 
 
 To serialize a connection, applications must first obtain a large enough buffer to store the serialized connection. The size of the serialized connection can be obtained with `s2n_connection_serialization_length()`. The serialized connection can then be written into the buffer with `s2n_connection_serialize()`.
 
-To deserialize the connection, call `s2n_connection_deserialize()`. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most connection level configuration will not be preserved, and connection getters may not function normally.
+To deserialize the connection, call `s2n_connection_deserialize()`. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most handshake information will not be preserved, and connection-level getters may not function normally.
 
 ## Serialization Version Deployment
 When upgrading serialization versions, care must be taken to prevent serialization failures. Connection Serialization is not forwards compatible. This means that old versions of s2n-tls will not be able to deserialize connections using new serialization versions.
