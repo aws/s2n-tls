@@ -24,6 +24,8 @@
 #define BOOL_STR(b) ((b) ? "yes" : "no")
 
 extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
+extern const struct s2n_kem_preferences kem_preferences_null;
+extern struct s2n_security_policy_selection security_policy_selection[];
 
 static const char *version_strs[] = {
     [S2N_SSLv2] = "SSLv2",
@@ -295,7 +297,6 @@ static int s2n_policy_write_format_v1(const struct s2n_security_policy *policy, 
         }
     }
 
-    extern const struct s2n_kem_preferences kem_preferences_null;
     if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
         POSIX_GUARD(s2n_write_fd_formatted(fd, "pq:\n"));
         POSIX_GUARD(s2n_write_fd_formatted(fd, "- revision: %i\n",
@@ -328,7 +329,6 @@ int s2n_policy_builder_write_verbose(struct s2n_security_policy_builder *builder
 
     /* TODO: Currently outputs the base_policy. This needs to be updated once builder implements a "finalized" policy field */
     const char *policy_name = "unknown";
-    extern struct s2n_security_policy_selection security_policy_selection[];
     for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == builder->base_policy) {
             policy_name = security_policy_selection[i].version;

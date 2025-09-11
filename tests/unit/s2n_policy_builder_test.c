@@ -340,6 +340,35 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(builder);
             EXPECT_SUCCESS(s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, STDOUT_FILENO));
         };
+
+        /* Test: write to file and verify content */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("default_tls13"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+
+            /* Create a temp file */
+            char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
+            int temp_fd = mkstemp(temp_filename);
+            EXPECT_TRUE(temp_fd >= 0);
+
+            /* Write policy to file */
+            EXPECT_SUCCESS(s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, temp_fd));
+            EXPECT_SUCCESS(close(temp_fd));
+
+            /* Read file content back */
+            FILE *file = fopen(temp_filename, "r");
+            EXPECT_NOT_NULL(file);
+            char file_buffer[8192];
+            size_t bytes_read = fread(file_buffer, 1, sizeof(file_buffer) - 1, file);
+            EXPECT_TRUE(bytes_read > 0);
+            fclose(file);
+
+            EXPECT_OK(s2n_verify_format_v1_output(file_buffer, "default_tls13"));
+
+            EXPECT_SUCCESS(unlink(temp_filename));
+        };
     };
 
     END_TEST();
