@@ -16,6 +16,7 @@
 #include "tls/s2n_ktls.h"
 
 #include "crypto/s2n_ktls_crypto.h"
+#include "crypto/s2n_sequence.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
