@@ -111,6 +111,12 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: gcc
+    - identifier: gcc_openssl_1_0_2_fips
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          COMPILER: gcc-4.8
 
 phases:
   pre_build:
