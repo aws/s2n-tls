@@ -1,4 +1,4 @@
-name: 20240502
+name: default_fips
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: yes

@@ -15,23 +15,10 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_security_rules.h"
-
-#define BOOL_STR(b) ((b) ? "yes" : "no")
-
-extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
-
-const char *version_strs[] = {
-    [S2N_SSLv2] = "SSLv2",
-    [S2N_SSLv3] = "SSLv3",
-    [S2N_TLS10] = "TLS1.0",
-    [S2N_TLS11] = "TLS1.1",
-    [S2N_TLS12] = "TLS1.2",
-    [S2N_TLS13] = "TLS1.3",
-};
+#include "tls/policy/s2n_policy_feature.h"
 
 static int usage()
 {
@@ -47,72 +34,27 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    const char *policy_name = argv[1];
-    const struct s2n_security_policy *policy = NULL;
-    if (s2n_find_security_policy_from_version(policy_name, &policy) != S2N_SUCCESS) {
-        usage();
+    if (s2n_init() != S2N_SUCCESS) {
+        fprintf(stderr, "Error: Failed to initialize s2n\n");
         exit(1);
     }
 
-    printf("name: %s\n", policy_name);
-
-    const char *version_str = version_strs[policy->minimum_protocol_version];
-    printf("min version: %s\n", version_str ? version_str : "None");
-
-    printf("rules:\n");
-    for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
-        printf("- %s: %s\n", security_rule_definitions[i].name, BOOL_STR(policy->rules[i]));
+    const char *policy_name = argv[1];
+    struct s2n_security_policy_builder *builder = s2n_security_policy_builder_from_version(policy_name);
+    if (!builder) {
+        fprintf(stderr, "Error: Failed to create policy builder\n");
+        s2n_cleanup();
+        exit(1);
     }
 
-    printf("cipher suites:\n");
-    if (policy->cipher_preferences->allow_chacha20_boosting) {
-        printf("- chacha20 boosting enabled\n");
-    }
-    for (size_t i = 0; i < policy->cipher_preferences->count; i++) {
-        printf("- %s\n", policy->cipher_preferences->suites[i]->iana_name);
+    if (s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, STDOUT_FILENO) != S2N_SUCCESS) {
+        s2n_security_policy_builder_free(&builder);
+        s2n_cleanup();
+        exit(1);
     }
 
-    printf("signature schemes:\n");
-    for (size_t i = 0; i < policy->signature_preferences->count; i++) {
-        printf("- %s\n", policy->signature_preferences->signature_schemes[i]->name);
-    }
-
-    printf("curves:\n");
-    for (size_t i = 0; i < policy->ecc_preferences->count; i++) {
-        printf("- %s\n", policy->ecc_preferences->ecc_curves[i]->name);
-    }
-
-    if (policy->certificate_signature_preferences) {
-        if (policy->certificate_preferences_apply_locally) {
-            printf("certificate preferences apply locally\n");
-        }
-        printf("certificate signature schemes:\n");
-        for (size_t i = 0; i < policy->certificate_signature_preferences->count; i++) {
-            printf("- %s\n", policy->certificate_signature_preferences->signature_schemes[i]->name);
-        }
-    }
-
-    if (policy->certificate_key_preferences) {
-        printf("certificate keys:\n");
-        for (size_t i = 0; i < policy->certificate_key_preferences->count; i++) {
-            printf("- %s\n", policy->certificate_key_preferences->certificate_keys[i]->name);
-        }
-    }
-
-    if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
-        printf("pq:\n");
-        printf("- revision: %i\n", policy->kem_preferences->tls13_pq_hybrid_draft_revision);
-        if (policy->kem_preferences->kem_count > 0) {
-            printf("- kems:\n");
-            for (size_t i = 0; i < policy->kem_preferences->kem_count; i++) {
-                printf("-- %s\n", policy->kem_preferences->kems[i]->name);
-            }
-        }
-        printf("- kem groups:\n");
-        for (size_t i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {
-            printf("-- %s\n", policy->kem_preferences->tls13_kem_groups[i]->name);
-        }
-    }
+    s2n_security_policy_builder_free(&builder);
+    s2n_cleanup();
 
     return 0;
 }

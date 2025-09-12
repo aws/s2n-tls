@@ -1,4 +1,4 @@
-name: 20250721
+name: default_pq
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: yes
