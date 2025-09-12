@@ -127,18 +127,38 @@ phases:
           cd third-party-src;
           ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
+      - |
+        # Install newer CMake for Ubuntu 18 compatibility
+        if [[ "$COMPILER" == "gcc-4.8" ]]; then
+          echo "Installing CMake 3.20 for Ubuntu 18 compatibility..."
+          cd /tmp
+          wget -q https://github.com/Kitware/CMake/releases/download/v3.20.6/cmake-3.20.6-linux-x86_64.tar.gz
+          tar -xzf cmake-3.20.6-linux-x86_64.tar.gz
+          export PATH=/tmp/cmake-3.20.6-linux-x86_64/bin:$PATH
+          cmake --version
+          cd $CODEBUILD_SRC_DIR
+        fi
       - /usr/bin/$COMPILER --version
   build:
     on-failure: ABORT
     commands:
       - |
+        # Ensure newer CMake is in PATH for Ubuntu 18 builds
+        if [[ "$COMPILER" == "gcc-4.8" ]]; then
+          export PATH=/tmp/cmake-3.20.6-linux-x86_64/bin:$PATH
+        fi
         cmake . -Bbuild \
           -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
           -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DASAN=ON \
           -DUBSAN=ON
-      - cmake --build ./build -- -j $(nproc)
+      - |
+        # Ensure newer CMake is in PATH for Ubuntu 18 builds
+        if [[ "$COMPILER" == "gcc-4.8" ]]; then
+          export PATH=/tmp/cmake-3.20.6-linux-x86_64/bin:$PATH
+        fi
+        cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
     commands:
