@@ -16,8 +16,11 @@
 #include "tls/s2n_ktls.h"
 
 #include "crypto/s2n_ktls_crypto.h"
+#include "crypto/s2n_sequence.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls13_key_schedule.h"
 
 /* Used for overriding setsockopt calls in testing */
@@ -157,7 +160,7 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_ktls_crypto_info *crypto_info)
 {
     RESULT_ENSURE_REF(conn);
@@ -296,4 +299,104 @@ int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config)
     POSIX_ENSURE_REF(config);
     config->ktls_tls13_enabled = true;
     return S2N_SUCCESS;
+}
+
+/* We need to track when the key encryption limit is reached. We could get the current record
+ * sequence number from the kernel with getsockopt, but that requires a surprisingly
+ * expensive syscall.
+ *
+ * Instead, we track the estimated sequence number and enforce the limit based
+ * on that estimate.
+ */
+S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested)
+{
+    RESULT_ENSURE_REF(conn);
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    uint64_t new_records_sent = 0;
+    RESULT_GUARD(s2n_ktls_estimate_records(bytes_requested, &new_records_sent));
+
+    uint64_t old_records_sent = 0;
+    struct s2n_blob seq_num = { 0 };
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &old_records_sent));
+
+    RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(old_records_sent, new_records_sent, UINT64_MAX),
+            S2N_ERR_KTLS_KEY_LIMIT);
+    uint64_t total_records_sent = old_records_sent + new_records_sent;
+
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
+    if (total_records_sent > encryption_limit) {
+        RESULT_ENSURE_REF(conn->config);
+        RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEY_LIMIT);
+        s2n_atomic_flag_set(&conn->key_update_pending);
+    }
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_requested)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_ktls_check_estimated_record_limit(conn, bytes_requested));
+
+    if (s2n_atomic_flag_test(&conn->key_update_pending)) {
+        RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
+
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        struct s2n_blob key_update_blob = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+
+        /* Write Keyupdate message */
+        RESULT_GUARD_POSIX(s2n_key_update_write(&key_update_blob));
+
+        /* Send Keyupdate message */
+        const struct iovec iov = {
+            .iov_base = (void *) (uintptr_t) key_update_data,
+            .iov_len = sizeof(key_update_data),
+        };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        size_t bytes_written = 0;
+        RESULT_GUARD(s2n_ktls_sendmsg(conn->send_io_context, TLS_HANDSHAKE, &iov, 1, &blocked, &bytes_written));
+        RESULT_ENSURE_EQ(bytes_written, sizeof(key_update_data));
+
+        /* Create new encryption key */
+        RESULT_GUARD_POSIX(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+
+        struct s2n_ktls_crypto_info crypto_info = { 0 };
+        RESULT_GUARD(s2n_ktls_crypto_info_init(conn, S2N_KTLS_MODE_SEND, &crypto_info));
+
+        int fd = 0;
+        RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &fd));
+
+        /* Update the socket with new key */
+        int ret = s2n_setsockopt(fd, S2N_SOL_TLS, S2N_TLS_TX, crypto_info.value.data, crypto_info.value.size);
+        RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_SOCKOPT);
+
+        s2n_atomic_flag_clear(&conn->key_update_pending);
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
+
+    struct s2n_ktls_crypto_info crypto_info = { 0 };
+    RESULT_GUARD(s2n_ktls_crypto_info_init(conn, S2N_KTLS_MODE_RECV, &crypto_info));
+
+    int fd = 0;
+    RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_RECV, &fd));
+
+    /* Update the socket with new key */
+    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, S2N_TLS_RX, crypto_info.value.data, crypto_info.value.size);
+    RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_SOCKOPT);
+
+    return S2N_RESULT_OK;
 }
