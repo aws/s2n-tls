@@ -187,13 +187,16 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     POSIX_BAIL(S2N_ERR_INVALID_PEM);
 }
 
-/* We define a pem containing a certificate as a pem containing the delimiter chars.
- * If the delimiter chars exist but the certificate keyword doesn't, that is a parsing error.
- * That ensures that we don't ignore unexpected keywords like "END CERTIFICATE"
- * instead of "BEGIN CERTIFICATE" or malformed keywords like "BEGAN CERTIFICATE"
- * instead of "BEGIN CERTIFICATE".
+/*
+ * We identify strings containing a PEM-encapsulated block by searching for the
+ * PEM delimiter chars.
+ *
+ * Although it isn't checked here, the delimiter should also imply the existence
+ * of the BEGIN keyword. This ensures that we don't ignore unexpected keywords
+ * like "END CERTIFICATE" instead of "BEGIN CERTIFICATE" or malformed keywords
+ * like "BEGAN CERTIFICATE" instead of "BEGIN CERTIFICATE".
  */
-bool s2n_stuffer_pem_has_certificate(struct s2n_stuffer *pem)
+bool s2n_stuffer_has_pem_encapsulated_block(struct s2n_stuffer *pem)
 {
     /* Operate on a copy of pem to avoid modifying pem */
     struct s2n_stuffer pem_copy = *pem;

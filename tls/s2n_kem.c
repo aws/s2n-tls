@@ -111,6 +111,20 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  */
 
 /*
+ * ML-KEM based pure PQ KEMs as specified by IETF and registered in IANA.
+ *
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+ * https://datatracker.ietf.org/doc/draft-connolly-tls-mlkem-key-agreement/05/
+ */
+const struct s2n_kem_group s2n_pure_mlkem_1024 = {
+    .name = "MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_MLKEM_1024,
+    .curve = &s2n_ecc_curve_none,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
+};
+
+/*
  * ML-KEM based hybrid KEMs as specified by IETF and registered in IANA.
  *
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8

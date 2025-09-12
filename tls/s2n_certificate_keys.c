@@ -85,7 +85,7 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
-const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
+const struct s2n_certificate_key *s2n_certificate_keys_20250429[] = {
     /**
      *= https://www.rfc-editor.org/rfc/rfc9151#section-5.1
      *# CNSA (D)TLS connections MUST use secp384r1
@@ -103,7 +103,7 @@ const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
     &s2n_rsa_pss_4096,
 };
 
-struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
-    .count = s2n_array_len(s2n_certificate_keys_rfc9151),
-    .certificate_keys = s2n_certificate_keys_rfc9151,
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20250429 = {
+    .count = s2n_array_len(s2n_certificate_keys_20250429),
+    .certificate_keys = s2n_certificate_keys_20250429,
 };

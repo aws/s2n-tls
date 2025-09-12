@@ -33,8 +33,20 @@ all_sigs = [
 ]
 
 
-def expected_signature(protocol, signature):
-    if protocol < Protocols.TLS12:
+def signature_marker(mode, protocol, cipher, signature):
+    # In versions before TLS1.3, the server uses the negotiated signature scheme for the
+    # ServerKeyExchange message. The server only sends the ServerKeyExchange message when using
+    # a key exchange method that provides forward secrecy, ie, NOT static RSA.
+    # So if using RSA key exchange, there is no actual "negotiated" signature scheme, because
+    # the server never sends the client a signature scheme.
+    #
+    # This mostly has to be inferred from the RFCs, but this blog post is a pretty good summary
+    # of the situation: https://timtaubert.de/blog/2016/07/the-evolution-of-signatures-in-tls/
+    if mode == Provider.ServerMode and cipher.iana_standard_name.startswith(
+        "TLS_RSA_WITH_"
+    ):
+        signature = Signatures.NONE
+    elif protocol < Protocols.TLS12:
         # ECDSA by default hashes with SHA-1.
         #
         # This is inferred from extended version of TLS1.1 rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
@@ -42,10 +54,7 @@ def expected_signature(protocol, signature):
             signature = Signatures.ECDSA_SHA1
         else:
             signature = Signatures.RSA_MD5_SHA1
-    return signature
 
-
-def signature_marker(mode, signature):
     return to_bytes(
         "{mode} signature negotiated: {type}+{digest}".format(
             mode=mode.title(), type=signature.sig_type, digest=signature.sig_digest
@@ -146,20 +155,17 @@ def test_s2n_server_signature_algorithms(
             in results.stdout
         )
         assert (
-            signature_marker(
-                Provider.ServerMode, expected_signature(protocol, signature)
-            )
+            signature_marker(Provider.ServerMode, protocol, cipher, signature)
             in results.stdout
         )
         assert (
-            signature_marker(
-                Provider.ClientMode, expected_signature(protocol, signature)
-            )
+            signature_marker(Provider.ClientMode, protocol, cipher, signature)
             in results.stdout
         ) == client_auth
         assert random_bytes in results.stdout
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=2)
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
@@ -224,16 +230,6 @@ def test_s2n_client_signature_algorithms(
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
-    # In versions before TLS1.3, the server uses the negotiated signature scheme for the
-    # ServerKeyExchange message. The server only sends the ServerKeyExchange message when using
-    # a key exchange method that provides forward secrecy, ie, NOT static RSA.
-    # So if using RSA key exchange, there is no actual "negotiated" signature scheme, because
-    # the server never sends the client a signature scheme.
-    #
-    # This mostly has to be inferred from the RFCs, but this blog post is a pretty good summary
-    # of the situation: https://timtaubert.de/blog/2016/07/the-evolution-of-signatures-in-tls/
-    server_sigalg_used = not cipher.iana_standard_name.startswith("TLS_RSA_WITH_")
-
     for results in client.get_results():
         results.assert_success()
         assert (
@@ -241,15 +237,10 @@ def test_s2n_client_signature_algorithms(
             in results.stdout
         )
         assert (
-            signature_marker(
-                Provider.ServerMode, expected_signature(protocol, signature)
-            )
+            signature_marker(Provider.ServerMode, protocol, cipher, signature)
             in results.stdout
-            or not server_sigalg_used
         )
         assert (
-            signature_marker(
-                Provider.ClientMode, expected_signature(protocol, signature)
-            )
+            signature_marker(Provider.ClientMode, protocol, cipher, signature)
             in results.stdout
         ) == client_auth

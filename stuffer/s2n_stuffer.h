@@ -221,7 +221,7 @@ int S2N_RESULT_MUST_USE s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem
 
 /* Read a certificate from a PEM encoded stuffer to an ASN1/DER encoded one */
 int S2N_RESULT_MUST_USE s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
-bool s2n_stuffer_pem_has_certificate(struct s2n_stuffer *pem);
+bool s2n_stuffer_has_pem_encapsulated_block(struct s2n_stuffer *pem);
 
 /* Read a CRL from a PEM encoded stuffer to an ASN1/DER encoded one */
 int S2N_RESULT_MUST_USE s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
