@@ -85,6 +85,10 @@ static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm has
 /* Our "digest-and-sign" EVP signing logic is intended to support FIPS 140-3.
  * FIPS 140-3 does not allow signing or verifying externally calculated digests
  * for RSA and ECDSA verify.
+ *
+ * However most FIPS 140-3 implementation raise an indicator and allow
+ * doing so. This implementation does not rely on such indicators.
+ *
  * See https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Digital-Signatures,
  * and note that "component" tests only exist for ECDSA sign.
  *
@@ -155,9 +159,10 @@ static bool s2n_pkey_evp_digest_and_sign_is_required(s2n_signature_algorithm sig
     return s2n_libcrypto_is_awslc_fips();
 }
 
-/* "digest-then-sign" means that we calculate the digest for a hash state,
- * then sign the digest bytes. That is not allowed by FIPS 140-3, but is allowed
- * in all other cases.
+/* "digest-then-sign" means that we calculate the digest for a hash state, then
+ * sign the digest bytes. That is not allowed by FIPS 140-3 (for specific padding
+ * methods can succeed whilst raising an indicator but dependes on vendor specific
+ * implementation details), but is allowed in all other cases.
  */
 static int s2n_pkey_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
