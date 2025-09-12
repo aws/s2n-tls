@@ -91,9 +91,6 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
 static S2N_RESULT s2n_async_pkey_op_set_output_sign(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op);
 
-S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature);
-
 static const struct s2n_async_pkey_op_actions s2n_async_pkey_decrypt_op = {
     .perform = &s2n_async_pkey_decrypt_perform,
     .apply = &s2n_async_pkey_decrypt_apply,
@@ -678,8 +675,8 @@ static S2N_RESULT s2n_async_pkey_verify_perform(struct s2n_async_offload_op *op)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_async_pkey_verify_async(struct s2n_connection *conn, struct s2n_pkey *pub_key,
-        s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static S2N_RESULT s2n_async_pkey_verify_async(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(digest);
@@ -717,7 +714,7 @@ int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm s
     }
 
     if (s2n_async_offload_op_is_in_allow_list(conn->config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY)) {
-        POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, pub_key, sig_alg, digest, signature));
+        POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, sig_alg, digest, signature));
     } else {
         POSIX_GUARD(s2n_pkey_verify(pub_key, sig_alg, digest, signature));
     }
