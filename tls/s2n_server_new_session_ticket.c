@@ -39,6 +39,10 @@
  */
 #define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 112
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_server_nst_recv(struct s2n_connection *conn)
 {
     POSIX_GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));

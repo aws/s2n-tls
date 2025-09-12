@@ -20,6 +20,10 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int s2n_end_of_early_data_send(struct s2n_connection *conn)
 {
     if (conn->early_data_expected) {

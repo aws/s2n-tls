@@ -32,6 +32,10 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 /* A full record that has an "APPLICATION_DATA" inside according to s2n's
  * handshake message_types.
  */

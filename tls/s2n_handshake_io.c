@@ -37,6 +37,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 /* clang-format off */
 struct s2n_handshake_action {
     uint8_t record_type;

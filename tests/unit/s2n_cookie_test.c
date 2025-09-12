@@ -25,6 +25,10 @@
 
 #define TEST_COOKIE_COUNT 5
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 int main()
 {
     BEGIN_TEST();
