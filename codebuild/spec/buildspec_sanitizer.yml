@@ -114,6 +114,7 @@ batch:
     - identifier: gcc_openssl_1_0_2_fips
       env:
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2-fips
           COMPILER: gcc-4.8
