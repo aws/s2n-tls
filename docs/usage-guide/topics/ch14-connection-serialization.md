@@ -1,6 +1,6 @@
 # Connection Serialization
 
-Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different box or stored to disk.
+Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different host or stored to disk.
 
 <div class="warning">
 This feature is dangerous. It provides cryptographic material from a TLS session in plaintext. An attacker with access to the serialized connection can decrypt any past and future communications from the connection. Users MUST both encrypt and MAC the contents of the serialized connection to provide secrecy and integrity if the serialized connection is transported off-box. 
@@ -11,7 +11,7 @@ The simplest way to provide secrecy and integrity is to transport the serialized
 ## Use Case
 Connection Serialization is a feature used to support advanced, exceptional use cases. Most customers will not find it useful.
 
-One use case for connection serialization is to enable a more complete TLS offload. Traditional private-key offloading allows the the certificate private key to be stored separately from the application server, but connection-serialization TLS offloading allows all TLS materials and TLS configuration to be stored separately from the application server.
+One use case for connection serialization is to enable a more complete TLS offload. Traditional private-key offloading allows the certificate private key to be stored separately from the application server, but connection-serialization TLS offloading allows all TLS materials and TLS configuration to be stored separately from the application server.
 
 ### Private Key Offloading
 For reference, this is a common private key offloading architecture:
