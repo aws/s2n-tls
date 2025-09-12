@@ -9,7 +9,7 @@ The simplest way to provide secrecy and integrity is to transport the serialized
 </div>
 
 ## Use Case
-Connection Serialization is a feature used to support advanced, exceptional use cases. Most customers will not find it useful.
+Connection Serialization is a feature used to support advanced, exceptional use cases. Most users will not find it useful.
 
 One use case for connection serialization is to enable a more complete TLS offload. Traditional private-key offloading allows the certificate private key to be stored separately from the application server, but connection-serialization TLS offloading allows all TLS materials and TLS configuration to be stored separately from the application server.
 
