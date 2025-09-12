@@ -12,7 +12,8 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 version: 0.2
-
+env:
+  shell: bash
 # This buildspec runs on an Ubuntu22 image. That configuration is a property of
 # the codebuild job itself.
 
