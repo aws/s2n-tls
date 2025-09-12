@@ -5,7 +5,8 @@ import tempfile
 
 from configuration import ALL_TEST_CURVES
 from common import ProviderOptions
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
@@ -23,6 +24,13 @@ CHANGE_CIPHER_SUITE_ENDPOINT = "/change_cipher_suite/"
 MUTUAL_AUTH_ENDPOINT = "/mutual_auth/"
 
 
+# The apache server uses RSA 1024 certificates,
+# which s2n-tls does not support when built with openssl-3.0-fips.
+def skip_for_openssl3_fips():
+    if "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION):
+        pytest.skip("Certs not supported: https://github.com/aws/s2n-tls/issues/5200")
+
+
 def create_get_request(route):
     return f"GET {route} HTTP/1.1\r\nHost: localhost\r\n\r\n"
 
@@ -32,7 +40,9 @@ def create_get_request(route):
 @pytest.mark.parametrize(
     "endpoint", [CHANGE_CIPHER_SUITE_ENDPOINT, MUTUAL_AUTH_ENDPOINT]
 )
-def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint):
+def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint):  # noqa: F811
+    skip_for_openssl3_fips()
+
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,
@@ -66,7 +76,9 @@ def test_apache_endpoints_fail_with_no_reneg(managed_process, protocol, endpoint
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
+def test_change_cipher_suite_endpoint(managed_process, curve, protocol):  # noqa: F811
+    skip_for_openssl3_fips()
+
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,
@@ -95,7 +107,9 @@ def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
-def test_mutual_auth_endpoint(managed_process, curve, protocol):
+def test_mutual_auth_endpoint(managed_process, curve, protocol):  # noqa: F811
+    skip_for_openssl3_fips()
+
     options = ProviderOptions(
         mode=Provider.ClientMode,
         host=APACHE_SERVER_IP,

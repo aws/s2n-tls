@@ -2,19 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 import os
-import platform
 import pytest
 
 from configuration import (
     available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
     PROTOCOLS,
     TLS13_CIPHERS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL
 from utils import (
     invalid_test_parameters,
@@ -27,7 +26,7 @@ from utils import (
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name
 )
@@ -35,7 +34,7 @@ from utils import (
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_server(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     curve,
     certificate,
@@ -89,7 +88,7 @@ def test_session_resumption_s2n_server(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name
 )
@@ -97,7 +96,7 @@ def test_session_resumption_s2n_server(
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_client(
-    managed_process,
+    managed_process,  # noqa: F811
     cipher,
     curve,
     protocol,
@@ -149,12 +148,12 @@ def test_session_resumption_s2n_client(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_tls13_session_resumption_s2n_server(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -245,12 +244,18 @@ def test_tls13_session_resumption_s2n_server(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_tls13_session_resumption_s2n_client(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,
 ):
     port = str(next(available_ports))
 
@@ -315,18 +320,15 @@ def test_tls13_session_resumption_s2n_client(
             )
 
 
-@pytest.mark.flaky(
-    reruns=7, reruns_delay=2, condition=platform.machine().startswith("aarch")
-)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nd_falls_back_to_full_connection(
-    managed_process,
+    managed_process,  # noqa: F811
     tmp_path,
     cipher,
     curve,
@@ -365,8 +367,14 @@ def test_s2nd_falls_back_to_full_connection(
     server_options.cert = certificate.cert
     server_options.extra_flags = None
 
-    server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(provider, server_options)
+
+    # The send_marker prevents us from closing stdin until the client receives
+    # the session ticket. If we close stdin too early, then the client will exit
+    # the echo loop and stop listening for new messages.
+    client = managed_process(
+        provider, client_options, send_marker="TLS read server session ticket"
+    )
 
     # The client should have received a session ticket
     for results in client.get_results():
@@ -412,14 +420,20 @@ def test_s2nd_falls_back_to_full_connection(
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol", [p for p in PROTOCOLS if p < Protocols.TLS13], ids=get_parameter_name
 )
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_session_resumption_s2n_client_tls13_server_not_tls13(
-    managed_process, cipher, curve, protocol, provider, other_provider, certificate
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    protocol,
+    provider,
+    other_provider,
+    certificate,
 ):
     port = next(available_ports)
 

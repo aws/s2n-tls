@@ -2650,6 +2650,7 @@ typedef enum {
     S2N_TLS_SIGNATURE_ANONYMOUS = 0,
     S2N_TLS_SIGNATURE_RSA = 1,
     S2N_TLS_SIGNATURE_ECDSA = 3,
+    S2N_TLS_SIGNATURE_MLDSA = 9,
 
     /* Use Private Range for RSA PSS since it's not defined there */
     S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
@@ -2711,6 +2712,44 @@ S2N_API extern int s2n_connection_get_selected_client_cert_signature_algorithm(s
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+
+/**
+ * Get the human readable signature scheme for the connection.
+ *
+ * This method will return:
+ * 1. The IANA "description" for the negotiated signature scheme.
+ *    For example, rsa_pss_rsae_sha384 or ecdsa_secp256r1_sha256.
+ * 2. An unofficial description, if the server signature did not use an official
+ *    IANA signature scheme. This description will take the form
+ *    "legacy_<signature_algorithm>_<hash_algorithm>".
+ *    For example, legacy_rsa_sha224 or legacy_ecdsa_sha256.
+ * 3. "none", if the handshake did not include a server signature.
+ *    This may happen if session resumption or RSA key exchange are used.
+ *
+ * If the connection has not yet performed a handshake, this method will error.
+ *
+ * A note on unofficial descriptions: If TLS1.2 or earlier is negotiated,
+ * an official IANA signature scheme may not be chosen. Before TLS1.3, a combination
+ * of "signature algorithm" and "hash algorithm" were used instead of signature schemes.
+ * Not all combinations were later assigned to official signature schemes.
+ *
+ * A note on ECDSA signature schemes: TLS1.3 and TLS1.2 ECDSA "signature schemes"
+ * share the same IANA value. However, this method assigns them different descriptions
+ * because the TLS1.3 versions (like ecdsa_secp256r1_sha256) imply specific curves,
+ * while the TLS1.2 versions (like legacy_ecdsa_sha256) do not.
+ *
+ * IANA signature schemes:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme
+ * IANA signature algorithms:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16
+ * IANA hash algorithms:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to the signature scheme name.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise.
+ */
+S2N_API extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name);
 
 /**
  * Get the certificate used during the TLS handshake
@@ -3294,6 +3333,8 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
 
 /**
  * Function to get the human readable elliptic curve name for the connection.
+ * 
+ * @deprecated Use `s2n_connection_get_key_exchange_group` instead
  *
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
@@ -3303,6 +3344,10 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
 /**
  * Function to get the human readable KEM name for the connection.
  *
+ * @deprecated This function was previously used to retrieve the negotiated PQ group in TLS 1.2.
+ * PQ key exchange in TLS1.2 was experimental and is now deprecated. Use s2n_connection_get_kem_group_name()
+ * to retrieve the PQ TLS 1.3 Group name.
+ *
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
  */
@@ -3311,10 +3356,28 @@ S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *co
 /**
  * Function to get the human readable KEM group name for the connection.
  *
+ * @note PQ key exchange will not occur if the connection is < TLS1.3 or the configured security
+ * policy has no KEM groups on it. It also will not occur if the peer does not support PQ key exchange.
+ * In these instances this function will return "NONE".
+ *
  * @param conn A pointer to the s2n connection
- * @returns A human readable string for the KEM group. If the connection is < TLS1.3 or there is no KEM group configured returns "NONE"
+ * @returns A human readable string for the KEM group. Returns "NONE" if no PQ key exchange occurred.
  */
 S2N_API extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
+
+/**
+ * Function to get the human readable key exchange group name for the connection, for example: 
+ * `secp521r1` or `SecP256r1MLKEM768`. If an EC curve or KEM was not negotiated, S2N_FAILURE will be
+ * returned.
+ *
+ * @note This function replaces `s2n_connection_get_curve` and `s2n_connection_get_kem_group_name`, returning
+ * the named group regardless if a hybrid PQ group was negotiated or not. 
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to point to a const char* containing the group name
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `group_name` will be set on success.
+ */
+S2N_API extern int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const char **group_name);
 
 /**
  * Function to get the alert that caused a connection to close. s2n-tls considers all
@@ -3458,6 +3521,9 @@ S2N_API extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op
  *
  * When signing, the input is the digest to sign.
  * When decrypting, the input is the data to decrypt.
+ * 
+ * When signing with ML-DSA, the input is the "external mu" pre-hash value described in
+ * https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D
  *
  * # Safety
  * * `data` must be sufficiently large to contain the input.

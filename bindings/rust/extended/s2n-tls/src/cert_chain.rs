@@ -375,7 +375,7 @@ mod tests {
 
     /// Create a test pair using SNI certs
     /// * `certs`: takes references to already created cert chains. This is useful
-    ///            to assert on expected reference counts.
+    ///   to assert on expected reference counts.
     /// * `types`: Used to find the CA paths for the client configs
     fn sni_test_pair(
         certs: Vec<CertificateChain<'static>>,

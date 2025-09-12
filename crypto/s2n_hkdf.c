@@ -82,7 +82,8 @@ static int s2n_custom_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorith
             POSIX_GUARD(s2n_hmac_update(hmac, prev, hash_len));
         }
         POSIX_GUARD(s2n_hmac_update(hmac, info->data, info->size));
-        POSIX_GUARD(s2n_hmac_update(hmac, &curr_round, 1));
+        uint8_t curr_round_byte = curr_round;
+        POSIX_GUARD(s2n_hmac_update(hmac, &curr_round_byte, 1));
         POSIX_GUARD(s2n_hmac_digest(hmac, prev, hash_len));
 
         cat_len = hash_len;
@@ -175,7 +176,102 @@ static int s2n_libcrypto_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm al
 
     return S2N_SUCCESS;
 }
+
+bool s2n_libcrypto_supports_hkdf()
+{
+    return true;
+}
+
+#elif S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
+
+    #include "crypto/s2n_kdf.h"
+
+static S2N_RESULT s2n_hkdf_kdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg,
+        const struct s2n_blob *salt, const struct s2n_blob *key, const struct s2n_blob *info,
+        struct s2n_blob *output, int mode)
+{
+    /* As an optimization, we should be able to fetch and cache this EVP_KDF*
+     * once when s2n_init is called.
+     */
+    DEFER_CLEANUP(EVP_KDF *hkdf_impl = EVP_KDF_fetch(NULL, "HKDF", NULL),
+            EVP_KDF_free_pointer);
+    RESULT_ENSURE(hkdf_impl, S2N_ERR_PRF_INVALID_ALGORITHM);
+
+    DEFER_CLEANUP(EVP_KDF_CTX *hkdf_ctx = EVP_KDF_CTX_new(hkdf_impl),
+            EVP_KDF_CTX_free_pointer);
+    RESULT_ENSURE_REF(hkdf_ctx);
+
+    const EVP_MD *digest = NULL;
+    RESULT_GUARD(s2n_hmac_md_from_alg(alg, &digest));
+    RESULT_ENSURE_REF(digest);
+    const char *digest_name = EVP_MD_get0_name(digest);
+    RESULT_ENSURE_REF(digest_name);
+
+    OSSL_PARAM params[] = {
+        S2N_OSSL_PARAM_INT(OSSL_KDF_PARAM_MODE, mode),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_KEY, key),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_INFO, info),
+        S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SALT, salt),
+        /* Casting away the const is safe because providers are forbidden from
+         * modifying any OSSL_PARAM value other than return_size.
+         * Even the examples in the Openssl documentation cast const strings to
+         * non-const void pointers when setting up OSSL_PARAMs.
+         */
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),
+        OSSL_PARAM_END,
+    };
+
+    /* From the HKDF docs (https://docs.openssl.org/3.1/man7/EVP_KDF-HKDF/):
+     * > When using EVP_KDF_HKDF_MODE_EXTRACT_ONLY the keylen parameter must equal
+     * > the size of the intermediate fixed-length pseudorandom key otherwise an
+     * > error will occur.
+     */
+    if (mode == EVP_KDF_HKDF_MODE_EXTRACT_ONLY) {
+        RESULT_GUARD_OSSL(EVP_KDF_CTX_set_params(hkdf_ctx, params), S2N_ERR_HKDF);
+        size_t key_size = EVP_KDF_CTX_get_kdf_size(hkdf_ctx);
+        RESULT_ENSURE(key_size > 0, S2N_ERR_HKDF_OUTPUT_SIZE);
+        RESULT_ENSURE(key_size <= output->size, S2N_ERR_HKDF_OUTPUT_SIZE);
+        output->size = key_size;
+    }
+
+    RESULT_GUARD_OSSL(EVP_KDF_derive(hkdf_ctx, output->data, output->size, params),
+            S2N_ERR_HKDF);
+    return S2N_RESULT_OK;
+}
+
+static int s2n_libcrypto_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg,
+        const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
+{
+    struct s2n_blob empty_info = { 0 };
+    POSIX_GUARD_RESULT(s2n_hkdf_kdf(hmac, alg, salt, key, &empty_info, pseudo_rand_key,
+            EVP_KDF_HKDF_MODE_EXTRACT_ONLY));
+    return S2N_SUCCESS;
+}
+
+static int s2n_libcrypto_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg,
+        const struct s2n_blob *pseudo_rand_key, const struct s2n_blob *info, struct s2n_blob *output)
+{
+    struct s2n_blob empty_salt = { 0 };
+    POSIX_GUARD_RESULT(s2n_hkdf_kdf(hmac, alg, &empty_salt, pseudo_rand_key, info, output,
+            EVP_KDF_HKDF_MODE_EXPAND_ONLY));
+    return S2N_SUCCESS;
+}
+
+static int s2n_libcrypto_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
+        const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
+{
+    POSIX_GUARD_RESULT(s2n_hkdf_kdf(hmac, alg, salt, key, info, output,
+            EVP_KDF_HKDF_MODE_EXTRACT_AND_EXPAND));
+    return S2N_SUCCESS;
+}
+
+bool s2n_libcrypto_supports_hkdf()
+{
+    return true;
+}
+
 #else
+
 static int s2n_libcrypto_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {
@@ -193,6 +289,12 @@ static int s2n_libcrypto_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm al
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
+
+bool s2n_libcrypto_supports_hkdf()
+{
+    return false;
+}
+
 #endif /* S2N_LIBCRYPTO_SUPPORTS_HKDF */
 
 const struct s2n_hkdf_impl s2n_libcrypto_hkdf_impl = {
@@ -289,13 +391,4 @@ int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s
     POSIX_GUARD(hkdf_implementation->hkdf(hmac, alg, salt, key, info, output));
 
     return S2N_SUCCESS;
-}
-
-bool s2n_libcrypto_supports_hkdf()
-{
-#ifdef S2N_LIBCRYPTO_SUPPORTS_HKDF
-    return true;
-#else
-    return false;
-#endif
 }

@@ -67,6 +67,7 @@ pub enum SniTestCerts {
     AlligatorRsa,
     AlligatorEcdsa,
     BeaverRsa,
+    WildcardInsectRsa,
 }
 
 impl SniTestCerts {
@@ -75,11 +76,13 @@ impl SniTestCerts {
             SniTestCerts::AlligatorRsa => "alligator_",
             SniTestCerts::AlligatorEcdsa => "alligator_ecdsa_",
             SniTestCerts::BeaverRsa => "beaver_",
+            SniTestCerts::WildcardInsectRsa => "wildcard_insect_rsa_",
         };
         CertKeyPair::from_path(&format!("sni/{prefix}"), "cert", "key", "cert")
     }
 }
 
+#[derive(Clone)]
 pub struct CertKeyPair {
     cert_path: String,
     key_path: String,
@@ -121,7 +124,7 @@ impl CertKeyPair {
     /// ```
     pub fn from_path(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
         let cert_path = format!("{}{prefix}{chain}.pem", Self::TEST_PEMS_PATH);
-        println!("{:?}", cert_path);
+        println!("{cert_path:?}");
         let key_path = format!("{}{prefix}{key}.pem", Self::TEST_PEMS_PATH);
         let ca_path = format!("{}{prefix}{ca}.pem", Self::TEST_PEMS_PATH);
         let cert = std::fs::read(&cert_path)

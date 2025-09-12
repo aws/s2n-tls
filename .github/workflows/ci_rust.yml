@@ -20,6 +20,8 @@ env:
   STANDARD_PATH: bindings/rust/standard
   EXAMPLE_WORKSPACE: bindings/rust-examples
   PCAP_TEST_PATH: tests/pcap
+  # The name of a s2n-tls test gated behind the external build cfg flag.
+  EXTERNAL_BUILD_TEST_NAME: test_unstable_as_ptr
 
 jobs:
   generate:
@@ -29,7 +31,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain
@@ -59,10 +61,10 @@ jobs:
         working-directory: ${{env.STANDARD_PATH}}
         run: cargo test
 
-      - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, PQ, and unstable-custom_x509_extensions"
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq,unstable-custom_x509_extensions
 
       - name: "Feature Test: Renegotiate"
         working-directory: ${{env.ROOT_PATH}}
@@ -75,6 +77,46 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+      - name: Test external build cfg
+        working-directory: ${{env.ROOT_PATH}}/s2n-tls
+        run: |
+          echo "Using the external build feature should set a cfg flag in s2n-tls. Ensure that"
+          echo "this flag is NOT set when the external build feature isn't used. The"
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this test"
+          echo "is NOT run."
+          output=$(cargo test ${{env.EXTERNAL_BUILD_TEST_NAME}})
+          echo "${output}"
+          echo "${output}" | grep -q "test result: ok. 0 passed; 0 failed; 0 ignored;"
+
+  external-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Checkout aws-lc
+        uses: actions/checkout@v5
+        with:
+          repository: aws/aws-lc
+          path: aws-lc
+
+      - name: Build aws-lc
+        working-directory: aws-lc
+        run: |
+          cmake -Bbuild \
+            -DBUILD_SHARED_LIBS=off \
+            -DBUILD_LIBSSL=off \
+            -DCMAKE_INSTALL_PREFIX=./install
+          cmake --build build -j $(nproc)
+          cmake --install build
+
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
         # included. For a symbol to be visible in a shared lib, the
@@ -82,9 +124,12 @@ jobs:
         # in the same unit of compilation as the definition. Generally this just
         # means that if the linker can't resolve foo_method in tls/foo.c, you
         # forgot to include api/unstable/foo.h in tls/foo.c
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
+          cmake . -Bbuild \
+            -DBUILD_SHARED_LIBS=on \
+            -DBUILD_TESTING=off \
+            -DCMAKE_PREFIX_PATH=./aws-lc/install \
+            -DS2N_INTERN_LIBCRYPTO=on
           cmake --build build -- -j $(nproc)
 
           export S2N_TLS_LIB_DIR=`pwd`/build/lib
@@ -97,30 +142,23 @@ jobs:
           cd ../../..
           ldd ${{env.STANDARD_PATH}}/target/debug/integration | grep libs2n.so
 
-  # our benchmark testing includes interop tests between s2n-tls, rustls, and
-  # openssl
-  harness-interop-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          # Run tests with the external build
+          cargo test --manifest-path ${{env.ROOT_PATH}}/Cargo.toml
+          cargo test --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml
 
-      - name: Install Rust toolchain
-        id: toolchain
-        run: |
-          rustup toolchain install stable
-          rustup override set stable
-
-      - name: generate bindings
-        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
-
-      - name: bench tests
-        working-directory: ${{env.STANDARD_PATH}}/bench
-        run: cargo test
+          echo ""
+          echo "Test that the external build will enable the proper cfg flag in s2n-tls. The"
+          echo "${{env.EXTERNAL_BUILD_TEST_NAME}} test is gated behind this flag, so ensure this"
+          echo "test is run."
+          manifest_path="${{env.ROOT_PATH}}/s2n-tls/Cargo.toml"
+          output=$(cargo test --manifest-path ${manifest_path} ${{env.EXTERNAL_BUILD_TEST_NAME}})
+          echo "${output}"
+          echo "${output}" | grep -q "test result: ok. 1 passed; 0 failed; 0 ignored;"
 
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain
@@ -135,10 +173,14 @@ jobs:
         working-directory: ${{env.EXAMPLE_WORKSPACE}}
         run: cargo build
 
+      - name: test examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo test
+
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain
@@ -189,7 +231,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
@@ -233,7 +275,7 @@ jobs:
   asan-unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain
@@ -270,7 +312,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
@@ -287,14 +329,18 @@ jobs:
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: Run cargo fmt
+      - name: Run cargo fmt - extended packages
         run: |
           cargo fmt --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
+
+      - name: Run cargo fmt - standard packages
+        run: |
+          cargo fmt --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
@@ -322,15 +368,20 @@ jobs:
         run: ${{env.ROOT_PATH}}/generate.sh
 
       # TODO translate json reports to in-action warnings
-      - name: Run cargo clippy
+      - name: Run cargo clippy - extended packages
         run: |
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
 
+      - name: Run cargo clippy - standard packages
+        run: |
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml --all-targets --all-features -- -D warnings
+
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
@@ -353,7 +404,7 @@ jobs:
   pcaps:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
@@ -390,7 +441,7 @@ jobs:
           - bindings/rust/extended
           - bindings/rust/standard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain
@@ -405,12 +456,12 @@ jobs:
       # cargo-minimal-versions requires cargo-hack:
       # https://crates.io/crates/cargo-minimal-versions#user-content-prerequisites
       - name: Install cargo-hack
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.2
         with:
           crate: cargo-hack
 
       - name: Install cargo-minimal-versions
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.2
         with:
           crate: cargo-minimal-versions
 
@@ -429,7 +480,7 @@ jobs:
   check-generated-cargo-toml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         id: toolchain

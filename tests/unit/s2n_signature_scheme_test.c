@@ -15,6 +15,7 @@
 
 #include "tls/s2n_signature_scheme.h"
 
+#include "crypto/s2n_mldsa.h"
 #include "s2n_test.h"
 
 int main(int argc, char **argv)
@@ -37,11 +38,20 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(sig_scheme->iana_value, 0);
             EXPECT_NOT_EQUAL(sig_scheme->hash_alg, S2N_HASH_NONE);
             EXPECT_NOT_EQUAL(sig_scheme->sig_alg, S2N_SIGNATURE_ANONYMOUS);
-            EXPECT_NOT_EQUAL(sig_scheme->libcrypto_nid, 0);
+
+            if (sig_scheme->sig_alg == S2N_SIGNATURE_MLDSA
+                    && !s2n_mldsa_is_supported()) {
+                EXPECT_EQUAL(sig_scheme->libcrypto_nid, 0);
+            } else {
+                EXPECT_NOT_EQUAL(sig_scheme->libcrypto_nid, 0);
+            }
 
             if (sig_scheme->sig_alg == S2N_SIGNATURE_ECDSA
                     && sig_scheme->maximum_protocol_version != S2N_TLS12) {
                 EXPECT_NOT_NULL(sig_scheme->signature_curve);
+                /* These schemes also require additional naming information */
+                EXPECT_NOT_NULL(sig_scheme->legacy_name);
+                EXPECT_NOT_NULL(sig_scheme->tls13_name);
             } else {
                 EXPECT_NULL(sig_scheme->signature_curve);
             }

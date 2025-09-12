@@ -235,3 +235,12 @@ bool s2n_libcrypto_supports_providers(void)
     return false;
 #endif
 }
+
+bool s2n_libcrypto_supports_custom_oid(void)
+{
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID
+    return true;
+#else
+    return false;
+#endif
+}

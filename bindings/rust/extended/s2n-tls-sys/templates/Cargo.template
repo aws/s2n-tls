@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-sys"
 description = "A C99 implementation of the TLS/SSL protocols"
-version = "0.3.12"
+version = "0.3.25"
 authors = ["AWS s2n"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -38,8 +38,10 @@ stacktrace = []
 [dependencies]
 # aws-lc-rs 1.6.4 adds DEP_AWS_LC environment variables which are required to build s2n-tls-sys:
 # https://github.com/aws/aws-lc-rs/pull/335
-aws-lc-rs = { version = "1.6.4" }
-# aws-lc-rs 1.6.4 depends on aws-lc-sys 0.14.0, which requires libc 0.2.121:
+# aws-lc-rs >=1.12.6 removes unmaintained paste dependencies:
+# https://github.com/aws/aws-lc-rs/pull/731
+aws-lc-rs = { version = ">=1.12.6" }
+# aws-lc-rs >=1.6.4 depends on aws-lc-sys 0.14.0, which requires libc 0.2.121:
 # https://github.com/aws/aws-lc-rs/blob/2298ca861234d4f43aecef2c7d7e822c60bc488a/aws-lc-sys/Cargo.toml#L65
 libc = "0.2.121"
 

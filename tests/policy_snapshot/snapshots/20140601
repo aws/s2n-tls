@@ -1,0 +1,28 @@
+name: 20140601
+min version: SSLv3
+rules:
+- Perfect Forward Secrecy: no
+- FIPS 140-3 (2019): no
+cipher suites:
+- TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+- TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+- TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+- TLS_RSA_WITH_AES_128_CBC_SHA256
+- TLS_RSA_WITH_AES_128_CBC_SHA
+- TLS_RSA_WITH_3DES_EDE_CBC_SHA
+- TLS_RSA_WITH_RC4_128_SHA
+- TLS_RSA_WITH_RC4_128_MD5
+signature schemes:
+- rsa_pkcs1_sha256
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+- legacy_rsa_sha224
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- legacy_ecdsa_sha224
+- rsa_pkcs1_sha1
+- ecdsa_sha1
+curves:
+- secp256r1
+- secp384r1

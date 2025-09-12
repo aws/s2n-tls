@@ -116,7 +116,8 @@ S2N_RESULT s2n_fips_validate_curve(const struct s2n_ecc_named_curve *curve, bool
 
 /* https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf */
 const struct s2n_kem *fips_kems[] = {
-    &s2n_mlkem_768
+    &s2n_mlkem_768,
+    &s2n_mlkem_1024
 };
 
 S2N_RESULT s2n_fips_validate_kem(const struct s2n_kem *kem, bool *valid)

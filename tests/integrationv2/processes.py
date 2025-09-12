@@ -12,7 +12,7 @@ from time import monotonic as _time
 
 _PopenSelector = selectors.PollSelector
 _PIPE_BUF = getattr(select, "PIPE_BUF", 512)
-_DEBUG_LEN = 80
+_DEBUG_LEN = 200
 
 
 class _processCommunicator(object):
@@ -116,6 +116,14 @@ class _processCommunicator(object):
         send_with_newline=False,
         timeout=None,
     ):
+        print(
+            f"{self.name}: Handling process IO: \n"
+            f"    wait_for_marker: {self.wait_for_marker} \n"
+            f"    send_markers: {send_marker_list} \n"
+            f"    close_marker: {close_marker} \n"
+            f"    kill_marker: {kill_marker}"
+        )
+
         """
         This method will read and write data to a subprocess in a non-blocking manner.
         The code is heavily based on Popen.communicate. There are a couple differences:
@@ -187,7 +195,7 @@ class _processCommunicator(object):
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
                         print(f"{self.name}: stdin available")
-                        chunk = input_view[
+                        chunk = input_view[  # noqa: F821
                             input_data_offset : input_data_offset + _PIPE_BUF
                         ]
                         try:
@@ -260,7 +268,7 @@ class _processCommunicator(object):
                                 if send_with_newline:
                                     message += b"\n"
                                 # Data destined for stdin is stored in a memoryview
-                                input_view = memoryview(message)
+                                input_view = memoryview(message)  # noqa: F841
                                 input_data_len = len(message)
                                 input_data_sent = False
                                 print(f"{self.name}: will send {message}")
@@ -304,7 +312,7 @@ class _processCommunicator(object):
                         if close_marker is None or (
                             close_marker and close_marker in data_str
                         ):
-                            print(f"{self.name} Found close marker: closing stdin")
+                            print(f"{self.name}: Found close marker: closing stdin")
                             input_data_sent = None
                             self.proc.stdin.close()
 
@@ -358,6 +366,7 @@ class ManagedProcess(threading.Thread):
         self,
         cmd_line,
         provider_set_ready_condition,
+        name,
         wait_for_marker=None,
         send_marker_list=None,
         close_marker=None,
@@ -379,6 +388,8 @@ class ManagedProcess(threading.Thread):
 
         # Command line to execute in the subprocess
         self.cmd_line = list(map(str, cmd_line))
+
+        self.name = name
 
         # Total time to wait until killing the subprocess
         self.timeout = timeout
@@ -426,7 +437,7 @@ class ManagedProcess(threading.Thread):
                 self.results = Results(None, None, None, ex, self.expect_stderr)
                 raise ex
 
-            communicator = _processCommunicator(proc, self.cmd_line[0])
+            communicator = _processCommunicator(proc, self.name)
 
             if self.ready_to_test is not None:
                 # Some processes won't be ready until they have emitted some string in stdout.
@@ -454,10 +465,12 @@ class ManagedProcess(threading.Thread):
                     expect_nonzero_exit=self.kill_marker is not None,
                 )
             except subprocess.TimeoutExpired as ex:
+                print(f"{communicator.name}: TIMEOUT. Killing process.")
                 proc.kill()
                 wrapped_ex = TimeoutException(ex)
 
                 # Read any remaining output
+                print(f"{communicator.name}: TIMEOUT. Reading remaining output.")
                 proc_results = communicator.communicate()
                 self.results = Results(
                     proc_results[0],
@@ -475,27 +488,6 @@ class ManagedProcess(threading.Thread):
                     self.expect_stderr,
                 )
                 raise ex
-            finally:
-                # This data is dumped to stdout so we capture this
-                # information no matter where a test fails.
-                print("###############################################################")
-                print(
-                    f"#######################   {self.cmd_line[0]}   #######################"
-                )
-                print("###############################################################")
-
-                print(f"Command line:\n\t{' '.join(self.cmd_line)}")
-                print(f"Exit code:\n\t {proc.returncode}")
-
-                print("##########################################################")
-                print("########################### Stdout #######################")
-                print("##########################################################")
-                print(proc_results[0].decode("utf-8", "backslashreplace"))
-
-                print("#########################################################")
-                print("########################### Stderr #######################")
-                print("#########################################################")
-                print(proc_results[1].decode("utf-8", "backslashreplace"))
 
     def kill(self):
         self.proc.kill()

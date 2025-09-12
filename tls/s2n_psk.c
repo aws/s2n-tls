@@ -333,8 +333,8 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
         POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));
 
-        /* s2n_resume_decrypt_session_ticket appends a new PSK with the decrypted values. */
-        POSIX_GUARD_RESULT(s2n_resume_decrypt_session_ticket(psk_list->conn, &ticket_stuffer));
+        /* s2n_resume_decrypt_session appends a new PSK with the decrypted values. */
+        POSIX_GUARD_RESULT(s2n_resume_decrypt_session(psk_list->conn, &ticket_stuffer));
     }
 
     struct s2n_psk *chosen_psk = NULL;

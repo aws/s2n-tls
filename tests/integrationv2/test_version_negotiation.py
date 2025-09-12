@@ -7,10 +7,10 @@ from configuration import (
     available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
+    MINIMAL_TEST_CERTS,
 )
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process  # lgtm [py/unused-import]
+from fixtures import managed_process  # noqa: F401
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import (
     invalid_test_parameters,
@@ -39,10 +39,11 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=2)
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol",
     [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10],
@@ -51,7 +52,13 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_tls13_negotiates_tls12(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,
 ):
     port = next(available_ports)
 
@@ -117,7 +124,7 @@ def test_s2nc_tls13_negotiates_tls12(
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize(
     "protocol",
     [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10],
@@ -126,7 +133,13 @@ def test_s2nc_tls13_negotiates_tls12(
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nd_tls13_negotiates_tls12(
-    managed_process, cipher, curve, certificate, protocol, provider, other_provider
+    managed_process,  # noqa: F811
+    cipher,
+    curve,
+    certificate,
+    protocol,
+    provider,
+    other_provider,
 ):
     port = next(available_ports)
 

@@ -145,9 +145,11 @@ static S2N_RESULT s2n_test_ja4_hash_from_cipher_count(uint16_t cipher_count,
     };
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&bytes, before_ciphers, sizeof(before_ciphers)));
 
-    size_t ciphers_size = cipher_count * S2N_TLS_CIPHER_SUITE_LEN;
+    size_t ciphers_size = cipher_count * sizeof(uint16_t);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&bytes, ciphers_size));
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&bytes, ciphers_size));
+    for (size_t i = 0; i < cipher_count; i++) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&bytes, 0));
+    }
 
     uint8_t after_ciphers[] = {
         S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,

@@ -5,9 +5,11 @@ description = "Integration tests for s2n-tls"
 readme = "README.md"
 requires-python = ">=3.12"
 
+# Pin rerunfailures until this issue is addressed
+# https://github.com/pytest-dev/pytest-rerunfailures/issues/302
 dependencies = [
     "pytest>=8.3.4",
-    "pytest-rerunfailures>=15.0",
+    "pytest-rerunfailures==15.1",
     "pytest-xdist>=3.6.1",
     "ruff>=0.9.7",
     "sslyze>=6.1.0",

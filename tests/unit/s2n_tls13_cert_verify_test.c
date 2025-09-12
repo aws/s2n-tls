@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"

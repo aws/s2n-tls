@@ -66,6 +66,18 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           TESTS: unit
       identifier: s2nUnitOpenssl3Gcc9
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        privileged-mode: true
+        variables:
+          BUILD_S2N: true
+          GCC_VERSION: 9
+          S2N_COVERAGE: true
+          S2N_LIBCRYPTO: openssl-3.0-fips
+          TESTS: unit
+      identifier: s2nUnitOpenssl3FIPSGcc9
     ### Ubuntu24 ###
     # Openssl-1.1.1 + gcc-13: Prefer more widely used Openssl on the default
     #   Ubuntu24 compiler.
@@ -123,8 +135,8 @@ batch:
         privileged-mode: true
         variables:
           TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0
-      identifier: UnitAl2023x86Openssl30
+          S2N_LIBCRYPTO: default
+      identifier: UnitAl2023x86
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
@@ -133,8 +145,8 @@ batch:
         type: ARM_CONTAINER
         variables:
           TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0
-      identifier: UnitAl2023armOpenssl30
+          S2N_LIBCRYPTO: default
+      identifier: UnitAl2023arm
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -273,3 +285,21 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+    - identifier: s2nMemUsageTest_awslc
+      buildspec: codebuild/spec/buildspec_mem.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc'
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 47
+    - identifier: s2nMemUsageTest_awslcfips
+      buildspec: codebuild/spec/buildspec_mem.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 'awslc-fips-2022'
+          S2N_EXPECTED_CONNECTION_MEMORY_KB: 46

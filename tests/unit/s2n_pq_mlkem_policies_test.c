@@ -89,12 +89,12 @@ static S2N_RESULT s2n_policy_in_list(const char *policy_name, const char **excep
 
 /* List of all ML-KEM Parameter sizes */
 const struct s2n_kem *mlkem_list[] = {
-    &s2n_mlkem_768
+    &s2n_mlkem_768,
+    &s2n_mlkem_1024
 };
 
 /* Ciphers that should not be present in TLS Policies that have ML-KEM */
 const struct s2n_cipher_suite *legacy_cipher_suites[] = {
-    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384, /* Draft cipher for negotiating Kyber in TLS 1.2. */
     &s2n_rsa_with_3des_ede_cbc_sha,
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
@@ -106,11 +106,20 @@ const struct s2n_cipher_suite *legacy_cipher_suites[] = {
 
 /* List of s2n TLS Security Policies that are allowed to have legacy TLS Ciphers and support ML-KEM */
 const char *cipher_exceptions[] = {
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
+    "CloudFront-Upstream-TLS-1-2-2025-PQ",
+    "CloudFront-Upstream-TLS-1-3-2025-PQ",
     "test_all",
 };
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
 const char *tls_version_exceptions[] = {
+    "AWS-CRT-SDK-TLSv1.0-2025-PQ",
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
     "test_all",
 };
 

@@ -105,6 +105,30 @@ impl TryFrom<s2n_tls_version::Type> for Version {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
+pub enum CertSNIMatch {
+    /// The client did not supply an SNI
+    NoSNI,
+    ExactMatch,
+    WildcardMatch,
+    NoMatch,
+}
+
+impl TryFrom<s2n_cert_sni_match::Type> for CertSNIMatch {
+    type Error = Error;
+    fn try_from(input: s2n_cert_sni_match::Type) -> Result<Self, Self::Error> {
+        let match_type = match input {
+            s2n_cert_sni_match::SNI_NONE => Self::NoSNI,
+            s2n_cert_sni_match::SNI_EXACT_MATCH => Self::ExactMatch,
+            s2n_cert_sni_match::SNI_WILDCARD_MATCH => Self::WildcardMatch,
+            s2n_cert_sni_match::SNI_NO_MATCH => Self::NoMatch,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(match_type)
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
 /// Corresponds to [s2n_blinding].
 pub enum Blinding {
     SelfService,
@@ -165,6 +189,7 @@ pub enum SignatureAlgorithm {
     RSA_PSS_RSAE,
     RSA_PSS_PSS,
     ECDSA,
+    MLDSA,
 }
 
 impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
@@ -176,6 +201,7 @@ impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
             s2n_tls_signature_algorithm::RSA_PSS_RSAE => Self::RSA_PSS_RSAE,
             s2n_tls_signature_algorithm::RSA_PSS_PSS => Self::RSA_PSS_PSS,
             s2n_tls_signature_algorithm::ECDSA => Self::ECDSA,
+            s2n_tls_signature_algorithm::MLDSA => Self::MLDSA,
             _ => return Err(Error::INVALID_INPUT),
         };
         Ok(version)

@@ -7,6 +7,7 @@ import threading
 import itertools
 import random
 import string
+import pytest
 
 from constants import TEST_CERT_DIRECTORY
 from global_flags import get_flag, S2N_PROVIDER_VERSION
@@ -203,7 +204,7 @@ class Protocol(object):
         return self.value <= other.value
 
     def __eq__(self, other):
-        return self.value == other.value
+        return other and self.value == other.value
 
     def __str__(self):
         return self.name
@@ -511,6 +512,22 @@ class Ciphers(object):
         "PQ-TLS-1-3-2023-06-01", Protocols.TLS12, False, False, s2n=True, pq=True
     )
 
+    SECURITY_POLICY_DEFAULT = Cipher(
+        "default", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
+    SECURITY_POLICY_DEFAULT_TLS13 = Cipher(
+        "default_tls13", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
+    """
+    There is no "default_tls12" policy like there is a "default_tls13".
+    We could use "default", but we will someday add TLS1.3 support to "default".
+    Instead, pin to the latest version of "default" known to not include TLS1.3.
+    See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch06-security-policies.md#default-policy-history
+    """
+    SECURITY_POLICY_DEFAULT_TLS12 = Cipher(
+        "20240501", Protocols.TLS12, False, False, s2n=True, pq=False
+    )
+
     SECURITY_POLICY_20210816 = Cipher(
         "20210816", Protocols.TLS12, False, False, s2n=True, pq=False
     )
@@ -617,6 +634,7 @@ class Signature(object):
 
 
 class Signatures(object):
+    NONE = Signature("None+None", max_protocol=Protocols.TLS13)
     RSA_SHA1 = Signature("RSA+SHA1", max_protocol=Protocols.TLS12)
     RSA_SHA224 = Signature("RSA+SHA224", max_protocol=Protocols.TLS12)
     RSA_SHA256 = Signature("RSA+SHA256", max_protocol=Protocols.TLS12)
@@ -737,7 +755,8 @@ class ProviderOptions(object):
         ocsp_response=None,
         signature_algorithm=None,
         record_size=None,
-        verbose=True,
+        verbose=None,
+        echo=True,
     ):
         # Client or server
         self.mode = mode
@@ -816,3 +835,7 @@ class ProviderOptions(object):
         # Useful if you find that debugging information is printed between
         # application data you expect the provider to print on stdout.
         self.verbose = verbose
+
+        # Should the provider echo any data sent / received?
+        # If not, the connection will be closed after one handshake.
+        self.echo = echo

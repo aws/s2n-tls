@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     name: CI OpenBSD
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and test in OpenBSD
         id: test
-        uses: cross-platform-actions/action@v0.27.0
+        uses: cross-platform-actions/action@v0.29.0
         with:
           operating_system: openbsd
           architecture: x86-64

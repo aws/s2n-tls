@@ -26,4 +26,4 @@ brew_install_if_not_installed coreutils
 brew_install_if_not_installed cppcheck
 brew_install_if_not_installed pkg-config  # for gnutls compilation
 brew_install_if_not_installed ninja
-brew_install_if_not_installed openssl@3 # for libcrypto
+brew_install_if_not_installed openssl # for libcrypto

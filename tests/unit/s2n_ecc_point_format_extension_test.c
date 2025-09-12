@@ -48,10 +48,6 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
         EXPECT_TRUE(s2n_server_ec_point_format_extension.should_send(conn));
 
-        /* Do send for connection with hybrid ec kex */
-        conn->secure->cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-        EXPECT_TRUE(s2n_server_ec_point_format_extension.should_send(conn));
-
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
@@ -102,5 +98,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
-    return 0;
 }

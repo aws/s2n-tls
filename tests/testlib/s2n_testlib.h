@@ -88,7 +88,7 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, con
 S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
 S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
-#define S2N_MAX_TEST_PEM_SIZE        8192
+#define S2N_MAX_TEST_PEM_SIZE        12000
 #define S2N_MAX_TEST_PEM_PATH_LENGTH 512
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
@@ -115,6 +115,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_CA_CERT   "../pems/rsa_pss_2048_sha256_CA_cert.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+
+#define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
+#define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"
 
 #define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 
@@ -204,6 +207,24 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
+
+#define S2N_TEST_CERT_CHAIN_LIST_MAX 19
+struct s2n_test_cert_chain_entry {
+    struct s2n_cert_chain_and_key *chain;
+    /* Use this field to indicate support: by array index, version number, etc. */
+    uint64_t supported;
+};
+struct s2n_test_cert_chain_list {
+    struct s2n_test_cert_chain_entry chains[S2N_TEST_CERT_CHAIN_LIST_MAX];
+    size_t count;
+    /* Certs skipped because they were not supported by the libcrypto. */
+    size_t skipped;
+};
+S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains);
+S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
+        s2n_pkey_type pkey_type, uint64_t supported);
+S2N_CLEANUP_RESULT s2n_test_cert_chains_free(struct s2n_test_cert_chain_list *chains);
+
 /**
  * load the `server-cert.pem` for the appropriate permutation
  * @param type indicates an `ec`, `rsae` or `rsapss` key type
@@ -217,12 +238,12 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
  * See https://github.com/aws/s2n-tls/issues/4651 for more information.
  */
 int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
-        const char *type, const char *siganture, const char *size, const char *digest);
+        const char *type, const char *signature, const char *size, const char *digest);
 
-int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *siganture,
+int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
         const char *size, const char *digest);
 S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
-        const char *siganture, const char *size, const char *digest);
+        const char *signature, const char *size, const char *digest);
 
 S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer);

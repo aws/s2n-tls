@@ -62,6 +62,7 @@ MINIMAL_TEST_CERTS = [
     Certificates.ECDSA_256,
     Certificates.ECDSA_384,
     Certificates.RSA_PSS_2048_SHA256,
+    Certificates.ECDSA_521,
 ]
 
 
@@ -102,6 +103,12 @@ TLS13_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
     Ciphers.AES128_GCM_SHA256,
     Ciphers.AES256_GCM_SHA384,
+]
+
+S2N_TEST_POLICIES = [
+    Ciphers.SECURITY_POLICY_DEFAULT,
+    Ciphers.SECURITY_POLICY_DEFAULT_TLS12,
+    Ciphers.SECURITY_POLICY_DEFAULT_TLS13,
 ]
 
 

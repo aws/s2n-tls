@@ -51,6 +51,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
@@ -99,6 +100,14 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
     .libcrypto_nid = NID_X9_62_prime256v1,
     .share_size = SECP256R1_SHARE_SIZE,
     .generate_key = s2n_ecc_evp_generate_key_nist_curves,
+};
+
+const struct s2n_ecc_named_curve s2n_ecc_curve_none = {
+    .iana_id = 0,
+    .name = "none",
+    .libcrypto_nid = 0,
+    .share_size = 0,
+    .generate_key = s2n_ecc_evp_generate_key_noop,
 };
 
 /* All curves that s2n supports. New curves MUST be added here.
@@ -164,6 +173,11 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     return 0;
+}
+
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
@@ -412,7 +426,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    struct s2n_blob point_blob = { 0 };
     uint8_t *encoded_point = NULL;
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
@@ -420,13 +433,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        POSIX_ENSURE_REF(point_blob.data);
-        POSIX_CHECKED_MEMCPY(point_blob.data, encoded_point, size);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
         OPENSSL_free(encoded_point);
     }
 #else
-    uint8_t point_len;
+    uint8_t point_len = 0;
     struct s2n_blob point_blob = { 0 };
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
@@ -456,9 +467,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-    /* Remember where the written data starts */
-    written->data = s2n_stuffer_raw_write(out, 0);
-    POSIX_ENSURE_REF(written->data);
+    uint32_t key_share_offset = out->write_cursor;
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
@@ -468,6 +477,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     /* key share + key share size (1) + iana (2) + curve type (1) */
     written->size = key_share_size + 4;
+    written->data = out->blob.data + key_share_offset;
 
     return written->size;
 }

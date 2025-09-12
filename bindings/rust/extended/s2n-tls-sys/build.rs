@@ -3,7 +3,11 @@
 
 use std::path::{Path, PathBuf};
 
+const EXTERNAL_BUILD_CFG_NAME: &str = "s2n_tls_external_build";
+
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg({EXTERNAL_BUILD_CFG_NAME})");
+
     let external = External::default();
     if external.is_enabled() {
         external.link();
@@ -19,7 +23,7 @@ fn env<N: AsRef<str>>(name: N) -> String {
 
 fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     let name = name.as_ref();
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     std::env::var(name).ok()
 }
 
@@ -146,8 +150,9 @@ fn build_vendored() {
 
     build.compile("s2n-tls");
 
-    // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib={}", libcrypto.link);
+    // linking to the libcrypto is handled by the rust compiler through the
+    // `extern crate aws_lc_rs as _;` statement included in the generated source
+    // files. This is less brittle than manually linking the libcrypto artifact.
 
     // let consumers know where to find our header files
     let include_dir = out_dir.join("include");
@@ -180,7 +185,8 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
         .flag_if_supported("-z now")
         .flag_if_supported("-z noexecstack")
         // we use some deprecated libcrypto features so don't warn here
-        .flag_if_supported("-Wno-deprecated-declarations");
+        .flag_if_supported("-Wno-deprecated-declarations")
+        .flag_if_supported("-Wa,-mbranches-within-32B-boundaries");
 
     build
 }
@@ -200,7 +206,7 @@ impl Default for Libcrypto {
                 if let Some(version) = version.strip_suffix("_INCLUDE") {
                     let version = version.to_string();
 
-                    println!("cargo:rerun-if-env-changed={}", name);
+                    println!("cargo:rerun-if-env-changed={name}");
 
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
@@ -250,6 +256,12 @@ impl External {
     }
 
     fn link(&self) {
+        println!("cargo:rustc-cfg={EXTERNAL_BUILD_CFG_NAME}");
+
+        // Propagate an external build flag to dependents, of the form
+        // `DEP_S2N_TLS_EXTERNAL_BUILD=true`.
+        println!("cargo:external_build=true");
+
         println!(
             "cargo:rustc-link-search={}",
             self.lib_dir.as_ref().unwrap().display()

@@ -32,7 +32,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_map_internal.h"
 #include "utils/s2n_safety_macros.h"
-#include "utils/s2n_set.h"
 #include "utils/s2n_socket.h"
 
 /*
@@ -101,21 +100,6 @@ void cbmc_populate_s2n_array(struct s2n_array *array);
  * Properly allocates s2n_array for CBMC proofs.
  */
 struct s2n_array *cbmc_allocate_s2n_array();
-
-/*
- * Checks whether s2n_set is bounded by max_len and max_element_size.
- */
-bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size);
-
-/*
- * Populates the fields of a pre-allocated s2n_set for CBMC proofs.
- */
-void cbmc_populate_s2n_set(struct s2n_set *set);
-
-/*
- * Properly allocates s2n_set for CBMC proofs.
- */
-struct s2n_set *cbmc_allocate_s2n_set();
 
 /*
  * Populates the fields of a pre-allocated s2n_dh_params for CBMC proofs.
@@ -198,16 +182,6 @@ void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest);
 struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest();
 
 /*
- * Populates the fields of a pre-allocated s2n_evp_digest for CBMC proofs.
- */
-void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state);
-
-/*
- * Properly allocates s2n_evp_hmac_state for CBMC proofs.
- */
-struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state();
-
-/*
  * Populates the fields of a pre-allocated s2n_hash_state for CBMC proofs.
  */
 void cbmc_populate_s2n_hash_state(struct s2n_hash_state *state);
@@ -286,16 +260,6 @@ void cbmc_populate_s2n_x509_trust_store(struct s2n_x509_trust_store *s2n_x509_tr
  * Properly allocates s2n_config for CBMC proofs.
  */
 struct s2n_config *cbmc_allocate_s2n_config();
-
-/*
- * Populates the fields of a pre-allocated s2n_rsa_key for CBMC proofs.
- */
-void cbmc_populate_s2n_rsa_key(struct s2n_rsa_key *s2n_rsa_key);
-
-/*
- * Populates the fields of a pre-allocated s2n_ecdsa_key for CBMC proofs.
- */
-void cbmc_populate_s2n_ecdsa_key(struct s2n_ecdsa_key *s2n_ecdsa_key);
 
 /*
  * Populates the fields of a pre-allocated s2n_pkey for CBMC proofs.

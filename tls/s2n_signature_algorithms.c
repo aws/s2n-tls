@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
@@ -187,6 +186,12 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
         chosen_sig_scheme = &conn->handshake_params.client_cert_sig_scheme;
     } else {
         chosen_sig_scheme = &conn->handshake_params.server_cert_sig_scheme;
+    }
+
+    /* No server signature is needed for RSA kex */
+    if (conn->mode == S2N_SERVER && cipher_suite->key_exchange_alg == &s2n_rsa) {
+        RESULT_ENSURE_EQ(*chosen_sig_scheme, &s2n_null_sig_scheme);
+        return S2N_RESULT_OK;
     }
 
     /* Before TLS1.2, signature algorithms were fixed instead of negotiated */
@@ -387,6 +392,9 @@ S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg
             break;
         case S2N_SIGNATURE_ECDSA:
             *pkey_type = S2N_PKEY_TYPE_ECDSA;
+            break;
+        case S2N_SIGNATURE_MLDSA:
+            *pkey_type = S2N_PKEY_TYPE_MLDSA;
             break;
         default:
             RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

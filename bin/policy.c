@@ -74,7 +74,7 @@ int main(int argc, char *const *argv)
 
     printf("signature schemes:\n");
     for (size_t i = 0; i < policy->signature_preferences->count; i++) {
-        printf("- %s\n", policy->signature_preferences->signature_schemes[i]->iana_name);
+        printf("- %s\n", policy->signature_preferences->signature_schemes[i]->name);
     }
 
     printf("curves:\n");
@@ -88,7 +88,7 @@ int main(int argc, char *const *argv)
         }
         printf("certificate signature schemes:\n");
         for (size_t i = 0; i < policy->certificate_signature_preferences->count; i++) {
-            printf("- %s\n", policy->certificate_signature_preferences->signature_schemes[i]->iana_name);
+            printf("- %s\n", policy->certificate_signature_preferences->signature_schemes[i]->name);
         }
     }
 
@@ -102,9 +102,11 @@ int main(int argc, char *const *argv)
     if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
         printf("pq:\n");
         printf("- revision: %i\n", policy->kem_preferences->tls13_pq_hybrid_draft_revision);
-        printf("- kems:\n");
-        for (size_t i = 0; i < policy->kem_preferences->kem_count; i++) {
-            printf("-- %s\n", policy->kem_preferences->kems[i]->name);
+        if (policy->kem_preferences->kem_count > 0) {
+            printf("- kems:\n");
+            for (size_t i = 0; i < policy->kem_preferences->kem_count; i++) {
+                printf("-- %s\n", policy->kem_preferences->kems[i]->name);
+            }
         }
         printf("- kem groups:\n");
         for (size_t i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {

@@ -1,0 +1,37 @@
+name: 20250414
+min version: TLS1.3
+rules:
+- Perfect Forward Secrecy: yes
+- FIPS 140-3 (2019): yes
+cipher suites:
+- TLS_AES_256_GCM_SHA384
+signature schemes:
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- rsa_pss_pss_sha256
+- rsa_pss_pss_sha384
+- rsa_pss_pss_sha512
+- rsa_pss_rsae_sha256
+- rsa_pss_rsae_sha384
+- rsa_pss_rsae_sha512
+- rsa_pkcs1_sha256
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+curves:
+- secp384r1
+certificate signature schemes:
+- rsa_pss_pss_sha256
+- rsa_pss_pss_sha384
+- rsa_pss_pss_sha512
+- rsa_pss_rsae_sha256
+- rsa_pss_rsae_sha384
+- rsa_pss_rsae_sha512
+- rsa_pkcs1_sha256
+- rsa_pkcs1_sha384
+- rsa_pkcs1_sha512
+- legacy_rsa_sha224
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- legacy_ecdsa_sha224

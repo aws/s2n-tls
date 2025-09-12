@@ -69,8 +69,8 @@ let prove_handshake_io_lowlevel = do {
     s2n_generate_new_client_session_id <- crucible_llvm_unsafe_assume_spec llvm "s2n_generate_new_client_session_id" s2n_generate_new_client_session_id_spec;
     print "s2n_allowed_to_cache_connection";
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
-    print "s2n_resume_decrypt_session_ticket";
-    s2n_resume_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_resume_decrypt_session_ticket" s2n_resume_decrypt_session_ticket_spec;
+    print "s2n_resume_decrypt_session";
+    s2n_resume_decrypt_session <- crucible_llvm_unsafe_assume_spec llvm "s2n_resume_decrypt_session" s2n_resume_decrypt_session_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
 
     print "Proving correctness of get_auth_type";
@@ -85,7 +85,7 @@ let prove_handshake_io_lowlevel = do {
     // depends on whether chosen_psk is NULL.
     //
     // Issue #3052 is about removing the need to invoke the specification twice.
-    let s2n_conn_set_handshake_type_ovs = [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_resume_decrypt_session_ticket];
+    let s2n_conn_set_handshake_type_ovs = [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_resume_decrypt_session];
     print "Proving correctness of s2n_conn_set_handshake_type (NULL chosen_psk)";
     s2n_conn_set_handshake_type_chosen_psk_null_proof     <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec true)  (w4_unint_yices []);
     print "Proving correctness of s2n_conn_set_handshake_type (non-NULL chosen_psk)";

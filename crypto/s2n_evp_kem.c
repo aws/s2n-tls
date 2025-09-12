@@ -86,7 +86,7 @@ int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_se
 
     size_t shared_secret_size = kem->shared_secret_key_length;
     POSIX_GUARD_OSSL(EVP_PKEY_decapsulate(kem_pkey_ctx, shared_secret, &shared_secret_size,
-                             (uint8_t *) ciphertext, kem->ciphertext_length),
+                             (uint8_t *) (uintptr_t) ciphertext, kem->ciphertext_length),
             S2N_ERR_PQ_CRYPTO);
     POSIX_ENSURE_EQ(kem->shared_secret_key_length, shared_secret_size);
 
