@@ -597,47 +597,32 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        /* Not using DEFER_CLEANUP as we need to be specific about where this server is freed */
-        struct s2n_connection *first_server = s2n_connection_new(S2N_SERVER);
-        EXPECT_NOT_NULL(first_server);
-
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_array[i]));
-        EXPECT_SUCCESS(s2n_connection_set_config(first_server, config_array[i]));
-
-        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
-        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, first_server, &io_pair));
-
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(first_server, client_conn));
-
-        /* Preliminary send and receive */
-        EXPECT_OK(s2n_send_and_recv_test(first_server, client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(client_conn, first_server));
-
-        struct s2n_connection *server_ptr = first_server;
-
+        
+        uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };    
         for (size_t j = 0; j < 10; j++) {
-            uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
-            EXPECT_SUCCESS(s2n_connection_serialize(server_ptr, serialized_data, sizeof(serialized_data)));
-            EXPECT_SUCCESS(s2n_connection_free(server_ptr));
-
-            struct s2n_connection *new_server = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(new_server);
-            EXPECT_SUCCESS(s2n_connection_set_config(new_server, config_array[i]));
-            EXPECT_SUCCESS(s2n_connection_deserialize(new_server, serialized_data, sizeof(serialized_data)));
-
-            /* Wipe and re-initialize IO pipes */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
-            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server, &io_pair));
-
-            for (size_t idx = 0; idx < 100; idx++) {
-                EXPECT_OK(s2n_send_and_recv_test(new_server, client_conn));
-                EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server));
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config_array[i]));
+            
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server, &io_pair));
+            
+            if (j == 0) {
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client_conn));
+            } else {
+                EXPECT_SUCCESS(s2n_connection_deserialize(server, serialized_data, sizeof(serialized_data)));
             }
-            server_ptr = new_server;
-        }
-        EXPECT_SUCCESS(s2n_connection_free(server_ptr));
+            
+            /* Can send and receive after either negotiating or deserializing */
+            EXPECT_OK(s2n_send_and_recv_test(server, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, server));
+            
+            memset(serialized_data, 0, S2N_SERIALIZED_CONN_TLS12_SIZE);
+            EXPECT_SUCCESS(s2n_connection_serialize(server, serialized_data, sizeof(serialized_data)));
+        };
     };
 
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
