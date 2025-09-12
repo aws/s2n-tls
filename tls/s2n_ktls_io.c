@@ -273,7 +273,7 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
  * We can estimate the number of "full-sized records" sent by assuming that
  * all records are full-sized.
  */
-static S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
+S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
 {
     RESULT_ENSURE_REF(estimate);
     uint64_t records = bytes / S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
@@ -281,45 +281,6 @@ static S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
         records++;
     }
     *estimate = records;
-    return S2N_RESULT_OK;
-}
-
-/* We need to track when the key encryption limit is reached. We could get the current record
- * sequence number from the kernel with getsockopt, but that requires a surprisingly
- * expensive syscall.
- *
- * Instead, we track the estimated sequence number and enforce the limit based
- * on that estimate.
- */
-S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested)
-{
-    RESULT_ENSURE_REF(conn);
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return S2N_RESULT_OK;
-    }
-
-    uint64_t new_records_sent = 0;
-    RESULT_GUARD(s2n_ktls_estimate_records(bytes_requested, &new_records_sent));
-
-    uint64_t old_records_sent = 0;
-    struct s2n_blob seq_num = { 0 };
-    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &old_records_sent));
-
-    RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(old_records_sent, new_records_sent, UINT64_MAX),
-            S2N_ERR_KTLS_KEY_LIMIT);
-    uint64_t total_records_sent = old_records_sent + new_records_sent;
-
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
-    if (total_records_sent > encryption_limit) {
-        RESULT_ENSURE_REF(conn->config);
-        RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEY_LIMIT);
-        s2n_atomic_flag_set(&conn->key_update_pending);
-    }
-
     return S2N_RESULT_OK;
 }
 
