@@ -2,6 +2,7 @@
 members = [
     "client-hello-config-resolution",
     "hyper-server-client", "key-logging",
+    "external-psk",
     "tokio-server-client",
 ]
 resolver = "2"
