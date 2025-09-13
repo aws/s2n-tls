@@ -791,6 +791,46 @@ for details about proper SSLv2 ClientHello parsing.</p>
 <h2 id="keying-material-lifetimes-in-tls12-and-tls13"><a class="header" href="#keying-material-lifetimes-in-tls12-and-tls13">Keying Material Lifetimes in TLS1.2 and TLS1.3</a></h2>
 <p>In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code>.</p>
 <p>In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see <a href="ch11-resumption.html#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a>. These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with <code>s2n_connection_set_server_keying_material_lifetime()</code>. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pre-shared-keys"><a class="header" href="#pre-shared-keys">Pre-shared Keys</a></h1>
+<p>s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.</p>
+<h2 id="benefits-of-using-pre-shared-keys"><a class="header" href="#benefits-of-using-pre-shared-keys">Benefits of Using Pre-Shared Keys</a></h2>
+<p>Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.</p>
+<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
+<p>A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information see: <a href="https://eprint.iacr.org/2019/347.pdf">Selfie: reflections on TLS 1.3 with PSK.</a></p>
+<h2 id="configuring-external-pre-shared-keys"><a class="header" href="#configuring-external-pre-shared-keys">Configuring External Pre-Shared Keys</a></h2>
+<p>Both clients and servers will need to create and append a PSK to a connection in order to negotiate that PSK. Call <code>s2n_external_psk_new()</code> to allocate memory for a PSK object. Call <code>s2n_psk_set_identity()</code> to set a unique identifier for the PSK. Note that this identity will be transmitted over the network unencrypted, so do not include any confidential information in it. Call <code>s2n_psk_set_secret()</code> to set the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is <em>not</em> secure and is subject to dictionary attacks. See <a href="https://www.rfc-editor.org/rfc/rfc9257.html#name-recommendations-for-externa">this RFC</a> for more guidelines on creating a secure PSK secret. Call <code>s2n_psk_set_hmac()</code> to change the hmac algorithm (defaults to <strong>S2N_PSK_HMAC_SHA256</strong>) for a given PSK. Note that the hmac algorithm may influence server cipher-suite selection.</p>
+<p>Call <code>s2n_connection_append_psk()</code> to append the newly created PSK to the connection. Both the server and client should call this API to add PSKs to their connection. PSKs that are appended first will be preferred over PSKs appended last unless custom PSK selection logic is implemented. Use <code>s2n_psk_free()</code> to free the memory allocated for a PSK once you have associated it with a connection.</p>
+<p>External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling <code>s2n_config_set_psk_mode()</code> prior to the handshake. Additionally, <code>s2n_connection_set_psk_mode()</code> overrides the PSK mode set on the config for a particular connection.</p>
+<h2 id="selecting-a-pre-shared-key"><a class="header" href="#selecting-a-pre-shared-key">Selecting a Pre-Shared Key</a></h2>
+<p>By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The <code>s2n_psk_selection_callback</code> is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call <code>s2n_config_set_psk_selection_callback()</code> to associate your <code>s2n_psk_selection_callback</code> with a config.</p>
+<p>The <code>s2n_psk_selection_callback</code> will provide the list of PSK identities sent by the client in the <strong>psk_list</strong> input parameter. You will need to create an offered PSK object by calling <code>s2n_offered_psk_new()</code> and pass this object as a parameter in <code>s2n_offered_psk_list_next()</code> in order to populate the offered PSK object. Call <code>s2n_offered_psk_list_has_next()</code> prior to calling <code>s2n_offered_psk_list_next()</code> to determine if there exists another PSK in the <strong>psk_list</strong>. Call <code>s2n_offered_psk_get_identity()</code> to get the identity of a particular <strong>s2n_offered_psk</strong>.</p>
+<p>Call <code>s2n_offered_psk_list_choose_psk()</code> to choose a particular <strong>s2n_offered_psk</strong> to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using <code>s2n_connection_append_psk()</code>. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call <code>s2n_offered_psk_free()</code> once you have chosen a particular PSK to free the memory allocated.</p>
+<p>If desired, <code>s2n_offered_psk_list_reread()</code> returns the offered PSK list to its original read state. After <code>s2n_offered_psk_list_reread()</code> is called, the next call to <code>s2n_offered_psk_list_next()</code> will return the first PSK in the offered PSK list.</p>
+<p>Use <code>s2n_connection_get_negotiated_psk_identity()</code> to retrieve the PSK identity selected by the server for the connection.</p>
+<p>In the following example, <code>s2n_psk_selection_callback</code> chooses the first client offered PSK identity present in an external store.</p>
+<pre><code class="language-c">int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
+                               struct s2n_offered_psk_list *psk_list)
+{
+    struct s2n_offered_psk *offered_psk = s2n_offered_psk_new();
+
+    while (s2n_offered_psk_list_has_next(psk_list)) {
+        uint8_t *client_psk_id = NULL;
+        uint16_t client_psk_id_len = 0;
+
+        s2n_offered_psk_list_next(psk_list, offered_psk);
+        s2n_offered_psk_get_identity(offered_psk, &amp;client_psk_id, &amp;client_psk_id_len);
+        struct s2n_psk *psk = user_lookup_identity_db(client_psk_id, client_psk_id_len);
+
+        if (psk) {
+            s2n_connection_append_psk(conn, psk);
+            s2n_offered_psk_list_choose_psk(psk_list, offered_psk);
+            break;
+        }
+    }
+    s2n_offered_psk_free(&amp;offered_psk);
+    return S2N_SUCCESS;
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
 <p>By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
 and decryption operations required for a tls handshake. However, this default behavior may not
@@ -799,9 +839,9 @@ work for some situations.</p>
 <ul>
 <li>An application may want to perform the CPU-expensive signature and decryption operations
 asynchronously to avoid blocking the main event loop.
-See <a href="ch12-private-key-ops.html#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
+See <a href="ch13-private-key-ops.html#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
 <li>An application may not have direct access to the private key, such as when using PKCS#11.
-See <a href="ch12-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a></li>
+See <a href="ch13-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a></li>
 </ul>
 <p>To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
 are performed. The callback is set via <code>s2n_config_set_async_pkey_callback()</code> and is triggered
@@ -809,7 +849,7 @@ every time <code>s2n_negotiate()</code> performs an action involving the private
 <strong>op</strong>, an opaque object representing the private key operation. To avoid memory leaks, <strong>op</strong> must
 always eventually be freed by calling <code>s2n_async_pkey_op_free()</code>.</p>
 <p>The private key operation can be performed by calling <code>s2n_async_pkey_op_perform()</code>
-(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="ch12-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a>).
+(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="ch13-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a>).
 The required private key can be retrieved using the <code>s2n_connection_get_selected_cert()</code> and <code>s2n_cert_chain_and_key_get_private_key()</code> calls. The operation can then be finalized with <code>s2n_async_pkey_op_apply()</code> to continue the handshake.</p>
 <h2 id="asynchronous-private-key-operations"><a class="header" href="#asynchronous-private-key-operations">Asynchronous Private Key Operations</a></h2>
 <p>When s2n-tls is used in non-blocking mode, private key operations can be completed
@@ -857,52 +897,56 @@ Once the output is set, the private key operation can be completed by calling <c
 fails synchronously, simply return <strong>S2N_FAILURE</strong> from the callback. If the offloaded operation
 fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
 simply shutdown and cleanup the connection as you would for any other error.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="pre-shared-keys"><a class="header" href="#pre-shared-keys">Pre-shared Keys</a></h1>
-<p>s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.</p>
-<h2 id="benefits-of-using-pre-shared-keys"><a class="header" href="#benefits-of-using-pre-shared-keys">Benefits of Using Pre-Shared Keys</a></h2>
-<p>Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.</p>
-<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
-<p>A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information see: <a href="https://eprint.iacr.org/2019/347.pdf">Selfie: reflections on TLS 1.3 with PSK.</a></p>
-<h2 id="configuring-external-pre-shared-keys"><a class="header" href="#configuring-external-pre-shared-keys">Configuring External Pre-Shared Keys</a></h2>
-<p>Both clients and servers will need to create and append a PSK to a connection in order to negotiate that PSK. Call <code>s2n_external_psk_new()</code> to allocate memory for a PSK object. Call <code>s2n_psk_set_identity()</code> to set a unique identifier for the PSK. Note that this identity will be transmitted over the network unencrypted, so do not include any confidential information in it. Call <code>s2n_psk_set_secret()</code> to set the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is <em>not</em> secure and is subject to dictionary attacks. See <a href="https://www.rfc-editor.org/rfc/rfc9257.html#name-recommendations-for-externa">this RFC</a> for more guidelines on creating a secure PSK secret. Call <code>s2n_psk_set_hmac()</code> to change the hmac algorithm (defaults to <strong>S2N_PSK_HMAC_SHA256</strong>) for a given PSK. Note that the hmac algorithm may influence server cipher-suite selection.</p>
-<p>Call <code>s2n_connection_append_psk()</code> to append the newly created PSK to the connection. Both the server and client should call this API to add PSKs to their connection. PSKs that are appended first will be preferred over PSKs appended last unless custom PSK selection logic is implemented. Use <code>s2n_psk_free()</code> to free the memory allocated for a PSK once you have associated it with a connection.</p>
-<p>External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling <code>s2n_config_set_psk_mode()</code> prior to the handshake. Additionally, <code>s2n_connection_set_psk_mode()</code> overrides the PSK mode set on the config for a particular connection.</p>
-<h2 id="selecting-a-pre-shared-key"><a class="header" href="#selecting-a-pre-shared-key">Selecting a Pre-Shared Key</a></h2>
-<p>By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The <code>s2n_psk_selection_callback</code> is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call <code>s2n_config_set_psk_selection_callback()</code> to associate your <code>s2n_psk_selection_callback</code> with a config.</p>
-<p>The <code>s2n_psk_selection_callback</code> will provide the list of PSK identities sent by the client in the <strong>psk_list</strong> input parameter. You will need to create an offered PSK object by calling <code>s2n_offered_psk_new()</code> and pass this object as a parameter in <code>s2n_offered_psk_list_next()</code> in order to populate the offered PSK object. Call <code>s2n_offered_psk_list_has_next()</code> prior to calling <code>s2n_offered_psk_list_next()</code> to determine if there exists another PSK in the <strong>psk_list</strong>. Call <code>s2n_offered_psk_get_identity()</code> to get the identity of a particular <strong>s2n_offered_psk</strong>.</p>
-<p>Call <code>s2n_offered_psk_list_choose_psk()</code> to choose a particular <strong>s2n_offered_psk</strong> to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using <code>s2n_connection_append_psk()</code>. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call <code>s2n_offered_psk_free()</code> once you have chosen a particular PSK to free the memory allocated.</p>
-<p>If desired, <code>s2n_offered_psk_list_reread()</code> returns the offered PSK list to its original read state. After <code>s2n_offered_psk_list_reread()</code> is called, the next call to <code>s2n_offered_psk_list_next()</code> will return the first PSK in the offered PSK list.</p>
-<p>Use <code>s2n_connection_get_negotiated_psk_identity()</code> to retrieve the PSK identity selected by the server for the connection.</p>
-<p>In the following example, <code>s2n_psk_selection_callback</code> chooses the first client offered PSK identity present in an external store.</p>
-<pre><code class="language-c">int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
-                               struct s2n_offered_psk_list *psk_list)
-{
-    struct s2n_offered_psk *offered_psk = s2n_offered_psk_new();
-
-    while (s2n_offered_psk_list_has_next(psk_list)) {
-        uint8_t *client_psk_id = NULL;
-        uint16_t client_psk_id_len = 0;
-
-        s2n_offered_psk_list_next(psk_list, offered_psk);
-        s2n_offered_psk_get_identity(offered_psk, &amp;client_psk_id, &amp;client_psk_id_len);
-        struct s2n_psk *psk = user_lookup_identity_db(client_psk_id, client_psk_id_len);
-
-        if (psk) {
-            s2n_connection_append_psk(conn, psk);
-            s2n_offered_psk_list_choose_psk(psk_list, offered_psk);
-            break;
-        }
-    }
-    s2n_offered_psk_free(&amp;offered_psk);
-    return S2N_SUCCESS;
-}
+<div style="break-before: page; page-break-before: always;"></div><h1 id="connection-serialization"><a class="header" href="#connection-serialization">Connection Serialization</a></h1>
+<p>Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different host or stored to disk.</p>
+<div class="warning">
+This feature is dangerous. It provides cryptographic material from a TLS session in plaintext. An attacker with access to the serialized connection can decrypt any past and future communications from the connection. Users MUST both encrypt and MAC the contents of the serialized connection to provide secrecy and integrity. 
+<p>The simplest way to provide secrecy and integrity is to transport the serialized connection using a protocol like TLS which protects the secrecy and integrity of all transported data.</p>
+</div>
+<h2 id="use-case"><a class="header" href="#use-case">Use Case</a></h2>
+<p>Connection Serialization is a feature used to support advanced, exceptional use cases. Most users will not find it useful.</p>
+<p>One use case for connection serialization is to enable a more complete TLS offload. Traditional private-key offloading allows the certificate private key to be stored separately from the application server, but connection-serialization TLS offloading allows all TLS materials and TLS configuration to be stored separately from the application server.</p>
+<h3 id="private-key-offloading"><a class="header" href="#private-key-offloading">Private Key Offloading</a></h3>
+<p>For reference, this is a common private key offloading architecture:</p>
+<pre><code> client           application server                  key store     
+               ┌─────────────────────────┐                       
+┌─────┐        │     s2n-tls config      ┼───────►┌─────────────┐
+│     ┼───────►│                         │◄───────┼ private key │
+└─────┘        │ public key (x509 chain) │    ▲   └─────────────┘
+               └─────────────────────────┘    │                  
+                                              │                  
+                                  server sends material to sign  
+                                  key store returns signature    
 </code></pre>
+<p>The client will send TLS handshake bytes (e.g. the Client Hello message) to the application server. The server sends all private key operations to the key store, but the public x509 certificate chain and TLS configuration are still owned by the application server.</p>
+<h3 id="connection-serialization-tls-offloading"><a class="header" href="#connection-serialization-tls-offloading">Connection-Serialization TLS Offloading</a></h3>
+<pre><code>                                        key store           
+ client    application server   ┌──────────────────────────┐
+                                │     s2n-tls config       │
+┌─────┐        ┌─────┐ ────────►│                          │
+│     ┼───────►│     │◄─────────┼       private key        │
+└─────┘        └─────┘     ▲    │                          │
+                           │    │  public key (x509 chain) │
+                           │    └──────────────────────────┘
+                           │                                
+                     server sends handshake bytes           
+                     key store returns serialized connection
+</code></pre>
+<p>In connection-serialization TLS Offloading, the application server will forward all of the handshake bytes to the key store. For the duration of the handshake, the application server is behaving as an L4 proxy, and doesn't parse any of the TLS protocol. Once the TLS handshake is complete, the key store will call <code>s2n_connection_serialize()</code> to serialize the connection to bytes, and send it back to the application server. The application server will then deserialize the connection using <code>s2n_connection_deserialize()</code>. At this point, the application server can read and write application data to the client.</p>
+<p>In this architecture the application server does not store any TLS certificate material, and it does not own the TLS configuration.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<p>To enable connection serialization, applications must first set a serialization version on the config using <code>s2n_config_set_serialization_version()</code>. Setting a version prevents forwards-incompatible changes from causing deserialization failures. See <a href="ch14-connection-serialization.html#serialization-version-deployment">Serialization Version Deployment</a> for more information.</p>
+<p>To serialize a connection, applications must first obtain a large enough buffer to store the serialized connection. The size of the serialized connection can be obtained with <code>s2n_connection_serialization_length()</code>. The serialized connection can then be written into the buffer with <code>s2n_connection_serialize()</code>.</p>
+<p>To deserialize the connection, call <code>s2n_connection_deserialize()</code>. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most handshake information will not be preserved, and connection-level getters may not function normally.</p>
+<h2 id="serialization-version-deployment"><a class="header" href="#serialization-version-deployment">Serialization Version Deployment</a></h2>
+<p>Connection Serialization is backwards compatible, but not forwards compatible. This means that a new version of s2n-tls can deserialize old formats, but an old version of s2n-tls can not deserialize new formats.</p>
+<p>The serialization version controls what format is written, and the library version controls what formats can be read. To avoid deserialization failures every host in a fleet should support reading a new format before any hosts begin writing that format.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="early-data-or-0-rtt-data"><a class="header" href="#early-data-or-0-rtt-data">Early Data or 0-RTT Data</a></h1>
 <p>TLS1.3 introduced the ability for clients to send data before completing the handshake when using external pre-shared keys or session resumption.</p>
 <p><strong>WARNING:</strong> Early data does not have the same security properties as regular data sent after a successful handshake.</p>
 <ul>
 <li>It is not forward secret. If the PSK or session resumption secret is compromised, then the early data is also compromised.</li>
-<li>It is susceptible to replay attacks unless proper precautions are taken. Early data can be captured and successfully resent by an attacker. See <a href="https://tools.ietf.org/rfc/rfc8446#appendix-E.5">the TLS1.3 RFC section on replay attacks</a> for more details, and <a href="ch14-early-data.html#adding-anti-replay-protection">Adding anti-replay protection</a> for how to implement counter measures.</li>
+<li>It is susceptible to replay attacks unless proper precautions are taken. Early data can be captured and successfully resent by an attacker. See <a href="https://tools.ietf.org/rfc/rfc8446#appendix-E.5">the TLS1.3 RFC section on replay attacks</a> for more details, and <a href="ch15-early-data.html#adding-anti-replay-protection">Adding anti-replay protection</a> for how to implement counter measures.</li>
 </ul>
 <p><em><strong>Do not enable early data for your application unless you have understood and mitigated the risks.</strong></em></p>
 <h2 id="configuring-session-resumption-for-early-data"><a class="header" href="#configuring-session-resumption-for-early-data">Configuring Session Resumption for Early Data</a></h2>

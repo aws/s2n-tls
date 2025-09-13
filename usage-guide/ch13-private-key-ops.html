@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Pre-shared Keys</title>
+        <title>Offloading Private Key Operations</title>
 
 
         <!-- Custom HTML head -->
@@ -175,56 +175,82 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="pre-shared-keys"><a class="header" href="#pre-shared-keys">Pre-shared Keys</a></h1>
-<p>s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.</p>
-<h2 id="benefits-of-using-pre-shared-keys"><a class="header" href="#benefits-of-using-pre-shared-keys">Benefits of Using Pre-Shared Keys</a></h2>
-<p>Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.</p>
-<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
-<p>A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information see: <a href="https://eprint.iacr.org/2019/347.pdf">Selfie: reflections on TLS 1.3 with PSK.</a></p>
-<h2 id="configuring-external-pre-shared-keys"><a class="header" href="#configuring-external-pre-shared-keys">Configuring External Pre-Shared Keys</a></h2>
-<p>Both clients and servers will need to create and append a PSK to a connection in order to negotiate that PSK. Call <code>s2n_external_psk_new()</code> to allocate memory for a PSK object. Call <code>s2n_psk_set_identity()</code> to set a unique identifier for the PSK. Note that this identity will be transmitted over the network unencrypted, so do not include any confidential information in it. Call <code>s2n_psk_set_secret()</code> to set the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is <em>not</em> secure and is subject to dictionary attacks. See <a href="https://www.rfc-editor.org/rfc/rfc9257.html#name-recommendations-for-externa">this RFC</a> for more guidelines on creating a secure PSK secret. Call <code>s2n_psk_set_hmac()</code> to change the hmac algorithm (defaults to <strong>S2N_PSK_HMAC_SHA256</strong>) for a given PSK. Note that the hmac algorithm may influence server cipher-suite selection.</p>
-<p>Call <code>s2n_connection_append_psk()</code> to append the newly created PSK to the connection. Both the server and client should call this API to add PSKs to their connection. PSKs that are appended first will be preferred over PSKs appended last unless custom PSK selection logic is implemented. Use <code>s2n_psk_free()</code> to free the memory allocated for a PSK once you have associated it with a connection.</p>
-<p>External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling <code>s2n_config_set_psk_mode()</code> prior to the handshake. Additionally, <code>s2n_connection_set_psk_mode()</code> overrides the PSK mode set on the config for a particular connection.</p>
-<h2 id="selecting-a-pre-shared-key"><a class="header" href="#selecting-a-pre-shared-key">Selecting a Pre-Shared Key</a></h2>
-<p>By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The <code>s2n_psk_selection_callback</code> is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call <code>s2n_config_set_psk_selection_callback()</code> to associate your <code>s2n_psk_selection_callback</code> with a config.</p>
-<p>The <code>s2n_psk_selection_callback</code> will provide the list of PSK identities sent by the client in the <strong>psk_list</strong> input parameter. You will need to create an offered PSK object by calling <code>s2n_offered_psk_new()</code> and pass this object as a parameter in <code>s2n_offered_psk_list_next()</code> in order to populate the offered PSK object. Call <code>s2n_offered_psk_list_has_next()</code> prior to calling <code>s2n_offered_psk_list_next()</code> to determine if there exists another PSK in the <strong>psk_list</strong>. Call <code>s2n_offered_psk_get_identity()</code> to get the identity of a particular <strong>s2n_offered_psk</strong>.</p>
-<p>Call <code>s2n_offered_psk_list_choose_psk()</code> to choose a particular <strong>s2n_offered_psk</strong> to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using <code>s2n_connection_append_psk()</code>. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call <code>s2n_offered_psk_free()</code> once you have chosen a particular PSK to free the memory allocated.</p>
-<p>If desired, <code>s2n_offered_psk_list_reread()</code> returns the offered PSK list to its original read state. After <code>s2n_offered_psk_list_reread()</code> is called, the next call to <code>s2n_offered_psk_list_next()</code> will return the first PSK in the offered PSK list.</p>
-<p>Use <code>s2n_connection_get_negotiated_psk_identity()</code> to retrieve the PSK identity selected by the server for the connection.</p>
-<p>In the following example, <code>s2n_psk_selection_callback</code> chooses the first client offered PSK identity present in an external store.</p>
-<pre><code class="language-c">int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
-                               struct s2n_offered_psk_list *psk_list)
-{
-    struct s2n_offered_psk *offered_psk = s2n_offered_psk_new();
-
-    while (s2n_offered_psk_list_has_next(psk_list)) {
-        uint8_t *client_psk_id = NULL;
-        uint16_t client_psk_id_len = 0;
-
-        s2n_offered_psk_list_next(psk_list, offered_psk);
-        s2n_offered_psk_get_identity(offered_psk, &amp;client_psk_id, &amp;client_psk_id_len);
-        struct s2n_psk *psk = user_lookup_identity_db(client_psk_id, client_psk_id_len);
-
-        if (psk) {
-            s2n_connection_append_psk(conn, psk);
-            s2n_offered_psk_list_choose_psk(psk_list, offered_psk);
-            break;
-        }
-    }
-    s2n_offered_psk_free(&amp;offered_psk);
-    return S2N_SUCCESS;
-}
-</code></pre>
+                        <h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
+<p>By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
+and decryption operations required for a tls handshake. However, this default behavior may not
+work for some situations.</p>
+<p>For example:</p>
+<ul>
+<li>An application may want to perform the CPU-expensive signature and decryption operations
+asynchronously to avoid blocking the main event loop.
+See <a href="#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
+<li>An application may not have direct access to the private key, such as when using PKCS#11.
+See <a href="#offloading-private-key-operations-1">Offloading private key operations</a></li>
+</ul>
+<p>To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
+are performed. The callback is set via <code>s2n_config_set_async_pkey_callback()</code> and is triggered
+every time <code>s2n_negotiate()</code> performs an action involving the private key. The callback is passed
+<strong>op</strong>, an opaque object representing the private key operation. To avoid memory leaks, <strong>op</strong> must
+always eventually be freed by calling <code>s2n_async_pkey_op_free()</code>.</p>
+<p>The private key operation can be performed by calling <code>s2n_async_pkey_op_perform()</code>
+(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="#offloading-private-key-operations-1">Offloading private key operations</a>).
+The required private key can be retrieved using the <code>s2n_connection_get_selected_cert()</code> and <code>s2n_cert_chain_and_key_get_private_key()</code> calls. The operation can then be finalized with <code>s2n_async_pkey_op_apply()</code> to continue the handshake.</p>
+<h2 id="asynchronous-private-key-operations"><a class="header" href="#asynchronous-private-key-operations">Asynchronous Private Key Operations</a></h2>
+<p>When s2n-tls is used in non-blocking mode, private key operations can be completed
+asynchronously. This model can be useful to move execution of
+CPU-heavy private key operations out of the main
+event loop, preventing <code>s2n_negotiate()</code> from blocking the loop for a few
+milliseconds each time the private key operation needs to be performed.</p>
+<p>To handle private key operations asynchronously, return from the callback without calling
+<code>s2n_async_pkey_op_perform()</code> or <code>s2n_async_pkey_op_apply()</code>. Usually the user would do this
+by spawning a separate thread to perform <strong>op</strong> and immediately returning <strong>S2N_SUCCESS</strong>
+from the callback without waiting for that separate thread to complete. In response,
+<code>s2n_negotiate()</code> will return <strong>S2N_FAILURE</strong> with an error of type <strong>S2N_ERR_T_BLOCKED</strong>
+and <strong>s2n_blocked_status</strong> set to <strong>S2N_BLOCKED_ON_APPLICATION_INPUT</strong>.
+All subsequent calls to <code>s2n_negotiate()</code> will produce the same result until <code>s2n_async_pkey_op_apply()</code>
+is called to finalize the <strong>op</strong>.</p>
+<p>Note: It is not safe to call multiple functions on the same <strong>conn</strong> or
+<strong>op</strong> objects from 2 different threads at the same time. Doing so will
+produce undefined behavior. However it is safe to have a call to a
+function involving only <strong>conn</strong> at the same time as a call to a
+function involving only <strong>op</strong>, as those objects are not coupled with
+each other. It is also safe to free <strong>conn</strong> or <strong>op</strong> at any moment with
+respective function calls, with the exception that <strong>conn</strong> cannot
+be freed inside the <code>s2n_async_pkey_fn()</code> callback.</p>
+<h2 id="synchronous-private-key-operations"><a class="header" href="#synchronous-private-key-operations">Synchronous Private Key Operations</a></h2>
+<p>Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
+To complete an operation synchronously, simply call <code>s2n_async_pkey_op_perform()</code> and <code>s2n_async_pkey_op_apply()</code> inside the callback.
+If the callback succeeds, the handshake will continue uninterrupted.
+If the callback fails, <code>s2n_negotiate()</code> will fail with an error of type <strong>S2N_ERR_T_INTERNAL</strong>.</p>
+<h2 id="offloading-private-key-operations-1"><a class="header" href="#offloading-private-key-operations-1">Offloading Private Key Operations</a></h2>
+<p>The <code>s2n_async_pkey_op_perform()</code> call used to perform a private key operation requires
+direct access to the private key. In some cases, like when using PKCS#11, users may not
+have access to the private key. In these cases, we can substitute <code>s2n_async_pkey_op_set_output()</code>
+for <code>s2n_async_pkey_op_perform()</code> to tell s2n-tls the result of the operation rather than
+having s2n-tls perform the operation itself.</p>
+<p>s2n-tls provides a number of calls to gather the information necessary for
+an outside module or library to perform the operation. The application can query the type of private
+key operation by calling <code>s2n_async_pkey_op_get_op_type()</code>. In order to perform
+an operation, the application must ask s2n-tls to copy the operation's input into an
+application supplied buffer. The appropriate buffer size can be determined by calling
+<code>s2n_async_pkey_op_get_input_size()</code>. Once a buffer of the proper size is
+allocated, the application can request the input data by calling <code>s2n_async_pkey_op_get_input()</code>.
+After the operation is completed, the finished output can be copied back to S2N by calling <code>s2n_async_pkey_op_set_output()</code>.
+Once the output is set, the private key operation can be completed by calling <code>s2n_async_pkey_op_apply()</code> as usual.</p>
+<p>Offloading can be performed either synchronously or asynchronously. If the offloaded operation
+fails synchronously, simply return <strong>S2N_FAILURE</strong> from the callback. If the offloaded operation
+fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
+simply shutdown and cleanup the connection as you would for any other error.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="ch12-private-key-ops.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="ch12-preshared-keys.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="ch14-early-data.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="ch14-connection-serialization.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -234,11 +260,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="ch12-private-key-ops.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="ch12-preshared-keys.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="ch14-early-data.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="ch14-connection-serialization.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
