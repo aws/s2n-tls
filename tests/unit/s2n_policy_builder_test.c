@@ -27,15 +27,11 @@ static S2N_RESULT s2n_verify_format_v1_output(const char *output, const char *po
     RESULT_ENSURE_REF(policy_name);
 
     /* Required sections are present */
-    RESULT_ENSURE(strstr(output, "name: ") != NULL, S2N_ERR_TEST_ASSERTION);
     RESULT_ENSURE(strstr(output, "min version: ") != NULL, S2N_ERR_TEST_ASSERTION);
     RESULT_ENSURE(strstr(output, "rules:\n") != NULL, S2N_ERR_TEST_ASSERTION);
     RESULT_ENSURE(strstr(output, "cipher suites:\n") != NULL, S2N_ERR_TEST_ASSERTION);
     RESULT_ENSURE(strstr(output, "signature schemes:\n") != NULL, S2N_ERR_TEST_ASSERTION);
     RESULT_ENSURE(strstr(output, "curves:\n") != NULL, S2N_ERR_TEST_ASSERTION);
-
-    /* Policy name matches */
-    RESULT_ENSURE(strstr(output, policy_name) != NULL, S2N_ERR_TEST_ASSERTION);
 
     return S2N_RESULT_OK;
 }
@@ -50,7 +46,7 @@ static S2N_RESULT s2n_capture_output_to_buffer(struct s2n_security_policy_builde
     RESULT_ENSURE(buffer_size > 0, S2N_ERR_INVALID_ARGUMENT);
 
     /* Use a pipe for capturing output */
-    int pipe_fds[2];
+    int pipe_fds[2] = { 0 };
     RESULT_ENSURE(pipe(pipe_fds) == 0, S2N_ERR_IO);
     int write_result = s2n_policy_builder_write_verbose(builder, format, pipe_fds[1]);
     close(pipe_fds[1]);

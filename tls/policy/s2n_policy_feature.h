@@ -159,10 +159,9 @@ int s2n_security_policy_free(struct s2n_security_policy **policy);
  */
 typedef enum {
     /**
-     * FORMAT_V1: Human-readable YAML-style format
+     * FORMAT_V1: Human-readable structured format
      * 
      * Produces structured output with the following sections:
-     * - name: <policy_name>
      * - min version: <minimum_protocol_version>
      * - rules:
      *   - <rule_name>: <yes|no>
@@ -184,7 +183,6 @@ typedef enum {
      *     -- <kem_group_name>
      */
     S2N_POLICY_FORMAT_V1 = 1,
-    /* Future formats can be added here */
 } s2n_policy_format;
 
 /**

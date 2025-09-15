@@ -248,9 +248,10 @@ static int s2n_policy_write_format_v1(const struct s2n_security_policy *policy, 
     POSIX_ENSURE_REF(policy);
     POSIX_ENSURE_REF(policy_name);
 
-    POSIX_GUARD(s2n_write_fd_formatted(fd, "name: %s\n", policy_name));
-
-    const char *version_str = version_strs[policy->minimum_protocol_version];
+    const char *version_str = NULL;
+    if (policy->minimum_protocol_version <= S2N_TLS13) {
+        version_str = version_strs[policy->minimum_protocol_version];
+    }
     POSIX_GUARD(s2n_write_fd_formatted(fd, "min version: %s\n", version_str ? version_str : "None"));
 
     POSIX_GUARD(s2n_write_fd_formatted(fd, "rules:\n"));
