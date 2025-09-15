@@ -13,15 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
-
 #include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_security_rules.h"
-
-#define BOOL_STR(b) ((b) ? "yes" : "no")
 
 struct s2n_security_policy_builder {
     const struct s2n_security_policy *base_policy;
