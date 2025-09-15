@@ -19,6 +19,7 @@
 
 #include "api/s2n.h"
 #include "tls/policy/s2n_policy_feature.h"
+#include "tls/s2n_security_policies.h"
 
 static int usage()
 {
@@ -40,20 +41,17 @@ int main(int argc, char *const *argv)
     }
 
     const char *policy_name = argv[1];
-    struct s2n_security_policy_builder *builder = s2n_security_policy_builder_from_version(policy_name);
-    if (!builder) {
-        fprintf(stderr, "Error: Failed to create policy builder\n");
+    const struct s2n_security_policy *policy = NULL;
+    if (s2n_find_security_policy_from_version(policy_name, &policy) != S2N_SUCCESS) {
+        fprintf(stderr, "Error: Failed to find security policy\n");
         s2n_cleanup();
         exit(1);
     }
 
-    if (s2n_policy_builder_write_verbose(builder, S2N_POLICY_FORMAT_V1, STDOUT_FILENO) != S2N_SUCCESS) {
-        s2n_security_policy_builder_free(&builder);
+    if (s2n_security_policy_write_verbose(policy, S2N_POLICY_FORMAT_V1, STDOUT_FILENO) != S2N_SUCCESS) {
         s2n_cleanup();
         exit(1);
     }
-
-    s2n_security_policy_builder_free(&builder);
     s2n_cleanup();
 
     return 0;

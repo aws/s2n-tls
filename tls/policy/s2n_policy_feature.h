@@ -188,10 +188,10 @@ typedef enum {
 /**
  * Writes verbose, human-readable output of a security policy to a file descriptor.
  * 
- * @param builder The security policy builder
+ * @param policy The security policy to output
  * @param format The output format to use  
  * @param fd The file descriptor to write to (e.g., STDOUT_FILENO or an open file)
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
  */
-int s2n_policy_builder_write_verbose(struct s2n_security_policy_builder *builder,
+int s2n_security_policy_write_verbose(const struct s2n_security_policy *policy,
         s2n_policy_format format, int fd);
