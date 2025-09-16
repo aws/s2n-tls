@@ -13,10 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/policy/s2n_policy_feature.h"
