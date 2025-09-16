@@ -592,6 +592,39 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Self-talk: A deserialized session can be serialized */
+    for (size_t i = 0; i < s2n_array_len(config_array); i++) {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_array[i]));
+
+        uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+        for (size_t j = 0; j < 10; j++) {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config_array[i]));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server, &io_pair));
+
+            if (j == 0) {
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client_conn));
+            } else {
+                EXPECT_SUCCESS(s2n_connection_deserialize(server, serialized_data, sizeof(serialized_data)));
+            }
+
+            /* Can send and receive after either negotiating or deserializing */
+            EXPECT_OK(s2n_send_and_recv_test(server, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, server));
+
+            memset(serialized_data, 0, S2N_SERIALIZED_CONN_TLS12_SIZE);
+            EXPECT_SUCCESS(s2n_connection_serialize(server, serialized_data, sizeof(serialized_data)));
+        };
+    };
+
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
     {
         DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);

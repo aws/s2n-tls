@@ -60,7 +60,7 @@ static S2N_RESULT s2n_test_pkey_sign(const struct s2n_pkey *pkey,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_async_pkey_sign(struct s2n_cert_chain_and_key *complete_chain)
+static S2N_RESULT s2n_async_pkey_sign_test(struct s2n_cert_chain_and_key *complete_chain)
 {
     RESULT_ENSURE_REF(pkey_op);
     RESULT_ENSURE_REF(pkey_op_conn);
@@ -134,7 +134,7 @@ static S2N_RESULT s2n_do_test_handshake(struct s2n_config *config, struct s2n_ce
 
     while (s2n_negotiate_test_server_and_client(server_conn, client_conn) != S2N_SUCCESS) {
         EXPECT_EQUAL(s2n_errno, S2N_ERR_ASYNC_BLOCKED);
-        RESULT_GUARD(s2n_async_pkey_sign(complete_chain));
+        RESULT_GUARD(s2n_async_pkey_sign_test(complete_chain));
     }
 
     RESULT_ENSURE_EQ(client_conn->actual_protocol_version, expected_protocol_version);
