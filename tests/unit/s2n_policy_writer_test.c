@@ -21,6 +21,18 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/policy/s2n_policy_feature.h"
 
+/* A custom cleanup function for unlink 
+ * We need this because unlink expects a const char* but DEFER_CLEANUP passes
+ * the address of the variable, so we need a function that takes a char** and
+ * calls unlink with the dereferenced pointer.
+ */
+static void s2n_unlink_cleanup(char **filename)
+{
+    if (filename && *filename) {
+        unlink(*filename);
+    }
+}
+
 static S2N_RESULT s2n_verify_format_v1_output(const char *output)
 {
     RESULT_ENSURE_REF(output);
@@ -39,12 +51,12 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Test: s2n_security_policy_write_verbose */
+    /* Test: s2n_security_policy_write */
     {
         /* Test: safety - NULL policy */
         {
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_verbose(NULL, S2N_POLICY_FORMAT_V1, STDOUT_FILENO),
+                    s2n_security_policy_write(NULL, S2N_POLICY_FORMAT_V1, STDOUT_FILENO),
                     S2N_ERR_NULL);
         };
 
@@ -55,7 +67,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_verbose(policy, 999, STDOUT_FILENO),
+                    s2n_security_policy_write(policy, 999, STDOUT_FILENO),
                     S2N_ERR_INVALID_ARGUMENT);
         };
 
@@ -66,11 +78,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_verbose(policy, S2N_POLICY_FORMAT_V1, -1),
+                    s2n_security_policy_write(policy, S2N_POLICY_FORMAT_V1, -1),
                     S2N_ERR_INVALID_ARGUMENT);
         };
 
-        /* Test: s2n_security_policy_write_verbose - FORMAT_V1 structure verification */
+        /* Test: s2n_security_policy_write - FORMAT_V1 structure verification */
         {
             /* Pick a few named policies for sanity checking. Snapshot tests verify the exact content. */
             const char *test_policies[] = {
@@ -91,22 +103,22 @@ int main(int argc, char **argv)
                 char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
                 int temp_fd = mkstemp(temp_filename);
                 EXPECT_TRUE(temp_fd >= 0);
+                DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, s2n_unlink_cleanup);
 
                 /* Write policy to file */
-                EXPECT_SUCCESS(s2n_security_policy_write_verbose(policy, S2N_POLICY_FORMAT_V1, temp_fd));
+                EXPECT_SUCCESS(s2n_security_policy_write(policy, S2N_POLICY_FORMAT_V1, temp_fd));
                 EXPECT_SUCCESS(close(temp_fd));
 
                 /* Read file content back */
                 FILE *file = fopen(temp_filename, "r");
                 EXPECT_NOT_NULL(file);
-                char file_buffer[8192];
+                char file_buffer[8192] = { 0 };
                 size_t bytes_read = fread(file_buffer, 1, sizeof(file_buffer) - 1, file);
                 EXPECT_TRUE(bytes_read > 0);
                 file_buffer[bytes_read] = '\0';
-                fclose(file);
+                EXPECT_EQUAL(fclose(file), 0);
 
                 EXPECT_OK(s2n_verify_format_v1_output(file_buffer));
-                EXPECT_SUCCESS(unlink(temp_filename));
             }
         };
 
@@ -115,7 +127,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
             EXPECT_NOT_NULL(policy);
-            EXPECT_SUCCESS(s2n_security_policy_write_verbose(policy, S2N_POLICY_FORMAT_V1, STDOUT_FILENO));
+            EXPECT_SUCCESS(s2n_security_policy_write(policy, S2N_POLICY_FORMAT_V1, STDOUT_FILENO));
         };
     };
 

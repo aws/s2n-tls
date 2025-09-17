@@ -49,7 +49,7 @@ static S2N_RESULT s2n_write_fd_formatted(int fd, const char *format, ...)
 
     if (len < 0) {
         va_end(args);
-        RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
+        RESULT_BAIL(S2N_ERR_WRITE);
     }
 
     /* Allocate buffer and format string */
@@ -59,7 +59,7 @@ static S2N_RESULT s2n_write_fd_formatted(int fd, const char *format, ...)
     va_end(args);
 
     if (result < 0 || result >= (int) buffer.size) {
-        RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
+        RESULT_BAIL(S2N_ERR_WRITE);
     }
 
     /* Write to file descriptor */
@@ -147,7 +147,7 @@ static S2N_RESULT s2n_security_policy_write_format_v1(const struct s2n_security_
     return S2N_RESULT_OK;
 }
 
-int s2n_security_policy_write_verbose(const struct s2n_security_policy *policy,
+int s2n_security_policy_write(const struct s2n_security_policy *policy,
         s2n_policy_format format, int fd)
 {
     POSIX_ENSURE_REF(policy);

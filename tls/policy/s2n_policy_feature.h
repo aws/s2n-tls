@@ -193,5 +193,5 @@ typedef enum {
  * @param fd The file descriptor to write to (e.g., STDOUT_FILENO or an open file)
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
  */
-int s2n_security_policy_write_verbose(const struct s2n_security_policy *policy,
+int s2n_security_policy_write(const struct s2n_security_policy *policy,
         s2n_policy_format format, int fd);

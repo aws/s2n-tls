@@ -48,7 +48,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_security_policy_write_verbose(policy, S2N_POLICY_FORMAT_V1, STDOUT_FILENO) != S2N_SUCCESS) {
+    if (s2n_security_policy_write(policy, S2N_POLICY_FORMAT_V1, STDOUT_FILENO) != S2N_SUCCESS) {
         s2n_cleanup();
         exit(1);
     }
