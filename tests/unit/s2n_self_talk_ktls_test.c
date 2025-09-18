@@ -685,6 +685,14 @@ int main(int argc, char **argv)
 
     /* Test: Keyupdates with KTLS */
     if (ktls_keyupdate_expected) {
+
+        /* Cipher suite with an artificially lowered encryption limit */
+        const size_t test_encryption_limit = 1;
+        struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
+        test_record_alg.encryption_limit = test_encryption_limit;
+        struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
+        test_cipher_suite.record_alg = &test_record_alg;
+
         /* Test: Sending key update with KTLS */
         if (ktls_send_supported) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -706,26 +714,31 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
-            /* Force a key update */
-            s2n_atomic_flag_set(&server->key_update_pending);
 
+            /* Reset server cipher suite to trigger a key update after sending one record */
+            EXPECT_NOT_NULL(server->secure);
+            EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+            server->secure->cipher_suite = &test_cipher_suite;
+
+            uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
-            EXPECT_EQUAL(written, sizeof(test_data));
+            int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
+            EXPECT_EQUAL(written, sizeof(large_test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             EXPECT_EQUAL(server->recv_key_updated, 0);
             EXPECT_EQUAL(server->send_key_updated, 1);
 
-            uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
-            EXPECT_EQUAL(read, sizeof(test_data));
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            /* We only get one record per s2n_recv call, so we call it twice */
+            for (size_t i = 0; i < 2; i++) {
+                uint8_t buffer[sizeof(large_test_data)/2] = { 1 };
+                int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+                EXPECT_EQUAL(read, sizeof(large_test_data)/2);
+                EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
+            }
 
             EXPECT_EQUAL(client->recv_key_updated, 1);
             EXPECT_EQUAL(client->send_key_updated, 0);
-
-            EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         };
 
         /* Test: Receiving key update with KTLS */
@@ -749,26 +762,31 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
-            /* Force a key update */
-            s2n_atomic_flag_set(&server->key_update_pending);
 
+            /* Reset server cipher suite to trigger a key update after sending one record */
+            EXPECT_NOT_NULL(server->secure);
+            EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+            server->secure->cipher_suite = &test_cipher_suite;
+
+            uint8_t large_test_data[S2N_DEFAULT_FRAGMENT_LENGTH * 2] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            int written = s2n_send(server, test_data, sizeof(test_data), &blocked);
-            EXPECT_EQUAL(written, sizeof(test_data));
+            int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
+            EXPECT_EQUAL(written, sizeof(large_test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             EXPECT_EQUAL(server->recv_key_updated, 0);
             EXPECT_EQUAL(server->send_key_updated, 1);
 
-            uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
-            EXPECT_EQUAL(read, sizeof(test_data));
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            /* We only get one record per s2n_recv call, so we call it twice */
+            for (size_t i = 0; i < 2; i++) {
+                uint8_t buffer[sizeof(large_test_data)/2] = { 1 };
+                int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+                EXPECT_EQUAL(read, sizeof(large_test_data)/2);
+                EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
+            }
 
             EXPECT_EQUAL(client->recv_key_updated, 1);
             EXPECT_EQUAL(client->send_key_updated, 0);
-
-            EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         };
     }
     END_TEST();
