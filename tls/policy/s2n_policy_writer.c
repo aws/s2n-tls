@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_security_rules.h"
@@ -36,110 +37,76 @@ static const char *version_strs[] = {
     [S2N_TLS13] = "TLS1.3",
 };
 
-static S2N_RESULT s2n_write_fd_formatted(int fd, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-
-    /* Calculate required buffer size */
-    va_list args_copy;
-    va_copy(args_copy, args);
-    int len = vsnprintf(NULL, 0, format, args_copy);
-    va_end(args_copy);
-
-    if (len < 0) {
-        va_end(args);
-        RESULT_BAIL(S2N_ERR_WRITE);
-    }
-
-    /* Allocate buffer and format string */
-    DEFER_CLEANUP(struct s2n_blob buffer = { 0 }, s2n_free);
-    RESULT_GUARD_POSIX(s2n_alloc(&buffer, len + 1));
-    int result = vsnprintf((char *) buffer.data, buffer.size, format, args);
-    va_end(args);
-
-    if (result < 0 || result >= (int) buffer.size) {
-        RESULT_BAIL(S2N_ERR_WRITE);
-    }
-
-    /* Write to file descriptor */
-    ssize_t written = write(fd, buffer.data, len);
-    if (written != len) {
-        RESULT_BAIL(S2N_ERR_IO);
-    }
-
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_security_policy_write_format_v1(const struct s2n_security_policy *policy, int fd)
+static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2n_security_policy *policy, struct s2n_stuffer *stuffer)
 {
     RESULT_ENSURE_REF(policy);
+    RESULT_ENSURE_REF(stuffer);
 
     const char *version_str = NULL;
     if (policy->minimum_protocol_version <= S2N_TLS13) {
         version_str = version_strs[policy->minimum_protocol_version];
     }
-    RESULT_GUARD(s2n_write_fd_formatted(fd, "min version: %s\n", version_str ? version_str : "None"));
+    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "min version: %s\n", version_str ? version_str : "None"));
 
-    RESULT_GUARD(s2n_write_fd_formatted(fd, "rules:\n"));
+    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "rules:\n"));
     for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s: %s\n",
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s: %s\n",
                 security_rule_definitions[i].name, BOOL_STR(policy->rules[i])));
     }
 
-    RESULT_GUARD(s2n_write_fd_formatted(fd, "cipher suites:\n"));
+    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "cipher suites:\n"));
     if (policy->cipher_preferences->allow_chacha20_boosting) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- chacha20 boosting enabled\n"));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- chacha20 boosting enabled\n"));
     }
     for (size_t i = 0; i < policy->cipher_preferences->count; i++) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s\n", policy->cipher_preferences->suites[i]->iana_name));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", policy->cipher_preferences->suites[i]->iana_name));
     }
 
-    RESULT_GUARD(s2n_write_fd_formatted(fd, "signature schemes:\n"));
+    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "signature schemes:\n"));
     for (size_t i = 0; i < policy->signature_preferences->count; i++) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s\n", policy->signature_preferences->signature_schemes[i]->name));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", policy->signature_preferences->signature_schemes[i]->name));
     }
 
-    RESULT_GUARD(s2n_write_fd_formatted(fd, "curves:\n"));
+    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "curves:\n"));
     for (size_t i = 0; i < policy->ecc_preferences->count; i++) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s\n", policy->ecc_preferences->ecc_curves[i]->name));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", policy->ecc_preferences->ecc_curves[i]->name));
     }
 
     if (policy->certificate_signature_preferences) {
         if (policy->certificate_preferences_apply_locally) {
-            RESULT_GUARD(s2n_write_fd_formatted(fd, "certificate preferences apply locally\n"));
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "certificate preferences apply locally\n"));
         }
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "certificate signature schemes:\n"));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "certificate signature schemes:\n"));
         for (size_t i = 0; i < policy->certificate_signature_preferences->count; i++) {
-            RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s\n",
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n",
                     policy->certificate_signature_preferences->signature_schemes[i]->name));
         }
     }
 
     if (policy->certificate_key_preferences) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "certificate keys:\n"));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "certificate keys:\n"));
         for (size_t i = 0; i < policy->certificate_key_preferences->count; i++) {
-            RESULT_GUARD(s2n_write_fd_formatted(fd, "- %s\n",
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n",
                     policy->certificate_key_preferences->certificate_keys[i]->name));
         }
     }
 
     if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "pq:\n"));
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- revision: %i\n",
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "pq:\n"));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- revision: %i\n",
                 policy->kem_preferences->tls13_pq_hybrid_draft_revision));
 
         if (policy->kem_preferences->kem_count > 0) {
-            RESULT_GUARD(s2n_write_fd_formatted(fd, "- kems:\n"));
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- kems:\n"));
             for (size_t i = 0; i < policy->kem_preferences->kem_count; i++) {
-                RESULT_GUARD(s2n_write_fd_formatted(fd, "-- %s\n",
+                RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "-- %s\n",
                         policy->kem_preferences->kems[i]->name));
             }
         }
 
-        RESULT_GUARD(s2n_write_fd_formatted(fd, "- kem groups:\n"));
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- kem groups:\n"));
         for (size_t i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {
-            RESULT_GUARD(s2n_write_fd_formatted(fd, "-- %s\n",
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "-- %s\n",
                     policy->kem_preferences->tls13_kem_groups[i]->name));
         }
     }
@@ -147,19 +114,54 @@ static S2N_RESULT s2n_security_policy_write_format_v1(const struct s2n_security_
     return S2N_RESULT_OK;
 }
 
-int s2n_security_policy_write(const struct s2n_security_policy *policy,
+int s2n_security_policy_write_buffer(const struct s2n_security_policy *policy,
+        s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length)
+{
+    POSIX_ENSURE_REF(policy);
+    POSIX_ENSURE_REF(buffer);
+
+    /* Calculate the required size by writing to a temporary stuffer, then verify the provided buffer is large enough */
+    DEFER_CLEANUP(struct s2n_stuffer temp_stuffer = { 0 }, s2n_stuffer_free);
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&temp_stuffer, 1024));
+
+    switch (format) {
+        case S2N_POLICY_FORMAT_DEBUG_V1:
+            POSIX_GUARD_RESULT(s2n_security_policy_write_format_v1_to_stuffer(policy, &temp_stuffer));
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    }
+
+    uint32_t required_size = s2n_stuffer_data_available(&temp_stuffer);
+    POSIX_ENSURE(buffer_length >= required_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    /* Copy the data from temp stuffer to user buffer */
+    POSIX_CHECKED_MEMCPY(buffer, temp_stuffer.blob.data, required_size);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
         s2n_policy_format format, int fd)
 {
     POSIX_ENSURE_REF(policy);
     POSIX_ENSURE(fd >= 0, S2N_ERR_INVALID_ARGUMENT);
 
+    DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
     switch (format) {
-        case S2N_POLICY_FORMAT_V1:
-            POSIX_GUARD_RESULT(s2n_security_policy_write_format_v1(policy, fd));
+        case S2N_POLICY_FORMAT_DEBUG_V1:
+            POSIX_GUARD_RESULT(s2n_security_policy_write_format_v1_to_stuffer(policy, &stuffer));
             break;
         default:
             POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
     }
+
+    /* Write the buffer to the file descriptor */
+    uint32_t data_size = s2n_stuffer_data_available(&stuffer);
+    ssize_t written = write(fd, stuffer.blob.data, data_size);
+    POSIX_ENSURE(written == (ssize_t) data_size, S2N_ERR_IO);
 
     return S2N_SUCCESS;
 }

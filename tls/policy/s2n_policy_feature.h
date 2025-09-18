@@ -182,8 +182,20 @@ typedef enum {
      *   - kem groups:
      *     -- <kem_group_name>
      */
-    S2N_POLICY_FORMAT_V1 = 1,
+    S2N_POLICY_FORMAT_DEBUG_V1 = 1,
 } s2n_policy_format;
+
+/**
+ * Writes verbose, human-readable output of a security policy to a user-provided buffer.
+ * 
+ * @param policy The security policy to output
+ * @param format The output format to use
+ * @param buffer The buffer to write to
+ * @param buffer_length The size of the buffer
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure (e.g., if buffer is too small)
+ */
+int s2n_security_policy_write_buffer(const struct s2n_security_policy *policy,
+        s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length);
 
 /**
  * Writes verbose, human-readable output of a security policy to a file descriptor.
@@ -193,5 +205,5 @@ typedef enum {
  * @param fd The file descriptor to write to (e.g., STDOUT_FILENO or an open file)
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
  */
-int s2n_security_policy_write(const struct s2n_security_policy *policy,
+int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
         s2n_policy_format format, int fd);
