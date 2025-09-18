@@ -33,7 +33,7 @@ fn record_padding() {
         // skip the first two records, because unencrypted records are not padded
         record_sizes.iter().skip(2).all(|record_length| {
             let record_without_tag = record_length - AES_GCM_TAG_LEN;
-            record_without_tag % (pad_to as u16) == 0
+            record_without_tag.is_multiple_of(pad_to as u16)
         })
     }
 
