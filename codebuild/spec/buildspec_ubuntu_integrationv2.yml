@@ -28,6 +28,7 @@ batch:
           - 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           S2N_BUILD_PRESET:
+            - openssl-1.0.2
             - openssl-1.0.2-fips
             - openssl-3.0-fips
           # Group 1 and Group 2 (test_happy_path and test_buffered_send) each take approximately 1300 seconds to run.
