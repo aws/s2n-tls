@@ -26,7 +26,6 @@
 #define BOOL_STR(b) ((b) ? "yes" : "no")
 
 extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
-extern struct s2n_security_policy_selection security_policy_selection[];
 
 static const char *version_strs[] = {
     [S2N_SSLv2] = "SSLv2",
@@ -114,29 +113,56 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
     return S2N_RESULT_OK;
 }
 
-int s2n_security_policy_write_buffer(const struct s2n_security_policy *policy,
+static S2N_RESULT s2n_security_policy_write_to_stuffer(const struct s2n_security_policy *policy,
+        s2n_policy_format format, struct s2n_stuffer *stuffer)
+{
+    RESULT_ENSURE_REF(policy);
+    RESULT_ENSURE_REF(stuffer);
+
+    switch (format) {
+        case S2N_POLICY_FORMAT_DEBUG_V1:
+            RESULT_GUARD(s2n_security_policy_write_format_v1_to_stuffer(policy, stuffer));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    }
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
+        s2n_policy_format format, uint32_t *length)
+{
+    POSIX_ENSURE_REF(policy);
+    POSIX_ENSURE_REF(length);
+
+    DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+    POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
+
+    *length = s2n_stuffer_data_available(&stuffer);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length)
 {
     POSIX_ENSURE_REF(policy);
     POSIX_ENSURE_REF(buffer);
 
-    /* Calculate the required size by writing to a temporary stuffer, then verify the provided buffer is large enough */
-    DEFER_CLEANUP(struct s2n_stuffer temp_stuffer = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&temp_stuffer, 1024));
-
-    switch (format) {
-        case S2N_POLICY_FORMAT_DEBUG_V1:
-            POSIX_GUARD_RESULT(s2n_security_policy_write_format_v1_to_stuffer(policy, &temp_stuffer));
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
-    }
-
-    uint32_t required_size = s2n_stuffer_data_available(&temp_stuffer);
+    uint32_t required_size = 0;
+    POSIX_GUARD(s2n_security_policy_write_length(policy, format, &required_size));
     POSIX_ENSURE(buffer_length >= required_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
-    /* Copy the data from temp stuffer to user buffer */
-    POSIX_CHECKED_MEMCPY(buffer, temp_stuffer.blob.data, required_size);
+    DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, required_size));
+
+    POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
+
+    /* Copy the data from stuffer to user buffer */
+    POSIX_CHECKED_MEMCPY(buffer, stuffer.blob.data, required_size);
 
     return S2N_SUCCESS;
 }
@@ -150,13 +176,7 @@ int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
     DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
     POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
-    switch (format) {
-        case S2N_POLICY_FORMAT_DEBUG_V1:
-            POSIX_GUARD_RESULT(s2n_security_policy_write_format_v1_to_stuffer(policy, &stuffer));
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
-    }
+    POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
 
     /* Write the buffer to the file descriptor */
     uint32_t data_size = s2n_stuffer_data_available(&stuffer);

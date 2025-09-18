@@ -186,6 +186,22 @@ typedef enum {
 } s2n_policy_format;
 
 /**
+ * Retrieves the length of the buffer needed for s2n_security_policy_write_bytes().
+ * This function should be used to allocate enough memory for the policy output buffer before calling
+ * s2n_security_policy_write_bytes().
+ *
+ * @note The size of the policy output depends on the specific policy configuration.
+ * Do not expect the size to always remain the same across different policies.
+ *
+ * @param policy The security policy to get the buffer size for
+ * @param format The output format to use
+ * @param length Output parameter where the required buffer length will be written
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
+ */
+int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
+        s2n_policy_format format, uint32_t *length);
+
+/**
  * Writes verbose, human-readable output of a security policy to a user-provided buffer.
  * 
  * @param policy The security policy to output
@@ -194,7 +210,7 @@ typedef enum {
  * @param buffer_length The size of the buffer
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure (e.g., if buffer is too small)
  */
-int s2n_security_policy_write_buffer(const struct s2n_security_policy *policy,
+int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length);
 
 /**

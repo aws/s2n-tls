@@ -41,7 +41,129 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Test: s2n_security_policy_write */
+    /* Test: s2n_security_policy_write_length */
+    {
+        /* Test: safety - NULL policy */
+        {
+            uint32_t length;
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_length(NULL, S2N_POLICY_FORMAT_DEBUG_V1, &length),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: safety - NULL length pointer */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, NULL),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: safety - invalid format */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            uint32_t length;
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_length(policy, 999, &length),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: successful length calculation and consistency with write_bytes */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            uint32_t required_length = 0;
+            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
+            EXPECT_TRUE(required_length > 0);
+
+            DEFER_CLEANUP(struct s2n_blob exact_buffer = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&exact_buffer, required_length));
+            EXPECT_SUCCESS(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, exact_buffer.data, required_length));
+
+            EXPECT_OK(s2n_verify_format_v1_output((const char *) exact_buffer.data));
+
+            /* a buffer one byte smaller should fail */
+            if (required_length > 1) {
+                DEFER_CLEANUP(struct s2n_blob small_buffer = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&small_buffer, required_length - 1));
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, small_buffer.data, required_length - 1),
+                        S2N_ERR_INSUFFICIENT_MEM_SIZE);
+            }
+        };
+    };
+
+    /* Test: s2n_security_policy_write_bytes */
+    {
+        /* Test: safety - NULL policy */
+        {
+            uint8_t buffer[1024];
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_bytes(NULL, S2N_POLICY_FORMAT_DEBUG_V1, buffer, sizeof(buffer)),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: safety - NULL buffer */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, NULL, 1024),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: safety - invalid format */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            uint8_t buffer[1024];
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_bytes(policy, 999, buffer, sizeof(buffer)),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: buffer too small */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            uint8_t small_buffer[10];
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, small_buffer, sizeof(small_buffer)),
+                    S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        };
+
+        /* Test: successful buffer write and content verification */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
+            EXPECT_NOT_NULL(policy);
+
+            uint32_t required_length = 0;
+            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
+
+            DEFER_CLEANUP(struct s2n_blob buffer = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&buffer, required_length));
+            EXPECT_SUCCESS(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, buffer.data, required_length));
+
+            EXPECT_OK(s2n_verify_format_v1_output((const char *) buffer.data));
+        };
+    };
+
+    /* Test: s2n_security_policy_write_fd */
     {
         /* Test: safety - NULL policy */
         {
@@ -72,101 +194,34 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_ARGUMENT);
         };
 
-        /* Test: s2n_security_policy_write - FORMAT_V1 structure verification */
-        {
-            /* Pick a few named policies for sanity checking. Snapshot tests verify the exact content. */
-            const char *test_policies[] = {
-                "default",
-                "default_fips",
-                "default_tls13",
-                "default_pq",
-                NULL
-            };
-
-            for (size_t i = 0; test_policies[i] != NULL; i++) {
-                const char *policy_version = test_policies[i];
-                const struct s2n_security_policy *policy = NULL;
-                EXPECT_SUCCESS(s2n_find_security_policy_from_version(policy_version, &policy));
-                EXPECT_NOT_NULL(policy);
-
-                /* Create a temp file */
-                char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
-                int temp_fd = mkstemp(temp_filename);
-                EXPECT_TRUE(temp_fd >= 0);
-                DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, unlink_pointer);
-
-                /* Write policy to file */
-                EXPECT_SUCCESS(s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, temp_fd));
-                EXPECT_SUCCESS(close(temp_fd));
-
-                /* Read file content back */
-                FILE *file = fopen(temp_filename, "r");
-                EXPECT_NOT_NULL(file);
-                char file_buffer[8192] = { 0 };
-                size_t bytes_read = fread(file_buffer, 1, sizeof(file_buffer) - 1, file);
-                EXPECT_TRUE(bytes_read > 0);
-                EXPECT_EQUAL(fclose(file), 0);
-
-                EXPECT_OK(s2n_verify_format_v1_output(file_buffer));
-            }
-        };
-    };
-
-    /* Test: s2n_security_policy_write_buffer */
-    {
-        /* Test: safety - NULL policy */
-        {
-            uint8_t buffer[1024];
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_buffer(NULL, S2N_POLICY_FORMAT_DEBUG_V1, buffer, sizeof(buffer)),
-                    S2N_ERR_NULL);
-        };
-
-        /* Test: safety - NULL buffer */
+        /* Test: s2n_security_policy_write_fd - FORMAT_V1 structure verification */
         {
             const struct s2n_security_policy *policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
             EXPECT_NOT_NULL(policy);
 
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_buffer(policy, S2N_POLICY_FORMAT_DEBUG_V1, NULL, 1024),
-                    S2N_ERR_NULL);
-        };
+            uint32_t expected_length = 0;
+            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &expected_length));
 
-        /* Test: safety - invalid format */
-        {
-            const struct s2n_security_policy *policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
-            EXPECT_NOT_NULL(policy);
+            /* Create a temp file */
+            char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
+            int temp_fd = mkstemp(temp_filename);
+            EXPECT_TRUE(temp_fd >= 0);
+            DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, unlink_pointer);
 
-            uint8_t buffer[1024];
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_buffer(policy, 999, buffer, sizeof(buffer)),
-                    S2N_ERR_INVALID_ARGUMENT);
-        };
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, temp_fd));
+            EXPECT_SUCCESS(close(temp_fd));
 
-        /* Test: buffer too small */
-        {
-            const struct s2n_security_policy *policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
-            EXPECT_NOT_NULL(policy);
+            /* Read file content back */
+            FILE *file = fopen(temp_filename, "r");
+            EXPECT_NOT_NULL(file);
+            DEFER_CLEANUP(struct s2n_blob file_buffer = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&file_buffer, expected_length + 1));
+            size_t bytes_read = fread(file_buffer.data, 1, expected_length, file);
+            EXPECT_EQUAL(bytes_read, expected_length);
+            EXPECT_EQUAL(fclose(file), 0);
 
-            uint8_t small_buffer[10];
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_buffer(policy, S2N_POLICY_FORMAT_DEBUG_V1, small_buffer, sizeof(small_buffer)),
-                    S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        };
-
-        /* Test: successful buffer write and content verification */
-        {
-            const struct s2n_security_policy *policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
-            EXPECT_NOT_NULL(policy);
-
-            uint8_t buffer[8192];
-            EXPECT_SUCCESS(s2n_security_policy_write_buffer(policy, S2N_POLICY_FORMAT_DEBUG_V1, buffer, sizeof(buffer)));
-
-            EXPECT_OK(s2n_verify_format_v1_output((const char *) buffer));
+            EXPECT_OK(s2n_verify_format_v1_output((const char *) file_buffer.data));
         };
     };
 
