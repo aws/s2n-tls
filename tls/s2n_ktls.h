@@ -55,8 +55,8 @@ S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode 
         struct s2n_ktls_crypto_info *crypto_info);
 S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_requested);
 S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn);
+S2N_RESULT s2n_ktls_set_estimated_sequence_number(struct s2n_connection *conn, size_t bytes_written);
 S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested);
-S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate);
 
 /* Testing */
 typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name, const void *option_value,
