@@ -685,7 +685,6 @@ int main(int argc, char **argv)
 
     /* Test: Keyupdates with KTLS */
     if (ktls_keyupdate_expected) {
-
         /* Cipher suite with an artificially lowered encryption limit */
         const size_t test_encryption_limit = 1;
         struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
@@ -731,9 +730,9 @@ int main(int argc, char **argv)
 
             /* We only get one record per s2n_recv call, so we call it twice */
             for (size_t i = 0; i < 2; i++) {
-                uint8_t buffer[sizeof(large_test_data)/2] = { 1 };
+                uint8_t buffer[sizeof(large_test_data) / 2] = { 1 };
                 int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
-                EXPECT_EQUAL(read, sizeof(large_test_data)/2);
+                EXPECT_EQUAL(read, sizeof(large_test_data) / 2);
                 EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
             }
 
@@ -779,9 +778,9 @@ int main(int argc, char **argv)
 
             /* We only get one record per s2n_recv call, so we call it twice */
             for (size_t i = 0; i < 2; i++) {
-                uint8_t buffer[sizeof(large_test_data)/2] = { 1 };
+                uint8_t buffer[sizeof(large_test_data) / 2] = { 1 };
                 int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
-                EXPECT_EQUAL(read, sizeof(large_test_data)/2);
+                EXPECT_EQUAL(read, sizeof(large_test_data) / 2);
                 EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
             }
 
