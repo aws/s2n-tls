@@ -213,7 +213,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(close(temp_fd));
 
             /* Read file content back */
-            FILE *file = fopen(temp_filename, "r");
+            FILE *file = fopen(temp_filename_ptr, "r");
             EXPECT_NOT_NULL(file);
             DEFER_CLEANUP(struct s2n_blob file_buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&file_buffer, expected_length + 1));
