@@ -269,41 +269,6 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
     return S2N_RESULT_OK;
 }
 
-/* The RFC defines the encryption limits in terms of "full-size records" sent.
- * We can estimate the number of "full-sized records" sent by assuming that
- * all records are full-sized.
- */
-S2N_RESULT s2n_ktls_estimate_records(size_t bytes, uint64_t *estimate)
-{
-    RESULT_ENSURE_REF(estimate);
-    uint64_t records = bytes / S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
-    if (bytes % S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
-        records++;
-    }
-    *estimate = records;
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_ktls_set_estimated_sequence_number(
-        struct s2n_connection *conn, size_t bytes_written)
-{
-    RESULT_ENSURE_REF(conn);
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return S2N_RESULT_OK;
-    }
-
-    uint64_t new_records_sent = 0;
-    RESULT_GUARD(s2n_ktls_estimate_records(bytes_written, &new_records_sent));
-
-    struct s2n_blob seq_num = { 0 };
-    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
-
-    for (size_t i = 0; i < new_records_sent; i++) {
-        RESULT_GUARD_POSIX(s2n_increment_sequence_number(&seq_num));
-    }
-    return S2N_RESULT_OK;
-}
-
 /* The iovec array `bufs` is constant and owned by the application.
  *
  * However, we need to apply the given offset to `bufs`. That may involve
