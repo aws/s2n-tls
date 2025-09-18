@@ -21,17 +21,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/policy/s2n_policy_feature.h"
 
-/* A custom cleanup function for unlink 
- * We need this because unlink expects a const char* but DEFER_CLEANUP passes
- * the address of the variable, so we need a function that takes a char** and
- * calls unlink with the dereferenced pointer.
- */
-static void s2n_unlink_cleanup(char **filename)
-{
-    if (filename && *filename) {
-        unlink(*filename);
-    }
-}
+DEFINE_POINTER_CLEANUP_FUNC(char *, unlink);
 
 static S2N_RESULT s2n_verify_format_v1_output(const char *output)
 {
@@ -103,7 +93,7 @@ int main(int argc, char **argv)
                 char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
                 int temp_fd = mkstemp(temp_filename);
                 EXPECT_TRUE(temp_fd >= 0);
-                DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, s2n_unlink_cleanup);
+                DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, unlink_pointer);
 
                 /* Write policy to file */
                 EXPECT_SUCCESS(s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, temp_fd));
