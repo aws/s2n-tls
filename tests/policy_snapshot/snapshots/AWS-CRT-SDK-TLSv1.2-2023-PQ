@@ -1,4 +1,3 @@
-name: AWS-CRT-SDK-TLSv1.2-2023-PQ
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: no
