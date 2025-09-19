@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     {
         /* Test: safety - NULL policy */
         {
-            uint32_t length;
+            uint32_t length = 0;
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_security_policy_write_length(NULL, S2N_POLICY_FORMAT_DEBUG_V1, &length),
                     S2N_ERR_NULL);
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
             EXPECT_NOT_NULL(policy);
 
-            uint32_t length;
+            uint32_t length = 0;
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_security_policy_write_length(policy, 999, &length),
                     S2N_ERR_INVALID_ARGUMENT);
