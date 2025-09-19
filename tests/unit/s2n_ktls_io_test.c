@@ -1365,7 +1365,7 @@ int main(int argc, char **argv)
         test_record_alg.encryption_limit = test_encryption_limit;
         struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
         test_cipher_suite.record_alg = &test_record_alg;
-        uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 10] = { 0 };
+        uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
