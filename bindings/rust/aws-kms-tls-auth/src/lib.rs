@@ -94,14 +94,16 @@
 //! handshake with a `PskProvider` configured to send `PskVersion::V2`.
 
 mod codec;
+mod epoch_schedule;
 mod prefixed_list;
+mod psk_derivation;
 mod psk_parser;
 #[cfg(test)]
 pub(crate) mod test_utils;
+
 pub type KeyArn = String;
+pub use psk_derivation::PskVersion;
 
 // We have "pub" use statement so these can be fuzz tested
 pub use codec::DecodeValue;
 pub use psk_parser::PresharedKeyClientHello;
-
-const PSK_SIZE: usize = 32;
