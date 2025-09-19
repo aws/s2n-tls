@@ -94,56 +94,14 @@
 //! handshake with a `PskProvider` configured to send `PskVersion::V2`.
 
 mod codec;
-mod identity;
 mod prefixed_list;
-mod provider;
 mod psk_parser;
-mod receiver;
 #[cfg(test)]
 pub(crate) mod test_utils;
-
-use s2n_tls::error::Error as S2NError;
-use std::time::Duration;
-
 pub type KeyArn = String;
-pub use identity::{ObfuscationKey, PskVersion};
-pub use provider::PskProvider;
-pub use receiver::PskReceiver;
 
 // We have "pub" use statement so these can be fuzz tested
 pub use codec::DecodeValue;
 pub use psk_parser::PresharedKeyClientHello;
 
-const MAXIMUM_KEY_CACHE_SIZE: usize = 100_000;
 const PSK_SIZE: usize = 32;
-const AES_256_GCM_SIV_KEY_LEN: usize = 32;
-const AES_256_GCM_SIV_NONCE_LEN: usize = 12;
-/// The key is automatically rotated every period. Currently 24 hours.
-const KEY_ROTATION_PERIOD: Duration = Duration::from_secs(3_600 * 24);
-/// The maximum allowed age of a PSK identity.
-///
-/// PSK identities include their creation time. The server will reject the PSK
-/// identity and fail the handshake if the PSK identity is older than this value.
-const PSK_IDENTITY_VALIDITY: Duration = Duration::from_secs(60);
-
-fn psk_from_material(identity: &[u8], secret: &[u8]) -> Result<s2n_tls::psk::Psk, S2NError> {
-    let mut psk = s2n_tls::psk::Psk::builder()?;
-    psk.set_hmac(s2n_tls::enums::PskHmac::SHA384)?;
-    psk.set_identity(identity)?;
-    psk.set_secret(secret)?;
-    psk.build()
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{AES_256_GCM_SIV_KEY_LEN, AES_256_GCM_SIV_NONCE_LEN};
-    use aws_lc_rs::aead::AES_256_GCM_SIV;
-
-    /// `key_len()` and `nonce_len()` aren't const functions, so we define
-    /// our own constants to let us use those values in things like array sizes.
-    #[test]
-    fn constant_check() {
-        assert_eq!(AES_256_GCM_SIV_KEY_LEN, AES_256_GCM_SIV.key_len());
-        assert_eq!(AES_256_GCM_SIV_NONCE_LEN, AES_256_GCM_SIV.nonce_len());
-    }
-}
