@@ -369,6 +369,14 @@ S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, si
     if (total_records_sent > encryption_limit) {
         RESULT_ENSURE_REF(conn->config);
         RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEY_LIMIT);
+
+        /* Check that the ktls send call is not going over the encryption limit
+         * more than once, as that would require multiple key updates.
+         * We can add this logic in the future, but it's not required at the moment. */
+        RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(encryption_limit, encryption_limit, UINT64_MAX),
+                S2N_ERR_KTLS_KEY_LIMIT);
+        uint64_t ktls_encryption_limit = encryption_limit * 2;
+        RESULT_ENSURE(new_records_sent <= ktls_encryption_limit, S2N_ERR_INVALID_ARGUMENT);
         s2n_atomic_flag_set(&conn->key_update_pending);
     }
 
