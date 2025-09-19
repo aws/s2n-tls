@@ -23,18 +23,13 @@ batch:
     dynamic:
       env:
         compute-type:
-          - BUILD_GENERAL1_LARGE
+          - BUILD_GENERAL1_XLARGE
         image:
           - 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           S2N_BUILD_PRESET:
-            - awslc_gcc9
-            - awslc-fips-2022_gcc4-8
-            - awslc-fips-2022_gcc6
             - openssl-1.0.2
             - openssl-1.0.2-fips
-            - openssl-1.1.1_gcc9
-            - openssl-3.0
             - openssl-3.0-fips
           # Group 1 and Group 2 (test_happy_path and test_buffered_send) each take approximately 1300 seconds to run.
           # Group 3 is kept under 1000 seconds (bottlenecked by the slowest testcase which is 1300)
