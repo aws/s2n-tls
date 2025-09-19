@@ -42,6 +42,10 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn)
 {
     if (conn->client_hello.parsed != 1) {

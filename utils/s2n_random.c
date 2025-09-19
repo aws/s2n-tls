@@ -98,6 +98,9 @@ const char s2n_rand_engine_id[] = "s2n_rand";
 
 /* Placeholder value for an uninitialized entropy file descriptor */
 #define UNINITIALIZED_ENTROPY_FD -1
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
 
 static struct s2n_rand_device s2n_dev_urandom = {
     .source = "/dev/urandom",
