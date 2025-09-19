@@ -202,7 +202,7 @@ int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint32_t *length);
 
 /**
- * Writes verbose, human-readable output of a security policy to a user-provided buffer.
+ * Writes output of a security policy to a user-provided buffer in the specified format.
  * 
  * @param policy The security policy to output
  * @param format The output format to use
@@ -214,7 +214,7 @@ int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length);
 
 /**
- * Writes verbose, human-readable output of a security policy to a file descriptor.
+ * Writes output of a security policy to a file descriptor in the specified format.
  * 
  * @param policy The security policy to output
  * @param format The output format to use  
