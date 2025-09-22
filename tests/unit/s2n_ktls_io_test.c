@@ -1381,7 +1381,7 @@ int main(int argc, char **argv)
         size_t bytes_requested = 100;
         EXPECT_OK(s2n_ktls_check_estimated_record_limit(conn, bytes_requested));
         EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
-        
+
         /* Set up the connection to have already sent a record so that
          * the encryption limit will be passed in the next send call. */
         EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, 1));
