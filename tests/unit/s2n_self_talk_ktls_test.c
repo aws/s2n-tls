@@ -694,55 +694,6 @@ int main(int argc, char **argv)
 
         /* Test: Sending key update with KTLS */
         if (ktls_send_supported) {
-            /* Test: One key update can be sent with ktls */
-            {
-                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(client);
-                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(server);
-                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-                EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
-
-                EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
-
-                /* Reset server cipher suite to trigger a key update after sending one record */
-                EXPECT_NOT_NULL(server->secure);
-                EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
-                server->secure->cipher_suite = &test_cipher_suite;
-
-                /* This will work out to 2 records sent and 1 key update */
-                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
-                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
-                EXPECT_EQUAL(written, sizeof(large_test_data));
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-
-                EXPECT_EQUAL(server->recv_key_updated, 0);
-                EXPECT_EQUAL(server->send_key_updated, 1);
-
-                /* We only get one record per s2n_recv call, so we call it twice */
-                for (size_t i = 0; i < 2; i++) {
-                    uint8_t buffer[sizeof(large_test_data) / 2] = { 1 };
-                    int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
-                    EXPECT_EQUAL(read, sizeof(large_test_data) / 2);
-                    EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
-                }
-
-                EXPECT_EQUAL(client->recv_key_updated, 1);
-                EXPECT_EQUAL(client->send_key_updated, 0);
-            }
-
             /* Test: Multiple key updates are not allowed with one s2n_send call with ktls */
             {
                 DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -770,7 +721,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 server->secure->cipher_suite = &test_cipher_suite;
 
-                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 3] = { 0 };
+                /* This will require a keyupdate mid-send, which is not allowed with ktls */
+                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_send(server, large_test_data, sizeof(large_test_data),
                                                   &blocked),
