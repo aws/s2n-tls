@@ -30,9 +30,10 @@
 #define LENGTH       (s2n_array_len(test_signature_schemes))
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
 
-#define RSA_CIPHER_SUITE   &s2n_ecdhe_rsa_with_aes_128_cbc_sha
-#define ECDSA_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
-#define TLS13_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
+#define RSA_CIPHER_SUITE     &s2n_ecdhe_rsa_with_aes_128_cbc_sha
+#define RSA_KEX_CIPHER_SUITE &s2n_rsa_with_aes_256_gcm_sha384
+#define ECDSA_CIPHER_SUITE   &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
+#define TLS13_CIPHER_SUITE   &s2n_tls13_aes_128_gcm_sha256
 
 /* The only TLS1.3-only signature schemes are RSA-PSS-PSS, which
  * are difficult to test with due to mixed libcrypto support.
@@ -233,6 +234,36 @@ int main(int argc, char **argv)
         /* TLS1.2 defaults defined by the RFC */
         const struct s2n_signature_scheme *ecdsa_default = &s2n_ecdsa_sha1;
         const struct s2n_signature_scheme *rsa_default = &s2n_rsa_pkcs1_sha1;
+
+        /* Test: do not choose a server signature scheme for RSA kex */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, client_rsa_config));
+
+            /* Support a wide variety of signature schemes */
+            const struct s2n_signature_scheme *test_schemes[] = {
+                &s2n_ecdsa_sha384,
+                &s2n_rsa_pss_rsae_sha256,
+                &s2n_rsa_pss_pss_sha256,
+                &s2n_rsa_pkcs1_sha256,
+            };
+            struct s2n_local_sig_schemes_context local_context = { 0 };
+            EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
+                    test_schemes, s2n_array_len(test_schemes)));
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
+                    test_schemes, s2n_array_len(test_schemes)));
+
+            /* Test: If RSA kex is chosen, a server signature scheme is NOT chosen. */
+            conn->secure->cipher_suite = RSA_KEX_CIPHER_SUITE;
+            EXPECT_OK(s2n_signature_algorithm_select(conn));
+            EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_null_sig_scheme);
+
+            /* Test: A client signature scheme is chosen even for RSA kex */
+            conn->mode = S2N_CLIENT;
+            EXPECT_OK(s2n_signature_algorithm_select(conn));
+            EXPECT_NOT_EQUAL(conn->handshake_params.client_cert_sig_scheme, &s2n_null_sig_scheme);
+        };
 
         /* Test: choose legacy default for <TLS1.2 */
         {
@@ -1497,6 +1528,40 @@ int main(int argc, char **argv)
                     &s2n_ecc_curve_secp384r1);
         }
     }
+
+    /* Self-Talk test: no server signature scheme is chosen for RSA kex */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_rsa_kex"));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        /* RSA kex negotiated */
+        EXPECT_EQUAL(server->secure->cipher_suite->key_exchange_alg, &s2n_rsa);
+
+        /* No server signature scheme */
+        EXPECT_EQUAL(server->handshake_params.server_cert_sig_scheme, &s2n_null_sig_scheme);
+        EXPECT_EQUAL(client->handshake_params.server_cert_sig_scheme, &s2n_null_sig_scheme);
+
+        /* Client signature scheme negotiated */
+        EXPECT_EQUAL(server->handshake_params.client_cert_sig_scheme, &s2n_rsa_pkcs1_sha256);
+        EXPECT_EQUAL(client->handshake_params.client_cert_sig_scheme, &s2n_rsa_pkcs1_sha256);
+    };
 
     END_TEST();
 

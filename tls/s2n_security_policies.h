@@ -82,7 +82,64 @@ struct s2n_security_policy {
      */
     bool certificate_preferences_apply_locally;
     bool rules[S2N_SECURITY_RULES_COUNT];
+
+    /* Historically all security policies are static.
+     * However, the security policy builder can dynamically create policies.
+     * The builder will mark those policies to indicate they should be freed.
+     */
+    bool alloced;
 };
+
+/* Macros to help construct simple policies.
+ *
+ * One of the difficulties of security policies is that they are composed of
+ * multiple other structs. Changing that is currently somewhat complicated,
+ * but we can at least fake more concise "all in one" policies using macros.
+ *
+ * S2N_INLINE_SECURITY_POLICY_V1 makes several assumptions to simplify the definition:
+ * - "certificate_signature_preferences" match "signature_preferences"
+ * - no "certificate_key_preferences"
+ * - "tls13_pq_hybrid_draft_revision" is 5
+ * - "certificate_preferences_apply_locally" is false
+ * - "allow_chacha20_boosting" is false
+ */
+/* clang-format off */
+#define S2N_CIPHER_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_SIG_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_CURVE_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_KEM_PREF_LIST(...) { __VA_ARGS__ }
+/* clang-format on */
+#define S2N_INLINE_SECURITY_POLICY_V1(name, min_version, ciphers, signatures, curves, kems) \
+    struct s2n_cipher_suite *name##_cipher_list[] = ciphers;                                \
+    const struct s2n_cipher_preferences name##_cipher_prefs = {                             \
+        .count = s2n_array_len(name##_cipher_list),                                         \
+        .suites = name##_cipher_list,                                                       \
+        .allow_chacha20_boosting = false,                                                   \
+    };                                                                                      \
+    const struct s2n_signature_scheme *const name##_sig_list[] = signatures;                \
+    const struct s2n_signature_preferences name##_sig_prefs = {                             \
+        .count = s2n_array_len(name##_sig_list),                                            \
+        .signature_schemes = name##_sig_list,                                               \
+    };                                                                                      \
+    const struct s2n_ecc_named_curve *const name##_curve_list[] = curves;                   \
+    const struct s2n_ecc_preferences name##_ecc_prefs = {                                   \
+        .count = s2n_array_len(name##_curve_list),                                          \
+        .ecc_curves = name##_curve_list,                                                    \
+    };                                                                                      \
+    const struct s2n_kem_group *name##_kem_group_list[] = kems;                             \
+    const struct s2n_kem_preferences name##_kem_prefs = {                                   \
+        .tls13_kem_group_count = s2n_array_len(name##_kem_group_list),                      \
+        .tls13_kem_groups = name##_kem_group_list,                                          \
+        .tls13_pq_hybrid_draft_revision = 5,                                                \
+    };                                                                                      \
+    const struct s2n_security_policy name = {                                               \
+        .minimum_protocol_version = min_version,                                            \
+        .cipher_preferences = &name##_cipher_prefs,                                         \
+        .signature_preferences = &name##_sig_prefs,                                         \
+        .certificate_signature_preferences = &name##_sig_prefs,                             \
+        .ecc_preferences = &name##_ecc_prefs,                                               \
+        .kem_preferences = &name##_kem_prefs,                                               \
+    }
 
 struct s2n_security_policy_selection {
     const char *version;
@@ -131,8 +188,10 @@ extern const struct s2n_security_policy security_policy_20241001;
 extern const struct s2n_security_policy security_policy_20241001_pq_mixed;
 extern const struct s2n_security_policy security_policy_20250211;
 extern const struct s2n_security_policy security_policy_20250414;
+extern const struct s2n_security_policy security_policy_20250512;
+extern const struct s2n_security_policy security_policy_20250721;
 
-extern const struct s2n_security_policy security_policy_rfc9151;
+extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;

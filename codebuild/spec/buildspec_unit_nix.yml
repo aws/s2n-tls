@@ -81,6 +81,18 @@ batch:
           NIXDEV_LIBCRYPTO: .#openssl102
           NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
+    # libressl x86
+    - identifier: UnitLibressl_x86_64
+      depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_LIBCRYPTO: .#libressl
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
     # awslc x86
     - identifier: UnitAwslc_x86_64
       depend-on:
@@ -148,6 +160,7 @@ phases:
   pre_build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure";
@@ -155,12 +168,14 @@ phases:
   build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build";
         fi
   post_build:
     commands:
       - |
+        set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; unit"
         fi

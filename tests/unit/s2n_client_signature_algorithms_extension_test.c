@@ -81,6 +81,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         POSIX_GUARD(s2n_connection_set_config(conn, config));
         conn->actual_protocol_version = S2N_TLS12;
+        conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));

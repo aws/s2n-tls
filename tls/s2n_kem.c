@@ -36,6 +36,19 @@ const struct s2n_kem s2n_mlkem_768 = {
     .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
+const struct s2n_kem s2n_mlkem_1024 = {
+    .name = "mlkem1024",
+    .kem_nid = S2N_NID_MLKEM1024,
+    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
+    .public_key_length = S2N_MLKEM_1024_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_MLKEM_1024_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_MLKEM_1024_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_MLKEM_1024_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
+};
+
 const struct s2n_kem s2n_kyber_512_r3 = {
     .name = "kyber512r3",
     .kem_nid = S2N_NID_KYBER512,
@@ -98,6 +111,20 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  */
 
 /*
+ * ML-KEM based pure PQ KEMs as specified by IETF and registered in IANA.
+ *
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+ * https://datatracker.ietf.org/doc/draft-connolly-tls-mlkem-key-agreement/05/
+ */
+const struct s2n_kem_group s2n_pure_mlkem_1024 = {
+    .name = "MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_MLKEM_1024,
+    .curve = &s2n_ecc_curve_none,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
+};
+
+/*
  * ML-KEM based hybrid KEMs as specified by IETF and registered in IANA.
  *
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
@@ -119,6 +146,14 @@ const struct s2n_kem_group s2n_x25519_mlkem_768 = {
     /* ML-KEM KeyShare should always be sent first for X25519MLKEM768.
      * https://datatracker.ietf.org/doc/html/draft-kwiatkowski-tls-ecdhe-mlkem-02#name-negotiated-groups */
     .send_kem_first = 1,
+};
+
+const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
+    .name = "SecP384r1MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_MLKEM_1024,
+    .curve = &s2n_ecc_curve_secp384r1,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
@@ -172,6 +207,7 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
+    &s2n_secp384r1_mlkem_1024,
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
@@ -467,14 +503,7 @@ bool s2n_kem_is_available(const struct s2n_kem *kem)
         return false;
     }
 
-    bool available = s2n_libcrypto_supports_evp_kem();
-
-    /* Only newer versions of libcrypto have ML-KEM support. */
-    if (kem == &s2n_mlkem_768) {
-        available &= s2n_libcrypto_supports_mlkem();
-    }
-
-    return available;
+    return s2n_libcrypto_supports_evp_kem();
 }
 
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)

@@ -634,6 +634,7 @@ class Signature(object):
 
 
 class Signatures(object):
+    NONE = Signature("None+None", max_protocol=Protocols.TLS13)
     RSA_SHA1 = Signature("RSA+SHA1", max_protocol=Protocols.TLS12)
     RSA_SHA224 = Signature("RSA+SHA224", max_protocol=Protocols.TLS12)
     RSA_SHA256 = Signature("RSA+SHA256", max_protocol=Protocols.TLS12)

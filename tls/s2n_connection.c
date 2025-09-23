@@ -274,6 +274,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
     s2n_x509_validator_wipe(&conn->x509_validator);
+    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
@@ -522,6 +523,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
+    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
 
     /* Wipe the I/O-related info and restore the original socket if necessary */
     POSIX_GUARD(s2n_connection_wipe_io(conn));
@@ -1708,6 +1710,34 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
     POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(
             conn->handshake_params.client_cert_sig_scheme, converted_scheme));
 
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(scheme_name);
+    POSIX_ENSURE(IS_NEGOTIATED(conn), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_signature_scheme *scheme = conn->handshake_params.server_cert_sig_scheme;
+    /* The scheme should never be NULL. A "none" placeholder is used if no
+     * scheme has been negotiated.
+     */
+    POSIX_ENSURE_REF(scheme);
+
+    *scheme_name = scheme->name;
+    if (scheme->signature_curve) {
+        /* Some TLS1.2 and TLS1.3 signature schemes share an IANA value,
+         * but are NOT the same. The TLS1.3 version implies a specific curve.
+         */
+        if (conn->actual_protocol_version >= S2N_TLS13) {
+            *scheme_name = scheme->tls13_name;
+        } else {
+            *scheme_name = scheme->legacy_name;
+        }
+    }
+
+    POSIX_ENSURE_REF(*scheme_name);
     return S2N_SUCCESS;
 }
 
