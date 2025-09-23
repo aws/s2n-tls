@@ -62,7 +62,6 @@ use s2n_tls::error::Error as S2NError;
 use std::{fmt::Debug, hash::Hash, io::ErrorKind, time::Duration};
 
 const SHA384_DIGEST_SIZE: usize = 48;
-const EPOCH_DURATION: Duration = Duration::from_secs(3_600 * 24);
 const SESSION_NAME_LENGTH: usize = 16;
 
 // V1 was used for an earlier KMS data-key based solution and is no longer supported

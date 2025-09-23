@@ -34,7 +34,7 @@ use rand::Rng;
 use std::time::{Duration, SystemTime};
 
 /// The epoch duration controls how long an epoch secret is used for.
-pub(crate) const EPOCH_DURATION: Duration = Duration::from_secs(3_600 * 2);
+pub(crate) const EPOCH_DURATION: Duration = Duration::from_secs(3_600 * 24);
 
 /// Return a "smoothing factor" indicating how long the actor should wait before
 /// fetching the key for some epoch
