@@ -160,7 +160,7 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_ktls_crypto_info *crypto_info)
 {
     RESULT_ENSURE_REF(conn);
@@ -372,7 +372,10 @@ S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, si
 
         /* Check that the data requested for the ktls send call is not going over the encryption limit,
          * as that would require multiple key updates.
-         * We can add this logic in the future, but it's not required at the moment. */
+         * In TLS1.3, the key limit is 2^24.5 full-size records. A full-sized record is 16,384 bytes.
+         * So essentially 2^24 * 16,384 bytes(285 GB) can be sent before you need to key update.
+         * We can add logic for multiple key updates in a single ktls send call in the future, 
+         * but it's not required at the moment. */
         RESULT_ENSURE(new_records_sent <= encryption_limit, S2N_ERR_INVALID_ARGUMENT);
         s2n_atomic_flag_set(&conn->key_update_pending);
     }

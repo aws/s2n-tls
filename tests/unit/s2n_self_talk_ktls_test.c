@@ -694,41 +694,6 @@ int main(int argc, char **argv)
 
         /* Test: Sending key update with KTLS */
         if (ktls_send_supported) {
-            /* Test: Multiple key updates are not allowed with one s2n_send call with ktls */
-            {
-                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(client);
-                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(server);
-                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-                EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
-
-                EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
-
-                /* Reset server cipher suite to trigger a key update after sending one record */
-                EXPECT_NOT_NULL(server->secure);
-                EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
-                server->secure->cipher_suite = &test_cipher_suite;
-
-                /* This will require a keyupdate mid-send, which is not allowed with ktls */
-                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
-                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_send(server, large_test_data, sizeof(large_test_data),
-                                                  &blocked),
-                        S2N_ERR_INVALID_ARGUMENT);
-            }
-
             /* Test: Multiple key updates are allowed as long as they can be sent over multiple
              * s2n_send calls with ktls. */
             {
@@ -757,9 +722,14 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 server->secure->cipher_suite = &test_cipher_suite;
 
-                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { "Hello there" };
+                /* This will require a keyupdate mid-send, which is not allowed with ktls */
+                uint8_t exceeds_record_limit[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2] = { 0 };
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_send(server, exceeds_record_limit, sizeof(exceeds_record_limit),
+                                                  &blocked),
+                        S2N_ERR_INVALID_ARGUMENT);
 
+                uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { "Hello there" };
                 /* Each send call will include one key update */
                 for (int i = 0; i < 10; i++) {
                     int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
@@ -820,7 +790,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_send(server, exceeds_record_limit, sizeof(exceeds_record_limit),
                                                   &blocked),
                         S2N_ERR_INVALID_ARGUMENT);
-                
+
                 /* Slightly smaller data sent will be allowed */
                 uint8_t exact_record_limit[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 5] = { "Hello there" };
                 int written = s2n_send(server, exact_record_limit, sizeof(exact_record_limit), &blocked);
