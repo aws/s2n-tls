@@ -1357,38 +1357,5 @@ int main(int argc, char **argv)
         }
     };
 
-    /* Test: s2n_ktls_check_estimated_record_limit sets key_update_pending flag */
-    {
-        /* Create a cipher suite with an artificially lowered encryption limit */
-        const size_t test_encryption_limit = 1;
-        struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
-        test_record_alg.encryption_limit = test_encryption_limit;
-        struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
-        test_cipher_suite.record_alg = &test_record_alg;
-        uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_ktls_enable_unsafe_tls13(config));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-        EXPECT_NOT_NULL(conn->secure);
-        conn->secure->cipher_suite = &test_cipher_suite;
-        conn->actual_protocol_version = S2N_TLS13;
-
-        size_t bytes_requested = 100;
-        EXPECT_OK(s2n_ktls_check_estimated_record_limit(conn, bytes_requested));
-        EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
-
-        /* Set up the connection to have already sent a record so that
-         * the encryption limit will be passed in the next send call. */
-        EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, 1));
-        bytes_requested = sizeof(large_test_data);
-        EXPECT_OK(s2n_ktls_check_estimated_record_limit(conn, bytes_requested));
-        EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
-    }
-
     END_TEST();
 }

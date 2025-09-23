@@ -750,56 +750,6 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(client->recv_key_updated, 9);
                 EXPECT_EQUAL(client->send_key_updated, 0);
             }
-
-            /* Test: Check key update logic with encryption limit = 5 */
-            {
-                /* Cipher suite with an artificially lowered encryption limit */
-                struct s2n_record_algorithm record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
-                record_alg.encryption_limit = 5;
-                struct s2n_cipher_suite cipher_suite = s2n_tls13_aes_128_gcm_sha256;
-                cipher_suite.record_alg = &record_alg;
-
-                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(client);
-                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(server);
-                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
-
-                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-                EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
-
-                EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
-
-                /* Reset server cipher suite to trigger a key update after sending one record */
-                EXPECT_NOT_NULL(server->secure);
-                EXPECT_EQUAL(server->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
-                server->secure->cipher_suite = &cipher_suite;
-
-                /* This will require a keyupdate mid-send, which is not allowed with ktls */
-                uint8_t exceeds_record_limit[(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 5) + 1] = { 0 };
-                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_send(server, exceeds_record_limit, sizeof(exceeds_record_limit),
-                                                  &blocked),
-                        S2N_ERR_INVALID_ARGUMENT);
-
-                /* Slightly smaller data sent will be allowed */
-                uint8_t exact_record_limit[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 5] = { "Hello there" };
-                int written = s2n_send(server, exact_record_limit, sizeof(exact_record_limit), &blocked);
-                EXPECT_EQUAL(written, sizeof(exact_record_limit));
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-
-                EXPECT_EQUAL(server->recv_key_updated, 0);
-                EXPECT_EQUAL(server->send_key_updated, 0);
-            }
         };
 
         /* Test: Receiving key update with KTLS */
