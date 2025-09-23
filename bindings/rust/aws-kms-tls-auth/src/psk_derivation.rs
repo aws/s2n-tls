@@ -33,7 +33,7 @@
 //! rotation/transitioning the underlying KMS key.
 //!
 //! If a server trusts both keyA and keyB, then the client will need to
-//! communicate which key it used to derive it’s PSK. The naive solution would be
+//! communicate which key it used to derive its PSK. The naive solution would be
 //! to just include keyA or keyB in plaintext in the PSK Identity. However, this
 //! would leak information about “fleet membership”, because it is sent in the
 //! clear. Ideally, the PSK identity would not leak this information.
@@ -45,7 +45,7 @@
 //!   information from being correlated across multiple connections from a single
 //!   client.
 //! - epoch_secret: without incorporating this secret, an attacker would be able
-//!   check if some the kms_key_binder was valid for some specific KMS key.
+//!   check if the kms_key_binder was valid for some specific KMS key.
 
 use crate::{
     codec::{DecodeByteSource, DecodeValue, EncodeBytesSink, EncodeValue},

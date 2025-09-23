@@ -3,7 +3,7 @@
 
 //! The key epochs and fetching behavior are designed to accomplish the following
 //! goals:
-//! Requirement 1: if fetching new keys fails, there should be at least 24 before
+//! Requirement 1: if fetching new keys fails, there should be at least 24 hours before
 //! handshakes actually start failing.
 //! Requirement 2: traffic to KMS should be smooth, avoiding any spikes at e.g.
 //! the top of the hour.
