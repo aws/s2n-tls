@@ -623,28 +623,26 @@ impl Builder {
         Ok(self)
     }
 
-    /// Set a callback function to perform custom cert validation.
+    /// Set a callback function to perform custom cert validation synchronously.
     ///
-    /// Corresponds to [s2n_config_set_cert_validation_cb].
+    /// Corresponds to [s2n_config_set_cert_validation_cb], but the rust callback
+    /// can only perform in synchronous mode.
     #[cfg(feature = "unstable-crl")]
     pub fn set_cert_validation_callback<T: 'static + CertValidationCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
         unsafe extern "C" fn cert_validation_cb(
-            connection_ptr: *mut s2n_connection,
+            conn_ptr: *mut s2n_connection,
             validation_info: *mut s2n_cert_validation_info,
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
-            with_context(connection_ptr, |conn, context| {
+            let info = CertValidationInfo::from_ptr(validation_info).unwrap();
+            with_context(conn_ptr, |conn, context| {
                 let callback = context.cert_validation_callback.as_ref();
-                let info = CertValidationInfo::from_ptr(validation_info);
-                let future = info.and_then(|info| {
-                    callback.map_or(Ok(None), |callback| callback.handle_validation(conn, info))
-                });
-                AsyncCallback::trigger(future, conn)
-            })
-            .into()
+                callback.map(|callback| callback.handle_validation(conn, info))
+            });
+            CallbackResult::Success.into()
         }
 
         let handler = Box::new(handler);

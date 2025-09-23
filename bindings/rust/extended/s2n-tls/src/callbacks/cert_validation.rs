@@ -4,11 +4,10 @@
 use s2n_tls_sys::*;
 
 use crate::{
-    callbacks::*,
     connection::Connection,
     error::{Error, Fallible},
 };
-use std::{pin::Pin, ptr::NonNull};
+use std::ptr::NonNull;
 
 pub struct CertValidationInfo {
     info: NonNull<s2n_cert_validation_info>,
@@ -53,15 +52,13 @@ pub trait CertValidationCallback: 'static + Send + Sync {
         &self,
         connection: &mut Connection,
         validation_info: CertValidationInfo,
-    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, Error>;
+    ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{connection::Connection, error, security, testing::*};
-    use core::task::Poll;
-    use futures_test::task::new_count_waker;
+    use crate::{connection::Connection, security, testing::*};
 
     type Error = Box<dyn std::error::Error>;
 
@@ -75,7 +72,7 @@ mod tests {
             &self,
             conn: &mut Connection,
             info: CertValidationInfo,
-        ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+        ) -> Result<(), Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
 
@@ -83,7 +80,7 @@ mod tests {
                 true => info.accept()?,
                 false => info.reject()?,
             }
-            Ok(None)
+            Ok(())
         }
     }
 
@@ -113,89 +110,6 @@ mod tests {
             }
 
             assert_eq!(counter.count(), 1);
-        }
-
-        Ok(())
-    }
-
-    const POLL_COUNT: usize = 10;
-
-    struct AsyncFuture {
-        counter: usize,
-        info: Option<CertValidationInfo>,
-    }
-    impl ConnectionFuture for AsyncFuture {
-        fn poll(
-            mut self: Pin<&mut Self>,
-            conn: &mut Connection,
-            _ctx: &mut core::task::Context,
-        ) -> Poll<Result<(), error::Error>> {
-            conn.waker().unwrap().wake_by_ref();
-            self.counter += 1;
-            let context = conn.application_context::<ValidationContext>().unwrap();
-
-            if self.counter < POLL_COUNT {
-                Poll::Pending
-            } else if let Some(info) = self.info.take() {
-                match context.accept {
-                    true => Poll::Ready(info.accept()),
-                    false => Poll::Ready(info.reject()),
-                }
-            } else {
-                Poll::Ready(Err(error::Error::application(
-                    "missing validation info".into(),
-                )))
-            }
-        }
-    }
-
-    struct AsyncCallback(Counter);
-    impl CertValidationCallback for AsyncCallback {
-        fn handle_validation(
-            &self,
-            _conn: &mut Connection,
-            info: CertValidationInfo,
-        ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
-            self.0.increment();
-            let future = AsyncFuture {
-                counter: 0,
-                info: Some(info),
-            };
-            Ok(Some(Box::pin(future)))
-        }
-    }
-
-    #[test]
-    fn async_cert_validation() -> Result<(), Error> {
-        for accept in [true, false] {
-            let counter = Counter::default();
-            let callback = AsyncCallback(counter.clone());
-
-            let config = {
-                let mut config = config_builder(&security::DEFAULT_TLS13)?;
-                config.set_cert_validation_callback(callback)?;
-                config.build()?
-            };
-
-            let (waker, wake_count) = new_count_waker();
-            let mut pair = TestPair::from_config(&config);
-            pair.client.set_waker(Some(&waker))?;
-
-            let context = ValidationContext { accept };
-            pair.client.set_application_context(context);
-
-            assert_eq!(counter.count(), 0);
-            assert_eq!(wake_count, 0);
-
-            if accept {
-                pair.handshake()?;
-            } else {
-                let s2n_err = pair.handshake().unwrap_err();
-                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_REJECTED");
-            }
-
-            assert_eq!(counter.count(), 1);
-            assert_eq!(wake_count, POLL_COUNT);
         }
 
         Ok(())
