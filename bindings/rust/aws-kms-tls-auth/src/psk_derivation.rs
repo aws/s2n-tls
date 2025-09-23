@@ -59,7 +59,7 @@ use aws_lc_rs::{
 };
 use aws_sdk_kms::{primitives::Blob, types::MacAlgorithmSpec, Client};
 use s2n_tls::error::Error as S2NError;
-use std::{fmt::Debug, hash::Hash, io::ErrorKind, time::Duration};
+use std::{fmt::Debug, hash::Hash, io::ErrorKind};
 
 const SHA384_DIGEST_SIZE: usize = 48;
 const SESSION_NAME_LENGTH: usize = 16;
