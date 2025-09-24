@@ -10,9 +10,9 @@ pkgs.stdenv.mkDerivation rec {
     sha256 = "sha256-UzJzeL4gMzSNVig4eXe3arVvwdFYg5yEUuL9xAcXKiY=";
   };
 
-  # OpenSSL FIPS 2.0.13 module source
+  # OpenSSL FIPS 2.0.13 module source - using upstream GitHub instead of S3
   fipsSrc = pkgs.fetchurl {
-    url = "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
+    url = "https://github.com/openssl/openssl/releases/download/OpenSSL-fips-2_0_13/openssl-fips-2.0.13.tar.gz";
     sha256 = "sha256-P/cj+TkB91B3mi5n/xWYXDV/GhXIkslQREb7yFxvd9o=";
   };
 
@@ -26,7 +26,7 @@ pkgs.stdenv.mkDerivation rec {
   in {
     x86_64-linux = ''
       # Extract and build FIPS module first
-      echo "Building OpenSSL FIPS 2.0.13 module..."
+      echo "Building OpenSSL FIPS 2.0.13 module from upstream GitHub..."
       tar -xzf ${fipsSrc}
       cd openssl-fips-2.0.13
       mkdir -p ../OpensslFipsModule
@@ -64,9 +64,10 @@ pkgs.stdenv.mkDerivation rec {
   '';
 
   meta = with pkgs.lib; {
-    description = "OpenSSL 1.0.2 with FIPS 140-2 support";
+    description = "OpenSSL 1.0.2 with FIPS 140-2 support (using upstream sources)";
     longDescription = ''
       OpenSSL 1.0.2 built with FIPS 140-2 Object Module support.
+      This build uses the official upstream FIPS module from GitHub instead of S3.
       This build is for testing purposes only and is not FIPS compliant
       as we do not own the build system architecture.
     '';
