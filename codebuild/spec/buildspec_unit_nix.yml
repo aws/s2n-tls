@@ -68,17 +68,16 @@ batch:
           NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
-    # Openssl102 aarch64
-    - identifier: UnitOpenssl102_aarch64
+    # Openssl102FIPS x86
+    - identifier: UnitOpenssl102Fips_x86_64
       depend-on:
-        - nixCache_aarch64
+        - nixCache_x86_64
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
         privileged-mode: true
-        type: ARM_CONTAINER
         variables:
-          NIXDEV_LIBCRYPTO: .#openssl102
+          NIXDEV_LIBCRYPTO: .#openssl102fips
           NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # libressl x86

@@ -25,7 +25,7 @@ function libcrypto_alias {
       echo "Could not find libcrypto binary for $libcrypto_name"
     fi
 }
-libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl102fips "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
 libcrypto_alias awslc "${AWSLC_INSTALL_DIR}/bin/bssl"

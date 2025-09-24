@@ -31,7 +31,7 @@ separate from the buildPhase, configurePhase and checkPhase.
 
 ### Specific libcrypto
 
-By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
+By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102fips, and libressl. See flake.nix in the root directory.
 
 ### Configure and build
 
