@@ -318,6 +318,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK, "Config set to NULL before client hello callback. This should not be possible outside of tests."); \
     ERR_ENTRY(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO, "The invoked s2n-tls API is not supported by the libcrypto"); \
     ERR_ENTRY(S2N_ERR_FIPS_MODE_UNSUPPORTED, "FIPS mode is not supported for the libcrypto"); \
+    ERR_ENTRY(S2N_ERR_SECURITY_POLICY_DEFINITION, "Unable to construct a valid security policy given builder options"); \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

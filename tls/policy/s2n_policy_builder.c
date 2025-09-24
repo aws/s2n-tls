@@ -14,17 +14,19 @@
  */
 
 #include "tls/policy/s2n_policy_feature.h"
+#include "tls/policy/s2n_policy_rule.h"
 #include "tls/s2n_security_policies.h"
 
 struct s2n_security_policy_builder {
     const struct s2n_security_policy *base_policy;
+    struct s2n_policy_rule_list rules_list;
 };
 
 /* All our lists behave the same, but use different types and field names.
  * Use a macro to avoid writing multiple copies of the same basic methods.
  */
 #define S2N_DEFINE_PREFERENCE_LIST_FUNCTIONS(pref_type, entry_type, list_name, count_name)              \
-    static S2N_RESULT pref_type##_copy(const struct pref_type *original, const struct pref_type **copy) \
+    S2N_RESULT pref_type##_copy(const struct pref_type *original, const struct pref_type **copy)        \
     {                                                                                                   \
         RESULT_ENSURE_REF(copy);                                                                        \
         if (original == NULL) {                                                                         \
@@ -49,7 +51,7 @@ struct s2n_security_policy_builder {
         return S2N_RESULT_OK;                                                                           \
     }                                                                                                   \
                                                                                                         \
-    static S2N_CLEANUP_RESULT pref_type##_free(const struct pref_type **prefs_ptr)                      \
+    S2N_CLEANUP_RESULT pref_type##_free(const struct pref_type **prefs_ptr)                             \
     {                                                                                                   \
         if (!prefs_ptr) {                                                                               \
             return S2N_RESULT_OK;                                                                       \
@@ -155,6 +157,7 @@ struct s2n_security_policy_builder *s2n_security_policy_builder_from_version(con
     PTR_ENSURE(version, S2N_ERR_INVALID_ARGUMENT);
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_security_policy_builder)));
+    PTR_GUARD_POSIX(s2n_blob_zero(&mem));
     struct s2n_security_policy_builder *builder =
             (struct s2n_security_policy_builder *) (void *) mem.data;
 
@@ -175,14 +178,20 @@ int s2n_security_policy_builder_free(struct s2n_security_policy_builder **builde
     return S2N_SUCCESS;
 }
 
-/* For now, "build" just copies the input policy.
- * We will add functionality later.
- */
+int s2n_security_policy_builder_set_rule(struct s2n_security_policy_builder *builder,
+        s2n_security_policy_rule name, uint64_t version)
+{
+    POSIX_ENSURE(builder, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_GUARD_RESULT(s2n_policy_rule_list_enable(&builder->rules_list, name, version));
+    return S2N_SUCCESS;
+}
+
 struct s2n_security_policy *s2n_security_policy_build(struct s2n_security_policy_builder *builder)
 {
     PTR_ENSURE(builder, S2N_ERR_INVALID_ARGUMENT);
     struct s2n_security_policy *policy = NULL;
     PTR_GUARD_RESULT(s2n_security_policy_copy(builder->base_policy, &policy));
     PTR_ENSURE_REF(policy);
+    PTR_GUARD_RESULT(s2n_policy_rule_list_apply(&builder->rules_list, policy));
     return policy;
 }
