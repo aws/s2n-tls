@@ -505,7 +505,7 @@ int main(int argc, char **argv)
         {
             uint8_t test_context[] = {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, S2N_SERIALIZED_CONN_V1,
-                0x03, 0x05, /* Invalid protocol version (3 * 10 + 5 = 35, above S2N_TLS13=34) */
+                0x03, 0x05, /* Invalid protocol version (35, above S2N_TLS13=34) */
                 TLS_AES_128_GCM_SHA256,
                 TEST_SEQUENCE_NUM, /* Client sequence num */
                 TEST_SEQUENCE_NUM, /* Server sequence num */
@@ -527,7 +527,7 @@ int main(int argc, char **argv)
         {
             uint8_t test_context[] = {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, S2N_SERIALIZED_CONN_V1,
-                0x03, 0x00, /* Invalid protocol version (3 * 10 + 0 = 30, below S2N_TLS10=31) */
+                0x03, 0x00, /* Invalid protocol version (30, below S2N_TLS10=31) */
                 TLS_AES_128_GCM_SHA256,
                 TEST_SEQUENCE_NUM, /* Client sequence num */
                 TEST_SEQUENCE_NUM, /* Server sequence num */

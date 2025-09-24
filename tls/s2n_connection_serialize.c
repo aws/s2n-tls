@@ -218,10 +218,9 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     parsed_values->protocol_version = (protocol_version[0] * 10) + protocol_version[1];
-    
-    RESULT_ENSURE(parsed_values->protocol_version >= S2N_TLS10 &&
-                  parsed_values->protocol_version <= S2N_TLS13,
-                  S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    RESULT_ENSURE(parsed_values->protocol_version >= S2N_TLS10 && parsed_values->protocol_version <= S2N_TLS13,
+            S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
