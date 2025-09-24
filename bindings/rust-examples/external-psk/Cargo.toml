@@ -1,0 +1,16 @@
+[package]
+name = "external-psk"
+version.workspace = true
+authors.workspace = true
+publish.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+aws-lc-rs = "1.7.1"
+rang = "0.1.1"
+s2n-tls = { path = "../../rust/extended/s2n-tls" }
+s2n-tls-tokio = { path = "../../rust/extended/s2n-tls-tokio" }
+tokio = {version = "1.42.0", features = ["full"]}
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
