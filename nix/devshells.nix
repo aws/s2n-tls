@@ -62,10 +62,10 @@ let
     '';
   });
 
-  openssl102fips = default.overrideAttrs (finalAttrs: previousAttrs: {
+  openssl102 = default.overrideAttrs (finalAttrs: previousAttrs: {
     # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = [ pkgs.cmake openssl_1_0_2 ];
-    S2N_LIBCRYPTO = "openssl-1.0.2-fips";
+    S2N_LIBCRYPTO = "openssl-1.0.2";
     # Integ s_client/server tests expect openssl 1.1.1.
     # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
@@ -119,7 +119,7 @@ in {
   default = default;
   openssl111 = openssl111;
   libressl = libressl_shell;
-  openssl102fips = openssl102fips;
+  openssl102 = openssl102;
   awslc = awslc_shell;
   awslcfips2022 = awslcfips2022_shell;
   awslcfips2024 = awslcfips2024_shell;

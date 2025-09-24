@@ -101,6 +101,15 @@ batch:
           NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
 
+    # Openssl102fips x86_64 only
+    - identifier: Integ_openssl102fips_x86_64_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#openssl102fips
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
 phases:
   install:
     commands:
