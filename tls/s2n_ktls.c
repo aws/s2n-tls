@@ -389,6 +389,7 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_re
     RESULT_GUARD(s2n_ktls_check_estimated_record_limit(conn, bytes_requested));
 
     if (s2n_atomic_flag_test(&conn->key_update_pending)) {
+        RESULT_ENSURE_REF(conn->config);
         RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
