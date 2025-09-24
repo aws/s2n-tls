@@ -13,17 +13,6 @@ pub struct CertValidationInfo {
     info: NonNull<s2n_cert_validation_info>,
 }
 
-/// # Safety
-///
-/// Safety: s2n_cert_validation_info objects can be sent across threads
-unsafe impl Send for CertValidationInfo {}
-
-/// # Safety
-///
-/// Safety: All C methods that mutate the s2n_cert_validation_info are wrapped
-/// in Rust methods that require a mutable reference.
-unsafe impl Sync for CertValidationInfo {}
-
 impl CertValidationInfo {
     pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Result<Self, Error> {
         let info = NonNull::new(info).ok_or(Error::INVALID_INPUT)?;
@@ -35,23 +24,23 @@ impl CertValidationInfo {
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub fn accept(self) -> Result<(), Error> {
+    pub fn accept(&self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub fn reject(self) -> Result<(), Error> {
+    pub fn reject(&self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
 }
 
-pub trait CertValidationCallback: 'static + Send + Sync {
+pub trait CertValidationCallbackSync: 'static + Send + Sync {
     fn handle_validation(
         &self,
         connection: &mut Connection,
-        validation_info: CertValidationInfo,
+        validation_info: &CertValidationInfo,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
@@ -67,11 +56,11 @@ mod tests {
     }
 
     struct SyncCallback(Counter);
-    impl CertValidationCallback for SyncCallback {
+    impl CertValidationCallbackSync for SyncCallback {
         fn handle_validation(
             &self,
             conn: &mut Connection,
-            info: CertValidationInfo,
+            info: &CertValidationInfo,
         ) -> Result<(), Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
@@ -92,7 +81,7 @@ mod tests {
 
             let config = {
                 let mut config = config_builder(&security::DEFAULT_TLS13)?;
-                config.set_cert_validation_callback(callback)?;
+                config.set_cert_validation_callback_sync(callback)?;
                 config.build()?
             };
 

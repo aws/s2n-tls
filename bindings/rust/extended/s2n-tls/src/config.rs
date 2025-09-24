@@ -628,7 +628,7 @@ impl Builder {
     /// Corresponds to [s2n_config_set_cert_validation_cb], but the rust callback
     /// can only perform in synchronous mode.
     #[cfg(feature = "unstable-crl")]
-    pub fn set_cert_validation_callback<T: 'static + CertValidationCallback>(
+    pub fn set_cert_validation_callback_sync<T: 'static + CertValidationCallbackSync>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -639,8 +639,8 @@ impl Builder {
         ) -> libc::c_int {
             let info = CertValidationInfo::from_ptr(validation_info).unwrap();
             with_context(conn_ptr, |conn, context| {
-                let callback = context.cert_validation_callback.as_ref();
-                callback.map(|callback| callback.handle_validation(conn, info))
+                let callback = context.cert_validation_callback_sync.as_ref();
+                callback.map(|callback| callback.handle_validation(conn, &info))
             });
             CallbackResult::Success.into()
         }
@@ -651,7 +651,7 @@ impl Builder {
             // it is being built, the Builder is the only reference to the config.
             self.config.context_mut()
         };
-        context.cert_validation_callback = Some(handler);
+        context.cert_validation_callback_sync = Some(handler);
 
         unsafe {
             s2n_config_set_cert_validation_cb(
@@ -1089,7 +1089,7 @@ pub(crate) struct Context {
     #[cfg(feature = "unstable-cert_authorities")]
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
     #[cfg(feature = "unstable-crl")]
-    pub(crate) cert_validation_callback: Option<Box<dyn CertValidationCallback>>,
+    pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
 }
 
 impl Default for Context {
@@ -1113,7 +1113,7 @@ impl Default for Context {
             #[cfg(feature = "unstable-cert_authorities")]
             cert_authorities: None,
             #[cfg(feature = "unstable-crl")]
-            cert_validation_callback: None,
+            cert_validation_callback_sync: None,
         }
     }
 }
