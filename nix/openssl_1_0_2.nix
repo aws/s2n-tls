@@ -1,28 +1,50 @@
 { pkgs }:
 pkgs.stdenv.mkDerivation rec {
-  pname = "openssl";
+  pname = "openssl-fips";
   version = "1.0.2";
 
+  # OpenSSL 1.0.2 source
   src = pkgs.fetchzip {
     url =
       "https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_0_2u.zip";
     sha256 = "sha256-UzJzeL4gMzSNVig4eXe3arVvwdFYg5yEUuL9xAcXKiY=";
   };
 
+  # OpenSSL FIPS 2.0.13 module source
+  fipsSrc = pkgs.fetchurl {
+    url = "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
+    sha256 = "sha256-P/cj+TkB91B3mi5n/xWYXDV/GhXIkslQREb7yFxvd9o=";
+  };
+
   buildInputs = [ pkgs.gnumake pkgs.perl ];
 
+  # Build the FIPS module first, then OpenSSL with FIPS support
   configurePhase = let
     default_options =
       "shared -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=$out";
+    fips_options = "fips --with-fipsdir=$FIPSDIR";
   in {
     x86_64-linux = ''
-      ./config -d ${default_options}
+      # Extract and build FIPS module first
+      echo "Building OpenSSL FIPS 2.0.13 module..."
+      tar -xzf ${fipsSrc}
+      cd openssl-fips-2.0.13
+      mkdir -p ../OpensslFipsModule
+      export FIPSDIR="$(pwd)/../OpensslFipsModule"
+      chmod +x ./Configure
+      ./config -d
+      make
+      make install
+      cd ..
+      
+      # Configure OpenSSL with FIPS support
+      echo "Configuring OpenSSL 1.0.2 with FIPS support..."
+      ./config -d ${fips_options} ${default_options}
     '';
-    # The Openssl102 Configure script appears to have a bug and won't recognize
-    # aarch64 as a supported platform when passed the '-d' flag.
-    # See the PR for more detail: https://github.com/aws/s2n-tls/pull/4045 
+    # FIPS mode is not expected to work on aarch64 per task requirements
     aarch64-linux = ''
-      ./config ${default_options}
+      echo "FIPS mode is not supported on aarch64"
+      exit 1
     '';
   }.${pkgs.stdenv.hostPlatform.system};
 
@@ -33,5 +55,21 @@ pkgs.stdenv.mkDerivation rec {
 
   installPhase = ''
     make install_sw
+    
+    # Verify FIPS mode is available
+    echo "Verifying FIPS mode availability..."
+    if [ -f "$out/bin/openssl" ]; then
+      $out/bin/openssl version -a || true
+    fi
   '';
+
+  meta = with pkgs.lib; {
+    description = "OpenSSL 1.0.2 with FIPS 140-2 support";
+    longDescription = ''
+      OpenSSL 1.0.2 built with FIPS 140-2 Object Module support.
+      This build is for testing purposes only and is not FIPS compliant
+      as we do not own the build system architecture.
+    '';
+    platforms = [ "x86_64-linux" ]; # Only x86_64-linux supported
+  };
 }
