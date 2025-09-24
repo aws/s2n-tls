@@ -106,9 +106,9 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  * if your kernel has the required key update patch. Receiving or sending a key update
  * message in TLS1.3 without the kernel patch will cause a connection failure.
  *
- * @note Calling this API will force a limit of 388 GB per s2n_send/sendfile call.
+ * @note Calling this API will force a limit of 388GB per s2n_send/sendfile call.
  * See https://github.com/aws/s2n-tls/issues/5524. The S2N_ERR_INVALID_ARGUMENT error
- * will be thrown if you call these APIs with > 388 GB.
+ * will be thrown if you call these APIs with > 388GB.
  *
  * This method must be called before enabling kTLS on a connection using
  * s2n_connection_ktls_enable_send or s2n_connection_ktls_enable_recv.
