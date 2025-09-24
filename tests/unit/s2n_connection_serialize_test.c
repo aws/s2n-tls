@@ -500,6 +500,50 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, test_context,
                     sizeof(test_context)));
         };
+
+        /* Fails if protocol version is higher than s2n-tls recognizes */
+        {
+            uint8_t test_context[] = {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, S2N_SERIALIZED_CONN_V1,
+                0x03, 0x05, /* Invalid protocol version (3 * 10 + 5 = 35, above S2N_TLS13=34) */
+                TLS_AES_128_GCM_SHA256,
+                TEST_SEQUENCE_NUM, /* Client sequence num */
+                TEST_SEQUENCE_NUM, /* Server sequence num */
+                0x01, 0x01,        /* Test Fragment length */
+                TEST_TLS13_SECRET, /* Client app secret */
+                TEST_TLS13_SECRET, /* Server app secret */
+                TEST_TLS13_SECRET  /* Resumption master secret */
+            };
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_deserialize(client_conn, test_context,
+                                              sizeof(test_context)),
+                    S2N_ERR_INVALID_SERIALIZED_CONNECTION);
+        };
+
+        /* Fails if protocol version is lower than s2n-tls recognizes */
+        {
+            uint8_t test_context[] = {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, S2N_SERIALIZED_CONN_V1,
+                0x03, 0x00, /* Invalid protocol version (3 * 10 + 0 = 30, below S2N_TLS10=31) */
+                TLS_AES_128_GCM_SHA256,
+                TEST_SEQUENCE_NUM, /* Client sequence num */
+                TEST_SEQUENCE_NUM, /* Server sequence num */
+                0x01, 0x01,        /* Test Fragment length */
+                TEST_TLS13_SECRET, /* Client app secret */
+                TEST_TLS13_SECRET, /* Server app secret */
+                TEST_TLS13_SECRET  /* Resumption master secret */
+            };
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_deserialize(client_conn, test_context,
+                                              sizeof(test_context)),
+                    S2N_ERR_INVALID_SERIALIZED_CONNECTION);
+        };
     };
 
     struct s2n_config *config_array[] = { tls12_config, tls13_config };
