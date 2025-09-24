@@ -429,6 +429,7 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_re
 S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE(conn->config->ktls_tls13_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
     struct s2n_ktls_crypto_info crypto_info = { 0 };
