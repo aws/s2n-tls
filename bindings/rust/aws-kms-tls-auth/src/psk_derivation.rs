@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(unique_binders.len(), 4);
     }
 
-    /// Check the the PSK connection secret incorporates
+    /// Check that the PSK connection secret incorporates
     /// - epoch secret
     /// - session name
     ///
