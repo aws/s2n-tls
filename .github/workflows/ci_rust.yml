@@ -412,6 +412,8 @@ jobs:
         id: toolchain
         run: |
           rustup toolchain install stable --component clippy
+          #generate.sh handles this for extended, but not pcap 
+          rustup component add --toolchain stable rustfmt
           rustup override set stable
 
       - name: Install tshark
