@@ -66,7 +66,10 @@ let
     # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = [ pkgs.cmake openssl_1_0_2 ];
     # Use FIPS on x86_64, non-FIPS on aarch64
-    S2N_LIBCRYPTO = if system == "x86_64-linux" then "openssl-1.0.2-fips" else "openssl-1.0.2";
+    S2N_LIBCRYPTO = if system == "x86_64-linux" then
+      "openssl-1.0.2-fips"
+    else
+      "openssl-1.0.2";
     # Integ s_client/server tests expect openssl 1.1.1.
     # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
