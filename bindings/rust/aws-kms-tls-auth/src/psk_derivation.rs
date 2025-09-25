@@ -246,12 +246,6 @@ impl DecodeValue for PskIdentity {
 }
 
 impl PskIdentity {
-    /// Create a PskIdentity
-    ///
-    /// * `ciphertext_data_key`: The ciphertext returned from the KMS generateDataKey
-    ///   API.
-    /// * `obfuscation_key`: The key that will be used to obfuscate the ciphertext,
-    ///   preventing any details about the ciphertext from being on the wire.
     pub fn new(session_name: &[u8], daily_secret: &EpochSecret) -> anyhow::Result<Self> {
         let kms_key_binder = Self::kms_key_binder(session_name, daily_secret);
         let kms_key_binder = PrefixedBlob::new(kms_key_binder)?;
