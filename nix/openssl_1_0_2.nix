@@ -1,30 +1,31 @@
 { pkgs }:
 if pkgs.stdenv.hostPlatform.system == "aarch64-linux" then
-  # Create a minimal stub derivation for aarch64 that just prints a warning
+# Create a minimal stub derivation for aarch64 that just prints a warning
   pkgs.stdenv.mkDerivation rec {
     pname = "openssl-1.0.2-unsupported";
     version = "1.0.2";
 
-    src = pkgs.writeText "warning.txt" "OpenSSL 1.0.2 is not supported on aarch64";
+    src =
+      pkgs.writeText "warning.txt" "OpenSSL 1.0.2 is not supported on aarch64";
 
     dontUnpack = true;
     dontConfigure = true;
     dontBuild = true;
 
     installPhase = ''
-      mkdir -p $out/bin
-      cat > $out/bin/openssl << 'EOF'
-#!/bin/sh
-echo "WARNING: OpenSSL 1.0.2 (both FIPS and non-FIPS) is not supported on aarch64 architecture."
-echo "This is a stub installation that does nothing."
-exit 1
-EOF
-      chmod +x $out/bin/openssl
+            mkdir -p $out/bin
+            cat > $out/bin/openssl << 'EOF'
+      #!/bin/sh
+      echo "WARNING: OpenSSL 1.0.2 (both FIPS and non-FIPS) is not supported on aarch64 architecture."
+      echo "This is a stub installation that does nothing."
+      exit 1
+      EOF
+            chmod +x $out/bin/openssl
 
-      # Create empty lib and include directories to satisfy any build dependencies
-      mkdir -p $out/lib $out/include
+            # Create empty lib and include directories to satisfy any build dependencies
+            mkdir -p $out/lib $out/include
 
-      echo "WARNING: OpenSSL 1.0.2 is not supported on aarch64. Created stub installation." >&2
+            echo "WARNING: OpenSSL 1.0.2 is not supported on aarch64. Created stub installation." >&2
     '';
 
     meta = with pkgs.lib; {
@@ -51,7 +52,8 @@ else
 
     # OpenSSL FIPS 2.0.13 module source - using upstream GitHub instead of S3
     fipsSrc = pkgs.fetchurl {
-      url = "https://github.com/openssl/openssl/releases/download/OpenSSL-fips-2_0_13/openssl-fips-2.0.13.tar.gz";
+      url =
+        "https://github.com/openssl/openssl/releases/download/OpenSSL-fips-2_0_13/openssl-fips-2.0.13.tar.gz";
       sha256 = "sha256-P/cj+TkB91B3mi5n/xWYXDV/GhXIkslQREb7yFxvd9o=";
     };
 
@@ -81,7 +83,7 @@ else
       ./config -d
       make
       make install
-      
+
       # Also patch the installed fipsld script in the FIPS directory
       echo "Patching installed fipsld script..."
       if [ -f "$FIPSDIR/bin/fipsld" ]; then
@@ -89,7 +91,7 @@ else
         echo "Patched $FIPSDIR/bin/fipsld to use 'rm' instead of '/bin/rm'"
       fi
       cd ..
-      
+
       # Configure OpenSSL with FIPS support
       echo "Configuring OpenSSL 1.0.2 with FIPS support..."
       ./config -d ${fips_options} ${default_options}
@@ -111,13 +113,15 @@ else
     '';
 
     meta = with pkgs.lib; {
-      description = "OpenSSL 1.0.2 with FIPS 140-2 support (using upstream sources)";
+      description =
+        "OpenSSL 1.0.2 with FIPS 140-2 support (using upstream sources)";
       longDescription = ''
         OpenSSL 1.0.2 built with FIPS 140-2 Object Module support.
         This build uses the official upstream FIPS module from GitHub instead of S3.
         This build is for testing purposes only and is not FIPS compliant
         as we do not own the build system architecture.
       '';
-      platforms = [ "x86_64-linux" ]; # Only x86_64-linux supported for real build
+      platforms =
+        [ "x86_64-linux" ]; # Only x86_64-linux supported for real build
     };
   }
