@@ -411,7 +411,7 @@ jobs:
       - name: Install Rust toolchain
         id: toolchain
         run: |
-          rustup toolchain install stable --component clippy
+          rustup toolchain install stable --component clippy,rustfmt
           rustup override set stable
 
       - name: Install tshark
