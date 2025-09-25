@@ -338,6 +338,104 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         };
 
+        /* Sanity check: serialization/deserialization works for SSLv3 connection */
+        {
+            DEFER_CLEANUP(struct s2n_config *sslv3_config = s2n_config_new(), s2n_config_ptr_free);
+
+            /* Perform an SSLv3 handshake */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(sslv3_config, "20140601"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(sslv3_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(sslv3_config));
+            EXPECT_SUCCESS(s2n_config_set_serialization_version(sslv3_config, S2N_SERIALIZED_CONN_V1));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, sslv3_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, sslv3_config));
+            client_conn->client_protocol_version = S2N_SSLv3;
+            server_conn->server_protocol_version = S2N_SSLv3;
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_SSLv3);
+            uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(server_conn, &iana_value[0], &iana_value[1]));
+
+            uint32_t length = 0;
+            EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
+            EXPECT_EQUAL(length, S2N_SERIALIZED_CONN_TLS12_SIZE);
+
+            uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, buffer, sizeof(buffer)));
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init_written(&stuffer, &blob));
+            EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
+
+            uint64_t serialized_version = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &serialized_version));
+            EXPECT_EQUAL(serialized_version, S2N_SERIALIZED_CONN_V1);
+
+            uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, protocol_version,
+                    S2N_TLS_PROTOCOL_VERSION_LEN));
+            EXPECT_EQUAL((protocol_version[0] * 10) + protocol_version[1], S2N_SSLv3);
+
+            uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
+            EXPECT_BYTEARRAY_EQUAL(cipher_suite, iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+
+            uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, client_sequence_number,
+                    S2N_TLS_SEQUENCE_NUM_LEN));
+            uint8_t expected_sequence_number[] = { 0, 0, 0, 0, 0, 0, 0, 1 };
+            EXPECT_BYTEARRAY_EQUAL(client_sequence_number, expected_sequence_number,
+                    S2N_TLS_SEQUENCE_NUM_LEN);
+
+            uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, server_sequence_number,
+                    S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_BYTEARRAY_EQUAL(server_sequence_number, expected_sequence_number,
+                    S2N_TLS_SEQUENCE_NUM_LEN);
+
+            uint16_t frag_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &frag_len));
+            EXPECT_EQUAL(frag_len, S2N_DEFAULT_FRAGMENT_LENGTH);
+
+            uint8_t master_secret[S2N_TLS_SECRET_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_BYTEARRAY_EQUAL(master_secret, server_conn->secrets.version.tls12.master_secret,
+                    S2N_TLS_SECRET_LEN);
+
+            uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, client_random, S2N_TLS_RANDOM_DATA_LEN));
+            EXPECT_BYTEARRAY_EQUAL(client_random, server_conn->handshake_params.client_random,
+                    S2N_TLS_RANDOM_DATA_LEN);
+
+            uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, server_random, S2N_TLS_RANDOM_DATA_LEN));
+            EXPECT_BYTEARRAY_EQUAL(server_random, server_conn->handshake_params.server_random,
+                    S2N_TLS_RANDOM_DATA_LEN);
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+            DEFER_CLEANUP(struct s2n_connection *new_server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(new_server_conn);
+            EXPECT_SUCCESS(s2n_connection_deserialize(new_server_conn, buffer, sizeof(buffer)));
+            EXPECT_EQUAL(new_server_conn->actual_protocol_version, S2N_SSLv3);
+        };
+
         /* IO buffers must be empty before calling this function */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
