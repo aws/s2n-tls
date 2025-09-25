@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install stable
+          rustup toolchain install stable --component rustfmt,clippy
           rustup override set stable
 
       - run: cargo fmt --all -- --check
