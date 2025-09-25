@@ -29,7 +29,6 @@ phases:
   install:
     commands:
       - yum update -y; yum upgrade -y
-      - yum install -y coreutils
   pre_build:
     commands:
       - id; groupadd nixbld||true
