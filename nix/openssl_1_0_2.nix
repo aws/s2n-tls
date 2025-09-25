@@ -67,6 +67,14 @@ else
       echo "Building OpenSSL FIPS 2.0.13 module from upstream GitHub..."
       tar -xzf ${fipsSrc}
       cd openssl-fips-2.0.13
+
+      # Patch fipsld script to fix hardcoded /bin/rm path
+      echo "Patching fipsld script to use portable rm command..."
+      if [ -f util/fipsld ]; then
+        sed -i 's|/bin/rm|rm|g' util/fipsld
+        echo "Patched util/fipsld to use 'rm' instead of '/bin/rm'"
+      fi
+
       mkdir -p ../OpensslFipsModule
       export FIPSDIR="$(pwd)/../OpensslFipsModule"
       chmod +x ./Configure
