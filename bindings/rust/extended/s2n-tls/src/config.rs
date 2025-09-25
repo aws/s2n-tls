@@ -637,10 +637,10 @@ impl Builder {
             validation_info: *mut s2n_cert_validation_info,
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
-            let mut info = CertValidationInfo::from_ptr(validation_info).unwrap();
+            let info = CertValidationInfo::from_ptr(validation_info);
             with_context(conn_ptr, |conn, context| {
                 let callback = context.cert_validation_callback_sync.as_ref();
-                callback.map(|callback| callback.handle_validation(conn, &mut info))
+                callback.map(|callback| callback.handle_validation(conn, info))
             });
             CallbackResult::Success.into()
         }

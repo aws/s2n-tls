@@ -7,20 +7,16 @@ use crate::{
     connection::Connection,
     error::{Error, Fallible},
 };
-use std::ptr::NonNull;
 
-pub struct CertValidationInfo {
-    info: NonNull<s2n_cert_validation_info>,
-}
+pub struct CertValidationInfo(s2n_cert_validation_info);
 
 impl CertValidationInfo {
-    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Result<Self, Error> {
-        let info = NonNull::new(info).ok_or(Error::INVALID_INPUT)?;
-        Ok(CertValidationInfo { info })
+    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> &'static mut Self {
+        unsafe { &mut *(info as *mut CertValidationInfo) }
     }
 
-    pub(crate) fn as_ptr(&self) -> *mut s2n_cert_validation_info {
-        self.info.as_ptr()
+    pub(crate) fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
+        &self.0 as *const s2n_cert_validation_info as *mut s2n_cert_validation_info
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
@@ -41,15 +37,13 @@ pub trait CertValidationCallbackSync: 'static + Send + Sync {
         &self,
         connection: &mut Connection,
         validation_info: &mut CertValidationInfo,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+    ) -> Result<(), Error>;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{connection::Connection, security, testing::*};
-
-    type Error = Box<dyn std::error::Error>;
 
     struct ValidationContext {
         accept: bool,
@@ -74,7 +68,7 @@ mod tests {
     }
 
     #[test]
-    fn sync_cert_validation() -> Result<(), Error> {
+    fn sync_cert_validation() -> Result<(), Box<dyn std::error::Error>> {
         for accept in [true, false] {
             let counter = Counter::default();
             let callback = SyncCallback(counter.clone());
