@@ -24,13 +24,13 @@ impl CertValidationInfo {
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub fn accept(&self) -> Result<(), Error> {
+    pub fn accept(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub fn reject(&self) -> Result<(), Error> {
+    pub fn reject(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
@@ -40,7 +40,7 @@ pub trait CertValidationCallbackSync: 'static + Send + Sync {
     fn handle_validation(
         &self,
         connection: &mut Connection,
-        validation_info: &CertValidationInfo,
+        validation_info: &mut CertValidationInfo,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
@@ -60,7 +60,7 @@ mod tests {
         fn handle_validation(
             &self,
             conn: &mut Connection,
-            info: &CertValidationInfo,
+            info: &mut CertValidationInfo,
         ) -> Result<(), Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
