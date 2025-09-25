@@ -151,7 +151,8 @@ phases:
           echo "Refreshing nix cache..."
           nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
           echo "Checking for rm..."
-          ls -al /bin/rm /usr/bin/rm
+          which rm || true
+          find /usr /bin /sbin -name rm -ls
           nix build $NIXDEV_ARGS .#devShell
           nix copy --to $NIX_CACHE_BUCKET .#devShell;
         else

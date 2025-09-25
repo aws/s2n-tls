@@ -81,6 +81,13 @@ else
       ./config -d
       make
       make install
+      
+      # Also patch the installed fipsld script in the FIPS directory
+      echo "Patching installed fipsld script..."
+      if [ -f "$FIPSDIR/bin/fipsld" ]; then
+        sed -i 's|/bin/rm|rm|g' "$FIPSDIR/bin/fipsld"
+        echo "Patched $FIPSDIR/bin/fipsld to use 'rm' instead of '/bin/rm'"
+      fi
       cd ..
       
       # Configure OpenSSL with FIPS support
