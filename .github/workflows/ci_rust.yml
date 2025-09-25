@@ -426,6 +426,9 @@ jobs:
       - name: Run lints
         working-directory: ${{env.PCAP_TEST_PATH}}
         run: |
+          pwd
+          rustup component list
+          rustc --version
           cargo fmt --all -- --check
           cargo clippy --all-targets -- -D warnings
 
