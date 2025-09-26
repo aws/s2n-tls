@@ -116,7 +116,7 @@ fn build_vendored() {
         .flatten()
         .filter(|file| {
             let file = file.path();
-            file.extension().map_or(false, |ext| ext == "c")
+            file.extension().is_some_and(|ext| ext == "c")
         })
         .map(|file| {
             file.path()
