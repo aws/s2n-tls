@@ -610,7 +610,7 @@ class SSLv3Provider(OpenSSL):
         self._override_libssl(options)
 
     def _override_libssl(self, options: ProviderOptions):
-        install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
+        install_dir = os.getenv("OPENSSL_1_0_2_INSTALL_DIR") or os.getenv("OPENSSL_1_0_2_FIPS_INSTALL_DIR")
 
         override_env_vars = dict()
         override_env_vars["PATH"] = install_dir + "/bin"

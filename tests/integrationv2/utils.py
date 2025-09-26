@@ -1,7 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import os
 from common import Protocols
-from providers import S2N
+from providers import S2N, SSLv3Provider
 from global_flags import get_flag, S2N_FIPS_MODE
 
 
@@ -53,6 +54,28 @@ def get_parameter_name(item):
     return str(item)
 
 
+# Cached variable to avoid repeatedly checking the filesystem
+_SSLV3_PROVIDER_AVAILABLE = None
+
+def _is_sslv3_provider_available():
+    """
+    Check if SSLv3Provider's requirements are available in the current environment.
+    
+    SSLv3Provider requires a specific OpenSSL 1.0.2 installation, which should be
+    specified via environment variables OPENSSL_1_0_2_INSTALL_DIR or 
+    OPENSSL_1_0_2_FIPS_INSTALL_DIR. This function checks if these variables are
+    set and if the specified directory exists.
+    
+    Returns:
+        bool: True if the SSLv3Provider can be used, False otherwise.
+    """
+    global _SSLV3_PROVIDER_AVAILABLE
+    if _SSLV3_PROVIDER_AVAILABLE is None:
+        install_dir = os.getenv("OPENSSL_1_0_2_INSTALL_DIR") or os.getenv("OPENSSL_1_0_2_FIPS_INSTALL_DIR")
+        _SSLV3_PROVIDER_AVAILABLE = install_dir is not None and os.path.exists(install_dir)
+    return _SSLV3_PROVIDER_AVAILABLE
+
+
 def invalid_test_parameters(*args, **kwargs):
     """
     Determine if the parameters chosen for a test makes sense.
@@ -71,6 +94,12 @@ def invalid_test_parameters(*args, **kwargs):
     providers = [provider_ for provider_ in [provider, other_provider] if provider_]
     # Always consider S2N
     providers.append(S2N)
+    
+    # Check if SSLv3Provider is requested but not available
+    # This allows tests to be skipped early if the required OpenSSL 1.0.2 installation
+    # is not available, rather than failing during test execution.
+    if any(provider_ == SSLv3Provider for provider_ in providers) and not _is_sslv3_provider_available():
+        return True
 
     certificates = [cert for cert in [certificate, client_certificate] if cert]
 

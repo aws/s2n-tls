@@ -17,7 +17,7 @@ version: 0.2
 # curated Ec2 AMI for Ubuntu25.
 #
 # Because the Ec2 reserved instance disks persist between runs,
-# we need to do periodic clean up; The `nix store gc` command runs on Sunday to 
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to
 # prevent the disk from filling up.
 env:
   shell: bash
@@ -27,6 +27,10 @@ env:
     S2N_KTLS_TESTING_EXPECTED: 1
     S2N_KTLS_KEYUPDATE_TESTING_EXPECTED: 1
 phases:
+  install:
+    commands:
+      - yum update; yum upgrade -y
+      - yum install -y coreutils
   pre_build:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi

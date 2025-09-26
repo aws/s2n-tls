@@ -22,7 +22,7 @@
         aws-lc-fips-2022 = awslcfips2022.packages.${system}.aws-lc-fips-2022;
         aws-lc-fips-2024 = awslcfips2024.packages.${system}.aws-lc-fips-2024;
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
-        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
+        openssl_1_0_2_fips = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         common_packages = [
@@ -99,7 +99,7 @@
         };
         # Import devShells from the separate module
         devShells = import ./nix/devshells.nix {
-          inherit pkgs system common_packages openssl_1_0_2 openssl_1_1_1
+          inherit pkgs system common_packages openssl_1_0_2_fips openssl_1_1_1
             openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024 writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
