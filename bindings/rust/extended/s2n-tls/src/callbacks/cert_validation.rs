@@ -7,16 +7,24 @@ use crate::{
     connection::Connection,
     error::{Error, Fallible},
 };
+use std::{marker::PhantomData, ptr::NonNull};
 
-pub struct CertValidationInfo(s2n_cert_validation_info);
+pub struct CertValidationInfo<'a> {
+    info: NonNull<s2n_cert_validation_info>,
+    _lifetime: PhantomData<&'a s2n_cert_chain_and_key>,
+}
 
-impl CertValidationInfo {
-    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> &'static mut Self {
-        unsafe { &mut *(info as *mut CertValidationInfo) }
+impl CertValidationInfo<'_> {
+    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
+        let info = NonNull::new(info).expect("info pointer is not null");
+        CertValidationInfo {
+            info,
+            _lifetime: PhantomData,
+        }
     }
 
     pub(crate) fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
-        &self.0 as *const s2n_cert_validation_info as *mut s2n_cert_validation_info
+        self.info.as_ptr()
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
@@ -33,11 +41,12 @@ impl CertValidationInfo {
 }
 
 pub trait CertValidationCallbackSync: 'static + Send + Sync {
+    /// Return a boolean to indicate if a certificate passed the validation
     fn handle_validation(
         &self,
         connection: &mut Connection,
         validation_info: &mut CertValidationInfo,
-    ) -> Result<(), Error>;
+    ) -> Result<bool, Error>;
 }
 
 #[cfg(test)]
@@ -54,16 +63,11 @@ mod tests {
         fn handle_validation(
             &self,
             conn: &mut Connection,
-            info: &mut CertValidationInfo,
-        ) -> Result<(), Error> {
+            _info: &mut CertValidationInfo,
+        ) -> Result<bool, Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
-
-            match context.accept {
-                true => info.accept()?,
-                false => info.reject()?,
-            }
-            Ok(())
+            Ok(context.accept)
         }
     }
 
