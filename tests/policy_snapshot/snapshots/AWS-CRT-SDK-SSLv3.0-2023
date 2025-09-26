@@ -1,4 +1,3 @@
-name: AWS-CRT-SDK-SSLv3.0-2023
 min version: SSLv3
 rules:
 - Perfect Forward Secrecy: no
