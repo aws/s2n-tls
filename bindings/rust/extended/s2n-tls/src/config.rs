@@ -623,6 +623,54 @@ impl Builder {
         Ok(self)
     }
 
+    /// Set a callback function to perform custom cert validation synchronously.
+    ///
+    /// Corresponds to [s2n_config_set_cert_validation_cb], but the rust callback
+    /// can only perform in synchronous mode.
+    #[cfg(feature = "unstable-crl")]
+    pub fn set_cert_validation_callback_sync<T: 'static + CertValidationCallbackSync>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn cert_validation_cb(
+            conn_ptr: *mut s2n_connection,
+            validation_info: *mut s2n_cert_validation_info,
+            _context: *mut core::ffi::c_void,
+        ) -> libc::c_int {
+            let mut info = CertValidationInfo::from_ptr(validation_info);
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.cert_validation_callback_sync.as_ref();
+                callback.map(|callback| {
+                    let accepted = callback.handle_validation(conn, &mut info).unwrap();
+                    match accepted {
+                        true => info.accept().unwrap(),
+                        false => info.reject().unwrap(),
+                    }
+                })
+            });
+            CallbackResult::Success.into()
+        }
+
+        let handler = Box::new(handler);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.cert_validation_callback_sync = Some(handler);
+
+        unsafe {
+            s2n_config_set_cert_validation_cb(
+                self.as_mut_ptr(),
+                Some(cert_validation_cb),
+                core::ptr::null_mut(),
+            )
+            .into_result()?;
+        }
+
+        Ok(self)
+    }
+
     /// Set a custom callback function which is run after parsing the client hello.
     ///
     /// Corresponds to [s2n_config_set_client_hello_cb].
@@ -1046,6 +1094,8 @@ pub(crate) struct Context {
     pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
     #[cfg(feature = "unstable-cert_authorities")]
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
+    #[cfg(feature = "unstable-crl")]
+    pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
 }
 
 impl Default for Context {
@@ -1068,6 +1118,8 @@ impl Default for Context {
             renegotiate: None,
             #[cfg(feature = "unstable-cert_authorities")]
             cert_authorities: None,
+            #[cfg(feature = "unstable-crl")]
+            cert_validation_callback_sync: None,
         }
     }
 }
