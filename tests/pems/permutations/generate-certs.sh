@@ -32,7 +32,7 @@ cert-gen () {
         local argname=ec_paramgen_curve:P-
     fi
 
-    # All signature algorithims are the default except for rsa-pss signatures
+    # All signature algorithms are the default except for rsa-pss signatures
     # with rsae keys. For this case we must manually specify things
     if [[ $key_family == rsa && $signature == pss ]]
     then
@@ -148,7 +148,7 @@ cert-gen () {
     rm ca-cert.srl
     rm intermediate-cert.srl
 
-    # the private keys of the CA and the intermediat CA are never needed after 
+    # the private keys of the CA and the intermediate CA are never needed after
     # signing
     rm ca-key.pem
     rm intermediate-key.pem
