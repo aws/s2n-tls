@@ -89,7 +89,7 @@ else()
     find_package(Threads REQUIRED)
 endif()
 
-if(APPLE)
+if(APPLE OR QNX)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(OS_LIBS thr execinfo)

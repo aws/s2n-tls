@@ -20,6 +20,10 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 bool s2n_custom_recv_fn_called = false;
 
 int s2n_expect_concurrent_error_recv_fn(void *io_context, uint8_t *buf, uint32_t len)

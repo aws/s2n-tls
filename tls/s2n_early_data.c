@@ -23,6 +23,10 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 const s2n_early_data_state valid_previous_states[] = {
     [S2N_EARLY_DATA_REQUESTED] = S2N_UNKNOWN_EARLY_DATA_STATE,
     [S2N_EARLY_DATA_NOT_REQUESTED] = S2N_UNKNOWN_EARLY_DATA_STATE,

@@ -27,6 +27,10 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 #define S2N_ALERT_CASE(error, alert_code) \
     case (error):                         \
         *alert = (alert_code);            \

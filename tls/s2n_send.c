@@ -32,6 +32,10 @@
 #include "utils/s2n_io.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 /*
  * Determine whether there is currently sufficient space in the send buffer to construct
  * another record, or if we need to flush now.
