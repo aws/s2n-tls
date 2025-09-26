@@ -17,6 +17,7 @@
 
 #include "crypto/s2n_sequence.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13_key_schedule.h"
 
 static bool s2n_libcrypto_supports_evp_aead_tls(void)
@@ -219,7 +220,7 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     parsed_values->protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
-    RESULT_ENSURE(parsed_values->protocol_version >= S2N_SSLv3 && parsed_values->protocol_version <= S2N_TLS13,
+    RESULT_ENSURE(parsed_values->protocol_version >= S2N_SSLv3 && parsed_values->protocol_version <= s2n_highest_protocol_version,
             S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
