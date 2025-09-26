@@ -1,4 +1,4 @@
-{ pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0
+{ pkgs, system, common_packages, openssl_1_0_2_fips, openssl_1_1_1, openssl_3_0
 , aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
@@ -15,7 +15,7 @@ let
     S2N_LIBCRYPTO = "openssl-3.0";
     # Only set OPENSSL_1_0_2_INSTALL_DIR when OpenSSL 1.0.2 is available
     OPENSSL_1_0_2_INSTALL_DIR =
-      if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
+      if openssl_1_0_2_fips != null then "${openssl_1_0_2_fips}" else "";
     OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
     OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
     AWSLC_INSTALL_DIR = "${aws-lc}";
@@ -64,12 +64,12 @@ let
 
   openssl102fips = default.overrideAttrs (finalAttrs: previousAttrs: {
     # Re-include cmake to update the environment with a new libcrypto.
-    buildInputs = [ pkgs.cmake openssl_1_0_2 ];
+    buildInputs = [ pkgs.cmake openssl_1_0_2_fips ];
     # Use FIPS on x86_64, non-FIPS on aarch64
     S2N_LIBCRYPTO = if system == "x86_64-linux" then
       "openssl-1.0.2-fips"
     else
-      "openssl-1.0.2";
+      " ";
     # Integ s_client/server tests expect openssl 1.1.1.
     # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''

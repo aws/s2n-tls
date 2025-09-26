@@ -16,7 +16,7 @@ if pkgs.stdenv.hostPlatform.system == "aarch64-linux" then
             mkdir -p $out/bin
             cat > $out/bin/openssl << 'EOF'
       #!/bin/sh
-      echo "WARNING: OpenSSL 1.0.2 (both FIPS and non-FIPS) is not supported on aarch64 architecture."
+      echo "WARNING: OpenSSL 1.0.2 (FIPS and non-FIPS) is not supported on aarch64 architecture."
       echo "This is a stub installation that does nothing."
       exit 1
       EOF
@@ -38,7 +38,7 @@ if pkgs.stdenv.hostPlatform.system == "aarch64-linux" then
       platforms = [ "aarch64-linux" ];
     };
   }
-else
+else #x86_64 case
   pkgs.stdenv.mkDerivation rec {
     pname = "openssl-fips";
     version = "1.0.2";
