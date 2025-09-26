@@ -58,5 +58,5 @@ cc = { version = "1.0.100", features = ["parallel"] }
 
 [dev-dependencies]
 home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
-regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
+regex = "=1.11.3" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
 zeroize = "=1.7.0" # newer versions require rust 1.72, see https://github.com/aws/s2n-tls/issues/4518
