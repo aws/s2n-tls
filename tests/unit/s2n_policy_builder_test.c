@@ -229,5 +229,67 @@ int main(int argc, char **argv)
         };
     }
 
+    /* Test: s2n_security_policy_builder_set_rule */
+    {
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("20250721"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_builder_set_rule(NULL, S2N_POLICY_RULE_PQ, S2N_RULE_PQ_2025_08_20),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_builder_set_rule(builder, 0, S2N_RULE_PQ_2025_08_20),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_builder_set_rule(builder, -1, S2N_RULE_PQ_2025_08_20),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_builder_set_rule(builder, S2N_POLICY_RULE_PQ, 0),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_security_policy_builder_set_rule(builder, S2N_POLICY_RULE_PQ, -1),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Successfully set valid rule */
+        {
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("20250721"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+            EXPECT_SUCCESS(s2n_security_policy_builder_set_rule(builder,
+                    S2N_POLICY_RULE_PQ, S2N_RULE_PQ_2025_08_20));
+        };
+
+        /* Successfully build with valid rule */
+        {
+            /* Use a base policy without PQ */
+            DEFER_CLEANUP(struct s2n_security_policy_builder *builder =
+                                  s2n_security_policy_builder_from_version("20240501"),
+                    s2n_security_policy_builder_free);
+            EXPECT_NOT_NULL(builder);
+
+            /* Without PQ rule, policy does not include PQ */
+            struct s2n_security_policy *policy = s2n_security_policy_build(builder);
+            EXPECT_NOT_NULL(policy);
+            EXPECT_NOT_NULL(policy->kem_preferences);
+            EXPECT_EQUAL(policy->kem_preferences->tls13_kem_group_count, 0);
+            EXPECT_NULL(policy->kem_preferences->tls13_kem_groups);
+
+            /* With PQ rule, policy includes PQ */
+            EXPECT_SUCCESS(s2n_security_policy_builder_set_rule(builder,
+                    S2N_POLICY_RULE_PQ, S2N_RULE_PQ_2025_08_20));
+            struct s2n_security_policy *pq_policy = s2n_security_policy_build(builder);
+            EXPECT_NOT_NULL(pq_policy);
+            EXPECT_NOT_NULL(pq_policy->kem_preferences);
+            EXPECT_EQUAL(pq_policy->kem_preferences->tls13_kem_group_count, 3);
+            EXPECT_NOT_NULL(pq_policy->kem_preferences->tls13_kem_groups);
+        };
+    };
+
     END_TEST();
 }
