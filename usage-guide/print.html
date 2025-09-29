@@ -13,21 +13,20 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-ad2775c1.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-611f8a17.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-56612340.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -37,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
+            window.path_to_searchindex_js = "searchindex-55a8a876.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
+        <script src="toc-58e513f3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -54,7 +53,7 @@
             </div>
         </div>
     </div>
-    <div id="body-container">
+    <div id="mdbook-body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -83,12 +82,12 @@
             html.classList.add("js");
         </script>
 
-        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
             let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -103,39 +102,39 @@
             }
         </script>
 
-        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <div id="page-wrapper" class="page-wrapper">
+        <div id="mdbook-page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
-                            <i class="fa fa-bars"></i>
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
-                            <i class="fa fa-paint-brush"></i>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
                         </button>
-                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
-                            <i class="fa fa-search"></i>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
                         </button>
                     </div>
 
@@ -143,58 +142,60 @@
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
-                            <i id="print-button" class="fa fa-print"></i>
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
 
                     </div>
                 </div>
 
-                <div id="search-wrapper" class="hidden">
-                    <form id="searchbar-outer" class="searchbar-outer">
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
                         <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
                             <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
                             </div>
                         </div>
                     </form>
-                    <div id="searchresults-outer" class="searchresults-outer hidden">
-                        <div id="searchresults-header" class="searchresults-header"></div>
-                        <ul id="searchresults">
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
                         </ul>
                     </div>
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
-                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
-                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
-                <div id="content" class="content">
+                <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <p>This guide provides an overview of how to use the s2n-tls library. Chapters in this guide go over important concepts in the s2n-tls library and include explanations for how to use s2n-tls APIs to configure specific TLS features.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="s2n-tls-api"><a class="header" href="#s2n-tls-api">s2n-tls API</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="s2n-tls-api"><a class="header" href="#s2n-tls-api">s2n-tls API</a></h1>
 <p>The API exposed by s2n-tls is the set of functions and declarations that
 are in the <a href="https://github.com/aws/s2n-tls/blob/main/api/s2n.h">s2n.h</a> header file. Any functions and declarations that are in the <a href="https://github.com/aws/s2n-tls/blob/main/api/s2n.h">s2n.h</a> file
 are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and
 sizes may change.</p>
 <p>In general, s2n-tls APIs are not thread safe unless explicitly specified otherwise.</p>
-<p>Read <a href="./ch03-error-handling.html">Error Handling</a> for information on processing API return values safely.</p>
-<p>The <a href="https://github.com/aws/s2n-tls/blob/main/VERSIONING.rst">VERSIONING.rst</a> document contains more details about s2n's approach to versions and API changes.</p>
+<p>Read <a href="#error-handling">Error Handling</a> for information on processing API return values safely.</p>
+<p>The <a href="https://github.com/aws/s2n-tls/blob/main/VERSIONING.rst">VERSIONING.rst</a> document contains more details about s2n’s approach to versions and API changes.</p>
 <h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
 <p>s2n-tls uses <a href="https://doxygen.nl/index.html">Doxygen</a> to document its public API. The latest s2n-tls documentation can be found on <a href="https://aws.github.io/s2n-tls/doxygen/">GitHub pages</a>.</p>
 <p>The doxygen documentation should be used in conjunction with this guide.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<p>To understand the API it may be easiest to see examples in action. s2n-tls's <a href="https://github.com/aws/s2n-tls/blob/main/bin/">bin</a> directory
+<p>To understand the API it may be easiest to see examples in action. s2n-tls’s <a href="https://github.com/aws/s2n-tls/blob/main/bin/">bin</a> directory
 includes an example client (<code>s2nc</code>) and server (<code>s2nd</code>).</p>
 <p><strong>Note:</strong> <code>s2nc</code> and <code>s2nd</code> are intended for testing purposes only, and should not be used in production.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="initialization-and-teardown"><a class="header" href="#initialization-and-teardown">Initialization and Teardown</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="initialization-and-teardown"><a class="header" href="#initialization-and-teardown">Initialization and Teardown</a></h1>
 <h2 id="initialization"><a class="header" href="#initialization">Initialization</a></h2>
 <p>The s2n-tls library must be initialized with <code>s2n_init()</code> before calling most library functions. <code>s2n_init()</code> will error if it is called more than once, even when an application uses multiple threads.</p>
 <p>Initialization can be modified by calling <code>s2n_crypto_disable_init()</code> or <code>s2n_disable_atexit()</code> before <code>s2n_init()</code>.</p>
@@ -204,8 +205,9 @@ includes an example client (<code>s2nc</code>) and server (<code>s2nd</code>).</
 <p>We recommend calling <code>s2n_cleanup()</code> from every thread created after <code>s2n_init()</code> to ensure there are no memory leaks. s2n-tls has thread-local memory that it attempts to clean up automatically at thread-exit. However, this is done using pthread destructors and may not work if you are using a threads library other than pthreads.</p>
 <h3 id="library-cleanup"><a class="header" href="#library-cleanup">Library Cleanup</a></h3>
 <p>A full cleanup and de-initialization of the library can be done by calling <code>s2n_cleanup_final()</code>. s2n-tls allocates some memory at initialization that is intended to live for the duration of the process, but can be cleaned up earlier with <code>s2n_cleanup_final()</code>. Not calling this method may cause tools like ASAN or valgrind to detect memory leaks, as the memory will still be allocated when the process exits.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
-<p>s2n-tls functions that return 'int' return 0 to indicate success and -1 to indicate
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
+<p>s2n-tls functions that return ‘int’ return 0 to indicate success and -1 to indicate
 failure. s2n-tls functions that return pointer types return NULL in the case of
 failure. When an s2n-tls function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
@@ -223,10 +225,10 @@ This string is useful to include when reporting issues to the s2n-tls developmen
 <p>When using s2n-tls outside of <code>C</code>, the address of the thread-local <code>s2n_errno</code> may be obtained by calling the <code>s2n_errno_location()</code> function.
 This will ensure that the same TLS mechanisms are used with which s2n-tls was compiled.</p>
 <h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
-<p>s2n-tls organizes errors into different "types" to allow applications to handle error values without catching all possibilities.
+<p>s2n-tls organizes errors into different “types” to allow applications to handle error values without catching all possibilities.
 Applications using non-blocking I/O should check the error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use <code>s2n_error_get_type()</code>.
 Applications should perform any error handling logic using these high level types:</p>
-<p>Here's an example that handles errors based on type:</p>
+<p>Here’s an example that handles errors based on type:</p>
 <pre><code class="language-c">#define SUCCESS 0
 #define FAILURE 1
 #define RETRY 2
@@ -266,34 +268,37 @@ This mechanism is off by default, but can be enabled in code by calling <code>s2
 It can be enabled globally by setting the environment variable <code>S2N_PRINT_STACKTRACE=1</code>.</p>
 <p>Call <code>s2n_print_stacktrace()</code> to print your stacktrace.</p>
 <p><strong>Note:</strong> Enabling stacktraces can significantly slow down unit tests, causing failures on tests (such as <code>s2n_cbc_verify</code>) that measure the timing of events.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tls-connections"><a class="header" href="#tls-connections">TLS Connections</a></h1>
-<p>In general, s2n-tls works by operating on <code>s2n_connection</code> structs. A user should first create a connection by calling <code>s2n_connection_new()</code>. Then a <a href="./ch07-io.html#performing-the-tls-handshake">TLS handshake can be performed</a> on the connection. Finally, the connection can be used to <a href="./ch07-io.html#application-data">send and receive encrypted data</a>. An <code>s2n_config</code> struct can be associated with a connection to <a href="./ch05-config.html">configure additional options</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tls-connections"><a class="header" href="#tls-connections">TLS Connections</a></h1>
+<p>In general, s2n-tls works by operating on <code>s2n_connection</code> structs. A user should first create a connection by calling <code>s2n_connection_new()</code>. Then a <a href="#performing-the-tls-handshake">TLS handshake can be performed</a> on the connection. Finally, the connection can be used to <a href="#application-data">send and receive encrypted data</a>. An <code>s2n_config</code> struct can be associated with a connection to <a href="#configuring-the-connection">configure additional options</a>.</p>
 <p>Call <code>s2n_connection_free()</code> to free the memory allocated for connection when no longer needed.</p>
 <h2 id="connection-memory"><a class="header" href="#connection-memory">Connection Memory</a></h2>
 <p>The connection struct is roughly 4KB with some variation depending on how it is configured. Maintainers of the s2n-tls library carefully consider increases to the size of the connection struct as they are aware some users are memory-constrained.</p>
 <p>A connection struct has memory allocated specifically for the TLS handshake. Memory-constrained users can free that memory by calling <code>s2n_connection_free_handshake()</code> after the handshake is successfully negotiated. Note that the handshake memory can be reused for another connection if <code>s2n_connection_wipe()</code> is called, so freeing it may result in more memory allocations later. Additionally some functions that print information about the handshake may not produce meaningful results after the handshake memory is freed.</p>
 <p>The input and output buffers consume the most memory on the connection after the handshake. It may not be necessary to keep these buffers allocated when a connection is in a keep-alive or idle state. Call <code>s2n_connection_release_buffers()</code> to wipe and free the <code>in</code> and <code>out</code> buffers associated with a connection to reduce memory overhead of long-lived connections.</p>
 <h2 id="connection-reuse"><a class="header" href="#connection-reuse">Connection Reuse</a></h2>
-<p>Connection objects can be re-used across many connections to reduce memory allocation. Calling <code>s2n_connection_wipe()</code> will wipe an individual connection's state and allow the connection object to be re-used for a new TLS connection.</p>
+<p>Connection objects can be re-used across many connections to reduce memory allocation. Calling <code>s2n_connection_wipe()</code> will wipe an individual connection’s state and allow the connection object to be re-used for a new TLS connection.</p>
 <h2 id="connection-info"><a class="header" href="#connection-info">Connection Info</a></h2>
 <p>s2n-tls provides many methods to retrieve details about the handshake and connection, such as the parameters negotiated with the peer. For a full list, see our <a href="https://aws.github.io/s2n-tls/doxygen/">doxygen guide</a>.</p>
 <h3 id="protocol-version"><a class="header" href="#protocol-version">Protocol Version</a></h3>
 <p>s2n-tls provides multiple different methods to get the TLS protocol version of the connection. They should be called after the handshake has completed.</p>
 <ul>
-<li><code>s2n_connection_get_actual_protocol_version()</code>: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as "protocol_version", and the most commonly used.</li>
+<li><code>s2n_connection_get_actual_protocol_version()</code>: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as “protocol_version”, and the most commonly used.</li>
 <li><code>s2n_connection_get_server_protocol_version()</code>: The highest TLS protocol version the server supports.</li>
 <li><code>s2n_connection_get_client_protocol_version()</code>: The highest TLS protocol version the client advertised.</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuring-the-connection"><a class="header" href="#configuring-the-connection">Configuring the Connection</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="configuring-the-connection"><a class="header" href="#configuring-the-connection">Configuring the Connection</a></h1>
 <p><code>s2n_config</code> objects are used to change the default settings of a s2n-tls connection. Use <code>s2n_config_new()</code> to create a new config object. To associate a config with a connection call <code>s2n_connection_set_config()</code>. A config should not be altered once it is set on a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call <code>s2n_config_free()</code> to free the object when no longer needed. <em>Only</em> free the config object when all connections using it have been freed.</p>
 <p>Calling <code>s2n_config_new()</code> can have a performance cost during config creation due to loading
-default system certificates into the trust store (see <a href="./ch09-certificates.html#configuring-the-trust-store">Configuring the Trust Store</a>).
+default system certificates into the trust store (see <a href="#configuring-the-trust-store">Configuring the Trust Store</a>).
 For increased performance, use <code>s2n_config_new_minimal()</code> when system certificates are not needed
 for certificate validation.</p>
-<p>Most commonly, a <code>s2n_config</code> object is used to set the certificate key pair for authentication and change the default security policy. See the sections for <a href="./ch09-certificates.html">certificates</a> and <a href="./ch06-security-policies.html">security policies</a> for more information on those settings.</p>
+<p>Most commonly, a <code>s2n_config</code> object is used to set the certificate key pair for authentication and change the default security policy. See the sections for <a href="#certificates-and-authentication">certificates</a> and <a href="#security-policies">security policies</a> for more information on those settings.</p>
 <h2 id="overriding-the-config"><a class="header" href="#overriding-the-config">Overriding the Config</a></h2>
 <p>Some <code>s2n_config</code> settings can be overridden on a specific connection if desired. For example, <code>s2n_config_append_protocol_preference()</code> appends a list of ALPN protocols to a <code>s2n_config</code>. Calling the <code>s2n_connection_append_protocol_preference()</code> API will override the list of ALPN protocols for an individual connection. Not all config APIs have a corresponding connection API so if there is one missing contact us with an explanation on why it is required for your use-case.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="security-policies"><a class="header" href="#security-policies">Security Policies</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="security-policies"><a class="header" href="#security-policies">Security Policies</a></h1>
 <p>s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.</p>
 <p><code>s2n_config_set_cipher_preferences()</code> sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.</p>
 <h2 id="supported-tls-versions"><a class="header" href="#supported-tls-versions">Supported TLS Versions</a></h2>
@@ -304,11 +309,16 @@ for certificate validation.</p>
 <p>s2n-tls supports older versions, but their use is not recommended.</p>
 <p>Compatibility with older versions of TLS may also require support for older ciphersuites. Although it is possible to negotiate older versions of TLS with more modern options like SHA256, AES, ECDSA, and ECDHE, older clients and servers may only support older options like SHA1, 3DES, RSA certs, and either RSA or DHE key exchange. If a security policy allows older TLS versions but does not allow older ciphersuites, handshakes with older clients and servers may fail.</p>
 <h3 id="ssl-20"><a class="header" href="#ssl-20">SSL 2.0</a></h3>
-<p>s2n-tls will not negotiate SSL 2.0, but will accept SSLv2 ClientHellos advertising a higher protocol version like TLS1.2. See the <a href="https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2">"Compatibility with SSL 2.0"</a> section in the TLS 1.2 RFC.</p>
+<p>s2n-tls will not negotiate SSL 2.0, but will accept SSLv2 ClientHellos advertising a higher protocol version like TLS1.2. See the <a href="https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2">“Compatibility with SSL 2.0”</a> section in the TLS 1.2 RFC.</p>
 <p>Compatibility with SSLv2 ClientHellos advertising TLS1.2 may require similar support for older ciphersuites as compatibility with older versions of TLS does. In particular, SSLv2 ClientHellos are likely to require support for SHA1 and either RSA or DHE key exchange. This is due to technical limitations of the SSLv2 ClientHello, which does not include TLS extensions.</p>
 <h3 id="chart-security-policy-version-to-protocol-version-and-ciphersuites"><a class="header" href="#chart-security-policy-version-to-protocol-version-and-ciphersuites">Chart: Security Policy Version To Protocol Version And Ciphersuites</a></h3>
 <p>The following chart maps the security policy version to protocol version and ciphersuites supported.</p>
-<div class="table-wrapper"><table><thead><tr><th>version</th><th>TLS1.0</th><th>TLS1.1</th><th>TLS1.2</th><th>TLS1.3</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th><th>RC4</th><th>DHE</th><th>ECDHE</th><th>RSA kx</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>version</th><th>TLS1.0</th><th>TLS1.1</th><th>TLS1.2</th><th>TLS1.3</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th><th>RC4</th><th>DHE</th><th>ECDHE</th><th>RSA kx</th></tr>
+</thead>
+<tbody>
 <tr><td>default</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
 <tr><td>default_fips</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
 <tr><td>default_tls13</td><td></td><td></td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td></td></tr>
@@ -336,19 +346,26 @@ for certificate validation.</p>
 <tr><td>20190802</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td></tr>
 <tr><td>20200207</td><td></td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td></td></tr>
 <tr><td>rfc9151</td><td></td><td></td><td>X</td><td>X</td><td></td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
-<p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. <strong>Warning</strong>: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.</p>
+<p>The “default”, “default_tls13”, and “default_fips” versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. <strong>Warning</strong>: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.</p>
 <p>In contrast, numbered or dated versions are fixed and will never change.</p>
 <p>The numbered equivalents for the named policies for the current version and
-historical s2n versions are in the "Named Policy History" below. The current
+historical s2n versions are in the “Named Policy History” below. The current
 matching fixed versions are:</p>
-<div class="table-wrapper"><table><thead><tr><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th><th>"rfc9151"</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>“default”</th><th>“default_fips”</th><th>“default_tls13”</th><th>“rfc9151”</th></tr>
+</thead>
+<tbody>
 <tr><td>20240501</td><td>20240502</td><td>20240503</td><td>20250429</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
-<p>"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.</p>
-<p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
+<p>“default_fips” does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose “20230317”. We plan to add TLS1.3 support to both “default” and “default_fips” in the future.</p>
+<p>“rfc9151” is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.</p>
 <p>s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:</p>
 <ol>
@@ -359,9 +376,14 @@ Like the default policies, this policy may also change if the source RFC definit
 </ol>
 <p><em>NOTE</em>: ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is built with an older libcrypto like openssl-1.0.2. The underlying encrypt/decrypt functions are not available in older versions.</p>
 <h4 id="chacha20-boosting"><a class="header" href="#chacha20-boosting">ChaCha20 Boosting</a></h4>
-<p>s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" policy, which is identical to the "CloudFront-TLS-1-2-2021" policy listed above but with ChaCha20 Boosting enabled.</p>
+<p>s2n-tls usually prefers AES over ChaCha20. However, some clients– particularly mobile or IOT devices– do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers “ChaCha20 boosted” security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the “CloudFront-TLS-1-2-2021-ChaCha20-Boosted” policy, which is identical to the “CloudFront-TLS-1-2-2021” policy listed above but with ChaCha20 Boosting enabled.</p>
 <h3 id="chart-security-policy-version-to-supported-signature-schemes"><a class="header" href="#chart-security-policy-version-to-supported-signature-schemes">Chart: Security Policy Version To Supported Signature Schemes</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>version</th><th>RSA PKCS1</th><th>ECDSA</th><th>SHA-1 Legacy</th><th>RSA PSS</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>version</th><th>RSA PKCS1</th><th>ECDSA</th><th>SHA-1 Legacy</th><th>RSA PSS</th></tr>
+</thead>
+<tbody>
 <tr><td>default</td><td>X</td><td>X</td><td></td><td>X</td></tr>
 <tr><td>default_fips</td><td>X</td><td>X</td><td></td><td>X</td></tr>
 <tr><td>default_tls13</td><td>X</td><td>X</td><td></td><td>X</td></tr>
@@ -388,12 +410,18 @@ Like the default policies, this policy may also change if the source RFC definit
 <tr><td>20190802</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>20200207</td><td></td><td>X</td><td></td><td>X</td></tr>
 <tr><td>rfc9151</td><td>X</td><td>X</td><td></td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p><em>NOTE</em>: Legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported only if TLS1.2 has been negotiated and the security policy allows them.</p>
 <p><em>NOTE</em>: RSA-PSS certificates will not be available if s2n-tls is built with an older libcrypto like openssl-1.0.2. RSA certificate signatures with PSS padding (RSA-PSS-RSAE) will still be available, but RSA-PSS certificate signatures with PSS padding (RSA-PSS-PSS) will not be available.</p>
 <h3 id="chart-security-policy-version-to-supported-curvesgroups"><a class="header" href="#chart-security-policy-version-to-supported-curvesgroups">Chart: Security policy version to supported curves/groups</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>version</th><th>secp256r1</th><th>secp384r1</th><th>x25519</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>version</th><th>secp256r1</th><th>secp384r1</th><th>x25519</th></tr>
+</thead>
+<tbody>
 <tr><td>default</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>default_fips</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>default_tls13</td><td>X</td><td>X</td><td>X</td></tr>
@@ -420,17 +448,25 @@ Like the default policies, this policy may also change if the source RFC definit
 <tr><td>20190802</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20200207</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>rfc9151</td><td></td><td>X</td><td></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="named-policy-history"><a class="header" href="#named-policy-history">Named Policy History</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th><th>"rfc9151"</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>“default”</th><th>“default_fips”</th><th>“default_tls13”</th><th>“rfc9151”</th></tr>
+</thead>
+<tbody>
 <tr><td>v1.5.25</td><td>20240501</td><td>20240502</td><td>20240503</td><td>20250429</td></tr>
 <tr><td>v1.4.16</td><td>20240501</td><td>20240502</td><td>20240503</td><td>(*)</td></tr>
 <tr><td>Older</td><td>20170210</td><td>20240416</td><td>20240417</td><td>(*)</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <p>(*): No fixed policy available.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="sending-and-receiving"><a class="header" href="#sending-and-receiving">Sending and Receiving</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="sending-and-receiving"><a class="header" href="#sending-and-receiving">Sending and Receiving</a></h1>
 <h2 id="basic-io-setup"><a class="header" href="#basic-io-setup">Basic IO setup</a></h2>
 <p>By default, s2n-tls sends and receives data using a provided file descriptor
 (usually a socket) and the read/write system calls. The file descriptor can be set with
@@ -457,7 +493,7 @@ how to handle C signals, or simply ignore the SIGPIPE signal by calling
 <ul>
 <li>In blocking mode, each s2n-tls I/O function will not return until it has completed
 the requested IO operation.</li>
-<li>In non-blocking mode, s2n-tls I/O functions will immediately return, even if the socket couldn't
+<li>In non-blocking mode, s2n-tls I/O functions will immediately return, even if the socket couldn’t
 send or receive all the requested data. In this case, the I/O function will return <code>S2N_FAILURE</code>,
 and <code>s2n_error_get_type()</code> will return <code>S2N_ERR_T_BLOCKED</code>. The I/O operation will have to be
 called again in order to send or receive the remaining requested data.</li>
@@ -477,7 +513,7 @@ For example:</p>
 if (flags &lt; 0) return S2N_FAILURE;
 if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) &lt; 0) return S2N_FAILURE;
 </code></pre>
-<p>Note: If an application requires non-blocking IO, it likely also requires self-service blinding. See <a href="./ch03-error-handling.html#Blinding">Blinding</a>.</p>
+<p>Note: If an application requires non-blocking IO, it likely also requires self-service blinding. See <a href="#Blinding">Blinding</a>.</p>
 <h2 id="errors-and-alerts"><a class="header" href="#errors-and-alerts">Errors and Alerts</a></h2>
 <p>If the peer sends an alert, the next call to a read IO method will report <strong>S2N_FAILURE</strong> and
 <code>s2n_error_get_type()</code> will return <strong>S2N_ERR_T_ALERT</strong>. The specific alert received
@@ -515,7 +551,7 @@ connections aborted while active.</p>
 <p>A single call to <code>s2n_send()</code> may involve multiple system calls to write the
 provided application data. s2n-tls breaks the application data into fixed-sized
 records before encryption, then calls write for each record.
-<a href="./ch08-record-sizes.html">See the record size documentation for how record size may impact performance</a>.</p>
+<a href="#tls-record-sizes">See the record size documentation for how record size may impact performance</a>.</p>
 <p>In non-blocking mode, <code>s2n_send()</code> will send data from the provided buffer and return the number of
 bytes sent, as long as the socket was able to send at least 1 byte. If no bytes could be sent on the
 socket, <code>s2n_send()</code> will return <code>S2N_FAILURE</code>, and <code>s2n_error_get_type()</code> will return
@@ -541,7 +577,7 @@ or <code>s2n_sendv_with_offset()</code>, see <a href="https://github.com/aws/s2n
 <p><code>s2n_recv()</code> reads and decrypts application data from the peer, copying it into
 the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
-It returns "0" to indicate that the peer has shutdown the connection.</p>
+It returns “0” to indicate that the peer has shutdown the connection.</p>
 <p>By default, <code>s2n_recv()</code> will return after reading a single TLS record. <code>s2n_recv()</code> can be called
 repeatedly to read multiple records. To allow <code>s2n_recv()</code> to read multiple records with a single
 call, use <code>s2n_config_set_recv_multi_record()</code>.</p>
@@ -562,7 +598,7 @@ see <code>s2n_example_recv_echo()</code> in <a href="https://github.com/aws/s2n-
 <p><code>s2n_peek()</code> can be used to check if more application data may be returned
 from <code>s2n_recv()</code> without performing another read from the file descriptor.
 This is useful when using <code>select()</code> on the underlying s2n-tls file descriptor, because
-a call to <code>s2n_recv()</code> may read more data into s2n-tls's internal buffer than
+a call to <code>s2n_recv()</code> may read more data into s2n-tls’s internal buffer than
 was requested or can fit into the application-provided output buffer. This extra
 application data will be returned by the next call to <code>s2n_recv()</code>, but <code>select()</code>
 will be unable to tell the application that there is more data available and that
@@ -576,7 +612,7 @@ sends an alert to notify the peer of the failure.</p>
 <p><code>s2n_shutdown()</code> will discard any application data received from the peer. This
 can lead to data truncation, so <code>s2n_shutdown_send()</code> may be preferred for TLS1.3
 connections where the peer continues sending after the application initiates
-shutdown. See <a href="ch07-io.html#closing-the-connection-for-writes">Closing the connection for writes</a>
+shutdown. See <a href="#closing-the-connection-for-writes">Closing the connection for writes</a>
 below.</p>
 <p>Because <code>s2n_shutdown()</code> attempts a graceful shutdown, it will not return success
 unless a close_notify alert is successfully both sent and received. As a result,
@@ -585,7 +621,7 @@ or if called on a connection in a bad state.</p>
 <p><code>s2n_shutdown()</code> may also read and decrypt multiple application data records while waiting
 for the close_notify alert. This could result in calls to <code>s2n_shutdown()</code> taking a long
 time to complete. If this is a problem, <code>s2n_shutdown_send()</code> may be preferrable.
-See <a href="ch07-io.html#closing-the-connection-for-writes">Closing the connection for writes</a> below.</p>
+See <a href="#closing-the-connection-for-writes">Closing the connection for writes</a> below.</p>
 <p>Once <code>s2n_shutdown()</code> is complete:</p>
 <ul>
 <li>The s2n_connection handle cannot be used for reading or writing.</li>
@@ -595,8 +631,8 @@ via <code>s2n_connection_wipe()</code></li>
 </ul>
 <h3 id="closing-the-connection-for-writes"><a class="header" href="#closing-the-connection-for-writes">Closing the connection for writes</a></h3>
 <p>TLS1.3 supports closing the write side of a TLS connection while leaving the read
-side unaffected. This indicates "end-of-data" to the peer without preventing
-future reads. This feature is usually referred to as "half-close".</p>
+side unaffected. This indicates “end-of-data” to the peer without preventing
+future reads. This feature is usually referred to as “half-close”.</p>
 <p>s2n-tls offers the <code>s2n_shutdown_send()</code> method to close the write side of
 a connection. Unlike <code>s2n_shutdown()</code>, it does not wait for the peer to respond
 with a close_notify alert and does not discard any incoming application data. An
@@ -621,18 +657,19 @@ should return the number of bytes sent/received, or set errno and return an erro
 s2n-tls will interpret errno set to EWOULDBLOCK or EAGAIN as indicating a retriable
 blocking error, and set <strong>s2n_errno</strong> and the s2n_blocked_status appropriately.
 s2n-tls will interpret a return value of 0 as a closed connection.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tls-record-sizes"><a class="header" href="#tls-record-sizes">TLS Record Sizes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tls-record-sizes"><a class="header" href="#tls-record-sizes">TLS Record Sizes</a></h1>
 <h2 id="throughput-vs-latency"><a class="header" href="#throughput-vs-latency">Throughput vs Latency</a></h2>
 <p>When sending data, s2n-tls uses a default maximum record size which experimentation
 has suggested provides a reasonable balance of performance and throughput.</p>
 <p><code>s2n_connection_prefer_throughput()</code> can be called to increase the record size, which
-minimizes overhead. It also increases s2n-tls's memory usage.</p>
+minimizes overhead. It also increases s2n-tls’s memory usage.</p>
 <p><code>s2n_connection_prefer_low_latency()</code> can be called to decrease the record size, which
-allows the receiver to decrypt the data faster. It also decreases s2n-tls's memory usage.</p>
+allows the receiver to decrypt the data faster. It also decreases s2n-tls’s memory usage.</p>
 <p>These options only affect the size of the records that s2n-tls sends, not the behavior
 of the peer.</p>
 <h2 id="maximum-fragment-length"><a class="header" href="#maximum-fragment-length">Maximum Fragment Length</a></h2>
-<p>The maximum number of bytes that can be sent in a TLS record is called the "maximum fragment length",
+<p>The maximum number of bytes that can be sent in a TLS record is called the “maximum fragment length”,
 and is set to 2^14 bytes by default. Regardless of the maximum record size that s2n-tls
 uses when sending, it may receive records containing up to 2^14 bytes of plaintext.</p>
 <p>A client can request a lower maximum fragment length by calling <code>s2n_config_send_max_fragment_length()</code>,
@@ -640,8 +677,8 @@ reducing the size of TLS records sent and providing benefits similar to <code>s2
 However, many TLS servers either ignore these requests or handle them incorrectly, so a client should
 never assume that a lower maximum fragment length will be honored. If a server accepts the requested
 maximum fragment length, the client will respect that maximum when sending.</p>
-<p>By default, an s2n-tls server will ignore a client's requested maximum fragment length.
-If <code>s2n_config_accept_max_fragment_length()</code> is called, the server will respect the client's requested
+<p>By default, an s2n-tls server will ignore a client’s requested maximum fragment length.
+If <code>s2n_config_accept_max_fragment_length()</code> is called, the server will respect the client’s requested
 maximum fragment length when sending, but will not reject client records with a larger fragment size.</p>
 <p>If a maximum fragment length is negotiated during the connection, it will override the behavior
 configured by <code>s2n_connection_prefer_throughput()</code> and <code>s2n_connection_prefer_low_latency()</code>.</p>
@@ -652,16 +689,17 @@ particularly if TCP slow start is used.</p>
 The connection will send the first <strong>resize_threshold</strong> bytes in records small enough to
 fit in a single standard 1500 byte ethernet frame. Whenever <strong>timeout_threshold</strong> seconds
 pass without sending data, the connection will revert to this behavior and send small records again.</p>
-<p>Dynamic record sizing doesn't completely override <code>s2n_connection_prefer_throughput()</code>,
+<p>Dynamic record sizing doesn’t completely override <code>s2n_connection_prefer_throughput()</code>,
 <code>s2n_connection_prefer_low_latency()</code>, or the negotiated maximum fragment length.
 Once <strong>resize_threshold</strong> is hit, records return to the maximum size configured for the connection.
 And if the maximum fragment length negotiated with the peer is lower than what dynamic record sizing
 would normally produce, the lower value will be used.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="certificates-and-authentication"><a class="header" href="#certificates-and-authentication">Certificates and Authentication</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="certificates-and-authentication"><a class="header" href="#certificates-and-authentication">Certificates and Authentication</a></h1>
 <p>TLS uses certificates to authenticate the server (and optionally the client). The handshake will fail if the client cannot verify the server’s certificate.</p>
-<p>Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using <a href="./ch11-resumption.html">session resumption</a> or <a href="./ch13-preshared-keys.html">pre-shared keys</a>.</p>
+<p>Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using <a href="#session-resumption">session resumption</a> or <a href="./ch13-preshared-keys.html">pre-shared keys</a>.</p>
 <h2 id="configuring-the-trust-store"><a class="header" href="#configuring-the-trust-store">Configuring the Trust Store</a></h2>
-<p>To validate the peer’s certificate, a config's local “trust store” must contain a certificate
+<p>To validate the peer’s certificate, a config’s local “trust store” must contain a certificate
 that can authenticate the peer’s certificate. To add certificates to the trust store, call
 <code>s2n_config_set_verification_ca_location()</code> or <code>s2n_config_add_pem_to_trust_store()</code>.</p>
 <p><code>s2n_config_new()</code> initializes the trust store with the default system certificates, which may
@@ -683,16 +721,16 @@ default system certificates to these configs, call <code>s2n_config_load_system_
 <p>Create a new certificate and key pair by calling <code>s2n_cert_chain_and_key_new()</code>, then load the pem-encoded data with <code>s2n_cert_chain_and_key_load_pem_bytes()</code>.  Call <code>s2n_config_add_cert_chain_and_key_to_store()</code> to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with <code>s2n_cert_chain_and_key_free()</code>.</p>
 <p>A client can add restrictions on the certificate’s hostname by setting a custom <code>s2n_verify_host_fn</code> with <code>s2n_config_set_verify_host_callback()</code> or <code>s2n_connection_set_verify_host_callback()</code>. The default behavior is to require that the hostname match the server name set with <code>s2n_set_server_name()</code>.</p>
 <h3 id="sni"><a class="header" href="#sni">SNI</a></h3>
-<p>TLS servers will often serve multiple domains from a single IP address, with each domain potentially requiring its own certificate. When a TLS client receives a server's certificate, it will check to ensure that it was issued for the domain that the client is connecting to. As such, the server needs to know which domain the client is connecting to in order to send the correct certificate. This information is communicated to the server via the Server Name Indication (SNI) extension.</p>
+<p>TLS servers will often serve multiple domains from a single IP address, with each domain potentially requiring its own certificate. When a TLS client receives a server’s certificate, it will check to ensure that it was issued for the domain that the client is connecting to. As such, the server needs to know which domain the client is connecting to in order to send the correct certificate. This information is communicated to the server via the Server Name Indication (SNI) extension.</p>
 <h4 id="client-configuration"><a class="header" href="#client-configuration">Client configuration</a></h4>
 <p><code>s2n_set_server_name()</code> is used on client connections to specify a domain name in the SNI extension.</p>
 <h4 id="server-configuration"><a class="header" href="#server-configuration">Server configuration</a></h4>
-<p>Each certificate loaded with <code>s2n_config_add_cert_chain_and_key_to_store()</code> is automatically associated with every domain name listed in its Subject Alternative Name (SAN) field. The domain names listed in the Common Name (CN) field are used instead if the certificate doesn't contain an SAN field. s2n-tls servers automatically send a certificate that matches the value of the client's SNI extension during the TLS handshake.</p>
+<p>Each certificate loaded with <code>s2n_config_add_cert_chain_and_key_to_store()</code> is automatically associated with every domain name listed in its Subject Alternative Name (SAN) field. The domain names listed in the Common Name (CN) field are used instead if the certificate doesn’t contain an SAN field. s2n-tls servers automatically send a certificate that matches the value of the client’s SNI extension during the TLS handshake.</p>
 <p>s2n-tls servers allow a maximum of 1 certificate to be loaded per domain, per certificate type (RSA, RSA-PSS, ECDSA). By default, a newly loaded certificate with an overlapping domain name will not replace the existing certificate associated with that domain. The <code>s2n_cert_tiebreak_callback</code> may be implemented to customize which certificate is selected when an overlapping domain is encountered.</p>
-<p>When selecting a certificate to send to the client, s2n-tls servers prefer an exact SNI match before falling back to a certificate with an associated wildcard domain (a domain starting with "*.", covering all subdomains). A default certificate is selected if no SNI match exists, or if the client doesn't send an SNI extension. A default certificate is set when <code>s2n_config_add_cert_chain_and_key_to_store()</code> is called for the first time for a given certificate type (RSA, RSA-PSS, ECDSA). <code>s2n_config_set_cert_chain_and_key_defaults()</code> may be used to override the default certificates.</p>
+<p>When selecting a certificate to send to the client, s2n-tls servers prefer an exact SNI match before falling back to a certificate with an associated wildcard domain (a domain starting with “*.”, covering all subdomains). A default certificate is selected if no SNI match exists, or if the client doesn’t send an SNI extension. A default certificate is set when <code>s2n_config_add_cert_chain_and_key_to_store()</code> is called for the first time for a given certificate type (RSA, RSA-PSS, ECDSA). <code>s2n_config_set_cert_chain_and_key_defaults()</code> may be used to override the default certificates.</p>
 <h2 id="client--mutual-authentication"><a class="header" href="#client--mutual-authentication">Client / Mutual Authentication</a></h2>
 <p>Client authentication is not enabled by default. However, the server can require that the client also provide a certificate, if the server needs to authenticate clients before accepting connections.</p>
-<p>Client authentication can be configured by calling <code>s2n_config_set_client_auth_type()</code> or <code>s2n_connection_set_client_auth_type()</code> for both the client and server. Additionally, the client will need to load a certificate and key pair as described for the server in <a href="ch09-certificates.html#server-authentication">Server Authentication</a> and the server will need to configure its trust store as described in <a href="ch09-certificates.html#configuring-the-trust-store">Configuring the Trust Store</a>.</p>
+<p>Client authentication can be configured by calling <code>s2n_config_set_client_auth_type()</code> or <code>s2n_connection_set_client_auth_type()</code> for both the client and server. Additionally, the client will need to load a certificate and key pair as described for the server in <a href="#server-authentication">Server Authentication</a> and the server will need to configure its trust store as described in <a href="#configuring-the-trust-store">Configuring the Trust Store</a>.</p>
 <p>When using client authentication, the server MUST implement the <code>s2n_verify_host_fn</code>, because the default behavior will likely reject all client certificates.</p>
 <p>When using client authentication with TLS1.3, <code>s2n_negotiate</code> will report a successful
 handshake to clients before the server validates the client certificate. If the server then
@@ -703,17 +741,17 @@ after the client sends the client certificate (see the <a href="https://www.rfc-
 There is no security risk, since the client has already authenticated the server,
 but it could make handshake failures and authentication errors more difficult to handle.</p>
 <h2 id="certificate-inspection"><a class="header" href="#certificate-inspection">Certificate Inspection</a></h2>
-<p>Applications may want to know which certificate was used by a server for authentication during a connection, since servers can set multiple certificates. <code>s2n_connection_get_selected_cert()</code> will return the local certificate chain object used to authenticate. <code>s2n_connection_get_peer_cert_chain()</code> will provide the peer's certificate chain, if they sent one. Use <code>s2n_cert_chain_get_length()</code> and <code>s2n_cert_chain_get_cert()</code> to parse the certificate chain object and get a single certificate from the chain. Use <code>s2n_cert_get_der()</code> to get the DER encoded certificate if desired.</p>
+<p>Applications may want to know which certificate was used by a server for authentication during a connection, since servers can set multiple certificates. <code>s2n_connection_get_selected_cert()</code> will return the local certificate chain object used to authenticate. <code>s2n_connection_get_peer_cert_chain()</code> will provide the peer’s certificate chain, if they sent one. Use <code>s2n_cert_chain_get_length()</code> and <code>s2n_cert_chain_get_cert()</code> to parse the certificate chain object and get a single certificate from the chain. Use <code>s2n_cert_get_der()</code> to get the DER encoded certificate if desired.</p>
 <p>Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use <code>s2n_cert_get_x509_extension_value_length()</code> and <code>s2n_cert_get_x509_extension_value()</code> to obtain a specific DER encoded certificate extension from a certificate. <code>s2n_cert_get_utf8_string_from_extension_data_length()</code> and <code>s2n_cert_get_utf8_string_from_extension_data()</code> can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.</p>
 <h2 id="certificate-revocation"><a class="header" href="#certificate-revocation">Certificate Revocation</a></h2>
-<p>Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.</p>
+<p>Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate’s owner can no longer be trusted.</p>
 <p>s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.</p>
-<p>Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. CRLs should be used if this assumption can't be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you're able to obtain CRLs in advance for all certificates you expect to encounter.</p>
+<p>Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you’re sure your peer supports OCSP stapling. CRLs should be used if this assumption can’t be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you’re able to obtain CRLs in advance for all certificates you expect to encounter.</p>
 <h3 id="ocsp-stapling"><a class="header" href="#ocsp-stapling">OCSP Stapling</a></h3>
 <p>Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.</p>
 <p>OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
 <p>To use OCSP stapling, the requester must call <code>s2n_config_set_status_request_type()</code> with S2N_STATUS_REQUEST_OCSP. The responder will need to call <code>s2n_cert_chain_and_key_set_ocsp_data()</code> to set the raw bytes of the OCSP stapling data.</p>
-<p>The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. <code>s2n_config_set_check_stapled_ocsp_response()</code> can be called with "0" to turn this off. Call <code>s2n_connection_get_ocsp_response()</code> to retrieve the received OCSP stapling information for manual verification.</p>
+<p>The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. <code>s2n_config_set_check_stapled_ocsp_response()</code> can be called with “0” to turn this off. Call <code>s2n_connection_get_ocsp_response()</code> to retrieve the received OCSP stapling information for manual verification.</p>
 <h2 id="crl-validation"><a class="header" href="#crl-validation">CRL Validation</a></h2>
 <blockquote>
 <p>Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include <code>api/unstable/crl.h</code>.</p>
@@ -721,18 +759,19 @@ but it could make handshake failures and authentication errors more difficult to
 <p>Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.</p>
 <p>The s2n CRL lookup callback must be implemented and set via <code>s2n_config_set_crl_lookup_cb()</code> to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain.</p>
 <p>The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating <code>s2n_crl</code>s via <code>s2n_crl_new()</code>, and adding the obtained CRL data via <code>s2n_crl_load_pem()</code>. The <code>s2n_crl</code> should be freed via <code>s2n_crl_free()</code> when no longer needed.</p>
-<p>The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via <code>s2n_crl_lookup_get_cert_issuer_hash()</code>, and the CRL's issuer hash is retrieved via <code>s2n_crl_get_issuer_hash()</code>. Once a CRL is found with a matching issuer hash, call <code>s2n_crl_lookup_set()</code> to provide s2n-tls with this CRL.</p>
-<p>Call <code>s2n_crl_lookup_ignore()</code> to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a <code>S2N_ERR_CRL_LOOKUP_FAILED</code> error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.</p>
+<p>The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate’s issuer with the hash of the CRL’s issuer. The certificate’s issuer hash is retrieved via <code>s2n_crl_lookup_get_cert_issuer_hash()</code>, and the CRL’s issuer hash is retrieved via <code>s2n_crl_get_issuer_hash()</code>. Once a CRL is found with a matching issuer hash, call <code>s2n_crl_lookup_set()</code> to provide s2n-tls with this CRL.</p>
+<p>Call <code>s2n_crl_lookup_ignore()</code> to ignore a received certificate if its CRL can’t be found. This will cause the certificate validation logic to fail with a <code>S2N_ERR_CRL_LOOKUP_FAILED</code> error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.</p>
 <p>By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling <code>s2n_crl_validate_active()</code> and <code>s2n_crl_validate_not_expired()</code>.</p>
 <h2 id="certificate-transparency"><a class="header" href="#certificate-transparency">Certificate Transparency</a></h2>
 <p>Certificate transparency is a framework to store public logs of CA-issued certificates. If requested, certificate owners can send a signed certificate timestamp (SCT) to prove that their certificate exists in these logs. The requester can choose whether or not to accept a certificate based on this information.</p>
 <p>Certificate transparency information can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
 <p>To use certificate transparency, the requester (usually the client) must call <code>s2n_config_set_ct_support_level()</code> with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call <code>s2n_cert_chain_and_key_set_sct_list()</code> to set the raw bytes of the transparency information.</p>
 <p>Call <code>s2n_connection_get_sct_list()</code> to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="examining-the-client-hello"><a class="header" href="#examining-the-client-hello">Examining the Client Hello</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="examining-the-client-hello"><a class="header" href="#examining-the-client-hello">Examining the Client Hello</a></h1>
 <h2 id="getting-a-client-hello"><a class="header" href="#getting-a-client-hello">Getting a Client Hello</a></h2>
 <h3 id="from-a-connection"><a class="header" href="#from-a-connection">From a connection</a></h3>
-<p>s2n-tls stores the received Client Hello and makes it available to the application. Call <code>s2n_connection_get_client_hello()</code> to get a pointer to the <code>s2n_client_hello</code> struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the <a href="ch10-client-hello.html#client-hello-callback">Client Hello Callback</a>. The stored Client Hello message will not be available after calling <code>s2n_connection_free_handshake()</code>.</p>
+<p>s2n-tls stores the received Client Hello and makes it available to the application. Call <code>s2n_connection_get_client_hello()</code> to get a pointer to the <code>s2n_client_hello</code> struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the <a href="#client-hello-callback">Client Hello Callback</a>. The stored Client Hello message will not be available after calling <code>s2n_connection_free_handshake()</code>.</p>
 <h3 id="from-raw-bytes"><a class="header" href="#from-raw-bytes">From raw bytes</a></h3>
 <p>s2n-tls can parse a Client Hello from raw bytes. Call <code>s2n_client_hello_parse_message()</code>
 with raw bytes representing a Client Hello message (including the message header, but excluding
@@ -743,7 +782,7 @@ that the memory is owned by the application and must be freed with <code>s2n_cli
 <p>Call <code>s2n_client_hello_get_raw_message()</code> to retrieve the complete Client Hello message with the random bytes on it zeroed out.</p>
 <p>Call <code>s2n_client_hello_get_cipher_suites()</code> to retrieve the list of cipher suites sent by the client.</p>
 <p>Call <code>s2n_client_hello_get_session_id()</code> to retrieve the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with <code>s2n_connection_get_session_id()</code>after the handshake completes.</p>
-<p>Call <code>s2n_client_hello_get_extensions()</code> to retrieve the entire list of extensions sent in the Client Hello. Call <code>s2n_client_hello_get_extension_by_id()</code> to retrieve a specific extension. Because <code>s2n_client_hello_get_extension_by_id()</code> doesn't distinguish between zero-length extensions and missing extensions,
+<p>Call <code>s2n_client_hello_get_extensions()</code> to retrieve the entire list of extensions sent in the Client Hello. Call <code>s2n_client_hello_get_extension_by_id()</code> to retrieve a specific extension. Because <code>s2n_client_hello_get_extension_by_id()</code> doesn’t distinguish between zero-length extensions and missing extensions,
 <code>s2n_client_hello_has_extension()</code> should be used to check for the existence of an extension.</p>
 <p>Call <code>s2n_client_hello_get_supported_groups()</code> to retrieve the entire list of
 supported groups sent by the client.</p>
@@ -764,34 +803,36 @@ for details about proper SSLv2 ClientHello parsing.</p>
 <p><code>s2n_connection_server_name_extension_used()</code> MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.</p>
 <h3 id="callback-modes"><a class="header" href="#callback-modes">Callback Modes</a></h3>
 <p>The callback can be invoked in two modes: <strong>S2N_CLIENT_HELLO_CB_BLOCKING</strong> or <strong>S2N_CLIENT_HELLO_CB_NONBLOCKING</strong>. Use <code>s2n_config_set_client_hello_cb_mode()</code> to set the desired mode.</p>
-<p>The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.</p>
-<p>In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls <code>s2n_client_hello_cb_done()</code> will the handshake be able to resume.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="session-resumption"><a class="header" href="#session-resumption">Session Resumption</a></h1>
-<p>TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.</p>
+<p>The default mode, “blocking mode”, will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won’t slow down the handshake or block the main thread, like logging or simple configuration changes.</p>
+<p>In contrast, “non-blocking mode” will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls <code>s2n_client_hello_cb_done()</code> will the handshake be able to resume.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="session-resumption"><a class="header" href="#session-resumption">Session Resumption</a></h1>
+<p>TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a “session ticket”. Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.</p>
 <h2 id="session-ticket-key"><a class="header" href="#session-ticket-key">Session Ticket Key</a></h2>
 <p>The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling <code>s2n_config_add_ticket_crypto_key()</code>. Unlike other methods that modify <code>s2n_config</code> objects, <code>s2n_config_add_ticket_crypto_key()</code> can be called after setting an <code>s2n_config</code> object on a connection. See <a href="https://www.rfc-editor.org/rfc/rfc5077#section-5.5">RFC5077</a> for guidelines on securely generating keys.</p>
 <p>Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code> and <code>s2n_config_set_ticket_decrypt_key_lifetime()</code>.</p>
-<p>The server will stop issuing session resumption tickets if a user doesn't set up a new key before the previous key passes through its encrypt-decrypt lifetime. Therefore it is recommended to add a new key when half of the previous key's encrypt-decrypt lifetime has passed.</p>
+<p>The server will stop issuing session resumption tickets if a user doesn’t set up a new key before the previous key passes through its encrypt-decrypt lifetime. Therefore it is recommended to add a new key when half of the previous key’s encrypt-decrypt lifetime has passed.</p>
 <h2 id="stateless-session-resumption"><a class="header" href="#stateless-session-resumption">Stateless Session Resumption</a></h2>
 <p>In stateless session resumption the server sends a session ticket to a client after a successful handshake, and the client can send that ticket back to the server during a new connection to skip the authentication step. This mechanism allows servers to avoid storing individual state for each client, and for that reason is the preferred method for resuming a session.</p>
 <p>Servers should call <code>s2n_config_set_session_tickets_onoff()</code> to enable stateless session resumption. Additionally the server needs to set up an encryption key using <code>s2n_config_add_ticket_crypto_key()</code>.</p>
 <p>Clients should call <code>s2n_config_set_session_tickets_onoff()</code> to enable stateless session resumption and set a session ticket callback function using <code>s2n_config_set_session_ticket_cb()</code>, which will allow clients to receive a session ticket when it arrives. Then <code>s2n_connection_set_session()</code> should be called with that saved ticket when attempting to resume a new connection.</p>
 <h2 id="stateful-session-resumption"><a class="header" href="#stateful-session-resumption">Stateful Session Resumption</a></h2>
-<p>In stateful session resumption, also known as session caching, the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for &gt; TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.</p>
+<p>In stateful session resumption, also known as session caching, the server caches the session state per client and resumes a session based on the client’s session ID. Note that session caching has not been implemented for &gt; TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.</p>
 <p>Servers should set the three caching callback functions: <code>s2n_config_set_cache_store_callback()</code>, <code>s2n_config_set_cache_retrieve_callback()</code>, and <code>s2n_config_set_cache_delete_callback()</code> and then call <code>s2n_config_set_session_cache_onoff()</code> to enable stateful session resumption. Session caching will not be turned on unless all three session cache callbacks are set prior to calling <code>s2n_config_set_session_cache_onoff()</code>. Additionally, the server needs to set up an encryption key using <code>s2n_config_add_ticket_crypto_key()</code>.</p>
 <p>Clients should call <code>s2n_connection_get_session()</code> to retrieve some serialized state about the session. Then <code>s2n_connection_set_session()</code> should be called with that saved state when attempting to resume a new connection.</p>
-<p>The <code>cache_delete_callback</code> is called when a connection encounters a fatal error. This allows a server to delete a potentially corrupted or faulty session from its cache. Because an unexpected end-of-stream is considered a fatal error, an application should ensure that it performs a graceful TLS shutdown when using session caching. For more information on how to close connections, see <a href="./ch07-io.html#closing-the-connection">Closing the Connection</a>.</p>
+<p>The <code>cache_delete_callback</code> is called when a connection encounters a fatal error. This allows a server to delete a potentially corrupted or faulty session from its cache. Because an unexpected end-of-stream is considered a fatal error, an application should ensure that it performs a graceful TLS shutdown when using session caching. For more information on how to close connections, see <a href="#closing-the-connection">Closing the Connection</a>.</p>
 <h2 id="session-resumption-in-tls12-and-tls13"><a class="header" href="#session-resumption-in-tls12-and-tls13">Session Resumption in TLS1.2 and TLS1.3</a></h2>
 <p>In TLS1.2, session ticket messages are sent during the handshake and are automatically received as part of calling <code>s2n_negotiate()</code>. They will be available as soon as negotiation is complete.</p>
-<p>In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling <code>s2n_negotiate()</code>. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling <code>s2n_recv()</code> immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.</p>
+<p>In TLS1.3, session ticket messages are sent after the handshake as “post-handshake” messages, and may not be received as part of calling <code>s2n_negotiate()</code>. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling <code>s2n_recv()</code> immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.</p>
 <p>Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call <code>s2n_config_set_initial_ticket_count()</code> to set the number of tickets they want to send and <code>s2n_connection_add_new_tickets_to_send()</code> to increase the number of tickets to send during a connection.</p>
 <h2 id="session-resumption-forward-secrecy"><a class="header" href="#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a></h2>
-<p>In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.</p>
-<p>In contrast, in TLS1.3 the secret stored inside the ticket is <em>derived</em> from the original session's master secret. The derivation uses a cryptographic operation that can't be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.</p>
+<p>In TLS1.2, the secret stored inside the ticket is the original session’s master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session’s secret exposes the original session’s encrypted data.</p>
+<p>In contrast, in TLS1.3 the secret stored inside the ticket is <em>derived</em> from the original session’s master secret. The derivation uses a cryptographic operation that can’t be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session’s secret will not expose the original session’s encrypted data.</p>
 <h2 id="keying-material-lifetimes-in-tls12-and-tls13"><a class="header" href="#keying-material-lifetimes-in-tls12-and-tls13">Keying Material Lifetimes in TLS1.2 and TLS1.3</a></h2>
-<p>In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code>.</p>
-<p>In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see <a href="ch11-resumption.html#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a>. These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with <code>s2n_connection_set_server_keying_material_lifetime()</code>. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="pre-shared-keys"><a class="header" href="#pre-shared-keys">Pre-shared Keys</a></h1>
+<p>In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original “keying material”– meaning the lifetime of any secret derived from the original full handshake– is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code>.</p>
+<p>In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see <a href="#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a>. These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original “keying material” to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate “keying material” lifetime, which servers can configure with <code>s2n_connection_set_server_keying_material_lifetime()</code>. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="pre-shared-keys"><a class="header" href="#pre-shared-keys">Pre-shared Keys</a></h1>
 <p>s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.</p>
 <h2 id="benefits-of-using-pre-shared-keys"><a class="header" href="#benefits-of-using-pre-shared-keys">Benefits of Using Pre-Shared Keys</a></h2>
 <p>Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.</p>
@@ -802,7 +843,7 @@ for details about proper SSLv2 ClientHello parsing.</p>
 <p>Call <code>s2n_connection_append_psk()</code> to append the newly created PSK to the connection. Both the server and client should call this API to add PSKs to their connection. PSKs that are appended first will be preferred over PSKs appended last unless custom PSK selection logic is implemented. Use <code>s2n_psk_free()</code> to free the memory allocated for a PSK once you have associated it with a connection.</p>
 <p>External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling <code>s2n_config_set_psk_mode()</code> prior to the handshake. Additionally, <code>s2n_connection_set_psk_mode()</code> overrides the PSK mode set on the config for a particular connection.</p>
 <h2 id="selecting-a-pre-shared-key"><a class="header" href="#selecting-a-pre-shared-key">Selecting a Pre-Shared Key</a></h2>
-<p>By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The <code>s2n_psk_selection_callback</code> is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call <code>s2n_config_set_psk_selection_callback()</code> to associate your <code>s2n_psk_selection_callback</code> with a config.</p>
+<p>By default, a server chooses the first identity in its PSK list that also appears in the client’s PSK list. The <code>s2n_psk_selection_callback</code> is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call <code>s2n_config_set_psk_selection_callback()</code> to associate your <code>s2n_psk_selection_callback</code> with a config.</p>
 <p>The <code>s2n_psk_selection_callback</code> will provide the list of PSK identities sent by the client in the <strong>psk_list</strong> input parameter. You will need to create an offered PSK object by calling <code>s2n_offered_psk_new()</code> and pass this object as a parameter in <code>s2n_offered_psk_list_next()</code> in order to populate the offered PSK object. Call <code>s2n_offered_psk_list_has_next()</code> prior to calling <code>s2n_offered_psk_list_next()</code> to determine if there exists another PSK in the <strong>psk_list</strong>. Call <code>s2n_offered_psk_get_identity()</code> to get the identity of a particular <strong>s2n_offered_psk</strong>.</p>
 <p>Call <code>s2n_offered_psk_list_choose_psk()</code> to choose a particular <strong>s2n_offered_psk</strong> to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using <code>s2n_connection_append_psk()</code>. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call <code>s2n_offered_psk_free()</code> once you have chosen a particular PSK to free the memory allocated.</p>
 <p>If desired, <code>s2n_offered_psk_list_reread()</code> returns the offered PSK list to its original read state. After <code>s2n_offered_psk_list_reread()</code> is called, the next call to <code>s2n_offered_psk_list_next()</code> will return the first PSK in the offered PSK list.</p>
@@ -831,7 +872,8 @@ for details about proper SSLv2 ClientHello parsing.</p>
     return S2N_SUCCESS;
 }
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
 <p>By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
 and decryption operations required for a tls handshake. However, this default behavior may not
 work for some situations.</p>
@@ -839,9 +881,9 @@ work for some situations.</p>
 <ul>
 <li>An application may want to perform the CPU-expensive signature and decryption operations
 asynchronously to avoid blocking the main event loop.
-See <a href="ch13-private-key-ops.html#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
+See <a href="#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
 <li>An application may not have direct access to the private key, such as when using PKCS#11.
-See <a href="ch13-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a></li>
+See <a href="#offloading-private-key-operations-1">Offloading private key operations</a></li>
 </ul>
 <p>To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
 are performed. The callback is set via <code>s2n_config_set_async_pkey_callback()</code> and is triggered
@@ -849,7 +891,7 @@ every time <code>s2n_negotiate()</code> performs an action involving the private
 <strong>op</strong>, an opaque object representing the private key operation. To avoid memory leaks, <strong>op</strong> must
 always eventually be freed by calling <code>s2n_async_pkey_op_free()</code>.</p>
 <p>The private key operation can be performed by calling <code>s2n_async_pkey_op_perform()</code>
-(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="ch13-private-key-ops.html#offloading-private-key-operations-1">Offloading private key operations</a>).
+(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="#offloading-private-key-operations-1">Offloading private key operations</a>).
 The required private key can be retrieved using the <code>s2n_connection_get_selected_cert()</code> and <code>s2n_cert_chain_and_key_get_private_key()</code> calls. The operation can then be finalized with <code>s2n_async_pkey_op_apply()</code> to continue the handshake.</p>
 <h2 id="asynchronous-private-key-operations"><a class="header" href="#asynchronous-private-key-operations">Asynchronous Private Key Operations</a></h2>
 <p>When s2n-tls is used in non-blocking mode, private key operations can be completed
@@ -874,7 +916,7 @@ each other. It is also safe to free <strong>conn</strong> or <strong>op</strong>
 respective function calls, with the exception that <strong>conn</strong> cannot
 be freed inside the <code>s2n_async_pkey_fn()</code> callback.</p>
 <h2 id="synchronous-private-key-operations"><a class="header" href="#synchronous-private-key-operations">Synchronous Private Key Operations</a></h2>
-<p>Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
+<p>Despite the “async” in the function names, private key operations can also be completed synchronously using the callback.
 To complete an operation synchronously, simply call <code>s2n_async_pkey_op_perform()</code> and <code>s2n_async_pkey_op_apply()</code> inside the callback.
 If the callback succeeds, the handshake will continue uninterrupted.
 If the callback fails, <code>s2n_negotiate()</code> will fail with an error of type <strong>S2N_ERR_T_INTERNAL</strong>.</p>
@@ -887,7 +929,7 @@ having s2n-tls perform the operation itself.</p>
 <p>s2n-tls provides a number of calls to gather the information necessary for
 an outside module or library to perform the operation. The application can query the type of private
 key operation by calling <code>s2n_async_pkey_op_get_op_type()</code>. In order to perform
-an operation, the application must ask s2n-tls to copy the operation's input into an
+an operation, the application must ask s2n-tls to copy the operation’s input into an
 application supplied buffer. The appropriate buffer size can be determined by calling
 <code>s2n_async_pkey_op_get_input_size()</code>. Once a buffer of the proper size is
 allocated, the application can request the input data by calling <code>s2n_async_pkey_op_get_input()</code>.
@@ -897,12 +939,14 @@ Once the output is set, the private key operation can be completed by calling <c
 fails synchronously, simply return <strong>S2N_FAILURE</strong> from the callback. If the offloaded operation
 fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
 simply shutdown and cleanup the connection as you would for any other error.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="connection-serialization"><a class="header" href="#connection-serialization">Connection Serialization</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="connection-serialization"><a class="header" href="#connection-serialization">Connection Serialization</a></h1>
 <p>Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different host or stored to disk.</p>
 <div class="warning">
 This feature is dangerous. It provides cryptographic material from a TLS session in plaintext. An attacker with access to the serialized connection can decrypt any past and future communications from the connection. Users MUST both encrypt and MAC the contents of the serialized connection to provide secrecy and integrity. 
 <p>The simplest way to provide secrecy and integrity is to transport the serialized connection using a protocol like TLS which protects the secrecy and integrity of all transported data.</p>
 </div>
+
 <h2 id="use-case"><a class="header" href="#use-case">Use Case</a></h2>
 <p>Connection Serialization is a feature used to support advanced, exceptional use cases. Most users will not find it useful.</p>
 <p>One use case for connection serialization is to enable a more complete TLS offload. Traditional private-key offloading allows the certificate private key to be stored separately from the application server, but connection-serialization TLS offloading allows all TLS materials and TLS configuration to be stored separately from the application server.</p>
@@ -932,32 +976,33 @@ This feature is dangerous. It provides cryptographic material from a TLS session
                      server sends handshake bytes           
                      key store returns serialized connection
 </code></pre>
-<p>In connection-serialization TLS Offloading, the application server will forward all of the handshake bytes to the key store. For the duration of the handshake, the application server is behaving as an L4 proxy, and doesn't parse any of the TLS protocol. Once the TLS handshake is complete, the key store will call <code>s2n_connection_serialize()</code> to serialize the connection to bytes, and send it back to the application server. The application server will then deserialize the connection using <code>s2n_connection_deserialize()</code>. At this point, the application server can read and write application data to the client.</p>
+<p>In connection-serialization TLS Offloading, the application server will forward all of the handshake bytes to the key store. For the duration of the handshake, the application server is behaving as an L4 proxy, and doesn’t parse any of the TLS protocol. Once the TLS handshake is complete, the key store will call <code>s2n_connection_serialize()</code> to serialize the connection to bytes, and send it back to the application server. The application server will then deserialize the connection using <code>s2n_connection_deserialize()</code>. At this point, the application server can read and write application data to the client.</p>
 <p>In this architecture the application server does not store any TLS certificate material, and it does not own the TLS configuration.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<p>To enable connection serialization, applications must first set a serialization version on the config using <code>s2n_config_set_serialization_version()</code>. Setting a version prevents forwards-incompatible changes from causing deserialization failures. See <a href="ch14-connection-serialization.html#serialization-version-deployment">Serialization Version Deployment</a> for more information.</p>
+<p>To enable connection serialization, applications must first set a serialization version on the config using <code>s2n_config_set_serialization_version()</code>. Setting a version prevents forwards-incompatible changes from causing deserialization failures. See <a href="#serialization-version-deployment">Serialization Version Deployment</a> for more information.</p>
 <p>To serialize a connection, applications must first obtain a large enough buffer to store the serialized connection. The size of the serialized connection can be obtained with <code>s2n_connection_serialization_length()</code>. The serialized connection can then be written into the buffer with <code>s2n_connection_serialize()</code>.</p>
 <p>To deserialize the connection, call <code>s2n_connection_deserialize()</code>. Note that a serialized connection stores a minimal amount of state. So while the deserialized connection can be used to read and write application data, most handshake information will not be preserved, and connection-level getters may not function normally.</p>
 <h2 id="serialization-version-deployment"><a class="header" href="#serialization-version-deployment">Serialization Version Deployment</a></h2>
 <p>Connection Serialization is backwards compatible, but not forwards compatible. This means that a new version of s2n-tls can deserialize old formats, but an old version of s2n-tls can not deserialize new formats.</p>
 <p>The serialization version controls what format is written, and the library version controls what formats can be read. To avoid deserialization failures every host in a fleet should support reading a new format before any hosts begin writing that format.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="early-data-or-0-rtt-data"><a class="header" href="#early-data-or-0-rtt-data">Early Data or 0-RTT Data</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="early-data-or-0-rtt-data"><a class="header" href="#early-data-or-0-rtt-data">Early Data or 0-RTT Data</a></h1>
 <p>TLS1.3 introduced the ability for clients to send data before completing the handshake when using external pre-shared keys or session resumption.</p>
 <p><strong>WARNING:</strong> Early data does not have the same security properties as regular data sent after a successful handshake.</p>
 <ul>
 <li>It is not forward secret. If the PSK or session resumption secret is compromised, then the early data is also compromised.</li>
-<li>It is susceptible to replay attacks unless proper precautions are taken. Early data can be captured and successfully resent by an attacker. See <a href="https://tools.ietf.org/rfc/rfc8446#appendix-E.5">the TLS1.3 RFC section on replay attacks</a> for more details, and <a href="ch15-early-data.html#adding-anti-replay-protection">Adding anti-replay protection</a> for how to implement counter measures.</li>
+<li>It is susceptible to replay attacks unless proper precautions are taken. Early data can be captured and successfully resent by an attacker. See <a href="https://tools.ietf.org/rfc/rfc8446#appendix-E.5">the TLS1.3 RFC section on replay attacks</a> for more details, and <a href="#adding-anti-replay-protection">Adding anti-replay protection</a> for how to implement counter measures.</li>
 </ul>
 <p><em><strong>Do not enable early data for your application unless you have understood and mitigated the risks.</strong></em></p>
 <h2 id="configuring-session-resumption-for-early-data"><a class="header" href="#configuring-session-resumption-for-early-data">Configuring Session Resumption for Early Data</a></h2>
 <p>To use early data with session tickets, early data must be enabled on a server by setting the maximum early data allowed to a non-zero value with <code>s2n_config_set_server_max_early_data_size()</code> or <code>s2n_connection_set_server_max_early_data_size()</code>. The server then begins issuing tickets that support early data, and clients can use early data when they use those tickets.</p>
 <h2 id="configuring-external-pre-shared-keys-for-early-data"><a class="header" href="#configuring-external-pre-shared-keys-for-early-data">Configuring External Pre-shared Keys for Early Data</a></h2>
-<p>To use early data with pre-shared keys, individual pre-shared keys must support early data. In addition to configuring the maximum early data allowed, each pre-shared key needs an associated cipher suite and if applicable, application protocol. The server only accepts early data if the pre-shared key's associated cipher suite and application protocol match the cipher suite and the application protocol negotiated during the handshake.</p>
+<p>To use early data with pre-shared keys, individual pre-shared keys must support early data. In addition to configuring the maximum early data allowed, each pre-shared key needs an associated cipher suite and if applicable, application protocol. The server only accepts early data if the pre-shared key’s associated cipher suite and application protocol match the cipher suite and the application protocol negotiated during the handshake.</p>
 <p>The maximum early data allowed and cipher suite can be set with <code>s2n_psk_configure_early_data()</code>. If the connection will negotiate an application protocol then the expected application protocol can be set with <code>s2n_psk_set_application_protocol()</code>.</p>
 <h2 id="sending-early-data"><a class="header" href="#sending-early-data">Sending Early Data</a></h2>
 <p>To send early data, your application should call <code>s2n_send_early_data()</code> before it calls <code>s2n_negotiate()</code>.</p>
 <p><code>s2n_connection_get_remaining_early_data_size()</code> can be called to check how much more early data the client is allowed to send. If <code>s2n_send_early_data()</code> exceeds the allowed maximum, s2n-tls returns a usage error.</p>
-<p>Like other IO functions, <code>s2n_send_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="./ch07-io.html">I/O Functions</a> for more information. An application can stop calling <code>s2n_send_early_data()</code> at any time, even if the function has not returned success yet. If <code>s2n_send_early_data()</code> does return success, the connection is ready to complete the handshake and begin sending normal data. However, <code>s2n_send_early_data()</code> can continue to be called to send more early data if desired.</p>
+<p>Like other IO functions, <code>s2n_send_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="#sending-and-receiving">I/O Functions</a> for more information. An application can stop calling <code>s2n_send_early_data()</code> at any time, even if the function has not returned success yet. If <code>s2n_send_early_data()</code> does return success, the connection is ready to complete the handshake and begin sending normal data. However, <code>s2n_send_early_data()</code> can continue to be called to send more early data if desired.</p>
 <p>Once a client finishes sending early data, you should call <code>s2n_negotiate()</code> to complete the handshake just as you would for a handshake that did not include early data.</p>
 <p>For example:</p>
 <pre><code>uint8_t early_data[] = "early data to send";
@@ -981,7 +1026,7 @@ while (s2n_negotiate(client_conn, &amp;blocked) != S2N_SUCCESS) {
 </code></pre>
 <h2 id="receiving-early-data"><a class="header" href="#receiving-early-data">Receiving Early Data</a></h2>
 <p>To receive early data, your application should call <code>s2n_recv_early_data()</code> before it calls <code>s2n_negotiate()</code>.</p>
-<p>Like other S2N IO functions, <code>s2n_recv_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="./ch07-io.html">I/O Functions</a> for more information. Once <code>s2n_recv_early_data()</code> has been called, it must be called until it returns success. If an application stops calling <code>s2n_recv_early_data()</code> early, some early data may be left unread and cause later calls to <code>s2n_negotiate()</code> to return fatal errors. Calling <code>s2n_recv_early_data()</code> again after it returns success is possible but has no effect on the connection.</p>
+<p>Like other S2N IO functions, <code>s2n_recv_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="#sending-and-receiving">I/O Functions</a> for more information. Once <code>s2n_recv_early_data()</code> has been called, it must be called until it returns success. If an application stops calling <code>s2n_recv_early_data()</code> early, some early data may be left unread and cause later calls to <code>s2n_negotiate()</code> to return fatal errors. Calling <code>s2n_recv_early_data()</code> again after it returns success is possible but has no effect on the connection.</p>
 <p>Once a server has read all early data, you should call <code>s2n_negotiate()</code> to complete the handshake just as you would for a handshake that did not include early data.</p>
 <p>For example:</p>
 <pre><code>uint8_t early_data[MAX_EARLY_DATA] = { 0 };
@@ -1003,7 +1048,7 @@ while (s2n_negotiate(conn, &amp;blocked) != S2N_SUCCESS) {
 <p><strong>s2n-tls does not include anti-replay protection automatically.</strong> Effective anti-replay protection for a multi-server application requires an external state shared by all servers. Without shared state, an attacker can capture early data originally sent to server A and successfully replay it against server B.</p>
 <p>The TLS1.3 specification suggests two possible anti-replay solutions that a user can implement:</p>
 <ol>
-<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or "pre-shared key identity", associated with offered early data.</li>
+<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or “pre-shared key identity”, associated with offered early data.</li>
 <li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.2">Client Hello Recording</a>: Instead of recording outstanding valid tickets, unique values from recent ClientHellos can be stored. The client hello message can be retrieved with <code>s2n_connection_get_client_hello()</code> and the pre-shared key identity can be retrieved with <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code>, but s2n-tls does not currently provide methods to retrieve the validated binders or the ClientHello.random.</li>
 </ol>
 <p>The <code>s2n_early_data_cb()</code> can be used to hook an anti-replay solution into s2n-tls. The callback can be configured by using <code>s2n_config_set_early_data_cb()</code>. Using the <strong>s2n_offered_early_data</strong> pointer offered by the callback, <code>s2n_offered_early_data_reject()</code> or <code>s2n_offered_early_data_accept()</code> can accept or reject the client request to use early data.</p>
@@ -1046,35 +1091,47 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 }
 </code></pre>
 <p><code>s2n_offered_early_data_get_context_length()</code> and <code>s2n_offered_early_data_get_context()</code> can be called to examine the optional user context associated with the early data. Unlike most s2n-tls callbacks, the context is not configured when the callback is set. Instead, the context is associated with the specific pre-shared key or session ticket used for early data. The context can be set for external pre-shared keys by calling <code>s2n_psk_set_early_data_context()</code>. For session tickets, <code>s2n_connection_set_server_early_data_context()</code> can be used to set the context the server includes on its new session tickets. Because the server needs to serialize the context when creating a new session ticket, the context is a byte buffer instead of the usual void pointer.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="post-quantum-pq-support"><a class="header" href="#post-quantum-pq-support">Post Quantum (PQ) Support</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="post-quantum-pq-support"><a class="header" href="#post-quantum-pq-support">Post Quantum (PQ) Support</a></h1>
 <p>s2n-tls supports both post-quantum key exchange and post-quantum authentication for TLS1.3.</p>
 <h2 id="key-exchange-ml-kem--kyber"><a class="header" href="#key-exchange-ml-kem--kyber">Key Exchange: ML-KEM / Kyber</a></h2>
-<p>Currently, only <a href="https://csrc.nist.gov/pubs/fips/203">ML-KEM</a> / <a href="https://pq-crystals.org/kyber/">Kyber</a> are supported for post-quantum key exchange. "ML-KEM" is the name given to the NIST standardized version of Kyber.</p>
+<p>Currently, only <a href="https://csrc.nist.gov/pubs/fips/203">ML-KEM</a> / <a href="https://pq-crystals.org/kyber/">Kyber</a> are supported for post-quantum key exchange. “ML-KEM” is the name given to the NIST standardized version of Kyber.</p>
 <p>Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.</p>
 <p>Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rational behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.</p>
 <h2 id="authentication-ml-dsa"><a class="header" href="#authentication-ml-dsa">Authentication: ML-DSA</a></h2>
 <p>Currently, only <a href="https://csrc.nist.gov/pubs/fips/204">ML-DSA</a> is supported for post-quantum authentication.</p>
-<p>In order to use ML-DSA, you must configure s2n-tls to use an ML-DSA certificate, just as you would configure an RSA or ECDSA certificate. See <a href="./ch09-certificates.html">certificates</a>.</p>
+<p>In order to use ML-DSA, you must configure s2n-tls to use an ML-DSA certificate, just as you would configure an RSA or ECDSA certificate. See <a href="#certificates-and-authentication">certificates</a>.</p>
 <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <h3 id="aws-lc"><a class="header" href="#aws-lc">AWS-LC</a></h3>
 <p>s2n-tls must be built with aws-lc to use post-quantum algorithms. See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto">s2n-tls build documentation</a> for how to build with aws-lc. For ML-DSA, you will need to use a version of AWS-LC &gt;= v1.50.0 (API version 33).</p>
-<p>If you're unsure what cryptography library s2n-tls is built against, trying running s2nd or s2nc:</p>
+<p>If you’re unsure what cryptography library s2n-tls is built against, trying running s2nd or s2nc:</p>
 <pre><code>&gt; s2nd localhost 8000
 libcrypto: AWS-LC
 Listening on localhost:8000
 </code></pre>
 <h3 id="security-policy"><a class="header" href="#security-policy">Security Policy</a></h3>
-<p>Post-quantum algorithms are enabled by configuring a security policy (see <a href="./ch06-security-policies.html">Security Policies</a>) that supports post-quantum algorithms.</p>
-<p>"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.</p>
+<p>Post-quantum algorithms are enabled by configuring a security policy (see <a href="#security-policies">Security Policies</a>) that supports post-quantum algorithms.</p>
+<p>“default_pq” is the equivalent of “default_tls13”, but with PQ support. Like the other default policies, “default_pq” may change as a result of library updates. The fixed, numbered equivalent of “default_pq” is currently “20250721”. For previous defaults, see the “Default Policy History” section below.</p>
 <p>Other available PQ policies are compared in the tables below.</p>
 <h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods-ml-kem"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods-ml-kem">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (ML-KEM)</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>x25519+mlkem768</th><th>secp256r1+mlkem768</th><th>secp384r1+mlkem1024</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>x25519+mlkem768</th><th>secp256r1+mlkem768</th><th>secp384r1+mlkem1024</th></tr>
+</thead>
+<tbody>
 <tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>20250512</td><td>X</td><td>X</td><td></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods-kyber"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods-kyber">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (Kyber)</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1+kyber768</th><th>x25519+kyber768</th><th>secp384r1+kyber768</th><th>secp521r1+kyber1024</th><th>secp256r1+kyber512</th><th>x25519+kyber512</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>secp256r1+kyber768</th><th>x25519+kyber768</th><th>secp384r1+kyber768</th><th>secp521r1+kyber1024</th><th>secp256r1+kyber512</th><th>x25519+kyber512</th></tr>
+</thead>
+<tbody>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
@@ -1084,10 +1141,16 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="chart-security-policy-version-to-signature-schemes"><a class="header" href="#chart-security-policy-version-to-signature-schemes">Chart: Security Policy Version To Signature Schemes</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>ML-DSA</th><th>ECDSA</th><th>RSA</th><th>RSA-PSS</th><th>Legacy SHA1</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>ML-DSA</th><th>ECDSA</th><th>RSA</th><th>RSA-PSS</th><th>Legacy SHA1</th></tr>
+</thead>
+<tbody>
 <tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20240730</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
@@ -1099,11 +1162,17 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-2-2023-10-08</td><td></td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-10-07</td><td></td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td></td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="chart-security-policy-version-to-classic-key-exchange"><a class="header" href="#chart-security-policy-version-to-classic-key-exchange">Chart: Security Policy Version To Classic Key Exchange</a></h3>
-<p>If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall back to a classical option.</p>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1</th><th>x25519</th><th>secp384r1</th><th>secp521r1</th><th>DHE</th><th>RSA</th></tr></thead><tbody>
+<p>If the peer doesn’t support a PQ hybrid key exchange method, s2n-tls will fall back to a classical option.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>secp256r1</th><th>x25519</th><th>secp384r1</th><th>secp521r1</th><th>DHE</th><th>RSA</th></tr>
+</thead>
+<tbody>
 <tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
@@ -1115,10 +1184,16 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td>X</td></tr>
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="chart-security-policy-version-to-ciphers"><a class="header" href="#chart-security-policy-version-to-ciphers">Chart: Security Policy Version To Ciphers</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th></tr>
+</thead>
+<tbody>
 <tr><td>default_pq / 20250721</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20250512</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td><td>X</td><td></td></tr>
@@ -1131,10 +1206,16 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X*</td><td></td></tr>
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
 <tr><td>* only for TLS1.3</td><td></td><td></td><td></td><td></td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="chart-security-policy-version-to-tls-protocol-version"><a class="header" href="#chart-security-policy-version-to-tls-protocol-version">Chart: Security Policy Version To TLS Protocol Version</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>1.2</th><th>1.3</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>1.2</th><th>1.3</th></tr>
+</thead>
+<tbody>
 <tr><td>default_pq / 20250721</td><td>X</td><td>X</td></tr>
 <tr><td>20250512</td><td>X</td><td>X</td></tr>
 <tr><td>20240730</td><td>X</td><td>X</td></tr>
@@ -1146,15 +1227,22 @@ Listening on localhost:8000
 <tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td></tr>
 <tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h4 id="default-policy-history"><a class="header" href="#default-policy-history">Default Policy History</a></h4>
-<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default_pq"</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>“default_pq”</th></tr>
+</thead>
+<tbody>
 <tr><td>v1.5.23</td><td>20250721</td></tr>
 <tr><td>v1.5.19</td><td>20250512</td></tr>
 <tr><td>v1.5.6</td><td>20241001</td></tr>
 <tr><td>v1.5.0</td><td>20240730</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="visibility"><a class="header" href="#visibility">Visibility</a></h2>
 <p>Call <code>s2n_connection_get_kem_group_name</code> to determine if a TLS handshake negotiated PQ key exchange.</p>
@@ -1176,6 +1264,11 @@ Listening on localhost:8000
 
         </div>
 
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
 
 
@@ -1184,13 +1277,13 @@ Listening on localhost:8000
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
 
