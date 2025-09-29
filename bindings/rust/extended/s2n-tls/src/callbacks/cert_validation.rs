@@ -11,12 +11,12 @@ use std::{marker::PhantomData, ptr::NonNull};
 
 pub struct CertValidationInfo<'a> {
     info: NonNull<s2n_cert_validation_info>,
-    _lifetime: PhantomData<&'a s2n_cert_chain_and_key>,
+    _lifetime: PhantomData<&'a s2n_cert_validation_info>,
 }
 
 impl CertValidationInfo<'_> {
     pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
-        let info = NonNull::new(info).expect("info pointer is not null");
+        let info = NonNull::new(info).expect("info pointer should not be null");
         CertValidationInfo {
             info,
             _lifetime: PhantomData,
@@ -28,20 +28,20 @@ impl CertValidationInfo<'_> {
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub fn accept(&mut self) -> Result<(), Error> {
+    pub(crate) fn accept(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub fn reject(&mut self) -> Result<(), Error> {
+    pub(crate) fn reject(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
 }
 
 pub trait CertValidationCallbackSync: 'static + Send + Sync {
-    /// Return a boolean to indicate if a certificate passed the validation
+    /// Return a boolean to indicate if the certificate chain passed the validation
     fn handle_validation(
         &self,
         connection: &mut Connection,
