@@ -1,10 +1,10 @@
 [package]
 name = "s2n-tls"
 description = "A C99 implementation of the TLS/SSL protocols"
-version = "0.3.26"
+version = "0.3.27"
 authors = ["AWS s2n"]
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.72.0"
 repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
@@ -25,7 +25,7 @@ unstable-testing = []
 errno = { version = "0.3" }
 # A minimum libc version of 0.2.121 is required by aws-lc-sys 0.14.0.
 libc = "0.2.121"
-s2n-tls-sys = { version = "=0.3.26", path = "../s2n-tls-sys", features = ["internal"] }
+s2n-tls-sys = { version = "=0.3.27", path = "../s2n-tls-sys", features = ["internal"] }
 pin-project-lite = "0.2"
 hex = "0.4"
 
