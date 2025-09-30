@@ -525,7 +525,7 @@ int main(int argc, char **argv)
             }
 
             /* Protocol versions within supported range succeeds */
-            for (uint8_t version = S2N_SSLv3; version <= s2n_highest_protocol_version && version <= s2n_highest_protocol_version; version++) {
+            for (uint8_t version = S2N_SSLv3; version <= s2n_highest_protocol_version; version++) {
                 uint8_t test_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
                 POSIX_CHECKED_MEMCPY(test_data, serialized_data, sizeof(test_data));
 
