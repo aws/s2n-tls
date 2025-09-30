@@ -225,11 +225,6 @@ S2N_API int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cer
 /**
  * Indicates that the validation performed in the cert validation callback was successful.
  *
- * `s2n_cert_validation_accept()` should be called from within the cert validation callback to allow `s2n_negotiate()`
- * to continue the handshake.
- *
- * This function must not be called outside of the cert validation callback.
- *
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
@@ -237,11 +232,6 @@ S2N_API int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
 
 /**
  * Indicates that the validation performed in the cert validation callback was unsuccessful.
- *
- * `s2n_cert_validation_reject()` should be called from within the cert validation callback to cause `s2n_negotiate()`
- * to error.
- *
- * This function must not be called outside of the cert validation callback.
  *
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
