@@ -490,10 +490,10 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_pq_beta
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256 = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences       = &cipher_preferences_cloudfront_tls_1_0_2014_sha256,
-    .kem_preferences          = &kem_preferences_pq_tls_1_3_ietf_2024_10,
-    .signature_preferences    = &s2n_signature_preferences_20200207,
-    .ecc_preferences          = &s2n_ecc_preferences_20200310,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_0_2014_sha256,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
@@ -633,10 +633,10 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_no_pq =
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256_no_pq = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences       = &cipher_preferences_cloudfront_tls_1_0_2014_sha256,
-    .kem_preferences          = &kem_preferences_null,
-    .signature_preferences    = &s2n_signature_preferences_20200207,
-    .ecc_preferences          = &s2n_ecc_preferences_20200310,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_0_2014_sha256,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_no_pq = {
@@ -1754,7 +1754,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     /* CloudFront Viewer Facing */
     { .version = "CloudFront-SSL-v-3", .security_policy = &security_policy_cloudfront_ssl_v_3, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2014", .security_policy = &security_policy_cloudfront_tls_1_0_2014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "CloudFront-TLS-1-0-2014-sha256", .security_policy=&security_policy_cloudfront_tls_1_0_2014_sha256, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "CloudFront-TLS-1-0-2014-sha256", .security_policy = &security_policy_cloudfront_tls_1_0_2014_sha256, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2016", .security_policy = &security_policy_cloudfront_tls_1_0_2016, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-1-2016", .security_policy = &security_policy_cloudfront_tls_1_1_2016, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2017", .security_policy = &security_policy_cloudfront_tls_1_2_2017, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1766,7 +1766,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     /* CloudFront Non-PQ Viewer Facing */
     { .version = "CloudFront-SSL-v-3-no-pq", .security_policy = &security_policy_cloudfront_ssl_v_3_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2014-no-pq", .security_policy = &security_policy_cloudfront_tls_1_0_2014_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "CloudFront-TLS-1-0-2014-sha256-no-pq", .security_policy=&security_policy_cloudfront_tls_1_0_2014_sha256_no_pq, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "CloudFront-TLS-1-0-2014-sha256-no-pq", .security_policy = &security_policy_cloudfront_tls_1_0_2014_sha256_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2016-no-pq", .security_policy = &security_policy_cloudfront_tls_1_0_2016_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-1-2016-no-pq", .security_policy = &security_policy_cloudfront_tls_1_1_2016_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2017-no-pq", .security_policy = &security_policy_cloudfront_tls_1_2_2017_no_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1778,7 +1778,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     /* CloudFront Unofficial Viewer Facing */
     { .version = "CloudFront-TLS-1-0-2014-PQ-Beta", .security_policy = &security_policy_cloudfront_tls_1_0_2014_pq_beta, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2021-no-sha1-PQ-Beta", .security_policy = &security_policy_cloudfront_tls_1_2_2021_no_sha1_pq_beta, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "CloudFront-TLS-1-2-2018-Beta", .security_policy=&security_policy_cloudfront_tls_1_2_2018_beta, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "CloudFront-TLS-1-2-2018-Beta", .security_policy = &security_policy_cloudfront_tls_1_2_2018_beta, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2021-Chacha20-Boosted", .security_policy = &security_policy_cloudfront_tls_1_2_2021_chacha20_boosted, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Legacy policies */
     { .version = "CloudFront-SSL-v-3-Legacy", .security_policy = &security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
