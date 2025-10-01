@@ -274,7 +274,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(builder);
 
             /* Without PQ rule, policy does not include PQ */
-            struct s2n_security_policy *policy = s2n_security_policy_build(builder);
+            DEFER_CLEANUP(struct s2n_security_policy *policy = s2n_security_policy_build(builder),
+                    s2n_security_policy_free);
             EXPECT_NOT_NULL(policy);
             EXPECT_NOT_NULL(policy->kem_preferences);
             EXPECT_EQUAL(policy->kem_preferences->tls13_kem_group_count, 0);
@@ -283,7 +284,8 @@ int main(int argc, char **argv)
             /* With PQ rule, policy includes PQ */
             EXPECT_SUCCESS(s2n_security_policy_builder_set_rule(builder,
                     S2N_POLICY_RULE_PQ, S2N_RULE_PQ_2025_08_20));
-            struct s2n_security_policy *pq_policy = s2n_security_policy_build(builder);
+            DEFER_CLEANUP(struct s2n_security_policy *pq_policy = s2n_security_policy_build(builder),
+                    s2n_security_policy_free);
             EXPECT_NOT_NULL(pq_policy);
             EXPECT_NOT_NULL(pq_policy->kem_preferences);
             EXPECT_EQUAL(pq_policy->kem_preferences->tls13_kem_group_count, 3);
