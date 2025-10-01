@@ -15,7 +15,7 @@
 
 #include "tls/policy/s2n_policy_rule.h"
 #include "tls/s2n_kem.h"
-#include "tls/s2n_security_policies.c"
+#include "tls/s2n_security_policies.h"
 
 const struct s2n_kem_group *pq_kem_groups_2025_08_20[] = {
     &s2n_x25519_mlkem_768,
