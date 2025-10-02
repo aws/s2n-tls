@@ -75,7 +75,7 @@ static S2N_RESULT s2n_test_deserialize_with_version(const uint8_t *serialized_da
 {
     RESULT_ENSURE_REF(serialized_data);
 
-    /* Create test data buffer and modify protocol version  bytes (at offset 8 and 9) */
+    /* Create test data buffer and modify protocol version bytes (at offset 8 and 9) */
     uint8_t test_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
     RESULT_CHECKED_MEMCPY(test_data, serialized_data, sizeof(test_data));
     test_data[8] = version / 10;
