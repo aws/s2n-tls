@@ -5,7 +5,7 @@ use crate::{
     epoch_schedule,
     psk_derivation::{EpochSecret, PskIdentity},
     psk_parser::retrieve_psk_identities,
-    DecodeValue, PskProvider,
+    DecodeValue,
 };
 use aws_lc_rs::hmac;
 use aws_sdk_kms::{operation::generate_mac::GenerateMacOutput, primitives::Blob, Client};

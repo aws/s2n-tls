@@ -25,10 +25,19 @@ const ROTATION_CUSHION: Duration = Duration::from_secs(60);
 #[derive(Debug)]
 struct ProviderSecrets {
     key_arn: KeyArn,
-    /// secret for the current epoch `n`
+    /// secret currently used to generate PSKs. Generally this is the epoch secret
+    /// for the current epoch `n`.
+    ///
+    /// In the event of failure to fetch new epoch secrets, the client will continue
+    /// using the existing key. The client does _not_ enforce a certain key lifetime,
+    /// and will continue to make a best effort to connect.
+    ///
+    /// This means that clients are not responsible for enforcing the lifetime of
+    /// epoch secrets, and that is controlled server-side.
     current_secret: RwLock<Arc<EpochSecret>>,
     /// secrets for epoch `n + 1` and `n + 2`
     next_secrets: Mutex<VecDeque<EpochSecret>>,
+    smoothing_factor: Duration,
 }
 
 impl ProviderSecrets {
@@ -37,14 +46,14 @@ impl ProviderSecrets {
     }
 
     fn available_epochs(&self) -> Vec<u64> {
-        let mut epochs: Vec<u64> = self
-            .next_secrets
+        let mut epochs = Vec::new();
+        epochs.push(self.current_secret().key_epoch);
+        self.next_secrets
             .lock()
             .unwrap()
             .iter()
             .map(|s| s.key_epoch)
-            .collect();
-        epochs.push(self.current_secret().key_epoch);
+            .for_each(|epoch| epochs.push(epoch));
         epochs
     }
 
@@ -68,7 +77,6 @@ impl ProviderSecrets {
         &self,
         current_epoch: u64,
         kms_client: &Client,
-        smoothing_factor: Duration,
         failure_notification: &(dyn Fn(anyhow::Error) + Send + Sync + 'static),
     ) -> Result<Duration, Duration> {
         let mut to_fetch = vec![current_epoch, current_epoch + 1, current_epoch + 2];
@@ -92,9 +100,9 @@ impl ProviderSecrets {
             }
         }
 
-        let sleep = self
-            .newest_available_epoch()
-            .and_then(|next_fetch| epoch_schedule::until_fetch(next_fetch + 1, smoothing_factor));
+        let sleep = self.newest_available_epoch().and_then(|next_fetch| {
+            epoch_schedule::until_fetch(next_fetch + 1, self.smoothing_factor)
+        });
         match sleep {
             Some(duration) => Ok(duration),
             None => Err(ONE_HOUR),
@@ -115,12 +123,19 @@ impl ProviderSecrets {
             .find(|secret| secret.key_epoch == current_epoch)
             .cloned();
 
-        if needs_rotation && rotation_key.is_some() {
-            tracing::debug!(
-                "current key is now epoch {current_epoch} from {}",
-                self.key_arn
-            );
-            *self.current_secret.write().unwrap() = Arc::new(rotation_key.unwrap());
+        if needs_rotation {
+            match rotation_key {
+                Some(key) => {
+                    tracing::debug!(
+                        "current key is now epoch {current_epoch} from {}",
+                        self.key_arn
+                    );
+                    *self.current_secret.write().unwrap() = Arc::new(key);
+                }
+                None => {
+                    tracing::warn!("rotation needed, but the key was not available")
+                }
+            }
         }
 
         match epoch_schedule::until_epoch_start(current_epoch + 1) {
@@ -149,16 +164,10 @@ impl ProviderSecrets {
         &self,
         current_epoch: u64,
         kms_client: &Client,
-        smoothing_factor: Duration,
         failure_notification: &(dyn Fn(anyhow::Error) + Send + Sync + 'static),
     ) -> Result<Duration, Duration> {
         let until_next_fetch = self
-            .fetch_secrets(
-                current_epoch,
-                kms_client,
-                smoothing_factor,
-                failure_notification,
-            )
+            .fetch_secrets(current_epoch, kms_client, failure_notification)
             .await;
         let until_next_rotation = self.rotate_secrets(current_epoch);
         self.drop_old_secrets(current_epoch);
@@ -187,16 +196,11 @@ impl PskProvider {
             key_arn,
             current_secret: RwLock::new(Arc::new(current_secret)),
             next_secrets: Mutex::new(VecDeque::new()),
+            smoothing_factor: epoch_schedule::smoothing_factor(),
         });
 
-        let smoothing_factor = epoch_schedule::smoothing_factor();
         let update = secret_state
-            .poll_update(
-                current_epoch,
-                &kms_client,
-                smoothing_factor,
-                &failure_notification,
-            )
+            .poll_update(current_epoch, &kms_client, &failure_notification)
             .await;
         if update.is_err() {
             anyhow::bail!("failed to fetch keys during startup");
@@ -209,12 +213,7 @@ impl PskProvider {
                     let current_epoch = epoch_schedule::current_epoch();
 
                     let sleep_duration = secret_state
-                        .poll_update(
-                            current_epoch,
-                            &kms_client,
-                            smoothing_factor,
-                            &failure_notification,
-                        )
+                        .poll_update(current_epoch, &kms_client, &failure_notification)
                         .await;
                     let sleep_duration = match sleep_duration {
                         Ok(duration) => duration,
@@ -281,7 +280,6 @@ mod tests {
 
     #[tokio::test]
     async fn poll_update() -> Result<(), Duration> {
-        let smoothing_factor = epoch_schedule::smoothing_factor();
         let psk_provider =
             PskProvider::initialize(mocked_kms_client(), KMS_KEY_ARN_A.to_owned(), |_| {})
                 .await
@@ -292,7 +290,7 @@ mod tests {
 
         // call poll update to get our initial state for "this_epoch"
         secret_state
-            .poll_update(this_epoch, &client, smoothing_factor, &|_| {})
+            .poll_update(this_epoch, &client, &|_| {})
             .await?;
         let available = secret_state.available_epochs();
         assert_eq!(available.len(), 3);
@@ -303,7 +301,7 @@ mod tests {
 
         // a second call should be idempotent, no time has passed
         secret_state
-            .poll_update(this_epoch, &client, smoothing_factor, &|_| {})
+            .poll_update(this_epoch, &client, &|_| {})
             .await?;
         assert_eq!(secret_state.available_epochs(), available);
         assert_eq!(secret_state.current_secret(), current_epoch_secret);
@@ -315,7 +313,7 @@ mod tests {
         // 3. drop the old one
         this_epoch += 1;
         secret_state
-            .poll_update(this_epoch, &client, smoothing_factor, &|_| {})
+            .poll_update(this_epoch, &client, &|_| {})
             .await?;
         assert_eq!(secret_state.available_epochs().len(), available.len());
         assert!(secret_state
@@ -328,7 +326,7 @@ mod tests {
         // time skips are gracefully handled
         this_epoch += 2;
         secret_state
-            .poll_update(this_epoch, &client, smoothing_factor, &|_| {})
+            .poll_update(this_epoch, &client, &|_| {})
             .await?;
         assert_eq!(secret_state.available_epochs().len(), 3);
         assert!(secret_state.available_epochs().contains(&this_epoch));
@@ -356,7 +354,6 @@ mod tests {
 
     #[tokio::test]
     async fn poll_update_with_failure() {
-        let smoothing_factor = epoch_schedule::smoothing_factor();
         let error_count = Arc::new(AtomicUsize::new(0));
         let notification_fn = {
             let error_count = Arc::clone(&error_count);
@@ -374,6 +371,7 @@ mod tests {
             })
             .times(4)
             .error(|| GenerateMacError::unhandled("MockedFailure"))
+            .times(4)
             .build();
         let kms_client = mock_client!(aws_sdk_kms, [&rule]);
 
@@ -386,34 +384,114 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(rule.num_calls(), 3);
-
-        let current_epoch = epoch_schedule::current_epoch();
+        let mut current_epoch = epoch_schedule::current_epoch();
 
         // we successfully fetch the secret, the error count should be 0
+        current_epoch += 1;
         psk_provider
             .secret_state
-            .poll_update(
-                current_epoch + 1,
-                &kms_client,
-                smoothing_factor,
-                &notification_fn,
-            )
+            .poll_update(current_epoch, &kms_client, &notification_fn)
             .await
             .unwrap();
         assert_eq!(error_count.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            psk_provider.secret_state.available_epochs(),
+            vec![current_epoch, current_epoch + 1, current_epoch + 2]
+        );
+        assert_eq!(
+            psk_provider
+                .secret_state
+                .current_secret
+                .read()
+                .unwrap()
+                .key_epoch,
+            current_epoch
+        );
 
         // we fail to fetch the secret, the error count should be 1
+        current_epoch += 1;
         psk_provider
             .secret_state
-            .poll_update(
-                current_epoch + 2,
-                &kms_client,
-                smoothing_factor,
-                &notification_fn,
-            )
+            .poll_update(current_epoch, &kms_client, &notification_fn)
             .await
             .unwrap_err();
         assert_eq!(error_count.load(Ordering::SeqCst), 1);
         assert_eq!(rule.num_calls(), 5);
+        // we failed to fetch the latest secret
+        assert_eq!(
+            psk_provider.secret_state.available_epochs(),
+            vec![current_epoch, current_epoch + 1]
+        );
+        assert_eq!(
+            psk_provider
+                .secret_state
+                .current_secret
+                .read()
+                .unwrap()
+                .key_epoch,
+            current_epoch
+        );
+
+        // The cases below assert that when we fail to fetch new secrets, a best
+        // effort is made using the last secret we fetched.
+        current_epoch += 1;
+        psk_provider
+            .secret_state
+            .poll_update(current_epoch, &kms_client, &notification_fn)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            psk_provider.secret_state.available_epochs(),
+            vec![current_epoch]
+        );
+        assert_eq!(
+            psk_provider
+                .secret_state
+                .current_secret
+                .read()
+                .unwrap()
+                .key_epoch,
+            current_epoch
+        );
+
+        current_epoch += 1;
+        psk_provider
+            .secret_state
+            .poll_update(current_epoch, &kms_client, &notification_fn)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            psk_provider.secret_state.available_epochs(),
+            vec![current_epoch - 1]
+        );
+        assert_eq!(
+            psk_provider
+                .secret_state
+                .current_secret
+                .read()
+                .unwrap()
+                .key_epoch,
+            current_epoch - 1
+        );
+
+        current_epoch += 1;
+        psk_provider
+            .secret_state
+            .poll_update(current_epoch, &kms_client, &notification_fn)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            psk_provider.secret_state.available_epochs(),
+            vec![current_epoch - 2]
+        );
+        assert_eq!(
+            psk_provider
+                .secret_state
+                .current_secret
+                .read()
+                .unwrap()
+                .key_epoch,
+            current_epoch - 2
+        );
     }
 }
