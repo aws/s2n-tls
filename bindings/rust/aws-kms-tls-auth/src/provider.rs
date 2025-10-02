@@ -124,7 +124,7 @@ impl ProviderSecrets {
         }
 
         match epoch_schedule::until_epoch_start(current_epoch + 1) {
-            Some(duration) => duration + Duration::from_secs(60),
+            Some(duration) => duration + ROTATION_CUSHION,
             None => {
                 // the next epoch has already started. This might be the case if
                 // the fetch happened late in the epoch and had high latency.
