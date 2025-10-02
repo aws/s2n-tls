@@ -19,7 +19,7 @@ use std::{
 /// If we slept for exactly 1800 seconds and checked the system clock again, epoch
 /// n might not have started because System Clocks may be corrected, unreliable, etc.
 ///
-/// This cushion reduces the changes of that happening.
+/// This cushion reduces the chances of that happening.
 const ROTATION_CUSHION: Duration = Duration::from_secs(60);
 
 #[derive(Debug)]
