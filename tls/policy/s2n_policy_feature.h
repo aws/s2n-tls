@@ -153,3 +153,32 @@ struct s2n_security_policy *s2n_security_policy_build(struct s2n_security_policy
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 int s2n_security_policy_free(struct s2n_security_policy **policy);
+
+typedef enum {
+    /** Applying this rule ensures that a security policy can negotiate PQ options. */
+    S2N_POLICY_RULE_PQ = 1,
+} s2n_security_policy_rule;
+
+typedef enum {
+    /**
+     * Requires that a policy support TLS1.3.
+     * Adds:
+     * - Support for hybrid MLKEM key exchange
+     * - Support for MLDSA certificates and signatures.
+     */
+    S2N_RULE_PQ_2025_08_20 = 1,
+    S2N_RULE_PQ_LATEST = S2N_RULE_PQ_2025_08_20,
+} s2n_pq_rule_version;
+
+/**
+ * Apply a rule that modifies the policy created by the builder.
+ * 
+ * Rules currently may add or remove options from the security policy.
+ *
+ * @param builder The security policy builder
+ * @param rule The rule to apply
+ * @param version The specific, fixed version of the rule to apply
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+int s2n_security_policy_builder_set_rule(struct s2n_security_policy_builder *builder,
+        s2n_security_policy_rule rule, uint64_t version);
