@@ -55,3 +55,7 @@ libc = "0.2.121"
 
 [build-dependencies]
 cc = { version = "1.0.100", features = ["parallel"] }
+
+[dev-dependencies]
+# newer versions require 1.81
+home = "=0.5.9"
