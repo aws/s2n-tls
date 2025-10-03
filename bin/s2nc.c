@@ -48,6 +48,10 @@
 #define OPT_SERIALIZE_OUT      1008
 #define OPT_DESERIALIZE_IN     1009
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 /* This should match the final cert in the s2nd default_certificate_chain */
 const char default_trusted_cert[] =
         "-----BEGIN CERTIFICATE-----"

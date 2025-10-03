@@ -22,6 +22,11 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X,Y) (((X) > (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer *stuffer)
 {
     /**

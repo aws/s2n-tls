@@ -34,6 +34,10 @@
 
 #define STDIO_BUFSIZE 10240
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 const char *sig_alg_strs[] = {
     [S2N_TLS_SIGNATURE_ANONYMOUS] = "None",
     [S2N_TLS_SIGNATURE_RSA] = "RSA",

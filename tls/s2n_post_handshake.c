@@ -21,6 +21,10 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);

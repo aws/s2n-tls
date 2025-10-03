@@ -35,6 +35,10 @@
     _##name##_record_alg.encryption_limit = limit;                       \
     name.record_alg = &_##name##_record_alg;
 
+#if defined(__QNX__)
+    #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
+#endif
+
 S2N_RESULT s2n_set_key_update_request_for_testing(s2n_peer_key_update request);
 
 static void *s2n_send_random_data(void *arg)
