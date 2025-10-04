@@ -52,7 +52,7 @@ int main(int argc, char *const *argv)
         s2n_cleanup();
         exit(1);
     }
-    s2n_cleanup();
 
+    s2n_cleanup();
     return 0;
 }

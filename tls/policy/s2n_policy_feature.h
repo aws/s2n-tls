@@ -159,8 +159,6 @@ int s2n_security_policy_free(struct s2n_security_policy **policy);
  */
 typedef enum {
     /**
-     * FORMAT_V1: Human-readable structured format
-     * 
      * Produces structured output with the following sections:
      * - min version: <minimum_protocol_version>
      * - rules:
