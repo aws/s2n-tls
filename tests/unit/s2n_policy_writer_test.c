@@ -21,8 +21,6 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/policy/s2n_policy_feature.h"
 
-DEFINE_POINTER_CLEANUP_FUNC(char *, unlink);
-
 static S2N_RESULT s2n_verify_format_v1_output(const char *output)
 {
     RESULT_ENSURE_REF(output);
@@ -204,23 +202,19 @@ int main(int argc, char **argv)
             uint32_t expected_length = 0;
             EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &expected_length));
 
-            /* Create a temp file */
-            char temp_filename[] = "/tmp/s2n_policy_test_XXXXXX";
-            int temp_fd = mkstemp(temp_filename);
-            EXPECT_TRUE(temp_fd >= 0);
-            DEFER_CLEANUP(char *temp_filename_ptr = temp_filename, unlink_pointer);
+            /* Use io_pair, which provides fds, to avoid filesystem dependencies in unit tests. */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
-            EXPECT_SUCCESS(s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, temp_fd));
-            EXPECT_SUCCESS(close(temp_fd));
-
-            /* Read file content back */
-            FILE *file = fopen(temp_filename_ptr, "r");
-            EXPECT_NOT_NULL(file);
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, io_pair.client));
+            EXPECT_SUCCESS(close(io_pair.client));
             DEFER_CLEANUP(struct s2n_blob file_buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&file_buffer, expected_length + 1));
-            size_t bytes_read = fread(file_buffer.data, 1, expected_length, file);
-            EXPECT_EQUAL(bytes_read, expected_length);
-            EXPECT_EQUAL(fclose(file), 0);
+
+            ssize_t bytes_read = read(io_pair.server, file_buffer.data, expected_length);
+            EXPECT_TRUE(bytes_read >= 0);
+            EXPECT_EQUAL((size_t) bytes_read, expected_length);
+            file_buffer.data[expected_length] = '\0';
 
             EXPECT_OK(s2n_verify_format_v1_output((const char *) file_buffer.data));
         };

@@ -178,7 +178,6 @@ int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
 
     POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
 
-    /* Write the buffer to the file descriptor */
     uint32_t data_size = s2n_stuffer_data_available(&stuffer);
     ssize_t written = write(fd, stuffer.blob.data, data_size);
     POSIX_ENSURE(written == (ssize_t) data_size, S2N_ERR_IO);
