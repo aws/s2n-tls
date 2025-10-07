@@ -12,7 +12,7 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG FALSE)
 
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
