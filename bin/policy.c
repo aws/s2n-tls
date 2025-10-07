@@ -48,7 +48,8 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, STDOUT_FILENO) != S2N_SUCCESS) {
+    uint32_t output_size = 0;
+    if (s2n_security_policy_write_fd(policy, S2N_POLICY_FORMAT_DEBUG_V1, STDOUT_FILENO, &output_size) != S2N_SUCCESS) {
         s2n_cleanup();
         exit(1);
     }

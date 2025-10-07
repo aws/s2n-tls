@@ -147,10 +147,12 @@ int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
 }
 
 int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
-        s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length)
+        s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length, uint32_t *output_size)
 {
     POSIX_ENSURE_REF(policy);
     POSIX_ENSURE_REF(buffer);
+    POSIX_ENSURE_REF(output_size);
+    *output_size = 0;
 
     /* Intermediate stuffer is needed because s2n_stuffer_printf requires temporary space for null 
      * terminators. We cannot write directly to application memory which may not have the extra byte
@@ -163,15 +165,17 @@ int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
     POSIX_ENSURE(buffer_length >= required_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
     POSIX_CHECKED_MEMCPY(buffer, stuffer.blob.data, required_size);
-
+    *output_size = s2n_stuffer_data_available(&stuffer);
     return S2N_SUCCESS;
 }
 
 int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
-        s2n_policy_format format, int fd)
+        s2n_policy_format format, int fd, uint32_t *output_size)
 {
     POSIX_ENSURE_REF(policy);
+    POSIX_ENSURE_REF(output_size);
     POSIX_ENSURE(fd >= 0, S2N_ERR_INVALID_ARGUMENT);
+    *output_size = 0;
 
     DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
     POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
@@ -182,5 +186,6 @@ int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
     ssize_t written = write(fd, stuffer.blob.data, data_size);
     POSIX_ENSURE(written == (ssize_t) data_size, S2N_ERR_IO);
 
+    *output_size = (uint32_t) written;
     return S2N_SUCCESS;
 }
