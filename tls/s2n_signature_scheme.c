@@ -738,3 +738,29 @@ const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips =
     .count = s2n_array_len(s2n_sig_scheme_pref_list_test_all_fips),
     .signature_schemes = s2n_sig_scheme_pref_list_test_all_fips,
 };
+
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250930[] = {
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 without SHA224 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+
+    /* ECDSA without SHA224 */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20250930 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20250930),
+    .signature_schemes = s2n_sig_scheme_pref_list_20250930,
+};
+
