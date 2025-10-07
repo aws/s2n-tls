@@ -51,6 +51,10 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
         const struct iovec *in, int in_count, size_t offs, size_t to_write);
 int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type);
+S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_requested);
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn);
+S2N_RESULT s2n_ktls_set_estimated_sequence_number(struct s2n_connection *conn, size_t bytes_written);
+S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested);
 
 /* Testing */
 typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name, const void *option_value,
