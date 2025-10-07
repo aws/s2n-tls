@@ -143,7 +143,7 @@ impl ProviderSecrets {
             None => {
                 // the next epoch has already started. This might be the case if
                 // the fetch happened late in the epoch and had high latency.
-                ONE_HOUR
+                Duration::from_secs(0)
             }
         }
     }
