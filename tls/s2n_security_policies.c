@@ -319,21 +319,21 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2019_08 = {
 };
 
 const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_ONLY_2025_09 = {
-	.minimum_protocol_version = S2N_TLS13,
-	.cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
-	.kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-	.signature_preferences = &s2n_signature_preferences_20250930,
-	.certificate_signature_preferences = &s2n_signature_preferences_20250930,
-	.ecc_preferences = &s2n_ecc_preferences_null,
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250930,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
+    .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_ONLY_2025_09 = {
-	.minimum_protocol_version = S2N_TLS13,
-	.cipher_preferences = &elb_security_policy_tls13_1_3_FIPS_2023_04,
-	.kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-	.signature_preferences = &s2n_signature_preferences_20250930,
-	.certificate_signature_preferences = &s2n_signature_preferences_20250930,
-	.ecc_preferences = &s2n_ecc_preferences_null,
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250930,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
+    .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
 /* CloudFront upstream */

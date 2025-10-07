@@ -17,13 +17,12 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-bool s2n_test_pq_kem_is_negotiated(struct s2n_connection *conn)
+bool s2n_test_pq_kem_is_negotiated(struct s2n_connection *conn, const struct s2n_kem_preferences *expect_kem_groups)
 {
     EXPECT_NOT_NULL(conn);
+    /* Classical ECC is not negotiated. */
     EXPECT_EQUAL(conn->kex_params.server_ecc_evp_params.negotiated_curve, NULL);
-
     const struct s2n_kem_group *server_kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    const struct s2n_kem_preferences *expect_kem_groups = &kem_preferences_pq_tls_1_3_ietf_2025_07;
 
     for (size_t i = 0; i < expect_kem_groups->tls13_kem_group_count; i++) {
         if (expect_kem_groups->tls13_kem_groups[i] == server_kem_group) {
@@ -51,7 +50,14 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policies[version_index]));
+
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policies[version_index]));
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policies[version_index]),
+                    S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            continue;
+        }
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -68,12 +74,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
+        const struct s2n_kem_preferences *expect_kem_groups = &kem_preferences_pq_tls_1_3_ietf_2025_07;
+        uint32_t groups_available = 0;
+        EXPECT_OK(s2n_kem_preferences_groups_available(expect_kem_groups, &groups_available));
+
         if (!s2n_pq_is_enabled()) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
+        } else if (groups_available == 0) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         } else {
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-            EXPECT_TRUE(s2n_test_pq_kem_is_negotiated(server_conn));
+            EXPECT_TRUE(s2n_test_pq_kem_is_negotiated(server_conn, expect_kem_groups));
         }
     }
 
