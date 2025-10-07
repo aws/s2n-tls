@@ -763,4 +763,3 @@ const struct s2n_signature_preferences s2n_signature_preferences_20250930 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20250930),
     .signature_schemes = s2n_sig_scheme_pref_list_20250930,
 };
-
