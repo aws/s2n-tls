@@ -223,6 +223,7 @@ int main(int argc, char **argv)
         struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
 
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
@@ -281,6 +282,7 @@ int main(int argc, char **argv)
         struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
 
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);

@@ -311,3 +311,6 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 
 bool s2n_is_seccomp_supported();
 S2N_RESULT s2n_seccomp_init();
+
+S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config);
+S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *connection);
