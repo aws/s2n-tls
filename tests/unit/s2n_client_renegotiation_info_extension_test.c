@@ -34,6 +34,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Test receive - too much data */
@@ -131,10 +132,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
 
         /* Process the client hello on the server */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -171,10 +174,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
 
         /* s2n-tls clients do not send the "renegotiation_info" extension.
          * Instead, they send the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite.
@@ -294,8 +299,10 @@ int main(int argc, char **argv)
          */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);            
             EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
+
             conn->secure_renegotiation = true;
             conn->handshake.renegotiation = true;
 
@@ -396,11 +403,13 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
         client_conn->handshake.renegotiation = false;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
         server_conn->handshake.renegotiation = true;
         server_conn->secure_renegotiation = true;
 
@@ -428,6 +437,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
         client_conn->secure_renegotiation = true;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),

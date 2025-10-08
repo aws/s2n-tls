@@ -23,6 +23,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 int main()
@@ -34,6 +35,7 @@ int main()
     {
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         /* ecc extensions are required for the default config */
         EXPECT_TRUE(s2n_client_supported_groups_extension.should_send(conn));
@@ -48,6 +50,7 @@ int main()
     {
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));

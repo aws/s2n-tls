@@ -18,6 +18,7 @@
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "tls/s2n_connection.h"
+#include "testlib/s2n_testlib.h"
 
 #define RANDOM_ERRNO 150
 
@@ -46,6 +47,7 @@ int main(int argc, char **argv)
     /* Non-retriable errnos in io are not overwritten by retriable errnos */
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         /* Set custom recv/send callbacks. */
         EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, &fake_recv));
@@ -66,6 +68,7 @@ int main(int argc, char **argv)
      * reset for the system call. */
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         /* Set errno to a random value */
         errno = RANDOM_ERRNO;
