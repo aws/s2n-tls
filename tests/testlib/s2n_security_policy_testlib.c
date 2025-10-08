@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_testlib.h"
 #include "crypto/s2n_fips.h"
+#include "s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
@@ -48,7 +48,6 @@ S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config)
         RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "20240502"));
     } else {
         RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "20240501"));
-
     }
     return S2N_RESULT_OK;
 }
@@ -59,8 +58,6 @@ S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *conne
         RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(connection, "20240502"));
     } else {
         RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(connection, "20240501"));
-
     }
     return S2N_RESULT_OK;
-
 }

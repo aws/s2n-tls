@@ -771,7 +771,7 @@ int main(int argc, char **argv)
         uint32_t length = 0;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));     
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));

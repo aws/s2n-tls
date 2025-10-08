@@ -17,8 +17,8 @@
 
 #include "api/s2n.h"
 #include "s2n_test.h"
-#include "tls/s2n_connection.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_connection.h"
 
 #define RANDOM_ERRNO 150
 

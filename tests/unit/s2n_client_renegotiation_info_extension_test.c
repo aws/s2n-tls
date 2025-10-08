@@ -299,7 +299,7 @@ int main(int argc, char **argv)
          */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);            
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
