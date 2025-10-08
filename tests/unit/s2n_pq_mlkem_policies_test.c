@@ -207,7 +207,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         const char *policy = pq_only_policies[version_index];
-        s2n_error config_error = s2n_is_tls13_fully_supported()? S2N_ERR_INVALID_SECURITY_POLICY:
+        s2n_error config_error = s2n_is_tls13_fully_supported() ?
+                S2N_ERR_INVALID_SECURITY_POLICY :
                 S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED;
 
         if (s2n_is_tls13_fully_supported() && s2n_pq_is_enabled()) {

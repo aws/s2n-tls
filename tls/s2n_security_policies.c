@@ -1628,7 +1628,7 @@ int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_s
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     /* Expect a PQ only policy when ecc_preferences is empty. */
-    if (security_policy->ecc_preferences->count == 0) {
+    if (security_policy != &security_policy_null && security_policy->ecc_preferences->count == 0) {
         POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
