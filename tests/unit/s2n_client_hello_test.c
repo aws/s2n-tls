@@ -199,14 +199,14 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(extension.data);
 
         /* Succeeds with extension exists with payload */
-        extension = (struct s2n_blob) { 0 };
+        extension = (struct s2n_blob){ 0 };
         EXPECT_OK(s2n_client_hello_get_raw_extension(0xFF00, &raw_extension, &extension));
         EXPECT_EQUAL(extension.size, 2);
         EXPECT_NOT_NULL(extension.data);
         EXPECT_BYTEARRAY_EQUAL(extension.data, &data[4], 2);
 
         /* Failed with extension not exist */
-        extension = (struct s2n_blob) { 0 };
+        extension = (struct s2n_blob){ 0 };
         EXPECT_OK(s2n_client_hello_get_raw_extension(0xFFFF, &raw_extension, &extension));
         EXPECT_EQUAL(extension.size, 0);
         EXPECT_NULL(extension.data);
