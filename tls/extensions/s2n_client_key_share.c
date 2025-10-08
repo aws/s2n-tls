@@ -67,6 +67,11 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
+    /* Skip sending classical ECC curves for PQ only policies. */
+    if (ecc_pref->count == 0) {
+        return S2N_SUCCESS;
+    }
+
     /* We only ever send a single EC key share: either the share requested by the server
      * during a retry, or the most preferred share according to local preferences.
      */
@@ -204,21 +209,12 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
         POSIX_ENSURE(server_curve != client_curve || server_group != client_group, S2N_ERR_BAD_KEY_SHARE);
     }
 
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
     struct s2n_stuffer_reservation shares_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
     POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
-
-    if (ecc_pref->count == 0) {
-        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
-    } else {
-        POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
-    }
-
+    POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
+
     /* We must have written at least one share */
     POSIX_ENSURE(s2n_stuffer_data_available(out) > shares_size.length, S2N_ERR_BAD_KEY_SHARE);
 

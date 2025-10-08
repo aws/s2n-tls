@@ -35,8 +35,6 @@ Post-quantum algorithms are enabled by configuring a security policy (see [Secur
 
 "default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.
 
-To specify a PQ only policy, do not include any classical ECC curves (i.e. ecc_preferences should be empty). PQ only policies must be used with libcryptos that support TLS 1.3 and PQ kem groups.
-
 Other available PQ policies are compared in the tables below.
 
 ### Chart: Security Policy Version To PQ Hybrid Key Exchange Methods (ML-KEM)

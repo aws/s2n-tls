@@ -191,5 +191,52 @@ int main(int argc, char **argv)
         }
     }
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    const char *pq_only_policies[] = {
+        "ELBSecurityPolicy-TLS13-1-3-PQ-ONLY-2025-09",
+        "ELBSecurityPolicy-TLS13-1-3-FIPS-PQ-ONLY-2025-09",
+    };
+
+    for (int version_index = 0; version_index < s2n_array_len(pq_only_policies); version_index++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+        const char *policy = pq_only_policies[version_index];
+        s2n_error config_error = s2n_is_tls13_fully_supported()? S2N_ERR_INVALID_SECURITY_POLICY:
+                S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED;
+
+        if (s2n_is_tls13_fully_supported() && s2n_pq_is_enabled()) {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policy));
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), config_error);
+            continue;
+        }
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        /* Assert classical ECC is not negotiated & kem group is negotiated. */
+        EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+    }
+
     END_TEST();
 }

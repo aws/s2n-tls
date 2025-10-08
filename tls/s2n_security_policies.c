@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_pq.h"
 #include "api/s2n.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
@@ -334,6 +335,10 @@ const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_ONLY_2025
     .signature_preferences = &s2n_signature_preferences_20250930,
     .certificate_signature_preferences = &s2n_signature_preferences_20250930,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
 };
 
 /* CloudFront upstream */
@@ -1622,6 +1627,11 @@ int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_s
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* Expect a PQ only policy when ecc_preferences is empty. */
+    if (security_policy->ecc_preferences->count == 0) {
+        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_INVALID_SECURITY_POLICY);
+    }
+
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
     config->security_policy = security_policy;
@@ -1684,7 +1694,7 @@ int s2n_security_policies_init()
 
         if (security_policy != &security_policy_null) {
             /* All policies must have at least one ecc curve or PQ kem group configured. */
-            S2N_ERROR_IF(ecc_preference->count + kem_preference->tls13_kem_group_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            POSIX_ENSURE(ecc_preference->count + kem_preference->tls13_kem_group_count > 0, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
