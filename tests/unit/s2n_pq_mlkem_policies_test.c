@@ -196,8 +196,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     const char *pq_only_policies[] = {
-        "ELBSecurityPolicy-TLS13-1-3-PQ-ONLY-2025-09",
-        "ELBSecurityPolicy-TLS13-1-3-FIPS-PQ-ONLY-2025-09",
+        "test_pq_only",
     };
 
     for (int version_index = 0; version_index < s2n_array_len(pq_only_policies); version_index++) {
@@ -233,7 +232,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* The testing policies require ML-KEM; expect failure when running on libcryptos not supporting ML-KEM. */
+        /* If testing policy requires ML-KEM, expect failure when running on libcryptos not supporting ML-KEM. */
         if (s2n_libcrypto_supports_mlkem()) {
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             /* Assert classical ECC is not negotiated & kem group is negotiated. */

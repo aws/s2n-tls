@@ -1035,16 +1035,6 @@ const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_2021_06 = {
     .suites = cipher_suites_elb_security_policy_tls13_1_3_2021_06,
 };
 
-struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04[] = {
-    &s2n_tls13_aes_128_gcm_sha256,
-    &s2n_tls13_aes_256_gcm_sha384,
-};
-
-const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_FIPS_2023_04 = {
-   .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04),
-   .suites = cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04,
-};
-
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,

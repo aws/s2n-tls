@@ -319,28 +319,6 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2019_08 = {
     },
 };
 
-const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_ONLY_2025_09 = {
-    .minimum_protocol_version = S2N_TLS13,
-    .cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20250930,
-    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
-    .ecc_preferences = &s2n_ecc_preferences_null,
-};
-
-const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_ONLY_2025_09 = {
-    .minimum_protocol_version = S2N_TLS13,
-    .cipher_preferences = &elb_security_policy_tls13_1_3_FIPS_2023_04,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20250930,
-    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
-    .ecc_preferences = &s2n_ecc_preferences_null,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-            [S2N_FIPS_140_3] = true,
-    },
-};
-
 /* CloudFront upstream */
 const struct s2n_security_policy security_policy_cloudfront_upstream = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -1397,6 +1375,15 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     },
 };
 
+const struct s2n_security_policy security_policy_test_pq_only = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250930,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
+    .ecc_preferences = &s2n_ecc_preferences_null,
+};
+
 const struct s2n_security_policy security_policy_20200207 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls13,
@@ -1456,8 +1443,6 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "ELBSecurityPolicy-FS-1-2-2019-08", .security_policy = &security_policy_elb_fs_1_2_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-FS-1-1-2019-08", .security_policy = &security_policy_elb_fs_1_1_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy = &security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "ELBSecurityPolicy-TLS13-1-3-PQ-ONLY-2025-09", .security_policy = &security_policy_elb_tls13_1_3_PQ_ONLY_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "ELBSecurityPolicy-TLS13-1-3-FIPS-PQ-ONLY-2025-09", .security_policy = &security_policy_elb_tls13_1_3_FIPS_PQ_ONLY_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream", .security_policy = &security_policy_cloudfront_upstream, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-0", .security_policy = &security_policy_cloudfront_upstream_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-1", .security_policy = &security_policy_cloudfront_upstream_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1570,6 +1555,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "test_ecdsa_priority", .security_policy = &security_policy_test_ecdsa_priority, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_tls12", .security_policy = &security_policy_test_all_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_tls13", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_pq_only", .security_policy = &security_policy_test_pq_only, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "null", .security_policy = &security_policy_null, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = NULL, .security_policy = NULL, .ecc_extension_required = 0, .pq_kem_extension_required = 0 }
 };
@@ -1694,7 +1680,9 @@ int s2n_security_policies_init()
 
         if (security_policy != &security_policy_null) {
             /* All policies must have at least one ecc curve or PQ kem group configured. */
-            POSIX_ENSURE(ecc_preference->count + kem_preference->tls13_kem_group_count > 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            bool ecc_kx_supported = ecc_preference->count > 0;
+            bool pq_kx_supported = kem_preference->tls13_kem_group_count > 0;
+            POSIX_ENSURE(ecc_kx_supported || pq_kx_supported, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
