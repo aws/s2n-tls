@@ -2,41 +2,89 @@
 
 This crate provides a way to perform TLS authentication using the AWS Key Management Service (KMS) and Identity and Access Management (IAM). The only supported TLS implementation is currently [s2n-tls](https://github.com/aws/s2n-tls), but if you are interested in support for other TLS implementations please open a [github issue](https://github.com/aws/s2n-tls/issues/new/choose).
 
-## Overview
+Clients use the [generateMAC](https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateMac.html) API to create a secret shared across the fleet. Clients then derive a unique secret for each connection, which the server is able to retrieve based on the PSKIdentity. The TLS connection then proceeds using the TLS 1.3 out-of-band PSK mechanism. Other TLS protocols are not supported. 
 
-Clients use the [generateDataKey](https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html) API to create a PSK with KMS. The ciphertext datakey is used as the PSK identity, which the server can then [decrypt](https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html). This PSK exchange is done using the TLS 1.3 out-of-band PSK mechanism. Other TLS protocols are not supported. 
+The authenticated property is "the peer has kms:GenerateMac permissions on the KMS HMAC Key".
 
-## Description
+Note that this library is a data-plane dependency on KMS. If KMS is down for more than 24 hours, handshakes will fail.
 
-### 0: setup
-We start with 
-- clients: all clients are configured with some IAM role, `client-iam-role`
-- servers: all servers are configured with some IAM role, `server-iam-role`.
-- kms-key-arn: a [KMS Key Arn](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-ARN), which will look like `arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab`.
-    - `client-iam-role` must have `kms:GenerateDataKey` permissions on the key
-    - `server-iam-role` must have `kms:Decrypt` permissions on the key
+# infrastructure setup
+- KMS HMAC Key: Library users must provision a [KMS HMAC key](https://docs.aws.amazon.com/kms/latest/developerguide/hmac.html) using an [HMAC_384](https://docs.aws.amazon.com/kms/latest/developerguide/symm-asymm-choose-key-spec.html#hmac-key-specs) key spec.
+- IAM Role: clients and servers must be configured with an IAM role that has `kms:GenerateMac` permissions on the created HMAC key.
+- Rotation Failure Notification: Applications must supply a "failure notification" closure to the `PskProvider` and `PskReceiver`. This closure is invoked whenever there is a failure to rotate the epoch secret. Customers should alarm on this value. If a rotation fails, rotation will be reattempted in 1 hour. If rotation fails for 24 hours, handshakes will then fail.
 
-### 1: client psk generation
-When the `PskProvider` is initialized, the client will call the KMS generateDataKey api. This returns both a plaintext data key and a ciphertext datakey. The client will create a PSK using the ciphertext datakey as the PSK identity, and the plaintext datakey as the PSK secret.
+# High Level Design
 
-### 2: server psk decrypt
-The client sends the PSK to the server, which gives it access to the PSK identity (ciphertext datakey). The server then decrypts the ciphertext datakey using KMS, getting back the plaintext datakey which is the actual PSK secret.
+There are three components to this design
 
-At this point the handshake can complete. This results in an mTLS connection between the `client-iam-role` and `server-iam-role`.
+* epoch_secret: This is derived from the KMS HMAC key, and is shared across the fleet. Rotated daily
+* PSK Secret: This is derived from the epoch_secret and a unique nonce. This is unique per-connection
+* PSK Identity: This is a plaintext identifier that is sent from the client to the server. unique per-connection.
 
-### Caching
-The server will cache plaintext datakeys. The first connection between a client and server will result in a KMS Decrypt API call, but future TLS handshakes between that same client and server will use the cached key.
+### Daily Secret
 
-### Rotation
-The client will automatically rotate its PSK every 24 hours.
+The daily secret is generated using the KMS [GenerateMac](https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateMac.html) API. The message that the MAC is derived over will be an 8 bytes string of the days elapsed since the unix epoch. The HMAC algorithm will be selected to match the HMAC algorithm used in the underlying TLS protocol. This is not customer configurable, and will use `HMAC_SHA_384`.
 
-## Authentication
-When the handshake is complete there is a mutually authenticated connection where 
-- the client knows that the server has `kms:Decrypt` permissions on the used KMS Key ARN.
-- the server knows that the client has `kms:GenerateDataKey` permissions on one of the trusted KMS Key ARNs.
+```rust
+const KEY_PURPOSE: &[u8]: "aws-kms-tls-auth-daily-secret"
 
-For this reason, it is important to configure the key with minimal permissions. If you only want mTLS to be allowed between `client-iam-role` as a client and `server-iam-role` as a server, then `client-iam-role` must be the only IAM identity with `kms:GenerateDataKey` permissions on the KMS key, and `server-iam-role` must be the only IAM identity with `kms:Decrypt` permissions on the key.
+let key_epoch: u64 = seconds_since_unix_epoch() / (3_600 * 24)
+let message = concat(key_epoch, KEY_PURPOSE)
 
-While it is possible to configure multiple client roles with `kms:GenerateDataKey` permissions so the server will trust multiple identities, the server will not authenticate the specific client identity.
+let epoch_secret: Vec<u8> = kms.generate_mac(
+    key_id: KEY_ID,
+    mac_algorithm: HMAC_SHA_384
+    message: message,
+)
+```
 
-**Example**: `client-iam-role-A` and `client-iam-role-B` are the only identities with `kms:GenerateDataKey` permissions on a trusted KMS Key ARN. If the server successfully handshakes then it is talking to `client-iam-role-A` OR `client-iam-role-B`, but it does not know which one. 
+### PSK Secret
+
+First, the client will generate a random session_name to be used as a nonce. `session_name` will be 32 bytes long. This will be used along with `epoch_secret` in HKDF to derive the connection-specific secret. The digest used will match that used in the KMS HMAC and the underlying TLS protocol - SHA384.
+
+```rust
+let session_name: [u8; 32] = random_bytes();
+let psk_secret = HKDF(
+    secret: epoch_secret,
+    info: session_name,
+    salt: null,
+)
+```
+
+### PSK Identity
+
+The PSK identity is sent in plaintext in the client hello.
+
+Note that we support a server trusting multiple KMS HMAC keys. This is necessary to allow for customers to manually rotate KMS keys in response to extraordinary circumstances without availability impact.
+
+If a server trusts both `keyA` and `keyB`, then the client will need to communicate which key it used to derive it’s PSK. The naive solution would be to just include `keyA` or `keyB` in plaintext in the PSK Identity. However, this would leak information about “fleet membership”, because it is sent in the clear. Ideally, the PSK identity would not leak this information.
+
+To do this we calculate a `kms_key_binder` which incorporates the 
+
+* kms key arn: the key that was used to generate the daily secret
+* session_name: this makes the kms key binder unique per connection, preventing information from being correlated across multiple connections from a single client.
+* epoch_secret: without secret information, then an attacker would be able to calculate whether the kms_key_binder is valid for some specific key, because the `session_name` is public information.
+
+```rust
+KMS_KEY_ARN: Vec<u8> = "arn:123456789:iw78his7w3hg4if7g";
+
+let kms_key_binder: Vec<u8> = HKDF(
+    secret: epoch_secret,
+    info: KMS_KEY_ARN,
+    salt: session_name
+)
+
+let psk_identity = concat(key_epoch, session_name, kms_key_binder)
+```
+
+### Server Flow
+
+Upon a receiving a PSK identity, the server will parse out `key_epoch`, `session_name`, and the `kms_key_binder`.
+
+Then for each KMS HMAC Key that it trusts, it would repeat the PSK secret and PSK identity derivation process. If one of the derived PSK identities matches the client’s PSK identity, then that will be the PSK used in the connection. If no PSK identities match, then the connection is rejected and the handshake will fail.
+
+### Material Disclosure Impact
+
+If an attacker obtains an epoch secret, then they will be able to impersonate a server or a client. They can not decrypt any conversations between other peers, because TLS 1.3 PSK authentication performs an additional DHE key exchange.
+
+If an attacker obtains a connection specific secret, then they will be able impersonate a client to any server. They will not be able to impersonate a server, or decrypt any client communications.
