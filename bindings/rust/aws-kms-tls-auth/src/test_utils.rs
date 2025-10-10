@@ -1,10 +1,25 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::{
+    epoch_schedule,
+    psk_derivation::{EpochSecret, PskIdentity},
+    psk_parser::retrieve_psk_identities,
+    DecodeValue,
+};
+use aws_lc_rs::hmac;
+use aws_sdk_kms::{operation::generate_mac::GenerateMacOutput, primitives::Blob, Client};
+use aws_smithy_mocks::{mock, mock_client, Rule, RuleMode};
 use s2n_tls::{
-    callbacks::ClientHelloCallback, config::ConnectionInitializer, error::Error as S2NError,
+    callbacks::{ClientHelloCallback, ConnectionFuture},
+    config::ConnectionInitializer,
+    error::Error as S2NError,
 };
 use s2n_tls_tokio::TlsStream;
+use std::{
+    pin::Pin,
+    sync::{Arc, Mutex},
+};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -14,8 +29,66 @@ use tokio::{
 //////////////////////////    test constants   /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-pub const KMS_KEY_ARN: &str =
-    "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
+pub const KMS_KEY_ARN_A: &str =
+    "arn:aws:kms:us-west-2:111122223333:key/98179871-91827391873-918279187";
+pub const KMS_KEY_ARN_B: &str =
+    "arn:aws:kms:us-west-2:111122223333:key/abcd-lkajdlsakjdlkj-kasjhdfkjh";
+pub const KEY_A_MATERIAL: &[u8] = b"some random key bytes";
+pub const KEY_B_MATERIAL: &[u8] = b"some other random bytes";
+
+#[derive(Debug, Clone)]
+struct MockKmsKey {
+    pub arn: &'static str,
+    pub material: &'static [u8],
+}
+const KMS_KEY_A: MockKmsKey = MockKmsKey {
+    arn: KMS_KEY_ARN_A,
+    material: KEY_A_MATERIAL,
+};
+
+const KMS_KEY_B: MockKmsKey = MockKmsKey {
+    arn: KMS_KEY_ARN_B,
+    material: KEY_B_MATERIAL,
+};
+
+const MOCKED_EPOCH_COUNT: u64 = 100;
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////    mocks & fixtures   ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/// Mock the "generateMAC" operation for `key` on `message`.
+fn construct_rule(key: MockKmsKey, message: u64) -> Rule {
+    let mac = {
+        let s_key = hmac::Key::new(hmac::HMAC_SHA384, key.material);
+        let tag = hmac::sign(&s_key, &message.to_be_bytes());
+        tag.as_ref().to_vec()
+    };
+
+    let message = Blob::new(message.to_be_bytes().to_vec());
+    let mac = Blob::new(mac);
+
+    mock!(Client::generate_mac)
+        .match_requests(move |req| req.key_id() == Some(key.arn) && req.message() == Some(&message))
+        .then_output(move || GenerateMacOutput::builder().mac(mac.clone()).build())
+}
+
+/// a fake KMS client that allows MAC generation for a range of epochs.
+pub fn mocked_kms_client() -> Client {
+    let mut rules = Vec::new();
+
+    let current_epoch = epoch_schedule::current_epoch();
+
+    for epoch in (current_epoch - 5)..=(current_epoch + MOCKED_EPOCH_COUNT) {
+        for key in [KMS_KEY_A, KMS_KEY_B] {
+            rules.push(construct_rule(key, epoch));
+        }
+    }
+
+    let rule_ref: Vec<&Rule> = rules.iter().collect();
+
+    mock_client!(aws_sdk_kms, RuleMode::MatchAny, rule_ref)
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////    s2n-tls utilities   ///////////////////////////////
@@ -85,4 +158,40 @@ pub async fn handshake(
     client_result?;
 
     Ok(stream)
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct PskIdentityObserver(pub Arc<Mutex<Vec<PskIdentity>>>);
+impl s2n_tls::callbacks::ClientHelloCallback for PskIdentityObserver {
+    fn on_client_hello(
+        &self,
+        connection: &mut s2n_tls::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, S2NError> {
+        let raw_identities = retrieve_psk_identities(connection.client_hello()?).unwrap();
+        let first_identity = raw_identities.list().first().unwrap();
+        let psk_identity = PskIdentity::decode_from_exact(first_identity.identity.blob()).unwrap();
+        self.0.lock().unwrap().push(psk_identity);
+        Err(S2NError::application("nothing to handshake".into()))
+    }
+}
+
+/// Sanity check to make sure that mocking is set up correctly.
+#[tokio::test]
+async fn deterministic_fetch() {
+    let this_epoch = epoch_schedule::current_epoch();
+    let secret_a = EpochSecret::fetch_epoch_secret(
+        &mocked_kms_client(),
+        &KMS_KEY_ARN_A.to_owned(),
+        this_epoch,
+    )
+    .await
+    .unwrap();
+    let secret_b = EpochSecret::fetch_epoch_secret(
+        &mocked_kms_client(),
+        &KMS_KEY_ARN_A.to_owned(),
+        this_epoch,
+    )
+    .await
+    .unwrap();
+    assert_eq!(secret_a, secret_b);
 }

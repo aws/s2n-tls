@@ -96,14 +96,20 @@
 mod codec;
 mod epoch_schedule;
 mod prefixed_list;
+mod provider;
 mod psk_derivation;
 mod psk_parser;
 #[cfg(test)]
 pub(crate) mod test_utils;
 
 pub type KeyArn = String;
+use std::time::Duration;
+
+pub use provider::PskProvider;
 pub use psk_derivation::PskVersion;
 
 // We have "pub" use statement so these can be fuzz tested
 pub use codec::DecodeValue;
 pub use psk_parser::PresharedKeyClientHello;
+
+const ONE_HOUR: Duration = Duration::from_secs(3_600);
