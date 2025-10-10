@@ -212,6 +212,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -362,6 +363,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -437,6 +439,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -483,6 +486,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
