@@ -117,7 +117,7 @@ impl EpochSecret {
     pub const PURPOSE_LABEL: &'static [u8] = b"aws-kms-tls-auth-epoch-secret";
 
     /// Construct the message to be used by KMS for `epoch`
-    /// 
+    ///
     /// key_epoch || PURPOSE_LABEL
     pub fn construct_message(epoch: u64) -> Vec<u8> {
         let mut msg = Vec::with_capacity(8 + Self::PURPOSE_LABEL.len());
@@ -125,7 +125,7 @@ impl EpochSecret {
         msg.extend_from_slice(Self::PURPOSE_LABEL);
         msg
     }
-    
+
     /// Fetch the secret for `epoch` from KMS.
     pub async fn fetch_epoch_secret(
         kms_client: &Client,
