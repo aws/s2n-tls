@@ -57,7 +57,7 @@ The PSK identity is sent in plaintext in the client hello.
 
 Note that we support a server trusting multiple KMS HMAC keys. This is necessary to allow for customers to manually rotate KMS keys in response to extraordinary circumstances without availability impact.
 
-If a server trusts both `keyA` and `keyB`, then the client will need to communicate which key it used to derive it’s PSK. The naive solution would be to just include `keyA` or `keyB` in plaintext in the PSK Identity. However, this would leak information about “fleet membership”, because it is sent in the clear. Ideally, the PSK identity would not leak this information.
+If a server trusts both `keyA` and `keyB`, then the client will need to communicate which key it used to derive its PSK. The naive solution would be to just include `keyA` or `keyB` in plaintext in the PSK Identity. However, this would leak information about “fleet membership”, because it is sent in the clear. Ideally, the PSK identity would not leak this information.
 
 To do this we calculate a `kms_key_binder` which incorporates the 
 
