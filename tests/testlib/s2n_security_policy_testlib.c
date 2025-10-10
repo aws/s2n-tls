@@ -42,6 +42,11 @@ const struct s2n_security_policy security_policy_test_tls13_retry = {
     .ecc_preferences = &ecc_preferences_for_retry,
 };
 
+/*
+ * DEPRECATED: Do not use for new tests. Instead set an explicit security policy.
+ * This method was used to preserve existing test behaviors when updating the default behavior
+ * in https://github.com/aws/s2n-tls/pull/5549
+ */
 S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config)
 {
     if (s2n_is_in_fips_mode()) {
@@ -52,6 +57,11 @@ S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config)
     return S2N_RESULT_OK;
 }
 
+/*
+ * DEPRECATED: Do not use for new tests. Instead set an explicit security policy.
+ * This method was used to preserve existing test behaviors when updating the default behavior
+ * in https://github.com/aws/s2n-tls/pull/5549
+ */
 S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *connection)
 {
     if (s2n_is_in_fips_mode()) {
