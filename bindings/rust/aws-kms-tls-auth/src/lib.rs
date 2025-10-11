@@ -10,7 +10,7 @@
 //! # Design
 //!
 //! `aws-kms-tls-auth` allows a fleet of instances to mutually authenticate each
-//! other. You will configured a single [KMS HMAC Key](https://docs.aws.amazon.com/kms/latest/developerguide/hmac.html)
+//! other. You will configure a single [KMS HMAC Key](https://docs.aws.amazon.com/kms/latest/developerguide/hmac.html)
 //! with a SHA384 signing spec and grant all of the instances IAM permissions to
 //! call `kms:GenerateMAC` on the KMS key. Clients and servers are considered
 //! interchangeable.
