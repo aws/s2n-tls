@@ -95,7 +95,7 @@ impl ReceiverSecrets {
         failure_notification: &(dyn Fn(anyhow::Error) + Send + Sync + 'static),
     ) -> Result<Duration, Duration> {
         // fetch all keys that aren't already available
-        // The will almost always just fetch `this_epoch + 2`, unless key
+        // This will almost always just fetch `this_epoch + 2`, unless key
         // generation has failed for several days
         let mut fetch_failed = false;
         let mut to_fetch: Vec<(u64, KeyArn)> = {
