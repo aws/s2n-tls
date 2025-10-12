@@ -951,7 +951,7 @@ span.arrowhead {
     border-color: var(--primary-color);
 }
 
-#nav-tree ul li:first-child > div > a {
+#nav-tree-contents > ul > li:first-child > div > a {
     opacity: 0;
     pointer-events: none;
 }
