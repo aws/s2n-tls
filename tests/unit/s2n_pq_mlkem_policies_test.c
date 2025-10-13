@@ -210,7 +210,8 @@ int main(int argc, char **argv)
                 S2N_ERR_INVALID_SECURITY_POLICY :
                 S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED;
 
-        if (s2n_is_tls13_fully_supported() && s2n_pq_is_enabled()) {
+        /* Expect error when configuring the test policy on libcryptos not supporting ML-KEM. */
+        if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem()) {
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policy));
         } else {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), config_error);
