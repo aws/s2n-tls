@@ -214,6 +214,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
     s2n_connection_set_io_pair(conn, io_pair);
+    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
@@ -245,6 +246,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
+    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     s2n_connection_set_io_pair(conn, io_pair);
 
