@@ -232,16 +232,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* If testing policy requires ML-KEM, expect failure when running on libcryptos not supporting ML-KEM. */
-        if (s2n_libcrypto_supports_mlkem()) {
-            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-            /* Assert classical ECC is not negotiated & kem group is negotiated. */
-            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-            EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-        }
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        /* Assert classical ECC is not negotiated & kem group is negotiated. */
+        EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
     }
 
     END_TEST();
