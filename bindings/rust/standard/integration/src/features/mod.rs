@@ -3,3 +3,4 @@
 
 #[cfg(feature = "pq")]
 mod pq;
+mod record_padding;

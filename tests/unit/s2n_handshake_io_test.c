@@ -39,6 +39,7 @@ int main(int argc, char **argv)
         /* Setup connections */
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
         /* Setup bad callback */
