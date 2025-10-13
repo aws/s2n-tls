@@ -490,7 +490,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
-
         /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
