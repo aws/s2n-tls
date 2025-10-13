@@ -99,6 +99,8 @@ impl ReceiverSecrets {
         // generation has failed for several days
         let mut fetch_failed = false;
         let mut to_fetch: Vec<(u64, KeyArn)> = {
+            // we need to fetch current_epoch - 1 to allow for clock skew in clients
+            // as well as provider::ROTATION_CUSHION
             [
                 current_epoch - 1,
                 current_epoch,
@@ -266,7 +268,7 @@ impl ClientHelloCallback for PskReceiver {
         // parse the identity bytes to a PskIdentity
         let client_identity = PskIdentity::decode_from_exact(psk_identity)
             .map_err(|e| s2n_tls::error::Error::application(e.into()))?;
-        println!("server received: {client_identity:?}");
+        tracing::trace!("server received: {client_identity:?}");
 
         let psk = self
             .secrets
