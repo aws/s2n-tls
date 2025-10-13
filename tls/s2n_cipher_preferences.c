@@ -2224,6 +2224,21 @@ const struct s2n_cipher_preferences cipher_preferences_20250429 = {
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_20251013[] = {
+    /* TLS1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+
+    /* TLS1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251013 = {
+    .count = s2n_array_len(cipher_suites_20251013),
+    .suites = cipher_suites_20251013,
+    .allow_chacha20_boosting = false,
+};
+
 struct s2n_cipher_suite *cipher_suites_20250211[] = {
     /* TLS1.3 */
     &s2n_tls13_aes_256_gcm_sha384,
