@@ -42,6 +42,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     s2n_connection_set_config(conn, config);
 
     s2n_connection_set_io_pair(conn, io_pair);

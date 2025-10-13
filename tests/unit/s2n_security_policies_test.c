@@ -32,10 +32,12 @@ static S2N_RESULT s2n_test_security_policies_compatible_for_policy(const struct 
     DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
             s2n_config_ptr_free);
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(server_config, cert_chain));
+    RESULT_GUARD_POSIX(s2n_config_set_max_blinding_delay(server_config, 0));
 
     DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
             s2n_config_ptr_free);
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
+    RESULT_GUARD_POSIX(s2n_config_set_max_blinding_delay(client_config, 0));
 
     DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
             s2n_connection_ptr_free);

@@ -45,7 +45,7 @@
 //!   information from being correlated across multiple connections from a single
 //!   client.
 //! - epoch_secret: without incorporating this secret, an attacker would be able
-//!   check if the kms_key_binder was valid for some specific KMS key.
+//!   to check if the kms_key_binder was valid for some specific KMS key.
 
 use crate::{
     codec::{DecodeByteSource, DecodeValue, EncodeBytesSink, EncodeValue},
@@ -113,6 +113,19 @@ impl Debug for EpochSecret {
 }
 
 impl EpochSecret {
+    /// This label ties the output of generateMAC to its use in this library.
+    pub const PURPOSE_LABEL: &'static [u8] = b"aws-kms-tls-auth-epoch-secret";
+
+    /// Construct the message to be used by KMS for `epoch`
+    ///
+    /// key_epoch || PURPOSE_LABEL
+    pub fn construct_message(epoch: u64) -> Vec<u8> {
+        let mut msg = Vec::with_capacity(8 + Self::PURPOSE_LABEL.len());
+        msg.extend_from_slice(&epoch.to_be_bytes());
+        msg.extend_from_slice(Self::PURPOSE_LABEL);
+        msg
+    }
+
     /// Fetch the secret for `epoch` from KMS.
     pub async fn fetch_epoch_secret(
         kms_client: &Client,
@@ -123,7 +136,7 @@ impl EpochSecret {
             .generate_mac()
             .key_id(key_arn.clone())
             .mac_algorithm(MacAlgorithmSpec::HmacSha384)
-            .message(Blob::new(epoch.to_be_bytes()))
+            .message(Blob::new(Self::construct_message(epoch)))
             .send()
             .await?;
 
