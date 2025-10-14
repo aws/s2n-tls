@@ -88,7 +88,6 @@ extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_2021_06;
-extern const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_2021_06;
 
 /* CloudFront upstream */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream;

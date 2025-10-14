@@ -1377,7 +1377,7 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
 
 const struct s2n_security_policy security_policy_test_pq_only = {
     .minimum_protocol_version = S2N_TLS13,
-    .cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250930,
     .certificate_signature_preferences = &s2n_signature_preferences_20250930,
