@@ -196,7 +196,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         const char *policy = "test_pq_only";
- 
+
         if (!s2n_is_tls13_fully_supported()) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         } else if (!s2n_libcrypto_supports_mlkem()) {
