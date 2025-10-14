@@ -553,14 +553,13 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    if (ecc_pref->count > 0) {
-        if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-        } else {
-            /* If P-256 isn't allowed by the current security policy, instead choose
-            * the first / most preferred curve. */
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-        }
+    if (ecc_pref->count == 0) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+    } else if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+    } else {
+        /* If P-256 isn't allowed by the current security policy, choose the first / most preferred curve. */
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 
     POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));

@@ -1613,18 +1613,19 @@ static int s2n_config_validate_security_policy(struct s2n_config *config, const 
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
-    /* Expect a PQ only policy when ecc_preferences is empty. */
-    if (security_policy != &security_policy_null && security_policy->ecc_preferences->count == 0) {
-        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_INVALID_SECURITY_POLICY);
-        /* At least one kem group is supported by libcrypto. */
-        uint32_t groups_available = 0;
-        POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &groups_available));
-        POSIX_ENSURE(groups_available > 0, S2N_ERR_INVALID_SECURITY_POLICY);
+    if (security_policy == &security_policy_null) {
+        return S2N_SUCCESS;
     }
+
+    /* Ensure that an ECC or PQ key exchange can occur. */
+    uint32_t ecc_available = security_policy->ecc_preferences->count;
+    uint32_t kem_groups_available = 0;
+    POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &kem_groups_available));
+    POSIX_ENSURE(ecc_available + kem_groups_available > 0, S2N_ERR_INVALID_SECURITY_POLICY);
 
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *security_policy)
