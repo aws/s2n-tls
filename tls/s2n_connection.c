@@ -274,6 +274,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
     s2n_x509_validator_wipe(&conn->x509_validator);
+    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
@@ -522,6 +523,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
+    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
 
     /* Wipe the I/O-related info and restore the original socket if necessary */
     POSIX_GUARD(s2n_connection_wipe_io(conn));

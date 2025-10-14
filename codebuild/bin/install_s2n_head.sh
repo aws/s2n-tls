@@ -33,6 +33,11 @@ if [[ "$IN_NIX_SHELL" ]]; then
     export EXTRA_BUILD_FLAGS=""
     # Work around issue cloning inside a nix devshell https://github.com/NixOS/nixpkgs/issues/299949 
     export CLONE_SRC="."
+    # Make sure main is available in our workspace.
+    # This is a workaround for the merge queue workflow.
+    git fetch origin
+    git checkout main
+    git checkout $CODEBUILD_SOURCE_VERSION
 else
     export DEST_DIR="$SRC_ROOT"/bin
     export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
@@ -52,11 +57,6 @@ if [[ -f "$s2nc_head" ]]; then
     fi
 fi
 
-# Make sure main is available in our workspace.
-# This is a workaround for the merge queue workflow.
-git fetch origin
-git checkout main
-git checkout $CODEBUILD_SOURCE_VERSION
 git clone --branch "main" --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
 cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \

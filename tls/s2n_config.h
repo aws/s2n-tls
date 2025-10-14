@@ -18,6 +18,7 @@
 #include <sys/param.h>
 
 #include "api/s2n.h"
+#include "api/unstable/async_offload.h"
 #include "api/unstable/cert_authorities.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
@@ -184,6 +185,10 @@ struct s2n_config {
 
     struct s2n_x509_trust_store trust_store;
     uint16_t max_verify_cert_chain_depth;
+
+    s2n_async_offload_cb async_offload_cb;
+    uint32_t async_offload_allow_list;
+    void *async_offload_ctx;
 
     s2n_async_pkey_fn async_pkey_cb;
 

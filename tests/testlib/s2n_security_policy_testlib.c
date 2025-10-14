@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_fips.h"
 #include "s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
@@ -40,3 +41,33 @@ const struct s2n_security_policy security_policy_test_tls13_retry = {
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &ecc_preferences_for_retry,
 };
+
+/*
+ * DEPRECATED: Do not use for new tests. Instead set an explicit security policy.
+ * This method was used to preserve existing test behaviors when updating the default behavior
+ * in https://github.com/aws/s2n-tls/pull/5549
+ */
+S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config)
+{
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "20240502"));
+    } else {
+        RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "20240501"));
+    }
+    return S2N_RESULT_OK;
+}
+
+/*
+ * DEPRECATED: Do not use for new tests. Instead set an explicit security policy.
+ * This method was used to preserve existing test behaviors when updating the default behavior
+ * in https://github.com/aws/s2n-tls/pull/5549
+ */
+S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *connection)
+{
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(connection, "20240502"));
+    } else {
+        RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(connection, "20240501"));
+    }
+    return S2N_RESULT_OK;
+}

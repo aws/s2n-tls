@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     # Pure nix functions, not relying on nixpkgs https://github.com/numtide/flake-utils
     flake-utils.url = "github:numtide/flake-utils";
-    awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
+    awslc.url = "github:aws/aws-lc";
     awslcfips2022.url = "github:dougch/aws-lc?ref=nixAWS-LC-FIPS-2.0.17";
     awslcfips2024.url = "github:dougch/aws-lc?ref=nixfips-2024-09-27";
   };

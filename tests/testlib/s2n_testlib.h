@@ -207,6 +207,24 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
+
+#define S2N_TEST_CERT_CHAIN_LIST_MAX 19
+struct s2n_test_cert_chain_entry {
+    struct s2n_cert_chain_and_key *chain;
+    /* Use this field to indicate support: by array index, version number, etc. */
+    uint64_t supported;
+};
+struct s2n_test_cert_chain_list {
+    struct s2n_test_cert_chain_entry chains[S2N_TEST_CERT_CHAIN_LIST_MAX];
+    size_t count;
+    /* Certs skipped because they were not supported by the libcrypto. */
+    size_t skipped;
+};
+S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains);
+S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
+        s2n_pkey_type pkey_type, uint64_t supported);
+S2N_CLEANUP_RESULT s2n_test_cert_chains_free(struct s2n_test_cert_chain_list *chains);
+
 /**
  * load the `server-cert.pem` for the appropriate permutation
  * @param type indicates an `ec`, `rsae` or `rsapss` key type
@@ -293,3 +311,6 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 
 bool s2n_is_seccomp_supported();
 S2N_RESULT s2n_seccomp_init();
+
+S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config);
+S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *connection);

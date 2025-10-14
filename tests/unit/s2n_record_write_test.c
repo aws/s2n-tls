@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
