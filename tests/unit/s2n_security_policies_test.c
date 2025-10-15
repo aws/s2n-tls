@@ -959,7 +959,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
-                &security_policy_20251014,
+                &security_policy_20251015,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
