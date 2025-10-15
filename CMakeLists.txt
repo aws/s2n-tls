@@ -12,8 +12,6 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
-
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -268,9 +266,32 @@ if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
 else()
-    find_package(crypto REQUIRED)
-    message(STATUS "Using libcrypto from the cmake path")
-    set(LINK_LIB "AWS::crypto")
+    # Begin the search for a libcrypto.
+    #
+    # Start by searching for the cmake config file from AWS-LC:
+    # https://github.com/aws/aws-lc/blob/0fed4dbc456406bdaf7158fd55d05a52d9998ce4/crypto/cmake/crypto-config.cmake
+    find_package(crypto CONFIG)
+    if(crypto_FOUND)
+        message(STATUS "Using libcrypto config from ${crypto_CONFIG}")
+        # If a crypto-config.cmake file is found, it's assumed to be from AWS-LC, which defines the
+        # AWS::crypto target.
+        set(LINK_LIB "AWS::crypto")
+    else()
+        # Next, if a crypto-config.cmake file isn't found, search for the OpenSSL cmake config file.
+        find_package(OpenSSL CONFIG)
+        if(OpenSSL_FOUND)
+            message(STATUS "Using OpenSSL libcrypto config from ${OpenSSL_CONFIG}")
+            set(LINK_LIB "OpenSSL::Crypto")
+        else()
+            # Next, if an OpenSSL config isn't found, search directly for libcrypto artifacts with
+            # the Findcrypto.cmake module as a last resort.
+            find_package(crypto REQUIRED MODULE)
+            message(STATUS "Using libcrypto discovered by Findcrypto.cmake")
+            # Findcrypto.cmake defines the AWS::crypto target for whatever libcrypto it manages to
+            # discover.
+            set(LINK_LIB "AWS::crypto")
+        endif()
+    endif()
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
