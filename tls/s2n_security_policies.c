@@ -1375,12 +1375,13 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     },
 };
 
+/* Add this policy to `security_policy_selection` for testing `s2n_security_policies_init()` */
 const struct s2n_security_policy security_policy_test_pq_only = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20250930,
-    .certificate_signature_preferences = &s2n_signature_preferences_20250930,
+    .signature_preferences = &s2n_signature_preferences_20240501,
+    .certificate_signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
@@ -1683,6 +1684,11 @@ int s2n_security_policies_init()
             bool ecc_kx_supported = ecc_preference->count > 0;
             bool pq_kx_supported = kem_preference->tls13_kem_group_count > 0;
             POSIX_ENSURE(ecc_kx_supported || pq_kx_supported, S2N_ERR_INVALID_SECURITY_POLICY);
+
+            /* A PQ key exchange is only supported in TLS 1.3, so PQ-only policies must require TLS 1.3.*/
+            if (!ecc_kx_supported) {
+                POSIX_ENSURE(security_policy->minimum_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_SECURITY_POLICY);
+            }
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
