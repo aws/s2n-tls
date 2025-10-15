@@ -1010,6 +1010,7 @@ int main(int argc, char **argv)
         {
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20250429,
+                &security_policy_20251013,
             };
 
             struct s2n_test_cert_chain_list cert_chains = {
