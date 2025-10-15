@@ -1375,7 +1375,6 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     },
 };
 
-/* Add this policy to `security_policy_selection` for testing `s2n_security_policies_init()` */
 const struct s2n_security_policy security_policy_test_pq_only = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
