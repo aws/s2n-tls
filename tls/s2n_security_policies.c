@@ -1642,10 +1642,15 @@ static int s2n_config_validate_security_policy(struct s2n_config *config, const 
         return S2N_SUCCESS;
     }
 
-    /* Ensure that an ECC or PQ key exchange can occur. */
     uint32_t ecc_available = security_policy->ecc_preferences->count;
+    /* A PQ key exchange is only supported in TLS 1.3, so PQ-only policies must require TLS 1.3.*/
+    if (ecc_available == 0) {
+        POSIX_ENSURE(security_policy->minimum_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_SECURITY_POLICY);
+    }
+
     uint32_t kem_groups_available = 0;
     POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &kem_groups_available));
+    /* Ensure that an ECC or PQ key exchange can occur. */
     POSIX_ENSURE(ecc_available + kem_groups_available > 0, S2N_ERR_INVALID_SECURITY_POLICY);
 
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
