@@ -58,6 +58,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ENCRYPT, "error encrypting data") \
     ERR_ENTRY(S2N_ERR_DECRYPT, "error decrypting data") \
     ERR_ENTRY(S2N_ERR_BAD_MESSAGE, "Bad message encountered") \
+    ERR_ENTRY(S2N_ERR_ILLEGAL_PARAMETER, "Illegal parameter in handshake message") \
     ERR_ENTRY(S2N_ERR_KEY_INIT, "error initializing encryption key") \
     ERR_ENTRY(S2N_ERR_KEY_DESTROY, "error destroying encryption key") \
     ERR_ENTRY(S2N_ERR_DH_SERIALIZING, "error serializing Diffie-Hellman parameters") \

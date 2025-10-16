@@ -45,13 +45,12 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_ALERT_CASE(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
         S2N_ALERT_CASE(S2N_ERR_MISSING_CLIENT_CERT, S2N_TLS_ALERT_CERTIFICATE_REQUIRED);
 
-        /* TODO: The ERR_BAD_MESSAGE -> ALERT_UNEXPECTED_MESSAGE mapping
-         * isn't always correct. Sometimes s2n-tls uses ERR_BAD_MESSAGE
-         * to indicate S2N_TLS_ALERT_ILLEGAL_PARAMETER instead.
-         * We'll want to add a new error to distinguish between the two usages:
-         * our errors should be equally or more specific than alerts, not less.
+        /* S2N_ERR_BAD_MESSAGE maps to UNEXPECTED_MESSAGE for protocol violations
+         * where an unexpected message type was received. S2N_ERR_ILLEGAL_PARAMETER
+         * maps to ILLEGAL_PARAMETER for cases where a message has invalid content.
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+        S2N_ALERT_CASE(S2N_ERR_ILLEGAL_PARAMETER, S2N_TLS_ALERT_ILLEGAL_PARAMETER);
         S2N_ALERT_CASE(S2N_ERR_UNEXPECTED_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
         S2N_ALERT_CASE(S2N_ERR_MISSING_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
@@ -112,7 +111,8 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_ALERT_CASE(S2N_ERR_CERT_INVALID, S2N_TLS_ALERT_BAD_CERTIFICATE);
         S2N_ALERT_CASE(S2N_ERR_DECODE_CERTIFICATE, S2N_TLS_ALERT_BAD_CERTIFICATE);
 
-        /* TODO: Add mappings for other protocol errors.
+        /* The following errors are internal/cryptographic errors that don't have
+         * corresponding TLS alert codes. They result in a generic internal_error alert.
          */
         S2N_NO_ALERT(S2N_ERR_ENCRYPT);
         S2N_NO_ALERT(S2N_ERR_DECRYPT);
