@@ -1282,6 +1282,30 @@ const struct s2n_security_policy security_policy_20250429 = {
 };
 
 /*
+ * This security policy is derived from the following specification:
+ * https://datatracker.ietf.org/doc/html/rfc9151
+ *
+ * The following exceptions to this specification are made:
+ * - RSA cipher suites are not supported to allow for perfect forward secrecy.
+ * - DHE cipher suites are not supported to remove the possibility of improper Diffie-Hellman
+ *   parameter configuration.
+ */
+const struct s2n_security_policy security_policy_20251013 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251013,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .certificate_key_preferences = &s2n_certificate_key_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .certificate_preferences_apply_locally = true,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+/*
  * This security policy is a mix of default_tls13 (20240503) and rfc9151, with
  * a primary requirement that AES-256 is the ciphersuite chosen. Other
  * requirements are generally picked to raise minimum thresholds (e.g.,
@@ -1546,8 +1570,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20250211", .security_policy = &security_policy_20250211, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250414", .security_policy = &security_policy_20250414, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250429", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251013", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* If changing this, please update the usage guide's docs on the corresponding policy. */
-    { .version = "rfc9151", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "rfc9151", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_fips", .security_policy = &security_policy_test_all_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_ecdsa", .security_policy = &security_policy_test_all_ecdsa, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

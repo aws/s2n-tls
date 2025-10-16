@@ -18,6 +18,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_tls.h"
 
 #define S2N_SERIALIZED_CONN_TLS13_SHA256_SIZE 126
 
@@ -66,6 +67,35 @@ static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
         s2n_renegotiate_response *response)
 {
     return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_test_deserialize_with_version(const uint8_t *serialized_data,
+        uint8_t version,
+        bool should_succeed)
+{
+    RESULT_ENSURE_REF(serialized_data);
+
+    /* Create test data buffer and modify protocol version bytes (at offset 8 and 9) */
+    uint8_t test_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+    RESULT_CHECKED_MEMCPY(test_data, serialized_data, sizeof(test_data));
+    test_data[8] = version / 10;
+    test_data[9] = version % 10;
+
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+    RESULT_ENSURE_REF(conn);
+
+    int result = s2n_connection_deserialize(conn, test_data, sizeof(test_data));
+
+    if (should_succeed) {
+        RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_TEST_ASSERTION);
+        RESULT_ENSURE(conn->actual_protocol_version == version, S2N_ERR_TEST_ASSERTION);
+    } else {
+        RESULT_ENSURE(result == S2N_FAILURE, S2N_ERR_TEST_ASSERTION);
+        RESULT_ENSURE(s2n_errno == S2N_ERR_INVALID_SERIALIZED_CONNECTION, S2N_ERR_TEST_ASSERTION);
+    }
+
+    return S2N_RESULT_OK;
 }
 
 int main(int argc, char **argv)
@@ -499,6 +529,40 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, test_context,
                     sizeof(test_context)));
+        };
+
+        /* Protocol version validation */
+        {
+            uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_connection_serialize(server_conn, serialized_data, sizeof(serialized_data)));
+
+            /* Protocol versions within supported range succeeds */
+            for (uint8_t version = S2N_SSLv3; version <= s2n_highest_protocol_version; version++) {
+                EXPECT_OK(s2n_test_deserialize_with_version(serialized_data, version, true));
+            }
+
+            /* Protocol version below minimum fails */
+            uint8_t below_min_version = S2N_SSLv3 - 1;
+            EXPECT_OK(s2n_test_deserialize_with_version(serialized_data, below_min_version, false));
+
+            /* Protocol version above maximum fails */
+            uint8_t above_max_version = s2n_highest_protocol_version + 1;
+            EXPECT_OK(s2n_test_deserialize_with_version(serialized_data, above_max_version, false));
         };
     };
 
