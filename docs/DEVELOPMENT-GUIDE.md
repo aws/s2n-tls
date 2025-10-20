@@ -260,12 +260,14 @@ C has a history of issues around memory and buffer handling. To avoid problems i
 
 ### s2n_blob: keeping track of memory ranges
 
-`s2n_blob` is a very simple data structure:
+`s2n_blob` is a data structure representing either allocated, "owned" memory or a reference to some other non-owned slice of memory.
 
 ```c
 struct s2n_blob {
     uint8_t *data;
     uint32_t size;
+    uint32_t allocated;
+    unsigned growable: 1;
 };
 ```
 
