@@ -12,6 +12,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -261,70 +263,31 @@ if (S2N_INTERN_LIBCRYPTO)
     set(BUILD_SHARED_LIBS OFF)
 endif()
 
-function(find_libcrypto)
-    # Begin the search for a libcrypto.
-    #
-    # User-provided directories such as CMAKE_PREFIX_PATH are exclusively searched first. If no
-    # libcrypto can be found in any user path, then the search is broadened to system paths.
-    # https://cmake.org/cmake/help/latest/command/find_package.html#config-mode-search-procedure
-    foreach(search_strategy "USER" "SYSTEM")
-        set(find_filters "")
-        if (search_strategy STREQUAL "USER")
-            list(
-                APPEND find_filters
-                "NO_SYSTEM_ENVIRONMENT_PATH"
-                "NO_CMAKE_PACKAGE_REGISTRY"
-                "NO_CMAKE_SYSTEM_PATH"
-                "NO_CMAKE_SYSTEM_PACKAGE_REGISTRY"
-            )
-        elseif (search_strategy STREQUAL "SYSTEM")
-            list(APPEND find_filters "")
-        else()
-            message(FATAL_ERROR "invalid search strategy: ${search_strategy}")
-        endif()
-
-        # Start by searching for the cmake config file from AWS-LC:
-        # https://github.com/aws/aws-lc/blob/0fed4dbc456406bdaf7158fd55d05a52d9998ce4/crypto/cmake/crypto-config.cmake
-        find_package(crypto CONFIG QUIET ${find_filters})
-        if(crypto_FOUND)
-            message(STATUS "Using libcrypto config from ${crypto_CONFIG}")
-            # If a crypto-config.cmake file is found, it's assumed to be from AWS-LC, which defines the
-            # AWS::crypto target.
-            set(LINK_LIB "AWS::crypto" PARENT_SCOPE)
-            return()
-        else()
-            # Next, if a crypto-config.cmake file isn't found, search for the OpenSSL cmake config file.
-            find_package(OpenSSL CONFIG QUIET ${find_filters})
-            if(OpenSSL_FOUND)
-                message(STATUS "Using OpenSSL libcrypto config from ${OpenSSL_CONFIG}")
-                set(LINK_LIB "OpenSSL::Crypto" PARENT_SCOPE)
-                return()
-            else()
-                # Next, if an OpenSSL config isn't found, search directly for libcrypto artifacts with
-                # the Findcrypto.cmake module as a last resort.
-                find_package(crypto MODULE QUIET)
-                if (crypto_FOUND)
-                    message(STATUS "Using libcrypto discovered by Findcrypto.cmake.")
-                    # Findcrypto.cmake defines the AWS::crypto target for whatever libcrypto it
-                    # manages to discover.
-                    set(LINK_LIB "AWS::crypto" PARENT_SCOPE)
-                    return()
-                endif()
-            endif()
-        endif()
-    endforeach()
-
-    if(NOT DEFINED LINK_LIB)
-        message(FATAL_ERROR "Failed to find a libcrypto.")
-    endif()
-endfunction()
-
 # Work around target differences
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
 else()
-    find_libcrypto()
+    # First, search for a CMake config file from AWS-LC:
+    # https://github.com/aws/aws-lc/blob/0fed4dbc456406bdaf7158fd55d05a52d9998ce4/crypto/cmake/crypto-config.cmake
+    find_package(crypto QUIET)
+    if(crypto_FOUND)
+        message(STATUS "Using libcrypto config from ${crypto_CONFIG}")
+        # Libcryptos other than AWS-LC (OpenSSL, and forks such as BoringSSL) name their CMake
+        # config OpenSSLConfig.cmake. So while we don't know for sure that the discovered
+        # crypto-config.cmake file was provided by AWS-LC, we assume this to be the case.
+        # AWS-LC defines the `AWS::crypto` target in their config.
+        set(LINK_LIB "AWS::crypto")
+    else()
+        # If an AWS-LC config isn't found, look for OpenSSL (or OpenSSL forks other than AWS-LC).
+        if(NOT BUILD_SHARED_LIBS)
+            set(OPENSSL_USE_STATIC_LIBS TRUE)
+        endif()
+        find_package(OpenSSL COMPONENTS Crypto QUIET REQUIRED)
+        message(STATUS "libcrypto include dir: ${OPENSSL_INCLUDE_DIR}")
+        message(STATUS "libcrypto library: ${OPENSSL_CRYPTO_LIBRARY}")
+        set(LINK_LIB "OpenSSL::Crypto")
+    endif()
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)

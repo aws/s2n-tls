@@ -153,12 +153,26 @@ fi
 # Set the libfuzzer to use for fuzz tests
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
+# PATH directories are included in CMake's search for package configs. As such, each of the PATH
+# overrides that are libcrypto install directories can influence which libcrypto s2n-tls is linked
+# to when building. To prevent this, a directory without /bin is used in the PATH.
+#
+# https://cmake.org/cmake/help/latest/command/find_package.html#search-procedure
+# > 5. Search the standard system environment variables. Path entries ending in /bin or /sbin are
+#      automatically converted to their parent directories
+AWSLC_BIN_DIR="${TEST_DEPS_DIR}/aws-lc-bin"
+OPENSSL_1_1_1_BIN_DIR="${TEST_DEPS_DIR}/openssl-1.1.1-bin"
+if [ -d "${TEST_DEPS_DIR}" ]; then
+  ln -s "${AWSLC_INSTALL_DIR}/bin" "${AWSLC_BIN_DIR}"
+  ln -s "${OPENSSL_1_1_1_INSTALL_DIR}/bin" "${OPENSSL_1_1_1_BIN_DIR}"
+fi
+
 #check if the path contains test dep X, if not and X exists, add to path
 # The AWSLC binary(bssl) is only used for the PQ test, with the integration BoringSSL provider, and does not need to match the libcrypto used to build s2n.
 # The OpenSSL 1.1.1 binary is used by the integ tests, and does not need to match the libcrypto used to build s2n.
-path_overrides="$AWSLC_INSTALL_DIR/bin
+path_overrides="$AWSLC_BIN_DIR
 $PYTHON_INSTALL_DIR/bin
-$OPENSSL_1_1_1_INSTALL_DIR/bin
+$OPENSSL_1_1_1_BIN_DIR
 $SAW_INSTALL_DIR/bin
 $Z3_INSTALL_DIR/bin
 $SCAN_BUILD_INSTALL_DIR/bin
