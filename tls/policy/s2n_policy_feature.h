@@ -207,6 +207,7 @@ int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
  * @param buffer The buffer to write to
  * @param buffer_length The size of the buffer
  * @param output_size Output variable to be set to the actual number of bytes written to `buffer`
+ *                    This value is only meaningful when the function returns S2N_SUCCESS
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure (e.g., if buffer is too small)
  */
 int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
@@ -219,6 +220,7 @@ int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
  * @param format The output format to use  
  * @param fd The file descriptor to write to (e.g., STDOUT_FILENO or an open file)
  * @param output_size Output variable to be set to the actual number of bytes written to the file descriptor
+ *                    This value is only meaningful when the function returns S2N_SUCCESS
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
  */
 int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
