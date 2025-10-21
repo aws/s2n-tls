@@ -53,6 +53,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
     s2n_config_set_protocol_preferences(config, protocols, 2);
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
@@ -315,6 +316,7 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     /* prepare swap_config */
     EXPECT_NOT_NULL(swap_config = s2n_config_new());
+    EXPECT_OK(s2n_config_set_tls12_security_policy(swap_config));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(swap_config, protocols, 1));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(swap_config, chain_and_key));
     ch_ctx->config = swap_config;
@@ -368,6 +370,7 @@ int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode, struct clien
 
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Setup ClientHello callback */

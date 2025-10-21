@@ -143,6 +143,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -174,6 +175,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -181,6 +183,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

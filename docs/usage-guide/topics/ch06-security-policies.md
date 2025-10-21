@@ -53,7 +53,7 @@ The following chart maps the security policy version to protocol version and cip
 |   20190801    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 |   20190802    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 |   20200207    |        |        |        |    X   |         |    X    |      X     |      |     |     |   X   |        |
-|    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |    X   |
+|    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |     |   X   |        |
 
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. **Warning**: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.
 
@@ -65,7 +65,7 @@ matching fixed versions are:
 
 | "default" | "default_fips" | "default_tls13" | "rfc9151" |
 |-----------|----------------|-----------------|-----------|
-| 20240501  |   20240502     |    20240503     |  20250429 |
+| 20240501  |   20240502     |    20240503     |  20251013 |
 
 "default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
 
@@ -155,6 +155,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 
 |  Version   | "default" | "default_fips" | "default_tls13" | "rfc9151" |
 |------------|-----------|----------------|-----------------|-----------|
+|  v1.5.28   | 20240501  |   20240502     |    20240503     |  20251013 |
 |  v1.5.25   | 20240501  |   20240502     |    20240503     |  20250429 |
 |  v1.4.16   | 20240501  |   20240502     |    20240503     |    (*)    |
 |   Older    | 20170210  |   20240416     |    20240417     |    (*)    |
