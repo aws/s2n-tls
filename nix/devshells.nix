@@ -12,8 +12,6 @@ let
     pkgs.llvmPackages_18.clang
     pkgs.llvmPackages_18.libclang
     pkgs.cmake
-    pkgs.ninja
-    pkgs.pkg-config
     pkgs.rustc
     pkgs.cargo
   ];
