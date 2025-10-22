@@ -3,15 +3,9 @@
 
 let
     commonShellHook = ''
-      export CC="$(command -v clang)"
-      export CXX="$(command -v clang++)"
       # Make libclang discoverable for bindgen
       export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
-      if [ -n "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH="$LIBCLANG_PATH:$LD_LIBRARY_PATH"
-      else
-        export LD_LIBRARY_PATH="$LIBCLANG_PATH"
-      fi
+      export LD_LIBRARY_PATH="$LIBCLANG_PATH:$LD_LIBRARY_PATH"
 '';
 
   commonToolInputs = [
