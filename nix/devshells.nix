@@ -5,7 +5,6 @@ let
     commonShellHook = ''
       export CC="$(command -v clang)"
       export CXX="$(command -v clang++)"
-
       # Make libclang discoverable for bindgen
       export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
       if [ -n "$LD_LIBRARY_PATH" ]; then
@@ -28,14 +27,12 @@ let
   awsLcStatic = aws-lc.overrideAttrs (old: {
     cmakeFlags = (old.cmakeFlags or []) ++ [
       "-DBUILD_SHARED_LIBS=OFF"
-      "-DBUILD_TESTING=OFF"
     ];
   });
   
   awsLcFips2024Static = aws-lc-fips-2024.overrideAttrs (old: {
     cmakeFlags = (old.cmakeFlags or []) ++ [
       "-DBUILD_SHARED_LIBS=OFF"
-      "-DBUILD_TESTING=OFF"
     ];
   });
 
@@ -50,26 +47,23 @@ let
     # keep minimal buildInputs; most tools come via `packages = common_packages`
     buildInputs = commonToolInputs ++ [ pkgs.cmake openssl_3_0 ];
     packages = common_packages;
-
     S2N_LIBCRYPTO = "openssl-3.0";
+    # Only set OPENSSL_1_0_2_INSTALL_DIR when OpenSSL 1.0.2 is available
     OPENSSL_1_0_2_INSTALL_DIR =
       if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
     OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
-    OPENSSL_3_0_INSTALL_DIR   = "${openssl_3_0}";
-    AWSLC_INSTALL_DIR         = "${aws-lc}";
+    OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
+    AWSLC_INSTALL_DIR = "${aws-lc}";
     AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
     AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
-    GNUTLS_INSTALL_DIR        = "${pkgs.gnutls}";
-    LIBRESSL_INSTALL_DIR      = "${pkgs.libressl}";
-
+    # Integ s_client/server tests expect openssl 1.1.1.
+    GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
+    LIBRESSL_INSTALL_DIR = "${pkgs.libressl}";
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
-      # Integ s_client/server tests expect openssl 1.1.1 on PATH
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-
       ${commonShellHook}
-
       # project shell script
       source ${writeScript ./shell.sh}
     '';
@@ -77,57 +71,63 @@ let
 
   # Define the openssl111 devShell
   openssl111 = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake openssl_1_1_1 ];
     S2N_LIBCRYPTO = "openssl-1.1.1";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-
       ${commonShellHook}
-
       source ${writeScript ./shell.sh}
     '';
   });
 
   # Define the libressl devShell
   libressl_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake pkgs.libressl ];
     S2N_LIBCRYPTO = "libressl";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-
       ${commonShellHook}
-
       source ${writeScript ./shell.sh}
     '';
   });
 
   openssl102 = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake openssl_1_0_2 ];
     S2N_LIBCRYPTO = "openssl-1.0.2";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-
       ${commonShellHook}
-
       source ${writeScript ./shell.sh}
     '';
   });
 
   # Define the awslc devShell
-  awslc_shell = default.overrideAttrs (final: prev: {
+  awslc_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake awsLcStatic ];
     S2N_LIBCRYPTO = "awslc";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-      # Prefer aws-lc’s dev+lib outputs so CMake sees static targets
+      # Use static build (instead of default shared libs) for Rust internal libcrypto linkage
       export CMAKE_PREFIX_PATH="${awsLcStatic}''${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
       ${commonShellHook}
       source ${writeScript ./shell.sh}
@@ -135,26 +135,31 @@ let
   });
 
   awslcfips2022_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake aws-lc-fips-2022 ];
     S2N_LIBCRYPTO = "awslc-fips-2022";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
-
       ${commonShellHook}
-
       source ${writeScript ./shell.sh}
     '';
   });
 
-  awslcfips2024_shell = default.overrideAttrs (final: prev: {
+  awslcfips2024_shell = default.overrideAttrs (finalAttrs: previousAttrs: {
+    # Re-include cmake to update the environment with a new libcrypto.
     buildInputs = commonToolInputs ++ [ pkgs.cmake awsLcFips2024Static ];
     S2N_LIBCRYPTO = "awslc-fips-2024";
+    # Integ s_client/server tests expect openssl 1.1.1.
+    # GnuTLS-cli and serv utilities needed for some integration tests.
     shellHook = ''
       echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+      # Use static build (instead of default shared libs) for Rust internal libcrypto linkage
       export CMAKE_PREFIX_PATH="${awsLcFips2024Static}''${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
       ${commonShellHook}
       source ${writeScript ./shell.sh}

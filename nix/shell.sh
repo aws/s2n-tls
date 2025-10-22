@@ -235,15 +235,11 @@ function rust_integration(){
     bindings/rust/extended/generate.sh --skip-tests
     export RUSTUP_HOME="$PWD/.rustup"
     export CARGO_HOME="$PWD/.cargo"
+    export PATH="$PWD/.cargo/bin:$PATH"
     rustup set profile minimal
     rustup set auto-self-update disable
-    TOOLCHAIN="stable"   
-    rustup toolchain install "$TOOLCHAIN" --component rustfmt --component clippy
-    rustup default "$TOOLCHAIN"
-    export PATH="$CARGO_HOME/bin:$PATH"
-    hash -r
-    cargo --version
-    rustc --version
+    rustup toolchain install stable
+    rustup default stable
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
     cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
