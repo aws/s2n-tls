@@ -100,7 +100,7 @@ batch:
         variables:
           NIXDEV_LIBCRYPTO: .#openssl111
           NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
-          
+
 phases:
   install:
     commands:

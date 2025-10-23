@@ -62,7 +62,7 @@ git clone --branch "main" --single-branch "$CLONE_SRC" "$BUILD_DIR"
 cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DBUILD_SHARED_LIBS=on \
-    -DBUILD_TESTING=on 
+    -DBUILD_TESTING=on
 cmake --build "$BUILD_DIR"/build --target s2nc -- -j $(nproc) 
 cmake --build "$BUILD_DIR"/build --target s2nd -- -j $(nproc) 
 

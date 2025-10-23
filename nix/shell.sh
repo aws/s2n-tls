@@ -228,26 +228,26 @@ function rust_integration(){
     echo "rust_integration: Cleaning previous build"
     rm -rf build/
     echo "rust_integration: Configuring with CMake (RelWithDebInfo, intern libcrypto)"
-    cmake -B build -S . \
-        -DCMAKE_C_COMPILER=clang \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DBUILD_TESTING=OFF \
-        -DS2N_INTERN_LIBCRYPTO=ON
+    cmake -B build . \
+	    -D CMAKE_C_COMPILER=clang \
+	    -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+        -D BUILD_TESTING=OFF \
+	    -D S2N_INTERN_LIBCRYPTO=ON
     echo "rust_integration: Building"
-    cmake --build build -j "$(nproc)"
+    cmake --build ./build -j $(nproc)
     echo "rust_integration: Generating extended Rust bindings (bindgen)"
     bindings/rust/extended/generate.sh --skip-tests
     echo "rust_integration: Setting up local Rust toolchain (rustup stable)"
-    export RUSTUP_HOME="$PWD/.rustup"
-    export CARGO_HOME="$PWD/.cargo"
-    export PATH="$PWD/.cargo/bin:$PATH"
+    export RUSTUP_HOME=$(pwd)/.rustup
+    export CARGO_HOME=$(pwd)/.cargo
+    export PATH=$(pwd)/.cargo/bin:$PATH
     rustup set profile minimal
     rustup set auto-self-update disable
     rustup toolchain install stable
     rustup default stable
     echo "rust_integration: Exporting s2n-tls headers and libs for Cargo"
-    export S2N_TLS_LIB_DIR="$PWD/build/lib"
-    export S2N_TLS_INCLUDE_DIR="$PWD/api"
+    export S2N_TLS_LIB_DIR=$(pwd)/build/lib
+    export S2N_TLS_INCLUDE_DIR=$(pwd)/api
     echo "rust_integration: Running Rust integration tests"
-    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml
+    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
 }
