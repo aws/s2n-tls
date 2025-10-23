@@ -2,7 +2,7 @@
 , aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
-    commonShellHook = ''
+    rustShellHook = ''
       # Make libclang discoverable for bindgen
       export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
       export LD_LIBRARY_PATH="$LIBCLANG_PATH:$LD_LIBRARY_PATH"
@@ -39,7 +39,7 @@ let
       export PATH=${openssl_1_1_1}/bin:$PATH
       export PS1="[nix${if withRustTools then " rust" else ""} $S2N_LIBCRYPTO] $PS1"
       ${extraCMakeFlags}
-      ${commonShellHook}
+      ${rustShellHook}
       source ${writeScript ./shell.sh}
     '';
   };
