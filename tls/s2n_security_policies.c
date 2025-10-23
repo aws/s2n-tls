@@ -25,7 +25,7 @@
 const struct s2n_security_policy security_policy_20251014 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20251014,
-    .kem_preferences = &kem_preferences_null,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
     .rules = {
@@ -37,7 +37,7 @@ const struct s2n_security_policy security_policy_20251014 = {
 const struct s2n_security_policy security_policy_20251015 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20251015,
-    .kem_preferences = &kem_preferences_null,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
