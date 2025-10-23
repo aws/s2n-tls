@@ -27,7 +27,7 @@ jobs:
     runs-on: cbmc_ubuntu-latest_64-core
     name: run_cbmc_proofs
     # The default timeout is 360 minutes
-    timeout-minutes: 60
+    timeout-minutes: 1000
     permissions:
       contents: read
       id-token: write

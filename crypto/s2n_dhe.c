@@ -207,15 +207,36 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     POSIX_ENSURE_REF(p);
     POSIX_ENSURE(BN_bn2bin(bn_p, p) == p_size, S2N_ERR_DH_SERIALIZING);
 
+    printf("p size: %i (%X)", p_size, p_size);
+    printf("p:\n");
+    for(size_t i = 0; i < p_size; i++) {
+        printf("%02X", (unsigned char) p[i]);
+    }
+    printf("\n");
+
     POSIX_GUARD(s2n_stuffer_write_uint16(out, g_size));
     g = s2n_stuffer_raw_write(out, g_size);
     POSIX_ENSURE_REF(g);
     POSIX_ENSURE(BN_bn2bin(bn_g, g) == g_size, S2N_ERR_DH_SERIALIZING);
 
+    printf("g size: %i (%X)", g_size, g_size);
+    printf("g:\n");
+    for(size_t i = 0; i < g_size; i++) {
+        printf("%02X", (unsigned char) g[i]);
+    }
+    printf("\n");
+
     POSIX_GUARD(s2n_stuffer_write_uint16(out, Ys_size));
     Ys = s2n_stuffer_raw_write(out, Ys_size);
     POSIX_ENSURE_REF(Ys);
     POSIX_ENSURE(BN_bn2bin(bn_Ys, Ys) == Ys_size, S2N_ERR_DH_SERIALIZING);
+
+    printf("Ys size: %i (%X)", Ys_size, Ys_size);
+    printf("Ys:\n");
+    for(size_t i = 0; i < Ys_size; i++) {
+        printf("%02X", (unsigned char) Ys[i]);
+    }
+    printf("\n");
 
     output->size = p_size + 2 + g_size + 2 + Ys_size + 2;
 

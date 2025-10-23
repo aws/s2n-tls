@@ -167,11 +167,9 @@ def get_args():
 
 
 def set_up_logging(verbose):
-    if verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.WARNING
+    level = logging.DEBUG
     logging.basicConfig(
+        stream=sys.stderr,
         format="run-cbmc-proofs: %(message)s", level=level)
 
 

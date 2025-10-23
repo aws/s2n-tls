@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_OK(s2n_stuffer_alloc_from_hex(&test_entropy, reference_entropy_hex));
-    struct s2n_drbg drbg;
+    struct s2n_drbg drbg = { 0 };
 
     POSIX_GUARD_RESULT(s2n_rand_cleanup());
     EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_entropy_init_cleanup, s2n_entropy_init_cleanup, s2n_entropy_generator, s2n_entropy_generator));
@@ -130,6 +130,18 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(dhe_key_stuffer.blob.size, 519);
 
     EXPECT_EQUAL(out_blob.size, 519);
+
+    printf("out_blob:\n");
+    for(size_t i=0; i < out_blob.size; i++) {
+        printf("%02X", (unsigned char) out_blob.data[i]);
+    }
+    printf("\n");
+
+    printf("dhe_key_stuffer.blob:\n");
+    for(size_t i=0; i < out_blob.size; i++) {
+        printf("%02X", (unsigned char) dhe_key_stuffer.blob.data[i]);
+    }
+    printf("\n");
 
     EXPECT_EQUAL(0, memcmp(out_blob.data, dhe_key_stuffer.blob.data, out_blob.size));
 
