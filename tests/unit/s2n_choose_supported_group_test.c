@@ -30,12 +30,13 @@ int main()
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    /* Tests with default KEM preferences (kem_preferences_null) */
+    /* Tests with 20240501 KEM preferences (kem_preferences_null) */
     {
         /* If the lists of mutually supported groups are empty, chosen group should be set to null */
         {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -73,6 +74,7 @@ int main()
         {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -111,6 +113,7 @@ int main()
         {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));

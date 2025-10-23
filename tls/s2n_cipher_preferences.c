@@ -311,14 +311,10 @@ struct s2n_cipher_suite *cipher_suites_20251014[] = {
     /* TLS1.2 with ECDSA */
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
 
     /* TLS1.2 with RSA */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20251014 = {
@@ -328,6 +324,7 @@ const struct s2n_cipher_preferences cipher_preferences_20251014 = {
 };
 
 /*
+ * FIPS
  * TLS1.3 support.
  * Same as 20251014 but without chachapoly
  */
@@ -338,14 +335,10 @@ struct s2n_cipher_suite *cipher_suites_20251015[] = {
     /* TLS1.2 with ECDSA */
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
 
     /* TLS1.2 with RSA */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20251015 = {
