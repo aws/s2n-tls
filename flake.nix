@@ -39,18 +39,10 @@
           pkgs.gnutls
           pkgs.tshark
 
-          # Build configuration systems 
-          pkgs.cmake
-
           # C Compiler Tooling
           pkgs.gcc
           pkgs.gdb
           pkgs.valgrind
-          pkgs.llvmPackages_18.clang
-          pkgs.llvmPackages_18.bintools
-
-          # Compiler library
-          pkgs.llvmPackages_18.libclang # Provides libclang for Rust bindgen
 
           # Linters/Formatters
           pkgs.shellcheck
