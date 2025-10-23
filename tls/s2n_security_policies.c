@@ -1479,6 +1479,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20241001", .security_policy = &security_policy_20241001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250512", .security_policy = &security_policy_20250512, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250721", .security_policy = &security_policy_20250721, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251014", .security_policy = &security_policy_20251014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251015", .security_policy = &security_policy_20251015, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241001_pq_mixed", .security_policy = &security_policy_20241001_pq_mixed, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
