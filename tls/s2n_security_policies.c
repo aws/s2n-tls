@@ -16,6 +16,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_pq.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
@@ -1398,6 +1399,15 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     },
 };
 
+const struct s2n_security_policy security_policy_test_pq_only = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_cloudfront_upstream_2025_08_08_tls13,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20240501,
+    .certificate_signature_preferences = &s2n_signature_preferences_20240501,
+    .ecc_preferences = &s2n_ecc_preferences_null,
+};
+
 const struct s2n_security_policy security_policy_20200207 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls13,
@@ -1570,6 +1580,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "test_ecdsa_priority", .security_policy = &security_policy_test_ecdsa_priority, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_tls12", .security_policy = &security_policy_test_all_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_tls13", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_pq_only", .security_policy = &security_policy_test_pq_only, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "null", .security_policy = &security_policy_null, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = NULL, .security_policy = NULL, .ecc_extension_required = 0, .pq_kem_extension_required = 0 }
 };
@@ -1615,7 +1626,7 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
-int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *security_policy)
+static int s2n_config_validate_security_policy(struct s2n_config *config, const struct s2n_security_policy *security_policy)
 {
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(security_policy);
@@ -1627,8 +1638,25 @@ int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_s
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    if (security_policy == &security_policy_null) {
+        return S2N_SUCCESS;
+    }
+
+    /* Ensure that an ECC or PQ key exchange can occur. */
+    uint32_t ecc_available = security_policy->ecc_preferences->count;
+    uint32_t kem_groups_available = 0;
+    POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &kem_groups_available));
+    POSIX_ENSURE(ecc_available + kem_groups_available > 0, S2N_ERR_INVALID_SECURITY_POLICY);
+
     /* If the config contains certificates violating the security policy cert preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *security_policy)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_GUARD(s2n_config_validate_security_policy(config, security_policy));
     config->security_policy = security_policy;
     return 0;
 }
@@ -1644,19 +1672,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *security_policy)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(security_policy);
-    POSIX_ENSURE_REF(security_policy->cipher_preferences);
-    POSIX_ENSURE_REF(security_policy->kem_preferences);
-    POSIX_ENSURE_REF(security_policy->signature_preferences);
-    POSIX_ENSURE_REF(security_policy->ecc_preferences);
-
-    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
-    POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-
-    /* If the certificates loaded in the config are incompatible with the security 
-     * policy's certificate preferences, return an error. */
-    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
-
+    POSIX_GUARD(s2n_config_validate_security_policy(conn->config, security_policy));
     conn->security_policy_override = security_policy;
     return 0;
 }
@@ -1688,8 +1704,15 @@ int s2n_security_policies_init()
         }
 
         if (security_policy != &security_policy_null) {
-            /* All policies must have at least one ecc curve configured. */
-            S2N_ERROR_IF(ecc_preference->count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            /* All policies must have at least one ecc curve or PQ kem group configured. */
+            bool ecc_kx_supported = ecc_preference->count > 0;
+            bool pq_kx_supported = kem_preference->tls13_kem_group_count > 0;
+            POSIX_ENSURE(ecc_kx_supported || pq_kx_supported, S2N_ERR_INVALID_SECURITY_POLICY);
+
+            /* A PQ key exchange is only supported in TLS 1.3, so PQ-only policies must require TLS 1.3.*/
+            if (!ecc_kx_supported) {
+                POSIX_ENSURE(security_policy->minimum_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_SECURITY_POLICY);
+            }
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
