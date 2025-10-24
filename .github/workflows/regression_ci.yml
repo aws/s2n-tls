@@ -15,6 +15,9 @@ on:
 env:
   ROOT_PATH: bindings/rust/extended
 
+permissions:
+  contents: read
+
 jobs:
   regression-test:
     runs-on: ubuntu-latest

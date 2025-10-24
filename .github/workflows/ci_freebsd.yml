@@ -9,6 +9,9 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   testfreebsd:
     runs-on: ubuntu-latest

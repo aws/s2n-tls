@@ -23,6 +23,9 @@ env:
   # The name of a s2n-tls test gated behind the external build cfg flag.
   EXTERNAL_BUILD_TEST_NAME: test_unstable_as_ptr
 
+permissions:
+  contents: read
+
 jobs:
   generate:
     runs-on: ${{ matrix.os }}

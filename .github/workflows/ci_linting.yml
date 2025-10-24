@@ -8,6 +8,9 @@ on:
   merge_group:
     types: [checks_requested]
     branches: [main]
+permissions:
+  contents: read
+
 jobs:
   cppcheck:
     runs-on: ubuntu-latest

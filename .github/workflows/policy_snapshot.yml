@@ -14,6 +14,9 @@ env:
   COMMITTED_SNAPSHOTS: ./tests/policy_snapshot/snapshots
   GENERATED_SNAPSHOTS: ./tests/policy_snapshot/generated
   
+permissions:
+  contents: read
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest
