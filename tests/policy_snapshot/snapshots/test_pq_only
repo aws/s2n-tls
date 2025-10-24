@@ -1,4 +1,3 @@
-name: test_pq_only
 min version: TLS1.3
 rules:
 - Perfect Forward Secrecy: no
