@@ -29,7 +29,7 @@ impl Libcrypto {
 
         match libcrypto.as_str() {
             "awslc" => Libcrypto::Awslc,
-            "awslc-fips" => Libcrypto::AwslcFips,
+            "awslc-fips" | "awslc-fips-2022" | "awslc-fips-2024" => Libcrypto::AwslcFips,
             "openssl-1.0.2" => Libcrypto::OpenSsl102,
             "openssl-1.1.1" => Libcrypto::OpenSsl111,
             "openssl-3.0" => Libcrypto::OpenSsl30,
@@ -45,7 +45,8 @@ pub enum Capability {
     /// Support for TLS 1.3
     Tls13,
     /// Support for ML-DSA and ML-KEM
-    PQAlgorithms,
+    MLKem,
+    MLDsa,
 }
 
 impl Capability {
@@ -57,10 +58,9 @@ impl Capability {
         match self {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
-            // PQ is only supported for AWS-LC
-            Capability::PQAlgorithms => {
-                libcrypto == Libcrypto::Awslc || libcrypto == Libcrypto::AwslcFips
-            }
+            // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
+            Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
+            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
         }
     }
 }

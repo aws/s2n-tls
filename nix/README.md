@@ -33,6 +33,23 @@ separate from the buildPhase, configurePhase and checkPhase.
 
 By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
 
+### Rust development
+
+For Rust development, dedicated devshells are available that include the full Rust toolchain (rustc, cargo, clang, libclang) in addition to the standard development tools. These are accessible with the `rust_` prefix:
+
+```bash
+# Rust + OpenSSL variants
+nix develop .#rust_openssl102
+nix develop .#rust_openssl111  
+nix develop .#rust_openssl30
+
+# Rust + AWS-LC variants
+nix develop .#rust_awslc
+nix develop .#rust_awslcfips2024
+```
+
+These rust-enabled shells provide everything needed for Rust integration testing and development, including proper libclang discovery for bindgen. The shell prompt will indicate the rust environment with `[nix rust <crypto-lib>]`.
+
 ### Configure and build
 
 From inside the devShell: `configure; build`.
@@ -53,6 +70,8 @@ The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environ
 
 From inside a devShell after running `configure` and `build`, use `uvinteg <test name>` to run the integration tests matching the regex `<test name>`, or with no arguments to run all the integration tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 For example: `uvinteg happy_path`.
+
+For Rust integration tests, use `rust_integration` from within a rust-enabled devshell (see Rust development section above).
 
 The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
 
