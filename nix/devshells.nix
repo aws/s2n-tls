@@ -81,7 +81,7 @@ let
   };
 
   awslc_shell = mkBaseShell {
-    cryptoLib = awsLcStatic;
+    cryptoLib = aws-lc;
     libcryptoName = "awslc";
   };
 
@@ -91,7 +91,7 @@ let
   };
 
   awslcfips2024_shell = mkBaseShell {
-    cryptoLib = awsLcFips2024Static;
+    cryptoLib = aws-lc-fips-2024;
     libcryptoName = "awslc-fips-2024";
   };
 
