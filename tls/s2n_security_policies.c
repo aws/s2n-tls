@@ -1866,6 +1866,44 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
     return S2N_SUCCESS;
 }
 
+int s2n_validate_cipher_preferences(const struct s2n_cipher_preferences *cipher_preferences)
+{
+    POSIX_ENSURE_REF(cipher_preferences);
+    /* checks to assert that the count is 0 */
+    /* iff */
+    /* the associated list is null */
+    POSIX_ENSURE(S2N_IFF(cipher_preferences->count==0, cipher_preferences->suites==NULL),
+            S2N_ERR_INVALID_SECURITY_POLICY);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_validate_signature_preferences(const struct s2n_signature_preferences *signature_preferences)
+{
+    POSIX_ENSURE_REF(signature_preferences);
+
+    /* checks to assert that the count is 0 */
+    /* iff */
+    /* the associated list is null */
+    POSIX_ENSURE(S2N_IFF(signature_preferences->count == 0, signature_preferences->signature_schemes == NULL),
+            S2N_ERR_INVALID_SECURITY_POLICY);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_validate_ecc_preferences(const struct s2n_ecc_preferences *ecc_preferences)
+{
+    POSIX_ENSURE_REF(ecc_preferences);
+
+    /* checks to assert that the count is 0 */
+    /* iff */
+    /* the associated list is null */
+    POSIX_ENSURE(S2N_IFF(ecc_preferences->count == 0, ecc_preferences->ecc_curves == NULL),
+            S2N_ERR_INVALID_SECURITY_POLICY);
+
+    return S2N_SUCCESS;
+}
+
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
 {
     RESULT_ENSURE_REF(certificate_signature_preferences);
