@@ -31,7 +31,7 @@ const char reference_entropy_hex[] = "000000000000000000000000000000000000000000
                                      "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
 /**
- * This test verifies that s2n can override OpenSSL's RNG with s2n's RNG implementation.We do that by initializing s2n's
+ * This test verifies that s2n can override OpenSSL's RNG with s2n's RNG implementation. We do that by initializing s2n's
  * RNG with all zeros, overriding OpenSSL's RNG with s2n's, generating a DH Param, and verifying that the DH param
  * matches a known hex string.
  */
