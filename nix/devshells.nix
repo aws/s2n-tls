@@ -3,9 +3,22 @@
 
 let
   rustShellHook = ''
-    # Make libclang discoverable for bindgen
+    # Explicitly set LIBCLANG_PATH so clang-sys (used by bindgen) can locate libclang inside the Nix store.
+    # Unlike normal C/C++ builds, bindgen loads libclang dynamically with dlopen(), not via the compiler wrapper
+    # or LD_LIBRARY_PATH. Setting this ensures bindgen always finds the correct Nix-provided libclang,
+    # even though mkShell’s buildInputs already include it.
     export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
-    export LD_LIBRARY_PATH="$LIBCLANG_PATH:$LD_LIBRARY_PATH"
+    # Bindgen bypasses cc-wrapper, so give it the same flags/paths cc-wrapper would add
+    export BINDGEN_EXTRA_CLANG_ARGS="$(< ${pkgs.stdenv.cc}/nix-support/libc-crt1-cflags) \
+      $(< ${pkgs.stdenv.cc}/nix-support/libc-cflags) \
+      $(< ${pkgs.stdenv.cc}/nix-support/cc-cflags) \
+      $(< ${pkgs.stdenv.cc}/nix-support/libcxx-cxxflags) \
+      ${pkgs.lib.optionalString pkgs.stdenv.cc.isClang "-idirafter ${pkgs.stdenv.cc.cc}/lib/clang/${pkgs.lib.getVersion pkgs.stdenv.cc.cc}/include"} \
+      ${pkgs.lib.optionalString pkgs.stdenv.cc.isGNU "
+        -isystem ${pkgs.stdenv.cc.cc}/include/c++/${pkgs.lib.getVersion pkgs.stdenv.cc.cc} \
+        -isystem ${pkgs.stdenv.cc.cc}/include/c++/${pkgs.lib.getVersion pkgs.stdenv.cc.cc}/${pkgs.stdenv.hostPlatform.config} \
+        -idirafter ${pkgs.stdenv.cc.cc}/lib/gcc/${pkgs.stdenv.hostPlatform.config}/${pkgs.lib.getVersion pkgs.stdenv.cc.cc}/include
+      "}"
   '';
 
   # Base tool inputs for different development scenarios
@@ -25,7 +38,7 @@ let
       inherit system;
       buildInputs = [ pkgs.cmake cryptoLib ]
         ++ (if withRustTools then rustToolInputs else [ ]);
-      packages = common_packages;
+      packages = if withRustTools then [ ] else common_packages;
       S2N_LIBCRYPTO = libcryptoName;
       # Environment variables for all crypto libraries
       OPENSSL_1_0_2_INSTALL_DIR =
@@ -51,6 +64,10 @@ let
       '';
     };
 
+  # By default, AWS-LC’s flake build produces shared libraries (.so).
+  # However, s2n-tls’s “intern libcrypto” mode statically links AWS-LC into the binary
+  # instead of dynamically linking at runtime. To support that, we override the default
+  # AWS-LC build to produce static libraries
   awsLcStatic = aws-lc.overrideAttrs (old: {
     cmakeFlags = (old.cmakeFlags or [ ]) ++ [ "-DBUILD_SHARED_LIBS=OFF" ];
   });
