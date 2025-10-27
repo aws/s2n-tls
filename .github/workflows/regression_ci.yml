@@ -89,7 +89,7 @@ jobs:
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: regression_artifacts
           path: tests/regression/target/regression_artifacts
