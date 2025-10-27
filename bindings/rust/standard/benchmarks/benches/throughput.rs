@@ -44,7 +44,7 @@ fn bench_throughput_for_library<T>(
 
 pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
-    let mut shared_buf = [0u8; 100000];
+    let mut shared_buf = vec![0u8; 10_000_000]; // 10MB (allocated on the heap to avoid stack overflow)
 
     for cipher_suite in CipherSuite::iter() {
         let mut bench_group = c.benchmark_group(format!("throughput-{cipher_suite:?}"));
