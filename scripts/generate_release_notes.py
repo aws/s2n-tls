@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run --script
 import os
 import subprocess
 from datetime import datetime,timedelta
@@ -5,7 +6,7 @@ import click
 from github import Github, Auth
 
 
-def get_release_summaries(pr) -> None | str:
+def get_release_summaries(pr) -> str | None:
     """Extract release summaries from PRs that have them."""
     body = pr.body or ""
     if "### Release Summary:" in body:
@@ -14,6 +15,8 @@ def get_release_summaries(pr) -> None | str:
         # make sure it's not the default HTML comment
         if summary and "<!--" not in summary:
             return summary
+    else:
+        return None
 
 
 def format_pr_entry(pr) -> str:
