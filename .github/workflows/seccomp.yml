@@ -8,6 +8,9 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   ubuntu:
     runs-on: ubuntu-latest

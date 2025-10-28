@@ -9,6 +9,10 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
   generate-doxygen:
     runs-on: ubuntu-latest
