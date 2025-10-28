@@ -241,8 +241,6 @@ function rust_build {(set -e
 )}
 
 function rust_test {(set -e
-    echo "rust_test: Generating Rust bindings (bindgen)"
-    bindings/rust/extended/generate.sh --skip-tests
     # Set up local Rust toolchain to avoid conflicts between CI and Nix Rust installations.
     # This ensures we use a consistent, isolated toolchain regardless of environment.
     echo "rust_build: Setting up local Rust toolchain (rustup stable)"
@@ -253,6 +251,8 @@ function rust_test {(set -e
     rustup set auto-self-update disable
     rustup toolchain install stable
     rustup default stable
+    echo "rust_test: Generating Rust bindings (bindgen)"
+    bindings/rust/extended/generate.sh --skip-tests
     echo "rust_test: Exporting s2n-tls headers and libs for Cargo"
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
