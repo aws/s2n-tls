@@ -44,7 +44,6 @@ impl Libcrypto {
 pub enum Capability {
     /// Support for TLS 1.3
     Tls13,
-    /// Support for ML-DSA and ML-KEM
     MLKem,
     MLDsa,
 }

@@ -166,4 +166,3 @@ phases:
           echo "Running Rust integration tests with $NIXDEV_LIBCRYPTO"
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_test"
         fi
-        
