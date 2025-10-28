@@ -38,6 +38,7 @@ let
     pkgs.llvmPackages_18.bintools
     pkgs.cmake
     pkgs.rustc
+    pkgs.rustup
     pkgs.cargo
   ];
 
