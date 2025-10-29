@@ -10,6 +10,9 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   OSX:
     runs-on: macos-latest

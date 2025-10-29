@@ -1,4 +1,3 @@
-name: KMS-TLS-1-2-2023-06
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: yes

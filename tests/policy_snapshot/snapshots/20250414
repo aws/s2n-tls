@@ -1,4 +1,3 @@
-name: 20250414
 min version: TLS1.3
 rules:
 - Perfect Forward Secrecy: yes

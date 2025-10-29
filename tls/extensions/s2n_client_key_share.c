@@ -67,6 +67,11 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
+    /* Skip sending classical ECC curves for PQ only policies. */
+    if (ecc_pref->count == 0) {
+        return S2N_SUCCESS;
+    }
+
     /* We only ever send a single EC key share: either the share requested by the server
      * during a retry, or the most preferred share according to local preferences.
      */
