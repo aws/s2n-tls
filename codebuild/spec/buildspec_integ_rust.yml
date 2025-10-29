@@ -149,14 +149,18 @@ phases:
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_configure"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "
+            source ./nix/shell.sh
+            export S2N_CMAKE_OPTIONS='-DBUILD_TESTING=OFF -DS2N_INTERN_LIBCRYPTO=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=clang'
+            configure
+          "
         fi
   build:
     commands:
       - |
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_build"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build; bindings/rust/extended/generate.sh --skip-tests"
         fi
   post_build:
     commands:
