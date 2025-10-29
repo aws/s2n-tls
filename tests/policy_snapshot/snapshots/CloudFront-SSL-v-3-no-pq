@@ -1,3 +1,4 @@
+name: CloudFront-SSL-v-3-no-pq
 min version: SSLv3
 rules:
 - Perfect Forward Secrecy: no
@@ -41,8 +42,3 @@ curves:
 - x25519
 - secp256r1
 - secp384r1
-pq:
-- revision: 5
-- kem groups:
--- X25519MLKEM768
--- SecP256r1MLKEM768
