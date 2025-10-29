@@ -74,7 +74,7 @@ def main(release_commit:str, repo_name:str, output:str):
     last_release_commit = get_last_release_commit(repo)
 
     print(
-        f"Generating release notes from ({last_release_commit}, {release_commit}]"
+        f"Generating release notes from [{last_release_commit}, {release_commit}]"
     )
     commits = get_commits_in_release(last_release_commit, release_commit)
     prs = [get_pr_from_commit_description(description) for description in commits]
