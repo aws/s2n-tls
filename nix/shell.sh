@@ -45,8 +45,8 @@ function clean {(set -e
 function configure {(set -e
     echo "Configuring with cmake"
     
-    # Check if we're in a rust shell by looking for "rust" in PS1
-    if [[ "$PS1" == *"rust"* ]]; then
+    # Check if we're in a rust shell by looking for S2N_RUST_MODE environment variable
+    if [[ "$S2N_RUST_MODE" == "1" ]]; then
         echo "Detected Rust environment - using Rust-specific configuration"
         cmake -S . -B./build \
               -DBUILD_TESTING=OFF \
@@ -72,8 +72,8 @@ function configure {(set -e
 function build {(set -e
     echo "Running Build"
     
-    # Check if we're in a rust shell by looking for "rust" in PS1
-    if [[ "$PS1" == *"rust"* ]]; then
+    # Check if we're in a rust shell by looking for S2N_RUST_MODE environment variable
+    if [[ "$S2N_RUST_MODE" == "1" ]]; then
         echo "Detected Rust environment - skipping Java compilation and running bindgen"
         cmake --build ./build -j $(nproc)
         echo "Generating Rust bindings (bindgen)"

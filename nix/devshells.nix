@@ -69,6 +69,7 @@ let
         export PS1="[nix${
           if withRustTools then " rust" else ""
         } $S2N_LIBCRYPTO] $PS1"
+        ${if withRustTools then "export S2N_RUST_MODE=1" else ""}
         ${extraCMakeFlags}
         ${rustShellHook}
         source ${writeScript ./shell.sh}
