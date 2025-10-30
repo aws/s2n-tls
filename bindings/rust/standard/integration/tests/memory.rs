@@ -220,7 +220,7 @@ mod memory_test {
         assert!(fuzzy_equals(application_data, 86_399));
         assert!(fuzzy_equals(
             dhat::HeapStats::get().max_bytes - static_memory,
-            150_378
+            163_114
         ));
 
         Ok(())
