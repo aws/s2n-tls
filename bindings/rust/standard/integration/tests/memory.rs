@@ -208,7 +208,10 @@ mod memory_test {
         println!("handshake in progress: {handshake_in_progress}");
         println!("handshake complete: {handshake_complete}");
         println!("application data: {application_data}");
-        println!("max usage: {}", dhat::HeapStats::get().max_bytes - static_memory);
+        println!(
+            "max usage: {}",
+            dhat::HeapStats::get().max_bytes - static_memory
+        );
 
         assert!(fuzzy_equals(config_init, 19_259));
         assert!(fuzzy_equals(connection_init, 61_482));
