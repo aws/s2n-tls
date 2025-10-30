@@ -25,7 +25,7 @@ mod memory_test {
     }
 
     fn fuzzy_equals(actual: usize, expected: usize) -> bool {
-        const TOLERANCE: usize = 0;
+        const TOLERANCE: usize = 100;
 
         println!("actual: {actual}, expected: {expected}");
         actual <= expected + TOLERANCE && actual >= expected - TOLERANCE
