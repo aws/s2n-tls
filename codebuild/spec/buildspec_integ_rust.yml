@@ -149,12 +149,7 @@ phases:
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "
-            source ./nix/shell.sh
-            export S2N_CMAKE_OPTIONS='-DBUILD_TESTING=OFF -DS2N_INTERN_LIBCRYPTO=ON -DCMAKE_C_COMPILER=clang'
-            export S2N_NO_HEADBUILD=1
-            configure
-          "
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
         fi
   build:
     commands:

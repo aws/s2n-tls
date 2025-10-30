@@ -44,25 +44,48 @@ function clean {(set -e
 
 function configure {(set -e
     echo "Configuring with cmake"
-    cmake -S . -B./build \
-          -DBUILD_TESTING=ON \
-          -DS2N_INTEG_TESTS=ON \
-          -DS2N_INSTALL_S2NC_S2ND=ON \
-          -DS2N_INTEG_NIX=ON \
-          -DBUILD_SHARED_LIBS=ON \
-          -DCMAKE_C_COMPILER="$CC" \
-          -DCMAKE_CXX_COMPILER="$CXX" \
-          "$S2N_CMAKE_OPTIONS" \
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    
+    # Check if we're in a rust shell by looking for "rust" in PS1
+    if [[ "$PS1" == *"rust"* ]]; then
+        echo "Detected Rust environment - using Rust-specific configuration"
+        cmake -S . -B./build \
+              -DBUILD_TESTING=OFF \
+              -DS2N_INTERN_LIBCRYPTO=ON \
+              -DCMAKE_C_COMPILER=clang \
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+              "$S2N_CMAKE_OPTIONS"
+    else
+        echo "Using standard configuration"
+        cmake -S . -B./build \
+              -DBUILD_TESTING=ON \
+              -DS2N_INTEG_TESTS=ON \
+              -DS2N_INSTALL_S2NC_S2ND=ON \
+              -DS2N_INTEG_NIX=ON \
+              -DBUILD_SHARED_LIBS=ON \
+              -DCMAKE_C_COMPILER="$CC" \
+              -DCMAKE_CXX_COMPILER="$CXX" \
+              "$S2N_CMAKE_OPTIONS" \
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    fi
 )}
 
 function build {(set -e
     echo "Running Build"
-    javac tests/integrationv2/bin/SSLSocketClient.java
-    cmake --build ./build -j $(nproc)
-    # Build s2n from HEAD
-    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
-        $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+    
+    # Check if we're in a rust shell by looking for "rust" in PS1
+    if [[ "$PS1" == *"rust"* ]]; then
+        echo "Detected Rust environment - skipping Java compilation and running bindgen"
+        cmake --build ./build -j $(nproc)
+        echo "Generating Rust bindings (bindgen)"
+        bindings/rust/extended/generate.sh --skip-tests
+    else
+        echo "Running standard build"
+        javac tests/integrationv2/bin/SSLSocketClient.java
+        cmake --build ./build -j $(nproc)
+        # Build s2n from HEAD
+        if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
+            $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+        fi
     fi
 )}
 
