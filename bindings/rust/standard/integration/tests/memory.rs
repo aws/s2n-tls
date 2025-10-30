@@ -1,6 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-use tabled::Tabled;
+
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 #[cfg(not(feature = "no-sensitive-tests"))]
