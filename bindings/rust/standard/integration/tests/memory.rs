@@ -14,7 +14,7 @@ mod memory_test {
         testing::{self, TestPair},
     };
     use std::{collections::BTreeMap, task::Poll};
-    use tabled::{Table, Tabled, settings::Style};
+    use tabled::{settings::Style, Table, Tabled};
 
     /// Return an estimation of the memory size of the IO buffers
     ///
@@ -226,7 +226,7 @@ mod memory_test {
 
     struct MemoryRecorder {
         /// measurement after s2n_init
-        /// 
+        ///
         /// Currently unused but we should be emitted a metric for this
         _static_memory: S2NHeapStats,
         /// measurement after config initialization
@@ -284,12 +284,17 @@ mod memory_test {
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()
                 .map(|stage| {
-                    let measurement = self.measurements.get(&stage).unwrap().0.against_baseline(&self.config_memory);
+                    let measurement = self
+                        .measurements
+                        .get(&stage)
+                        .unwrap()
+                        .0
+                        .against_baseline(&self.config_memory);
                     (stage, measurement.curr_bytes)
                 })
                 .collect();
 
-            for (actual, expected ) in actual_memory.iter().zip(EXPECTED_MEMORY) {
+            for (actual, expected) in actual_memory.iter().zip(EXPECTED_MEMORY) {
                 // make sure we're looking at the right stage
                 assert_eq!(actual.0, expected.0);
                 assert!(fuzzy_equals(actual.1, expected.1))
