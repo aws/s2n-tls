@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [features]
-default = ["pq", "no-sensitive-tests"]
+# default = ["pq", "no-sensitive-tests"]
 
 # Network tests are useful but relatively slow and inherently flaky. So they are
 # behind this feature flag. This is specified as a "negative" feature because 
@@ -25,6 +25,7 @@ s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
 s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
 aws-lc-sys = "*"
 tls-harness = { path = "../tls-harness" }
+tabled = "0.20.0"
 
 [dev-dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
