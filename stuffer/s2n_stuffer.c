@@ -60,6 +60,12 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
     return S2N_RESULT_OK;
 }
 
+/**
+ * Initialize a stuffer to reference some data `in`.
+ * 
+ * `stuffer` will not own the data, and the caller is responsible for ensuring that
+ * the data pointed to by `in` outlives `stuffer`.
+ */
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
     POSIX_ENSURE_MUT(stuffer);
@@ -174,6 +180,11 @@ int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size
     return S2N_SUCCESS;
 }
 
+/**
+ * Reset read and write progress.
+ * 
+ * This sets the read and write cursors to zero.
+ */
 int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
@@ -192,6 +203,11 @@ int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
     return S2N_SUCCESS;
 }
 
+/**
+ * Reset read progress.
+ * 
+ * This sets the read cursor to zero.
+ */
 int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
