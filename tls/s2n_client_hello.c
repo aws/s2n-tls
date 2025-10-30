@@ -23,6 +23,7 @@
 #include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_server_name.h"
@@ -551,13 +552,13 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
-    POSIX_ENSURE_GT(ecc_pref->count, 0);
-    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+
+    if (ecc_pref->count == 0) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+    } else if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
     } else {
-        /* If P-256 isn't allowed by the current security policy, instead choose
-         * the first / most preferred curve.
-         */
+        /* If P-256 isn't allowed by the current security policy, choose the first / most preferred curve. */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 

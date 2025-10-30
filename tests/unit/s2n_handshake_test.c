@@ -129,7 +129,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
-        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg)
+        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm sig_alg)
 {
     const struct s2n_security_policy *security_policy = server_config->security_policy;
     EXPECT_NOT_NULL(security_policy);
@@ -152,6 +152,12 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
         if (!expected_cipher->available) {
             expect_failure = 1;
+        }
+
+        s2n_signature_algorithm expected_sig_alg = sig_alg;
+        /* Expect no server signature algorithm if RSA kex */
+        if (expected_cipher->key_exchange_alg == &s2n_rsa) {
+            expected_sig_alg = S2N_SIGNATURE_ANONYMOUS;
         }
 
         TEST_DEBUG_PRINT("Testing %s in %s mode, expect_failure=%d\n", expected_cipher->name,

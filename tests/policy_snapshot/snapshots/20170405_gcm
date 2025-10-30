@@ -1,4 +1,3 @@
-name: 20170405_gcm
 min version: TLS1.0
 rules:
 - Perfect Forward Secrecy: no
@@ -19,7 +18,7 @@ signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - ecdsa_sha256
 - ecdsa_sha384
 - ecdsa_sha512

@@ -763,6 +763,7 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(unsafe_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(unsafe_config, chain_and_key));
+            EXPECT_OK(s2n_config_set_tls12_security_policy(unsafe_config));
 
             /* Disable certificate verification */
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(unsafe_config));
@@ -790,12 +791,14 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(client_config, always_verify_host_fn, NULL));
+            EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
                     s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, always_verify_host_fn, NULL));
+            EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
             /* Disable client verification of the server cert.

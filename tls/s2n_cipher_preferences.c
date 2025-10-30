@@ -303,6 +303,51 @@ const struct s2n_cipher_preferences cipher_preferences_20230317 = {
 };
 
 /*
+ * TLS1.3 support.
+ */
+struct s2n_cipher_suite *cipher_suites_20251014[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+
+    /* TLS1.2 with ECDSA */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+
+    /* TLS1.2 with RSA */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251014 = {
+    .count = s2n_array_len(cipher_suites_20251014),
+    .suites = cipher_suites_20251014,
+    .allow_chacha20_boosting = false,
+};
+
+/*
+ * FIPS
+ * TLS1.3 support.
+ * Same as 20251014 but without chachapoly
+ */
+struct s2n_cipher_suite *cipher_suites_20251015[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+
+    /* TLS1.2 with ECDSA */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+
+    /* TLS1.2 with RSA */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251015 = {
+    .count = s2n_array_len(cipher_suites_20251015),
+    .suites = cipher_suites_20251015,
+    .allow_chacha20_boosting = false,
+};
+
+/*
  * No TLS1.3 support.
  * FIPS compliant.
  * No DHE (would require extra setup with s2n_config_add_dhparams)
@@ -1447,6 +1492,46 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12
     .allow_chacha20_boosting = false,
 };
 
+/* CloudFront upstream with TLS 1.3 enabled */
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_2025_08_08[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_08_08 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_2025_08_08),
+    .suites = cipher_suites_cloudfront_upstream_2025_08_08,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_2025_08_08_tls13[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_08_08_tls13 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_2025_08_08_tls13),
+    .suites = cipher_suites_cloudfront_upstream_2025_08_08_tls13,
+    .allow_chacha20_boosting = false,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
@@ -2181,6 +2266,21 @@ struct s2n_cipher_suite *cipher_suites_20250429[] = {
 const struct s2n_cipher_preferences cipher_preferences_20250429 = {
     .count = s2n_array_len(cipher_suites_20250429),
     .suites = cipher_suites_20250429,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20251013[] = {
+    /* TLS1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+
+    /* TLS1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251013 = {
+    .count = s2n_array_len(cipher_suites_20251013),
+    .suites = cipher_suites_20251013,
     .allow_chacha20_boosting = false,
 };
 

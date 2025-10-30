@@ -1,4 +1,3 @@
-name: 20200207
 min version: SSLv3
 rules:
 - Perfect Forward Secrecy: yes
@@ -17,7 +16,7 @@ signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- legacy_rsa_pkcs1_sha224
+- legacy_rsa_sha224
 - ecdsa_sha256
 - ecdsa_sha384
 - ecdsa_sha512

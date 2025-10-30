@@ -12,24 +12,24 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is designed to work with CodeBuild's reserved instances fleet and curated Ec2 AMI for AL2023.
 version: 0.2
+# This is designed to work with CodeBuild's reserved instances fleet and
+# curated Ec2 AMI for Ubuntu25.
+#
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to 
+# prevent the disk from filling up.
 env:
+  shell: bash
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
+    NIX_INSTALLER: "https://nixos.org/nix/install"
     S2N_KTLS_TESTING_EXPECTED: 1
+    S2N_KTLS_KEYUPDATE_TESTING_EXPECTED: 1
 phases:
-  install:
-    commands:
-      - yum update -y; yum upgrade -y
   pre_build:
     commands:
-      # (Re)Install nix
-      - sh <(curl -L https://nixos.org/nix/install) --no-daemon
-      # Make sure nix exists in the PATH
-      - export PATH=$HOME/.nix-profile/bin:$PATH
-      # Turn on flakes
-      - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from the nix cache
       - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
       # Load the TLS kernel module
@@ -37,5 +37,6 @@ phases:
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
   build:
     commands:
-      - nix develop .#openssl111 --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
-      - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#openssl111 --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
+      - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
+      - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
+

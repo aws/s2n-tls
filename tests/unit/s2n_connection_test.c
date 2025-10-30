@@ -175,10 +175,12 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
             struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
 
             struct s2n_connection *server_conn = NULL;
@@ -1007,6 +1009,103 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
             EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
             EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+        };
+    };
+
+    /* Test s2n_connection_get_signature_scheme */
+    {
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            const char *name = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(&conn, NULL),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(NULL, &name),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: connection without a handshake returns an error */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            const char *name = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(conn, &name),
+                    S2N_ERR_INVALID_STATE);
+        };
+
+        /* Test: all valid signature schemes succeed */
+        {
+            const struct s2n_signature_preferences *all_prefs = &s2n_signature_preferences_all;
+            for (size_t i = 0; i < all_prefs->count; i++) {
+                for (size_t version = 0; version <= S2N_TLS13; version++) {
+                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                            s2n_connection_ptr_free);
+                    conn->handshake.handshake_type = NEGOTIATED;
+                    conn->handshake_params.server_cert_sig_scheme = all_prefs->signature_schemes[i];
+                    conn->actual_protocol_version = version;
+
+                    const char *name = NULL;
+                    EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &name));
+                    EXPECT_NOT_NULL(name);
+                }
+            }
+        };
+
+        /* Test: simple known values */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pss_rsae_sha256;
+            const char *rsa_name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &rsa_name));
+            EXPECT_STRING_EQUAL(rsa_name, "rsa_pss_rsae_sha256");
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_mldsa65;
+            const char *mldsa_name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &mldsa_name));
+            EXPECT_STRING_EQUAL(mldsa_name, "mldsa65");
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha224;
+            const char *legacy_ecdsa = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &legacy_ecdsa));
+            EXPECT_STRING_EQUAL(legacy_ecdsa, "legacy_ecdsa_sha224");
+        };
+
+        /* Test: connection without a chosen signature scheme returns "none" */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+            const char *name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &name));
+            EXPECT_STRING_EQUAL(name, "none");
+        };
+
+        /* Test: chooses ECDSA name based on version */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
+
+            const char *tls13_name = NULL;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls13_name));
+            EXPECT_STRING_EQUAL(tls13_name, s2n_ecdsa_sha256.tls13_name);
+            EXPECT_STRING_EQUAL(tls13_name, "ecdsa_secp256r1_sha256");
+
+            const char *tls12_name = NULL;
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls12_name));
+            EXPECT_STRING_EQUAL(tls12_name, s2n_ecdsa_sha256.legacy_name);
+            EXPECT_STRING_EQUAL(tls12_name, "legacy_ecdsa_sha256");
+
+            const char *tls10_name = NULL;
+            conn->actual_protocol_version = S2N_TLS10;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls10_name));
+            EXPECT_STRING_EQUAL(tls10_name, s2n_ecdsa_sha256.legacy_name);
         };
     };
 

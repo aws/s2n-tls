@@ -63,6 +63,9 @@ extern const struct s2n_cipher_preferences cipher_preferences_20241008_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20241009;
 extern const struct s2n_cipher_preferences cipher_preferences_20250211;
 extern const struct s2n_cipher_preferences cipher_preferences_20250429;
+extern const struct s2n_cipher_preferences cipher_preferences_20251013;
+extern const struct s2n_cipher_preferences cipher_preferences_20251014;
+extern const struct s2n_cipher_preferences cipher_preferences_20251015;
 
 extern const struct s2n_cipher_preferences cipher_preferences_default_fips;
 
@@ -94,6 +97,8 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstrea
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls10;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls11;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_08_08;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_2025_08_08_tls13;
 /* CloudFront viewer facing */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014;

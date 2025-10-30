@@ -199,6 +199,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     builder
         .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
         .expect("Unable to set a host verify callback.");
+    builder.with_system_certs(false).unwrap();
     builder.trust_pem(keypair.cert()).expect("load cert pem");
     Ok(builder)
 }

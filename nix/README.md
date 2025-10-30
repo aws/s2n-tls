@@ -8,7 +8,7 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 
 ### Quickstart
 
-- `sudo bash -c “mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix”`
+- `sudo bash -c "mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix"`
 - Run the single-user command from `https://nixos.org/download.html#nix-install-linux`
 - Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf`
 - `cd s2n-tls`
@@ -51,12 +51,12 @@ The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environ
 
 ### Integration tests
 
-From inside a devShell after running `configure` and `build`, use `integ <test name>` to run the integ tests matching the regex `<test name>`, or with no arguments to run all the integ tests.  Note that some of the tests are still broken under nix, so some failures are expected.
-For example: `integ happy_path`.
+From inside a devShell after running `configure` and `build`, use `uvinteg <test name>` to run the integration tests matching the regex `<test name>`, or with no arguments to run all the integration tests.  Note that some of the tests are still broken under nix, so some failures are expected.
+For example: `uvinteg happy_path`.
 
-The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
+The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
 
-Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ happy_path"`
+Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
 
 
 ### S3 Binary Cache
