@@ -438,11 +438,6 @@ int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uin
     return S2N_SUCCESS;
 }
 
-/**
- * Copy the internal data of `stuffer` to `out`.
- * 
- * This will allocate memory for `out` if necessary, internally calling `s2n_realloc`.
- */
 int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
