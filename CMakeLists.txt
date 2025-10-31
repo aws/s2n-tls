@@ -216,7 +216,7 @@ if(TSAN)
 endif()
 
 if(ASAN)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -DS2N_ADDRESS_SANITIZER=1)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -fstack-usage -DS2N_ADDRESS_SANITIZER=1)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
 endif()
 
