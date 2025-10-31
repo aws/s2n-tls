@@ -13,7 +13,8 @@ mod memory_test {
         security::Policy,
         testing::{self, TestPair},
     };
-    use std::task::Poll;
+    use std::{collections::BTreeMap, task::Poll};
+    use tabled::{settings::Style, Table, Tabled};
 
     /// Return an estimation of the memory size of the IO buffers
     ///
@@ -27,7 +28,7 @@ mod memory_test {
         const TOLERANCE: usize = 100;
 
         println!("actual: {actual}, expected: {expected}");
-        actual < expected + TOLERANCE && actual > expected - TOLERANCE
+        actual <= expected + TOLERANCE && actual >= expected - TOLERANCE
     }
 
     mod memory_callbacks {
@@ -136,6 +137,199 @@ mod memory_test {
         }
     }
 
+    /// lifted from dhat-rs so that we can implement "Tabled" on it
+    #[derive(Clone, Debug, PartialEq, Eq, Tabled)]
+    #[non_exhaustive]
+    pub struct S2NHeapStats {
+        /// Number of blocks (a.k.a. allocations) allocated over the entire run.
+        pub total_blocks: u64,
+
+        /// Number of bytes allocated over the entire run.
+        pub total_bytes: u64,
+
+        /// Number of blocks (a.k.a. allocations) currently allocated.
+        pub curr_blocks: usize,
+
+        /// Number of bytes currently allocated.
+        pub curr_bytes: usize,
+
+        /// Number of blocks (a.k.a. allocations) allocated at the global peak,
+        /// i.e. when `curr_bytes` peaked.
+        pub max_blocks: usize,
+
+        /// Number of bytes allocated at the global peak, i.e. when `curr_bytes`
+        /// peaked.
+        pub max_bytes: usize,
+    }
+
+    #[derive(Debug, Clone, Tabled)]
+    pub struct ResultRow {
+        stage: String,
+        #[tabled(inline)]
+        measurement: S2NHeapStats,
+        test_pair_size: usize,
+    }
+
+    impl S2NHeapStats {
+        /// Return a "diff" against some earlier baseline. This is useful when
+        /// there were big allocations earlier in the program lifecycle that you
+        /// want to ignore
+        fn against_baseline(&self, baseline: &S2NHeapStats) -> S2NHeapStats {
+            // dbg!(self);
+            // dbg!(baseline);
+            let mut diff = self.clone();
+            diff.total_blocks -= baseline.total_blocks;
+            diff.total_bytes -= baseline.total_bytes;
+            diff.curr_blocks -= baseline.curr_blocks;
+            diff.curr_bytes -= baseline.curr_bytes;
+            diff.max_blocks -= baseline.max_blocks;
+            diff.max_bytes -= baseline.max_bytes;
+            diff
+        }
+    }
+
+    impl From<dhat::HeapStats> for S2NHeapStats {
+        fn from(value: dhat::HeapStats) -> Self {
+            Self {
+                total_blocks: value.total_blocks,
+                total_bytes: value.total_bytes,
+                curr_blocks: value.curr_blocks,
+                curr_bytes: value.curr_bytes,
+                max_blocks: value.max_blocks,
+                max_bytes: value.max_bytes,
+            }
+        }
+    }
+
+    #[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
+    enum Lifecycle {
+        ConnectionInit,
+        AfterClientHello,
+        AfterServerHello,
+        AfterClientFinished,
+        HandshakeComplete,
+        ApplicationData,
+    }
+
+    impl Lifecycle {
+        pub fn all_stages() -> Vec<Lifecycle> {
+            vec![
+                Lifecycle::ConnectionInit,
+                Lifecycle::AfterClientHello,
+                Lifecycle::AfterServerHello,
+                Lifecycle::AfterClientFinished,
+                Lifecycle::HandshakeComplete,
+                Lifecycle::ApplicationData,
+            ]
+        }
+    }
+
+    struct MemoryRecorder {
+        /// measurement after s2n_init
+        ///
+        /// Currently unused but we should be emitted a metric for this
+        _static_memory: S2NHeapStats,
+        /// measurement after config initialization
+        config_memory: S2NHeapStats,
+        measurements: BTreeMap<Lifecycle, (S2NHeapStats, usize)>,
+    }
+
+    impl MemoryRecorder {
+        fn measure(&mut self, lifecycle: Lifecycle, pair: &TestPair) {
+            self.measurements.insert(
+                lifecycle,
+                (dhat::HeapStats::get().into(), test_pair_io_size(pair)),
+            );
+        }
+
+        fn measurements_complete(&self) -> bool {
+            Lifecycle::all_stages()
+                .into_iter()
+                .all(|stage| self.measurements.contains_key(&stage))
+        }
+
+        /// return a table showing the measurements at various lifecycle points,
+        /// measured against the config creation baseline.
+        fn measurement_table(&self) -> Table {
+            assert!(self.measurements_complete());
+            let table: Vec<ResultRow> = Lifecycle::all_stages()
+                .into_iter()
+                .map(|stage| {
+                    let (measurement, test_pair_size) =
+                        self.measurements.get(&stage).unwrap().clone();
+                    let measurement = measurement.against_baseline(&self.config_memory);
+                    ResultRow {
+                        stage: format!("{stage:?}"),
+                        measurement,
+                        test_pair_size,
+                    }
+                })
+                .collect();
+            let mut table = Table::new(table);
+            table.with(Style::markdown());
+            table
+        }
+
+        /// return a table showing the diff between each step in the connection
+        /// lifecycle. The static memory row is an absolute measurement, not a diff.
+        fn assert_expected(&self) {
+            const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
+                (Lifecycle::ConnectionInit, 61_482),
+                (Lifecycle::AfterClientHello, 88_302),
+                (Lifecycle::AfterServerHello, 116_669),
+                (Lifecycle::AfterClientFinished, 107_976),
+                (Lifecycle::HandshakeComplete, 90_563),
+                (Lifecycle::ApplicationData, 90_563),
+            ];
+            let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
+                .into_iter()
+                .map(|stage| {
+                    let measurement = self
+                        .measurements
+                        .get(&stage)
+                        .unwrap()
+                        .0
+                        .against_baseline(&self.config_memory);
+                    (stage, measurement.curr_bytes)
+                })
+                .collect();
+
+            for (actual, expected) in actual_memory.iter().zip(EXPECTED_MEMORY) {
+                // make sure we're looking at the right stage
+                assert_eq!(actual.0, expected.0);
+                assert!(fuzzy_equals(actual.1, expected.1))
+            }
+        }
+    }
+
+    struct MemoryRecordBuilder {
+        static_memory: Option<dhat::HeapStats>,
+        config_memory: Option<dhat::HeapStats>,
+    }
+
+    impl MemoryRecordBuilder {
+        fn new() -> Self {
+            Self {
+                static_memory: None,
+                config_memory: None,
+            }
+        }
+
+        fn after_init(&mut self) {
+            self.static_memory = Some(dhat::HeapStats::get());
+        }
+
+        fn after_config_creation(mut self) -> MemoryRecorder {
+            self.config_memory = Some(dhat::HeapStats::get());
+
+            MemoryRecorder {
+                _static_memory: self.static_memory.unwrap().into(),
+                config_memory: self.config_memory.unwrap().into(),
+                measurements: Default::default(),
+            }
+        }
+    }
+
     /// The dhat-rs memory profiler can only measure memory allocated from the rust
     /// global allocator.
     ///
@@ -156,6 +350,7 @@ mod memory_test {
         const SERVER_MESSAGE: &[u8] = b"from server";
 
         let _profiler = dhat::Profiler::new_heap();
+        let mut memory_recorder = MemoryRecordBuilder::new();
 
         unsafe {
             aws_lc_sys::CRYPTO_set_mem_functions(
@@ -169,55 +364,42 @@ mod memory_test {
         // trust store, which is often a significant amount of memory (~1 MB). This
         // is system specific, so we don't actually assert on this value.
         s2n_tls::init::init();
-        let static_memory = dhat::HeapStats::get().curr_bytes;
+        memory_recorder.after_init();
 
         let config = testing::build_config(&Policy::from_version("default_tls13")?).unwrap();
-        let config_memory = dhat::HeapStats::get().curr_bytes;
+        let mut memory_recorder = memory_recorder.after_config_creation();
 
         let mut pair = TestPair::from_config(&config);
-        let connection_init = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
+        memory_recorder.measure(Lifecycle::ConnectionInit, &pair);
 
-        // manually drive the handshake forward to get a measurement while the handshake
-        // is in flight
+        ////////////////////////////////////////////////////////////////////////
+        ////////////////////////////// handshake ///////////////////////////////
+        ////////////////////////////////////////////////////////////////////////
+
         assert!(matches!(pair.client.poll_negotiate(), Poll::Pending));
+        memory_recorder.measure(Lifecycle::AfterClientHello, &pair);
+
         assert!(matches!(pair.server.poll_negotiate(), Poll::Pending));
+        memory_recorder.measure(Lifecycle::AfterServerHello, &pair);
 
-        let handshake_in_progress = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
+        assert!(matches!(pair.client.poll_negotiate(), Poll::Ready(_)));
+        memory_recorder.measure(Lifecycle::AfterClientFinished, &pair);
 
-        pair.handshake()?;
-        let handshake_complete = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
+        assert!(matches!(pair.server.poll_negotiate(), Poll::Ready(_)));
+        memory_recorder.measure(Lifecycle::HandshakeComplete, &pair);
+
+        ////////////////////////////////////////////////////////////////////////
+        /////////////////////////// application data ///////////////////////////
+        ////////////////////////////////////////////////////////////////////////
 
         let _ = pair.client.poll_send(CLIENT_MESSAGE);
         let _ = pair.server.poll_send(SERVER_MESSAGE);
         let _ = pair.client.poll_recv(&mut [0; SERVER_MESSAGE.len()]);
         let _ = pair.server.poll_recv(&mut [0; CLIENT_MESSAGE.len()]);
-        let application_data = dhat::HeapStats::get().curr_bytes - test_pair_io_size(&pair);
+        memory_recorder.measure(Lifecycle::ApplicationData, &pair);
 
-        // cost of connection in various states
-        let connection_init = connection_init - config_memory;
-        let handshake_in_progress = handshake_in_progress - config_memory;
-        let handshake_complete = handshake_complete - config_memory;
-        let application_data = application_data - config_memory;
-
-        // cost of config
-        let config_init = config_memory - static_memory;
-
-        println!("static memory: {static_memory}");
-        println!("config: {config_init}");
-        println!("connection_init: {connection_init}");
-        println!("handshake in progress: {handshake_in_progress}");
-        println!("handshake complete: {handshake_complete}");
-        println!("application data: {application_data}");
-
-        assert!(fuzzy_equals(config_init, 19_235));
-        assert!(fuzzy_equals(connection_init, 61_242));
-        assert!(fuzzy_equals(handshake_in_progress, 112_265));
-        assert!(fuzzy_equals(handshake_complete, 86_159));
-        assert!(fuzzy_equals(application_data, 86_159));
-        assert!(fuzzy_equals(
-            dhat::HeapStats::get().max_bytes - static_memory,
-            150_114
-        ));
+        println!("{}", memory_recorder.measurement_table());
+        memory_recorder.assert_expected();
 
         Ok(())
     }
