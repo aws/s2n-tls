@@ -3,32 +3,36 @@
 
 let
   rustShellHook = ''
-    # Explicitly set LIBCLANG_PATH so clang-sys (used by bindgen) can locate libclang inside the Nix store.
-    # Unlike normal C/C++ builds, bindgen loads libclang dynamically with dlopen(), not via the compiler wrapper
-    # or LD_LIBRARY_PATH. Setting this ensures bindgen always finds the correct Nix-provided libclang,
-    # even though mkShell’s buildInputs already include it.
+    # rust-bindgen uses libclang directly instead of calling the system's cc compiler wrapper.
+    # This means it doesn't automatically get the include paths and flags that Nix's gcc-wrapper provides.
+    # We need to explicitly configure bindgen with the correct libclang path and compiler flags.
+    # See: https://hoverbear.org/blog/rust-bindgen-in-nix/
+    # Set LIBCLANG_PATH so clang-sys (used by bindgen) can locate libclang in the Nix store.
     export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
-    # Bindgen bypasses cc-wrapper, so give it the same flags/paths cc-wrapper would add
-    export BINDGEN_EXTRA_CLANG_ARGS="$(< ${pkgs.stdenv.cc}/nix-support/libc-crt1-cflags) \
-      $(< ${pkgs.stdenv.cc}/nix-support/libc-cflags) \
-      $(< ${pkgs.stdenv.cc}/nix-support/cc-cflags) \
-      $(< ${pkgs.stdenv.cc}/nix-support/libcxx-cxxflags) \
-      ${
-        pkgs.lib.optionalString pkgs.stdenv.cc.isClang
-        "-idirafter ${pkgs.stdenv.cc.cc}/lib/clang/${
+    # Pass the same CFLAGS that cc-wrapper would normally provide to bindgen via BINDGEN_EXTRA_CLANG_ARGS
+    export BINDGEN_EXTRA_CLANG_ARGS="\
+    $((< ${pkgs.stdenv.cc}/nix-support/libc-crt1-cflags)) \
+    $((< ${pkgs.stdenv.cc}/nix-support/libc-cflags)) \
+    $((< ${pkgs.stdenv.cc}/nix-support/cc-cflags)) \
+    $((< ${pkgs.stdenv.cc}/nix-support/libcxx-cxxflags)) \
+    ${
+      pkgs.lib.optionalString pkgs.stdenv.cc.isClang
+      "-idirafter ${pkgs.stdenv.cc.cc}/lib/clang/${
+        pkgs.lib.getVersion pkgs.stdenv.cc.cc
+      }/include"
+    } \
+    ${
+      pkgs.lib.optionalString pkgs.stdenv.cc.isGNU ''
+        -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
           pkgs.lib.getVersion pkgs.stdenv.cc.cc
-        }/include"
-      } \
-      ${
-        pkgs.lib.optionalString pkgs.stdenv.cc.isGNU
-        "\n        -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
-                  pkgs.lib.getVersion pkgs.stdenv.cc.cc
-                } \n        -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
-                  pkgs.lib.getVersion pkgs.stdenv.cc.cc
-                }/${pkgs.stdenv.hostPlatform.config} \n        -idirafter ${pkgs.stdenv.cc.cc}/lib/gcc/${pkgs.stdenv.hostPlatform.config}/${
-                  pkgs.lib.getVersion pkgs.stdenv.cc.cc
-                }/include\n      "
-      }"
+        } 
+              -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
+                pkgs.lib.getVersion pkgs.stdenv.cc.cc
+              }/${pkgs.stdenv.hostPlatform.config} 
+              -idirafter ${pkgs.stdenv.cc.cc}/lib/gcc/${pkgs.stdenv.hostPlatform.config}/${
+                pkgs.lib.getVersion pkgs.stdenv.cc.cc
+              }/include''
+    }"
   '';
 
   # Base tool inputs for different development scenarios
@@ -52,8 +56,7 @@ let
       packages = if withRustTools then [ ] else common_packages;
       S2N_LIBCRYPTO = libcryptoName;
       # Environment variables for all crypto libraries
-      OPENSSL_1_0_2_INSTALL_DIR =
-        if openssl_1_0_2 != null then "${openssl_1_0_2}" else "";
+      OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
       OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
       OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
       AWSLC_INSTALL_DIR = "${aws-lc}";
@@ -69,7 +72,7 @@ let
         export PS1="[nix${
           if withRustTools then " rust" else ""
         } $S2N_LIBCRYPTO] $PS1"
-        ${if withRustTools then "export S2N_RUST_MODE=1" else ""}
+
         ${extraCMakeFlags}
         ${rustShellHook}
         source ${writeScript ./shell.sh}

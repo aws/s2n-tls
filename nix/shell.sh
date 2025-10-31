@@ -44,48 +44,36 @@ function clean {(set -e
 
 function configure {(set -e
     echo "Configuring with cmake"
-    
-    # Check if we're in a rust shell by looking for S2N_RUST_MODE environment variable
-    if [[ "$S2N_RUST_MODE" == "1" ]]; then
-        echo "Detected Rust environment - using Rust-specific configuration"
-        cmake -S . -B./build \
-              -DBUILD_TESTING=OFF \
-              -DS2N_INTERN_LIBCRYPTO=ON \
-              -DCMAKE_C_COMPILER=clang \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-              "$S2N_CMAKE_OPTIONS"
-    else
-        echo "Using standard configuration"
-        cmake -S . -B./build \
-              -DBUILD_TESTING=ON \
-              -DS2N_INTEG_TESTS=ON \
-              -DS2N_INSTALL_S2NC_S2ND=ON \
-              -DS2N_INTEG_NIX=ON \
-              -DBUILD_SHARED_LIBS=ON \
-              -DCMAKE_C_COMPILER="$CC" \
-              -DCMAKE_CXX_COMPILER="$CXX" \
-              "$S2N_CMAKE_OPTIONS" \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    fi
+    cmake -S . -B./build \
+          -DBUILD_TESTING=ON \
+          -DS2N_INTEG_TESTS=ON \
+          -DS2N_INSTALL_S2NC_S2ND=ON \
+          -DS2N_INTEG_NIX=ON \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          "$S2N_CMAKE_OPTIONS" \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+
+
+
+
+
+
+
+
+
+
 )}
 
 function build {(set -e
     echo "Running Build"
-    
-    # Check if we're in a rust shell by looking for S2N_RUST_MODE environment variable
-    if [[ "$S2N_RUST_MODE" == "1" ]]; then
-        echo "Detected Rust environment - skipping Java compilation and running bindgen"
-        cmake --build ./build -j $(nproc)
-        echo "Generating Rust bindings (bindgen)"
-        bindings/rust/extended/generate.sh --skip-tests
-    else
-        echo "Running standard build"
-        javac tests/integrationv2/bin/SSLSocketClient.java
-        cmake --build ./build -j $(nproc)
-        # Build s2n from HEAD
-        if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
-            $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
-        fi
+    javac tests/integrationv2/bin/SSLSocketClient.java
+    cmake --build ./build -j $(nproc)
+    # Build s2n from HEAD
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" && -z "${S2N_NO_HEADBUILD}" ]]; then
+        $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
 )}
 
@@ -247,6 +235,24 @@ function apache2_start(){
     fi
 }
 
+function rust_configure {(set -e
+    echo "rust_configure: Cleaning previous build"
+    rm -rf build/
+    echo "rust_configure: Configuring with CMake (RelWithDebInfo, intern libcrypto)"
+    cmake -B build . \
+        -D CMAKE_C_COMPILER=clang \
+        -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+        -D BUILD_TESTING=OFF \
+        -D S2N_INTERN_LIBCRYPTO=ON
+)}
+
+function rust_build {(set -e
+    echo "rust_build: Building s2n-tls"
+    cmake --build ./build -j $(nproc)
+    echo "rust_build: Generating Rust bindings (bindgen)"
+    bindings/rust/extended/generate.sh --skip-tests
+)}
+
 function rust_test {(set -e
     # Set up local Rust toolchain to avoid conflicts between CI and Nix Rust installations.
     # This ensures we use a consistent, isolated toolchain regardless of environment.
@@ -258,8 +264,6 @@ function rust_test {(set -e
     rustup set auto-self-update disable
     rustup toolchain install stable
     rustup default stable
-    echo "rust_test: Generating Rust bindings (bindgen)"
-    bindings/rust/extended/generate.sh --skip-tests
     echo "rust_test: Exporting s2n-tls headers and libs for Cargo"
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
