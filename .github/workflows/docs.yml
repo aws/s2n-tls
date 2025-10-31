@@ -9,6 +9,10 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
   generate-doxygen:
     runs-on: ubuntu-latest
@@ -22,7 +26,7 @@ jobs:
         # Upload the doxygen artifacts on pull requests to help reviewers easily
         # view changes.
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
             name: s2n-tls-doxygen
             path: |
