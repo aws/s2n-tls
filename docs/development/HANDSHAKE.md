@@ -1,6 +1,8 @@
 # Negotiating the TLS Handshake
 
-To perform a TLS handshake, the customer calls "s2n_negotiate". See for the customer-facing usage guide. But when the customer calls s2n_negotiate, what actually happens?
+To perform a TLS handshake, the customer calls "s2n_negotiate". But when the customer calls s2n_negotiate, what actually happens?
+
+Note: If you are unfamiliar with s2n_negotiate, read [the usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md#performing-the-tls-handshake) first. This discussion will assume familiarity with the public usage, behavior, and requirements of s2n_negotiate.
 
 ## The Handshake Arrays
 
@@ -93,7 +95,7 @@ If the state machine indicates that the next expected message should be read ("w
 
 1. Read a record.
 
-   Read a TLS record from the network. See See ["Sending Application Data"](APPLICATION_DATA.md#receiving-application-data).
+   Read a TLS record from the network. See ["Receiving Application Data"](APPLICATION_DATA.md#receiving-application-data).
    
    HOWEVER, reading handshake messages is different from reading application data. Since we expect handshake records rather than application data records, we have to read and parse a single record at a time.
 

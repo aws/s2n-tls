@@ -18,7 +18,7 @@ Applications are responsible for opening and configuring the file descriptors. s
 
 3. kTLS. If an application configures s2n-tls to use kTLS, then s2n-tls will configure the socket to use kTLS. Once enabled, kTLS cannot be disabled.
 
-See tls/s2n_socket.c for the file descriptor related logic.
+See [tls/s2n_socket.c](https://github.com/aws/s2n-tls/blob/main/utils/s2n_socket.c) for the file descriptor related logic.
 
 ### Custom callbacks
 
@@ -34,21 +34,23 @@ When sending or receiving application data, we must read or write that data as e
 
 ## Fragmentation
 
-TLS records may only contain a limited amount of data. If an application wants to send a large amount of data, that data will be broken into "fragments" and each fragment will be sent in a separate record.
+TLS records may only contain a limited amount of data. If an application wants to send a larger amount of data, that data will be broken into "fragments" and each fragment will be sent in a separate record.
 
 The maximum fragment length is defined by the TLS protocol as 2^14. s2n-tls uses a default fragment length of about 8k, which a code comment explains as "Testing in the wild has found 8k max record sizes give a good balance of low latency and throughput." Most TLS libraries default to about 16k.
 
-The client and server can use the "Maximum fragment length" extension to negotiate a different fragment length. Lowering the fragment length can improve latency, since each individual record will be faster to process (see s2n_connection_prefer_low_latency). Raising the fragment length can improve throughput, since fewer records will need to be processed (see s2n_connection_prefer_throughput).
+The client and server can use the "Maximum fragment length" extension to negotiate a different fragment length. Lowering the fragment length can improve latency, since each individual record will be faster to process (see [s2n_connection_prefer_low_latency](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a9b4fafb7e9b8277f408af0ad17ab6e19)). Raising the fragment length can improve throughput, since fewer records will need to be processed (see [s2n_connection_prefer_throughput](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a11c72914bfc09a9174b6a7b019e5aa5c)).
 
 Changing the fragment length changes how s2n-tls constructs records, but does NOT change how it parses records. s2n-tls will accept record payloads that exceed the negotiated maximum fragment length. Historically TLS implementations have not always respected the negotiated maximum fragment length, so rejecting oversized records could lead to compatibility issues with older TLS libraries.
 
 ### Dynamic Record Sizes
 
-s2n-tls also supports a feature where the fragment size starts small and grows to the maximum over a specified period of time. See "s2n_connection_set_dynamic_record_threshold".
+s2n-tls also supports a feature where the fragment size starts small and grows to the maximum over a specified period of time. See "[s2n_connection_set_dynamic_record_threshold](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#add5f14855b2810a9857b1a41f2cc92f9)".
 
 ## Sending Application Data
 
-To send application data, the customer calls "s2n_send". See the customer-facing usage guide. But when the customer calls s2n_send, what actually happens?
+To send application data, the customer calls "s2n_send". But when the customer calls s2n_send, what actually happens?
+
+Note: If you are unfamiliar with s2n_send, read [the usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md#sending-application-data) first. This discussion will assume familiarity with the public usage, behavior, and requirements of s2n_send.
 
 ### s2n_sendv and s2n_sendv_with_offset
 
@@ -76,7 +78,7 @@ When s2n-tls blocks on sending application data, the application data falls into
 
    If s2n-tls breaks application data into multiple records, then it may encounter a blocking error after some records have already been successfully sent. In that case, it does not return an error. Instead, it returns the size of the data successfully sent.
 
-   The application is responsible for ensuring this data is not re-sent by updating the inputs to their s2n_send call. For example, if their first call to s2n_send returns `r`, then their next call should be `s2n_send(conn, buf + r, size - r, blocked)`. 
+   The application is responsible for ensuring this data is not re-sent by updating the inputs to their s2n_send call whenever data is successfully sent. For example, if their first call to s2n_send returns `n`, then their next call should be `s2n_send(conn, buf + n, size - n, blocked)`. See [the usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md#sending-application-data) for a description of how an application should call s2n_send.
    
    The data that was successfully sent will not be counted by "current_user_data_consumed" if a partial send occurs. Before returning, s2n-tls subtracts the size of this data from "current_user_data_consumed". Since the application handles not re-sending this data, s2n-tls will not need to account for it during the next call to s2n_send.
 
@@ -98,19 +100,31 @@ First, a call to "s2n_flush" reattempts writing the data in `out` to the network
 
 s2n-tls then continues processing data into records, treating "current_user_data_consumed" as an offset into the application supplied input data buffer.
 
+#### Example
+
+The application calls s2n_send with 300 bytes of data and a maximum fragment size of 100. s2n-tls successfully sends one record, but blocks writing the second record. s2n-tls reports 100 bytes (1 record's worth) successfully sent. Internally, "current_user_data_consumed" is set to 100 bytes to represent the 1 unsent record waiting in `out`.
+
+The application calls s2n_send again, but only with the remaining 200 bytes of data not reported successfully sent. s2n-tls calls s2n_flush again to successfully send the record waiting in `out`. s2n-tls then skips the first current_user_data_consumed=100 bytes of the input array to process the last 100 bytes into a final record. If writing the final record also blocks, then s2n-tls only reports 100 bytes (the flushed record) successfully sent. "current_user_data_consumed" is again set to 100 bytes to represent the final unsent record waiting in `out`.
+
+The application calls s2n_send again, but only with the remaining 100 bytes of data not reported successfully sent. s2n-tls calls s2n_flush again to send the record waiting in `out`. If that send also blocks, then s2n-tls reports a blocking error to the application, since no data was successfully sent.
+
+The application calls s2n_send again, again with the remaining 100 bytes of data. s2n-tls call s2n_flush again, and this time it succeeds. s2n-tls reports the final 100 bytes of data as successfully sent.
+
 ### Post-handshake messages
 
 s2n-tls attempts to send any necessary post-handshake messages BEFORE sending any application data. If sending a post-handshake message blocks, the application will be prompted to retry just like if sending the application data had blocked.
 
 ### Multi-record send
 
-If the send buffer is configured to be larger than the max record length via s2n_config_set_send_buffer_size, then s2n_send can buffer more than one record in `out` at a time before writing to the network. This reduces syscalls and can improve performance.
+If the send buffer is configured to be larger than the max record length via [s2n_config_set_send_buffer_size](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a6de9d794c410474e9851880bd4914025), then s2n_send can buffer more than one record in `out` at a time before writing to the network. This reduces syscalls and can improve performance.
 
 This feature does not signficantly impact the s2n_send logic: it really just makes the call to "s2n_flush" after each record is written to `out` conditional on whether or not there's enough space in `out` for another record.
 
 ## Receiving Application Data
 
-To read application data, the customer calls "s2n_recv". See the customer-facing usage guide. But when the customer calls s2n_recv, what actually happens?
+To read application data, the customer calls "s2n_recv". But when the customer calls s2n_recv, what actually happens?
+
+Note: If you are unfamiliar with s2n_recv, read [the usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md#receiving-application-data) first. This discussion will assume familiarity with the public usage, behavior, and requirements of s2n_recv.
 
 ### The header_in, in, and buffer_in buffers
 
@@ -132,13 +146,13 @@ The "s2n_peek" method can be used to check if any plaintext is waiting in `in`. 
 
 Historically, s2n_recv only read a single record each time it was called, regardless of how much application data the caller requested. Applications would need to call s2n_recv in a loop to read all expected data. This behavior has been maintained for backwards compatibility.
 
-However, applications can also call s2n_config_set_recv_multi_record to instead read records in a loop until the expected amount of application data has been read. This feature does not signficantly impact the s2n_recv logic: it really just wrapped the previous implementation in a loop.
+However, applications can also call [s2n_config_set_recv_multi_record](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a873c1969c18fdf8663a9b593e62b9460) to instead read records in a loop until the expected amount of application data has been read. This feature does not signficantly impact the s2n_recv logic: it really just wrapped the previous implementation in a loop.
 
 ### Receive buffering
 
 By default, s2n-tls reads the record header first, then the record payload. This results in two syscalls per record read. That can make reading small records very expensive.
 
-To improve the performance of reads, an application can call "s2n_connection_set_recv_buffering" to turn on the "receive buffering" feature. When enabled, s2n-tls will read as much data from the network as possible during each read syscall, potentially reading multiple records in one syscall.
+To improve the performance of reads, an application can call "[s2n_connection_set_recv_buffering](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#ae30791c458875956ef9f4cdbd8c8c19f)" to turn on the "receive buffering" feature. When enabled, s2n-tls will read as much data from the network as possible during each read syscall, potentially reading multiple records in one syscall.
 
 When discussing receive buffering, the simplification that we read records into `header_in` and `in` no longer works.
 
