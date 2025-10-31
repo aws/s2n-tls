@@ -25,11 +25,13 @@ So if the handshake type is set to `NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH` d
 You can find all the handshake arrays in https://github.com/aws/s2n-tls/blob/main/tls/s2n_handshake_io.c. They are split into "tls13_handshakes" and "handshakes" (legacy TLS1.2 handshakes), because the two state machines diverge significantly after the ServerHello message.
 
 ### What if one of the handshakes is wrong?
+
 The handshake arrays are compiled manually, so that is a real, valid concern. However, it is worth noting that the handshake array implementation confines mistakes to basic ordering errors for specific handshake types.
 
 To ensure the correctness of the handshakes, s2n-tls includes formal verification using a tool called "SAW". The SAW handshake proof compares the array implementation to a more traditional state machine written in a language called Cryptol. The TLS1.3 state machine is [here](https://github.com/aws/s2n-tls/blob/6aefe741f17489211f6c28e837c1a65ee66a1ef2/tests/saw/spec/handshake/rfc_handshake_tls13.cry#L140-L287), and the legacy TLS1.2 state machine is [here](https://github.com/aws/s2n-tls/blob/6aefe741f17489211f6c28e837c1a65ee66a1ef2/tests/saw/spec/handshake/rfc_handshake_tls12.cry#L145-L214). If s2n-tls drops SAW as a tool, we should instead replace these proofs with a test comparing the handshake arrays to a more traditional state machine written in another language (like C).
 
 ### Debugging
+
 If you know the handshake type of a connection (handshake.handshake_type on s2n_connection), then you can determine the active handshake from the handshake arrays and visually examine the active message ordering. If you know the current index (handshake.message_number on s2n_connection), then you can determine the message that s2n-tls currently expects to send or receive. This can help if a handshake is hanging or timing out. Simply checking that the client and server both agree on the handshake type is also useful.
 
 ## The State Machine
@@ -46,6 +48,7 @@ Here's an example state machine entry:
 "TLS_HANDSHAKE" indicates the record type of the message. Most messages are TLS_HANDSHAKE, but the ChangeCipherSpec messages are "TLS_CHANGE_CIPHER_SPEC" and ApplicationData is "TLS_APPLICATION_DATA". "TLS_ENCRYPTED_EXTENSIONS" indicates the official TLS handshake message type, which is different from the internal message type value we used to index into the array. "S" indicates that the  "writer" is the server: if the client should send the message instead, then the value would be "C". Finally, "s2n_encrypted_extensions_send" indicates the server message handler, and "s2n_encrypted_extensions_recv" indicates the client message handler.
 
 ### Debugging
+
 If you're looking for how a particular message is implemented in s2n-tls, look up the handlers in the state machines. They are arguably the primary entry point into the rest of the library.
 
 ## Handshake Messages

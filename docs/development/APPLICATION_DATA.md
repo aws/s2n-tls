@@ -10,7 +10,7 @@ Applications can set file descriptors using s2n_connection_set_fd / s2n_connecti
 
 When an application sets a file descriptor, s2n-tls will configure its IO to call `read` or `write` on that file descriptor when sending or receiving data.
 
-Applications are responsible for opening and configuring the file descriptors. s2n-tls never closes file descriptors, but it does modify them via setsockopt in certain cases:
+Applications are responsible for opening and configuring the file descriptors. s2n-tls never closes file descriptors, but it does modify them via `setsockopt` in certain cases:
 
 1. Corking. s2n-tls corks and uncorks sockets during the handshake to improve performance. The socket is corked before sending multiple messages, and uncorked once all the messages are ready. See the linux documentation for "TCP_CORK". The state is reset when the connection is wiped.
 
@@ -52,7 +52,7 @@ To send application data, the customer calls "s2n_send". See the customer-facing
 
 ### s2n_sendv and s2n_sendv_with_offset
 
-This document will only refer to "s2n_send", but also covers the other send methods. The methods only differ in interface and user experience. "s2n_send" and "s2n_sendv" are just wrappers around "s2n_sendv_with_offset".
+This document will only refer to "s2n_send", but the explanation still applies to the other send methods. The methods only differ in interface and user experience. "s2n_send" and "s2n_sendv" are just wrappers around "s2n_sendv_with_offset".
 
 ### The out buffer
 
@@ -78,7 +78,7 @@ When s2n-tls blocks on sending application data, the application data falls into
 
    The application is responsible for ensuring this data is not re-sent by updating the inputs to their s2n_send call. For example, if their first call to s2n_send returns `r`, then their next call should be `s2n_send(conn, buf + r, size - r, blocked)`. 
    
-   This data is NOT counted by "current_user_data_consumed". Before returning, s2n-tls subtracts the size of this data from "current_user_data_consumed". Since the application handles not re-sending this data, s2n-tls will not need to account for it during the next call to s2n_send.
+   The data that was successfully sent will not be counted by "current_user_data_consumed" if a partial send occurs. Before returning, s2n-tls subtracts the size of this data from "current_user_data_consumed". Since the application handles not re-sending this data, s2n-tls will not need to account for it during the next call to s2n_send.
 
 2. Application data waiting in `out`.
 
