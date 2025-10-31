@@ -7,6 +7,9 @@
 ## How
 <!-- How is this PR accomplishing its goals? -->
 
+## Callouts
+<!-- Any specific item to callout? Non-optimal choices, future actions needed, etc -->
+
 ## Testing
 <!-- How is it tested? -->
 
