@@ -208,6 +208,7 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
     &s2n_secp384r1_mlkem_1024,
+    &s2n_pure_mlkem_1024,
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,

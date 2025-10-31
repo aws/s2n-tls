@@ -52,6 +52,8 @@ struct hybrid_test_vector {
     struct s2n_blob *expected_server_traffic_secret;
 };
 
+#define S2N_HYBRID_KEM_GROUPS_COUNT 9
+
 /* PEM-encoded ECC private keys generated using openssl commands like:
  *
  * $ openssl ecparam -name ${CURVE_NAME} -genkey
@@ -522,7 +524,7 @@ int main(int argc, char **argv)
         &aes_256_sha_384_x25519_mlkem768_vector,
     };
 
-    EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_KEM_GROUPS_COUNT));
+    EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_HYBRID_KEM_GROUPS_COUNT));
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
