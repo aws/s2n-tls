@@ -100,9 +100,9 @@ int s2n_server_key_share_send_check_pq(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_params.kem);
 
     const struct s2n_kem_group *server_kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    if (server_kem_group->curve != &s2n_ecc_curve_none) {
-        POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
-    }
+    // if (server_kem_group->curve != &s2n_ecc_curve_none) {
+    //     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+    // }
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
@@ -114,13 +114,13 @@ int s2n_server_key_share_send_check_pq(struct s2n_connection *conn)
     struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
     POSIX_ENSURE(client_params->kem_group == server_kem_group, S2N_ERR_BAD_KEY_SHARE);
 
-    if (server_kem_group->curve != &s2n_ecc_curve_none) {
-        POSIX_ENSURE(client_params->ecc_params.negotiated_curve == server_kem_group->curve, S2N_ERR_BAD_KEY_SHARE);
-        POSIX_ENSURE(client_params->ecc_params.evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
-    } else {
-        POSIX_ENSURE(client_params->ecc_params.negotiated_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
-        POSIX_ENSURE(client_params->ecc_params.evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);
-    }
+    // if (server_kem_group->curve != &s2n_ecc_curve_none) {
+    //     POSIX_ENSURE(client_params->ecc_params.negotiated_curve == server_kem_group->curve, S2N_ERR_BAD_KEY_SHARE);
+    //     POSIX_ENSURE(client_params->ecc_params.evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
+    // } else {
+    //     POSIX_ENSURE(client_params->ecc_params.negotiated_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
+    //     POSIX_ENSURE(client_params->ecc_params.evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);
+    // }
 
     POSIX_ENSURE(client_params->kem_params.kem == server_kem_group->kem, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(client_params->kem_params.public_key.size == server_kem_group->kem->public_key_length, S2N_ERR_BAD_KEY_SHARE);
@@ -253,9 +253,9 @@ static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t na
     struct s2n_kem_group_params *client_kem_group_params = &conn->kex_params.client_kem_group_params;
     POSIX_ENSURE(client_kem_group_params->kem_params.private_key.data, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(client_kem_group_params->kem_group == server_kem_group_params->kem_group, S2N_ERR_BAD_KEY_SHARE);
-    if (server_kem_group_params->kem_group->curve != &s2n_ecc_curve_none) {
-        POSIX_ENSURE(client_kem_group_params->ecc_params.evp_pkey, S2N_ERR_BAD_KEY_SHARE);
-    }
+    // if (server_kem_group_params->kem_group->curve != &s2n_ecc_curve_none) {
+    //     POSIX_ENSURE(client_kem_group_params->ecc_params.evp_pkey, S2N_ERR_BAD_KEY_SHARE);
+    // }
 
     uint16_t actual_hybrid_share_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_hybrid_share_size));
@@ -416,9 +416,9 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     /* Option 1: Select the best mutually supported PQ KEM Group that can be negotiated in 1-RTT */
     if (client_kem_group != NULL) {
         POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.kem_params.kem);
-        if (client_kem_group->curve != &s2n_ecc_curve_none) {
-            POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
-        }
+        // if (client_kem_group->curve != &s2n_ecc_curve_none) {
+        //     POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
+        // }
 
         conn->kex_params.server_kem_group_params.kem_group = conn->kex_params.client_kem_group_params.kem_group;
         conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve;

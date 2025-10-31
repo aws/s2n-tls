@@ -386,7 +386,8 @@ static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_
      * prefixed, or they are not. */
     uint16_t actual_share_size = key_share->blob.size;
     uint16_t unprefixed_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
-    uint16_t prefixed_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_share_size;
+    uint16_t prefixed_count = kem_group->curve == &s2n_ecc_curve_none ? 1 : 2;
+    uint16_t prefixed_share_size = (prefixed_count * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_share_size;
 
     /* Ignore KEM groups with unexpected overall total share sizes */
     if ((actual_share_size != unprefixed_share_size) && (actual_share_size != prefixed_share_size)) {
