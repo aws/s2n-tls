@@ -54,17 +54,6 @@ function configure {(set -e
           -DCMAKE_CXX_COMPILER="$CXX" \
           "$S2N_CMAKE_OPTIONS" \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
-
-
-
-
-
-
-
-
-
-
-
 )}
 
 function build {(set -e
@@ -270,5 +259,4 @@ function rust_test {(set -e
     echo "rust_test: Running Rust integration tests"
     cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
 )}
-
-
+    
