@@ -56,10 +56,7 @@ These rust-enabled shells provide everything needed for Rust integration testing
 
 From inside the devShell: `configure; build`.
 
-For Rust development, use the dedicated rust functions from within a rust-enabled devshell:
-```bash
-rust_configure; rust_build
-```
+For Rust development, use the dedicated rust functions from within a rust-enabled devshell: `rust_configure; rust_build`.
 
 The first time this is run, it might take a while to build everything.
 
@@ -78,15 +75,11 @@ The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environ
 From inside a devShell after running `configure` and `build`, use `uvinteg <test name>` to run the integration tests matching the regex `<test name>`, or with no arguments to run all the integration tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 For example: `uvinteg happy_path`.
 
-For Rust integration tests, use `rust_test` from within a rust-enabled devshell after running `rust_configure` and `rust_build`:
-```bash
-nix develop .#rust_openssl30 --command bash -c "source ./nix/shell.sh; rust_configure; rust_build; rust_test"
-```
-
 The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
 
 Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
 
+For Rust integration tests, use `rust_test` from within a rust-enabled devshell after running `rust_configure` and `rust_build`.
 
 ### S3 Binary Cache
 
