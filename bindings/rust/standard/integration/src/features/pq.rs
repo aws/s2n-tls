@@ -22,7 +22,7 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
 
 #[test]
 fn s2n_mldsa_client() {
-    required_capability_async(&[Capability::PQAlgorithms], async {
+    required_capability_async(&[Capability::MLDsa], async {
         let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
         let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -68,7 +68,7 @@ fn s2n_mldsa_client() {
 
 #[test]
 fn s2n_mldsa_server() {
-    required_capability_async(&[Capability::PQAlgorithms], async {
+    required_capability_async(&[Capability::MLDsa], async {
         let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
         let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -109,7 +109,7 @@ fn s2n_mldsa_server() {
 
 #[test]
 fn s2n_mlkem_client() {
-    required_capability_async(&[Capability::PQAlgorithms], async {
+    required_capability_async(&[Capability::MLKem], async {
         let cert_path =
             format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
         let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
@@ -152,7 +152,7 @@ fn s2n_mlkem_client() {
 
 #[test]
 fn s2n_mlkem_server() {
-    required_capability_async(&[Capability::PQAlgorithms], async {
+    required_capability_async(&[Capability::MLKem], async {
         let cert_path =
             format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
         let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
