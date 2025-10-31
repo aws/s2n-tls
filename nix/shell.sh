@@ -259,4 +259,3 @@ function rust_test {(set -e
     echo "rust_test: Running Rust integration tests"
     cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
 )}
-    
