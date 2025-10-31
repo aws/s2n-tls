@@ -172,6 +172,14 @@ S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_m
     return S2N_RESULT_OK;
 }
 
+/**
+ * Allocate a new blob on the heap.
+ * 
+ * The blob will be _growable_.
+ * 
+ * This blob owns the underlying memory, which will be freed when `s2n_free` is 
+ * called on `b`.
+ */
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
@@ -188,9 +196,13 @@ bool s2n_blob_is_growable(const struct s2n_blob *b)
     return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
 
-/* Tries to realloc the requested bytes.
- * If successful, updates *b.
- * If failed, *b remains unchanged
+/**
+ * Resize a blob to `size`. The blob must be allocated or empty.
+ * 
+ * This will allocate more memory if necessary, or reuse the existing allocation
+ * if the requested size is smaller than the current size.
+ *
+ * If failed, *b remains unchanged.
  */
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
@@ -252,6 +264,10 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     return s2n_free(&b);
 }
 
+/**
+ * Allocate enough memory for `to` to contain all the data in `from`, then copy
+ * the data in `from` to `to`.
+ */
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
