@@ -158,3 +158,4 @@ jobs:
       - uses: ahmadnassri/action-commit-lint@v2
         with:
           config: ./.github/config/commitlint.config.js
+
