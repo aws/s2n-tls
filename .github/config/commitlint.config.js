@@ -1,3 +1,4 @@
+// See rules configuration at https://commitlint.js.org/reference/rules-configuration.html#rules-configuration
 module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
@@ -5,8 +6,7 @@ module.exports = {
     'body-max-line-length': [0],
     'footer-max-line-length': [0],
     'type-enum': [2, 'always', [
-      'build', 'chore', 'ci', 'docs', 'feat', 'fix', 'perf', 'refactor', 'revert', 'style', 'test',
-      'opt', 'internal', 'tests'
+      'build', 'chore', 'ci', 'docs', 'feat', 'fix', 'perf', 'test'
     ]]
   },
   parserPreset: {
