@@ -18,3 +18,4 @@ module.exports = {
     (message) => message.includes('Co-authored-by:')
   ]
 };
+
