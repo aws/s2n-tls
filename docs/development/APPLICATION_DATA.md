@@ -60,7 +60,7 @@ This document will only refer to "s2n_send", but the explanation still applies t
 
 A record is staged in the `out` buffer before being written to the network. Both the headers and the payloads are written to `out`, so it contains complete records. The records are encrypted in-place.
 
-By default, `out` is allocated to the maximum record size given the maximum fragment size, so can only contain a single record at a time. This can be configured: see [Multi-record send](#multi-record-send) below.
+By default, `out` is allocated to the maximum record size given the maximum fragment size, so it can only contain a single record at a time. This can be configured: see [Multi-record send](#multi-record-send) below.
 
 ### The initial send attempt
 
