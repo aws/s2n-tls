@@ -23,9 +23,12 @@ impl Trial {
 
 #[derive(Debug)]
 struct Outcome {
+    /// The key shares from the first client hello
     client_key_shares: Vec<iana::Group>,
+    /// The supported groups in the first client hello
     client_supported_groups: Vec<iana::Group>,
     server_selected_group: iana::Group,
+    hello_retry_request: bool,
 }
 
 impl Trial {
@@ -50,7 +53,7 @@ impl Trial {
 
         let mut transcript = pair.io.decrypter.lock().unwrap();
         let transcript = transcript.as_mut().unwrap().transcript();
-        let ch = transcript.client_hello();
+        let ch = transcript.client_hellos().first().unwrap().clone();
         println!("{ch:#?}");
         let key_shares = ch.key_share().unwrap();
         let supported_groups = ch.supported_groups().unwrap();
@@ -60,6 +63,7 @@ impl Trial {
             client_key_shares: key_shares,
             client_supported_groups: supported_groups,
             server_selected_group: sh.selected_group().unwrap().unwrap(),
+            hello_retry_request: transcript.hello_retry_request().is_some()
         }
     }
 }
@@ -81,18 +85,34 @@ fn classical_group_selection() {
     println!("outcome: {outcome:?}");
     assert_eq!(outcome.client_key_shares, vec![iana::constants::secp256r1]);
     assert_eq!(outcome.server_selected_group, iana::constants::secp256r1);
+    assert!(!outcome.hello_retry_request);
 
     let trial = Trial::new("secp384r1:secp521r1:secp256r1".to_owned());
     let outcome = trial.handshake();
     println!("outcome: {outcome:?}");
     assert_eq!(outcome.client_key_shares, vec![iana::constants::secp384r1]);
     assert_eq!(outcome.server_selected_group, iana::constants::secp384r1);
+    assert!(!outcome.hello_retry_request);
+
 
     let trial = Trial::new("secp521r1:secp256r1:secp384r1".to_owned());
     let outcome = trial.handshake();
     println!("outcome: {outcome:?}");
     assert_eq!(outcome.client_key_shares, vec![iana::constants::secp521r1]);
     assert_eq!(outcome.server_selected_group, iana::constants::secp521r1);
+    assert!(!outcome.hello_retry_request);
+
+}
+
+#[test]
+fn hello_retry_request() {
+    // client prefers secp256r1
+    let trial = Trial::new("x448:secp384r1".to_owned());
+    let outcome = trial.handshake();
+    println!("outcome: {outcome:?}");
+    assert_eq!(outcome.client_key_shares, vec![iana::constants::x448]);
+    assert_eq!(outcome.server_selected_group, iana::constants::secp384r1);
+    assert!(outcome.hello_retry_request);
 }
 
 /// PQ Key Share Preference:
