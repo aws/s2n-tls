@@ -134,7 +134,7 @@ impl TlsConnection for RustlsConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Arc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         let connection = match config {
             RustlsConfig::Client(config) => Connection::Client(ClientConnection::new(
