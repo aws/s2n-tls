@@ -82,12 +82,6 @@ struct s2n_security_policy {
      */
     bool certificate_preferences_apply_locally;
     bool rules[S2N_SECURITY_RULES_COUNT];
-
-    /* Historically all security policies are static.
-     * However, the security policy builder can dynamically create policies.
-     * The builder will mark those policies to indicate they should be freed.
-     */
-    bool alloced;
 };
 
 /* Macros to help construct simple policies.
@@ -190,6 +184,8 @@ extern const struct s2n_security_policy security_policy_20250211;
 extern const struct s2n_security_policy security_policy_20250414;
 extern const struct s2n_security_policy security_policy_20250512;
 extern const struct s2n_security_policy security_policy_20250721;
+extern const struct s2n_security_policy security_policy_20251014;
+extern const struct s2n_security_policy security_policy_20251015;
 
 extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;
