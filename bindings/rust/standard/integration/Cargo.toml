@@ -42,6 +42,7 @@ hyper = "1.5"
 hyper-util = "0.1"
 
 dhat = "0.3.3"
+tabled = "0.20.0"
 
 [build-dependencies]
 # The ML-DSA tests require the ML-DSA support added in Openssl-3.5
