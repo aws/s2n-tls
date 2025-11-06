@@ -127,15 +127,16 @@ static int s2n_generate_pq_key_share(struct s2n_stuffer *out, struct s2n_kem_gro
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
 
-    if (kem_group->curve == &s2n_ecc_curve_none) {
-        /* Pure ML-KEM: only send KEM public key */
+    if (kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
         POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-    } else if (kem_group->send_kem_first) {
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-    } else {
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    } else { /* Hybrid PQ */
+        if (kem_group->send_kem_first) {
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+        } else {
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        }
     }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
@@ -386,8 +387,7 @@ static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_
      * prefixed, or they are not. */
     uint16_t actual_share_size = key_share->blob.size;
     uint16_t unprefixed_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
-    uint16_t prefixed_count = kem_group->curve == &s2n_ecc_curve_none ? 1 : 2;
-    uint16_t prefixed_share_size = (prefixed_count * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_share_size;
+    uint16_t prefixed_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_share_size;
 
     /* Ignore KEM groups with unexpected overall total share sizes */
     if ((actual_share_size != unprefixed_share_size) && (actual_share_size != prefixed_share_size)) {
@@ -405,23 +405,28 @@ static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_
 
     /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
     /* Ignore PQ and ECC groups with public keys we can't parse */
-    if (kem_group->curve == &s2n_ecc_curve_none) {
-        if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
-            return S2N_SUCCESS;
-        }
-    } else if (kem_group->send_kem_first) {
-        if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
-            return S2N_SUCCESS;
-        }
-        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
-            return S2N_SUCCESS;
-        }
-    } else {
-        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+    if (kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
+        if (is_share_length_prefixed) {
             return S2N_SUCCESS;
         }
         if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
             return S2N_SUCCESS;
+        }
+    } else { /* Hybrid PQ */
+        if (kem_group->send_kem_first) {
+            if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+            if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+        } else {
+            if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+            if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
         }
     }
 
