@@ -32,10 +32,12 @@ static S2N_RESULT s2n_test_security_policies_compatible_for_policy(const struct 
     DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
             s2n_config_ptr_free);
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(server_config, cert_chain));
+    RESULT_GUARD_POSIX(s2n_config_set_max_blinding_delay(server_config, 0));
 
     DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
             s2n_config_ptr_free);
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
+    RESULT_GUARD_POSIX(s2n_config_set_max_blinding_delay(client_config, 0));
 
     DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
             s2n_connection_ptr_free);
@@ -215,9 +217,9 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2025_07);
+        EXPECT_EQUAL(3, security_policy->kem_preferences->tls13_kem_group_count);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &security_policy));
@@ -307,8 +309,6 @@ int main(int argc, char **argv)
 
     {
         char tls12_only_security_policy_strings[][255] = {
-            "default",
-            "default_fips",
             "ELBSecurityPolicy-TLS-1-0-2015-04",
             "ELBSecurityPolicy-TLS-1-0-2015-05",
             "ELBSecurityPolicy-2016-08",
@@ -362,6 +362,8 @@ int main(int argc, char **argv)
         }
 
         char tls13_security_policy_strings[][255] = {
+            "default",
+            "default_fips",
             "default_tls13",
             "test_all",
             "test_all_tls13",
@@ -903,6 +905,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20170210,
                 &security_policy_20240501,
+                &security_policy_20251014,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -956,6 +959,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
+                &security_policy_20251015,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -1008,6 +1012,7 @@ int main(int argc, char **argv)
         {
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20250429,
+                &security_policy_20251013,
             };
 
             struct s2n_test_cert_chain_list cert_chains = {

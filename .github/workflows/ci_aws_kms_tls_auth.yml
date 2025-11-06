@@ -9,6 +9,9 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: rustfmt and clippy
@@ -20,7 +23,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install stable
+          rustup toolchain install stable --component clippy,rustfmt
           rustup override set stable
 
       - run: cargo fmt --all -- --check

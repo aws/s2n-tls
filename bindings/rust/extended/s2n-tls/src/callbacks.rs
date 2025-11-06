@@ -38,6 +38,11 @@ pub use session_ticket::*;
 mod pkey;
 pub use pkey::*;
 
+#[cfg(feature = "unstable-crl")]
+mod cert_validation;
+#[cfg(feature = "unstable-crl")]
+pub use cert_validation::*;
+
 /// Convert the connection pointer provided to a callback into a Connection
 /// and Context useable with the Rust bindings.
 ///

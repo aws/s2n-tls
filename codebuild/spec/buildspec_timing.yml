@@ -8,7 +8,7 @@ env:
     # This assumes you have a Rust toolchain installed
     CARGO: "cargo +nightly"
     OPENSSL_DIR: "/usr/local/openssl-3.0"
-    RUST_TOOLCHAIN: "1.63.0-x86_64-unknown-linux-gnu"
+    RUST_TOOLCHAIN: "1.72.0-x86_64-unknown-linux-gnu"
 phases:
   install:
     commands:
