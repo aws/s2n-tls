@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(server_config);
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(server_config, protocols,
             s2n_array_len(protocols)));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
@@ -75,6 +75,7 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config,
                 test_cases[i].client_protocols, test_cases[i].client_protocol_count));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -115,6 +116,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config, protocols,
                 s2n_array_len(protocols)));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));

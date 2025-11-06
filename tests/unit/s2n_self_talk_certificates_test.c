@@ -83,10 +83,8 @@ int main(int argc, char **argv)
             uint8_t version = test_versions[version_i];
             bool expect_success = (version >= test_certs[cert_i].min_version);
 
-            /* We intentionally use the default policies.
-             * The default policies should support all certificate types.
-             */
-            const char *security_policy = "default";
+            /* 20240501 only supports up to TLS1.2 */
+            const char *security_policy = "20240501";
             if (version >= S2N_TLS13) {
                 security_policy = "default_tls13";
             } else if (version < S2N_TLS12) {

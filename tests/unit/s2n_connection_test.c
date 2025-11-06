@@ -175,10 +175,12 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
             struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
 
             struct s2n_connection *server_conn = NULL;

@@ -39,6 +39,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
+    EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
     s2n_connection_set_config(conn, client_config);
 
     /* Unlike the server, the client just passes ownership of I/O to s2n */
@@ -96,6 +97,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
+
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),

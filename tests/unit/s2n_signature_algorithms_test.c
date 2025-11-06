@@ -222,13 +222,16 @@ int main(int argc, char **argv)
     /* s2n_signature_algorithm_select */
     {
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert_chain));
 
         /* Clients can only configure one certificate */
         DEFER_CLEANUP(struct s2n_config *client_ecdsa_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_ecdsa_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_ecdsa_config, ecdsa_cert_chain));
         DEFER_CLEANUP(struct s2n_config *client_rsa_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_rsa_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_rsa_config, rsa_cert_chain));
 
         /* TLS1.2 defaults defined by the RFC */
@@ -281,6 +284,7 @@ int main(int argc, char **argv)
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                         s2n_connection_ptr_free);
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
@@ -588,6 +592,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                         s2n_connection_ptr_free);
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure->cipher_suite = RSA_CIPHER_SUITE;
 
@@ -619,6 +624,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                         s2n_connection_ptr_free);
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
 
@@ -656,6 +662,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -1237,6 +1244,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 

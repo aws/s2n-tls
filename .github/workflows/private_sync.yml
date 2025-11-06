@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: write
+
 jobs:
   build:
     # This should only run in one place.

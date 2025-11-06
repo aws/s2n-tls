@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
 
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -140,10 +141,12 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
@@ -175,6 +178,8 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         server_conn->actual_protocol_version = S2N_TLS12;
 
@@ -201,6 +206,8 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
@@ -395,6 +402,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         /* The client will request TLS1.2 */
@@ -432,11 +440,13 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         /* The client will request TLS1.3 */
@@ -478,6 +488,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 

@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_ems.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
@@ -42,9 +43,11 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         /* This extension is only relevant for TLS1.2 */
         server_conn->actual_protocol_version = S2N_TLS12;

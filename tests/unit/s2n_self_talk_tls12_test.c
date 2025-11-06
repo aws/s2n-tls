@@ -41,6 +41,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));

@@ -1,0 +1,168 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to
+# prevent the disk from filling up.
+---
+version: 0.2
+env:
+  shell: bash
+
+batch:
+  build-graph:
+    # Cache job for x86
+    - identifier: nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_ARGS: --max-jobs auto
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # Cache Job for aarch64
+    - identifier: nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_ARGS: --max-jobs auto
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+    # OpenSSL 1.0.2 x86
+    - identifier: Rust_openssl102_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl102
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # OpenSSL 1.0.2 aarch64
+    - identifier: Rust_openssl102_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl102
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+    # OpenSSL 1.1.1 x86
+    - identifier: Rust_openssl111_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl111
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # OpenSSL 1.1.1 aarch64
+    - identifier: Rust_openssl111_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl111
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+    # OpenSSL 3.0 x86
+    - identifier: Rust_openssl30_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl30
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # OpenSSL 3.0 aarch64
+    - identifier: Rust_openssl30_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_openssl30
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+    # AWS-LC x86
+    - identifier: Rust_awslc_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_awslc
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # AWS-LC aarch64
+    - identifier: Rust_awslc_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_awslc
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+    # AWS-LC FIPS 2024 x86
+    - identifier: Rust_awslcfips2024_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_awslcfips2024
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+
+    # AWS-LC FIPS 2024 aarch64
+    - identifier: Rust_awslcfips2024_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#rust_awslcfips2024
+          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+
+phases:
+  install:
+    commands:
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
+      - |
+        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          echo "Refreshing nix cache..."
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix build .#devShell
+          nix copy --to $NIX_CACHE_BUCKET .#devShell
+        else
+          echo "Downloading cache"
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+        fi
+  pre_build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_configure"
+        fi
+  build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_build"
+        fi
+  post_build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          echo "Running Rust integration tests with $NIXDEV_LIBCRYPTO"
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_test"
+        fi

@@ -26,6 +26,7 @@
 
 struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config)
 {
+    PTR_GUARD_RESULT(s2n_config_set_tls12_security_policy(config));
     struct s2n_connection *conn = s2n_connection_new(mode);
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, config));
     return conn;

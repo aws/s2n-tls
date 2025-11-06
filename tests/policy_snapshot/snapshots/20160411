@@ -1,4 +1,3 @@
-name: 20160411
 min version: TLS1.0
 rules:
 - Perfect Forward Secrecy: no
