@@ -406,6 +406,7 @@ static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_
     /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
     /* Ignore PQ and ECC groups with public keys we can't parse */
     if (kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
+        /* we only support pure PQ for modern MLKEM groups, which are not length prefixed. */
         if (is_share_length_prefixed) {
             return S2N_SUCCESS;
         }
