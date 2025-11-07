@@ -23,6 +23,9 @@ env:
   # The name of a s2n-tls test gated behind the external build cfg flag.
   EXTERNAL_BUILD_TEST_NAME: test_unstable_as_ptr
 
+permissions:
+  contents: read
+
 jobs:
   generate:
     runs-on: ${{ matrix.os }}
@@ -70,13 +73,6 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --features unstable-renegotiate
 
-      - name: Network-enabled integration tests
-        working-directory: ${{env.STANDARD_PATH}}/integration
-        # no-default-features is used because network tests are hidden behind a
-        # default "negative" feature. This is because we don't want network tests
-        # invoked on the `cargo test --all-features` pattern.
-        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
-
       - name: Test external build cfg
         working-directory: ${{env.ROOT_PATH}}/s2n-tls
         run: |
@@ -87,6 +83,28 @@ jobs:
           output=$(cargo test ${{env.EXTERNAL_BUILD_TEST_NAME}})
           echo "${output}"
           echo "${output}" | grep -q "test result: ok. 0 passed; 0 failed; 0 ignored;"
+
+  sensitive-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: install rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - name: generate bindings
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
+
+      # network tests are sensitive because there is inherent flakiness on the public internet
+      # memory tests are sensitive because memory usage is platform/feature specific
+      - name: sensitive integration tests
+        working-directory: ${{env.STANDARD_PATH}}/integration
+        # no-default-features is used because sensitive tests are hidden behind a
+        # default "negative" feature. This is because we don't want sensitive tests
+        # invoked on the `cargo test --all-features` pattern.
+        run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
   external-build-test:
     runs-on: ubuntu-latest
@@ -416,6 +434,7 @@ jobs:
 
       - name: Install tshark
         run: |
+          sudo apt-get update
           sudo apt-get install -y tshark
           tshark --version
 
