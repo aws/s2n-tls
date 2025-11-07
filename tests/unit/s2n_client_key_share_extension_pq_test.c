@@ -186,11 +186,8 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_key_shares_size));
                         EXPECT_EQUAL(sent_key_shares_size, s2n_stuffer_data_available(&key_share_extension));
 
-                        /* Assert that the PQ key share is correct.
-                         * For hybrid KEM groups:
-                         * IANA ID || total share size || ECC share size || ECC share || PQ share size || PQ share
-                         * For pure KEM groups:
-                         * IANA ID || total share size || PQ share size || PQ share */
+                        /* Assert that the hybrid key share is correct:
+                         * IANA ID || total hybrid share size || ECC share size || ECC share || PQ share size || PQ share */
                         uint16_t sent_hybrid_iana_id = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_iana_id));
                         EXPECT_EQUAL(sent_hybrid_iana_id, kem_pref->tls13_kem_groups[0]->iana_id);
