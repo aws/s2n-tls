@@ -113,7 +113,7 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 #[allow(dead_code)]
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
-    connection: Connection,
+    pub connection: Connection,
 }
 
 impl S2NConnection {

@@ -3,4 +3,5 @@
 
 #[cfg(feature = "pq")]
 mod pq;
+mod dynamic_record_sizing;
 mod record_padding;
