@@ -40,7 +40,20 @@ fn dynamic_record_sizing() {
         let mut total_sent = 0usize;
         let mut small_count = 0usize;
         let mut large_count = 0usize;
-
+        // Steady-state phase: all records should be large
+        if phase_name.contains("Phase 2") {
+            for record in records {
+                assert!(
+                    record.len() > SMALL_RECORD_MAX,
+                    "{}: All records should be large in steady state, got {} bytes",
+                    phase_name,
+                    record.len()
+                );
+                large_count += 1;
+            }
+            return (small_count, large_count);
+        }
+        // Stamdard phase: small records until threshold, then large 
         for record in records {
             let before_threshold = total_sent < RESIZE_THRESHOLD;
 
@@ -64,20 +77,6 @@ fn dynamic_record_sizing() {
             }
 
             total_sent += record.len();
-        }
-
-        // Steady-state phase: all records should be large
-        if phase_name.contains("Phase 2") {
-            for record in records {
-                assert!(
-                    record.len() > SMALL_RECORD_MAX,
-                    "{}: All records should be large in steady state, got {} bytes",
-                    phase_name,
-                    record.len()
-                );
-                large_count += 1;
-            }
-            return (small_count, large_count);
         }
 
         assert!(small_count > 0, "{}: Expected some small records", phase_name);
