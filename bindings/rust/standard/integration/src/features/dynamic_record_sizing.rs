@@ -53,7 +53,7 @@ fn dynamic_record_sizing() {
             }
             return (small_count, large_count);
         }
-        // Stamdard phase: small records until threshold, then large 
+        // Stamdard phase: small records until threshold, then large
         for record in records {
             let before_threshold = total_sent < RESIZE_THRESHOLD;
 
@@ -79,8 +79,16 @@ fn dynamic_record_sizing() {
             total_sent += record.len();
         }
 
-        assert!(small_count > 0, "{}: Expected some small records", phase_name);
-        assert!(large_count > 0, "{}: Expected some large records after threshold", phase_name);
+        assert!(
+            small_count > 0,
+            "{}: Expected some small records",
+            phase_name
+        );
+        assert!(
+            large_count > 0,
+            "{}: Expected some large records after threshold",
+            phase_name
+        );
 
         (small_count, large_count)
     }
