@@ -376,6 +376,33 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
     return S2N_SUCCESS;
 }
 
+int s2n_hkdf_expand_label_ro(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_ro_blob *label,
+        const struct s2n_blob *context, struct s2n_blob *output)
+{
+    POSIX_ENSURE_REF(label);
+    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE_REF(output);
+
+    uint8_t hkdf_label_buf[2 + 256 + 256];
+    struct s2n_blob hkdf_label_blob = { 0 };
+    struct s2n_stuffer hkdf_label = { 0 };
+
+    POSIX_ENSURE_LTE(label->size, S2N_MAX_HKDF_EXPAND_LABEL_LENGTH);
+
+    POSIX_GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
+    POSIX_GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&hkdf_label, output->size));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, label->size+sizeof("tls13 ") - 1));
+    POSIX_GUARD(s2n_stuffer_write_str(&hkdf_label, "tls13 "));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&hkdf_label, label->data,label->size));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, context->size));
+    POSIX_GUARD(s2n_stuffer_write(&hkdf_label, context));
+    hkdf_label_blob.size = s2n_stuffer_data_available(&hkdf_label);
+    POSIX_GUARD(s2n_hkdf_expand(hmac, alg, secret, &hkdf_label_blob, output));
+
+    return S2N_SUCCESS;
+}
+
 int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
 {

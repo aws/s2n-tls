@@ -69,10 +69,18 @@ int S2N_RESULT_MUST_USE s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob
     struct s2n_blob name = { 0 };                        \
     RESULT_GUARD_POSIX(s2n_blob_init(&name, name##_buf, name##_requested_size))
 
-#define S2N_BLOB_LABEL(name, str)                                    \
-    static const uint8_t name##_data[] = str;                        \
-    static union{                                                   \
-        const uint8_t *const_ptr;                                    \
-        uint8_t *ptr;                                                \
-    } name##_union = { .const_ptr = name##_data };                   \
-    const struct s2n_blob name = { .data = name##_union.ptr, .size = sizeof(name##_data) - 1 };
+#define S2N_BLOB_LABEL(name, str)       \
+    static uint8_t name##_data[] = str; \
+    const struct s2n_blob name = { .data = name##_data, .size = sizeof(name##_data) - 1 };
+
+/* Read-onl*/
+struct s2n_ro_blob {
+    const uint8_t *data;
+    uint32_t size;
+};
+#define S2N_RO_BLOB_LABEL(name,str)              \
+    static const uint8_t name##_data[] = str;    \
+    const struct s2n_ro_blob name = {            \
+        .data = name##_data,                     \
+        .size = sizeof(name##_data) - 1          \
+    };

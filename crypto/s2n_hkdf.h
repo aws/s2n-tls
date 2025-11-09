@@ -39,4 +39,8 @@ int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const 
 int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
         const struct s2n_blob *context, struct s2n_blob *output);
 
+/* Read-only label variant to avoid non-const data pointers */
+int s2n_hkdf_expand_label_ro(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_ro_blob *label,
+        const struct s2n_blob *context, struct s2n_blob *output);
+
 bool s2n_libcrypto_supports_hkdf();

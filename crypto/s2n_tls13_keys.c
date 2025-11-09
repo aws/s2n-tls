@@ -55,44 +55,44 @@
  * Define TLS 1.3 HKDF labels as specified in
  * https://tools.ietf.org/html/rfc8446#section-7.1
  */
-S2N_BLOB_LABEL(s2n_tls13_label_derived_secret, "derived")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_derived_secret, "derived")
 
-S2N_BLOB_LABEL(s2n_tls13_label_external_psk_binder_key, "ext binder")
-S2N_BLOB_LABEL(s2n_tls13_label_resumption_psk_binder_key, "res binder")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_external_psk_binder_key, "ext binder")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_resumption_psk_binder_key, "res binder")
 
-S2N_BLOB_LABEL(s2n_tls13_label_client_early_traffic_secret, "c e traffic")
-S2N_BLOB_LABEL(s2n_tls13_label_early_exporter_master_secret, "e exp master")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_client_early_traffic_secret, "c e traffic")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_early_exporter_master_secret, "e exp master")
 
-S2N_BLOB_LABEL(s2n_tls13_label_client_handshake_traffic_secret, "c hs traffic")
-S2N_BLOB_LABEL(s2n_tls13_label_server_handshake_traffic_secret, "s hs traffic")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_client_handshake_traffic_secret, "c hs traffic")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_server_handshake_traffic_secret, "s hs traffic")
 
-S2N_BLOB_LABEL(s2n_tls13_label_client_application_traffic_secret, "c ap traffic")
-S2N_BLOB_LABEL(s2n_tls13_label_server_application_traffic_secret, "s ap traffic")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_client_application_traffic_secret, "c ap traffic")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_server_application_traffic_secret, "s ap traffic")
 
-S2N_BLOB_LABEL(s2n_tls13_label_exporter_master_secret, "exp master")
-S2N_BLOB_LABEL(s2n_tls13_label_resumption_master_secret, "res master")
-S2N_BLOB_LABEL(s2n_tls13_label_session_ticket_secret, "resumption")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_exporter_master_secret, "exp master")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_resumption_master_secret, "res master")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_session_ticket_secret, "resumption")
 
 /*
  * Traffic secret labels
  */
-S2N_BLOB_LABEL(s2n_tls13_label_traffic_secret_key, "key")
-S2N_BLOB_LABEL(s2n_tls13_label_traffic_secret_iv, "iv")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_traffic_secret_key, "key")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_traffic_secret_iv, "iv")
 
 /*
  * TLS 1.3 Exporter label
  */
-S2N_BLOB_LABEL(s2n_tls13_label_exporter, "exporter")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_exporter, "exporter")
 
 /*
  * TLS 1.3 Finished label
  */
-S2N_BLOB_LABEL(s2n_tls13_label_finished, "finished")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_finished, "finished")
 
 /*
  * TLS 1.3 KeyUpdate label
  */
-S2N_BLOB_LABEL(s2n_tls13_label_application_traffic_secret_update, "traffic upd")
+S2N_RO_BLOB_LABEL(s2n_tls13_label_application_traffic_secret_update, "traffic upd")
 
 static const struct s2n_blob zero_length_blob = { .data = NULL, .size = 0 };
 
@@ -135,9 +135,9 @@ int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *
     POSIX_ENSURE_REF(key);
     POSIX_ENSURE_REF(iv);
 
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
+POSIX_GUARD(s2n_hkdf_expand_label_ro(&keys->hmac, keys->hmac_algorithm, secret,
             &s2n_tls13_label_traffic_secret_key, &zero_length_blob, key));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
+    POSIX_GUARD(s2n_hkdf_expand_label_ro(&keys->hmac, keys->hmac_algorithm, secret,
             &s2n_tls13_label_traffic_secret_iv, &zero_length_blob, iv));
     return 0;
 }
@@ -148,7 +148,7 @@ int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *
  */
 int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *secret_key, struct s2n_blob *output_finish_key)
 {
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret_key, &s2n_tls13_label_finished, &zero_length_blob, output_finish_key));
+POSIX_GUARD(s2n_hkdf_expand_label_ro(&keys->hmac, keys->hmac_algorithm, secret_key, &s2n_tls13_label_finished, &zero_length_blob, output_finish_key));
 
     return 0;
 }
@@ -175,7 +175,7 @@ int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, str
     POSIX_ENSURE_REF(old_secret);
     POSIX_ENSURE_REF(new_secret);
 
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, old_secret,
+POSIX_GUARD(s2n_hkdf_expand_label_ro(&keys->hmac, keys->hmac_algorithm, old_secret,
             &s2n_tls13_label_application_traffic_secret_update, &zero_length_blob, new_secret));
 
     return 0;
@@ -190,7 +190,7 @@ S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, s
     RESULT_ENSURE_REF(secret_blob);
 
     /* Derive session ticket secret from master session resumption secret */
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, resumption_secret,
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label_ro(&keys->hmac, keys->hmac_algorithm, resumption_secret,
             &s2n_tls13_label_session_ticket_secret, ticket_nonce, secret_blob));
 
     return S2N_RESULT_OK;

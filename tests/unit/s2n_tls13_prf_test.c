@@ -127,12 +127,12 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(secret_buf, expected_secret_bytes, sizeof(secret_buf)), 0);
 
     /* Validate the derived secret */
-    S2N_BLOB_LABEL(label, "derived");
+S2N_RO_BLOB_LABEL(label, "derived");
 
     struct s2n_hmac_state hmac = { 0 };
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
-    EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
+EXPECT_SUCCESS(s2n_hkdf_expand_label_ro(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
 
     EXPECT_EQUAL(memcmp(output_buf, expected_expanded_bytes, sizeof(output_buf)), 0);
 
