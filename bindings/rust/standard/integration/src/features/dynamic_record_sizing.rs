@@ -36,10 +36,11 @@ fn dynamic_record_sizing() {
     /// Validate record sizes based on the phase:
     /// - Phase 1 & 3: expect small records until threshold, then large
     /// - Phase 2: expect all records to be large (steady state)
-    fn validate_dynamic_sizing(records: &[Vec<u8>], phase_name: &str) -> (usize, usize) {
-        let mut total_sent = 0usize;
-        let mut small_count = 0usize;
-        let mut large_count = 0usize;
+    fn validate_dynamic_sizing(records: &[Vec<u8>], phase_name: &str) {
+        let mut total_sent = 0;
+        let mut small_count = 0;
+        let mut large_count = 0;
+
         // Steady-state phase: all records should be large
         if phase_name.contains("Phase 2") {
             for record in records {
@@ -49,11 +50,11 @@ fn dynamic_record_sizing() {
                     phase_name,
                     record.len()
                 );
-                large_count += 1;
             }
-            return (small_count, large_count);
+            return;
         }
-        // Stamdard phase: small records until threshold, then large
+
+        // Standard phase: small records until threshold, then large
         for record in records {
             let before_threshold = total_sent < RESIZE_THRESHOLD;
 
@@ -89,8 +90,6 @@ fn dynamic_record_sizing() {
             "{}: Expected some large records after threshold",
             phase_name
         );
-
-        (small_count, large_count)
     }
 
     fn s2n_server_case() {
@@ -107,6 +106,7 @@ fn dynamic_record_sizing() {
             .unwrap();
 
         pair.handshake().unwrap();
+        // Dynamic record sizing only works with TLS 1.3
         assert!(pair.negotiated_tls13());
 
         // Start recording AFTER handshake completion to only capture application data
@@ -149,6 +149,7 @@ fn dynamic_record_sizing() {
             .unwrap();
 
         pair.handshake().unwrap();
+        // Dynamic record sizing only works with TLS 1.3
         assert!(pair.negotiated_tls13());
 
         // Start recording AFTER handshake completion to only capture application data
