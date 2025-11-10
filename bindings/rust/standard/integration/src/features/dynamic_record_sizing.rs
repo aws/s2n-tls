@@ -30,7 +30,6 @@ const TIMEOUT_THRESHOLD: u64 = 1;
 /// 3. Post-timeout ramp-up: small records again after timeout, then large records
 ///
 /// Note that the resize threshold is only counting application data, not handshake messages.
-/// The amount of data is chosen so that we don't have to worry about "remainder" data.
 #[test]
 fn dynamic_record_sizing() {
     /// Validate record sizes based on the phase:
