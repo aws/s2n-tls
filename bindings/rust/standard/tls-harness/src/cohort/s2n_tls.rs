@@ -113,12 +113,16 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 #[allow(dead_code)]
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
-    pub connection: Connection,
+    connection: Connection,
 }
 
 impl S2NConnection {
     pub fn connection(&self) -> &Connection {
         &self.connection
+    }
+
+    pub fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.connection
     }
 }
 

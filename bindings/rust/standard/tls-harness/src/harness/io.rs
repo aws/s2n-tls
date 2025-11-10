@@ -56,16 +56,6 @@ impl TestPairIO {
         Self::record_sizes(self.server_tx_transcript.as_ref().borrow().as_slice()).unwrap()
     }
 
-    /// Return individual TLS records from the client transcript
-    pub fn client_record_writes(&self) -> Vec<Vec<u8>> {
-        Self::record_writes(self.client_tx_transcript.as_ref().borrow().as_slice())
-    }
-
-    /// Return individual TLS records from the server transcript
-    pub fn server_record_writes(&self) -> Vec<Vec<u8>> {
-        Self::record_writes(self.server_tx_transcript.as_ref().borrow().as_slice())
-    }
-
     /// Return a list of the record sizes contained in `buffer`.
     ///
     /// Note that this is always the length of the outer, obfuscated record, and
@@ -83,36 +73,6 @@ impl TestPairIO {
             buffer.consume(length as usize);
         }
         Ok(record_lengths)
-    }
-
-    /// Return individual TLS records contained in `buffer`.
-    ///
-    /// Each returned Vec<u8> contains a complete TLS record including the header.
-    /// This is useful for analyzing record contents and sizes in tests.
-    ///
-    /// Data is expected to be well formed. If `buffer` contains partial records
-    /// this method will skip incomplete records at the end.
-    fn record_writes(buffer: &[u8]) -> Vec<Vec<u8>> {
-        let mut writes = Vec::new();
-        let mut remaining = buffer;
-
-        // Parse TLS records from the transcript
-        while remaining.len() >= 5 {
-            // TLS record header: content_type(1) + version(2) + length(2)
-            let length = u16::from_be_bytes([remaining[3], remaining[4]]) as usize;
-
-            if remaining.len() < 5 + length {
-                break; // Incomplete record, skip it
-            }
-
-            // Extract the full TLS record (header + payload)
-            let record = remaining[..5 + length].to_vec();
-            writes.push(record);
-
-            remaining = &remaining[5 + length..];
-        }
-
-        writes
     }
 }
 

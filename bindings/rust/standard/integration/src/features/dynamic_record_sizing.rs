@@ -36,48 +36,48 @@ fn dynamic_record_sizing() {
     /// Validate record sizes based on the phase:
     /// - Phase 1 & 3: expect small records until threshold, then large
     /// - Phase 2: expect all records to be large (steady state)
-    fn validate_dynamic_sizing(records: &[Vec<u8>], phase_name: &str) {
+    fn validate_dynamic_sizing(record_sizes: &[u16], phase_name: &str) {
         let mut total_sent = 0;
         let mut small_count = 0;
         let mut large_count = 0;
 
         // Steady-state phase: all records should be large
         if phase_name.contains("Phase 2") {
-            for record in records {
+            for &size in record_sizes {
                 assert!(
-                    record.len() > SMALL_RECORD_MAX,
+                    size > SMALL_RECORD_MAX as u16,
                     "{}: All records should be large in steady state, got {} bytes",
                     phase_name,
-                    record.len()
+                    size
                 );
             }
             return;
         }
 
         // Standard phase: small records until threshold, then large
-        for record in records {
+        for &size in record_sizes {
             let before_threshold = total_sent < RESIZE_THRESHOLD;
 
             if before_threshold {
                 assert!(
-                    record.len() <= SMALL_RECORD_MAX,
+                    size <= SMALL_RECORD_MAX as u16,
                     "{}: Record should be small during ramp-up, got {} bytes (max: {})",
                     phase_name,
-                    record.len(),
+                    size,
                     SMALL_RECORD_MAX
                 );
                 small_count += 1;
             } else {
                 assert!(
-                    record.len() > SMALL_RECORD_MAX,
+                    size > SMALL_RECORD_MAX as u16,
                     "{}: Record should be large after threshold, got {} bytes",
                     phase_name,
-                    record.len()
+                    size
                 );
                 large_count += 1;
             }
 
-            total_sent += record.len();
+            total_sent += size as usize;
         }
 
         assert!(
@@ -101,7 +101,7 @@ fn dynamic_record_sizing() {
 
         // Set dynamic record threshold on s2n-tls server
         pair.server
-            .connection
+            .connection_mut()
             .set_dynamic_record_threshold(RESIZE_THRESHOLD as u32, TIMEOUT_THRESHOLD as u16)
             .unwrap();
 
@@ -114,23 +114,23 @@ fn dynamic_record_sizing() {
 
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase1_records = pair.io.server_record_writes();
-        validate_dynamic_sizing(&phase1_records, "Phase 1");
+        let phase1_sizes = pair.io.server_record_sizes();
+        validate_dynamic_sizing(&phase1_sizes, "Phase 1");
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
         // Phase 2: Steady state - there should not be any small records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase2_records = pair.io.server_record_writes();
-        validate_dynamic_sizing(&phase2_records, "Phase 2");
+        let phase2_sizes = pair.io.server_record_sizes();
+        validate_dynamic_sizing(&phase2_sizes, "Phase 2");
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
         // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
         sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase3_records = pair.io.server_record_writes();
-        validate_dynamic_sizing(&phase3_records, "Phase 3");
+        let phase3_sizes = pair.io.server_record_sizes();
+        validate_dynamic_sizing(&phase3_sizes, "Phase 3");
 
         pair.shutdown().unwrap();
     }
@@ -144,7 +144,7 @@ fn dynamic_record_sizing() {
 
         // Set dynamic record threshold on s2n-tls client
         pair.client
-            .connection
+            .connection_mut()
             .set_dynamic_record_threshold(RESIZE_THRESHOLD as u32, TIMEOUT_THRESHOLD as u16)
             .unwrap();
 
@@ -157,23 +157,23 @@ fn dynamic_record_sizing() {
 
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase1_records = pair.io.client_record_writes();
-        validate_dynamic_sizing(&phase1_records, "Phase 1");
+        let phase1_sizes = pair.io.client_record_sizes();
+        validate_dynamic_sizing(&phase1_sizes, "Phase 1");
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
         // Phase 2: Steady state - there should not be any small records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase2_records = pair.io.client_record_writes();
-        validate_dynamic_sizing(&phase2_records, "Phase 2");
+        let phase2_sizes = pair.io.client_record_sizes();
+        validate_dynamic_sizing(&phase2_sizes, "Phase 2");
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
         // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
         sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-        let phase3_records = pair.io.client_record_writes();
-        validate_dynamic_sizing(&phase3_records, "Phase 3");
+        let phase3_sizes = pair.io.client_record_sizes();
+        validate_dynamic_sizing(&phase3_sizes, "Phase 3");
 
         pair.shutdown().unwrap();
     }
