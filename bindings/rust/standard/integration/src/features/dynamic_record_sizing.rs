@@ -37,59 +37,52 @@ fn dynamic_record_sizing() {
     /// - Phase 1 & 3: expect small records until threshold, then large
     /// - Phase 2: expect all records to be large (steady state)
     fn validate_dynamic_sizing(record_sizes: &[u16], phase_name: &str) {
-        let mut total_sent = 0;
-        let mut small_count = 0;
-        let mut large_count = 0;
+        // Skip the final record to avoid false failures from a trailing partial record
+        let sizes = if record_sizes.len() > 1 {
+            &record_sizes[..record_sizes.len() - 1]
+        } else {
+            record_sizes
+        };
 
-        // Steady-state phase: all records should be large
+        let mut total_sent = 0usize;
+        let mut saw_small = false;
+        let mut saw_large = false;
+
         if phase_name.contains("Phase 2") {
-            for &size in record_sizes {
+            for &size in sizes {
                 assert!(
-                    size > SMALL_RECORD_MAX as u16,
-                    "{}: All records should be large in steady state, got {} bytes",
-                    phase_name,
-                    size
+                    size as usize > SMALL_RECORD_MAX,
+                    "{}: Expected all large records in steady state, got {} bytes",
+                    phase_name, size
                 );
             }
             return;
         }
 
-        // Standard phase: small records until threshold, then large
-        for &size in record_sizes {
+        for &size in sizes {
             let before_threshold = total_sent < RESIZE_THRESHOLD;
 
             if before_threshold {
                 assert!(
-                    size <= SMALL_RECORD_MAX as u16,
-                    "{}: Record should be small during ramp-up, got {} bytes (max: {})",
-                    phase_name,
-                    size,
-                    SMALL_RECORD_MAX
+                    size as usize <= SMALL_RECORD_MAX,
+                    "{}: Expected small record during ramp-up, got {} bytes (max {})",
+                    phase_name, size, SMALL_RECORD_MAX
                 );
-                small_count += 1;
+                saw_small = true;
             } else {
                 assert!(
-                    size > SMALL_RECORD_MAX as u16,
-                    "{}: Record should be large after threshold, got {} bytes",
-                    phase_name,
-                    size
+                    size as usize > SMALL_RECORD_MAX,
+                    "{}: Expected large record after threshold, got {} bytes",
+                    phase_name, size
                 );
-                large_count += 1;
+                saw_large = true;
             }
 
             total_sent += size as usize;
         }
 
-        assert!(
-            small_count > 0,
-            "{}: Expected some small records",
-            phase_name
-        );
-        assert!(
-            large_count > 0,
-            "{}: Expected some large records after threshold",
-            phase_name
-        );
+        assert!(saw_small, "{}: Expected some small records", phase_name);
+        assert!(saw_large, "{}: Expected some large records after threshold", phase_name);
     }
 
     fn s2n_server_case() {
