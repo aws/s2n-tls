@@ -53,7 +53,8 @@ fn dynamic_record_sizing() {
                 assert!(
                     size as usize > SMALL_RECORD_MAX,
                     "{}: Expected all large records in steady state, got {} bytes",
-                    phase_name, size
+                    phase_name,
+                    size
                 );
             }
             return;
@@ -66,14 +67,17 @@ fn dynamic_record_sizing() {
                 assert!(
                     size as usize <= SMALL_RECORD_MAX,
                     "{}: Expected small record during ramp-up, got {} bytes (max {})",
-                    phase_name, size, SMALL_RECORD_MAX
+                    phase_name,
+                    size,
+                    SMALL_RECORD_MAX
                 );
                 saw_small = true;
             } else {
                 assert!(
                     size as usize > SMALL_RECORD_MAX,
                     "{}: Expected large record after threshold, got {} bytes",
-                    phase_name, size
+                    phase_name,
+                    size
                 );
                 saw_large = true;
             }
@@ -82,7 +86,11 @@ fn dynamic_record_sizing() {
         }
 
         assert!(saw_small, "{}: Expected some small records", phase_name);
-        assert!(saw_large, "{}: Expected some large records after threshold", phase_name);
+        assert!(
+            saw_large,
+            "{}: Expected some large records after threshold",
+            phase_name
+        );
     }
 
     fn s2n_server_case() {
