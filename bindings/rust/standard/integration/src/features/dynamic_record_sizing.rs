@@ -9,17 +9,14 @@ use tls_harness::{
     TlsConnPair,
 };
 
-use crate::capability_check::{required_capability, Capability};
-
-// Constants for dynamic record threshold testing:
-// - RESIZE_THRESHOLD: The byte threshold at which records switch from small to large
-// - SMALL_RECORD_MAX: Maximum size for small records during ramp-up (single Ethernet frame limit)
-// - APP_DATA_SIZE: Total application data size (chosen so the final record is always more than small size)
-// - TIMEOUT_THRESHOLD: Seconds of inactivity before resetting to small records
+/// The byte threshold at which records switch from small to large
 const RESIZE_THRESHOLD: usize = 16_000;
+/// Maximum size for small records during ramp-up (single Ethernet frame limit)
 const SMALL_RECORD_MAX: usize = 1_500;
+/// Total application data size (chosen so the final record is always more than small size)
 const APP_DATA_SIZE: usize = 100_000;
-const TIMEOUT_THRESHOLD: u64 = 1;
+/// Duration of inactivity before resetting to small records
+const TIMEOUT_THRESHOLD: Duration = Duration::from_secs(1);
 
 /// Tests s2n-tls dynamic record sizing behavior.
 ///
@@ -32,25 +29,16 @@ const TIMEOUT_THRESHOLD: u64 = 1;
 fn dynamic_record_sizing() {
     #[derive(Debug, Clone, Copy)]
     enum Phase {
-        InitialRampUp,
+        RampUp,
         SteadyState,
-        PostTimeoutRampUp,
-    }
-
-    impl std::fmt::Display for Phase {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            match self {
-                Phase::InitialRampUp => write!(f, "Initial ramp-up"),
-                Phase::SteadyState => write!(f, "Steady state"),
-                Phase::PostTimeoutRampUp => write!(f, "Post-timeout ramp-up"),
-            }
-        }
     }
 
     /// Validate record sizes based on the phase:
-    /// - InitialRampUp & PostTimeoutRampUp: expect small records until threshold, then large
+    /// - RampUp: expect small records until threshold, then large
     /// - SteadyState: expect all records to be large
     fn validate_dynamic_sizing(record_sizes: &[u16], phase: Phase) {
+        println!("Checking record sizes for {phase:?}");
+
         // Skip the final record to avoid false failures from a trailing partial record
         let sizes = if record_sizes.len() > 1 {
             &record_sizes[..record_sizes.len() - 1]
@@ -58,53 +46,34 @@ fn dynamic_record_sizing() {
             record_sizes
         };
 
-        let mut total_sent = 0usize;
-        let mut saw_small = false;
-        let mut saw_large = false;
-
         match phase {
             Phase::SteadyState => {
-                for &size in sizes {
-                    assert!(
-                        size as usize > SMALL_RECORD_MAX,
-                        "{}: Expected all large records in steady state, got {} bytes",
-                        phase,
-                        size
-                    );
-                }
+                let all_large = sizes.iter().all(|&size| size as usize > SMALL_RECORD_MAX);
+                assert!(all_large);
             }
-            Phase::InitialRampUp | Phase::PostTimeoutRampUp => {
-                for &size in sizes {
-                    let before_threshold = total_sent < RESIZE_THRESHOLD;
+            Phase::RampUp => {
+                // Partition records into small (before threshold) and large (after threshold)
+                let (small_records, large_records): (Vec<_>, Vec<_>) = sizes
+                    .iter()
+                    .scan(0usize, |total, &size| {
+                        let before_threshold = *total < RESIZE_THRESHOLD;
+                        *total += size as usize;
+                        Some((size, before_threshold))
+                    })
+                    .partition(|(_, before_threshold)| *before_threshold);
 
-                    if before_threshold {
-                        assert!(
-                            size as usize <= SMALL_RECORD_MAX,
-                            "{}: Expected small record during ramp-up, got {} bytes (max {})",
-                            phase,
-                            size,
-                            SMALL_RECORD_MAX
-                        );
-                        saw_small = true;
-                    } else {
-                        assert!(
-                            size as usize > SMALL_RECORD_MAX,
-                            "{}: Expected large record after threshold, got {} bytes",
-                            phase,
-                            size
-                        );
-                        saw_large = true;
-                    }
-
-                    total_sent += size as usize;
+                // Validate all small records are within limit
+                for &(size, _) in &small_records {
+                    assert!(size as usize <= SMALL_RECORD_MAX);
                 }
 
-                assert!(saw_small, "{}: Expected some small records", phase);
-                assert!(
-                    saw_large,
-                    "{}: Expected some large records after threshold",
-                    phase
-                );
+                // Validate all large records exceed limit
+                for &(size, _) in &large_records {
+                    assert!(size as usize > SMALL_RECORD_MAX);
+                }
+
+                assert!(!small_records.is_empty());
+                assert!(!large_records.is_empty());
             }
         }
     }
@@ -119,12 +88,13 @@ fn dynamic_record_sizing() {
         // Set dynamic record threshold on s2n-tls server
         pair.server
             .connection_mut()
-            .set_dynamic_record_threshold(RESIZE_THRESHOLD as u32, TIMEOUT_THRESHOLD as u16)
+            .set_dynamic_record_threshold(
+                RESIZE_THRESHOLD as u32,
+                TIMEOUT_THRESHOLD.as_secs() as u16,
+            )
             .unwrap();
 
         pair.handshake().unwrap();
-        // Dynamic record sizing only works with TLS 1.3
-        assert!(pair.negotiated_tls13());
 
         // Start recording AFTER handshake completion to only capture application data
         pair.io.enable_recording();
@@ -132,7 +102,7 @@ fn dynamic_record_sizing() {
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase1_sizes = pair.io.server_record_sizes();
-        validate_dynamic_sizing(&phase1_sizes, Phase::InitialRampUp);
+        validate_dynamic_sizing(&phase1_sizes, Phase::RampUp);
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
@@ -144,10 +114,10 @@ fn dynamic_record_sizing() {
         pair.io.server_tx_transcript.borrow_mut().clear();
 
         // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
-        sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
+        sleep(TIMEOUT_THRESHOLD + Duration::from_secs(1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.server_record_sizes();
-        validate_dynamic_sizing(&phase3_sizes, Phase::PostTimeoutRampUp);
+        validate_dynamic_sizing(&phase3_sizes, Phase::RampUp);
 
         pair.shutdown().unwrap();
     }
@@ -162,12 +132,13 @@ fn dynamic_record_sizing() {
         // Set dynamic record threshold on s2n-tls client
         pair.client
             .connection_mut()
-            .set_dynamic_record_threshold(RESIZE_THRESHOLD as u32, TIMEOUT_THRESHOLD as u16)
+            .set_dynamic_record_threshold(
+                RESIZE_THRESHOLD as u32,
+                TIMEOUT_THRESHOLD.as_secs() as u16,
+            )
             .unwrap();
 
         pair.handshake().unwrap();
-        // Dynamic record sizing only works with TLS 1.3
-        assert!(pair.negotiated_tls13());
 
         // Start recording AFTER handshake completion to only capture application data
         pair.io.enable_recording();
@@ -175,7 +146,7 @@ fn dynamic_record_sizing() {
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase1_sizes = pair.io.client_record_sizes();
-        validate_dynamic_sizing(&phase1_sizes, Phase::InitialRampUp);
+        validate_dynamic_sizing(&phase1_sizes, Phase::RampUp);
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
@@ -187,16 +158,14 @@ fn dynamic_record_sizing() {
         pair.io.client_tx_transcript.borrow_mut().clear();
 
         // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
-        sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
+        sleep(TIMEOUT_THRESHOLD + Duration::from_secs(1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.client_record_sizes();
-        validate_dynamic_sizing(&phase3_sizes, Phase::PostTimeoutRampUp);
+        validate_dynamic_sizing(&phase3_sizes, Phase::RampUp);
 
         pair.shutdown().unwrap();
     }
 
-    required_capability(&[Capability::Tls13], || {
-        s2n_server_case();
-        s2n_client_case();
-    });
+    s2n_server_case();
+    s2n_client_case();
 }
