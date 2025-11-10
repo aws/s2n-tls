@@ -28,14 +28,29 @@ const TIMEOUT_THRESHOLD: u64 = 1;
 /// 1. Initial ramp-up: small records until threshold, then large records
 /// 2. Steady state: all large records  
 /// 3. Post-timeout ramp-up: small records again after timeout, then large records
-///
-/// Note that the resize threshold is only counting application data, not handshake messages.
 #[test]
 fn dynamic_record_sizing() {
+    #[derive(Debug, Clone, Copy)]
+    enum Phase {
+        InitialRampUp,
+        SteadyState,
+        PostTimeoutRampUp,
+    }
+
+    impl std::fmt::Display for Phase {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Phase::InitialRampUp => write!(f, "Initial ramp-up"),
+                Phase::SteadyState => write!(f, "Steady state"),
+                Phase::PostTimeoutRampUp => write!(f, "Post-timeout ramp-up"),
+            }
+        }
+    }
+
     /// Validate record sizes based on the phase:
-    /// - Phase 1 & 3: expect small records until threshold, then large
-    /// - Phase 2: expect all records to be large (steady state)
-    fn validate_dynamic_sizing(record_sizes: &[u16], phase_name: &str) {
+    /// - InitialRampUp & PostTimeoutRampUp: expect small records until threshold, then large
+    /// - SteadyState: expect all records to be large
+    fn validate_dynamic_sizing(record_sizes: &[u16], phase: Phase) {
         // Skip the final record to avoid false failures from a trailing partial record
         let sizes = if record_sizes.len() > 1 {
             &record_sizes[..record_sizes.len() - 1]
@@ -47,49 +62,51 @@ fn dynamic_record_sizing() {
         let mut saw_small = false;
         let mut saw_large = false;
 
-        if phase_name.contains("Phase 2") {
-            for &size in sizes {
+        match phase {
+            Phase::SteadyState => {
+                for &size in sizes {
+                    assert!(
+                        size as usize > SMALL_RECORD_MAX,
+                        "{}: Expected all large records in steady state, got {} bytes",
+                        phase,
+                        size
+                    );
+                }
+            }
+            Phase::InitialRampUp | Phase::PostTimeoutRampUp => {
+                for &size in sizes {
+                    let before_threshold = total_sent < RESIZE_THRESHOLD;
+
+                    if before_threshold {
+                        assert!(
+                            size as usize <= SMALL_RECORD_MAX,
+                            "{}: Expected small record during ramp-up, got {} bytes (max {})",
+                            phase,
+                            size,
+                            SMALL_RECORD_MAX
+                        );
+                        saw_small = true;
+                    } else {
+                        assert!(
+                            size as usize > SMALL_RECORD_MAX,
+                            "{}: Expected large record after threshold, got {} bytes",
+                            phase,
+                            size
+                        );
+                        saw_large = true;
+                    }
+
+                    total_sent += size as usize;
+                }
+
+                assert!(saw_small, "{}: Expected some small records", phase);
                 assert!(
-                    size as usize > SMALL_RECORD_MAX,
-                    "{}: Expected all large records in steady state, got {} bytes",
-                    phase_name,
-                    size
+                    saw_large,
+                    "{}: Expected some large records after threshold",
+                    phase
                 );
             }
-            return;
         }
-
-        for &size in sizes {
-            let before_threshold = total_sent < RESIZE_THRESHOLD;
-
-            if before_threshold {
-                assert!(
-                    size as usize <= SMALL_RECORD_MAX,
-                    "{}: Expected small record during ramp-up, got {} bytes (max {})",
-                    phase_name,
-                    size,
-                    SMALL_RECORD_MAX
-                );
-                saw_small = true;
-            } else {
-                assert!(
-                    size as usize > SMALL_RECORD_MAX,
-                    "{}: Expected large record after threshold, got {} bytes",
-                    phase_name,
-                    size
-                );
-                saw_large = true;
-            }
-
-            total_sent += size as usize;
-        }
-
-        assert!(saw_small, "{}: Expected some small records", phase_name);
-        assert!(
-            saw_large,
-            "{}: Expected some large records after threshold",
-            phase_name
-        );
     }
 
     fn s2n_server_case() {
@@ -115,14 +132,14 @@ fn dynamic_record_sizing() {
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase1_sizes = pair.io.server_record_sizes();
-        validate_dynamic_sizing(&phase1_sizes, "Phase 1");
+        validate_dynamic_sizing(&phase1_sizes, Phase::InitialRampUp);
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
         // Phase 2: Steady state - there should not be any small records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase2_sizes = pair.io.server_record_sizes();
-        validate_dynamic_sizing(&phase2_sizes, "Phase 2");
+        validate_dynamic_sizing(&phase2_sizes, Phase::SteadyState);
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
@@ -130,7 +147,7 @@ fn dynamic_record_sizing() {
         sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.server_record_sizes();
-        validate_dynamic_sizing(&phase3_sizes, "Phase 3");
+        validate_dynamic_sizing(&phase3_sizes, Phase::PostTimeoutRampUp);
 
         pair.shutdown().unwrap();
     }
@@ -158,14 +175,14 @@ fn dynamic_record_sizing() {
         // Phase 1: Initial ramp up - should start with small records, then switch to large records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase1_sizes = pair.io.client_record_sizes();
-        validate_dynamic_sizing(&phase1_sizes, "Phase 1");
+        validate_dynamic_sizing(&phase1_sizes, Phase::InitialRampUp);
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
         // Phase 2: Steady state - there should not be any small records
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase2_sizes = pair.io.client_record_sizes();
-        validate_dynamic_sizing(&phase2_sizes, "Phase 2");
+        validate_dynamic_sizing(&phase2_sizes, Phase::SteadyState);
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
@@ -173,7 +190,7 @@ fn dynamic_record_sizing() {
         sleep(Duration::from_secs(TIMEOUT_THRESHOLD + 1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.client_record_sizes();
-        validate_dynamic_sizing(&phase3_sizes, "Phase 3");
+        validate_dynamic_sizing(&phase3_sizes, Phase::PostTimeoutRampUp);
 
         pair.shutdown().unwrap();
     }
