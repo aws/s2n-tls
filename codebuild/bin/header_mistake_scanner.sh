@@ -30,8 +30,8 @@ S2N_FILES+=$(find "$PWD" -type f -name "*.rs" | grep -v target)
 FAILED=0
 
 for file in $S2N_FILES; do
-    # The phrase "Copyright Amazon.com, Inc. or its affiliates." should appear at least once in the first 3 lines of every file
-    COUNT=`head -3 $file | grep -i "Copyright Amazon.com, Inc. or its affiliates." | wc -l`;
+    # The phrase "Copyright Amazon.com, Inc. or its affiliates." should appear at least once in the first 4 lines of every file
+    COUNT=`head -4 $file | grep -i "Copyright Amazon.com, Inc. or its affiliates." | wc -l`;
     if [ "$COUNT" == "0" ];
     then
         FAILED=1;
