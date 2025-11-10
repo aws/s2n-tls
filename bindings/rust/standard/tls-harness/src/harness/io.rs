@@ -95,23 +95,23 @@ impl TestPairIO {
     fn record_writes(buffer: &[u8]) -> Vec<Vec<u8>> {
         let mut writes = Vec::new();
         let mut remaining = buffer;
-        
+
         // Parse TLS records from the transcript
         while remaining.len() >= 5 {
             // TLS record header: content_type(1) + version(2) + length(2)
             let length = u16::from_be_bytes([remaining[3], remaining[4]]) as usize;
-            
+
             if remaining.len() < 5 + length {
                 break; // Incomplete record, skip it
             }
-            
+
             // Extract the full TLS record (header + payload)
             let record = remaining[..5 + length].to_vec();
             writes.push(record);
-            
+
             remaining = &remaining[5 + length..];
         }
-        
+
         writes
     }
 }
