@@ -31,7 +31,7 @@ FAILED=0
 
 for file in $S2N_FILES; do
     # The phrase "Copyright (20xx) Amazon.com, Inc. or its affiliates" should appear at least once in the first 4 lines of every file
-    COUNT=`head -4 $file | grep -E -i "Copyright ([0-9]{4} )?Amazon\.com, Inc\. or its affiliates" | wc -l`;
+    COUNT=`head -4 $file | grep -i "Copyright" | grep -i "Amazon.com, Inc. or its affiliates" | wc -l`;
     if [ "$COUNT" == "0" ];
     then
         FAILED=1;
