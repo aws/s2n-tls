@@ -6,7 +6,7 @@ use openssl::ssl::{Ssl, SslContextBuilder, SslFiletype, SslMethod};
 use s2n_tls::{
     config::Config,
     enums::SignatureAlgorithm,
-    security::{DEFAULT_PQ, TEST_ALL},
+    security::{Policy, DEFAULT_PQ},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use std::{fs, path::Path, pin::Pin};
@@ -213,9 +213,10 @@ fn s2n_pure_mlkem_client() {
         };
 
         // Setup s2n-tls client with test_all
+        let test_all_policy = Policy::from_version("test_all")?;
         let client = {
             let mut config = Config::builder();
-            config.set_security_policy(&TEST_ALL)?;
+            config.set_security_policy(&test_all_policy)?;
             config.set_max_blinding_delay(0)?;
             config.trust_location(Some(Path::new(&cert_path)), None)?;
             TlsConnector::new(config.build()?)
@@ -254,9 +255,10 @@ fn s2n_pure_mlkem_server() {
         };
 
         // Setup s2n-tls server with test_all
+        let test_all_policy = Policy::from_version("test_all")?;
         let server = {
             let mut config = Config::builder();
-            config.set_security_policy(&TEST_ALL)?;
+            config.set_security_policy(&test_all_policy)?;
             config.set_max_blinding_delay(0)?;
             let cert = fs::read(cert_path)?;
             let key = fs::read(key_path)?;

@@ -114,8 +114,6 @@ pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 #[cfg(feature = "pq")]
 pub const DEFAULT_PQ: Policy = policy!("default_pq");
 
-pub const TEST_ALL: Policy = policy!("test_all");
-
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,
     DEFAULT_TLS13,
@@ -123,5 +121,4 @@ pub const ALL_POLICIES: &[Policy] = &[
     TESTING_PQ,
     #[cfg(feature = "pq")]
     DEFAULT_PQ,
-    TEST_ALL,
 ];

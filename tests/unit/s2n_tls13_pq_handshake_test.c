@@ -557,11 +557,13 @@ int main()
     const struct s2n_kem_group *null_if_no_mlkem_1024 = &s2n_secp384r1_mlkem_1024;
     const struct s2n_kem_group *null_if_no_pure_mlkem_1024 = &s2n_pure_mlkem_1024;
     const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    bool hrr_expected_if_mlkem = true;
     if (!s2n_libcrypto_supports_mlkem()) {
         null_if_no_mlkem_768 = NULL;
         null_if_no_mlkem_1024 = NULL;
         null_if_no_pure_mlkem_1024 = NULL;
         ec_if_no_mlkem = default_curve;
+        hrr_expected_if_mlkem = false;
     }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -805,6 +807,17 @@ int main()
                 .expected_kem_group = null_if_no_pure_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        /* Client supports PQ but did not send PQ shares. PQ should be negotiated after exchanging HRR.
+         * If ML-KEM is not supported, EC should be negotiated without HRR. */
+        {
+                .client_policy = &security_policy_test_all,
+                .server_policy = &pure_mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = hrr_expected_if_mlkem,
                 .len_prefix_expected = false,
         },
     };
