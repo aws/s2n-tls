@@ -113,7 +113,7 @@ fn dynamic_record_sizing() {
 
         pair.io.server_tx_transcript.borrow_mut().clear();
 
-        // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
+        // Phase 3: Exceed timeout threshold by 1s to ensure ramp-up reset reliably triggers
         sleep(TIMEOUT_THRESHOLD + Duration::from_secs(1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.server_record_sizes();
@@ -157,7 +157,7 @@ fn dynamic_record_sizing() {
 
         pair.io.client_tx_transcript.borrow_mut().clear();
 
-        // Phase 3: Timeout threshold - connection should "ramp up" again after timeout
+        // Phase 3: Exceed timeout threshold by 1s to ensure ramp-up reset reliably triggers
         sleep(TIMEOUT_THRESHOLD + Duration::from_secs(1));
         pair.round_trip_assert(APP_DATA_SIZE).unwrap();
         let phase3_sizes = pair.io.client_record_sizes();
