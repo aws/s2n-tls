@@ -810,7 +810,7 @@ int main()
                 .len_prefix_expected = false,
         },
 
-        /* Client supports PQ but did not send PQ shares. PQ should be negotiated after exchanging HRR.
+        /* Client supports pure MLKEM but did not send that key share. Pure MLKEM should be negotiated after exchanging HRR.
          * If ML-KEM is not supported, EC should be negotiated without HRR. */
         {
                 .client_policy = &security_policy_test_all,
