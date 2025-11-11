@@ -190,15 +190,32 @@ where
         &mut self.server
     }
 
-    /// Run handshake on connections
-    /// Two round trips are needed for the server to receive the Finished message
-    /// from the client and be ready to send data
+    /// Run the TLS handshake between client and server until both report completion.
+    /// Continues briefly afterward to process any remaining
+    /// post-handshake messages (e.g. TLS 1.3 NewSessionTicket).
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        for _ in 0..2 {
+        // Phase 1: drive until both peers say handshake is complete
+        while !self.handshake_completed() {
             self.client.handshake()?;
             self.server.handshake()?;
         }
-        assert!(self.handshake_completed());
+
+        // Phase 2: drain any leftover bytes (e.g., TLS 1.3 NewSessionTicket)
+        loop {
+            let client_before = self.io.client_tx_stream.borrow().len();
+            let server_before = self.io.server_tx_stream.borrow().len();
+
+            self.client.handshake().ok();
+            self.server.handshake().ok();
+
+            let client_after = self.io.client_tx_stream.borrow().len();
+            let server_after = self.io.server_tx_stream.borrow().len();
+
+            if client_before == client_after && server_before == server_after {
+                break;
+            }
+        }
+
         Ok(())
     }
 
