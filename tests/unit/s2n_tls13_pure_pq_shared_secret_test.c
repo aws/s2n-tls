@@ -16,11 +16,7 @@
 #include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_tls13_handshake.c"
-#include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
-#include "utils/s2n_safety.h"
+#include "tls/s2n_tls13_handshake.h"
 
 #define MLKEM1024_SECRET "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035"
 

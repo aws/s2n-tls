@@ -155,12 +155,13 @@ jobs:
       - uses: actions/checkout@v5
       - name: PR Conventional Commit Validation
         id: cc_check
-        uses: ytanikin/pr-conventional-commits@1.4.0
+        if: github.event_name == 'pull_request_target'
+        uses: ytanikin/pr-conventional-commits@1.4.2
         with:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
           add_label: 'false'
       - name: Failure case
-        if: steps.cc_check.outcome != 'success'
+        if: github.event_name == 'pull_request_target' && steps.cc_check.outcome != 'success'
         run: |
           echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
           exit 1
