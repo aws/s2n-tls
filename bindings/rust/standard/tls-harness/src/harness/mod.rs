@@ -191,7 +191,7 @@ where
     }
 
     /// Run the TLS handshake between client and server until both report completion.
-    /// Continues until the handshake is finished and neither side exchanges 
+    /// Continues until the handshake is finished and neither side exchanges
     /// additional handshake or post-handshake data.
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         let mut prev_client_len = 0;
