@@ -200,9 +200,8 @@ where
 
         // Keep looping while handshake not complete or progress is still being made
         while !self.handshake_completed() || progress {
-            // Drive both peers once
-            self.client.handshake().ok();
-            self.server.handshake().ok();
+            self.client.handshake()?;
+            self.server.handshake()?;
 
             // Measure current TX lengths to detect progress
             let client_len = self.io.client_tx_stream.borrow().len();
