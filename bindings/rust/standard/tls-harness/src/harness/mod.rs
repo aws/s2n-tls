@@ -194,26 +194,23 @@ where
     /// Continues briefly afterward to process any remaining
     /// post-handshake messages (e.g. TLS 1.3 NewSessionTicket).
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        // Phase 1: drive until both peers say handshake is complete
-        while !self.handshake_completed() {
-            self.client.handshake()?;
-            self.server.handshake()?;
-        }
+        let mut prev_client_len = 0;
+        let mut prev_server_len = 0;
+        let mut progress = true;
 
-        // Phase 2: drain any leftover bytes (e.g., TLS 1.3 NewSessionTicket)
-        loop {
-            let client_before = self.io.client_tx_stream.borrow().len();
-            let server_before = self.io.server_tx_stream.borrow().len();
-
+        // Keep looping while handshake not complete or progress is still being made
+        while !self.handshake_completed() || progress {
+            // Drive both peers once
             self.client.handshake().ok();
             self.server.handshake().ok();
 
-            let client_after = self.io.client_tx_stream.borrow().len();
-            let server_after = self.io.server_tx_stream.borrow().len();
+            // Measure current TX lengths to detect progress
+            let client_len = self.io.client_tx_stream.borrow().len();
+            let server_len = self.io.server_tx_stream.borrow().len();
 
-            if client_before == client_after && server_before == server_after {
-                break;
-            }
+            progress = client_len != prev_client_len || server_len != prev_server_len;
+            prev_client_len = client_len;
+            prev_server_len = server_len;
         }
 
         Ok(())
