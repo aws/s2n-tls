@@ -789,7 +789,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
             /* Change client random */
-            client_conn->handshake_params.client_random[0]++;
+            client_conn->client_hello.client_random[0]++;
 
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
@@ -822,7 +822,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
             /* Change client random */
-            client_conn->handshake_params.client_random[0]++;
+            client_conn->client_hello.client_random[0]++;
 
             /* Expect success if we pretend that this isn't a unit test */
             EXPECT_SUCCESS(s2n_in_unit_test_set(false));

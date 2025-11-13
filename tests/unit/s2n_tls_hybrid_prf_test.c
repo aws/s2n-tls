@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&combined_stuffer, &classic_pms));
         EXPECT_SUCCESS(s2n_stuffer_write(&combined_stuffer, &kem_pms));
 
-        EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random, CLIENT_RANDOM_LENGTH);
+        EXPECT_MEMCPY_SUCCESS(conn->client_hello.client_random, client_random, CLIENT_RANDOM_LENGTH);
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random, SERVER_RANDOM_LENGTH);
 
         EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_key_exchange_message, client_key_exchange_message_length));

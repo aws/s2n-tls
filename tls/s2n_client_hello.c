@@ -112,6 +112,15 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 
     uint32_t len = min_size(&ch->raw_message, max_length);
     POSIX_CHECKED_MEMCPY(out, ch->raw_message.data, len);
+    
+    /* Zero out the client random in the output buffer */
+    uint32_t client_random_offset = S2N_TLS_PROTOCOL_VERSION_LEN;
+    if (len > client_random_offset) {
+        uint32_t remaining = len - client_random_offset;
+        uint32_t bytes_to_zero = (S2N_TLS_RANDOM_DATA_LEN < remaining) ? S2N_TLS_RANDOM_DATA_LEN : remaining;
+        POSIX_CHECKED_MEMSET(out + client_random_offset, 0, bytes_to_zero);
+    }
+    
     return len;
 }
 
@@ -167,6 +176,15 @@ ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *ou
     POSIX_CHECKED_MEMCPY(out, ch->extensions.raw.data, len);
 
     return len;
+}
+
+int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t out[S2N_TLS_RANDOM_DATA_LEN])
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+
+    POSIX_CHECKED_MEMCPY(out, ch->client_random, S2N_TLS_RANDOM_DATA_LEN);
+    return S2N_SUCCESS;
 }
 
 int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello)
@@ -251,7 +269,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
          */
         RESULT_ENSURE(s2n_constant_time_equals(
                               previous_client_random,
-                              conn->handshake_params.client_random,
+                              conn->client_hello.client_random,
                               S2N_TLS_RANDOM_DATA_LEN),
                 S2N_ERR_BAD_MESSAGE);
 
@@ -392,8 +410,9 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
      */
     client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
 
-    /* random */
-    RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
+    /* random - read and store it, but keep it in the raw message for now */
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
+    RESULT_CHECKED_MEMCPY(client_hello->client_random, client_random, S2N_TLS_RANDOM_DATA_LEN);
 
     /* legacy_session_id */
     uint8_t session_id_len = 0;
@@ -452,12 +471,12 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* Save the current client_random for comparison in the case of a retry */
     uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_client_random, conn->handshake_params.client_random,
+    POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.client_random,
             S2N_TLS_RANDOM_DATA_LEN);
 
     /* Parse raw, collected client hello */
     POSIX_GUARD_RESULT(s2n_client_hello_parse_raw(&conn->client_hello,
-            conn->handshake_params.client_random));
+            conn->client_hello.client_random));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -729,7 +748,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.client_random, S2N_TLS_RANDOM_DATA_LEN));
     if (!s2n_is_hello_retry_handshake(conn)) {
         /* Only generate the random data for our first client hello.
          * If we retry, we'll reuse the value. */
@@ -857,7 +876,7 @@ int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
     }
 
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->client_hello.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;

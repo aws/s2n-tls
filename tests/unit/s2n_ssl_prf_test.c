@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
         EXPECT_OK(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->handshake_params.client_random[i] = c;
+        conn->client_hello.client_random[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
