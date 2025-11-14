@@ -31,6 +31,7 @@ mod openssl_bench_setup {
             let ec_key = match crypto_config.kx_group {
                 KXGroup::Secp256R1 => "P-256",
                 KXGroup::X25519 => "X25519",
+                KXGroup::X25519MLKEM768 => "X25519MLKEM768",
             };
 
             let ssl_method = match mode {
@@ -143,6 +144,7 @@ mod rustls_bench_setup {
             let kx_group = match crypto_config.kx_group {
                 KXGroup::Secp256R1 => &kx_group::SECP256R1,
                 KXGroup::X25519 => &kx_group::X25519,
+                KXGroup::X25519MLKEM768 => &kx_group::X25519MLKEM768,
             };
 
             let crypto_provider = Arc::new(CryptoProvider {
@@ -228,6 +230,8 @@ mod s2n_tls_bench_setup {
                 (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
                 (CipherSuite::TLS_AES_128_GCM_SHA256, KXGroup::X25519) => "20240417",
                 (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
+                (CipherSuite::TLS_AES_128_GCM_SHA256, KXGroup::X25519MLKEM768) => "default_tls13",
+                (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::X25519MLKEM768) => "default_tls13",
             };
 
             let mut builder = s2n_tls::config::Builder::new();
