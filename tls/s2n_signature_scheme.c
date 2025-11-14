@@ -759,7 +759,7 @@ const struct s2n_signature_scheme* s2n_cert_sig_scheme_pref_list_20251113[] = {
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
-    // do we want to include SHA224/1 here? RFC just says: 
+    // do we want to include SHA224/1 here? RFC just says:
 
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,

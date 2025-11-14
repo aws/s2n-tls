@@ -1395,8 +1395,7 @@ const struct s2n_security_policy security_policy_20251113 = {
     // this should be true for interop 1 and 3? INTEROP4 and 5 uses non ephemeral kx
     // the RFC9151 policy does not have this rule set though
     .rules = {
-        [S2N_PERFECT_FORWARD_SECRECY] = true
-    }
+            [S2N_PERFECT_FORWARD_SECRECY] = true }
 };
 
 // INTEROP3
@@ -1410,8 +1409,7 @@ const struct s2n_security_policy security_policy_20251114 = {
     .ecc_preferences = &s2n_ecc_preferences_20251113,
     // this should be true for interop 1 and 3. INTEROP4 and 5 uses non ephemeral kx
     .rules = {
-        [S2N_PERFECT_FORWARD_SECRECY] = true
-    }
+            [S2N_PERFECT_FORWARD_SECRECY] = true }
 };
 
 // INTEROP4
