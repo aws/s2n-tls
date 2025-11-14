@@ -94,7 +94,6 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20251116[] = {
     &s2n_ecc_curve_secp384r1,
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp521r1,
-    // how do I specify preference for ffdhe?
 };
 
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_test_all[] = {
