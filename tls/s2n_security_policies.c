@@ -1666,6 +1666,10 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20250414", .security_policy = &security_policy_20250414, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250429", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251013", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251113", .security_policy = &security_policy_20251113, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251114", .security_policy = &security_policy_20251114, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251115", .security_policy = &security_policy_20251115, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20251116", .security_policy = &security_policy_20251116, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* If changing this, please update the usage guide's docs on the corresponding policy. */
     { .version = "rfc9151", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

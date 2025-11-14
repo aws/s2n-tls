@@ -778,5 +778,5 @@ const struct s2n_signature_scheme* s2n_cert_sig_scheme_pref_list_20251113[] = {
 
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20251113 = {
     .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20251113),
-    .signature_schemes = s2n_sig_scheme_pref_list_20251113,
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_20251113,
 };
