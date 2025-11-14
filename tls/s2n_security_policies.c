@@ -1366,6 +1366,77 @@ const struct s2n_security_policy security_policy_20250414 = {
     },
 };
 
+// maybe good to reference this
+//  * This security policy is derived from the following specification:
+//  * https://datatracker.ietf.org/doc/html/rfc9151
+//  */
+// const struct s2n_security_policy security_policy_20250429 = {
+//     .minimum_protocol_version = S2N_TLS12,
+//     .cipher_preferences = &cipher_preferences_20250429,
+//     .kem_preferences = &kem_preferences_null,
+//     .signature_preferences = &s2n_signature_preferences_20250429,
+//     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+//     .certificate_key_preferences = &s2n_certificate_key_preferences_20250429,
+//     .ecc_preferences = &s2n_ecc_preferences_20210816,
+//     .certificate_preferences_apply_locally = true,
+// };
+
+// INTEROP1
+const struct s2n_security_policy security_policy_20251113 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251113,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20251113,
+    // there should be a one I can reuse? maybe s2n_signature_preferences_20250429? Idk if I need a more relaxed version for compatibility -> probably? this is a transition policy so it should work for all existing clients
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
+    // do we need certificate key preference? -> likely not because this will reject certain key types
+    // .certificate_key_preferences = ...
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
+    // this should be true for interop 1 and 3? INTEROP4 and 5 uses non ephemeral kx
+    // the RFC9151 policy does not have this rule set though
+    .rules = {
+        [S2N_PERFECT_FORWARD_SECRECY] = true
+    }
+};
+
+// INTEROP3
+const struct s2n_security_policy security_policy_20251114 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251114,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20251113,
+    // there should be a one I can reuse
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
+    // this should be true for interop 1 and 3. INTEROP4 and 5 uses non ephemeral kx
+    .rules = {
+        [S2N_PERFECT_FORWARD_SECRECY] = true
+    }
+};
+
+// INTEROP4
+const struct s2n_security_policy security_policy_20251115 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251115,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20251113,
+    // there should be a one I can reuse
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
+};
+
+// INTEROP5
+const struct s2n_security_policy security_policy_20251116 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20251116,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20251113,
+    // there should be a one I can reuse
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
+    // this is the group preferences?
+    .ecc_preferences = &s2n_ecc_preferences_20251116,
+};
+
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,

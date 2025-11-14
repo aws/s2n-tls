@@ -2295,4 +2295,123 @@ const struct s2n_cipher_preferences cipher_preferences_20250211 = {
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_20251113[] = {
+    /* TLS 1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
+
+    /* TLS 1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251113 = {
+    .count = s2n_array_len(cipher_suites_20251113),
+    .suites = cipher_suites_20251113,
+    // do I need this even if I don't include chacha20 in cipher?
+    .allow_chacha20_boosting = false,
+};
+
+
+struct s2n_cipher_suite *cipher_suites_20251114[] = {
+    /* TLS 1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
+
+    /* TLS 1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251114 = {
+    .count = s2n_array_len(cipher_suites_20251114),
+    .suites = cipher_suites_20251114,
+    // do I need this even if I don't include chacha20 in cipher?
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20251115[] = {
+    /* TLS 1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
+
+    /* TLS 1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251115 = {
+    .count = s2n_array_len(cipher_suites_20251115),
+    .suites = cipher_suites_20251115,
+    // do I need this even if I don't include chacha20 in cipher?
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20251116[] = {
+    /* TLS 1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
+
+    /* TLS 1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251116 = {
+    .count = s2n_array_len(cipher_suites_20251116),
+    .suites = cipher_suites_20251116,
+    // do I need this even if I don't include chacha20 in cipher?
+    .allow_chacha20_boosting = false,
+};
+
 /* clang-format on */
