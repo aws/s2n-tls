@@ -3916,7 +3916,7 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
  * buffer parameter.
  * @note This API will error if the handshake is not yet complete. Additionally it will error if there
- * is still application in the IO buffers given that this data is not serialized by s2n-tls. You can
+ * is still application data in the IO buffers given that this data is not serialized by s2n-tls. You can
  * use s2n_send to drain the send buffer and s2n_peek + s2n_recv to drain the read buffer.
  *
  * @param conn A pointer to the connection object.
