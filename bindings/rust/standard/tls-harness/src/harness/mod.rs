@@ -194,22 +194,11 @@ where
     /// Continues until the handshake is finished and neither side exchanges
     /// additional handshake or post-handshake data.
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        let mut prev_client_len = 0;
-        let mut prev_server_len = 0;
-        let mut progress = true;
 
         // Keep looping while handshake not complete or progress is still being made
-        while !self.handshake_completed() || progress {
+        while !self.handshake_completed() {
             self.client.handshake()?;
             self.server.handshake()?;
-
-            // Measure current TX lengths to detect progress
-            let client_len = self.io.client_tx_stream.borrow().len();
-            let server_len = self.io.server_tx_stream.borrow().len();
-
-            progress = client_len != prev_client_len || server_len != prev_server_len;
-            prev_client_len = client_len;
-            prev_server_len = server_len;
         }
 
         Ok(())
