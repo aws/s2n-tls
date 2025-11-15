@@ -194,7 +194,6 @@ where
     /// Continues until the handshake is finished and neither side exchanges
     /// additional handshake or post-handshake data.
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-
         // Keep looping while handshake not complete or progress is still being made
         while !self.handshake_completed() {
             self.client.handshake()?;
