@@ -114,6 +114,10 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
     connection: Connection,
+    // We have to store the result of s2n_negotiate to know when the handshake is complete.
+    // 
+    // As of 2025-11-16 s2n-tls does not provide a convenient way to figure out if the handshake is 
+    // complete. Checking if `handshake_type()` contains "NEGOTIATED" is _not_ sufficient.
     handshake_done: bool,
 }
 
