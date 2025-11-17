@@ -2064,7 +2064,7 @@ int main(int argc, char **argv)
 
         /* Construct a minimal client hello with a custom random value */
         uint8_t custom_random[S2N_TLS_RANDOM_DATA_LEN] = { ZERO_TO_THIRTY_ONE };
-        
+
         /* Build a minimal TLS 1.2 ClientHello:
          * - Protocol version (2 bytes): 0x0303 (TLS 1.2)
          * - Random (32 bytes): custom_random
@@ -2076,30 +2076,30 @@ int main(int argc, char **argv)
          * - Extensions length (2 bytes): 0 (no extensions)
          */
         struct s2n_stuffer *client_hello_stuffer = &server->handshake.io;
-        
+
         /* Protocol version: TLS 1.2 (0x0303) */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x03));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x03));
-        
+
         /* Random: custom value */
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(client_hello_stuffer, custom_random, S2N_TLS_RANDOM_DATA_LEN));
-        
+
         /* Session ID length: 0 */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0));
-        
+
         /* Cipher suites length: 2 bytes (one cipher suite) */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(client_hello_stuffer, 2));
-        
+
         /* Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xC02F) */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0xC0));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x2F));
-        
+
         /* Compression methods length: 1 */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 1));
-        
+
         /* Compression method: null (0) */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0));
-        
+
         /* Extensions length: 0 (no extensions) */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(client_hello_stuffer, 0));
 

@@ -112,7 +112,7 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 
     uint32_t len = min_size(&ch->raw_message, max_length);
     POSIX_CHECKED_MEMCPY(out, ch->raw_message.data, len);
-    
+
     /* Note: client random is already zeroed in the raw message for security */
     return len;
 }
