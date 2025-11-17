@@ -449,12 +449,12 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      */
     DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
             s2n_client_hello_free_raw_message);
-    
+
     /* Save the client_random before clearing for retry validation */
     uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
     POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.client_random,
             S2N_TLS_RANDOM_DATA_LEN);
-    
+
     if (s2n_is_hello_retry_handshake(conn)) {
         POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
     }
