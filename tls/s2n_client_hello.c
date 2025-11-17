@@ -113,14 +113,7 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
     uint32_t len = min_size(&ch->raw_message, max_length);
     POSIX_CHECKED_MEMCPY(out, ch->raw_message.data, len);
     
-    /* Zero out the client random in the output buffer */
-    uint32_t client_random_offset = S2N_TLS_PROTOCOL_VERSION_LEN;
-    if (len > client_random_offset) {
-        uint32_t remaining = len - client_random_offset;
-        uint32_t bytes_to_zero = (S2N_TLS_RANDOM_DATA_LEN < remaining) ? S2N_TLS_RANDOM_DATA_LEN : remaining;
-        POSIX_CHECKED_MEMSET(out + client_random_offset, 0, bytes_to_zero);
-    }
-    
+    /* Note: client random is already zeroed in the raw message for security */
     return len;
 }
 
@@ -410,8 +403,8 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
      */
     client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
 
-    /* random - read and store it, but keep it in the raw message for now */
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
+    /* random - read and store it, erasing from raw message */
+    RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
     RESULT_CHECKED_MEMCPY(client_hello->client_random, client_random, S2N_TLS_RANDOM_DATA_LEN);
 
     /* legacy_session_id */
@@ -469,9 +462,9 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Save the current client_random for comparison in the case of a retry */
+    /* Save the previous client_random for comparison in the case of a retry */
     uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.client_random,
+    POSIX_CHECKED_MEMCPY(previous_client_random, previous_hello_retry.client_random,
             S2N_TLS_RANDOM_DATA_LEN);
 
     /* Parse raw, collected client hello */
