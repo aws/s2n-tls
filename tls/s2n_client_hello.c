@@ -169,7 +169,7 @@ ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *ou
     return len;
 }
 
-int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t out[S2N_TLS_RANDOM_DATA_LEN])
+int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out)
 {
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(out);

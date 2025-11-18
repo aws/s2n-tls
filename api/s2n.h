@@ -1665,6 +1665,22 @@ S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_he
 S2N_API extern int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out);
 
 /**
+ * Retrieves the client random value from the Client Hello.
+ *
+ * The client random is a 32-byte value sent by the client in the ClientHello message.
+ * It is used in the TLS handshake for key derivation and to prevent replay attacks.
+ *
+ * @note The raw ClientHello message returned by s2n_client_hello_get_raw_message() has
+ * the client random zeroed out for security reasons. Use this function to access the
+ * actual client random value.
+ *
+ * @param ch A pointer to the client hello struct
+ * @param out A pointer to a buffer of at least 32 bytes where the client random will be copied.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
  * Retrieves the supported groups received from the client in the supported groups extension.
  *
  * IANA values for each of the received supported groups are written to the provided `groups`
