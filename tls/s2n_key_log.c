@@ -110,8 +110,8 @@ S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, const struct s2
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&output, len));
 
     struct s2n_blob client_random = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.client_random,
-            sizeof(conn->client_hello.client_random)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.random,
+            sizeof(conn->client_hello.random)));
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, label, label_size));
     RESULT_GUARD(s2n_stuffer_write_hex(&output, &client_random));
@@ -149,8 +149,8 @@ S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&output, len));
 
     struct s2n_blob client_random = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.client_random,
-            sizeof(conn->client_hello.client_random)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.random,
+            sizeof(conn->client_hello.random)));
 
     struct s2n_blob master_secret = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret,

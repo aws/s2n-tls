@@ -2055,68 +2055,43 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_hello_get_random */
     {
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-
         /* Construct a minimal client hello with a custom random value */
         uint8_t custom_random[S2N_TLS_RANDOM_DATA_LEN] = { ZERO_TO_THIRTY_ONE };
 
-        /* Build a minimal TLS 1.2 ClientHello:
-         * - Protocol version (2 bytes): 0x0303 (TLS 1.2)
-         * - Random (32 bytes): custom_random
-         * - Session ID length (1 byte): 0
-         * - Cipher suites length (2 bytes): 2 (one cipher suite)
-         * - Cipher suite (2 bytes): TLS_RSA_WITH_AES_128_CBC_SHA
-         * - Compression methods length (1 byte): 1
-         * - Compression method (1 byte): 0 (null compression)
-         * - Extensions length (2 bytes): 0 (no extensions)
-         */
-        struct s2n_stuffer *client_hello_stuffer = &server->handshake.io;
+        /* clang-format off */
+        uint8_t raw_client_hello[] = {
+            /* message type */
+            TLS_CLIENT_HELLO,
+            /* message size */
+            0x00, 0x00, 43,
+            /* protocol version - TLS1.2 */
+            0x03, 0x03,
+            /* random - custom value */
+            ZERO_TO_THIRTY_ONE,
+            /* session id */
+            0x00,
+            /* cipher suites */
+            0x00, 0x02,
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            /* legacy compression methods */
+            0x01, 0x00,
+            /* extensions - empty */
+            0x00, 0x00,
+        };
+        /* clang-format on */
 
-        /* Protocol version: TLS 1.2 (0x0303) */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x03));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x03));
-
-        /* Random: custom value */
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(client_hello_stuffer, custom_random, S2N_TLS_RANDOM_DATA_LEN));
-
-        /* Session ID length: 0 */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0));
-
-        /* Cipher suites length: 2 bytes (one cipher suite) */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(client_hello_stuffer, 2));
-
-        /* Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xC02F) */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0xC0));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0x2F));
-
-        /* Compression methods length: 1 */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 1));
-
-        /* Compression method: null (0) */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(client_hello_stuffer, 0));
-
-        /* Extensions length: 0 (no extensions) */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(client_hello_stuffer, 0));
-
-        /* Parse the client hello */
-        EXPECT_SUCCESS(s2n_client_hello_recv(server));
-
-        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+        DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
+        client_hello = s2n_client_hello_parse_message(raw_client_hello, sizeof(raw_client_hello));
         EXPECT_NOT_NULL(client_hello);
 
-        /* Retrieve the client random using the new getter */
+        /* Retrieve the client random using the getter */
         uint8_t retrieved_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-        EXPECT_SUCCESS(s2n_client_hello_get_random(client_hello, retrieved_random));
+        EXPECT_SUCCESS(s2n_client_hello_get_random(client_hello, retrieved_random, S2N_TLS_RANDOM_DATA_LEN));
 
         /* Verify the retrieved random matches the custom value we set */
         EXPECT_BYTEARRAY_EQUAL(retrieved_random, custom_random, S2N_TLS_RANDOM_DATA_LEN);
 
-        /* Verify the raw message has the random zeroed out */
+        /* Verify the raw message still has the random zeroed out after retrieval */
         uint8_t *raw_message = client_hello->raw_message.data;
         uint8_t client_random_offset = S2N_TLS_PROTOCOL_VERSION_LEN;
         uint8_t zeroed_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };

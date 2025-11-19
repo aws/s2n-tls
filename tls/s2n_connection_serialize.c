@@ -75,7 +75,7 @@ static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, 
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secrets.version.tls12.master_secret,
             S2N_TLS_SECRET_LEN));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->client_hello.client_random,
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->client_hello.random,
             S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->handshake_params.server_random,
             S2N_TLS_RANDOM_DATA_LEN));
@@ -330,7 +330,7 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
 
     RESULT_CHECKED_MEMCPY(conn->secrets.version.tls12.master_secret, parsed_values->version.tls12.master_secret,
             S2N_TLS_SECRET_LEN);
-    RESULT_CHECKED_MEMCPY(conn->client_hello.client_random, parsed_values->version.tls12.client_random,
+    RESULT_CHECKED_MEMCPY(conn->client_hello.random, parsed_values->version.tls12.client_random,
             S2N_TLS_RANDOM_DATA_LEN);
     RESULT_CHECKED_MEMCPY(conn->handshake_params.server_random, parsed_values->version.tls12.server_random,
             S2N_TLS_RANDOM_DATA_LEN);

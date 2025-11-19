@@ -28,7 +28,7 @@
  */
 struct s2n_client_hello {
     struct s2n_blob raw_message;
-    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
+    uint8_t random[S2N_TLS_RANDOM_DATA_LEN];
 
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
@@ -87,4 +87,4 @@ int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
 ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
 ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 
-int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out);
+int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);

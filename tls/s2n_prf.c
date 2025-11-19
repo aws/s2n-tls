@@ -429,7 +429,7 @@ int s2n_prf_tls_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
     POSIX_ENSURE_REF(conn);
 
     struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.client_random, sizeof(conn->client_hello.client_random)));
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.random, sizeof(conn->client_hello.random)));
     struct s2n_blob server_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
@@ -447,7 +447,7 @@ int s2n_prf_hybrid_master_secret(struct s2n_connection *conn, struct s2n_blob *p
     POSIX_ENSURE_REF(conn);
 
     struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.client_random, sizeof(conn->client_hello.client_random)));
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.random, sizeof(conn->client_hello.random)));
     struct s2n_blob server_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
@@ -773,7 +773,7 @@ S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n
     RESULT_ENSURE_REF(key_material);
 
     struct s2n_blob client_random = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.client_random, sizeof(conn->client_hello.client_random)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->client_hello.random, sizeof(conn->client_hello.random)));
     struct s2n_blob server_random = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
