@@ -176,6 +176,7 @@ int main(int argc, char **argv)
                 .kem_preferences = &kem_preferences_all,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
+                .strongly_preferred_groups = &s2n_supported_group_preferences_null,
             };
 
             if (!s2n_pq_is_enabled()) {
@@ -1312,6 +1313,7 @@ int main(int argc, char **argv)
                 .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &ecc_preferences_for_retry,
+                .strongly_preferred_groups = &s2n_supported_group_preferences_null,
             };
             client_conn->security_policy_override = &security_policy_test_tls13_retry_with_pq;
 
@@ -1771,6 +1773,7 @@ int main(int argc, char **argv)
             .signature_preferences = &s2n_signature_preferences_20200207,
             .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
             .ecc_preferences = &ecc_preferences_for_retry,
+            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -1896,6 +1899,7 @@ int main(int argc, char **argv)
             .signature_preferences = &s2n_signature_preferences_20200207,
             .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
             .ecc_preferences = &test_ecc_preferences_for_retry,
+            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,

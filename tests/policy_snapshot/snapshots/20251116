@@ -46,6 +46,8 @@ curves:
 - secp384r1
 - secp256r1
 - secp521r1
+strongly preferred groups: 
+- secp384r1
 certificate signature schemes:
 - ecdsa_sha384
 - rsa_pss_pss_sha384

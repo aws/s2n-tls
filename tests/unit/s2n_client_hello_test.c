@@ -1468,6 +1468,7 @@ int main(int argc, char **argv)
             .kem_preferences = &kem_preferences_null,
             .signature_preferences = &client_signature_preferences,
             .ecc_preferences = &s2n_ecc_preferences_20140601,
+            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         EXPECT_TRUE(client_cipher_suites[0]->available);

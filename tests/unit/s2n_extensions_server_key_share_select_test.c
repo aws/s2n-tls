@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
@@ -119,6 +120,7 @@ int main()
             .kem_preferences = &kem_preferences_all,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
+            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         /* If both server_curve and server_kem_group are set (erroneous behavior), we should

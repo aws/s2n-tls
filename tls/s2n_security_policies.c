@@ -19,6 +19,7 @@
 #include "crypto/s2n_pq.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "utils/s2n_safety.h"
 
 /* Default as of 10/13 */
@@ -28,6 +29,7 @@ const struct s2n_security_policy security_policy_20251014 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -41,6 +43,7 @@ const struct s2n_security_policy security_policy_20251015 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -53,6 +56,7 @@ const struct s2n_security_policy security_policy_20240501 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -65,6 +69,7 @@ const struct s2n_security_policy security_policy_20240502 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -79,6 +84,7 @@ const struct s2n_security_policy security_policy_20240503 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -92,6 +98,7 @@ const struct s2n_security_policy security_policy_20240730 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -104,6 +111,7 @@ const struct s2n_security_policy security_policy_20241001 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -117,6 +125,7 @@ const struct s2n_security_policy security_policy_20250512 = {
     .signature_preferences = &s2n_signature_preferences_20250512,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250512,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -129,6 +138,7 @@ const struct s2n_security_policy security_policy_20250721 = {
     .signature_preferences = &s2n_signature_preferences_20250512,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250512,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -141,6 +151,7 @@ const struct s2n_security_policy security_policy_20241001_pq_mixed = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20240501,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -153,6 +164,7 @@ const struct s2n_security_policy security_policy_20240603 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20240603,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170210 = {
@@ -161,6 +173,7 @@ const struct s2n_security_policy security_policy_20170210 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20240417 = {
@@ -170,6 +183,7 @@ const struct s2n_security_policy security_policy_20240417 = {
     .signature_preferences = &s2n_signature_preferences_20200207,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /*
@@ -185,6 +199,7 @@ const struct s2n_security_policy security_policy_20240416 = {
     .signature_preferences = &s2n_signature_preferences_default_fips,
     .certificate_signature_preferences = &s2n_signature_preferences_default_fips,
     .ecc_preferences = &s2n_ecc_preferences_default_fips,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -198,6 +213,7 @@ const struct s2n_security_policy security_policy_20230317 = {
     .signature_preferences = &s2n_signature_preferences_20230317,
     .certificate_signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -211,6 +227,7 @@ const struct s2n_security_policy security_policy_20240331 = {
     .signature_preferences = &s2n_signature_preferences_20230317,
     .certificate_signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -228,6 +245,7 @@ const struct s2n_security_policy security_policy_20190801 = {
      */
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190802 = {
@@ -241,6 +259,7 @@ const struct s2n_security_policy security_policy_20190802 = {
      */
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170405 = {
@@ -249,6 +268,7 @@ const struct s2n_security_policy security_policy_20170405 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170405_gcm = {
@@ -257,6 +277,7 @@ const struct s2n_security_policy security_policy_20170405_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_2015_04 = {
@@ -265,6 +286,7 @@ const struct s2n_security_policy security_policy_elb_2015_04 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_2016_08 = {
@@ -273,6 +295,7 @@ const struct s2n_security_policy security_policy_elb_2016_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_1_2017_01 = {
@@ -281,6 +304,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_1_2017_01 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_2_2017_01 = {
@@ -289,6 +313,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_2_2017_01 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_2_ext_2018_06 = {
@@ -297,6 +322,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_2_ext_2018_06 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_elb_fs_2018_06 = {
@@ -305,6 +331,7 @@ const struct s2n_security_policy security_policy_elb_fs_2018_06 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -316,6 +343,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_2019_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -327,6 +355,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_1_2019_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -338,6 +367,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2019_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -350,6 +380,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
@@ -358,6 +389,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
@@ -366,6 +398,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
@@ -374,6 +407,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* CloudFront upstream 2025 -- same as original upstream above, but with:
@@ -387,6 +421,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls10 = {
@@ -395,6 +430,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls11 = {
@@ -403,6 +439,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls12 = {
@@ -411,6 +448,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls13 = {
@@ -419,6 +457,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20250820,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_pq = {
@@ -427,6 +466,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250821,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls10_pq = {
@@ -435,6 +475,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250821,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls11_pq = {
@@ -443,6 +484,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250821,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls12_pq = {
@@ -451,6 +493,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250821,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_tls13_pq = {
@@ -459,6 +502,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_2025_08_08_
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20250821,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* CloudFront viewer facing */
@@ -468,6 +512,7 @@ const struct s2n_security_policy security_policy_cloudfront_ssl_v_3 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014 = {
@@ -476,6 +521,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
@@ -484,6 +530,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_cloudfront_tls_1_0_2016, but with TLS 1.2 as minimum */
@@ -493,6 +540,7 @@ const struct s2n_security_policy security_policy_20241106 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
@@ -501,6 +549,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017 = {
@@ -509,6 +558,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018 = {
@@ -517,6 +567,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
@@ -525,6 +576,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -536,6 +588,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -547,6 +600,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha2
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -559,6 +613,7 @@ const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_legacy = {
@@ -567,6 +622,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_legacy 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_legacy = {
@@ -575,6 +631,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_legacy 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_legacy = {
@@ -583,6 +640,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_legacy 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_legacy = {
@@ -591,6 +649,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_legacy 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_legacy = {
@@ -599,6 +658,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_legacy 
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -610,6 +670,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_ssl_v3 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10 = {
@@ -618,6 +679,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11 = {
@@ -626,6 +688,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12 = {
@@ -634,6 +697,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13 = {
@@ -642,6 +706,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -653,6 +718,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_ssl_v3_06_23 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_06_23 = {
@@ -661,6 +727,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_06_23 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11_06_23 = {
@@ -669,6 +736,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11_06_23 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23 = {
@@ -677,6 +745,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_30_06_25 = {
@@ -685,6 +754,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_30_06_25 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -697,6 +767,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_06_23 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -708,6 +779,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -719,6 +791,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2021_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -730,6 +803,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -741,6 +815,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -752,6 +827,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -763,6 +839,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -774,6 +851,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -785,6 +863,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18 = {
@@ -793,6 +872,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
@@ -801,6 +881,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
@@ -811,6 +892,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -822,6 +904,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22 = {
@@ -830,6 +913,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23 = {
@@ -838,6 +922,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
@@ -846,6 +931,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -857,6 +943,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_25 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26 = {
@@ -865,6 +952,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24 = {
@@ -873,6 +961,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2023_01,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -885,6 +974,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_07 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_0_2021_05_22, but with TLS 1.2 as minimum */
@@ -894,6 +984,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_08 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_0_2021_05_24, but with TLS 1.2 as minimum */
@@ -903,6 +994,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_09 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -915,6 +1007,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_10 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_3_2023_06_01 = {
@@ -923,6 +1016,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_3_2023_06_01 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_04_07, but with updated KEM prefs */
@@ -932,6 +1026,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_07 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_04_08, but with updated KEM prefs */
@@ -941,6 +1036,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_08 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_04_09, but with updated KEM prefs */
@@ -950,6 +1046,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_09 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -962,6 +1059,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_10 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* General purpose "mostly" FIPS + PQ policy (with the exception of supporting RSA Key Exchange for backwards compatibility). */
@@ -971,6 +1069,7 @@ const struct s2n_security_policy security_policy_pq_20231213 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* General purpose FIPS + PQ policy that meets all current FIPS requirements. */
@@ -980,6 +1079,7 @@ const struct s2n_security_policy security_policy_pq_20231214 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_FIPS_140_3] = true,
     },
@@ -992,6 +1092,7 @@ const struct s2n_security_policy security_policy_pq_20231215 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_FIPS_140_3] = true,
     },
@@ -1004,6 +1105,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_07_25_pq = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_aws_crt_sdk_tls_12_06_23 but with (IETF-standardized) ML-KEM Support */
@@ -1013,6 +1115,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_07_25_pq = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_aws_crt_sdk_tls_13_06_23 but with (IETF-standardized) ML-KEM Support */
@@ -1022,6 +1125,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_07_25_pq = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_aws_crt_sdk_tls_12_06_23 but with ML-KEM Support */
@@ -1031,6 +1135,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_10_07, but with TLS 1.2 Kyber removed, and added ML-KEM support */
@@ -1040,6 +1145,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_07 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_10_08, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
@@ -1049,6 +1155,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_10_10, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
@@ -1058,6 +1165,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08_gcm = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /* Same as security_policy_pq_tls_1_2_2023_10_09 but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
@@ -1067,6 +1175,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_09 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_mixed_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1077,6 +1186,7 @@ const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1088,6 +1198,7 @@ const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2021_08 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1100,6 +1211,7 @@ const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10 = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -1112,6 +1224,7 @@ const struct s2n_security_policy security_policy_20140601 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20141001 = {
@@ -1120,6 +1233,7 @@ const struct s2n_security_policy security_policy_20141001 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20150202 = {
@@ -1128,6 +1242,7 @@ const struct s2n_security_policy security_policy_20150202 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20150214 = {
@@ -1136,6 +1251,7 @@ const struct s2n_security_policy security_policy_20150214 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20160411 = {
@@ -1144,6 +1260,7 @@ const struct s2n_security_policy security_policy_20160411 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20150306 = {
@@ -1152,6 +1269,7 @@ const struct s2n_security_policy security_policy_20150306 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20160804 = {
@@ -1160,6 +1278,7 @@ const struct s2n_security_policy security_policy_20160804 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20160824 = {
@@ -1168,6 +1287,7 @@ const struct s2n_security_policy security_policy_20160824 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190122 = {
@@ -1176,6 +1296,7 @@ const struct s2n_security_policy security_policy_20190122 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190121 = {
@@ -1184,6 +1305,7 @@ const struct s2n_security_policy security_policy_20190121 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190120 = {
@@ -1192,6 +1314,7 @@ const struct s2n_security_policy security_policy_20190120 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190214 = {
@@ -1200,6 +1323,7 @@ const struct s2n_security_policy security_policy_20190214 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20190214_gcm = {
@@ -1208,6 +1332,7 @@ const struct s2n_security_policy security_policy_20190214_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20210825 = {
@@ -1216,6 +1341,7 @@ const struct s2n_security_policy security_policy_20210825 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20210825_gcm = {
@@ -1224,6 +1350,7 @@ const struct s2n_security_policy security_policy_20210825_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170328 = {
@@ -1232,6 +1359,7 @@ const struct s2n_security_policy security_policy_20170328 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170328_gcm = {
@@ -1240,6 +1368,7 @@ const struct s2n_security_policy security_policy_20170328_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170718 = {
@@ -1248,6 +1377,7 @@ const struct s2n_security_policy security_policy_20170718 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20170718_gcm = {
@@ -1256,6 +1386,7 @@ const struct s2n_security_policy security_policy_20170718_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20201021 = {
@@ -1264,6 +1395,7 @@ const struct s2n_security_policy security_policy_20201021 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20210816 = {
@@ -1272,6 +1404,7 @@ const struct s2n_security_policy security_policy_20210816 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20210816,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -1284,6 +1417,7 @@ const struct s2n_security_policy security_policy_20210816_gcm = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20210816,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -1302,6 +1436,7 @@ const struct s2n_security_policy security_policy_20250429 = {
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .certificate_key_preferences = &s2n_certificate_key_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .certificate_preferences_apply_locally = true,
 };
 
@@ -1322,6 +1457,7 @@ const struct s2n_security_policy security_policy_20251013 = {
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .certificate_key_preferences = &s2n_certificate_key_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .certificate_preferences_apply_locally = true,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
@@ -1343,6 +1479,7 @@ const struct s2n_security_policy security_policy_20250211 = {
     .signature_preferences = &s2n_signature_preferences_20250429,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1360,6 +1497,7 @@ const struct s2n_security_policy security_policy_20250414 = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
             [S2N_FIPS_140_3] = true,
@@ -1373,6 +1511,7 @@ const struct s2n_security_policy security_policy_20251113 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251114 = {
@@ -1382,6 +1521,7 @@ const struct s2n_security_policy security_policy_20251114 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251115 = {
@@ -1391,6 +1531,7 @@ const struct s2n_security_policy security_policy_20251115 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251116 = {
@@ -1400,6 +1541,7 @@ const struct s2n_security_policy security_policy_20251116 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251117 = {
@@ -1409,6 +1551,7 @@ const struct s2n_security_policy security_policy_20251117 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_test_all = {
@@ -1417,6 +1560,7 @@ const struct s2n_security_policy security_policy_test_all = {
     .kem_preferences = &kem_preferences_all,
     .signature_preferences = &s2n_signature_preferences_all,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_test_all_tls12 = {
@@ -1425,6 +1569,7 @@ const struct s2n_security_policy security_policy_test_all_tls12 = {
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_test_all_fips = {
@@ -1433,6 +1578,7 @@ const struct s2n_security_policy security_policy_test_all_fips = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_test_all_fips,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_FIPS_140_3] = true,
     },
@@ -1444,6 +1590,7 @@ const struct s2n_security_policy security_policy_test_all_ecdsa = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1455,6 +1602,7 @@ const struct s2n_security_policy security_policy_test_all_rsa_kex = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_test_all_tls13 = {
@@ -1463,6 +1611,7 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_all,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1475,6 +1624,7 @@ const struct s2n_security_policy security_policy_test_pq_only = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_20200207 = {
@@ -1483,6 +1633,7 @@ const struct s2n_security_policy security_policy_20200207 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
@@ -1494,6 +1645,7 @@ const struct s2n_security_policy security_policy_test_ecdsa_priority = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 const struct s2n_security_policy security_policy_null = {
@@ -1502,6 +1654,7 @@ const struct s2n_security_policy security_policy_null = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_null,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
@@ -1717,6 +1870,17 @@ static int s2n_config_validate_security_policy(struct s2n_config *config, const 
 
     if (security_policy == &security_policy_null) {
         return S2N_SUCCESS;
+    }
+
+    /* Ensure that all strongly preferred groups are supported by our libcrypto. */
+    for (size_t i = 0; i < security_policy->strongly_preferred_groups->count; i++) {
+        const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
+        bool found_kem_group_from_iana = false;
+        POSIX_GUARD(s2n_find_kem_group_from_iana_id(security_policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_kem_group, &found_kem_group_from_iana));
+
+        if (found_kem_group_from_iana) {
+            POSIX_ENSURE(s2n_kem_group_is_available(strongly_preferred_kem_group), S2N_ERR_INVALID_SECURITY_POLICY);
+        }
     }
 
     /* Ensure that an ECC or PQ key exchange can occur. */

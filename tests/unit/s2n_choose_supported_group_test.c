@@ -157,6 +157,7 @@ int main()
             .kem_preferences = &test_kem_prefs,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
+            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         /* If the server supports PQ, but the client didn't send any PQ IDs, mutually_supported_kem_groups will

@@ -52,6 +52,7 @@ curves:
 - x25519
 - secp256r1
 - secp384r1
+strongly preferred groups: (empty)
 pq:
 - revision: 0
 - kem groups:

@@ -20,6 +20,7 @@ signature schemes:
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
 curves:
+strongly preferred groups: (empty)
 certificate signature schemes:
 - ecdsa_sha256
 - ecdsa_sha384
