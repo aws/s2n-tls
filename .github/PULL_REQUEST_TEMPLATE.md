@@ -1,3 +1,9 @@
+### Security issue notifications
+
+If you discover a potential security issue in s2n-tls we ask that you notify
+AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). 
+Please do **not** create a public GitHub pull request.
+
 # Goal
 <!-- What is the PR doing? -->
 
