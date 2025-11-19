@@ -195,7 +195,7 @@ fn s2n_mlkem_server() {
 
 #[test]
 fn s2n_pure_mlkem_client() {
-    required_capability_async(&[Capability::MLKem], async {
+    required_capability_async(&[Capability::MLKem, Capability::MLDsa], async {
         let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
         let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 
@@ -238,7 +238,7 @@ fn s2n_pure_mlkem_client() {
 
 #[test]
 fn s2n_pure_mlkem_server() {
-    required_capability_async(&[Capability::MLKem], async {
+    required_capability_async(&[Capability::MLKem, Capability::MLDsa], async {
         let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
         let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
 

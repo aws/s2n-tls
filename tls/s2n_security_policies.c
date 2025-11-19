@@ -1884,7 +1884,7 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
         return false;
     }
 
-    for (uint8_t i = 0; security_policy_selection[i].version != NULL; i++) {
+    for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == security_policy) {
             return security_policy_selection[i].supports_tls13 == 1;
         }
@@ -1981,7 +1981,7 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
 {
     RESULT_ENSURE_REF(version);
     *version = NULL;
-    for (uint8_t i = 0; security_policy_selection[i].version != NULL; i++) {
+    for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == security_policy) {
             *version = security_policy_selection[i].version;
             return S2N_RESULT_OK;
