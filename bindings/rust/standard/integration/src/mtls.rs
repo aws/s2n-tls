@@ -96,13 +96,11 @@ impl CertValidationCallbackSync for SyncCallback {
         self.callback_sender
             .send(SendableCertValidationInfo(info.info.as_ptr()))
             .unwrap();
-        if self.immediately_accept {
-            info.accept()?;
-            Ok(true)
-        } else {
-            // Return false to indicate async validation - cert not yet accepted
-            Ok(false)
-        }
+        
+        // Return true to accept, false for async validation
+        // The wrapper in config.rs will call info.accept() or info.reject() based on this return value
+        // Do NOT call info.accept() or info.reject() here - it will be called by the wrapper
+        Ok(self.immediately_accept)
     }
 }
 
