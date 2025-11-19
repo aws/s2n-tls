@@ -10,12 +10,12 @@ use crate::{
 use std::{marker::PhantomData, ptr::NonNull};
 
 pub struct CertValidationInfo<'a> {
-    info: NonNull<s2n_cert_validation_info>,
+    pub info: NonNull<s2n_cert_validation_info>,
     _lifetime: PhantomData<&'a s2n_cert_validation_info>,
 }
 
 impl CertValidationInfo<'_> {
-    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
+    pub fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
         let info = NonNull::new(info).expect("info pointer should not be null");
         CertValidationInfo {
             info,
@@ -23,18 +23,18 @@ impl CertValidationInfo<'_> {
         }
     }
 
-    pub(crate) fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
+    pub fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
         self.info.as_ptr()
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub(crate) fn accept(&mut self) -> Result<(), Error> {
+    pub fn accept(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub(crate) fn reject(&mut self) -> Result<(), Error> {
+    pub fn reject(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
