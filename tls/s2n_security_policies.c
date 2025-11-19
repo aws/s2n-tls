@@ -1399,7 +1399,7 @@ const struct s2n_security_policy security_policy_20251116 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
-    .ecc_preferences = &s2n_ecc_preferences_20251116,
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
 };
 
 const struct s2n_security_policy security_policy_test_all = {
