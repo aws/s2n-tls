@@ -269,7 +269,8 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     strcpy(params_dup, params);
 
     size_t token_idx = 0;
-    for (char *token = strtok(params_dup, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
+    char *saveptr;
+    for (char *token = strtok_r(params_dup, ",", &saveptr); token != NULL; token = strtok_r(NULL, ",", &saveptr), token_idx++) {
         switch (token_idx) {
             case 0:
                 GUARD_EXIT(s2n_psk_set_identity(*psk, (const uint8_t *) token, strlen(token)),
