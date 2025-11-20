@@ -33,9 +33,30 @@ separate from the buildPhase, configurePhase and checkPhase.
 
 By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
 
+### Rust development
+
+For Rust development, dedicated devshells are available that include the full Rust toolchain (rustc, cargo, clang, libclang) in addition to the standard development tools. These are accessible with the `rust_` prefix:
+
+```bash
+# Rust + OpenSSL variants
+nix develop .#rust_openssl102
+nix develop .#rust_openssl111  
+nix develop .#rust_openssl30
+
+# Rust + AWS-LC variants
+nix develop .#rust_awslc
+nix develop .#rust_awslcfips2024
+```
+
+These rust-enabled shells provide everything needed for Rust integration testing and development, including proper libclang discovery for bindgen. The shell prompt will indicate the rust environment with `[nix rust <crypto-lib>]`.
+
+**Note**: Rust shells use dedicated functions (`rust_configure`, `rust_build`, `rust_test`) instead of the standard ones, as they require different CMake configuration (e.g., `S2N_INTERN_LIBCRYPTO=ON`, `BUILD_TESTING=OFF`).
+
 ### Configure and build
 
 From inside the devShell: `configure; build`.
+
+For Rust development, use the dedicated rust functions from within a rust-enabled devshell: `rust_configure; rust_build`.
 
 The first time this is run, it might take a while to build everything.
 
@@ -58,6 +79,7 @@ The CI does this in one shot with `nix develop --max-jobs auto --ignore-environn
 
 Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
 
+For Rust integration tests, use `rust_test` from within a rust-enabled devshell after running `rust_configure` and `rust_build`.
 
 ### S3 Binary Cache
 

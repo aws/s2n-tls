@@ -162,14 +162,16 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        /* Client should always determine whether the Hybrid KEM used len_prefixed format, and server should match client's behavior. */
+        /* Client should always determine whether the KEM group used len_prefixed format, and server should match client's behavior. */
         POSIX_ENSURE_EQ(len_prefix_expected, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
         POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
         POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
 
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        if (expected_kem_group->curve != &s2n_ecc_curve_none) {
+            POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        }
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
@@ -229,13 +231,16 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     if (expected_kem_group) {
         POSIX_ENSURE_EQ(expected_kem_group, client_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+        if (expected_kem_group->curve != &s2n_ecc_curve_none) {
+            POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        }
 
         /* Ensure s2n_connection_get_kem_group_name() gives the correct answer for both client and server */
         POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(s2n_connection_get_kem_group_name(server_conn)));
@@ -466,6 +471,26 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
+    const struct s2n_kem_group *pure_mlkem1024_test_groups[] = {
+        &s2n_pure_mlkem_1024,
+    };
+
+    const struct s2n_kem_preferences pure_mlkem1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(pure_mlkem1024_test_groups),
+        .tls13_kem_groups = pure_mlkem1024_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy pure_mlkem1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &pure_mlkem1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
+    };
+
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -530,11 +555,15 @@ int main()
      * unavailable, we must downgrade the assertions to Kyber or EC. */
     const struct s2n_kem_group *null_if_no_mlkem_768 = &s2n_x25519_mlkem_768;
     const struct s2n_kem_group *null_if_no_mlkem_1024 = &s2n_secp384r1_mlkem_1024;
+    const struct s2n_kem_group *null_if_no_pure_mlkem_1024 = &s2n_pure_mlkem_1024;
     const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    bool hrr_expected_if_mlkem = true;
     if (!s2n_libcrypto_supports_mlkem()) {
         null_if_no_mlkem_768 = NULL;
         null_if_no_mlkem_1024 = NULL;
+        null_if_no_pure_mlkem_1024 = NULL;
         ec_if_no_mlkem = default_curve;
+        hrr_expected_if_mlkem = false;
     }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -769,7 +798,28 @@ int main()
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
-        }
+        },
+
+        /* Confirm that pure MLKEM1024 is negotiable; fall back to EC when MLKEM is not supported. */
+        {
+                .client_policy = &pure_mlkem1024_test_policy,
+                .server_policy = &pure_mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        /* Client supports pure MLKEM but did not send that key share. Pure MLKEM should be negotiated after exchanging HRR.
+         * If ML-KEM is not supported, EC should be negotiated without HRR. */
+        {
+                .client_policy = &security_policy_test_all,
+                .server_policy = &pure_mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = hrr_expected_if_mlkem,
+                .len_prefix_expected = false,
+        },
     };
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {

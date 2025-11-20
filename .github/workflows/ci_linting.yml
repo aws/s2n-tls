@@ -149,3 +149,19 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: PR Conventional Commit Validation
+        id: cc_check
+        if: github.event_name == 'pull_request_target'
+        uses: ytanikin/pr-conventional-commits@1.4.2
+        with:
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
+          add_label: 'false'
+      - name: Failure case
+        if: github.event_name == 'pull_request_target' && steps.cc_check.outcome != 'success'
+        run: |
+          echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
+          exit 1
