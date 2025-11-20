@@ -10,6 +10,7 @@ use crate::{
     error, security,
 };
 use alloc::{collections::VecDeque, sync::Arc};
+use crate::error::Error as S2NError;
 
 use core::{
     sync::atomic::{AtomicUsize, Ordering},
@@ -26,14 +27,11 @@ pub mod client_hello;
 pub mod resumption;
 pub mod s2n_tls;
 
-type Error = Box<dyn std::error::Error>;
-type Result<T, E = Error> = core::result::Result<T, E>;
-
-pub fn test_error(msg: &str) -> crate::error::Error {
+pub fn test_error(msg: &str) -> S2NError {
     crate::error::Error::application(msg.into())
 }
 
-pub fn assert_test_error(input: crate::error::Error, expected_message: &str) {
+pub fn assert_test_error(input: S2NError, expected_message: &str) {
     let error_msg = input
         .application_error()
         .expect("unexpected error type")
@@ -181,26 +179,20 @@ impl VerifyHostNameCallback for RejectAllCertificatesHandler {
     }
 }
 
-pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Config, Error> {
+pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Config, S2NError> {
     let builder = config_builder(cipher_prefs)?;
-    Ok(builder.build().expect("Unable to build server config"))
+    Ok(builder.build()?)
 }
 
-pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, Error> {
+pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, S2NError> {
     let mut builder = Builder::new();
     let keypair = CertKeyPair::default();
-    // Build a config
     builder
-        .set_security_policy(cipher_prefs)
-        .expect("Unable to set config cipher preferences");
-    builder
-        .load_pem(keypair.cert(), keypair.key())
-        .expect("Unable to load cert/pem");
-    builder
-        .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-        .expect("Unable to set a host verify callback.");
-    builder.with_system_certs(false).unwrap();
-    builder.trust_pem(keypair.cert()).expect("load cert pem");
+        .set_security_policy(cipher_prefs)?
+        .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+        .load_pem(keypair.cert(), keypair.key())?
+        .with_system_certs(false)?
+        .trust_pem(keypair.cert())?;
     Ok(builder)
 }
 
