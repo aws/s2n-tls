@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.10)
 project (s2n C)
 
 if(POLICY CMP0077)
@@ -190,7 +190,7 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
-target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PRIVATE -fPIC)
 
 set(S2N_PRELUDE "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h")
 target_compile_options(${PROJECT_NAME} PRIVATE -include "${S2N_PRELUDE}")
@@ -369,6 +369,10 @@ if (NOT S2N_EXECINFO_AVAILABLE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
 
+if (S2N_COMPILER_SUPPORTS_BRANCH_ALIGN AND NOT S2N_FUZZ_TEST)
+    target_compile_options(${PROJECT_NAME} PRIVATE "-Wa,-mbranches-within-32B-boundaries")
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
 
     # Check if the AWS::crypto target has beeen added and handle it
@@ -429,7 +433,7 @@ if (S2N_INTERN_LIBCRYPTO)
         add_custom_command(
             TARGET ${PROJECT_NAME} PRE_LINK
             COMMAND
-              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols --preserve-dates {} \\\;
         )
     endif()
 
@@ -477,7 +481,7 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     # make sure all linked tests include the prelude
-    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}")
+    target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}" -fPIC)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
     if (SECCOMP)
         message(STATUS "Linking tests with seccomp")
@@ -636,6 +640,7 @@ if (BUILD_TESTING)
                         COMMAND
                         pytest
                         -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
+			--junitxml=../../build/junit/${test_target}.xml
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2

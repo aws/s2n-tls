@@ -110,12 +110,23 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
 #else
     info->signature_nid = X509_get_signature_nid(cert);
 #endif
-    /* These is no method to directly retrieve that signature digest from the X509*
+
+    /* There is no method to directly retrieve the signature digest from the X509*
      * that is available in all libcryptos, so instead we use find_sigid_algs. For
-     * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
+     * a signature with NID_ecdsa_with_SHA256 this will return NID_SHA256
+     *
+     * signature_digest_nid may not always be set. ML-DSA does not have an associated digest.
      */
-    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
-            S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    int find_result = OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL);
+    if (find_result != 1) {
+        /* OBJ_find_sigid_algs may fail for ML-DSA-44 and ML-DSA-87, depending on the
+         * version of AWS-LC. See https://github.com/aws/aws-lc/issues/2347.
+         *
+         * In order to handle this bug, we interpret failures from OBJ_find_sigid_algs
+         * as signature_digest_nid==0, which is equivalent to an undefined digest.
+         */
+        info->signature_digest_nid = 0;
+    }
 
     DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(pubkey != NULL, S2N_ERR_DECODE_CERTIFICATE);

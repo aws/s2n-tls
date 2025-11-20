@@ -19,8 +19,6 @@
 
 #include <assert.h>
 
-int __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(struct s2n_hash_state *);
-
 void s2n_hmac_copy_harness()
 {
     /* Non-deterministic inputs. */
@@ -30,14 +28,6 @@ void s2n_hmac_copy_harness()
     /* Assumptions. */
     __CPROVER_assume(s2n_result_is_ok(s2n_hmac_state_validate(to)));
     __CPROVER_assume(s2n_result_is_ok(s2n_hmac_state_validate(from)));
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&to->inner);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&to->inner_just_key);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&to->outer);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&to->outer_just_key);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&from->inner);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&from->inner_just_key);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&from->outer);
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&from->outer_just_key);
 
     /* Operation under verification. */
     if (s2n_hmac_copy(to, from) == S2N_SUCCESS)

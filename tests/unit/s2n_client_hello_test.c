@@ -135,6 +135,7 @@ int main(int argc, char **argv)
     /* Test s2n_client_hello_has_extension with a zero-length extension */
     for (int send_sct = 0; send_sct <= 1; send_sct++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* The SCT extension is zero-length. */
@@ -313,6 +314,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->actual_protocol_version = i;
 
@@ -424,6 +426,7 @@ int main(int argc, char **argv)
             {
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
@@ -444,6 +447,7 @@ int main(int argc, char **argv)
 
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_OK(s2n_config_set_tls12_security_policy(config));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -468,7 +472,7 @@ int main(int argc, char **argv)
             {
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
+                EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
@@ -577,7 +581,8 @@ int main(int argc, char **argv)
             } test_cases[] = {
                 { .security_policy = "test_all_tls13", .expect_renegotiation_info = false },
                 { .security_policy = "default_tls13", .expect_renegotiation_info = true },
-                { .security_policy = "default", .expect_renegotiation_info = true },
+                /* 20240501 can only negotiate up to tls12 */
+                { .security_policy = "20240501", .expect_renegotiation_info = true },
             };
 
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
@@ -749,7 +754,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -768,7 +773,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -789,7 +794,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(client_conn->client_hello.legacy_version, S2N_TLS12);
 
             /* Server configured with TLS 1.2 negotiates TLS12 version */
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -809,7 +814,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->client_hello.legacy_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -1538,12 +1543,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_handshake_type_set_tls13_flag(server_conn, HELLO_RETRY_REQUEST));
 
         /* Second client hello has version SSLv2 */
-        server_conn->client_hello_version = S2N_SSLv2;
+        server_conn->client_hello.sslv2 = true;
 
         /* Mock having some data in the client hello */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
     };
 
     /* Test s2n_client_hello_parse_message
@@ -1553,7 +1558,8 @@ int main(int argc, char **argv)
      * use JA3 fingerprints as an approximation. See s2n_fingerprint_ja3_test.c
      */
     {
-        const char *security_policies[] = { "default", "default_tls13", "test_all" };
+        /* 20240501 can only negotiate tls12 */
+        const char *security_policies[] = { "20240501", "default_tls13", "test_all" };
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -1694,6 +1700,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client));
 
             EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
             EXPECT_SUCCESS(s2n_client_hello_send(client));
@@ -1751,6 +1758,7 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -1807,6 +1815,7 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -1852,6 +1861,7 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -1921,6 +1931,7 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -1972,7 +1983,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(cipher_suites_counts); i++) {
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(server_config);
-
+            EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
             /* We need to generate a large Client Hello.
@@ -1989,7 +2000,8 @@ int main(int argc, char **argv)
                 .suites = test_cipher_suites,
             };
             const struct s2n_security_policy *default_policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
+            /* 20240501 is a policy that can only negotiate tls12 */
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &default_policy));
             struct s2n_security_policy test_security_policy = *default_policy;
             test_security_policy.cipher_preferences = &test_cipher_suites_preferences;
 

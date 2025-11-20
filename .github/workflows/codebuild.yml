@@ -1,0 +1,68 @@
+---
+name: Codebuild
+
+on:
+  push:
+    branches: [main]
+  # This event can use aws credentials, but runs against upstream code instead of PR code.
+  # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target
+  # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+  pull_request_target:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      source_pr: pr/${{ github.event.pull_request.number }}
+      source_sha: ${{ github.sha }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Get permissions
+        id: get_permission
+        if: github.event_name == 'pull_request_target'
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{repo}/collaborators/{author}/permission
+          repo: ${{ github.repository }}
+          author: ${{ github.event.pull_request.user.login }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}
+          aws-region: us-west-2
+
+      - name: Start Codebuild for SHA
+        # This version runs when PRs are added to the merge queue or merged to main
+        if: github.event_name != 'pull_request_target'
+        run: ./codebuild/bin/start_codebuild.sh $source_sha
+
+      - name: Start Codebuild for PR
+        # This version runs when PRs are created or updated
+        if: github.event_name == 'pull_request_target'
+        run: |
+          permission=$(jq -r '.permission' <<< '${{ steps.get_permission.outputs.data }}')
+          echo "$pr_author has permission '$permission'".
+          if [[ "$permission" == "admin" || "$permission" == "write" ]]; then
+            ./codebuild/bin/start_codebuild.sh $source_pr
+          else
+            echo "$pr_author does not have write permissions."
+            echo "A maintainer will need to manually run the Codebuild jobs."
+            echo ""
+            echo "Review the latest version of the PR to ensure that the code is safe to execute."
+            echo "Note the full SHA of the commit that you are reviewing."
+            echo "Run: ./codebuild/bin/start_codebuild.sh <full sha>"
+            echo "Warning: use the full SHA, NOT the PR number. The PR could be updated after your review."
+          fi

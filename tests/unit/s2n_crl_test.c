@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &received_lookup_data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -240,6 +241,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -280,6 +282,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -324,6 +327,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -367,6 +371,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -414,6 +419,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_noop, NULL));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -472,6 +478,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_callback_fail, NULL));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -511,6 +518,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -550,6 +558,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -590,6 +599,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         /* Ensure that validation succeeds for a CRL with an invalid nextUpdate field when time
@@ -636,6 +646,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -668,7 +679,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
@@ -704,7 +715,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
@@ -743,7 +754,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -754,7 +765,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
         struct crl_lookup_data data = { 0 };
@@ -794,7 +805,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -805,7 +816,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
         struct crl_lookup_data data = { 0 };

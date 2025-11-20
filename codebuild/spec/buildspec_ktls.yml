@@ -15,13 +15,15 @@
 version: 0.2
 # This is designed to work with CodeBuild's reserved instances fleet and
 # curated Ec2 AMI for AL2023.
-# TODO: Move to a NixOS AMI
+#
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to 
+# prevent the disk from filling up.
 env:
   shell: bash
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
-    # AWS Support was removed - pin it for now. https://github.com/aws/s2n-tls/issues/5244
-    NIX_INSTALLER: "https://releases.nixos.org/nix/nix-2.15.0/install"
+    NIX_INSTALLER: "https://nixos.org/nix/install"
     S2N_KTLS_TESTING_EXPECTED: 1
 phases:
   install:
@@ -40,6 +42,7 @@ phases:
       - export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
       - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from the nix cache
       - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
       # Load the TLS kernel module

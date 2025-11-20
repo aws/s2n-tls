@@ -105,6 +105,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
     ERR_ENTRY(S2N_ERR_CERT_REJECTED, "Certificate failed custom application validation") \
+    ERR_ENTRY(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, "Unhandled critical certificate extension") \
     ERR_ENTRY(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, "Incompatibility found between loaded certificates and chosen security policy") \
     ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
@@ -308,6 +309,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
+    ERR_ENTRY(S2N_ERR_KTLS_SOCKOPT, "A call to sockopt failed when attempting to update the keys in the kernel") \
     ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client forbids mutual authentication, but server requested a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CERT_REQUEST, "Client requires mutual authentication, but server did not request a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CLIENT_CERT, "Server requires client certificate") \

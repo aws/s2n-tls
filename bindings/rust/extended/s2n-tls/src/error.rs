@@ -343,6 +343,12 @@ impl From<Error> for std::io::Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Application errors don't carry any interesting s2n context, so
+        // forward directly to the underyling error.
+        if let Self(Context::Application(err)) = self {
+            return err.fmt(f);
+        }
+
         let mut s = f.debug_struct("Error");
         if let Context::Code(code, _) = self.0 {
             s.field("code", &code);
@@ -468,6 +474,11 @@ mod tests {
 
             let app_error = error.application_error().unwrap();
             let _custom_error = app_error.downcast_ref::<CustomError>().unwrap();
+
+            let display = format!("{error}");
+            assert_eq!(display, "custom error");
+            let debug = format!("{error:?}");
+            assert_eq!(debug, "CustomError");
         }
 
         // make sure nested errors work

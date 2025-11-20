@@ -1,0 +1,25 @@
+min version: TLS1.2
+rules:
+- Perfect Forward Secrecy: yes
+- FIPS 140-3 (2019): yes
+cipher suites:
+- TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+- TLS_AES_256_GCM_SHA384
+signature schemes:
+- ecdsa_sha384
+- rsa_pss_pss_sha384
+- rsa_pss_rsae_sha384
+- rsa_pkcs1_sha384
+curves:
+- secp384r1
+certificate preferences apply locally
+certificate signature schemes:
+- ecdsa_sha384
+- rsa_pkcs1_sha384
+certificate keys:
+- ecdsa_p384
+- rsa_3072
+- rsa_4096
+- rsa_pss_3072
+- rsa_pss_4096

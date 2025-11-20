@@ -8,13 +8,16 @@ on:
   merge_group:
     types: [checks_requested]
     branches: [main]
+permissions:
+  contents: read
+
 jobs:
   cppcheck:
     runs-on: ubuntu-latest
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -37,7 +40,7 @@ jobs:
   headers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -48,7 +51,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -59,7 +62,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -76,10 +79,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Run Ruff formatting check
         working-directory: tests/integrationv2
@@ -90,7 +93,7 @@ jobs:
       - name: Check format exit code
         if: steps.ruff_format.outcome == 'failure'
         run: |
-            echo "Run 'ruff format .' to fix formatting issues"
+            echo "Run 'uv run ruff format .' to fix formatting issues"
             exit 1
 
       - name: Run Ruff lint check
@@ -102,13 +105,13 @@ jobs:
       - name: Check lint exit code
         if: steps.ruff_lint.outcome == 'failure'
         run: |
-          echo "Linting issues detected. Run 'ruff check .' locally to see errors and fix them."
+          echo "Linting issues detected. Run 'uv run ruff check .' locally to see errors and fix them."
           exit 1
 
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: clang-format check
         uses: harrisonkaiser/clang-format-action@verbose
         with:
@@ -118,8 +121,8 @@ jobs:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: nixbuild/nix-quick-install-action@v30
+      - uses: actions/checkout@v5
+      - uses: nixbuild/nix-quick-install-action@v34
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix flake check
@@ -127,8 +130,8 @@ jobs:
   nixfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: nixbuild/nix-quick-install-action@v30
+      - uses: actions/checkout@v5
+      - uses: nixbuild/nix-quick-install-action@v34
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix fmt
@@ -146,45 +149,19 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
-        
-  validate_start_codebuild_script:
-    name: validate start_codebuild.sh
+  validate-pr-title:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: pause
-        run: "sleep 120"
-      - name: retrieve statuses
-        id: get_statuses
-        uses: octokit/request-action@v2.x
+      - uses: actions/checkout@v5
+      - name: PR Conventional Commit Validation
+        id: cc_check
+        if: github.event_name == 'pull_request_target'
+        uses: ytanikin/pr-conventional-commits@1.4.2
         with:
-          route: GET /repos/{repo}/commits/{ref}/statuses?per_page=100
-          repo: ${{ github.repository }}
-          ref: ${{ github.event.merge_group.head_sha || github.event.pull_request.head.sha || github.event.after }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: check start_codebuild.sh against statuses
-        id: github_builds
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
+          add_label: 'false'
+      - name: Failure case
+        if: github.event_name == 'pull_request_target' && steps.cc_check.outcome != 'success'
         run: |
-            from_github=$(
-                jq '.[] | .description' <<< '${{ steps.get_statuses.outputs.data }}' \
-                    | grep "for project" \
-                    | sed -r "s/^.*?for project (.*?)\"$/\1/" \
-                    | sort -u
-            )
-            if [ -z "$from_github" ]; then
-                echo "No codebuild job statuses!"
-                echo "You may need to kick off the codebuild jobs with" \
-                    "./codebuild/bin/start_codebuild.sh and then retry."
-                exit 1
-            fi
-            echo builds from github statuses:
-            printf "$from_github\n\n"
-            from_file=$(
-                source codebuild/bin/start_codebuild.sh > /dev/null \
-                || printf "%s\n" "${BUILDS[@]}" | cut -d" " -f1 | sort -u
-            )
-            echo builds from start_codebuild.sh:
-            printf "$from_file\n\n"
-            echo "diff output:"
-            diff <(echo "$from_github") <(echo "$from_file")
+          echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
+          exit 1

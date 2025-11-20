@@ -212,6 +212,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -253,8 +254,8 @@ int main(int argc, char **argv)
              * not when processing the actual ClientHello message.
              * So we need to set the versions manually.
              */
-            server->client_hello_version = S2N_SSLv2;
-            server->client_protocol_version = S2N_TLS12;
+            server->client_hello.sslv2 = true;
+            server->client_hello.legacy_version = S2N_TLS12;
 
             uint8_t sslv2_client_hello[] = {
                 SSLv2_CLIENT_HELLO_PREFIX,
@@ -362,6 +363,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -437,6 +439,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -483,6 +486,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);

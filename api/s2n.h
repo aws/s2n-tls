@@ -2650,6 +2650,7 @@ typedef enum {
     S2N_TLS_SIGNATURE_ANONYMOUS = 0,
     S2N_TLS_SIGNATURE_RSA = 1,
     S2N_TLS_SIGNATURE_ECDSA = 3,
+    S2N_TLS_SIGNATURE_MLDSA = 9,
 
     /* Use Private Range for RSA PSS since it's not defined there */
     S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
@@ -2711,6 +2712,44 @@ S2N_API extern int s2n_connection_get_selected_client_cert_signature_algorithm(s
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+
+/**
+ * Get the human readable signature scheme for the connection.
+ *
+ * This method will return:
+ * 1. The IANA "description" for the negotiated signature scheme.
+ *    For example, rsa_pss_rsae_sha384 or ecdsa_secp256r1_sha256.
+ * 2. An unofficial description, if the server signature did not use an official
+ *    IANA signature scheme. This description will take the form
+ *    "legacy_<signature_algorithm>_<hash_algorithm>".
+ *    For example, legacy_rsa_sha224 or legacy_ecdsa_sha256.
+ * 3. "none", if the handshake did not include a server signature.
+ *    This may happen if session resumption or RSA key exchange are used.
+ *
+ * If the connection has not yet performed a handshake, this method will error.
+ *
+ * A note on unofficial descriptions: If TLS1.2 or earlier is negotiated,
+ * an official IANA signature scheme may not be chosen. Before TLS1.3, a combination
+ * of "signature algorithm" and "hash algorithm" were used instead of signature schemes.
+ * Not all combinations were later assigned to official signature schemes.
+ *
+ * A note on ECDSA signature schemes: TLS1.3 and TLS1.2 ECDSA "signature schemes"
+ * share the same IANA value. However, this method assigns them different descriptions
+ * because the TLS1.3 versions (like ecdsa_secp256r1_sha256) imply specific curves,
+ * while the TLS1.2 versions (like legacy_ecdsa_sha256) do not.
+ *
+ * IANA signature schemes:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme
+ * IANA signature algorithms:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16
+ * IANA hash algorithms:
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18
+ *
+ * @param conn A pointer to the s2n connection
+ * @param group_name A pointer that will be set to the signature scheme name.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise.
+ */
+S2N_API extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name);
 
 /**
  * Get the certificate used during the TLS handshake
@@ -3482,6 +3521,9 @@ S2N_API extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op
  *
  * When signing, the input is the digest to sign.
  * When decrypting, the input is the data to decrypt.
+ * 
+ * When signing with ML-DSA, the input is the "external mu" pre-hash value described in
+ * https://www.ietf.org/archive/id/draft-ietf-lamps-dilithium-certificates-09.html#appendix-D
  *
  * # Safety
  * * `data` must be sufficiently large to contain the input.

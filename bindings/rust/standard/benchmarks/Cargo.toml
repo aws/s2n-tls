@@ -1,0 +1,34 @@
+[package]
+name = "benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tls-harness = { path = "../tls-harness" }
+s2n-tls = { path = "../../extended/s2n-tls" }
+strum = { version = "0.27", features = ["derive"] }
+rustls = "0.23.31"
+openssl = { version = "0.10.73", features = ["vendored"] }
+
+[dev-dependencies]
+criterion = "0.7"
+# env_logger and log are used to enable logging for rustls, which can help with
+# debugging interop failures
+env_logger = "0.11.8"
+log = "0.4.27"
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[[bench]]
+name = "resumption"
+harness = false
+
+[[bench]]
+name = "connection_creation"
+harness = false

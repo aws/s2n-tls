@@ -1,0 +1,140 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Because the Ec2 reserved instance disks persist between runs,
+# we need to do periodic clean up; The `nix store gc` command runs on Sunday to
+# prevent the disk from filling up.
+---
+version: 0.2
+env:
+  shell: bash
+
+batch:
+  build-graph:
+    # Cache job for x86
+    - identifier: nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # Cache Job for aarch64
+    - identifier: nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          # max-jobs tell nix to use all available cores for building derivations.
+          NIXDEV_ARGS: --max-jobs auto
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # AWSLC  x86
+    - identifier: Integ_awslc_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # AWSLC aarch64
+    - identifier: Integ_awslc_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # AWSLC-FIPS-2022
+    - identifier: Integ_awslcfips2022_x86_64_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslcfips2022
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # AWSLC-FIPS-2024
+    - identifier: Integ_awslcfips2024_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslcfips2024
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # Openssl30 x86
+    - identifier: Integ_openssl30_x86_0
+      depend-on:
+        - nixCache_x86_64
+      env:
+        fleet: ubuntu24_x86_64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # Openssl30 aarch64
+    - identifier: Integ_openssl30_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # Openssl111 aarch64 only
+    - identifier: Integ_openssl111_aarch64_0
+      depend-on:
+        - nixCache_aarch64
+      env:
+        fleet: ubuntu24_aarch64_nix
+        variables:
+          NIXDEV_LIBCRYPTO: .#openssl111
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+phases:
+  install:
+    commands:
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
+      - |
+        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          echo "Refreshing nix cache..."
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix build .#devShell
+          nix copy --to $NIX_CACHE_BUCKET .#devShell
+        else
+          echo "Downloading cache"
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+        fi
+  pre_build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
+        fi
+  build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
+        fi
+  post_build:
+    # Dynamic_record_sizes is being excluded in nix/shell.sh and needs a rewrite.
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
+        fi

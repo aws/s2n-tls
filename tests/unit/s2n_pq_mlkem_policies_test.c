@@ -89,7 +89,8 @@ static S2N_RESULT s2n_policy_in_list(const char *policy_name, const char **excep
 
 /* List of all ML-KEM Parameter sizes */
 const struct s2n_kem *mlkem_list[] = {
-    &s2n_mlkem_768
+    &s2n_mlkem_768,
+    &s2n_mlkem_1024
 };
 
 /* Ciphers that should not be present in TLS Policies that have ML-KEM */
@@ -105,11 +106,20 @@ const struct s2n_cipher_suite *legacy_cipher_suites[] = {
 
 /* List of s2n TLS Security Policies that are allowed to have legacy TLS Ciphers and support ML-KEM */
 const char *cipher_exceptions[] = {
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
+    "CloudFront-Upstream-TLS-1-2-2025-PQ",
+    "CloudFront-Upstream-TLS-1-3-2025-PQ",
     "test_all",
 };
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
 const char *tls_version_exceptions[] = {
+    "AWS-CRT-SDK-TLSv1.0-2025-PQ",
+    "CloudFront-Upstream-2025-PQ",
+    "CloudFront-Upstream-TLS-1-0-2025-PQ",
+    "CloudFront-Upstream-TLS-1-1-2025-PQ",
     "test_all",
 };
 
@@ -178,6 +188,87 @@ int main(int argc, char **argv)
                     FAIL_MSG("ML-KEM policies should not contain legacy ciphers.");
                 }
             }
+        }
+    }
+
+    /* Test configuring a PQ only policy on different libcryptos. */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        const char *policy = "test_pq_only";
+
+        if (!s2n_is_tls13_fully_supported()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        } else if (!s2n_libcrypto_supports_mlkem()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        } else {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policy));
+        }
+    }
+
+    /* Self-talk tests for PQ only policies on supported libcryptos. */
+    if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        /* Test a PQ-only policy is able to negotiate. */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_pq_only"));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            /* Assert classical ECC is not negotiated & kem group is negotiated. */
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+        }
+
+        /* Expect failure when a non-PQ client attempts to negotiate with a PQ-only server. */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20240503"));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_pq_only"));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            /* Assert server negotiated_curve and kem_group are both NULL. */
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
         }
     }
 

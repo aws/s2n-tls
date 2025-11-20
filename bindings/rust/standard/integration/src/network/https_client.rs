@@ -53,8 +53,8 @@ const TEST_CASES: &[TestCase] = &[
     TestCase::new("https://www.openssl.org", &[200]),
     TestCase::new("https://www.t-mobile.com", &[200]),
     TestCase::new("https://www.verizon.com", &[200]),
-    TestCase::new("https://www.wikipedia.org", &[200]),
-    TestCase::new("https://www.yahoo.com", &[200]),
+    TestCase::new("https://www.wikipedia.org", &[200, 403]),
+    TestCase::new("https://www.yahoo.com", &[200, 429]),
     TestCase::new("https://www.youtube.com", &[200]),
     TestCase::new("https://www.github.com", &[301]),
     TestCase::new("https://www.samsung.com", &[301]),
@@ -100,7 +100,11 @@ async fn http_get_test() -> Result<(), Box<dyn std::error::Error>> {
             if !status_was_expected {
                 tracing::error!("unexpected status code: {status_code}");
             }
-            assert!(status_was_expected);
+            assert!(
+                status_was_expected,
+                "Unexpected status code \"{status_code}\" for test case {:#?}",
+                test_case
+            );
 
             if status_code == StatusCode::OK.as_u16() {
                 let body = response.into_body().collect().await?.to_bytes();

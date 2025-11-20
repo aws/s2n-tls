@@ -23,7 +23,7 @@ fn env<N: AsRef<str>>(name: N) -> String {
 
 fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     let name = name.as_ref();
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     std::env::var(name).ok()
 }
 
@@ -116,7 +116,7 @@ fn build_vendored() {
         .flatten()
         .filter(|file| {
             let file = file.path();
-            file.extension().map_or(false, |ext| ext == "c")
+            file.extension().is_some_and(|ext| ext == "c")
         })
         .map(|file| {
             file.path()
@@ -185,7 +185,8 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
         .flag_if_supported("-z now")
         .flag_if_supported("-z noexecstack")
         // we use some deprecated libcrypto features so don't warn here
-        .flag_if_supported("-Wno-deprecated-declarations");
+        .flag_if_supported("-Wno-deprecated-declarations")
+        .flag_if_supported("-Wa,-mbranches-within-32B-boundaries");
 
     build
 }
@@ -205,7 +206,7 @@ impl Default for Libcrypto {
                 if let Some(version) = version.strip_suffix("_INCLUDE") {
                     let version = version.to_string();
 
-                    println!("cargo:rerun-if-env-changed={}", name);
+                    println!("cargo:rerun-if-env-changed={name}");
 
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
@@ -256,6 +257,10 @@ impl External {
 
     fn link(&self) {
         println!("cargo:rustc-cfg={EXTERNAL_BUILD_CFG_NAME}");
+
+        // Propagate an external build flag to dependents, of the form
+        // `DEP_S2N_TLS_EXTERNAL_BUILD=true`.
+        println!("cargo:external_build=true");
 
         println!(
             "cargo:rustc-link-search={}",

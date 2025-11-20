@@ -41,7 +41,7 @@ static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferenc
 int main()
 {
     BEGIN_TEST();
-    /* PQ hybrid tests for s2n_client_key_share_extension */
+    /* PQ unit tests for s2n_client_key_share_extension */
     for (int len_prefixed = 0; len_prefixed < 2; len_prefixed++) {
         int draft_revision = (len_prefixed) ? 0 : 5;
         const struct s2n_kem_preferences kem_prefs_all = {
@@ -107,7 +107,7 @@ int main()
              * and ECC shares correctly when PQ is enabled. */
             if (s2n_pq_is_enabled()) {
                 for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
-                    /* The PQ hybrid key share send function only sends the highest priority PQ key share. On each
+                    /* The PQ key share send function only sends the highest priority PQ key share. On each
                      * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
                      * different permutation of all_kem_groups[] to ensure we handle each kem_group key share
                      * correctly. */
@@ -132,7 +132,7 @@ int main()
                         .ecc_preferences = &s2n_ecc_preferences_20200310,
                     };
 
-                    /* Test sending of default hybrid key share (non-HRR) */
+                    /* Test sending of default PQ key share (non-HRR) */
                     {
                         struct s2n_connection *conn = NULL;
                         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -149,6 +149,11 @@ int main()
                         EXPECT_EQUAL(test_kem_groups[0], kem_pref->tls13_kem_groups[0]);
                         const struct s2n_kem_group *test_kem_group = kem_pref->tls13_kem_groups[0];
 
+                        /* Skip length-prefixed test for pure PQ KEM groups */
+                        if (len_prefixed && test_kem_group->curve == &s2n_ecc_curve_none) {
+                            EXPECT_SUCCESS(s2n_connection_free(conn));
+                            continue;
+                        }
                         /* Skip permutations that start with unavailable KEM group */
                         if (!s2n_kem_group_is_available(test_kem_group)) {
                             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -160,14 +165,16 @@ int main()
                         EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
                         /* Assert that the client saved its private keys correctly in the connection state
-                         * for both hybrid PQ and classic ECC */
+                         * for both PQ and classic ECC */
                         struct s2n_kem_group_params *kem_group_params = &conn->kex_params.client_kem_group_params;
                         EXPECT_EQUAL(kem_group_params->kem_group, test_kem_group);
                         EXPECT_EQUAL(kem_group_params->kem_params.kem, test_kem_group->kem);
                         EXPECT_NOT_NULL(kem_group_params->kem_params.private_key.data);
                         EXPECT_EQUAL(kem_group_params->kem_params.private_key.size, test_kem_group->kem->private_key_length);
                         EXPECT_EQUAL(kem_group_params->ecc_params.negotiated_curve, test_kem_group->curve);
-                        EXPECT_NOT_NULL(kem_group_params->ecc_params.evp_pkey);
+                        if (kem_group_params->kem_group->curve != &s2n_ecc_curve_none) {
+                            EXPECT_NOT_NULL(kem_group_params->ecc_params.evp_pkey);
+                        }
 
                         struct s2n_ecc_evp_params *ecc_params = &conn->kex_params.client_ecc_evp_params;
                         EXPECT_EQUAL(ecc_params->negotiated_curve, ecc_pref->ecc_curves[0]);
@@ -253,14 +260,16 @@ int main()
                         EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
                         EXPECT_NOT_NULL(kem_pref);
 
-                        /* This is for pre-HRR set up: force the client to generate its default hybrid key share. */
+                        /* This is for pre-HRR set up: force the client to generate its default key share. */
                         DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
                         EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
                         EXPECT_SUCCESS(s2n_stuffer_wipe(&key_share_extension));
                         /* Quick sanity check */
                         EXPECT_NOT_NULL(conn->kex_params.client_kem_group_params.kem_params.private_key.data);
-                        EXPECT_NOT_NULL(conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+                        if (conn->kex_params.client_kem_group_params.kem_group->curve != &s2n_ecc_curve_none) {
+                            EXPECT_NOT_NULL(conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+                        }
 
                         /* Prepare client for HRR. Client would have sent a key share for highest priority available
                          * kem group, but server selects something else for negotiation. */
@@ -270,6 +279,10 @@ int main()
                         uint8_t chosen_index = 0;
                         for (int j = kem_pref->tls13_kem_group_count - 1; j > 0; j--) {
                             if (s2n_kem_group_is_available(kem_pref->tls13_kem_groups[j])) {
+                                /* Skip length-prefixed test for pure PQ KEM groups */
+                                if (len_prefixed && kem_pref->tls13_kem_groups[j]->curve == &s2n_ecc_curve_none) {
+                                    continue;
+                                }
                                 chosen_index = j;
                                 break;
                             }
@@ -280,14 +293,16 @@ int main()
 
                         EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-                        /* Assert that the client saved its private keys correctly in the connection state for hybrid */
+                        /* Assert that the client saved its private keys correctly in the connection state */
                         struct s2n_kem_group_params *kem_group_params = &conn->kex_params.client_kem_group_params;
                         EXPECT_EQUAL(kem_group_params->kem_group, negotiated_kem_group);
                         EXPECT_EQUAL(kem_group_params->kem_params.kem, negotiated_kem_group->kem);
                         EXPECT_NOT_NULL(kem_group_params->kem_params.private_key.data);
                         EXPECT_EQUAL(kem_group_params->kem_params.private_key.size, negotiated_kem_group->kem->private_key_length);
                         EXPECT_EQUAL(kem_group_params->ecc_params.negotiated_curve, negotiated_kem_group->curve);
-                        EXPECT_NOT_NULL(kem_group_params->ecc_params.evp_pkey);
+                        if (kem_group_params->kem_group->curve != &s2n_ecc_curve_none) {
+                            EXPECT_NOT_NULL(kem_group_params->ecc_params.evp_pkey);
+                        }
 
                         /* Assert that the client sent the correct bytes over the wire for the key share extension */
                         /* Assert total key shares extension size is correct */
@@ -529,7 +544,7 @@ int main()
                  * generated by s2n_client_key_share_extension.send */
                 {
                     for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
-                        /* The PQ hybrid key share send function only sends the highest priority PQ key share. On each
+                        /* The PQ key share send function only sends the highest priority PQ key share. On each
                          * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
                          * different permutation of all_kem_groups[] to ensure we handle each kem_group key share
                          * correctly. */
@@ -538,6 +553,10 @@ int main()
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                         }
 
+                        /* Skip length-prefixed test for pure PQ KEM groups */
+                        if (len_prefixed && test_kem_groups[0]->curve == &s2n_ecc_curve_none) {
+                            continue;
+                        }
                         /* Skip permutations that start with unavailable KEM group */
                         if (!s2n_kem_group_is_available(test_kem_groups[0])) {
                             continue;
@@ -600,15 +619,17 @@ int main()
                         EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
                         EXPECT_NOT_NULL(server_kem_pref);
 
-                        /* Client should have sent only the first hybrid PQ share, server should have accepted it;
+                        /* Client should have sent only the first PQ key share, server should have accepted it;
                          * the client and server KEM preferences include all the same KEM groups, but may be in
                          * different order. */
                         struct s2n_kem_group_params *sent_pq_params = &client_conn->kex_params.client_kem_group_params;
                         struct s2n_kem_group_params *received_pq_params = &server_conn->kex_params.client_kem_group_params;
 
-                        EXPECT_EQUAL(received_pq_params->ecc_params.negotiated_curve, sent_pq_params->ecc_params.negotiated_curve);
-                        EXPECT_NOT_NULL(received_pq_params->ecc_params.evp_pkey);
-                        EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
+                        if (sent_pq_params->kem_group->curve != &s2n_ecc_curve_none) {
+                            EXPECT_EQUAL(received_pq_params->ecc_params.negotiated_curve, sent_pq_params->ecc_params.negotiated_curve);
+                            EXPECT_NOT_NULL(received_pq_params->ecc_params.evp_pkey);
+                            EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
+                        }
 
                         const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(&test_kem_prefs);
                         EXPECT_NOT_NULL(kem_group);
@@ -961,7 +982,7 @@ int main()
 }
 
 /* Copies the PQ portion of the keyshare. Assumes that the read cursor of *from is
- * pointing to the beginning of the hybrid share. After copying, rewinds *from so
+ * pointing to the beginning of the key share. After copying, rewinds *from so
  * that read cursor is at the original position. */
 static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group, bool len_prefixed)
 {

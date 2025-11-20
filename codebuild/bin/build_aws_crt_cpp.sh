@@ -41,7 +41,13 @@ git clone --depth 1 --shallow-submodules --recurse-submodules https://github.com
 rm -r aws-crt-cpp/crt/s2n
 mv s2n aws-crt-cpp/crt/
 
-cmake ./aws-crt-cpp -Bbuild -GNinja -DBUILD_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cmake ./aws-crt-cpp \
+    -Bbuild \
+    -GNinja \
+    -DENFORCE_SUBMODULE_VERSIONS=off \
+    -DBUILD_DEPS=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 ninja -C ./build install
 CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) ninja -C ./build test
 

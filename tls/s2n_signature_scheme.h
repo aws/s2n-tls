@@ -24,7 +24,7 @@
 
 struct s2n_signature_scheme {
     uint16_t iana_value;
-    const char *iana_name;
+    const char *name;
     s2n_hash_algorithm hash_alg;
     s2n_signature_algorithm sig_alg;
     uint8_t minimum_protocol_version;
@@ -33,6 +33,12 @@ struct s2n_signature_scheme {
 
     /* Curve is only defined for TLS1.3 ECDSA Signatures */
     struct s2n_ecc_named_curve const *signature_curve;
+    /* Because of the different curve behavior, we should refer
+     * to TLS1.3 and pre-TLS1.3 versions of this scheme differently.
+     * Where the version is unknown, use the standard "name" field.
+     */
+    const char *legacy_name;
+    const char *tls13_name;
 };
 
 struct s2n_signature_preferences {
@@ -70,6 +76,12 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
+/* ML-DSA: post-quantum signature schemes */
+extern const struct s2n_signature_scheme s2n_mldsa44;
+extern const struct s2n_signature_scheme s2n_mldsa65;
+extern const struct s2n_signature_scheme s2n_mldsa87;
+
+extern const struct s2n_signature_preferences s2n_signature_preferences_20250512;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20240501;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20230317;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;
@@ -77,11 +89,14 @@ extern const struct s2n_signature_preferences s2n_signature_preferences_20200207
 extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20210816;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20240521;
-extern const struct s2n_signature_preferences s2n_signature_preferences_rfc9151;
-extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_rfc9151;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20250429;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20250820;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20250821;
 extern const struct s2n_signature_preferences s2n_signature_preferences_default_fips;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;
 extern const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips;
 extern const struct s2n_signature_preferences s2n_signature_preferences_all;
 
+extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250512;
+extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250429;
 extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110;

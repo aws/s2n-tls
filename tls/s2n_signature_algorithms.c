@@ -188,6 +188,12 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
         chosen_sig_scheme = &conn->handshake_params.server_cert_sig_scheme;
     }
 
+    /* No server signature is needed for RSA kex */
+    if (conn->mode == S2N_SERVER && cipher_suite->key_exchange_alg == &s2n_rsa) {
+        RESULT_ENSURE_EQ(*chosen_sig_scheme, &s2n_null_sig_scheme);
+        return S2N_RESULT_OK;
+    }
+
     /* Before TLS1.2, signature algorithms were fixed instead of negotiated */
     if (conn->actual_protocol_version < S2N_TLS12) {
         RESULT_GUARD(s2n_signature_algorithms_get_legacy_default(conn, conn->mode, chosen_sig_scheme));
@@ -386,6 +392,9 @@ S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg
             break;
         case S2N_SIGNATURE_ECDSA:
             *pkey_type = S2N_PKEY_TYPE_ECDSA;
+            break;
+        case S2N_SIGNATURE_MLDSA:
+            *pkey_type = S2N_PKEY_TYPE_MLDSA;
             break;
         default:
             RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

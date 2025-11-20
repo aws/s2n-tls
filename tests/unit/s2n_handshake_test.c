@@ -24,6 +24,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -43,6 +44,11 @@ enum test_type {
 struct s2n_async_pkey_op *pkey_op = NULL;
 int async_pkey_op_called = 0;
 int async_pkey_op_performed = 0;
+
+static uint8_t s2n_trust_all_verify_host(const char *host_name, size_t len, void *data)
+{
+    return 1;
+}
 
 static int handle_async(struct s2n_connection *server_conn)
 {
@@ -123,7 +129,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
-        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg)
+        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm sig_alg)
 {
     const struct s2n_security_policy *security_policy = server_config->security_policy;
     EXPECT_NOT_NULL(security_policy);
@@ -146,6 +152,12 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
         if (!expected_cipher->available) {
             expect_failure = 1;
+        }
+
+        s2n_signature_algorithm expected_sig_alg = sig_alg;
+        /* Expect no server signature algorithm if RSA kex */
+        if (expected_cipher->key_exchange_alg == &s2n_rsa) {
+            expected_sig_alg = S2N_SIGNATURE_ANONYMOUS;
         }
 
         TEST_DEBUG_PRINT("Testing %s in %s mode, expect_failure=%d\n", expected_cipher->name,
@@ -431,6 +443,69 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(client_config));
 
             s2n_disable_tls13_in_test();
+        }
+
+        s2n_reset_tls13_in_test();
+
+        /*  Test: ML-DSA cert */
+        if (s2n_mldsa_is_supported()) {
+            for (size_t verify = 0; verify <= 1; verify++) {
+                for (size_t client_auth = 0; client_auth <= 1; client_auth++) {
+                    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                            s2n_cert_chain_and_key_ptr_free);
+                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                            S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+                    DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+                            s2n_config_ptr_free);
+                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(
+                            server_config, chain_and_key));
+                    EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config,
+                            s2n_trust_all_verify_host, NULL));
+                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config,
+                            S2N_MLDSA87_CERT, NULL));
+
+                    DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
+                            s2n_config_ptr_free);
+                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(
+                            client_config, chain_and_key));
+                    EXPECT_SUCCESS(s2n_config_set_verify_host_callback(client_config,
+                            s2n_trust_all_verify_host, NULL));
+                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config,
+                            S2N_MLDSA87_CERT, NULL));
+
+                    /* ML-DSA is only usable with TLS1.3 */
+                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config,
+                            "test_all_tls13"));
+                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config,
+                            "test_all_tls13"));
+
+                    /* The hashing path for verify_after_sign is subtly different.
+                     * Make sure we test both paths.
+                     */
+                    if (verify) {
+                        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(server_config,
+                                S2N_VERIFY_AFTER_SIGN_ENABLED));
+                    }
+
+                    /* Test both the async and sync paths */
+                    if (test_type == TEST_TYPE_ASYNC) {
+                        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(
+                                server_config, async_pkey_fn));
+                    }
+
+                    /* Also test the client side use of ML-DSA */
+                    if (client_auth) {
+                        EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config,
+                                S2N_CERT_AUTH_REQUIRED));
+                        EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config,
+                                S2N_CERT_AUTH_REQUIRED));
+                    }
+
+                    EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
+                            chain_and_key, S2N_SIGNATURE_MLDSA));
+                }
+            }
         }
     }
 

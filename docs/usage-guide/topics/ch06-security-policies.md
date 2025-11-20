@@ -6,7 +6,7 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 ## Supported TLS Versions
 
-Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
+The default security policy supports TLS13 and will negotiate it wherever possible.
 
 ## Deprecation of Security Policies
 
@@ -27,8 +27,8 @@ The following chart maps the security policy version to protocol version and cip
 
 |    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
-|    default    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
-| default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
+|    default    |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+| default_fips  |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
 | default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
 |   20240501    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240502    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
@@ -53,17 +53,19 @@ The following chart maps the security policy version to protocol version and cip
 |   20190801    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 |   20190802    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 |   20200207    |        |        |        |    X   |         |    X    |      X     |      |     |     |   X   |        |
-|    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |    X   |
+|    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |     |   X   |        |
 
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. **Warning**: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.
 
-In contrast, numbered or dated versions are fixed and will never change. The numbered equivalents of the default policies are currently:
-* "default": "20240501"
-* "default_fips": "20240502"
-* "default_tls13": "20240503"
-For previous defaults, see the "Default Policy History" section below.
+In contrast, numbered or dated versions are fixed and will never change.
 
-"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
+The numbered equivalents for the named policies for the current version and
+historical s2n versions are in the "Named Policy History" below. The current
+matching fixed versions are:
+
+| "default" | "default_fips" | "default_tls13" | "rfc9151" |
+|-----------|----------------|-----------------|-----------|
+| 20251014  |   20251015     |    20240503     |  20251013 |
 
 "rfc9151" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151). This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.
@@ -147,8 +149,13 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20200207    |     X     |     X     |    X   |
 |    rfc9151    |           |     X     |        |
 
-### Default Policy History
-|  Version   | "default" | "default_fips" | "default_tls13" |
-|------------|-----------|----------------|-----------------|
-|  v1.4.16   | 20240501  |   20240502     |    20240503     |
-|   Older    | 20170210  |   20240416     |    20240417     |
+### Named Policy History
+
+|  Version   | "default" | "default_fips" | "default_tls13" | "rfc9151" |
+|------------|-----------|----------------|-----------------|-----------|
+|  v1.6.0    | 20251014  |   20251015     |    20240503     |  20251013 |
+|  v1.5.25   | 20240501  |   20240502     |    20240503     |  20250429 |
+|  v1.4.16   | 20240501  |   20240502     |    20240503     |    (*)    |
+|   Older    | 20170210  |   20240416     |    20240417     |    (*)    |
+
+(*): No fixed policy available.

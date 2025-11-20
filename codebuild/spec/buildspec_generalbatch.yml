@@ -135,8 +135,8 @@ batch:
         privileged-mode: true
         variables:
           TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0
-      identifier: UnitAl2023x86Openssl30
+          S2N_LIBCRYPTO: default
+      identifier: UnitAl2023x86
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
@@ -145,8 +145,8 @@ batch:
         type: ARM_CONTAINER
         variables:
           TESTS: unit
-          S2N_LIBCRYPTO: openssl-3.0
-      identifier: UnitAl2023armOpenssl30
+          S2N_LIBCRYPTO: default
+      identifier: UnitAl2023arm
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -227,6 +227,17 @@ batch:
           S2N_LIBCRYPTO: 'libressl'
           TESTS: unit
       identifier: s2nUnitLibressl
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '4.8'
+          S2N_LIBCRYPTO: 'openssl-1.0.2-fips'
+          TESTS: unit
+      identifier: s2nUnitOpenssl102FipsGcc48
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL

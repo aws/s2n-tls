@@ -634,6 +634,7 @@ class Signature(object):
 
 
 class Signatures(object):
+    NONE = Signature("None+None", max_protocol=Protocols.TLS13)
     RSA_SHA1 = Signature("RSA+SHA1", max_protocol=Protocols.TLS12)
     RSA_SHA224 = Signature("RSA+SHA224", max_protocol=Protocols.TLS12)
     RSA_SHA256 = Signature("RSA+SHA256", max_protocol=Protocols.TLS12)
@@ -754,7 +755,8 @@ class ProviderOptions(object):
         ocsp_response=None,
         signature_algorithm=None,
         record_size=None,
-        verbose=True,
+        verbose=None,
+        echo=True,
     ):
         # Client or server
         self.mode = mode
@@ -833,3 +835,7 @@ class ProviderOptions(object):
         # Useful if you find that debugging information is printed between
         # application data you expect the provider to print on stdout.
         self.verbose = verbose
+
+        # Should the provider echo any data sent / received?
+        # If not, the connection will be closed after one handshake.
+        self.echo = echo

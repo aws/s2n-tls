@@ -1093,7 +1093,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
 
-        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
         /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
@@ -1108,7 +1108,7 @@ int main(int argc, char **argv)
 
         /* when cert preferences don't apply locally, invalid certs are accepted */
         {
-            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            struct s2n_security_policy non_local_rfc9151 = security_policy_20250429;
             non_local_rfc9151.certificate_preferences_apply_locally = false;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1158,7 +1158,7 @@ int main(int argc, char **argv)
          * over every certificate without performing any validation is expensive.
          */
         {
-            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            struct s2n_security_policy non_local_rfc9151 = security_policy_20250429;
 
             /* Assert that the security policy WOULD apply,
              * if certificate_preferences_apply_locally was true.
@@ -1259,8 +1259,8 @@ int main(int argc, char **argv)
             server_conn->config = NULL;
 
             /* Record version and protocol version are in the header for SSLv2 */
-            server_conn->client_hello_version = S2N_SSLv2;
-            server_conn->client_protocol_version = S2N_TLS12;
+            server_conn->client_hello.sslv2 = true;
+            server_conn->client_hello.legacy_version = S2N_TLS12;
 
             /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
              * client hello callback. Therefore, we can assert that if we hit this error, we

@@ -23,6 +23,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_async_offload.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
@@ -203,7 +204,6 @@ struct s2n_connection {
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
      * speaking. */
-    uint8_t client_hello_version;
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
@@ -354,6 +354,8 @@ struct s2n_connection {
 
     struct s2n_x509_validator x509_validator;
 
+    struct s2n_async_offload_op async_offload_op;
+
     /* After a connection is created this is the verification function that should always be used. At init time,
      * the config should be checked for a verify callback and each connection should default to that. However,
      * from the user's perspective, it's sometimes simpler to manage state by attaching each validation function/data
@@ -377,6 +379,8 @@ struct s2n_connection {
 
     /* Cookie extension data */
     struct s2n_blob cookie;
+
+    struct s2n_blob cert_authorities;
 
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing callbacks.

@@ -1,0 +1,36 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+version: 0.2
+env:
+  shell: bash
+  variables:
+    # This assumes you have a Rust toolchain installed
+    CARGO: "cargo +nightly"
+    OPENSSL_DIR: "/usr/local/openssl-3.0"
+    RUST_TOOLCHAIN: "1.72.0-x86_64-unknown-linux-gnu"
+phases:
+  install:
+    commands:
+      - echo "Installing Rust ..."
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - . $HOME/.cargo/env
+      - rustup toolchain install $RUST_TOOLCHAIN
+  pre_build:
+    commands:
+      - |
+        cd bindings/rust/extended
+        ./generate.sh
+        cargo clean
+  build:
+    commands:
+      - cargo build --timings
+  post_build:
+    commands:
+      - cargo test --timings
+
+artifacts:
+  # upload timing reports
+  files:
+    - "**/*"
+  base-directory: bindings/rust/extended/target/cargo-timings

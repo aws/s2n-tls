@@ -67,6 +67,11 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
+    /* Skip sending classical ECC curves for PQ only policies. */
+    if (ecc_pref->count == 0) {
+        return S2N_SUCCESS;
+    }
+
     /* We only ever send a single EC key share: either the share requested by the server
      * during a retry, or the most preferred share according to local preferences.
      */
@@ -100,7 +105,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params)
+static int s2n_generate_pq_key_share(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params)
 {
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(kem_group_params);
@@ -122,12 +127,16 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
 
-    if (kem_group->send_kem_first) {
+    if (kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
         POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-    } else {
-        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    } else { /* Hybrid PQ */
+        if (kem_group->send_kem_first) {
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+        } else {
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+            POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        }
     }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
@@ -135,7 +144,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_default_pq_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(out);
@@ -187,7 +196,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
-    POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, client_params));
+    POSIX_GUARD(s2n_generate_pq_key_share(out, client_params));
 
     return S2N_SUCCESS;
 }
@@ -206,7 +215,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
     struct s2n_stuffer_reservation shares_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
-    POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
+    POSIX_GUARD(s2n_generate_default_pq_key_share(conn, out));
     POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
 
@@ -321,7 +330,7 @@ static int s2n_client_key_share_recv_hybrid_partial_ecc(struct s2n_stuffer *key_
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t kem_group_iana_id)
+static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t kem_group_iana_id)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(key_share);
@@ -374,41 +383,51 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         return S2N_SUCCESS;
     }
 
-    /* The length of the hybrid key share must be one of two possible lengths. Its internal values are either length
+    /* The length of the key share must be one of two possible lengths. Its internal values are either length
      * prefixed, or they are not. */
-    uint16_t actual_hybrid_share_size = key_share->blob.size;
-    uint16_t unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
-    uint16_t prefixed_hybrid_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_hybrid_share_size;
+    uint16_t actual_share_size = key_share->blob.size;
+    uint16_t unprefixed_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
+    uint16_t prefixed_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_share_size;
 
     /* Ignore KEM groups with unexpected overall total share sizes */
-    if ((actual_hybrid_share_size != unprefixed_hybrid_share_size) && (actual_hybrid_share_size != prefixed_hybrid_share_size)) {
+    if ((actual_share_size != unprefixed_share_size) && (actual_share_size != prefixed_share_size)) {
         return S2N_SUCCESS;
     }
 
-    bool is_hybrid_share_length_prefixed = (actual_hybrid_share_size == prefixed_hybrid_share_size);
+    bool is_share_length_prefixed = (actual_share_size == prefixed_share_size);
 
     DEFER_CLEANUP(struct s2n_kem_group_params new_client_params = { 0 }, s2n_kem_group_free);
     new_client_params.kem_group = kem_group;
 
     /* Need to save whether the client included the length prefix so that we can match their behavior in our response. */
-    new_client_params.kem_params.len_prefixed = is_hybrid_share_length_prefixed;
+    new_client_params.kem_params.len_prefixed = is_share_length_prefixed;
     new_client_params.kem_params.kem = kem_group->kem;
 
     /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
     /* Ignore PQ and ECC groups with public keys we can't parse */
-    if (kem_group->send_kem_first) {
-        if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
-            return S2N_SUCCESS;
-        }
-        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
-            return S2N_SUCCESS;
-        }
-    } else {
-        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+    if (kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
+        /* we only support pure PQ for modern MLKEM groups, which are not length prefixed. */
+        if (is_share_length_prefixed) {
             return S2N_SUCCESS;
         }
         if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
             return S2N_SUCCESS;
+        }
+    } else { /* Hybrid PQ */
+        if (kem_group->send_kem_first) {
+            if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+            if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+        } else {
+            if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
+            if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+                return S2N_SUCCESS;
+            }
         }
     }
 
@@ -453,10 +472,10 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;
 
-        /* Try to parse the share as ECC, then as PQ/hybrid; will ignore
+        /* Try to parse the share as ECC, then as PQ; will ignore
          * shares for unrecognized groups. */
         POSIX_GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group));
-        POSIX_GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group));
+        POSIX_GUARD(s2n_client_key_share_recv_pq(conn, &key_share, named_group));
     }
 
     /* During a retry, the client should only have sent one keyshare */

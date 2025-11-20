@@ -3,6 +3,8 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
+#[cfg(feature = "unstable-cert_authorities")]
+use crate::cert_authorities::CertRequestState;
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateState;
 use crate::{
@@ -155,6 +157,18 @@ impl Connection {
 
     pub(crate) fn as_ptr(&mut self) -> *mut s2n_connection {
         self.connection.as_ptr()
+    }
+
+    /// Returns the underlying `s2n_tls_sys::s2n_connection` pointer associated with the
+    /// `Connection`.
+    ///
+    /// #### Warning:
+    /// This API is unstable, and may be removed in a future s2n-tls release. Applications should
+    /// use the higher level s2n-tls bindings rather than calling the low-level `s2n_tls_sys` APIs
+    /// directly.
+    #[cfg(s2n_tls_external_build)]
+    pub fn unstable_as_ptr(&mut self) -> *mut s2n_connection {
+        self.as_ptr()
     }
 
     /// # Safety
@@ -923,7 +937,7 @@ impl Connection {
 
     /// Check if client auth was used for a connection.
     ///
-    /// This is only relevant if [`ClientAuthType::Optional] was used.
+    /// This is especially useful when the server has [`ClientAuthType::Optional`] configured.
     ///
     /// Corresponds to [s2n_connection_client_cert_used].
     pub fn client_cert_used(&self) -> bool {
@@ -1439,6 +1453,11 @@ impl Connection {
         }
     }
 
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) fn cert_request_state(&mut self) -> &mut CertRequestState {
+        &mut self.context_mut().cert_request_state
+    }
+
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) fn renegotiate_state_mut(&mut self) -> &mut RenegotiateState {
         &mut self.context_mut().renegotiate_state
@@ -1459,6 +1478,8 @@ struct Context {
     app_context: Option<Box<dyn Any + Send + Sync>>,
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) renegotiate_state: RenegotiateState,
+    #[cfg(feature = "unstable-cert_authorities")]
+    pub(crate) cert_request_state: CertRequestState,
 }
 
 impl Context {
@@ -1472,6 +1493,8 @@ impl Context {
             app_context: None,
             #[cfg(feature = "unstable-renegotiate")]
             renegotiate_state: RenegotiateState::default(),
+            #[cfg(feature = "unstable-cert_authorities")]
+            cert_request_state: CertRequestState::default(),
         }
     }
 }
@@ -1709,6 +1732,24 @@ mod tests {
         let cert_match = pair.server.certificate_match()?;
         assert_eq!(cert_match, CertSNIMatch::WildcardMatch);
 
+        Ok(())
+    }
+
+    /// Test that `unstable_as_ptr()` can be used to call an s2n_tls_sys API.
+    #[cfg(s2n_tls_external_build)]
+    #[test]
+    fn test_unstable_as_ptr() -> Result<(), Error> {
+        let mut connection = Connection::new_client();
+
+        let test_server_name = "test-server-name";
+        connection.set_server_name(test_server_name)?;
+
+        let server_name = unsafe {
+            let server_name = s2n_get_server_name(connection.unstable_as_ptr());
+            CStr::from_ptr(server_name).to_str().unwrap()
+        };
+
+        assert_eq!(server_name, test_server_name);
         Ok(())
     }
 }

@@ -14,12 +14,12 @@ bytes = "1.7.1"
 hex = "0.4.3"
 reqwest = { version = "0.12.7", features = ["blocking"] }
 semver = "1.0.23"
-rtshark = "3.1.0"
+rtshark = "4.0.0"
 
 [dependencies]
 anyhow = "1.0.86"
 hex = "0.4.3"
-rtshark = "3.1.0"
+rtshark = "4.0.0"
 
 [dev-dependencies]
 # We want to test against the latest, local version of s2n

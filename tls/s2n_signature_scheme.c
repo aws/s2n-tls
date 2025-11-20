@@ -18,13 +18,14 @@
 #include "api/s2n.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_signature.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_signature_scheme s2n_null_sig_scheme = {
     .iana_value = 0,
-    .iana_name = "null_sha0",
+    .name = "none",
     .hash_alg = S2N_HASH_NONE,
     .sig_alg = S2N_SIGNATURE_ANONYMOUS,
     .libcrypto_nid = 0,
@@ -35,7 +36,7 @@ const struct s2n_signature_scheme s2n_null_sig_scheme = {
 /* RSA PKCS1 */
 const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
     .iana_value = TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1,
-    .iana_name = "legacy_rsa_pkcs1_md5_sha1",
+    .name = "legacy_rsa_md5_sha1",
     .hash_alg = S2N_HASH_MD5_SHA1,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_md5_sha1,
@@ -45,7 +46,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA1,
-    .iana_name = "rsa_pkcs1_sha1",
+    .name = "rsa_pkcs1_sha1",
     .hash_alg = S2N_HASH_SHA1,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha1WithRSAEncryption,
@@ -55,7 +56,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA224,
-    .iana_name = "legacy_rsa_pkcs1_sha224",
+    .name = "legacy_rsa_sha224",
     .hash_alg = S2N_HASH_SHA224,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha224WithRSAEncryption,
@@ -65,7 +66,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA256,
-    .iana_name = "rsa_pkcs1_sha256",
+    .name = "rsa_pkcs1_sha256",
     .hash_alg = S2N_HASH_SHA256,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha256WithRSAEncryption,
@@ -75,7 +76,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384,
-    .iana_name = "rsa_pkcs1_sha384",
+    .name = "rsa_pkcs1_sha384",
     .hash_alg = S2N_HASH_SHA384,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha384WithRSAEncryption,
@@ -85,7 +86,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384 = {
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA512,
-    .iana_name = "rsa_pkcs1_sha512",
+    .name = "rsa_pkcs1_sha512",
     .hash_alg = S2N_HASH_SHA512,
     .sig_alg = S2N_SIGNATURE_RSA,
     .libcrypto_nid = NID_sha512WithRSAEncryption,
@@ -96,7 +97,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512 = {
 /* TLS 1.2 Compatible ECDSA Signature Schemes */
 const struct s2n_signature_scheme s2n_ecdsa_sha1 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA1,
-    .iana_name = "ecdsa_sha1",
+    .name = "ecdsa_sha1",
     .hash_alg = S2N_HASH_SHA1,
     .sig_alg = S2N_SIGNATURE_ECDSA,
     .libcrypto_nid = NID_ecdsa_with_SHA1,
@@ -106,7 +107,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha1 = {
 
 const struct s2n_signature_scheme s2n_ecdsa_sha224 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA224,
-    .iana_name = "legacy_ecdsa_sha224",
+    .name = "legacy_ecdsa_sha224",
     .hash_alg = S2N_HASH_SHA224,
     .sig_alg = S2N_SIGNATURE_ECDSA,
     .libcrypto_nid = NID_ecdsa_with_SHA224,
@@ -116,29 +117,38 @@ const struct s2n_signature_scheme s2n_ecdsa_sha224 = {
 
 const struct s2n_signature_scheme s2n_ecdsa_sha256 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA256,
-    .iana_name = "ecdsa_sha256",
+    .name = "ecdsa_sha256",
     .hash_alg = S2N_HASH_SHA256,
     .sig_alg = S2N_SIGNATURE_ECDSA,
     .libcrypto_nid = NID_ecdsa_with_SHA256,
-    .signature_curve = &s2n_ecc_curve_secp256r1, /* Hardcoded for TLS 1.3 */
+    /* Curve is hardcoded for TLS 1.3 */
+    .signature_curve = &s2n_ecc_curve_secp256r1,
+    .legacy_name = "legacy_ecdsa_sha256",
+    .tls13_name = "ecdsa_secp256r1_sha256",
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha384 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA384,
-    .iana_name = "ecdsa_sha384",
+    .name = "ecdsa_sha384",
     .hash_alg = S2N_HASH_SHA384,
     .sig_alg = S2N_SIGNATURE_ECDSA,
     .libcrypto_nid = NID_ecdsa_with_SHA384,
-    .signature_curve = &s2n_ecc_curve_secp384r1, /* Hardcoded for TLS 1.3 */
+    /* Curve is hardcoded for TLS 1.3 */
+    .signature_curve = &s2n_ecc_curve_secp384r1,
+    .legacy_name = "legacy_ecdsa_sha384",
+    .tls13_name = "ecdsa_secp384r1_sha384",
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha512 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA512,
-    .iana_name = "ecdsa_sha512",
+    .name = "ecdsa_sha512",
     .hash_alg = S2N_HASH_SHA512,
     .sig_alg = S2N_SIGNATURE_ECDSA,
     .libcrypto_nid = NID_ecdsa_with_SHA512,
-    .signature_curve = &s2n_ecc_curve_secp521r1, /* Hardcoded for TLS 1.3 */
+    /* Curve is hardcoded for TLS 1.3 */
+    .signature_curve = &s2n_ecc_curve_secp521r1,
+    .legacy_name = "legacy_ecdsa_sha512",
+    .tls13_name = "ecdsa_secp521r1_sha512",
 };
 
 /**
@@ -146,7 +156,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha512 = {
  */
 const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA256,
-    .iana_name = "rsa_pss_rsae_sha256",
+    .name = "rsa_pss_rsae_sha256",
     .hash_alg = S2N_HASH_SHA256,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
     .libcrypto_nid = NID_rsassaPss,
@@ -155,7 +165,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256 = {
 
 const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA384,
-    .iana_name = "rsa_pss_rsae_sha384",
+    .name = "rsa_pss_rsae_sha384",
     .hash_alg = S2N_HASH_SHA384,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
     .libcrypto_nid = NID_rsassaPss,
@@ -164,7 +174,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384 = {
 
 const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA512,
-    .iana_name = "rsa_pss_rsae_sha512",
+    .name = "rsa_pss_rsae_sha512",
     .hash_alg = S2N_HASH_SHA512,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
     .libcrypto_nid = NID_rsassaPss,
@@ -176,7 +186,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512 = {
  */
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256,
-    .iana_name = "rsa_pss_pss_sha256",
+    .name = "rsa_pss_pss_sha256",
     .hash_alg = S2N_HASH_SHA256,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
@@ -186,7 +196,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384,
-    .iana_name = "rsa_pss_pss_sha384",
+    .name = "rsa_pss_pss_sha384",
     .hash_alg = S2N_HASH_SHA384,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
@@ -196,12 +206,41 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
     .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512,
-    .iana_name = "rsa_pss_pss_sha512",
+    .name = "rsa_pss_pss_sha512",
     .hash_alg = S2N_HASH_SHA512,
     .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
     .libcrypto_nid = NID_rsassaPss,
     .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
     .minimum_protocol_version = S2N_TLS12,
+};
+
+/* ML-DSA: post-quantum signature schemes */
+
+const struct s2n_signature_scheme s2n_mldsa44 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA44,
+    .name = "mldsa44",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA44,
+    .minimum_protocol_version = S2N_TLS13,
+};
+
+const struct s2n_signature_scheme s2n_mldsa65 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA65,
+    .name = "mldsa65",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA65,
+    .minimum_protocol_version = S2N_TLS13,
+};
+
+const struct s2n_signature_scheme s2n_mldsa87 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_MLDSA87,
+    .name = "mldsa87",
+    .hash_alg = S2N_HASH_SHAKE256_64,
+    .sig_alg = S2N_SIGNATURE_MLDSA,
+    .libcrypto_nid = S2N_NID_MLDSA87,
+    .minimum_protocol_version = S2N_TLS13,
 };
 
 /* ALL signature schemes, including the legacy default s2n_rsa_pkcs1_md5_sha1 scheme.
@@ -225,6 +264,9 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_all[] = {
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
     &s2n_rsa_pss_pss_sha512,
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_all = {
@@ -264,6 +306,39 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20240501[] = {
 const struct s2n_signature_preferences s2n_signature_preferences_20240501 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20240501),
     .signature_schemes = s2n_sig_scheme_pref_list_20240501,
+};
+
+/* 20240501, but with ML-DSA added */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250512[] = {
+    /* ML-DSA */
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
+
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+
+    /* RSA-PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+
+    /* RSA */
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* Legacy RSA with PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20250512 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20250512),
+    .signature_schemes = s2n_sig_scheme_pref_list_20250512,
 };
 
 /* All Supported SignatureSchemes. */
@@ -439,6 +514,42 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
     .signature_schemes = s2n_sig_scheme_pref_list_20201110,
 };
 
+/* TLS1.3 supported signature schemes
+ * No SHA-1 legacy algorithms
+ * ML-DSA support
+ */
+const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20250512[] = {
+    /* ML-DSA */
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
+
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_rsa_pkcs1_sha224,
+
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250512 = {
+    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20250512),
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_20250512,
+};
+
 /* Based on s2n_sig_scheme_pref_list_20140601 but with all hashes < SHA-384 removed */
 const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20210816[] = {
     /* RSA PKCS1 */
@@ -455,7 +566,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20210816 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20210816
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_rfc9151[] = {
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250429[] = {
     /* ECDSA */
     &s2n_ecdsa_sha384,
 
@@ -468,7 +579,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_rfc9151[] = {
     &s2n_rsa_pkcs1_sha384,
 };
 
-const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_rfc9151[] = {
+const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20250429[] = {
     /* ECDSA */
     &s2n_ecdsa_sha384,
 
@@ -487,14 +598,83 @@ const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_rfc9151[]
     &s2n_rsa_pkcs1_sha384,
 };
 
-const struct s2n_signature_preferences s2n_signature_preferences_rfc9151 = {
-    .count = s2n_array_len(s2n_sig_scheme_pref_list_rfc9151),
-    .signature_schemes = s2n_sig_scheme_pref_list_rfc9151
+const struct s2n_signature_preferences s2n_signature_preferences_20250429 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20250429),
+    .signature_schemes = s2n_sig_scheme_pref_list_20250429
 };
 
-const struct s2n_signature_preferences s2n_certificate_signature_preferences_rfc9151 = {
-    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_rfc9151),
-    .signature_schemes = s2n_cert_sig_scheme_pref_list_rfc9151
+/* Based on 20201021, but with ECDSA preferred */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250820[] = {
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_rsa_pkcs1_sha224,
+
+    /* SHA-1 Legacy */
+    &s2n_rsa_pkcs1_sha1,
+    &s2n_ecdsa_sha1,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20250820 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20250820),
+    .signature_schemes = s2n_sig_scheme_pref_list_20250820,
+};
+
+/* Based on 20201021, but with ECDSA preferred and ML-DSA enabled + preferred */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250821[] = {
+    /* ML-DSA */
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
+
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_rsa_pkcs1_sha224,
+
+    /* SHA-1 Legacy */
+    &s2n_rsa_pkcs1_sha1,
+    &s2n_ecdsa_sha1,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20250821 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20250821),
+    .signature_schemes = s2n_sig_scheme_pref_list_20250821,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250429 = {
+    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20250429),
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_20250429
 };
 
 /*

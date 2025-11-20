@@ -82,6 +82,7 @@ impl SniTestCerts {
     }
 }
 
+#[derive(Clone)]
 pub struct CertKeyPair {
     cert_path: String,
     key_path: String,
@@ -123,7 +124,7 @@ impl CertKeyPair {
     /// ```
     pub fn from_path(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
         let cert_path = format!("{}{prefix}{chain}.pem", Self::TEST_PEMS_PATH);
-        println!("{:?}", cert_path);
+        println!("{cert_path:?}");
         let key_path = format!("{}{prefix}{key}.pem", Self::TEST_PEMS_PATH);
         let ca_path = format!("{}{prefix}{ca}.pem", Self::TEST_PEMS_PATH);
         let cert = std::fs::read(&cert_path)
@@ -198,6 +199,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     builder
         .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
         .expect("Unable to set a host verify callback.");
+    builder.with_system_certs(false).unwrap();
     builder.trust_pem(keypair.cert()).expect("load cert pem");
     Ok(builder)
 }

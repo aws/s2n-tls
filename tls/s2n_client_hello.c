@@ -23,6 +23,7 @@
 #include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_server_name.h"
@@ -354,7 +355,6 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
 }
 
 S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
-        uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN],
         uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN])
 {
     RESULT_ENSURE_REF(client_hello);
@@ -383,6 +383,7 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
      **/
 
     /* legacy_version */
+    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     /* Encode the version as a 1 byte representation of the two protocol version bytes, with the
@@ -428,6 +429,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
+    /* SSLv2 ClientHellos are not allowed during a HelloRetryRequest */
+    if (s2n_is_hello_retry_handshake(conn)) {
+        POSIX_ENSURE(!conn->client_hello.sslv2, S2N_ERR_BAD_MESSAGE);
+    }
+
     /* If a retry, move the old version of the client hello
      * somewhere safe so we can compare it to the new client hello later.
      */
@@ -439,12 +445,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_collect_client_hello(&conn->client_hello, &conn->handshake.io));
 
-    /* The ClientHello version must be TLS12 after a HelloRetryRequest */
-    if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_ENSURE_EQ(conn->client_hello_version, S2N_TLS12);
-    }
-
-    if (conn->client_hello_version == S2N_SSLv2) {
+    if (conn->client_hello.sslv2) {
         POSIX_GUARD(s2n_sslv2_client_hello_parse(conn));
         return S2N_SUCCESS;
     }
@@ -455,16 +456,14 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
             S2N_TLS_RANDOM_DATA_LEN);
 
     /* Parse raw, collected client hello */
-    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD_RESULT(s2n_client_hello_parse_raw(&conn->client_hello,
-            client_protocol_version, conn->handshake_params.client_random));
+            conn->handshake_params.client_random));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
      * an unexpected value above 0x0303.
      */
-    conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
-    conn->client_hello_version = conn->client_protocol_version;
+    conn->client_protocol_version = MIN(conn->client_hello.legacy_version, S2N_TLS12);
 
     /* Copy the session id to the connection. */
     conn->session_id_len = conn->client_hello.session_id.size;
@@ -502,9 +501,8 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     RESULT_GUARD_POSIX(s2n_collect_client_hello(client_hello, &in));
     RESULT_ENSURE(s2n_stuffer_data_available(&in) == 0, S2N_ERR_BAD_MESSAGE);
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    RESULT_GUARD(s2n_client_hello_parse_raw(client_hello, protocol_version, random));
+    RESULT_GUARD(s2n_client_hello_parse_raw(client_hello, random));
 
     *result = client_hello;
     ZERO_TO_DISABLE_DEFER_CLEANUP(client_hello);
@@ -554,13 +552,13 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
-    POSIX_ENSURE_GT(ecc_pref->count, 0);
-    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+
+    if (ecc_pref->count == 0) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+    } else if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
     } else {
-        /* If P-256 isn't allowed by the current security policy, instead choose
-         * the first / most preferred curve.
-         */
+        /* If P-256 isn't allowed by the current security policy, choose the first / most preferred curve. */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 
@@ -593,7 +591,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
-    if (conn->client_hello_version == S2N_SSLv2) {
+    if (conn->client_hello.sslv2) {
         POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
                 client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
     } else {
@@ -725,9 +723,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
 
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    conn->client_hello.legacy_version = reported_protocol_version;
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;
-    conn->client_hello_version = reported_protocol_version;
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     struct s2n_blob client_random = { 0 };
@@ -815,8 +813,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
  * Clients may send SSLv2 ClientHellos advertising higher protocol versions for
  * backwards compatibility reasons. See https://tools.ietf.org/rfc/rfc2246 Appendix E.
  *
- * In this case, conn->client_hello_version will be SSLv2, but conn->client_protocol_version
- * will likely be higher.
+ * In this case, conn->client_hello.legacy_version and conn->client_protocol_version
+ * will be higher than SSLv2.
  *
  * See http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html Section 2.5
  * for a description of the expected SSLv2 format.
@@ -826,7 +824,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    client_hello->sslv2 = true;
+    conn->client_protocol_version = MIN(client_hello->legacy_version, S2N_TLS12);
 
     struct s2n_stuffer in_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));

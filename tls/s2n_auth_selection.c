@@ -49,6 +49,7 @@ int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authenticatio
         case S2N_PKEY_TYPE_ECDSA:
             *auth_method = S2N_AUTHENTICATION_ECDSA;
             return S2N_SUCCESS;
+        case S2N_PKEY_TYPE_MLDSA:
         case S2N_PKEY_TYPE_UNKNOWN:
         case S2N_PKEY_TYPE_SENTINEL:
             POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
@@ -186,14 +187,16 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    s2n_authentication_method conn_auth_method = conn->secure->cipher_suite->auth_method;
 
-    s2n_authentication_method auth_method;
-    POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type, &auth_method));
-
-    if (conn->secure->cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
-        S2N_ERROR_IF(auth_method != conn->secure->cipher_suite->auth_method, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    /* TLS1.3 cipher suites do not specify an auth type */
+    if (conn_auth_method == S2N_AUTHENTICATION_METHOD_SENTINEL) {
+        return S2N_SUCCESS;
     }
 
+    s2n_authentication_method cert_auth_method = 0;
+    POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type, &cert_auth_method));
+    POSIX_ENSURE(cert_auth_method == conn_auth_method, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     return S2N_SUCCESS;
 }
 
@@ -204,11 +207,17 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
 int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cert_chain_and_key **chosen_certs)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->handshake_params.server_cert_sig_scheme);
-    s2n_signature_algorithm sig_alg = conn->handshake_params.server_cert_sig_scheme->sig_alg;
+    const struct s2n_signature_scheme *sig_scheme = conn->handshake_params.server_cert_sig_scheme;
+    POSIX_ENSURE_REF(sig_scheme);
+    s2n_signature_algorithm sig_alg = sig_scheme->sig_alg;
 
     s2n_pkey_type cert_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD_RESULT(s2n_signature_algorithm_get_pkey_type(sig_alg, &cert_type));
+    if (sig_scheme == &s2n_null_sig_scheme) {
+        /* Only RSA auth (+ RSA kex) supports no signature scheme */
+        cert_type = S2N_PKEY_TYPE_RSA;
+    } else {
+        POSIX_GUARD_RESULT(s2n_signature_algorithm_get_pkey_type(sig_alg, &cert_type));
+    }
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
