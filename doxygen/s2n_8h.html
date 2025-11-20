@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.6.0-2a871e3a</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.6.0-fde9bf38</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -8107,7 +8107,9 @@ Safety</h1>
 <dd>
 Call <code>s2n_connection_serialization_length</code> to retrieve the amount of memory needed for the buffer parameter. </dd>
 <dd>
-This API will error if the handshake is not yet complete.</dd></dl>
+This API will error if the handshake is not yet complete. Additionally it will error if there is still application data in the IO buffers given that this data does not get serialized by s2n-tls. You can use <code>s2n_send</code> to drain the send buffer and <code>s2n_peek</code> + <code>s2n_recv</code> to drain the read buffer. </dd>
+<dd>
+Serialization is unsupported for SSLv3 connections. See: <a href="https://github.com/aws/s2n-tls/issues/5538">https://github.com/aws/s2n-tls/issues/5538</a>.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
