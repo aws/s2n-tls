@@ -3915,7 +3915,10 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * s2n_config object associated with this connection before this connection began its TLS handshake.
  * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
  * buffer parameter.
- * @note This API will error if the handshake is not yet complete.
+ * @note This API will error if the handshake is not yet complete. Additionally it will error if there
+ * is still application data in the IO buffers given that this data does not get serialized by s2n-tls.
+ * You can use `s2n_send` to drain the send buffer and `s2n_peek` + `s2n_recv` to drain the read buffer.
+ * @note Serialization is unsupported for SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
