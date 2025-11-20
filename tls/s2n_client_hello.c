@@ -174,8 +174,8 @@ int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out, uint3
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(out);
 
-    uint32_t len = max_length < S2N_TLS_RANDOM_DATA_LEN ? max_length : S2N_TLS_RANDOM_DATA_LEN;
-    POSIX_CHECKED_MEMCPY(out, ch->random, len);
+    POSIX_ENSURE(max_length >= S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_CHECKED_MEMCPY(out, ch->random, S2N_TLS_RANDOM_DATA_LEN);
     return S2N_SUCCESS;
 }
 
