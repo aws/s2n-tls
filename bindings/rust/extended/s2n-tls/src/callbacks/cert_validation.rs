@@ -40,13 +40,34 @@ impl CertValidationInfo<'_> {
     }
 }
 
-pub trait CertValidationCallbackSync: 'static + Send + Sync {
-    /// Return a boolean to indicate if the certificate chain passed the validation
+/// Certificate validation callback that supports both synchronous and asynchronous validation.
+///
+/// The callback can operate in three modes based on the return value:
+/// - `Ok(Some(true))`: Accept the certificate immediately (synchronous)
+/// - `Ok(Some(false))`: Reject the certificate immediately (synchronous)
+/// - `Ok(None)`: Defer the decision (asynchronous) - the application must call
+///   `validation_info.accept()` or `validation_info.reject()` later
+///
+/// When returning `None`, the handshake will block (return S2N_ERR_T_BLOCKED with
+/// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed by calling
+/// `accept()` or `reject()` on the validation info.
+///
+/// This is useful when validation requires:
+/// - Consulting an external service (database, OCSP responder, etc.)
+/// - User interaction
+/// - Complex async operations
+pub trait CertValidationCallback: 'static + Send + Sync {
+    /// Validate the certificate chain.
+    ///
+    /// Return:
+    /// - `Some(true)` to accept immediately
+    /// - `Some(false)` to reject immediately
+    /// - `None` to defer the decision (async mode)
     fn handle_validation(
         &self,
         connection: &mut Connection,
         validation_info: &mut CertValidationInfo,
-    ) -> Result<bool, Error>;
+    ) -> Result<Option<bool>, Error>;
 }
 
 #[cfg(test)]
@@ -58,16 +79,17 @@ mod tests {
         accept: bool,
     }
 
-    struct SyncCallback(Counter);
-    impl CertValidationCallbackSync for SyncCallback {
+    struct TestCallback(Counter);
+    impl CertValidationCallback for TestCallback {
         fn handle_validation(
             &self,
             conn: &mut Connection,
             _info: &mut CertValidationInfo,
-        ) -> Result<bool, Error> {
+        ) -> Result<Option<bool>, Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
-            Ok(context.accept)
+            // Return Some(accept) for synchronous validation
+            Ok(Some(context.accept))
         }
     }
 
@@ -75,11 +97,11 @@ mod tests {
     fn sync_cert_validation() -> Result<(), Box<dyn std::error::Error>> {
         for accept in [true, false] {
             let counter = Counter::default();
-            let callback = SyncCallback(counter.clone());
+            let callback = TestCallback(counter.clone());
 
             let config = {
                 let mut config = config_builder(&security::DEFAULT_TLS13)?;
-                config.set_cert_validation_callback_sync(callback)?;
+                config.set_cert_validation_callback(callback)?;
                 config.build()?
             };
 
