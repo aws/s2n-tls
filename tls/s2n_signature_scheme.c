@@ -743,9 +743,14 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20251113[] = {
     &s2n_ecdsa_sha384,
     &s2n_rsa_pss_pss_sha384,
     &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pkcs1_sha384,
     &s2n_ecdsa_sha256,
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_rsae_sha256,
     &s2n_rsa_pkcs1_sha256,
     &s2n_ecdsa_sha512,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha512,
     &s2n_rsa_pkcs1_sha512
 };
 
