@@ -760,23 +760,18 @@ const struct s2n_signature_preferences s2n_signature_preferences_20251113 = {
 };
 
 const struct s2n_signature_scheme* s2n_cert_sig_scheme_pref_list_20251113[] = {
-    /* ECDSA */
-    &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
-    &s2n_ecdsa_sha512,
-
-    /* RSA PSS */
-    &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
-    &s2n_rsa_pss_pss_sha512,
-    &s2n_rsa_pss_rsae_sha256,
     &s2n_rsa_pss_rsae_sha384,
-    &s2n_rsa_pss_rsae_sha512,
-
-    /* RSA PKCS1 */
-    &s2n_rsa_pkcs1_sha256,
     &s2n_rsa_pkcs1_sha384,
-    &s2n_rsa_pkcs1_sha512,
+    &s2n_ecdsa_sha256,
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_ecdsa_sha512,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha512,
+    &s2n_rsa_pkcs1_sha512
 };
 
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20251113 = {
