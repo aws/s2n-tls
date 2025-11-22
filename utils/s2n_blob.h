@@ -72,3 +72,15 @@ int S2N_RESULT_MUST_USE s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob
 #define S2N_BLOB_LABEL(name, str)       \
     static uint8_t name##_data[] = str; \
     const struct s2n_blob name = { .data = name##_data, .size = sizeof(name##_data) - 1 };
+
+/* Read-onl*/
+struct s2n_ro_blob {
+    const uint8_t *data;
+    uint32_t size;
+};
+#define S2N_RO_BLOB_LABEL(name,str)              \
+    static const uint8_t name##_data[] = str;    \
+    const struct s2n_ro_blob name = {            \
+        .data = name##_data,                     \
+        .size = sizeof(name##_data) - 1          \
+    };
