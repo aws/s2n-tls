@@ -33,6 +33,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls13_key_schedule.h"
 #include "utils/s2n_bitmap.h"
+#include "utils/s2n_events.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
@@ -1694,14 +1695,34 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
+
     POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
     conn->negotiate_in_use = true;
+
+    uint64_t negotiate_start = 0;
+    POSIX_GUARD_RESULT(s2n_config_monotonic_clock(conn->config, &negotiate_start));
+    if (conn->handshake_event.handshake_start_ns == 0) {
+        conn->handshake_event.handshake_start_ns = negotiate_start;
+    }
 
     int result = s2n_negotiate_impl(conn, blocked);
 
     /* finish up sending and receiving */
     POSIX_GUARD_RESULT(s2n_connection_dynamic_free_in_buffer(conn));
     POSIX_GUARD_RESULT(s2n_connection_dynamic_free_out_buffer(conn));
+
+    uint64_t negotiate_end = 0;
+    POSIX_GUARD_RESULT(s2n_config_monotonic_clock(conn->config, &negotiate_end));
+
+    conn->handshake_event.handshake_time_ns += negotiate_end - negotiate_start;
+
+    if (result == S2N_SUCCESS) {
+        conn->handshake_event.handshake_end_ns = negotiate_end;
+        // thoughts: could this break the handshake loop in any way?
+        POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+    }
 
     conn->negotiate_in_use = false;
     return result;

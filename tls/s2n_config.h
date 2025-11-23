@@ -20,6 +20,7 @@
 #include "api/s2n.h"
 #include "api/unstable/async_offload.h"
 #include "api/unstable/cert_authorities.h"
+#include "api/unstable/events.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
@@ -212,6 +213,9 @@ struct s2n_config {
 
     s2n_async_pkey_validation_mode async_pkey_validation_mode;
 
+    void *subscriber;
+    s2n_event_on_handshake_cb on_handshake_event;
+
     /* The user defined context associated with config */
     void *context;
 
@@ -257,6 +261,7 @@ void s2n_wipe_static_configs(void);
 struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(const struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
+S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *output);
 
 /* Validate that the certificates in `config` respect the certificate preferences
  * in `security_policy` */

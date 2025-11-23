@@ -1197,7 +1197,20 @@ int s2n_config_set_npn(struct s2n_config *config, bool enable)
  */
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
 {
+    RESULT_ENSURE_REF(config);
     RESULT_ENSURE(config->wall_clock(config->sys_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    return S2N_RESULT_OK;
+}
+
+/*
+ * Get the indicated time from the monotonic clock.
+ * 
+ * This callback ensures that the correct errno is set in the case of failure.
+ */
+S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *output)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     return S2N_RESULT_OK;
 }
 
@@ -1291,5 +1304,17 @@ int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t second
     config->custom_blinding_set = 1;
     config->max_blinding = seconds;
 
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_subscriber(struct s2n_config *config, void *subscriber)
+{
+    config->subscriber = subscriber;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_handshake_cb callback)
+{
+    config->on_handshake_event = callback;
     return S2N_SUCCESS;
 }
