@@ -10,12 +10,22 @@ use crate::{
 use std::{marker::PhantomData, ptr::NonNull};
 
 pub struct CertValidationInfo<'a> {
-    pub info: NonNull<s2n_cert_validation_info>,
+    info: NonNull<s2n_cert_validation_info>,
     _lifetime: PhantomData<&'a s2n_cert_validation_info>,
 }
 
 impl CertValidationInfo<'_> {
-    pub fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
+    /// Creates a `CertValidationInfo` from a raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - `info` is a non-null pointer to a valid `s2n_cert_validation_info` structure
+    /// - The pointed-to structure is owned by s2n-tls and remains valid for the lifetime
+    ///   of this `CertValidationInfo` (typically until the handshake completes or the
+    ///   connection is freed)
+    /// - The pointer is not used to create multiple mutable references
+    pub unsafe fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
         let info = NonNull::new(info).expect("info pointer should not be null");
         CertValidationInfo {
             info,
@@ -23,6 +33,9 @@ impl CertValidationInfo<'_> {
         }
     }
 
+    /// Returns the raw pointer to the underlying `s2n_cert_validation_info`.
+    ///
+    /// This is primarily useful for passing to FFI functions or storing for later use.
     pub fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
         self.info.as_ptr()
     }

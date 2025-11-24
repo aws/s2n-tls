@@ -21,7 +21,16 @@ use tls_harness::{
 
 const APP_DATA_SIZE: usize = 100_000;
 
+/// A wrapper around a raw pointer to `s2n_cert_validation_info` that can be sent across threads.
+///
+/// This is used in tests to simulate async certificate validation where the validation
+/// decision is deferred and made on a different thread or after some async operation.
 struct SendableCertValidationInfo(*mut s2n_tls_sys::s2n_cert_validation_info);
+
+// SAFETY: The pointer is owned by s2n-tls and remains valid for the duration of the
+// pending async validation (until accept() or reject() is called, or the connection is freed).
+// The test mimics the intended usage pattern where an application hands off the pointer
+// to a worker thread that later calls accept()/reject().
 unsafe impl Send for SendableCertValidationInfo {}
 
 #[derive(Debug)]
@@ -70,7 +79,7 @@ impl CertValidationCallback for TestCertValidationCallback {
 
         if let Some(sender) = &self.callback_sender {
             sender
-                .send(SendableCertValidationInfo(info.info.as_ptr()))
+                .send(SendableCertValidationInfo(info.as_ptr()))
                 .expect("sending CertValidationInfo ptr");
         }
 
@@ -262,7 +271,9 @@ fn test_mtls_async_callback_tls13_core<C, S>(
     let mut pair = drive_until_async_pending::<C, S>(client_cfg, server_cfg, &handle);
 
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    let mut info = CertValidationInfo::from_ptr(ptr);
+    // SAFETY: The pointer comes from the cert validation callback which guarantees
+    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
     info.accept().unwrap();
 
     // BUG (TLS 1.3): currently hangs here due to multi-message + error blinding.
@@ -289,7 +300,9 @@ fn test_mtls_async_callback_tls12_core<C, S>(
 
     // Intended flow once bug is fixed:
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    let mut info = CertValidationInfo::from_ptr(ptr);
+    // SAFETY: The pointer comes from the cert validation callback which guarantees
+    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
     info.accept().unwrap();
 
     pair.handshake().unwrap();
@@ -360,6 +373,9 @@ fn rustls_s2n_mtls_sync_callback_tls13() {
 // Async callback tests - currently hang due to error blinding bug, kept as ignored
 
 // TLS 1.3 async mTLS – currently hangs; ignored until bug is fixed.
+// As of 2024-11-24: This test hangs because error blinding wipes buffered messages
+// when async cert validation returns None. Once the C library is fixed to preserve
+// messages during async validation, remove the #[ignore] attribute.
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.3)"]
 fn rustls_s2n_mtls_async_callback_tls13() {
@@ -380,6 +396,9 @@ fn rustls_s2n_mtls_async_callback_tls13() {
 }
 
 // TLS 1.2 async mTLS – same multi-message bug; ignored until bug is fixed.
+// As of 2024-11-24: This test hangs because error blinding wipes buffered messages
+// when async cert validation returns None. Once the C library is fixed to preserve
+// messages during async validation, remove the #[ignore] attribute.
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.2)"]
 fn rustls_s2n_mtls_async_callback_tls12() {

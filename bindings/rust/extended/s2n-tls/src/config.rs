@@ -645,6 +645,8 @@ impl Builder {
             validation_info: *mut s2n_cert_validation_info,
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
+            // SAFETY: validation_info is provided by s2n-tls and guaranteed to be valid
+            // for the duration of this callback
             let mut info = CertValidationInfo::from_ptr(validation_info);
             with_context(conn_ptr, |conn, context| {
                 let callback = context.cert_validation_callback.as_ref();
