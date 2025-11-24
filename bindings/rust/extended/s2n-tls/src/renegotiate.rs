@@ -440,6 +440,7 @@ mod tests {
         ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
     };
     use std::{
+        any::TypeId,
         error::Error,
         io::{Read, Write},
         pin::Pin,
@@ -1087,7 +1088,10 @@ mod tests {
                 ctx.waker().wake_by_ref();
                 let this = self.get_mut();
                 // Assert that nothing is currently set
-                assert!(conn.application_context::<String>().is_none());
+                let application_context_type_id = TypeId::of::<String>();
+                assert!(conn
+                    .application_context::<String>(application_context_type_id)
+                    .is_none());
                 if this.count > 1 {
                     // Repeatedly block the handshake in order to verify
                     // that renegotiate can handle Pending callbacks.
@@ -1122,7 +1126,8 @@ mod tests {
         pair.assert_renegotiate()?;
         assert_eq!(wake_count, count_per_handshake * 2);
 
-        let context: Option<&String> = pair.client.application_context();
+        let application_context_type_id = TypeId::of::<String>();
+        let context: Option<&String> = pair.client.application_context(application_context_type_id);
         assert_eq!(Some(&expected_context), context);
 
         Ok(())

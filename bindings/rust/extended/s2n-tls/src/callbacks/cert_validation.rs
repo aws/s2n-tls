@@ -53,6 +53,7 @@ pub trait CertValidationCallbackSync: 'static + Send + Sync {
 mod tests {
     use super::*;
     use crate::{connection::Connection, security, testing::*};
+    use std::any::TypeId;
 
     struct ValidationContext {
         accept: bool,
@@ -66,7 +67,10 @@ mod tests {
             _info: &mut CertValidationInfo,
         ) -> Result<bool, Error> {
             self.0.increment();
-            let context = conn.application_context::<ValidationContext>().unwrap();
+            let application_context_type_id = TypeId::of::<ValidationContext>();
+            let context = conn
+                .application_context::<ValidationContext>(application_context_type_id)
+                .unwrap();
             Ok(context.accept)
         }
     }
