@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.6.0-bcb3f283</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.6.1-8ef493e8</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -523,6 +523,8 @@ Functions</h2></td></tr>
 <tr class="separator:adbab79e2b5c583efaf918283fb0222bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeff080b07553418e574fa5907c6d2ca0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aeff080b07553418e574fa5907c6d2ca0">s2n_client_hello_get_legacy_protocol_version</a> (struct s2n_client_hello *ch, uint8_t *out)</td></tr>
 <tr class="separator:aeff080b07553418e574fa5907c6d2ca0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add4811341d7ee86ec9543c413d068195"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#add4811341d7ee86ec9543c413d068195">s2n_client_hello_get_random</a> (struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)</td></tr>
+<tr class="separator:add4811341d7ee86ec9543c413d068195"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a68a751eb59517406db2439a88e94d8d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups</a> (struct s2n_client_hello *ch, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
 <tr class="separator:a68a751eb59517406db2439a88e94d8d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4345089b56dee57f4c6f97c04588289e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a4345089b56dee57f4c6f97c04588289e">s2n_client_hello_get_server_name_length</a> (struct s2n_client_hello *ch, uint16_t *length)</td></tr>
@@ -3308,6 +3310,52 @@ s2n-tls has never supported compression methods in any TLS version and therefore
 
 </div>
 </div>
+<a id="add4811341d7ee86ec9543c413d068195" name="add4811341d7ee86ec9543c413d068195"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add4811341d7ee86ec9543c413d068195">&#9670;&#160;</a></span>s2n_client_hello_get_random()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_random </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>out</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>max_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Retrieves the client random value from the Client Hello.</p>
+<p >The client random is a 32-byte value sent by the client in the ClientHello message. It is used in the TLS handshake for key derivation and to prevent replay attacks.</p>
+<p >Copies up to <code>max_length</code> bytes of the client random into the <code>out</code> buffer. The number of bytes copied will be the minimum of <code>max_length</code> and S2N_TLS_RANDOM_DATA_LEN (32 bytes).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the client hello struct </td></tr>
+    <tr><td class="paramname">out</td><td>A pointer to a buffer where the client random will be copied. </td></tr>
+    <tr><td class="paramname">max_length</td><td>The maximum number of bytes to copy into the <code>out</code> buffer. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure. </dd></dl>
+
+</div>
+</div>
 <a id="ac1fc624f4ffe9378ad77eea895bb52d6" name="ac1fc624f4ffe9378ad77eea895bb52d6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac1fc624f4ffe9378ad77eea895bb52d6">&#9670;&#160;</a></span>s2n_client_hello_get_raw_message()</h2>
 
@@ -3339,7 +3387,7 @@ s2n-tls has never supported compression methods in any TLS version and therefore
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Copies <code>max_length</code> bytes of the ClientHello message into the <code>out</code> buffer. The ClientHello instrumented using this function will have the Random bytes zero-ed out.</p>
+<p >Copies <code>max_length</code> bytes of the ClientHello message into the <code>out</code> buffer. The ClientHello instrumented using this function will have the Random bytes zero-ed out. Use s2n_client_hello_get_random to access the random bytes.</p>
 <p >Note: SSLv2 ClientHello messages follow a different structure than more modern ClientHello messages. See <a href="https://tools.ietf.org/html/rfc5246#appendix-E.2">RFC5246</a>. In addition, due to how s2n-tls parses SSLv2 ClientHellos, the raw message is missing the first three bytes (the msg_type and version) and instead begins with the cipher_specs. To determine whether a ClientHello is an SSLv2 ClientHello, you will need to use <a class="el" href="s2n_8h.html#ad2a608603c7dbe9203a7c8f8b63ee1b8">s2n_connection_get_client_hello_version()</a>. To get the protocol version advertised in the SSLv2 ClientHello (which may be higher than SSLv2), you will need to use <a class="el" href="s2n_8h.html#aafa9d12438841f2a47907b244eccd7cc">s2n_connection_get_client_protocol_version()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
