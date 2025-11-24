@@ -114,7 +114,7 @@ These paths might also contain Cargo.toml files with dependencies on specific ve
 - tests/pcap/Cargo.toml
 - bindings/rust/standard/s2n-tls-hyper
 - bindings/rust/aws-kms-tls-auth
-  - **Special Note**: This crate is tested in CI and should be updated to N-1 version (e.g., if releasing 0.3.30, update aws-kms-tls-auth to 0.3.29) to ensure CI tests pass against the previous published version.
+  - **Special Note**: This crate is tested in CI and should be not have it's version dependency updated.
 
 
 ### Verification Checklist
