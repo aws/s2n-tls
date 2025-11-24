@@ -301,14 +301,22 @@ fn test_mtls_async_callback_tls12_core<C, S>(
 
 #[test]
 fn rustls_s2n_mtls_basic() {
-    let client = rustls_mtls_client(MtlsClientConfig::default());
+    // Use TLS 1.2 for compatibility with OpenSSL 1.0.2
+    let client = rustls_mtls_client(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
     let (server, _, _) = s2n_mtls_server(MtlsServerConfig::default());
     test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
 }
 
 #[test]
 fn rustls_s2n_mtls_sync_callback() {
-    let client = rustls_mtls_client(MtlsClientConfig::default());
+    // Use TLS 1.2 for compatibility with OpenSSL 1.0.2
+    let client = rustls_mtls_client(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
     let (server, handle, _) = s2n_mtls_server(MtlsServerConfig {
         callback_mode: MtlsServerCallback::Sync,
         ..Default::default()
