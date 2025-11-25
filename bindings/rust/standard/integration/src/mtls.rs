@@ -75,6 +75,8 @@ impl CertValidationCallback for TestCertValidationCallback {
         self.invoked.fetch_add(1, Ordering::SeqCst);
 
         if let Some(sender) = &self.callback_sender {
+            // We send a raw pointer to the underlying s2n_cert_validation_info so the test
+            // can later reconstruct CertValidationInfo and call accept()/reject().
             sender
                 .send(SendableCertValidationInfo(info.as_ptr()))
                 .expect("sending CertValidationInfo ptr");
@@ -222,9 +224,8 @@ fn test_mtls_sync_callback<C, S>(
     pair.shutdown().unwrap();
 }
 
-/// Drive handshake to the point where async cert validation is pending and
-/// the callback has been invoked exactly once. This behavior is consistent
-/// across TLS 1.2 and TLS 1.3 tests so we can reuse the logic.
+/// Drives handshake until async cert validation callback fires and returns None (pending).
+/// Verifies the callback is invoked exactly once and subsequent calls don't re-invoke it.
 fn drive_until_async_pending<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
@@ -237,30 +238,21 @@ where
     let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
     pair.io.enable_recording();
 
-    // ClientHello
     pair.client.handshake().unwrap();
-    // ServerHello + server cert flight (1.2 or 1.3 depending on config)
     pair.server.handshake().unwrap();
-    // client cert + finished flight
     pair.client.handshake().unwrap();
 
-    // callback has not fired yet
+    // At this point, the server has not processed the client cert yet.
     assert_eq!(handle.load(Ordering::SeqCst), 0);
 
-    // server processes client cert → async callback fires and returns None
     pair.server.handshake().unwrap();
     assert_eq!(handle.load(Ordering::SeqCst), 1);
 
-    // second call should not re-invoke callback
     pair.server.handshake().unwrap();
     assert_eq!(handle.load(Ordering::SeqCst), 1);
 
     pair
 }
-
-// ---------- Tests ----------
-
-// TLS 1.2 tests (run on all libcrypto versions including OpenSSL 1.0.2)
 
 #[test]
 fn rustls_s2n_mtls_basic_tls12() {
@@ -289,8 +281,6 @@ fn rustls_s2n_mtls_sync_callback_tls12() {
         handle.expect("sync callback handle"),
     );
 }
-
-// TLS 1.3 tests (require TLS 1.3 support, not available in OpenSSL 1.0.2)
 
 #[test]
 fn rustls_s2n_mtls_basic_tls13() {
@@ -324,12 +314,9 @@ fn rustls_s2n_mtls_sync_callback_tls13() {
     );
 }
 
-// Async callback tests - currently hang due to error blinding bug, kept as ignored
-
-// TLS 1.3 async mTLS – currently hangs; ignored until bug is fixed.
-// As of 2024-11-24: This test hangs because error blinding wipes buffered messages
-// when async cert validation returns None. Once the C library is fixed to preserve
-// messages during async validation, remove the #[ignore] attribute.
+// As of 2024-11-24: Hangs due to the multi-message async cert validation bug.
+// s2n incorrectly clears queued handshake messages, causing
+// poll_negotiate() to spin forever. Remove #[ignore] once fixed in C.
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.3)"]
 fn rustls_s2n_mtls_async_callback_tls13() {
@@ -345,21 +332,18 @@ fn rustls_s2n_mtls_async_callback_tls13() {
             let handle = handle.expect("async callback handle");
             let rx = rx.expect("async callback receiver");
 
-            // Drive handshake until async cert validation is pending
             let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
                 &client,
                 &server,
                 &handle,
             );
 
-            // Accept the certificate
             let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-            // SAFETY: The pointer comes from the cert validation callback which guarantees
-            // it points to a valid s2n_cert_validation_info owned by s2n-tls
+            // SAFETY: Pointer from cert validation callback, valid until accept/reject called
             let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
             info.accept().unwrap();
 
-            // BUG (TLS 1.3): currently hangs here due to multi-message + error blinding.
+            // BUG: Hangs here - s2n has wiped CertificateVerify and Finished messages
             pair.handshake().unwrap();
 
             pair.round_trip_assert(10).unwrap();
@@ -368,12 +352,7 @@ fn rustls_s2n_mtls_async_callback_tls13() {
     );
 }
 
-// TLS 1.2 async mTLS – same multi-message bug; ignored until bug is fixed.
-// As of 2024-11-24: This test hangs because error blinding wipes buffered messages
-// when async cert validation returns None. Once the C library is fixed to preserve
-// messages during async validation, remove the #[ignore] attribute.
 #[test]
-#[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.2)"]
 fn rustls_s2n_mtls_async_callback_tls12() {
     let client = rustls_mtls_client(MtlsClientConfig {
         tls_version: &rustls::version::TLS12,
@@ -388,20 +367,15 @@ fn rustls_s2n_mtls_async_callback_tls12() {
     let handle = handle.expect("async callback handle");
     let rx = rx.expect("async callback receiver");
 
-    // Drive handshake until async cert validation is pending
     let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
         &client,
         &server,
         &handle,
     );
 
-    // BUG (TLS 1.2): currently hangs here due to multi-message + error blinding.
-    pair.handshake().unwrap();
-
     // Intended flow once bug is fixed:
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: The pointer comes from the cert validation callback which guarantees
-    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
     let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
     info.accept().unwrap();
 
@@ -422,22 +396,17 @@ fn s2n_s2n_mtls_async_callback() {
     let handle = handle.expect("async callback handle");
     let rx = rx.expect("async callback receiver");
 
-    // Drive handshake until async cert validation is pending
-    // This follows the TLS 1.3 flow by default (client cfg defaults to TLS 1.3).
     let mut pair = drive_until_async_pending::<S2NConnection, S2NConnection>(
         &client,
         &server,
         &handle,
     );
 
-    // Accept the certificate
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: The pointer comes from the cert validation callback which guarantees
-    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
     let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
     info.accept().unwrap();
 
-    // Complete the handshake
     pair.handshake().unwrap();
 
     pair.round_trip_assert(10).unwrap();
