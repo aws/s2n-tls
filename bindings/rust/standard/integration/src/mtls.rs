@@ -229,7 +229,8 @@ fn test_mtls_async_callback<C, S>(
     server_cfg: &S::Config,
     handle: Arc<AtomicU64>,
     rx: Receiver<SendableCertValidationInfo>,
-) where
+) -> TlsConnPair<C, S>
+where
     C: TlsConnection,
     S: TlsConnection,
 {
@@ -252,6 +253,7 @@ fn test_mtls_async_callback<C, S>(
     pair.handshake().unwrap();
     pair.round_trip_assert(10).unwrap();
     pair.shutdown().unwrap();
+    pair
 }
 
 #[test]
@@ -330,7 +332,7 @@ fn rustls_s2n_mtls_async_callback_tls13() {
             });
 
             // BUG: Hangs in test_mtls_async_callback - s2n wiped CertificateVerify and Finished
-            test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+            let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
                 &client,
                 &server,
                 handle.expect("async callback handle"),
@@ -352,12 +354,14 @@ fn rustls_s2n_mtls_async_callback_tls12() {
         ..Default::default()
     });
 
-    test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+    let pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
         &client,
         &server,
         handle.expect("async callback handle"),
         rx.expect("async callback receiver"),
     );
+
+    assert!(!pair.negotiated_tls13(), "Expected TLS 1.2, got TLS 1.3");
 }
 
 #[test]
@@ -369,7 +373,7 @@ fn s2n_s2n_mtls_async_callback() {
         ..Default::default()
     });
 
-    test_mtls_async_callback::<S2NConnection, S2NConnection>(
+    let _pair = test_mtls_async_callback::<S2NConnection, S2NConnection>(
         &client,
         &server,
         handle.expect("async callback handle"),
