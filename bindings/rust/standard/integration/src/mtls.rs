@@ -125,8 +125,6 @@ struct MtlsServerConfig {
     with_hostname_verifier: bool,
 }
 
-// ---------- Small helpers ----------
-
 fn rustls_mtls_client(cfg: MtlsClientConfig) -> RustlsConfig {
     let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
     let client = ClientConfig::builder_with_provider(provider)
@@ -194,8 +192,6 @@ fn s2n_mtls_client(cfg: MtlsClientConfig) -> S2NConfig {
     S2NConfig::from(builder.build().unwrap())
 }
 
-// ---------- Core test logic ----------
-
 fn test_mtls_basic<C, S>(client_cfg: &C::Config, server_cfg: &S::Config)
 where
     C: TlsConnection,
@@ -224,7 +220,8 @@ fn test_mtls_sync_callback<C, S>(
 }
 
 /// Drive handshake to the point where async cert validation is pending and
-/// the callback has been invoked exactly once.
+/// the callback has been invoked exactly once. This behavior is consistent 
+/// across TLS 1.2 and TLS 1.3 tests.
 fn drive_until_async_pending<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
@@ -258,7 +255,6 @@ where
     pair
 }
 
-// TLS 1.3: bug shows up after accept, when we try to finish the handshake.
 fn test_mtls_async_callback_tls13_core<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,

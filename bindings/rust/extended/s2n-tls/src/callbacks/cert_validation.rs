@@ -65,10 +65,6 @@ impl CertValidationInfo<'_> {
 /// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed by calling
 /// `accept()` or `reject()` on the validation info.
 ///
-/// This is useful when validation requires:
-/// - Consulting an external service (database, OCSP responder, etc.)
-/// - User interaction
-/// - Complex async operations
 pub trait CertValidationCallback: 'static + Send + Sync {
     /// Validate the certificate chain.
     ///
