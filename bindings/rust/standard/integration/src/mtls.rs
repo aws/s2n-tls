@@ -333,9 +333,7 @@ fn rustls_s2n_mtls_async_callback_tls13() {
             let rx = rx.expect("async callback receiver");
 
             let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
-                &client,
-                &server,
-                &handle,
+                &client, &server, &handle,
             );
 
             let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
@@ -367,11 +365,8 @@ fn rustls_s2n_mtls_async_callback_tls12() {
     let handle = handle.expect("async callback handle");
     let rx = rx.expect("async callback receiver");
 
-    let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
-        &client,
-        &server,
-        &handle,
-    );
+    let mut pair =
+        drive_until_async_pending::<RustlsConnection, S2NConnection>(&client, &server, &handle);
 
     // Intended flow once bug is fixed:
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
@@ -396,11 +391,8 @@ fn s2n_s2n_mtls_async_callback() {
     let handle = handle.expect("async callback handle");
     let rx = rx.expect("async callback receiver");
 
-    let mut pair = drive_until_async_pending::<S2NConnection, S2NConnection>(
-        &client,
-        &server,
-        &handle,
-    );
+    let mut pair =
+        drive_until_async_pending::<S2NConnection, S2NConnection>(&client, &server, &handle);
 
     let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
     // SAFETY: Pointer from cert validation callback, valid until accept/reject called
