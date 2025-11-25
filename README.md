@@ -160,7 +160,7 @@ s2n-tls has been structured so that different encryption libraries may be used. 
 s2n-tls includes structured support for blinding time-based side-channels that may leak sensitive data. For example, if s2n-tls fails to parse a TLS record or handshake message, s2n-tls will add a randomized delay of between 10 and 30 seconds, granular to nanoseconds, before responding. This raises the complexity of real-world timing side-channel attacks by a factor of at least tens of trillions.
 
 ##### Table based state-machines
-s2n-tls uses simple tables to drive the TLS/SSL state machines, making it difficult for invalid out-of-order states to arise.
+s2n-tls uses simple tables to drive the TLS/SSL state machines, making it difficult for invalid out-of-order states to arise
 
 ##### C safety
 s2n-tls is written in C, but makes light use of standard C library functions and wraps all memory handling, string handling, and serialization in systematic boundary-enforcing checks.
