@@ -41,35 +41,28 @@ struct TestCertValidationCallback {
 }
 
 impl TestCertValidationCallback {
-    fn new_sync() -> (
-        Self,
-        Arc<AtomicU64>,
-        Option<Receiver<SendableCertValidationInfo>>,
-    ) {
-        let invoked = Arc::new(AtomicU64::new(0));
-        (
-            Self {
-                invoked: Arc::clone(&invoked),
-                immediately_accept: true,
-                callback_sender: None,
-            },
-            invoked,
-            None,
-        )
+    fn new_sync() -> Self {
+        Self {
+            invoked: Arc::new(AtomicU64::new(0)),
+            immediately_accept: true,
+            callback_sender: None,
+        }
     }
 
-    fn new_async() -> (Self, Arc<AtomicU64>, Receiver<SendableCertValidationInfo>) {
-        let invoked = Arc::new(AtomicU64::new(0));
+    fn new_async() -> (Self, Receiver<SendableCertValidationInfo>) {
         let (tx, rx) = std::sync::mpsc::channel();
         (
             Self {
-                invoked: Arc::clone(&invoked),
+                invoked: Arc::new(AtomicU64::new(0)),
                 immediately_accept: false,
                 callback_sender: Some(tx),
             },
-            invoked,
             rx,
         )
+    }
+
+    fn invoked_count(&self) -> &Arc<AtomicU64> {
+        &self.invoked
     }
 }
 
@@ -171,12 +164,14 @@ fn s2n_mtls_server(
     let (handle, rx) = match cfg.callback_mode {
         MtlsServerCallback::None => (None, None),
         MtlsServerCallback::Sync => {
-            let (cb, invoked, _) = TestCertValidationCallback::new_sync();
+            let cb = TestCertValidationCallback::new_sync();
+            let invoked = Arc::clone(cb.invoked_count());
             builder.set_cert_validation_callback(cb).unwrap();
             (Some(invoked), None)
         }
         MtlsServerCallback::Async => {
-            let (cb, invoked, rx) = TestCertValidationCallback::new_async();
+            let (cb, rx) = TestCertValidationCallback::new_async();
+            let invoked = Arc::clone(cb.invoked_count());
             builder.set_cert_validation_callback(cb).unwrap();
             (Some(invoked), Some(rx))
         }
@@ -229,7 +224,7 @@ fn test_mtls_sync_callback<C, S>(
 
 /// Drive handshake to the point where async cert validation is pending and
 /// the callback has been invoked exactly once. This behavior is consistent
-/// across TLS 1.2 and TLS 1.3 tests.
+/// across TLS 1.2 and TLS 1.3 tests so we can reuse the logic.
 fn drive_until_async_pending<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
@@ -261,57 +256,6 @@ where
     assert_eq!(handle.load(Ordering::SeqCst), 1);
 
     pair
-}
-
-fn test_mtls_async_callback_tls13_core<C, S>(
-    client_cfg: &C::Config,
-    server_cfg: &S::Config,
-    handle: Arc<AtomicU64>,
-    rx: Receiver<SendableCertValidationInfo>,
-) where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = drive_until_async_pending::<C, S>(client_cfg, server_cfg, &handle);
-
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: The pointer comes from the cert validation callback which guarantees
-    // it points to a valid s2n_cert_validation_info owned by s2n-tls
-    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
-    info.accept().unwrap();
-
-    // BUG (TLS 1.3): currently hangs here due to multi-message + error blinding.
-    pair.handshake().unwrap();
-
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
-}
-
-// TLS 1.2: bug shows up when we drive more handshake *while* validation is pending.
-fn test_mtls_async_callback_tls12_core<C, S>(
-    client_cfg: &C::Config,
-    server_cfg: &S::Config,
-    handle: Arc<AtomicU64>,
-    rx: Receiver<SendableCertValidationInfo>,
-) where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = drive_until_async_pending::<C, S>(client_cfg, server_cfg, &handle);
-
-    // BUG (TLS 1.2): currently hangs here due to multi-message + error blinding.
-    pair.handshake().unwrap();
-
-    // Intended flow once bug is fixed:
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: The pointer comes from the cert validation callback which guarantees
-    // it points to a valid s2n_cert_validation_info owned by s2n-tls
-    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
-    info.accept().unwrap();
-
-    pair.handshake().unwrap();
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
 }
 
 // ---------- Tests ----------
@@ -398,12 +342,28 @@ fn rustls_s2n_mtls_async_callback_tls13() {
                 ..Default::default()
             });
 
-            test_mtls_async_callback_tls13_core::<RustlsConnection, S2NConnection>(
+            let handle = handle.expect("async callback handle");
+            let rx = rx.expect("async callback receiver");
+
+            // Drive handshake until async cert validation is pending
+            let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
                 &client,
                 &server,
-                handle.expect("async callback handle"),
-                rx.expect("async callback receiver"),
+                &handle,
             );
+
+            // Accept the certificate
+            let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+            // SAFETY: The pointer comes from the cert validation callback which guarantees
+            // it points to a valid s2n_cert_validation_info owned by s2n-tls
+            let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
+            info.accept().unwrap();
+
+            // BUG (TLS 1.3): currently hangs here due to multi-message + error blinding.
+            pair.handshake().unwrap();
+
+            pair.round_trip_assert(10).unwrap();
+            pair.shutdown().unwrap();
         },
     );
 }
@@ -425,12 +385,29 @@ fn rustls_s2n_mtls_async_callback_tls12() {
         ..Default::default()
     });
 
-    test_mtls_async_callback_tls12_core::<RustlsConnection, S2NConnection>(
+    let handle = handle.expect("async callback handle");
+    let rx = rx.expect("async callback receiver");
+
+    // Drive handshake until async cert validation is pending
+    let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
         &client,
         &server,
-        handle.expect("async callback handle"),
-        rx.expect("async callback receiver"),
+        &handle,
     );
+
+    // BUG (TLS 1.2): currently hangs here due to multi-message + error blinding.
+    pair.handshake().unwrap();
+
+    // Intended flow once bug is fixed:
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+    // SAFETY: The pointer comes from the cert validation callback which guarantees
+    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
+    info.accept().unwrap();
+
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
 }
 
 #[test]
@@ -442,11 +419,27 @@ fn s2n_s2n_mtls_async_callback() {
         ..Default::default()
     });
 
+    let handle = handle.expect("async callback handle");
+    let rx = rx.expect("async callback receiver");
+
+    // Drive handshake until async cert validation is pending
     // This follows the TLS 1.3 flow by default (client cfg defaults to TLS 1.3).
-    test_mtls_async_callback_tls13_core::<S2NConnection, S2NConnection>(
+    let mut pair = drive_until_async_pending::<S2NConnection, S2NConnection>(
         &client,
         &server,
-        handle.expect("async callback handle"),
-        rx.expect("async callback receiver"),
+        &handle,
     );
+
+    // Accept the certificate
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+    // SAFETY: The pointer comes from the cert validation callback which guarantees
+    // it points to a valid s2n_cert_validation_info owned by s2n-tls
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
+    info.accept().unwrap();
+
+    // Complete the handshake
+    pair.handshake().unwrap();
+
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
 }
