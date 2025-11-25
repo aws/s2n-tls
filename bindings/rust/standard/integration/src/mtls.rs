@@ -41,7 +41,11 @@ struct TestCertValidationCallback {
 }
 
 impl TestCertValidationCallback {
-    fn new_sync() -> (Self, Arc<AtomicU64>, Option<Receiver<SendableCertValidationInfo>>) {
+    fn new_sync() -> (
+        Self,
+        Arc<AtomicU64>,
+        Option<Receiver<SendableCertValidationInfo>>,
+    ) {
         let invoked = Arc::new(AtomicU64::new(0));
         (
             Self {
@@ -83,7 +87,11 @@ impl CertValidationCallback for TestCertValidationCallback {
                 .expect("sending CertValidationInfo ptr");
         }
 
-        Ok(if self.immediately_accept { Some(true) } else { None })
+        Ok(if self.immediately_accept {
+            Some(true)
+        } else {
+            None
+        })
     }
 }
 
@@ -220,7 +228,7 @@ fn test_mtls_sync_callback<C, S>(
 }
 
 /// Drive handshake to the point where async cert validation is pending and
-/// the callback has been invoked exactly once. This behavior is consistent 
+/// the callback has been invoked exactly once. This behavior is consistent
 /// across TLS 1.2 and TLS 1.3 tests.
 fn drive_until_async_pending<C, S>(
     client_cfg: &C::Config,
@@ -342,28 +350,34 @@ fn rustls_s2n_mtls_sync_callback_tls12() {
 
 #[test]
 fn rustls_s2n_mtls_basic_tls13() {
-    crate::capability_check::required_capability(&[crate::capability_check::Capability::Tls13], || {
-        let client = rustls_mtls_client(MtlsClientConfig::default());
-        let (server, _, _) = s2n_mtls_server(MtlsServerConfig::default());
-        test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
-    });
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = rustls_mtls_client(MtlsClientConfig::default());
+            let (server, _, _) = s2n_mtls_server(MtlsServerConfig::default());
+            test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
+        },
+    );
 }
 
 #[test]
 fn rustls_s2n_mtls_sync_callback_tls13() {
-    crate::capability_check::required_capability(&[crate::capability_check::Capability::Tls13], || {
-        let client = rustls_mtls_client(MtlsClientConfig::default());
-        let (server, handle, _) = s2n_mtls_server(MtlsServerConfig {
-            callback_mode: MtlsServerCallback::Sync,
-            ..Default::default()
-        });
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = rustls_mtls_client(MtlsClientConfig::default());
+            let (server, handle, _) = s2n_mtls_server(MtlsServerConfig {
+                callback_mode: MtlsServerCallback::Sync,
+                ..Default::default()
+            });
 
-        test_mtls_sync_callback::<RustlsConnection, S2NConnection>(
-            &client,
-            &server,
-            handle.expect("sync callback handle"),
-        );
-    });
+            test_mtls_sync_callback::<RustlsConnection, S2NConnection>(
+                &client,
+                &server,
+                handle.expect("sync callback handle"),
+            );
+        },
+    );
 }
 
 // Async callback tests - currently hang due to error blinding bug, kept as ignored
@@ -375,20 +389,23 @@ fn rustls_s2n_mtls_sync_callback_tls13() {
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.3)"]
 fn rustls_s2n_mtls_async_callback_tls13() {
-    crate::capability_check::required_capability(&[crate::capability_check::Capability::Tls13], || {
-        let client = rustls_mtls_client(MtlsClientConfig::default());
-        let (server, handle, rx) = s2n_mtls_server(MtlsServerConfig {
-            callback_mode: MtlsServerCallback::Async,
-            ..Default::default()
-        });
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = rustls_mtls_client(MtlsClientConfig::default());
+            let (server, handle, rx) = s2n_mtls_server(MtlsServerConfig {
+                callback_mode: MtlsServerCallback::Async,
+                ..Default::default()
+            });
 
-        test_mtls_async_callback_tls13_core::<RustlsConnection, S2NConnection>(
-            &client,
-            &server,
-            handle.expect("async callback handle"),
-            rx.expect("async callback receiver"),
-        );
-    });
+            test_mtls_async_callback_tls13_core::<RustlsConnection, S2NConnection>(
+                &client,
+                &server,
+                handle.expect("async callback handle"),
+                rx.expect("async callback receiver"),
+            );
+        },
+    );
 }
 
 // TLS 1.2 async mTLS – same multi-message bug; ignored until bug is fixed.
