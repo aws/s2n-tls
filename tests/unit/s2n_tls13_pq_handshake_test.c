@@ -992,11 +992,32 @@ int main()
             /* The client's preferred curve will be a higher priority than the default if both sides
              * support TLS 1.3, and if the client's default can be chosen by the server in 1-RTT. */
             if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
+                    && server_policy->strongly_preferred_groups->count == 0
                     && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
                 curve = client_default;
             }
 
             /* Finally, confirm that the expected curve listed in the test vector matches the output of s2n_get_predicted_negotiated_ecdhe_curve() */
+            if (curve->iana_id != predicted_curve->iana_id) {
+                uint32_t output_size = 0;
+                const char *predicted_name = "NULL";
+                const char *vector_name = "NULL";
+                if (predicted_curve != NULL && predicted_curve->name != NULL) {
+                    predicted_name = predicted_curve->name;
+                }
+                if (curve != NULL && curve->name != NULL) {
+                    vector_name = curve->name;
+                }
+
+                fprintf(stderr, "\n\nError: Predicted curve was Test Vector curve are different. Predicted: %s, Vector: %s\n", predicted_name, vector_name);
+                fprintf(stderr, "\nClient Security Policy: \n");
+                s2n_security_policy_write_fd(client_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
+
+                fprintf(stderr, "\nServer Security Policy: \n");
+                s2n_security_policy_write_fd(server_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
+
+                fflush(stderr);
+            }
             EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
         }
 
