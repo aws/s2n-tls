@@ -432,7 +432,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         for (int j = 0; j < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT && !matched_strongly_preferred_iana; j++) {
             const struct s2n_ecc_named_curve *mutually_supported_curve = conn->kex_params.mutually_supported_curves[j];
             if (mutually_supported_curve == NULL) {
-                break; /* Reached end of mutually supported KEM Groups */
+                break; /* Reached end of mutually supported ECC curves */
             }
             if (strongly_preferred_iana == mutually_supported_curve->iana_id) {
                 matched_strongly_preferred_iana = true;
