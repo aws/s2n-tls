@@ -445,10 +445,6 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         }
     }
 
-    (void) need_hrr_for_strongly_preferred_group;
-    (void) strongly_preferred_kem_group;
-    (void) strongly_preferred_curve;
-
     /* Option 1: Perform a 2-RTT handshake if there is a strongly-preferred SupportedGroup that requires a 2-RTT handshake. */
     if (need_hrr_for_strongly_preferred_group) {
         /* Ensure that we chose exactly 1 strongly preferred SupportedGroup */
