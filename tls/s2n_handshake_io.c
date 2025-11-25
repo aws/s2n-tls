@@ -1593,7 +1593,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
          * message. Advance the state machine. */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));
 
-        // We may need to handle remaining handshake messages in the record
+        /* We may need to handle remaining handshake messages in the record */
         POSIX_GUARD(s2n_handshake_message_process(conn, TLS_HANDSHAKE));
     }
 
