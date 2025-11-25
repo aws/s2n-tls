@@ -1384,7 +1384,8 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
     RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
 }
 
-static int s2n_handshake_message_process(struct s2n_connection *conn, uint8_t record_type) {
+static int s2n_handshake_message_process(struct s2n_connection *conn, uint8_t record_type)
+{
     POSIX_ENSURE_REF(conn);
 
     uint8_t message_type = 0;
