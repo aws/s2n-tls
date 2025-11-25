@@ -40,6 +40,7 @@ const struct s2n_security_policy security_policy_test_tls13_retry = {
     .signature_preferences = &s2n_signature_preferences_20200207,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &ecc_preferences_for_retry,
+    .strongly_preferred_groups = &s2n_supported_group_preferences_null,
 };
 
 /*

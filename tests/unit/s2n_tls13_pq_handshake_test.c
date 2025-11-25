@@ -202,7 +202,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         if (expected_curve != server_conn->kex_params.server_ecc_evp_params.negotiated_curve) {
-            uint32_t output_size = 0;
             const char *expected_name = "NULL";
             const char *actual_name = "NULL";
             if (expected_curve != NULL && expected_curve->name != NULL) {
@@ -213,12 +212,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
             }
 
             fprintf(stderr, "\n\nError: Unexpected curve was negotiated. Expected: %s, Actual: %s\n", expected_name, actual_name);
-            fprintf(stderr, "\nClient Security Policy: \n");
-            s2n_security_policy_write_fd(client_sec_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
-
-            fprintf(stderr, "\nServer Security Policy: \n");
-            s2n_security_policy_write_fd(server_sec_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
-
             fflush(stderr);
         }
 
@@ -960,8 +953,8 @@ int main()
                 .client_policy = &low_priority_mlkem1024_test_policy,
                 .server_policy = &strongly_preferred_mlkem1024_test_policy,
                 .expected_kem_group = null_if_no_pure_mlkem_1024,
-                .expected_curve = NULL,
-                .hrr_expected = true,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = hrr_expected_if_mlkem,
                 .len_prefix_expected = false,
         },
     };
@@ -975,15 +968,42 @@ int main()
         bool hrr_expected = vector->hrr_expected;
         bool len_prefix_expected = vector->len_prefix_expected;
 
+        /* Print Test Vector Info for easier debugging on failure. */
+        {
+            const char *kem_group_str = (kem_group == NULL) ? "NULL" : kem_group->name;
+            const char *curve_str = (curve == NULL) ? "NULL" : curve->name;
+            fprintf(stderr, "\n\nRunning test (%zu/%zu)...\n", i + 1, s2n_array_len(test_vectors));
+            fflush(stderr);
+            fprintf(stderr, "Test Vector: kem_group: %s, curve: %s, hrr_expected: %d, len_prefix_expected: %d\n", kem_group_str, curve_str, hrr_expected, len_prefix_expected);
+            fflush(stderr);
+            uint32_t output_size = 0;
+            fprintf(stderr, "\nClient Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(client_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+
+            fprintf(stderr, "\nServer Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(server_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+            fflush(stderr);
+        }
+
+        /* Check if we need to override the test vector. This may need to be done due to some LibCryptos not supporting PQ. */
+        if (!s2n_kem_group_is_available(kem_group)) {
+            kem_group = NULL;
+            if (curve == NULL) {
+                curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
+            }
+        }
+
         if (!s2n_pq_is_enabled()) {
             EXPECT_TRUE(client_policy->ecc_preferences->count > 0);
             const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
             const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
 
-            /* If either policy doesn't support the default curve, fall back to p256 as it should
-             * be in common with every ECC preference list. */
-            if (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, default_curve->iana_id)
-                    || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, default_curve->iana_id)) {
+            /* If the  default curve is x25519, and the test vector is predicting the default, but neither policy supports x25519,
+             * fall back to predict p256 as it should be in common with every ECC preference list. */
+            if (default_curve->iana_id == s2n_ecc_curve_x25519.iana_id
+                    && curve->iana_id == default_curve->iana_id
+                    && (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id)
+                            || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id))) {
                 EXPECT_TRUE(s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
                 EXPECT_TRUE(s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
                 curve = &s2n_ecc_curve_secp256r1;
@@ -998,31 +1018,7 @@ int main()
             }
 
             /* Finally, confirm that the expected curve listed in the test vector matches the output of s2n_get_predicted_negotiated_ecdhe_curve() */
-            if (curve->iana_id != predicted_curve->iana_id) {
-                uint32_t output_size = 0;
-                const char *predicted_name = "NULL";
-                const char *vector_name = "NULL";
-                if (predicted_curve != NULL && predicted_curve->name != NULL) {
-                    predicted_name = predicted_curve->name;
-                }
-                if (curve != NULL && curve->name != NULL) {
-                    vector_name = curve->name;
-                }
-
-                fprintf(stderr, "\n\nError: Predicted curve was Test Vector curve are different. Predicted: %s, Vector: %s\n", predicted_name, vector_name);
-                fprintf(stderr, "\nClient Security Policy: \n");
-                s2n_security_policy_write_fd(client_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
-
-                fprintf(stderr, "\nServer Security Policy: \n");
-                s2n_security_policy_write_fd(server_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size);
-
-                fflush(stderr);
-            }
             EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
-        }
-
-        if (!s2n_kem_group_is_available(kem_group)) {
-            kem_group = NULL;
         }
 
         if (kem_group != NULL) {
