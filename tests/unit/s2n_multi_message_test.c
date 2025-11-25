@@ -48,7 +48,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-        struct s2n_config *server_config = s2n_config_new();
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_config);
         /* Policy that will negotiate TLS1.3 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20251014"));
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
-        struct s2n_config *client_config = s2n_config_new();
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_config);
         /* Policy that will negotiate TLS1.3 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20251014"));
@@ -69,13 +69,13 @@ int main(int argc, char **argv)
         * while reading multiple TLS messages in a single record.
         */
         {
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
 
             /* Add a cert validation callback. In this case we will store the cert validation info
