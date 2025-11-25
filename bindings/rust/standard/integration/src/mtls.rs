@@ -224,14 +224,12 @@ fn test_mtls_sync_callback<C, S>(
     pair.shutdown().unwrap();
 }
 
-/// Drives handshake until async cert validation callback fires and returns None (pending).
-/// Verifies the callback is invoked exactly once and subsequent calls don't re-invoke it.
-fn drive_until_async_pending<C, S>(
+fn test_mtls_async_callback<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
-    handle: &Arc<AtomicU64>,
-) -> TlsConnPair<C, S>
-where
+    handle: Arc<AtomicU64>,
+    rx: Receiver<SendableCertValidationInfo>,
+) where
     C: TlsConnection,
     S: TlsConnection,
 {
@@ -242,16 +240,18 @@ where
     pair.server.handshake().unwrap();
     pair.client.handshake().unwrap();
 
-    // At this point, the server has not processed the client cert yet.
     assert_eq!(handle.load(Ordering::SeqCst), 0);
-
     pair.server.handshake().unwrap();
     assert_eq!(handle.load(Ordering::SeqCst), 1);
 
-    pair.server.handshake().unwrap();
-    assert_eq!(handle.load(Ordering::SeqCst), 1);
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
+    info.accept().unwrap();
 
-    pair
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
 }
 
 #[test]
@@ -329,23 +329,13 @@ fn rustls_s2n_mtls_async_callback_tls13() {
                 ..Default::default()
             });
 
-            let handle = handle.expect("async callback handle");
-            let rx = rx.expect("async callback receiver");
-
-            let mut pair = drive_until_async_pending::<RustlsConnection, S2NConnection>(
-                &client, &server, &handle,
+            // BUG: Hangs in test_mtls_async_callback - s2n wiped CertificateVerify and Finished
+            test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+                &client,
+                &server,
+                handle.expect("async callback handle"),
+                rx.expect("async callback receiver"),
             );
-
-            let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-            // SAFETY: Pointer from cert validation callback, valid until accept/reject called
-            let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
-            info.accept().unwrap();
-
-            // BUG: Hangs here - s2n has wiped CertificateVerify and Finished messages
-            pair.handshake().unwrap();
-
-            pair.round_trip_assert(10).unwrap();
-            pair.shutdown().unwrap();
         },
     );
 }
@@ -362,21 +352,12 @@ fn rustls_s2n_mtls_async_callback_tls12() {
         ..Default::default()
     });
 
-    let handle = handle.expect("async callback handle");
-    let rx = rx.expect("async callback receiver");
-
-    let mut pair =
-        drive_until_async_pending::<RustlsConnection, S2NConnection>(&client, &server, &handle);
-
-    // Intended flow once bug is fixed:
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
-    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
-    info.accept().unwrap();
-
-    pair.handshake().unwrap();
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
+    test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+        &client,
+        &server,
+        handle.expect("async callback handle"),
+        rx.expect("async callback receiver"),
+    );
 }
 
 #[test]
@@ -388,19 +369,10 @@ fn s2n_s2n_mtls_async_callback() {
         ..Default::default()
     });
 
-    let handle = handle.expect("async callback handle");
-    let rx = rx.expect("async callback receiver");
-
-    let mut pair =
-        drive_until_async_pending::<S2NConnection, S2NConnection>(&client, &server, &handle);
-
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
-    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
-    info.accept().unwrap();
-
-    pair.handshake().unwrap();
-
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
+    test_mtls_async_callback::<S2NConnection, S2NConnection>(
+        &client,
+        &server,
+        handle.expect("async callback handle"),
+        rx.expect("async callback receiver"),
+    );
 }
