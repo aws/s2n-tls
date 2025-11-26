@@ -142,6 +142,26 @@ fn rustls_mtls_client(cfg: MtlsClientConfig) -> RustlsConfig {
     client.into()
 }
 
+fn rustls_mtls_server(cfg: MtlsClientConfig) -> RustlsConfig {
+    let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+    let client_cert_verifier = rustls::server::WebPkiClientVerifier::builder(Arc::new(
+        RustlsConfig::get_root_cert_store(cfg.sig_type),
+    ))
+    .build()
+    .unwrap();
+
+    let server = rustls::ServerConfig::builder_with_provider(provider)
+        .with_protocol_versions(&[cfg.tls_version])
+        .unwrap()
+        .with_client_cert_verifier(client_cert_verifier)
+        .with_single_cert(
+            RustlsConfig::get_cert_chain(PemType::ServerCertChain, cfg.sig_type),
+            RustlsConfig::get_key(PemType::ServerKey, cfg.sig_type),
+        )
+        .unwrap();
+    server.into()
+}
+
 fn s2n_mtls_server(
     cfg: MtlsServerConfig,
 ) -> (
@@ -195,6 +215,52 @@ fn s2n_mtls_client(cfg: MtlsClientConfig) -> S2NConfig {
         .set_verify_host_callback(HostNameIgnorer)
         .unwrap();
     S2NConfig::from(builder.build().unwrap())
+}
+
+fn s2n_mtls_client_with_sync_callback(cfg: MtlsClientConfig) -> (S2NConfig, Arc<AtomicU64>) {
+    let mut builder = s2n_tls::config::Builder::new();
+    builder.set_chain(cfg.sig_type);
+    builder
+        .set_client_auth_type(ClientAuthType::Required)
+        .unwrap()
+        .with_system_certs(false)
+        .unwrap()
+        .trust_pem(&read_to_bytes(PemType::CACert, cfg.sig_type))
+        .unwrap()
+        .set_verify_host_callback(HostNameIgnorer)
+        .unwrap();
+
+    let cb = TestCertValidationCallback::new_sync();
+    let invoked = Arc::clone(cb.invoked_count());
+    builder.set_cert_validation_callback(cb).unwrap();
+
+    (S2NConfig::from(builder.build().unwrap()), invoked)
+}
+
+fn s2n_mtls_client_with_async_callback(
+    cfg: MtlsClientConfig,
+) -> (
+    S2NConfig,
+    Arc<AtomicU64>,
+    Receiver<SendableCertValidationInfo>,
+) {
+    let mut builder = s2n_tls::config::Builder::new();
+    builder.set_chain(cfg.sig_type);
+    builder
+        .set_client_auth_type(ClientAuthType::Required)
+        .unwrap()
+        .with_system_certs(false)
+        .unwrap()
+        .trust_pem(&read_to_bytes(PemType::CACert, cfg.sig_type))
+        .unwrap()
+        .set_verify_host_callback(HostNameIgnorer)
+        .unwrap();
+
+    let (cb, rx) = TestCertValidationCallback::new_async();
+    let invoked = Arc::clone(cb.invoked_count());
+    builder.set_cert_validation_callback(cb).unwrap();
+
+    (S2NConfig::from(builder.build().unwrap()), invoked, rx)
 }
 
 fn test_mtls_basic<C, S>(client_cfg: &C::Config, server_cfg: &S::Config)
@@ -256,6 +322,68 @@ where
     pair
 }
 
+fn test_mtls_async_callback_client<C, S>(
+    client_cfg: &C::Config,
+    server_cfg: &S::Config,
+    handle: Arc<AtomicU64>,
+    rx: Receiver<SendableCertValidationInfo>,
+) -> TlsConnPair<C, S>
+where
+    C: TlsConnection,
+    S: TlsConnection,
+{
+    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
+    pair.io.enable_recording();
+
+    pair.client.handshake().unwrap();
+    pair.server.handshake().unwrap();
+
+    assert_eq!(handle.load(Ordering::SeqCst), 0);
+    pair.client.handshake().unwrap();
+    assert_eq!(handle.load(Ordering::SeqCst), 1);
+
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called
+    let mut info = unsafe { CertValidationInfo::from_ptr(ptr) };
+    info.accept().unwrap();
+
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
+    pair
+}
+
+// ============================================================================
+// Basic mTLS tests
+// ============================================================================
+
+// s2n client, rustls server
+#[test]
+fn s2n_rustls_mtls_basic_tls12() {
+    let client = s2n_mtls_client(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+    let server = rustls_mtls_server(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+    test_mtls_basic::<S2NConnection, RustlsConnection>(&client, &server);
+}
+
+#[test]
+fn s2n_rustls_mtls_basic_tls13() {
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = s2n_mtls_client(MtlsClientConfig::default());
+            let server = rustls_mtls_server(MtlsClientConfig::default());
+            test_mtls_basic::<S2NConnection, RustlsConnection>(&client, &server);
+        },
+    );
+}
+
+// rustls client, s2n server
 #[test]
 fn rustls_s2n_mtls_basic_tls12() {
     let client = rustls_mtls_client(MtlsClientConfig {
@@ -266,6 +394,51 @@ fn rustls_s2n_mtls_basic_tls12() {
     test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
 }
 
+#[test]
+fn rustls_s2n_mtls_basic_tls13() {
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = rustls_mtls_client(MtlsClientConfig::default());
+            let (server, _, _) = s2n_mtls_server(MtlsServerConfig::default());
+            test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
+        },
+    );
+}
+
+// ============================================================================
+// Sync callback tests
+// ============================================================================
+
+// s2n client with sync callback, rustls server
+#[test]
+fn s2n_rustls_mtls_sync_callback_tls12() {
+    let (client, handle) = s2n_mtls_client_with_sync_callback(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+    let server = rustls_mtls_server(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+
+    test_mtls_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
+}
+
+#[test]
+fn s2n_rustls_mtls_sync_callback_tls13() {
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let (client, handle) = s2n_mtls_client_with_sync_callback(MtlsClientConfig::default());
+            let server = rustls_mtls_server(MtlsClientConfig::default());
+
+            test_mtls_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
+        },
+    );
+}
+
+// rustls client, s2n server with sync callback
 #[test]
 fn rustls_s2n_mtls_sync_callback_tls12() {
     let client = rustls_mtls_client(MtlsClientConfig {
@@ -281,18 +454,6 @@ fn rustls_s2n_mtls_sync_callback_tls12() {
         &client,
         &server,
         handle.expect("sync callback handle"),
-    );
-}
-
-#[test]
-fn rustls_s2n_mtls_basic_tls13() {
-    crate::capability_check::required_capability(
-        &[crate::capability_check::Capability::Tls13],
-        || {
-            let client = rustls_mtls_client(MtlsClientConfig::default());
-            let (server, _, _) = s2n_mtls_server(MtlsServerConfig::default());
-            test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
-        },
     );
 }
 
@@ -316,32 +477,55 @@ fn rustls_s2n_mtls_sync_callback_tls13() {
     );
 }
 
-// As of 2024-11-24: Hangs due to the multi-message async cert validation bug.
+// ============================================================================
+// Async callback tests
+// ============================================================================
+
+// As of 2025-11-24: s2n as client (TLS 1.2, 1.3) and s2n as
+// server (TLS 1.3) hang due to a multi-message async cert validation bug.
 // s2n incorrectly clears queued handshake messages, causing
-// poll_negotiate() to spin forever. Remove #[ignore] once fixed in C.
+// poll_negotiate() to spin forever. Remove #[ignore] once fixed.
+// s2n client with async callback, rustls server
 #[test]
-#[ignore = "Hangs due to multi-message bug in async cert validation (TLS 1.3)"]
-fn rustls_s2n_mtls_async_callback_tls13() {
+#[ignore = "Hangs due to multi-message bug in async cert validation"]
+fn s2n_rustls_mtls_async_callback_tls12() {
+    let (client, handle, rx) = s2n_mtls_client_with_async_callback(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+
+    let server = rustls_mtls_server(MtlsClientConfig {
+        tls_version: &rustls::version::TLS12,
+        ..MtlsClientConfig::default()
+    });
+
+    let _pair = test_mtls_async_callback_client::<S2NConnection, RustlsConnection>(
+        &client, &server, handle, rx,
+    );
+}
+
+#[test]
+#[ignore = "Hangs due to multi-message bug in async cert validation"]
+fn s2n_rustls_mtls_async_callback_tls13() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {
-            let client = rustls_mtls_client(MtlsClientConfig::default());
-            let (server, handle, rx) = s2n_mtls_server(MtlsServerConfig {
-                callback_mode: MtlsServerCallback::Async,
-                ..Default::default()
-            });
+            let (client, handle, rx) =
+                s2n_mtls_client_with_async_callback(MtlsClientConfig::default());
 
-            // BUG: Hangs in test_mtls_async_callback - s2n wiped CertificateVerify and Finished
-            let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
-                &client,
-                &server,
-                handle.expect("async callback handle"),
-                rx.expect("async callback receiver"),
+            let server = rustls_mtls_server(MtlsClientConfig::default());
+
+            let _pair = test_mtls_async_callback_client::<S2NConnection, RustlsConnection>(
+                &client, &server, handle, rx,
             );
         },
     );
 }
 
+// rustls client, s2n server with async callback
+// Rustls TLS 1.2 clients do not send multiple handshake messages in a
+// single record, so s2n never hits the multi-message async-callback
+// bug that appears in TLS 1.3.ß
 #[test]
 fn rustls_s2n_mtls_async_callback_tls12() {
     let client = rustls_mtls_client(MtlsClientConfig {
@@ -354,16 +538,37 @@ fn rustls_s2n_mtls_async_callback_tls12() {
         ..Default::default()
     });
 
-    let pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+    let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
         &client,
         &server,
         handle.expect("async callback handle"),
         rx.expect("async callback receiver"),
     );
-
-    assert!(!pair.negotiated_tls13(), "Expected TLS 1.2, got TLS 1.3");
 }
 
+#[test]
+#[ignore = "Hangs due to multi-message bug in async cert validation"]
+fn rustls_s2n_mtls_async_callback_tls13() {
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = rustls_mtls_client(MtlsClientConfig::default());
+            let (server, handle, rx) = s2n_mtls_server(MtlsServerConfig {
+                callback_mode: MtlsServerCallback::Async,
+                ..Default::default()
+            });
+
+            let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
+                &client,
+                &server,
+                handle.expect("async callback handle"),
+                rx.expect("async callback receiver"),
+            );
+        },
+    );
+}
+
+// s2n client, s2n server with async callback
 #[test]
 fn s2n_s2n_mtls_async_callback() {
     let client = s2n_mtls_client(MtlsClientConfig::default());
