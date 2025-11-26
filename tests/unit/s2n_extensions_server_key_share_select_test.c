@@ -45,7 +45,7 @@ int main()
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
@@ -143,7 +143,7 @@ int main()
             server_conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                    S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 

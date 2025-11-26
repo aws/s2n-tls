@@ -74,7 +74,9 @@ struct s2n_security_policy {
     const struct s2n_ecc_preferences *ecc_preferences;
     /* This field contains the list of supported group IANA identifiers that s2n's
     * server negotiation logic will always be willing to perform a 2-RTT
-    * ClientHelloRetry in order to negotiate.
+    * ClientHelloRetry in order to negotiate. Setting this preference list may
+    * cause performance impact and extra round trips when performing TLS
+    * handshakes.
     */
     const struct s2n_supported_group_preferences *strongly_preferred_groups;
     /* This field determines what public keys are allowed for use. It restricts

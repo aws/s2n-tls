@@ -147,7 +147,7 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
 
     /* Boolean XOR: exactly one of {server_curve, server_kem_group} should be non-null. */
-    POSIX_ENSURE((curve == NULL) != (kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    POSIX_ENSURE((curve == NULL) != (kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
@@ -398,7 +398,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
      * groups; key negotiation is not possible and the handshake should be aborted
      * without sending HRR. (The case of both being non-NULL should never occur, and
      * is an error.) */
-    POSIX_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    POSIX_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
     const struct s2n_security_policy *policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &policy));
@@ -448,7 +448,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     /* Option 1: Perform a 2-RTT handshake if there is a strongly-preferred SupportedGroup that requires a 2-RTT handshake. */
     if (need_hrr_for_strongly_preferred_group) {
         /* Ensure that we chose exactly 1 strongly preferred SupportedGroup */
-        POSIX_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        POSIX_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         conn->kex_params.server_kem_group_params.kem_group = strongly_preferred_kem_group;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = strongly_preferred_curve;
@@ -488,7 +488,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 4: Server and client have at least 1 mutually supported group, but the client did not send key shares for
+    /* Option 5: Server and client have at least 1 mutually supported group, but the client did not send key shares for
      * any of them. Send a HelloRetryRequest indicating the server's preference. */
     POSIX_GUARD(s2n_set_hello_retry_required(conn));
     return S2N_SUCCESS;
