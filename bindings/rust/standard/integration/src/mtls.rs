@@ -525,7 +525,7 @@ fn s2n_rustls_mtls_async_callback_tls13() {
 // rustls client, s2n server with async callback
 // Rustls TLS 1.2 clients do not send multiple handshake messages in a
 // single record, so s2n never hits the multi-message async-callback
-// bug that appears in TLS 1.3.ß
+// bug that appears in TLS 1.3
 #[test]
 fn rustls_s2n_mtls_async_callback_tls12() {
     let client = rustls_mtls_client(MtlsClientConfig {
