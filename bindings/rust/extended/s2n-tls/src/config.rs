@@ -623,20 +623,16 @@ impl Builder {
         Ok(self)
     }
 
-    /// Set a callback function to perform custom certificate validation.
+    /// Set a callback function to perform custom cert validation synchronously.
     ///
-    /// The callback can operate in both synchronous and asynchronous modes:
-    /// - Return `Some(true)` to accept the certificate immediately
-    /// - Return `Some(false)` to reject the certificate immediately
-    /// - Return `None` to defer the decision - the application must call
-    ///   `validation_info.accept()` or `validation_info.reject()` later
+    /// The callback should return:
+    /// - `true` to accept the certificate
+    /// - `false` to reject the certificate
     ///
-    /// When returning `None`, the handshake will block (return S2N_ERR_T_BLOCKED with
-    /// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed.
-    ///
-    /// Corresponds to [s2n_config_set_cert_validation_cb].
+    /// Corresponds to [s2n_config_set_cert_validation_cb], but the rust callback
+    /// can only perform in synchronous mode.
     #[cfg(feature = "unstable-crl")]
-    pub fn set_cert_validation_callback<T: 'static + CertValidationCallback>(
+    pub fn set_cert_validation_callback_sync<T: 'static + CertValidationCallbackSync>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -649,7 +645,71 @@ impl Builder {
             // for the duration of this callback
             let mut info = CertValidationInfo::from_ptr(validation_info);
             with_context(conn_ptr, |conn, context| {
-                let callback = context.cert_validation_callback.as_ref();
+                let callback = context.cert_validation_callback_sync.as_ref();
+                callback.map(|callback| {
+                    let accepted = callback.handle_validation(conn, &mut info).unwrap();
+                    match accepted {
+                        true => info.accept().unwrap(),
+                        false => info.reject().unwrap(),
+                    }
+                })
+            });
+            CallbackResult::Success.into()
+        }
+
+        let handler = Box::new(handler);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.cert_validation_callback_sync = Some(handler);
+
+        unsafe {
+            s2n_config_set_cert_validation_cb(
+                self.as_mut_ptr(),
+                Some(cert_validation_cb),
+                core::ptr::null_mut(),
+            )
+            .into_result()?;
+        }
+
+        Ok(self)
+    }
+
+    /// Set a callback function to perform custom asynchronous certificate validation.
+    ///
+    /// # Warning
+    ///
+    /// This is an unstable API intended for testing purposes only. It should not be used
+    /// in production code. The API may change or be removed in future versions.
+    ///
+    /// The callback can operate in both synchronous and asynchronous modes:
+    /// - Return `Some(true)` to accept the certificate immediately
+    /// - Return `Some(false)` to reject the certificate immediately
+    /// - Return `None` to defer the decision - the application must call
+    ///   `validation_info.accept()` or `validation_info.reject()` later
+    ///
+    /// When returning `None`, the handshake will block (return S2N_ERR_T_BLOCKED with
+    /// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed.
+    ///
+    /// Corresponds to [s2n_config_set_cert_validation_cb].
+    #[cfg(feature = "unstable-async-cert")]
+    #[doc(hidden)]
+    pub fn set_cert_validation_callback_async<T: 'static + CertValidationCallbackAsync>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn async_cert_validation_cb(
+            conn_ptr: *mut s2n_connection,
+            validation_info: *mut s2n_cert_validation_info,
+            _context: *mut core::ffi::c_void,
+        ) -> libc::c_int {
+            // SAFETY: validation_info is provided by s2n-tls and guaranteed to be valid
+            // for the duration of this callback
+            let mut info = CertValidationInfo::from_ptr(validation_info);
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.cert_validation_callback_async.as_ref();
                 callback.map(|callback| {
                     match callback.handle_validation(conn, &mut info).unwrap() {
                         Some(true) => {
@@ -676,12 +736,12 @@ impl Builder {
             // it is being built, the Builder is the only reference to the config.
             self.config.context_mut()
         };
-        context.cert_validation_callback = Some(handler);
+        context.cert_validation_callback_async = Some(handler);
 
         unsafe {
             s2n_config_set_cert_validation_cb(
                 self.as_mut_ptr(),
-                Some(cert_validation_cb),
+                Some(async_cert_validation_cb),
                 core::ptr::null_mut(),
             )
             .into_result()?;
@@ -1114,7 +1174,9 @@ pub(crate) struct Context {
     #[cfg(feature = "unstable-cert_authorities")]
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
     #[cfg(feature = "unstable-crl")]
-    pub(crate) cert_validation_callback: Option<Box<dyn CertValidationCallback>>,
+    pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
+    #[cfg(feature = "unstable-async-cert")]
+    pub(crate) cert_validation_callback_async: Option<Box<dyn CertValidationCallbackAsync>>,
 }
 
 impl Default for Context {
@@ -1138,7 +1200,9 @@ impl Default for Context {
             #[cfg(feature = "unstable-cert_authorities")]
             cert_authorities: None,
             #[cfg(feature = "unstable-crl")]
-            cert_validation_callback: None,
+            cert_validation_callback_sync: None,
+            #[cfg(feature = "unstable-async-cert")]
+            cert_validation_callback_async: None,
         }
     }
 }

@@ -53,7 +53,23 @@ impl CertValidationInfo<'_> {
     }
 }
 
-/// Certificate validation callback that supports both synchronous and asynchronous validation.
+/// Certificate validation callback for synchronous validation.
+///
+/// The callback should return:
+/// - `Ok(true)`: Accept the certificate
+/// - `Ok(false)`: Reject the certificate
+///
+pub trait CertValidationCallbackSync: 'static + Send + Sync {
+    /// Return a boolean to indicate if the certificate chain passed the validation
+    fn handle_validation(
+        &self,
+        connection: &mut Connection,
+        validation_info: &mut CertValidationInfo,
+    ) -> Result<bool, Error>;
+}
+/// Certificate validation callback that supports asynchronous validation.
+///
+/// This trait is only available for integration testing purposes.
 ///
 /// The callback can operate in three modes based on the return value:
 /// - `Ok(Some(true))`: Accept the certificate immediately (synchronous)
@@ -64,14 +80,8 @@ impl CertValidationInfo<'_> {
 /// When returning `None`, the handshake will block (return S2N_ERR_T_BLOCKED with
 /// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed by calling
 /// `accept()` or `reject()` on the validation info.
-///
-pub trait CertValidationCallback: 'static + Send + Sync {
-    /// Validate the certificate chain.
-    ///
-    /// Return:
-    /// - `Some(true)` to accept immediately
-    /// - `Some(false)` to reject immediately
-    /// - `None` to defer the decision (async mode)
+#[cfg(feature = "unstable-async-cert")]
+pub trait CertValidationCallbackAsync: 'static + Send + Sync {
     fn handle_validation(
         &self,
         connection: &mut Connection,
@@ -88,17 +98,16 @@ mod tests {
         accept: bool,
     }
 
-    struct TestCallback(Counter);
-    impl CertValidationCallback for TestCallback {
+    struct SyncCallback(Counter);
+    impl CertValidationCallbackSync for SyncCallback {
         fn handle_validation(
             &self,
             conn: &mut Connection,
             _info: &mut CertValidationInfo,
-        ) -> Result<Option<bool>, Error> {
+        ) -> Result<bool, Error> {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
-            // Return Some(accept) for synchronous validation
-            Ok(Some(context.accept))
+            Ok(context.accept)
         }
     }
 

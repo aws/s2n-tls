@@ -3,7 +3,7 @@
 
 use rustls::ClientConfig;
 use s2n_tls::{
-    callbacks::{CertValidationCallback, CertValidationInfo, VerifyHostNameCallback},
+    callbacks::{CertValidationCallbackAsync, CertValidationCallbackSync, CertValidationInfo, VerifyHostNameCallback},
     connection::Connection,
     enums::ClientAuthType,
     error::Error as S2NError,
@@ -66,7 +66,18 @@ impl TestCertValidationCallback {
     }
 }
 
-impl CertValidationCallback for TestCertValidationCallback {
+impl CertValidationCallbackSync for TestCertValidationCallback {
+    fn handle_validation(
+        &self,
+        _conn: &mut Connection,
+        _info: &mut CertValidationInfo,
+    ) -> Result<bool, S2NError> {
+        self.invoked.fetch_add(1, Ordering::SeqCst);
+        Ok(self.immediately_accept)
+    }
+}
+
+impl CertValidationCallbackAsync for TestCertValidationCallback {
     fn handle_validation(
         &self,
         _conn: &mut Connection,
@@ -188,13 +199,13 @@ fn s2n_mtls_server(
         MtlsServerCallback::Sync => {
             let cb = TestCertValidationCallback::new_sync();
             let invoked = Arc::clone(cb.invoked_count());
-            builder.set_cert_validation_callback(cb).unwrap();
+            builder.set_cert_validation_callback_sync(cb).unwrap();
             (Some(invoked), None)
         }
         MtlsServerCallback::Async => {
             let (cb, rx) = TestCertValidationCallback::new_async();
             let invoked = Arc::clone(cb.invoked_count());
-            builder.set_cert_validation_callback(cb).unwrap();
+            builder.set_cert_validation_callback_async(cb).unwrap();
             (Some(invoked), Some(rx))
         }
     };
@@ -232,7 +243,7 @@ fn s2n_mtls_client_with_sync_callback(cfg: MtlsClientConfig) -> (S2NConfig, Arc<
 
     let cb = TestCertValidationCallback::new_sync();
     let invoked = Arc::clone(cb.invoked_count());
-    builder.set_cert_validation_callback(cb).unwrap();
+    builder.set_cert_validation_callback_sync(cb).unwrap();
 
     (S2NConfig::from(builder.build().unwrap()), invoked)
 }
@@ -258,7 +269,7 @@ fn s2n_mtls_client_with_async_callback(
 
     let (cb, rx) = TestCertValidationCallback::new_async();
     let invoked = Arc::clone(cb.invoked_count());
-    builder.set_cert_validation_callback(cb).unwrap();
+    builder.set_cert_validation_callback_async(cb).unwrap();
 
     (S2NConfig::from(builder.build().unwrap()), invoked, rx)
 }
