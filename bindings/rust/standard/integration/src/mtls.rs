@@ -3,7 +3,10 @@
 
 use rustls::ClientConfig;
 use s2n_tls::{
-    callbacks::{CertValidationCallbackAsync, CertValidationCallbackSync, CertValidationInfo, VerifyHostNameCallback},
+    callbacks::{
+        CertValidationCallbackAsync, CertValidationCallbackSync, CertValidationInfo,
+        VerifyHostNameCallback,
+    },
     connection::Connection,
     enums::ClientAuthType,
     error::Error as S2NError,
