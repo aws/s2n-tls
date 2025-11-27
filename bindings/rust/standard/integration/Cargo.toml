@@ -28,12 +28,12 @@ s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
 s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
 aws-lc-sys = "*"
 tls-harness = { path = "../tls-harness" }
-rustls = "0.23.35"
 
 [dev-dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
+rustls = "0.23"
 
 tracing = "0.1"
 tracing-subscriber = "0.3"

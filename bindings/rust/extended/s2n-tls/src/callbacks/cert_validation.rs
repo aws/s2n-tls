@@ -115,11 +115,11 @@ mod tests {
     fn sync_cert_validation() -> Result<(), Box<dyn std::error::Error>> {
         for accept in [true, false] {
             let counter = Counter::default();
-            let callback = TestCallback(counter.clone());
+            let callback = SyncCallback(counter.clone());
 
             let config = {
                 let mut config = config_builder(&security::DEFAULT_TLS13)?;
-                config.set_cert_validation_callback(callback)?;
+                config.set_cert_validation_callback_sync(callback)?;
                 config.build()?
             };
 
