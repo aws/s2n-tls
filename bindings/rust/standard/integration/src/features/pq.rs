@@ -3,7 +3,11 @@
 
 use crate::capability_check::{required_capability_async, Capability};
 use openssl::ssl::{Ssl, SslContextBuilder, SslFiletype, SslMethod};
-use s2n_tls::{config::Config, enums::SignatureAlgorithm, security::DEFAULT_PQ};
+use s2n_tls::{
+    config::Config,
+    enums::SignatureAlgorithm,
+    security::{Policy, DEFAULT_PQ},
+};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use std::{fs, path::Path, pin::Pin};
 use tokio::net::{TcpListener, TcpStream};
@@ -185,6 +189,90 @@ fn s2n_mlkem_server() {
         let conn = server.as_ref();
         let kem_group = conn.kem_group_name().unwrap();
         assert_eq!(kem_group, "SecP384r1MLKEM1024");
+        Ok(())
+    });
+}
+
+#[test]
+fn s2n_pure_mlkem_client() {
+    required_capability_async(&[Capability::MLKem, Capability::MLDsa], async {
+        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
+        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+
+        let (server_stream, client_stream) = get_streams().await?;
+
+        // Setup Openssl 3.5 server restricted to MLKEM1024
+        let mut server = {
+            let mut builder = SslContextBuilder::new(SslMethod::tls())?;
+            builder.set_private_key_file(key_path, SslFiletype::PEM)?;
+            builder.set_certificate_chain_file(cert_path.clone())?;
+            builder.set_groups_list("MLKEM1024")?;
+            let context = builder.build();
+            let ssl = Ssl::new(&context)?;
+            SslStream::new(ssl, server_stream)?
+        };
+
+        // Setup s2n-tls client with test_all
+        let test_all_policy = Policy::from_version("test_all")?;
+        let client = {
+            let mut config = Config::builder();
+            config.set_security_policy(&test_all_policy)?;
+            config.set_max_blinding_delay(0)?;
+            config.trust_location(Some(Path::new(&cert_path)), None)?;
+            TlsConnector::new(config.build()?)
+        };
+
+        let server_pin = Pin::new(&mut server);
+        let (_, client_result) = tokio::join!(
+            server_pin.accept(),
+            client.connect("LAMPS WG", client_stream),
+        );
+
+        let client = client_result?;
+        let conn = client.as_ref();
+        let kem_group = conn.kem_group_name().unwrap();
+        assert_eq!(kem_group, "MLKEM1024");
+        Ok(())
+    });
+}
+
+#[test]
+fn s2n_pure_mlkem_server() {
+    required_capability_async(&[Capability::MLKem, Capability::MLDsa], async {
+        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
+        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+
+        let (server_stream, client_stream) = get_streams().await?;
+
+        // Setup Openssl 3.5 client restricted to MLKEM1024
+        let mut client = {
+            let mut builder = SslContextBuilder::new(SslMethod::tls())?;
+            builder.set_ca_file(Path::new(&cert_path))?;
+            builder.set_groups_list("MLKEM1024")?;
+            let context = builder.build();
+            let ssl = Ssl::new(&context)?;
+            SslStream::new(ssl, client_stream)?
+        };
+
+        // Setup s2n-tls server with test_all
+        let test_all_policy = Policy::from_version("test_all")?;
+        let server = {
+            let mut config = Config::builder();
+            config.set_security_policy(&test_all_policy)?;
+            config.set_max_blinding_delay(0)?;
+            let cert = fs::read(cert_path)?;
+            let key = fs::read(key_path)?;
+            config.load_pem(&cert, &key)?;
+            TlsAcceptor::new(config.build()?)
+        };
+
+        let client_pin = Pin::new(&mut client);
+        let (server_result, _) = tokio::join!(server.accept(server_stream), client_pin.connect(),);
+
+        let server = server_result?;
+        let conn = server.as_ref();
+        let kem_group = conn.kem_group_name().unwrap();
+        assert_eq!(kem_group, "MLKEM1024");
         Ok(())
     });
 }

@@ -17,7 +17,7 @@ jobs:
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -40,7 +40,7 @@ jobs:
   headers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -51,7 +51,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -62,7 +62,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -111,7 +111,7 @@ jobs:
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: clang-format check
         uses: harrisonkaiser/clang-format-action@verbose
         with:
@@ -121,7 +121,7 @@ jobs:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: nixbuild/nix-quick-install-action@v34
         with:
           nix_conf: experimental-features = nix-command flakes
@@ -130,7 +130,7 @@ jobs:
   nixfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: nixbuild/nix-quick-install-action@v34
         with:
           nix_conf: experimental-features = nix-command flakes
@@ -149,3 +149,19 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: PR Conventional Commit Validation
+        id: cc_check
+        if: github.event_name == 'pull_request_target'
+        uses: ytanikin/pr-conventional-commits@1.4.2
+        with:
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
+          add_label: 'false'
+      - name: Failure case
+        if: github.event_name == 'pull_request_target' && steps.cc_check.outcome != 'success'
+        run: |
+          echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
+          exit 1

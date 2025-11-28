@@ -26,7 +26,8 @@ BUILDS=(
     "s2nFuzzBatch"
     "s2nGeneralBatch"
     "s2nUnitNix"
-    "Integv2NixBatchBF1FB83F-7tcZOiMDWPH0 us-east-2 batch"
+    "IntegRustNixBatch"
+    "Integv2NixBatch"
     "kTLS us-west-2 no-batch"
     "kTLSKeyUpdate us-west-2 no-batch"
 )
