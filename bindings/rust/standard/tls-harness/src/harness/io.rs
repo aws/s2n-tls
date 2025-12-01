@@ -176,13 +176,17 @@ impl std::io::Write for ViewIO {
 mod tests {
     use std::collections::HashMap;
 
+    #[cfg(feature = "openssl")]
     use openssl::ssl::SslContextBuilder;
 
     use crate::{
-        cohort::{rustls::RustlsConfigBuilder, OpenSslConnection, RustlsConnection, S2NConnection},
+        cohort::{rustls::RustlsConfigBuilder, RustlsConnection, S2NConnection},
         harness::TlsConfigBuilderPair,
         TlsConnPair,
     };
+
+    #[cfg(feature = "openssl")]
+    use crate::cohort::OpenSslConnection;
 
     use super::*;
 
@@ -210,10 +214,13 @@ mod tests {
     #[test]
     fn implementation_record_size() {
         const S2N_RECORD_DEFAULT: u16 = 8104;
-        const OPENSSL_RECORD_DEFAULT: u16 = 16401;
         const RUSTLS_RECORD_DEFAULT: u16 = 16401;
 
+        #[cfg(feature = "openssl")]
+        const OPENSSL_RECORD_DEFAULT: u16 = 16401;
+
         // openssl & s2n
+        #[cfg(feature = "openssl")]
         {
             let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
                 let configs =
