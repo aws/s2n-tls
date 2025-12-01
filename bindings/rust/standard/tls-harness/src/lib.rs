@@ -3,6 +3,7 @@
 
 pub mod cohort;
 pub mod harness;
+#[cfg(feature = "openssl")]
 pub mod openssl_extension;
 #[cfg(test)]
 pub mod test_utilities;
