@@ -186,6 +186,11 @@ extern const struct s2n_security_policy security_policy_20250512;
 extern const struct s2n_security_policy security_policy_20250721;
 extern const struct s2n_security_policy security_policy_20251014;
 extern const struct s2n_security_policy security_policy_20251015;
+extern const struct s2n_security_policy security_policy_20251113;
+extern const struct s2n_security_policy security_policy_20251114_no_sha;
+extern const struct s2n_security_policy security_policy_20251114;
+extern const struct s2n_security_policy security_policy_20251115;
+extern const struct s2n_security_policy security_policy_20251116;
 
 extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;
