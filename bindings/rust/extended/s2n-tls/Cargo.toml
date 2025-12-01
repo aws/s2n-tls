@@ -20,8 +20,6 @@ quic = ["s2n-tls-sys/quic"]
 fips = ["s2n-tls-sys/fips"]
 pq = ["s2n-tls-sys/pq"]
 unstable-testing = []
-# Internal feature for testing async cert validation - not for public use
-unstable-async-cert = ["unstable-crl"]
 
 [dependencies]
 errno = { version = "0.3" }

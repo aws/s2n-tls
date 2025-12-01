@@ -15,17 +15,7 @@ pub struct CertValidationInfo<'a> {
 }
 
 impl CertValidationInfo<'_> {
-    /// Creates a `CertValidationInfo` from a raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that:
-    /// - `info` is a non-null pointer to a valid `s2n_cert_validation_info` structure
-    /// - The pointed-to structure is owned by s2n-tls and remains valid for the lifetime
-    ///   of this `CertValidationInfo` (typically until the handshake completes or the
-    ///   connection is freed)
-    /// - The pointer is not used to create multiple mutable references
-    pub unsafe fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
+    pub(crate) fn from_ptr(info: *mut s2n_cert_validation_info) -> Self {
         let info = NonNull::new(info).expect("info pointer should not be null");
         CertValidationInfo {
             info,
@@ -36,29 +26,23 @@ impl CertValidationInfo<'_> {
     /// Returns the raw pointer to the underlying `s2n_cert_validation_info`.
     ///
     /// This is primarily useful for passing to FFI functions or storing for later use.
-    pub fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
+    pub(crate) fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
         self.info.as_ptr()
     }
 
     /// Corresponds to [s2n_cert_validation_accept].
-    pub fn accept(&mut self) -> Result<(), Error> {
+    pub(crate) fn accept(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Corresponds to [s2n_cert_validation_reject].
-    pub fn reject(&mut self) -> Result<(), Error> {
+    pub(crate) fn reject(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
     }
 }
 
-/// Certificate validation callback for synchronous validation.
-///
-/// The callback should return:
-/// - `Ok(true)`: Accept the certificate
-/// - `Ok(false)`: Reject the certificate
-///
 pub trait CertValidationCallbackSync: 'static + Send + Sync {
     /// Return a boolean to indicate if the certificate chain passed the validation
     fn handle_validation(
@@ -66,27 +50,6 @@ pub trait CertValidationCallbackSync: 'static + Send + Sync {
         connection: &mut Connection,
         validation_info: &mut CertValidationInfo,
     ) -> Result<bool, Error>;
-}
-/// Certificate validation callback that supports asynchronous validation.
-///
-/// This trait is only available for integration testing purposes.
-///
-/// The callback can operate in three modes based on the return value:
-/// - `Ok(Some(true))`: Accept the certificate immediately (synchronous)
-/// - `Ok(Some(false))`: Reject the certificate immediately (synchronous)
-/// - `Ok(None)`: Defer the decision (asynchronous) - the application must call
-///   `validation_info.accept()` or `validation_info.reject()` later
-///
-/// When returning `None`, the handshake will block (return S2N_ERR_T_BLOCKED with
-/// S2N_BLOCKED_ON_APPLICATION_INPUT) until validation is completed by calling
-/// `accept()` or `reject()` on the validation info.
-#[cfg(feature = "unstable-async-cert")]
-pub trait CertValidationCallbackAsync: 'static + Send + Sync {
-    fn handle_validation(
-        &self,
-        connection: &mut Connection,
-        validation_info: &mut CertValidationInfo,
-    ) -> Result<Option<bool>, Error>;
 }
 
 #[cfg(test)]
