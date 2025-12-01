@@ -29,4 +29,3 @@ curves:
 - x25519
 - secp384r1
 - secp521r1
-strongly preferred groups: (empty)

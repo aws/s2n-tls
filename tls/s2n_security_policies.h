@@ -140,7 +140,6 @@ struct s2n_security_policy {
         .signature_preferences = &name##_sig_prefs,                                         \
         .certificate_signature_preferences = &name##_sig_prefs,                             \
         .ecc_preferences = &name##_ecc_prefs,                                               \
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,                 \
         .kem_preferences = &name##_kem_prefs,                                               \
     }
 

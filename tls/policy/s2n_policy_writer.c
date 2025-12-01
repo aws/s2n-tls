@@ -71,9 +71,8 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
         RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", policy->ecc_preferences->ecc_curves[i]->name));
     }
 
-    const char *empty = policy->strongly_preferred_groups->count == 0 ? "(empty)" : "";
-    RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "strongly preferred groups: %s\n", empty));
-    for (size_t i = 0; i < policy->strongly_preferred_groups->count; i++) {
+    for (size_t i = 0; policy->strongly_preferred_groups != NULL && i < policy->strongly_preferred_groups->count; i++) {
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "strongly preferred groups:\n"));
         const struct s2n_ecc_named_curve *strongly_preferred_curve = NULL;
         const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
         bool found = false;

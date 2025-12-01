@@ -33,16 +33,11 @@ int main(int argc, char **argv)
         const struct s2n_security_policy *security_policy = selection.security_policy;
         POSIX_ENSURE_REF(security_policy);
 
-        if (security_policy->strongly_preferred_groups == NULL) {
-            fprintf(stdout, "Security Policy: %s has NULL strongly_preferred_groups\n", policy_name);
-            FAIL_MSG("Security Policies must set a value for strongly_preferred_groups");
+        if (security_policy->strongly_preferred_groups == NULL || security_policy->strongly_preferred_groups->count == 0) {
+            continue;
         }
 
         POSIX_ENSURE_REF(security_policy->strongly_preferred_groups);
-
-        if (security_policy->strongly_preferred_groups->count == 0) {
-            continue;
-        }
 
         uint16_t ordered_supported_groups[S2N_KEM_GROUPS_COUNT + S2N_ECC_EVP_SUPPORTED_CURVES_COUNT] = { 0 };
         uint16_t ordered_supported_group_count = 0;

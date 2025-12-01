@@ -13,7 +13,6 @@ signature schemes:
 - rsa_pkcs1_sha384
 curves:
 - secp384r1
-strongly preferred groups: (empty)
 certificate preferences apply locally
 certificate signature schemes:
 - ecdsa_sha384

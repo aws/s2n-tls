@@ -14,4 +14,3 @@ signature schemes:
 - ecdsa_sha512
 curves:
 - secp384r1
-strongly preferred groups: (empty)

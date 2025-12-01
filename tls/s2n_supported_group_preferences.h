@@ -23,7 +23,6 @@ struct s2n_supported_group_preferences {
     const uint16_t *iana_ids;
 };
 
-extern const struct s2n_supported_group_preferences s2n_supported_group_preferences_null;
 extern const struct s2n_supported_group_preferences cnsa_1_strong_preference;
 extern const struct s2n_supported_group_preferences cnsa_1_2_strong_preference;
 extern const struct s2n_supported_group_preferences cnsa_2_strong_preference;

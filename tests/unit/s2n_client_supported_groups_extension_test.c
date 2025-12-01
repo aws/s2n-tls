@@ -97,7 +97,6 @@ int main()
             .kem_preferences = &test_kem_prefs_kyber,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         /* Test send with TLS 1.3 KEM groups */

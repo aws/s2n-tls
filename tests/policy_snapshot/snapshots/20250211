@@ -11,7 +11,6 @@ signature schemes:
 - rsa_pkcs1_sha384
 curves:
 - secp384r1
-strongly preferred groups: (empty)
 certificate signature schemes:
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384

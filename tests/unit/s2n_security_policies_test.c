@@ -480,7 +480,6 @@ int main(int argc, char **argv)
             .minimum_protocol_version = S2N_TLS10,
             .cipher_preferences = &fake_cipher_preference,
             .kem_preferences = &fake_kem_preference,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         security_policy = &fake_security_policy;

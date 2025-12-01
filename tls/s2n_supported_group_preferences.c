@@ -17,11 +17,6 @@
 
 #include "tls/s2n_ecc_preferences.h"
 
-const struct s2n_supported_group_preferences s2n_supported_group_preferences_null = {
-    .count = 0,
-    .iana_ids = NULL
-};
-
 const uint16_t cnsa_1_supported_group_iana_ids[] = {
     TLS_EC_CURVE_SECP_384_R1
 };

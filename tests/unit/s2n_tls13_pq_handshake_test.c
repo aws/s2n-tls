@@ -44,7 +44,7 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
     PTR_ENSURE_REF(client_default);
 
-    for (int i = 0; i < server_policy->strongly_preferred_groups->count; i++) {
+    for (int i = 0; server_policy->strongly_preferred_groups != NULL && i < server_policy->strongly_preferred_groups->count; i++) {
         for (int j = 0; j < client_policy->kem_preferences->tls13_kem_group_count; j++) {
             if (server_policy->strongly_preferred_groups->iana_ids[i] == client_policy->kem_preferences->tls13_kem_groups[j]->iana_id
                     && s2n_kem_group_is_available(client_policy->kem_preferences->tls13_kem_groups[j])) {
@@ -97,7 +97,7 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
     const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
     PTR_ENSURE_REF(client_default);
 
-    for (int i = 0; i < server_sec_policy->strongly_preferred_groups->count; i++) {
+    for (int i = 0; server_sec_policy->strongly_preferred_groups != NULL && i < server_sec_policy->strongly_preferred_groups->count; i++) {
         for (int j = 0; j < client_sec_policy->ecc_preferences->count; j++) {
             if (server_sec_policy->strongly_preferred_groups->iana_ids[i] == client_sec_policy->ecc_preferences->ecc_curves[j]->iana_id) {
                 return client_sec_policy->ecc_preferences->ecc_curves[j];
@@ -408,7 +408,6 @@ int main()
         .kem_preferences = &kyber_test_prefs_draft0,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20200310,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_preferences kyber_test_prefs_draft5 = {
@@ -425,7 +424,6 @@ int main()
         .kem_preferences = &kyber_test_prefs_draft5,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20200310,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *kyber768_test_kem_groups[] = {
@@ -447,7 +445,6 @@ int main()
         .kem_preferences = &kyber768_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20201021,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *kyber1024_test_kem_groups[] = {
@@ -469,7 +466,6 @@ int main()
         .kem_preferences = &kyber1024_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20201021,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *mlkem768_test_groups[] = {
@@ -491,7 +487,6 @@ int main()
         .kem_preferences = &mlkem768_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20240603,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *mlkem1024_test_groups[] = {
@@ -512,7 +507,6 @@ int main()
         .kem_preferences = &mlkem1024_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20240603,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *pure_mlkem1024_test_groups[] = {
@@ -533,7 +527,6 @@ int main()
         .kem_preferences = &pure_mlkem1024_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20240603,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *low_priority_mlkem1024_test_groups[] = {
@@ -556,7 +549,6 @@ int main()
         .kem_preferences = &low_priority_mlkem1024_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20240603,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_kem_group *strongly_preferred_mlkem1024_test_groups[] = {
@@ -588,7 +580,6 @@ int main()
         .kem_preferences = security_policy_pq_tls_1_0_2020_12.kem_preferences,
         .signature_preferences = security_policy_pq_tls_1_0_2020_12.signature_preferences,
         .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_ecc_named_curve *default_curve = &s2n_ecc_curve_x25519;
@@ -628,7 +619,6 @@ int main()
             .kem_preferences = &singleton_test_pref,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20240603,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         const struct pq_handshake_test_vector test_vec = {
@@ -1012,7 +1002,7 @@ int main()
             /* The client's preferred curve will be a higher priority than the default if both sides
              * support TLS 1.3, and if the client's default can be chosen by the server in 1-RTT. */
             if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
-                    && server_policy->strongly_preferred_groups->count == 0
+                    && (server_policy->strongly_preferred_groups == NULL || server_policy->strongly_preferred_groups->count == 0)
                     && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
                 curve = client_default;
             }

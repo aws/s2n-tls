@@ -48,7 +48,6 @@ int main(int argc, char **argv)
             .kem_preferences = &kem_preferences_null,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20140601,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         struct s2n_connection *conn = NULL;
@@ -533,7 +532,6 @@ int main(int argc, char **argv)
             .kem_preferences = &test_kem_prefs,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         const struct s2n_kem_preferences test_all_supported_kem_prefs = {
@@ -550,7 +548,6 @@ int main(int argc, char **argv)
             .kem_preferences = &test_all_supported_kem_prefs,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
 
         /* Tests for s2n_server_key_share_extension.recv with hybrid PQ key shares */

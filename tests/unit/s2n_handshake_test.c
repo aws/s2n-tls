@@ -387,7 +387,6 @@ int main(int argc, char **argv)
                 .kem_preferences = server_config->security_policy->kem_preferences,
                 .signature_preferences = &sig_prefs,
                 .ecc_preferences = server_config->security_policy->ecc_preferences,
-                .strongly_preferred_groups = &s2n_supported_group_preferences_null,
             };
 
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));

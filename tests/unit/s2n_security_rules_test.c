@@ -156,7 +156,6 @@ int main(int argc, char **argv)
         .ecc_preferences = &valid_ecc_prefs,
         .kem_preferences = &valid_kem_preferences,
         .minimum_protocol_version = VALID_VERSION,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     const struct s2n_security_policy invalid_policy = {
@@ -166,7 +165,6 @@ int main(int argc, char **argv)
         .ecc_preferences = &invalid_ecc_prefs,
         .kem_preferences = &invalid_kem_preferences,
         .minimum_protocol_version = EXAMPLE_INVALID_VERSION,
-        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
     };
 
     /* Test s2n_security_rule_validate_policy */

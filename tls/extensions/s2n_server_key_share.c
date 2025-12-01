@@ -403,7 +403,6 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     const struct s2n_security_policy *policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &policy));
     POSIX_ENSURE_REF(policy);
-    POSIX_ENSURE_REF(policy->strongly_preferred_groups);
 
     const struct s2n_ecc_named_curve *strongly_preferred_curve = NULL;
     const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
@@ -411,7 +410,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     bool need_hrr_for_strongly_preferred_group = false;
 
     /* Check if there are any strongly preferred SupportedGroups worth performing a 2-RTT upgrade for. */
-    for (size_t i = 0; i < policy->strongly_preferred_groups->count && !matched_strongly_preferred_iana; i++) {
+    for (size_t i = 0; policy->strongly_preferred_groups != NULL && i < policy->strongly_preferred_groups->count && !matched_strongly_preferred_iana; i++) {
         uint16_t strongly_preferred_iana = policy->strongly_preferred_groups->iana_ids[i];
 
         for (int j = 0; j < S2N_KEM_GROUPS_COUNT && !matched_strongly_preferred_iana; j++) {

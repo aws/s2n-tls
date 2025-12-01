@@ -58,7 +58,6 @@ int main()
             .kem_preferences = &kem_prefs_all,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
-            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
         };
         uint32_t groups_available = 0;
 
@@ -131,7 +130,6 @@ int main()
                         .kem_preferences = &test_kem_prefs,
                         .signature_preferences = &s2n_signature_preferences_20200207,
                         .ecc_preferences = &s2n_ecc_preferences_20200310,
-                        .strongly_preferred_groups = &s2n_supported_group_preferences_null,
                     };
 
                     /* Test sending of default PQ key share (non-HRR) */
@@ -578,7 +576,6 @@ int main()
                             .kem_preferences = &test_kem_prefs,
                             .signature_preferences = &s2n_signature_preferences_20200207,
                             .ecc_preferences = &s2n_ecc_preferences_20200310,
-                            .strongly_preferred_groups = &s2n_supported_group_preferences_null,
                         };
 
                         struct s2n_connection *client_conn = NULL, *server_conn = NULL;
