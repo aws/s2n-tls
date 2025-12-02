@@ -23,9 +23,6 @@ impl CertValidationInfo<'_> {
         }
     }
 
-    /// Returns the raw pointer to the underlying `s2n_cert_validation_info`.
-    ///
-    /// This is primarily useful for passing to FFI functions or storing for later use.
     pub(crate) fn as_ptr(&mut self) -> *mut s2n_cert_validation_info {
         self.info.as_ptr()
     }
