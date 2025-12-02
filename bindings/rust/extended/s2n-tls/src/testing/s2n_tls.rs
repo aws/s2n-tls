@@ -13,7 +13,7 @@ mod tests {
     use core::sync::atomic::Ordering;
     use futures_test::task::{new_count_waker, noop_waker};
     use security::Policy;
-    use std::{any::TypeId, fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
+    use std::{fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
 
     #[test]
     fn handshake_default() {
@@ -634,9 +634,8 @@ mod tests {
                 &self,
                 connection: &mut connection::Connection,
             ) -> ConnectionFutureResult {
-                let context_type_id = TypeId::of::<TestApplicationContext>();
                 let app_context = connection
-                    .application_context_mut::<TestApplicationContext>(context_type_id)
+                    .application_context_mut::<TestApplicationContext>()
                     .unwrap();
                 app_context.invoked_count += 1;
                 Ok(None)
@@ -664,10 +663,9 @@ mod tests {
 
         pair.handshake()?;
 
-        let context_type_id = TypeId::of::<TestApplicationContext>();
         let context = pair
             .server
-            .application_context::<TestApplicationContext>(context_type_id)
+            .application_context::<TestApplicationContext>()
             .unwrap();
         assert_eq!(context.invoked_count, 1);
 

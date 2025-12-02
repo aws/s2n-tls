@@ -1426,10 +1426,10 @@ impl Connection {
     }
 
     /// Remove a application context set on the Connection.
-    pub fn remove_application_context(
+    pub fn remove_application_context<T: Send + Sync + 'static>(
         &mut self,
-        context_type_id: TypeId,
     ) -> Option<Box<dyn Any + Send + Sync>> {
+        let context_type_id = TypeId::of::<T>();
         self.context_mut().app_context.remove(&context_type_id)
     }
 
@@ -1442,10 +1442,8 @@ impl Connection {
     /// mutable reference to the context, use [`Self::application_context_mut()`].
     ///
     /// Corresponds to [s2n_connection_get_ctx].
-    pub fn application_context<T: Send + Sync + 'static>(
-        &self,
-        context_type_id: TypeId,
-    ) -> Option<&T> {
+    pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        let context_type_id = TypeId::of::<T>();
         match self.context().app_context.get(&context_type_id) {
             None => None,
             // The Any trait keeps track of the application context's type. downcast_ref() returns
@@ -1464,10 +1462,8 @@ impl Connection {
     /// immutable reference to the context, use [`Self::application_context()`].
     ///
     /// Corresponds to [s2n_connection_get_ctx].
-    pub fn application_context_mut<T: Send + Sync + 'static>(
-        &mut self,
-        context_type_id: TypeId,
-    ) -> Option<&mut T> {
+    pub fn application_context_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        let context_type_id = TypeId::of::<T>();
         match self.context_mut().app_context.get_mut(&context_type_id) {
             None => None,
             Some(app_context) => app_context.downcast_mut::<T>(),
@@ -1645,22 +1641,14 @@ mod tests {
         let mut connection = Connection::new_server();
 
         let test_value: u32 = 1142;
-        let test_context_type_id = TypeId::of::<u32>();
 
         // Before a context is set, None is returned.
-        assert!(connection
-            .application_context::<u32>(test_context_type_id)
-            .is_none());
+        assert!(connection.application_context::<u32>().is_none());
 
         connection.set_application_context(test_value);
 
         // After a context is set, the application data is returned.
-        assert_eq!(
-            *connection
-                .application_context::<u32>(test_context_type_id)
-                .unwrap(),
-            1142
-        );
+        assert_eq!(*connection.application_context::<u32>().unwrap(), 1142);
     }
 
     /// Test that an application context can be modified.
@@ -1671,18 +1659,10 @@ mod tests {
         let mut connection = Connection::new_server();
         connection.set_application_context(test_value);
 
-        let context_type_id = TypeId::of::<u64>();
-        let context_value = connection
-            .application_context_mut::<u64>(context_type_id)
-            .unwrap();
+        let context_value = connection.application_context_mut::<u64>().unwrap();
         *context_value += 1;
 
-        assert_eq!(
-            *connection
-                .application_context::<u64>(context_type_id)
-                .unwrap(),
-            1
-        );
+        assert_eq!(*connection.application_context::<u64>().unwrap(), 1);
     }
 
     /// Test that multiple application contexts can be set in a connection
@@ -1693,24 +1673,15 @@ mod tests {
         let first_test_value: u16 = 1142;
         connection.set_application_context(first_test_value);
 
-        let first_test_value_type_id = TypeId::of::<u16>();
-        assert_eq!(
-            *connection
-                .application_context::<u16>(first_test_value_type_id)
-                .unwrap(),
-            1142
-        );
+        assert_eq!(*connection.application_context::<u16>().unwrap(), 1142);
 
         // Insert the second application context to the connection
         let second_test_value: SocketAddr =
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         connection.set_application_context(second_test_value);
 
-        let second_test_value_type_id = TypeId::of::<SocketAddr>();
         assert_eq!(
-            *connection
-                .application_context::<SocketAddr>(second_test_value_type_id)
-                .unwrap(),
+            *connection.application_context::<SocketAddr>().unwrap(),
             second_test_value
         );
 
@@ -1718,15 +1689,13 @@ mod tests {
         assert_eq!(
             second_test_value,
             *connection
-                .remove_application_context(second_test_value_type_id)
+                .remove_application_context::<SocketAddr>()
                 .unwrap()
                 .downcast::<SocketAddr>()
                 .unwrap()
         );
 
-        assert!(connection
-            .application_context::<SocketAddr>(second_test_value_type_id)
-            .is_none());
+        assert!(connection.application_context::<SocketAddr>().is_none());
     }
 
     /// Test that a context of another type can't be retrieved.
@@ -1737,17 +1706,11 @@ mod tests {
         let test_value: u32 = 0;
         connection.set_application_context(test_value);
 
-        let invalid_context_type_id = TypeId::of::<i16>();
         // A context type that wasn't set shouldn't be returned.
-        assert!(connection
-            .application_context::<i16>(invalid_context_type_id)
-            .is_none());
+        assert!(connection.application_context::<i16>().is_none());
 
-        let valid_context_type_id = TypeId::of::<u32>();
         // Retrieving the correct type succeeds.
-        assert!(connection
-            .application_context::<u32>(valid_context_type_id)
-            .is_some());
+        assert!(connection.application_context::<u32>().is_some());
     }
 
     /// Test that the `certificate_match` Rust wrapper returns expected enum variant
