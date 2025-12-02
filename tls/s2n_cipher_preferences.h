@@ -70,6 +70,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20251113;
 extern const struct s2n_cipher_preferences cipher_preferences_20251114;
 extern const struct s2n_cipher_preferences cipher_preferences_20251115;
 extern const struct s2n_cipher_preferences cipher_preferences_20251116;
+extern const struct s2n_cipher_preferences cipher_preferences_20251117;
 
 extern const struct s2n_cipher_preferences cipher_preferences_default_fips;
 
