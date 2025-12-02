@@ -2310,26 +2310,6 @@ const struct s2n_cipher_preferences cipher_preferences_20251113 = {
     .allow_chacha20_boosting = false,
 };
 
-struct s2n_cipher_suite *cipher_suites_20251114_no_sha[] = {
-    &s2n_tls13_aes_256_gcm_sha384,
-    &s2n_tls13_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-};
-
-const struct s2n_cipher_preferences cipher_preferences_20251114_no_sha = {
-    .count = s2n_array_len(cipher_suites_20251114_no_sha),
-    .suites = cipher_suites_20251114_no_sha,
-    .allow_chacha20_boosting = false,
-};
-
-
 struct s2n_cipher_suite *cipher_suites_20251114[] = {
     &s2n_tls13_aes_256_gcm_sha384,
     &s2n_tls13_aes_128_gcm_sha256,
@@ -2414,6 +2394,25 @@ struct s2n_cipher_suite *cipher_suites_20251116[] = {
 const struct s2n_cipher_preferences cipher_preferences_20251116 = {
     .count = s2n_array_len(cipher_suites_20251116),
     .suites = cipher_suites_20251116,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20251117[] = {
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20251117 = {
+    .count = s2n_array_len(cipher_suites_20251117),
+    .suites = cipher_suites_20251117,
     .allow_chacha20_boosting = false,
 };
 

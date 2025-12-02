@@ -1375,16 +1375,6 @@ const struct s2n_security_policy security_policy_20251113 = {
     .ecc_preferences = &s2n_ecc_preferences_20251113,
 };
 
-/* Same as 20251114, but without SHA1 HMAC ciphers */
-const struct s2n_security_policy security_policy_20251114_no_sha = {
-    .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_20251114_no_sha,
-    .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20251113,
-    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
-    .ecc_preferences = &s2n_ecc_preferences_20251113,
-};
-
 const struct s2n_security_policy security_policy_20251114 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20251114,
@@ -1406,6 +1396,15 @@ const struct s2n_security_policy security_policy_20251115 = {
 const struct s2n_security_policy security_policy_20251116 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20251116,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20251113,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
+};
+
+const struct s2n_security_policy security_policy_20251117 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251117,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
@@ -1644,10 +1643,11 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20250429", .security_policy = &security_policy_20250429, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251013", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251113", .security_policy = &security_policy_20251113, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "20251114_no_sha", .security_policy = &security_policy_20251114_no_sha, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251114", .security_policy = &security_policy_20251114, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251115", .security_policy = &security_policy_20251115, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251116", .security_policy = &security_policy_20251116, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    /* the same as 20251114, but without any SHA1 HMAC ciphers */
+    { .version = "20251117", .security_policy = &security_policy_20251117, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* If changing this, please update the usage guide's docs on the corresponding policy. */
     { .version = "rfc9151", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
