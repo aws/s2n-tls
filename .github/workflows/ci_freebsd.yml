@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     name: CI FreeBSD
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build and test in FreeBSD
         id: test
         uses: vmactions/freebsd-vm@v1

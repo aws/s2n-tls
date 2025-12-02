@@ -19,7 +19,7 @@ batch:
           # max-jobs tell nix to use all available cores for building derivations.
           NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
 
     # Cache Job for aarch64
     - identifier: nixCache_aarch64
@@ -29,7 +29,7 @@ batch:
           # max-jobs tell nix to use all available cores for building derivations.
           NIXDEV_ARGS: --max-jobs auto
           NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # AWSLC  x86
     - identifier: Integ_awslc_x86_0
@@ -39,7 +39,7 @@ batch:
         fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslc
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
 
     # AWSLC aarch64
     - identifier: Integ_awslc_aarch64_0
@@ -49,7 +49,7 @@ batch:
         fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslc
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # AWSLC-FIPS-2022
     - identifier: Integ_awslcfips2022_x86_64_0
@@ -59,7 +59,7 @@ batch:
         fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslcfips2022
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
 
     # AWSLC-FIPS-2024
     - identifier: Integ_awslcfips2024_aarch64_0
@@ -69,7 +69,7 @@ batch:
         fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#awslcfips2024
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # Openssl30 x86
     - identifier: Integ_openssl30_x86_0
@@ -79,7 +79,7 @@ batch:
         fleet: ubuntu24_x86_64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodx861-ehnvuoswh2yr?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
 
     # Openssl30 aarch64
     - identifier: Integ_openssl30_aarch64_0
@@ -89,7 +89,7 @@ batch:
         fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
     # Openssl111 aarch64 only
     - identifier: Integ_openssl111_aarch64_0
@@ -99,7 +99,7 @@ batch:
         fleet: ubuntu24_aarch64_nix
         variables:
           NIXDEV_LIBCRYPTO: .#openssl111
-          NIX_CACHE_BUCKET: s3://codebuildnixinteg-prod-nixcachebucketintegprodaarc-rqyksjxh6wxa?region=us-east-2
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
 
 phases:
   install:

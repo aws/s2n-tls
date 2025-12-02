@@ -135,6 +135,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -std=gnu99
     -Wall
     -Wcast-align
+    -Wcast-qual
     -Wchar-subscripts
     -Wcomment
     -Wformat-security
@@ -231,11 +232,6 @@ if(TSAN OR ASAN OR UBSAN)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
-
-if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc")
-    # add cast-qual back in for non AWS-LC
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
-endif()
 
 if (COVERAGE)
     # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
