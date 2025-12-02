@@ -29,6 +29,7 @@ check-file = false
 [type.cmake.extend-words]
 # 'thr' is the FreeBSD threading library
 thr = "thr"
+testss = "testss"
 
 [type.rust]
 check-file = false
