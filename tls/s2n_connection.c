@@ -1558,13 +1558,9 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     POSIX_ENSURE_REF(validator);
     POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
 
-    /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
-     * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.
-     * See the comments here:
-     * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
-     */
-    DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx),
-            s2n_openssl_x509_stack_pop_free);
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    POSIX_GUARD_RESULT(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+    STACK_OF(X509) *cert_chain_validated = validated_cert_chain.stack;
     POSIX_ENSURE_REF(cert_chain_validated);
 
     int cert_count = sk_X509_num(cert_chain_validated);
