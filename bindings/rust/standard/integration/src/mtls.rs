@@ -10,7 +10,19 @@
 // Async callbacks are registered via s2n_tls_sys instead of the Rust bindings
 // to avoid exposing an unstable async callback API in the public Rust surface.
 
+use std::{
+    mem,
+    os::raw::c_void,
+    ptr::NonNull,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        mpsc::{Receiver, Sender},
+        Arc,
+    },
+};
+
 use rustls::ClientConfig;
+
 use s2n_tls::{
     callbacks::{CertValidationCallbackSync, CertValidationInfo, VerifyHostNameCallback},
     config::{Builder, Config},
@@ -18,16 +30,12 @@ use s2n_tls::{
     enums::ClientAuthType,
     error::Error as S2NError,
 };
+
 use s2n_tls_sys::{
     s2n_cert_validation_accept, s2n_cert_validation_info, s2n_config,
     s2n_config_set_cert_validation_cb, s2n_connection, s2n_status_code,
 };
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    mpsc::{Receiver, Sender},
-    Arc,
-};
-use std::{mem, os::raw::c_void, ptr::NonNull};
+
 use tls_harness::{
     cohort::{RustlsConfig, RustlsConnection, S2NConfig, S2NConnection},
     harness::{read_to_bytes, TlsConfigBuilder},
