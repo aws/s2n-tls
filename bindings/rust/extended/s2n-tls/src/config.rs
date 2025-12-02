@@ -673,8 +673,6 @@ impl Builder {
         Ok(self)
     }
 
-
-
     /// Set a custom callback function which is run after parsing the client hello.
     ///
     /// Corresponds to [s2n_config_set_client_hello_cb].
