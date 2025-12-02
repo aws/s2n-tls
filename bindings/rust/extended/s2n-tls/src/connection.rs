@@ -1425,7 +1425,7 @@ impl Connection {
             .insert(context_type_id, Box::new(app_context));
     }
 
-    /// Remove a application context set on the Connection.
+    /// Remove an application context set on the Connection.
     pub fn remove_application_context<T: Send + Sync + 'static>(
         &mut self,
     ) -> Option<Box<dyn Any + Send + Sync>> {
@@ -1435,8 +1435,8 @@ impl Connection {
 
     /// Retrieves a reference to the application context associated with the Connection.
     ///
-    /// If application context hasn't already been set on the Connection, or if the set
-    /// application context doesn't match the type id of type T, None will be returned.
+    /// Returns None if there is no application context set on the Connection, or if the provided type
+    /// T does not match the type of the application context set on the Connection.
     ///
     /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve a
     /// mutable reference to the context, use [`Self::application_context_mut()`].
@@ -1455,8 +1455,8 @@ impl Connection {
 
     /// Retrieves a mutable reference to the application context associated with the Connection.
     ///
-    /// If application context hasn't already been set on the Connection, or if the set
-    /// application context doesn't match the type id of type T, None will be returned.
+    /// Returns None if there is no application context set on the Connection, or if the provided type
+    /// T does not match the type of the application context set on the Connection.
     ///
     /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve an
     /// immutable reference to the context, use [`Self::application_context()`].
