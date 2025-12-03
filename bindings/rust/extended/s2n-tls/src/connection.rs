@@ -1415,7 +1415,7 @@ impl Connection {
     /// Associates arbitrary application contexts with the Connection to be later retrieved via
     /// the [`Self::application_context()`] and [`Self::application_context_mut()`] APIs.
     ///
-    /// This API will add additional application context on top of existing contexts set on the Connection.
+    /// While multiple application contexts of different types may be set, previous values of the same type will be overridden.
     ///
     /// Corresponds to [s2n_connection_set_ctx].
     pub fn set_application_context<T: Send + Sync + 'static>(&mut self, app_context: T) {
@@ -1425,7 +1425,10 @@ impl Connection {
             .insert(context_type_id, Box::new(app_context));
     }
 
-    /// Remove an application context set on the Connection.
+    /// Removes an application context set on the Connection.
+    ///
+    /// Returns Some containing the removed context if it exists, or None if no context
+    /// of the specified type was previously set.
     pub fn remove_application_context<T: Send + Sync + 'static>(
         &mut self,
     ) -> Option<Box<dyn Any + Send + Sync>> {
@@ -1435,8 +1438,7 @@ impl Connection {
 
     /// Retrieves a reference to the application context associated with the Connection.
     ///
-    /// Returns None if there is no application context set on the Connection, or if the provided type
-    /// T does not match the type of the application context set on the Connection.
+    /// Returns None if the provided type T does not match the type of any application context set on the Connection.
     ///
     /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve a
     /// mutable reference to the context, use [`Self::application_context_mut()`].
@@ -1444,19 +1446,18 @@ impl Connection {
     /// Corresponds to [s2n_connection_get_ctx].
     pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
         let context_type_id = TypeId::of::<T>();
-        match self.context().app_context.get(&context_type_id) {
-            None => None,
-            // The Any trait keeps track of the application context's type. downcast_ref() returns
-            // Some only if the correct type is provided:
-            // https://doc.rust-lang.org/std/any/trait.Any.html#method.downcast_ref
-            Some(app_context) => app_context.downcast_ref::<T>(),
-        }
+        // The Any trait keeps track of the application context's type. downcast_ref() returns
+        // Some only if the correct type is provided:
+        // https://doc.rust-lang.org/std/any/trait.Any.html#method.downcast_ref
+        self.context()
+            .app_context
+            .get(&context_type_id)
+            .and_then(|app_context| app_context.downcast_ref::<T>())
     }
 
     /// Retrieves a mutable reference to the application context associated with the Connection.
     ///
-    /// Returns None if there is no application context set on the Connection, or if the provided type
-    /// T does not match the type of the application context set on the Connection.
+    /// Returns None if the provided type T does not match the type of any application context set on the Connection.
     ///
     /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve an
     /// immutable reference to the context, use [`Self::application_context()`].
@@ -1464,10 +1465,10 @@ impl Connection {
     /// Corresponds to [s2n_connection_get_ctx].
     pub fn application_context_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         let context_type_id = TypeId::of::<T>();
-        match self.context_mut().app_context.get_mut(&context_type_id) {
-            None => None,
-            Some(app_context) => app_context.downcast_mut::<T>(),
-        }
+        self.context_mut()
+            .app_context
+            .get_mut(&context_type_id)
+            .and_then(|app_context| app_context.downcast_mut::<T>())
     }
 
     #[cfg(feature = "unstable-cert_authorities")]
@@ -1663,6 +1664,29 @@ mod tests {
         *context_value += 1;
 
         assert_eq!(*connection.application_context::<u64>().unwrap(), 1);
+    }
+
+    /// Test that an application context can be overridden.
+    #[test]
+    fn test_app_context_override() {
+        let mut connection = Connection::new_server();
+
+        let test_value: u16 = 1142;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<u16>().unwrap(), 1142);
+
+        // Override the context with a new value.
+        let test_value: u16 = 10;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<u16>().unwrap(), 10);
+
+        // Override the context with a new type.
+        let test_value: i16 = -20;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<i16>().unwrap(), -20);
     }
 
     /// Test that multiple application contexts can be set in a connection
