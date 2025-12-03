@@ -6,54 +6,64 @@ use std::{
     collections::VecDeque,
     io::{BufRead, ErrorKind},
     rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
 };
 
+use brass_aphid_wire_decryption::decryption::stream_decrypter::StreamDecrypter;
 use byteorder::{BigEndian, ReadBytesExt};
+use openssl::symm::decrypt;
 
 pub type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
 #[derive(Debug, Default)]
 pub struct TestPairIO {
     /// a data buffer that the server writes to and the client reads from
-    pub server_tx_stream: Rc<LocalDataBuffer>,
+    pub server_tx_stream: LocalDataBuffer,
     /// a data buffer that the client writes to and the server reads from
-    pub client_tx_stream: Rc<LocalDataBuffer>,
+    pub client_tx_stream: LocalDataBuffer,
 
-    pub recording: Rc<AtomicBool>,
-    pub client_tx_transcript: Rc<RefCell<Vec<u8>>>,
-    pub server_tx_transcript: Rc<RefCell<Vec<u8>>>,
+    pub recording: AtomicBool,
+    pub client_tx_transcript: RefCell<Vec<u8>>,
+    pub server_tx_transcript: RefCell<Vec<u8>>,
+    pub decrypter: Mutex<Option<StreamDecrypter>>,
 }
 
 impl TestPairIO {
-    pub fn client_view(&self) -> ViewIO {
+    pub fn client_view(self: &Arc<Self>) -> ViewIO {
         ViewIO {
-            send_ctx: self.client_tx_stream.clone(),
-            recv_ctx: self.server_tx_stream.clone(),
-            recording: self.recording.clone(),
-            send_transcript: self.client_tx_transcript.clone(),
+            identity: brass_aphid_wire_decryption::decryption::Mode::Client,
+            io: Arc::clone(self),
         }
     }
 
-    pub fn server_view(&self) -> ViewIO {
+    pub fn server_view(self: &Arc<Self>) -> ViewIO {
         ViewIO {
-            send_ctx: self.server_tx_stream.clone(),
-            recv_ctx: self.client_tx_stream.clone(),
-            recording: self.recording.clone(),
-            send_transcript: self.server_tx_transcript.clone(),
+            identity: brass_aphid_wire_decryption::decryption::Mode::Server,
+            io: Arc::clone(self),
         }
     }
 
-    pub fn enable_recording(&mut self) {
+    pub fn enable_recording(&self) {
         self.recording.store(true, Ordering::Relaxed);
     }
 
+    pub fn enable_decryption(
+        &self,
+        keys: brass_aphid_wire_decryption::decryption::key_manager::KeyManager,
+    ) {
+        let stream_decrypter = StreamDecrypter::new(keys);
+        *self.decrypter.lock().unwrap() = Some(stream_decrypter);
+    }
+
     pub fn client_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.client_tx_transcript.as_ref().borrow().as_slice()).unwrap()
+        Self::record_sizes(self.client_tx_transcript.borrow().as_slice()).unwrap()
     }
 
     pub fn server_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.server_tx_transcript.as_ref().borrow().as_slice()).unwrap()
+        Self::record_sizes(self.server_tx_transcript.borrow().as_slice()).unwrap()
     }
 
     /// Return a list of the record sizes contained in `buffer`.
@@ -85,15 +95,36 @@ impl TestPairIO {
 // which implements read and write. This is not used by s2n-tls, which relies on
 // lower level callbacks.
 pub struct ViewIO {
-    pub send_ctx: Rc<LocalDataBuffer>,
-    pub recv_ctx: Rc<LocalDataBuffer>,
-    pub recording: Rc<AtomicBool>,
-    pub send_transcript: Rc<RefCell<Vec<u8>>>,
+    pub identity: brass_aphid_wire_decryption::decryption::Mode,
+    pub io: Arc<TestPairIO>,
+}
+
+impl ViewIO {
+    fn recv_ctx(&self) -> &LocalDataBuffer {
+        match self.identity {
+            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.server_tx_stream,
+            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.client_tx_stream,
+        }
+    }
+
+    fn send_ctx(&self) -> &LocalDataBuffer {
+        match self.identity {
+            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.client_tx_stream,
+            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.server_tx_stream,
+        }
+    }
+
+    fn send_transcript(&self) -> &RefCell<Vec<u8>> {
+        match self.identity {
+            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.client_tx_transcript,
+            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.server_tx_transcript,
+        }
+    }
 }
 
 impl std::io::Read for ViewIO {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let res = self.recv_ctx.borrow_mut().read(buf);
+        let res = self.recv_ctx().borrow_mut().read(buf);
         if let Ok(0) = res {
             // We are "faking" a TcpStream, where a read of length 0 indicates
             // EoF. That is incorrect for this scenario. Instead we return WouldBlock
@@ -107,14 +138,23 @@ impl std::io::Read for ViewIO {
 
 impl std::io::Write for ViewIO {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let write_result = self.send_ctx.borrow_mut().write(buf);
+        let write_result = self.send_ctx().borrow_mut().write(buf);
 
-        if self.recording.load(Ordering::Relaxed) {
+        if self.io.recording.load(Ordering::Relaxed) {
             if let Ok(written) = write_result {
-                self.send_transcript
+                self.send_transcript()
                     .borrow_mut()
                     .write_all(&buf[0..written])
                     .unwrap();
+
+                let mut decrypter = self.io.decrypter.lock().unwrap();
+                if decrypter.is_some() {
+                    decrypter.as_mut()
+                        .unwrap()
+                        .record_tx(&buf[0..written], self.identity);
+                    decrypter.as_mut().unwrap().decrypt_records(self.identity).unwrap();
+                }
+
             }
         }
 

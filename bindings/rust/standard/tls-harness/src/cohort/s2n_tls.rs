@@ -137,7 +137,7 @@ impl TlsConnection for S2NConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Arc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         let s2n_mode = match mode {
             Mode::Client => s2n_tls::enums::Mode::Client,
