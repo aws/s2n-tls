@@ -125,7 +125,7 @@ impl VerifyHostNameCallback for HostNameIgnorer {
     }
 }
 
-/// Helper which creates a base s2n-tls builder configured for mTLS
+/// Creates a base s2n-tls builder configured for mTLS.
 fn s2n_mtls_base_builder(sig_type: SigType) -> Builder {
     let mut builder = Builder::new();
     builder.set_chain(sig_type);
@@ -170,6 +170,7 @@ fn register_async_cert_callback(
     (invoked, rx)
 }
 
+/// Builds a rustls mTLS client config for the given TLS version.
 fn rustls_mtls_client(
     sig_type: SigType,
     tls_version: &'static rustls::SupportedProtocolVersion,
@@ -187,6 +188,7 @@ fn rustls_mtls_client(
     client.into()
 }
 
+/// Builds a rustls mTLS server config for the given TLS version.
 fn rustls_mtls_server(
     sig_type: SigType,
     tls_version: &'static rustls::SupportedProtocolVersion,
@@ -210,117 +212,32 @@ fn rustls_mtls_server(
     server.into()
 }
 
-
-
-fn test_mtls_basic<C, S>(client_cfg: &C::Config, server_cfg: &S::Config)
-where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
-    pair.handshake().unwrap();
-    pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-    pair.shutdown().unwrap();
-}
-
-fn test_mtls_sync_callback<C, S>(
-    client_cfg: &C::Config,
-    server_cfg: &S::Config,
-    handle: Arc<AtomicU64>,
-) where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
-    assert_eq!(handle.load(Ordering::SeqCst), 0);
-    pair.handshake().unwrap();
-    assert_eq!(handle.load(Ordering::SeqCst), 1);
-    pair.round_trip_assert(APP_DATA_SIZE).unwrap();
-    pair.shutdown().unwrap();
-}
-
-fn test_mtls_async_callback<C, S>(
-    client_cfg: &C::Config,
-    server_cfg: &S::Config,
-    handle: Arc<AtomicU64>,
-    rx: Receiver<SendableCertValidationInfo>,
-) -> TlsConnPair<C, S>
-where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
-
-    pair.client.handshake().unwrap();
-    pair.server.handshake().unwrap();
-    pair.client.handshake().unwrap();
-
-    assert_eq!(handle.load(Ordering::SeqCst), 0);
-    pair.server.handshake().unwrap();
-    assert_eq!(handle.load(Ordering::SeqCst), 1);
-
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-
-    // SAFETY: Pointer from cert validation callback, valid until accept/reject called.
-    unsafe {
-        let rc = s2n_cert_validation_accept(ptr);
-        assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
-    }
-
-    pair.handshake().unwrap();
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
-    pair
-}
-
-fn test_mtls_async_callback_client<C, S>(
-    client_cfg: &C::Config,
-    server_cfg: &S::Config,
-    handle: Arc<AtomicU64>,
-    rx: Receiver<SendableCertValidationInfo>,
-) -> TlsConnPair<C, S>
-where
-    C: TlsConnection,
-    S: TlsConnection,
-{
-    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
-
-    pair.client.handshake().unwrap();
-    pair.server.handshake().unwrap();
-
-    assert_eq!(handle.load(Ordering::SeqCst), 0);
-    pair.client.handshake().unwrap();
-    assert_eq!(handle.load(Ordering::SeqCst), 1);
-
-    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
-
-    // SAFETY: Pointer from cert validation callback, valid until accept/reject called.
-    unsafe {
-        let rc = s2n_cert_validation_accept(ptr);
-        assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
-    }
-
-    pair.handshake().unwrap();
-    pair.round_trip_assert(10).unwrap();
-    pair.shutdown().unwrap();
-    pair
-}
-
 // ============================================================================
 // Basic mTLS tests
 // ============================================================================
 
+// Helper for basic test case
+fn test_basic<C, S>(client_cfg: &C::Config, server_cfg: &S::Config)
+where
+    C: TlsConnection,
+    S: TlsConnection,
+{
+    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
+    pair.handshake().unwrap();
+    pair.round_trip_assert(APP_DATA_SIZE).unwrap();
+    pair.shutdown().unwrap();
+}
+
 // s2n client, rustls server
 #[test]
 fn s2n_client_basic() {
-
     // TLS 1.2
     let client = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
         S2NConfig::from(builder.build().unwrap())
     };
     let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS12);
-    test_mtls_basic::<S2NConnection, RustlsConnection>(&client, &server);
+    test_basic::<S2NConnection, RustlsConnection>(&client, &server);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -331,7 +248,7 @@ fn s2n_client_basic() {
                 S2NConfig::from(builder.build().unwrap())
             };
             let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS13);
-            test_mtls_basic::<S2NConnection, RustlsConnection>(&client, &server);
+            test_basic::<S2NConnection, RustlsConnection>(&client, &server);
         },
     );
 }
@@ -339,14 +256,13 @@ fn s2n_client_basic() {
 // rustls client, s2n server
 #[test]
 fn s2n_server_basic() {
-    
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let server = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
         S2NConfig::from(builder.build().unwrap())
     };
-    test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
+    test_basic::<RustlsConnection, S2NConnection>(&client, &server);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -357,7 +273,7 @@ fn s2n_server_basic() {
                 let builder = s2n_mtls_base_builder(SigType::Rsa2048);
                 S2NConfig::from(builder.build().unwrap())
             };
-            test_mtls_basic::<RustlsConnection, S2NConnection>(&client, &server);
+            test_basic::<RustlsConnection, S2NConnection>(&client, &server);
         },
     );
 }
@@ -366,10 +282,23 @@ fn s2n_server_basic() {
 // Sync callback tests
 // ============================================================================
 
+// Helper for synchronous callback tests
+fn test_sync_callback<C, S>(client_cfg: &C::Config, server_cfg: &S::Config, handle: Arc<AtomicU64>)
+where
+    C: TlsConnection,
+    S: TlsConnection,
+{
+    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
+    assert_eq!(handle.load(Ordering::SeqCst), 0);
+    pair.handshake().unwrap();
+    assert_eq!(handle.load(Ordering::SeqCst), 1);
+    pair.round_trip_assert(APP_DATA_SIZE).unwrap();
+    pair.shutdown().unwrap();
+}
+
 // s2n client with sync callback, rustls server
 #[test]
 fn s2n_client_sync_callback() {
-
     // TLS 1.2
     let (client, handle) = {
         let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -379,7 +308,7 @@ fn s2n_client_sync_callback() {
         (S2NConfig::from(builder.build().unwrap()), invoked)
     };
     let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS12);
-    test_mtls_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
+    test_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -394,7 +323,7 @@ fn s2n_client_sync_callback() {
             };
             let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS13);
 
-            test_mtls_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
+            test_sync_callback::<S2NConnection, RustlsConnection>(&client, &server, handle);
         },
     );
 }
@@ -402,7 +331,6 @@ fn s2n_client_sync_callback() {
 // rustls client, s2n server with sync callback
 #[test]
 fn s2n_server_sync_callback() {
-
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle) = {
@@ -413,11 +341,7 @@ fn s2n_server_sync_callback() {
         (S2NConfig::from(builder.build().unwrap()), invoked)
     };
 
-    test_mtls_sync_callback::<RustlsConnection, S2NConnection>(
-        &client,
-        &server,
-        handle,
-    );
+    test_sync_callback::<RustlsConnection, S2NConnection>(&client, &server, handle);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -432,11 +356,7 @@ fn s2n_server_sync_callback() {
                 (S2NConfig::from(builder.build().unwrap()), invoked)
             };
 
-            test_mtls_sync_callback::<RustlsConnection, S2NConnection>(
-                &client,
-                &server,
-                handle,
-            );
+            test_sync_callback::<RustlsConnection, S2NConnection>(&client, &server, handle);
         },
     );
 }
@@ -444,6 +364,75 @@ fn s2n_server_sync_callback() {
 // ============================================================================
 // Async callback tests
 // ============================================================================
+
+// Helper for async server-side cert validation tests.
+fn test_async_server_callback<C, S>(
+    client_cfg: &C::Config,
+    server_cfg: &S::Config,
+    handle: Arc<AtomicU64>,
+    rx: Receiver<SendableCertValidationInfo>,
+) -> TlsConnPair<C, S>
+where
+    C: TlsConnection,
+    S: TlsConnection,
+{
+    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
+
+    pair.client.handshake().unwrap();
+    pair.server.handshake().unwrap();
+    pair.client.handshake().unwrap();
+
+    assert_eq!(handle.load(Ordering::SeqCst), 0);
+    pair.server.handshake().unwrap();
+    assert_eq!(handle.load(Ordering::SeqCst), 1);
+
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called.
+    unsafe {
+        let rc = s2n_cert_validation_accept(ptr);
+        assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
+    }
+
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
+    pair
+}
+
+// Helper for async client-side cert validation tests.
+fn test_async_client_callback<C, S>(
+    client_cfg: &C::Config,
+    server_cfg: &S::Config,
+    handle: Arc<AtomicU64>,
+    rx: Receiver<SendableCertValidationInfo>,
+) -> TlsConnPair<C, S>
+where
+    C: TlsConnection,
+    S: TlsConnection,
+{
+    let mut pair = TlsConnPair::<C, S>::from_configs(client_cfg, server_cfg);
+
+    pair.client.handshake().unwrap();
+    pair.server.handshake().unwrap();
+
+    assert_eq!(handle.load(Ordering::SeqCst), 0);
+    pair.client.handshake().unwrap();
+    assert_eq!(handle.load(Ordering::SeqCst), 1);
+
+    let ptr = rx.recv().expect("recv CertValidationInfo ptr").0;
+
+    // SAFETY: Pointer from cert validation callback, valid until accept/reject called.
+    unsafe {
+        let rc = s2n_cert_validation_accept(ptr);
+        assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
+    }
+
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10).unwrap();
+    pair.shutdown().unwrap();
+    pair
+}
 
 // As of 2025-11-24: s2n as client (TLS 1.2, 1.3) and s2n as
 // server (TLS 1.3) hang due to a multi-message async cert validation bug.
@@ -453,7 +442,6 @@ fn s2n_server_sync_callback() {
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation"]
 fn s2n_client_async_callback() {
-
     // TLS 1.2
     let (client, handle, rx) = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -462,9 +450,8 @@ fn s2n_client_async_callback() {
         (s2n_cfg, invoked, rx)
     };
     let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS12);
-    let _pair = test_mtls_async_callback_client::<S2NConnection, RustlsConnection>(
-        &client, &server, handle, rx,
-    );
+    let _pair =
+        test_async_client_callback::<S2NConnection, RustlsConnection>(&client, &server, handle, rx);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -477,7 +464,7 @@ fn s2n_client_async_callback() {
                 (s2n_cfg, invoked, rx)
             };
             let server = rustls_mtls_server(SigType::Rsa2048, &rustls::version::TLS13);
-            let _pair = test_mtls_async_callback_client::<S2NConnection, RustlsConnection>(
+            let _pair = test_async_client_callback::<S2NConnection, RustlsConnection>(
                 &client, &server, handle, rx,
             );
         },
@@ -487,11 +474,11 @@ fn s2n_client_async_callback() {
 // rustls client, s2n server with async callback
 // Rustls TLS 1.2 clients do not send multiple handshake messages in a
 // single record, so s2n never hits the multi-message async-callback
-// bug that appears in TLS 1.3
+// bug that appears in TLS 1.3 but both variants are ignored for now
+// for simplicity.
 #[test]
 #[ignore = "Hangs due to multi-message bug in async cert validation"]
 fn s2n_server_async_callback() {
-
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle, rx) = {
@@ -500,12 +487,8 @@ fn s2n_server_async_callback() {
         let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
         (s2n_cfg, invoked, rx)
     };
-    let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
-        &client,
-        &server,
-        handle,
-        rx,
-    );
+    let _pair =
+        test_async_server_callback::<RustlsConnection, S2NConnection>(&client, &server, handle, rx);
 
     // TLS 1.3
     crate::capability_check::required_capability(
@@ -519,11 +502,8 @@ fn s2n_server_async_callback() {
                 (s2n_cfg, invoked, rx)
             };
 
-            let _pair = test_mtls_async_callback::<RustlsConnection, S2NConnection>(
-                &client,
-                &server,
-                handle,
-                rx,
+            let _pair = test_async_server_callback::<RustlsConnection, S2NConnection>(
+                &client, &server, handle, rx,
             );
         },
     );
@@ -543,10 +523,6 @@ fn s2n_s2n_mtls_async_callback() {
         (s2n_cfg, invoked, rx)
     };
 
-    let _pair = test_mtls_async_callback::<S2NConnection, S2NConnection>(
-        &client,
-        &server,
-        handle,
-        rx,
-    );
+    let _pair =
+        test_async_server_callback::<S2NConnection, S2NConnection>(&client, &server, handle, rx);
 }
