@@ -68,14 +68,12 @@ unsafe fn raw_config(cfg: &mut S2NConfig) -> *mut s2n_config {
 #[derive(Debug)]
 struct TestCertValidationCallback {
     invoked: Arc<AtomicU64>,
-    immediately_accept: bool,
 }
 
 impl TestCertValidationCallback {
     fn new_sync() -> Self {
         Self {
             invoked: Arc::new(AtomicU64::new(0)),
-            immediately_accept: true,
         }
     }
 
@@ -91,7 +89,7 @@ impl CertValidationCallbackSync for TestCertValidationCallback {
         _info: &mut CertValidationInfo,
     ) -> Result<bool, S2NError> {
         self.invoked.fetch_add(1, Ordering::SeqCst);
-        Ok(self.immediately_accept)
+        Ok(true)
     }
 }
 
