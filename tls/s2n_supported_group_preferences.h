@@ -24,5 +24,3 @@ struct s2n_supported_group_preferences {
 };
 
 extern const struct s2n_supported_group_preferences cnsa_1_strong_preference;
-extern const struct s2n_supported_group_preferences cnsa_1_2_strong_preference;
-extern const struct s2n_supported_group_preferences cnsa_2_strong_preference;

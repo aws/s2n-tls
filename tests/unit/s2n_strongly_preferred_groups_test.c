@@ -44,14 +44,8 @@ int main(int argc, char **argv)
 
         POSIX_ENSURE_REF(security_policy->kem_preferences);
 
-        /* Temporarily require that policies either have PQ or strongly supported groups, but not both. */
+        /* Temporarily require that policies don't allow both PQ and strongly supported groups. */
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-
-        for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
-            const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
-            POSIX_ENSURE_REF(kem_group);
-            ordered_supported_groups[ordered_supported_group_count++] = kem_group->iana_id;
-        }
 
         POSIX_ENSURE_REF(security_policy->ecc_preferences);
         for (size_t i = 0; i < security_policy->ecc_preferences->count; i++) {

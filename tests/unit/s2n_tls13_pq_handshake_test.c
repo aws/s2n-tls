@@ -529,51 +529,6 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
-    const struct s2n_kem_group *low_priority_mlkem1024_test_groups[] = {
-        &s2n_x25519_mlkem_768,
-        &s2n_secp256r1_mlkem_768,
-        &s2n_pure_mlkem_1024,
-    };
-
-    const struct s2n_kem_preferences low_priority_mlkem1024_test_prefs = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(low_priority_mlkem1024_test_groups),
-        .tls13_kem_groups = low_priority_mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
-    };
-
-    const struct s2n_security_policy low_priority_mlkem1024_test_policy = {
-        .minimum_protocol_version = S2N_TLS13,
-        .cipher_preferences = &cipher_preferences_20190801,
-        .kem_preferences = &low_priority_mlkem1024_test_prefs,
-        .signature_preferences = &s2n_signature_preferences_20200207,
-        .ecc_preferences = &s2n_ecc_preferences_20240603,
-    };
-
-    const struct s2n_kem_group *strongly_preferred_mlkem1024_test_groups[] = {
-        &s2n_pure_mlkem_1024,
-        &s2n_x25519_mlkem_768,
-        &s2n_secp256r1_mlkem_768,
-    };
-
-    const struct s2n_kem_preferences strongly_preferred_mlkem1024_test_prefs = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(strongly_preferred_mlkem1024_test_groups),
-        .tls13_kem_groups = strongly_preferred_mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
-    };
-
-    const struct s2n_security_policy strongly_preferred_mlkem1024_test_policy = {
-        .minimum_protocol_version = S2N_TLS13,
-        .cipher_preferences = &cipher_preferences_20190801,
-        .kem_preferences = &strongly_preferred_mlkem1024_test_prefs,
-        .signature_preferences = &s2n_signature_preferences_20200207,
-        .ecc_preferences = &s2n_ecc_preferences_20240603,
-        .strongly_preferred_groups = &cnsa_2_strong_preference,
-    };
-
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -935,16 +890,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = &s2n_ecc_curve_secp384r1,
                 .hrr_expected = true,
-                .len_prefix_expected = false,
-        },
-
-        /* Client supports pure MLKEM1024 at low priority, but server strongly prefers pure MLKEM1024 */
-        {
-                .client_policy = &low_priority_mlkem1024_test_policy,
-                .server_policy = &strongly_preferred_mlkem1024_test_policy,
-                .expected_kem_group = null_if_no_pure_mlkem_1024,
-                .expected_curve = ec_if_no_mlkem,
-                .hrr_expected = hrr_expected_if_mlkem,
                 .len_prefix_expected = false,
         },
     };

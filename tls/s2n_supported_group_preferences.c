@@ -21,26 +21,7 @@ const uint16_t cnsa_1_supported_group_iana_ids[] = {
     TLS_EC_CURVE_SECP_384_R1
 };
 
-const uint16_t cnsa_1_2_supported_group_iana_ids[] = {
-    TLS_PQ_KEM_GROUP_ID_MLKEM_1024,
-    TLS_EC_CURVE_SECP_384_R1
-};
-
-const uint16_t cnsa_2_supported_group_iana_ids[] = {
-    TLS_PQ_KEM_GROUP_ID_MLKEM_1024
-};
-
 const struct s2n_supported_group_preferences cnsa_1_strong_preference = {
     .count = s2n_array_len(cnsa_1_supported_group_iana_ids),
     .iana_ids = cnsa_1_supported_group_iana_ids
-};
-
-const struct s2n_supported_group_preferences cnsa_1_2_strong_preference = {
-    .count = s2n_array_len(cnsa_1_2_supported_group_iana_ids),
-    .iana_ids = cnsa_1_2_supported_group_iana_ids
-};
-
-const struct s2n_supported_group_preferences cnsa_2_strong_preference = {
-    .count = s2n_array_len(cnsa_2_supported_group_iana_ids),
-    .iana_ids = cnsa_2_supported_group_iana_ids
 };

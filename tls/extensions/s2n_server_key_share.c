@@ -413,23 +413,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     for (size_t i = 0; policy->strongly_preferred_groups != NULL && i < policy->strongly_preferred_groups->count && !matched_strongly_preferred_iana; i++) {
         uint16_t strongly_preferred_iana = policy->strongly_preferred_groups->iana_ids[i];
 
-        for (int j = 0; j < S2N_KEM_GROUPS_COUNT && !matched_strongly_preferred_iana; j++) {
-            const struct s2n_kem_group *mutually_supported_kem_group = conn->kex_params.mutually_supported_kem_groups[j];
-            if (mutually_supported_kem_group == NULL) {
-                break; /* Reached end of mutually supported KEM Groups */
-            }
-            if (strongly_preferred_iana == mutually_supported_kem_group->iana_id) {
-                matched_strongly_preferred_iana = true;
-                strongly_preferred_kem_group = mutually_supported_kem_group;
-
-                /* Check if we can negotiate our strongly preferred KEM Group in 1-RTT */
-                if (client_kem_group != NULL && (strongly_preferred_iana == client_kem_group->iana_id)) {
-                    need_hrr_for_strongly_preferred_group = false;
-                } else {
-                    need_hrr_for_strongly_preferred_group = true;
-                }
-            }
-        }
+        /* Strongly preferred groups are not allowed on policies that support PQ, so we don't check KEMs */
 
         for (int j = 0; j < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT && !matched_strongly_preferred_iana; j++) {
             const struct s2n_ecc_named_curve *mutually_supported_curve = conn->kex_params.mutually_supported_curves[j];
