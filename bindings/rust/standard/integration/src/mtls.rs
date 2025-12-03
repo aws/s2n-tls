@@ -158,9 +158,9 @@ fn register_async_cert_callback(
     // memory stays valid for the lifetime of the config (test-only).
     unsafe {
         let raw = raw_config(s2n_cfg);
-        let rc = s2n_config_set_cert_validation_cb(raw, Some(test_async_cert_cb), ctx_ptr);
+        let result = s2n_config_set_cert_validation_cb(raw, Some(test_async_cert_cb), ctx_ptr);
         assert_eq!(
-            rc,
+            result,
             s2n_status_code::SUCCESS,
             "s2n_config_set_cert_validation_cb failed"
         );
