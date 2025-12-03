@@ -14,7 +14,10 @@ use rustls::{
     RootCertStore, ServerConfig, ServerConnection,
 };
 use std::{
-    error::Error, io::{BufReader, Read, Write}, rc::Rc, sync::Arc
+    error::Error,
+    io::{BufReader, Read, Write},
+    rc::Rc,
+    sync::Arc,
 };
 
 pub struct RustlsConnection {

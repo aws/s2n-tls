@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    cell::RefCell, collections::VecDeque, io::{BufRead, ErrorKind}, rc::Rc, sync::atomic::{AtomicBool, Ordering}
+    cell::RefCell,
+    collections::VecDeque,
+    io::{BufRead, ErrorKind},
+    rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use brass_aphid_wire_decryption::decryption::stream_decrypter::StreamDecrypter;

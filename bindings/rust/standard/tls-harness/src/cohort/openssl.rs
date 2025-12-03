@@ -11,7 +11,10 @@ use openssl::ssl::{
     SslSession, SslStream, SslVersion,
 };
 use std::{
-    error::Error, io::{Read, Write}, rc::Rc, sync::{Arc, Mutex}
+    error::Error,
+    io::{Read, Write},
+    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 // Creates session ticket callback handler

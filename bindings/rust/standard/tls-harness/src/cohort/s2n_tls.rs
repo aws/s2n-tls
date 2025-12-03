@@ -12,7 +12,15 @@ use s2n_tls::{
     security::Policy,
 };
 use std::{
-    borrow::BorrowMut, error::Error, ffi::c_void, io::ErrorKind, os::raw::c_int, pin::Pin, rc::Rc, sync::{Arc, Mutex}, task::Poll
+    borrow::BorrowMut,
+    error::Error,
+    ffi::c_void,
+    io::ErrorKind,
+    os::raw::c_int,
+    pin::Pin,
+    rc::Rc,
+    sync::{Arc, Mutex},
+    task::Poll,
 };
 
 pub const LOCALHOST_VERIFY_CALLBACK: HostNameHandler = HostNameHandler {
