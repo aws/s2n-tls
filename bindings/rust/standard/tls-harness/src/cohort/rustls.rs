@@ -14,9 +14,7 @@ use rustls::{
     RootCertStore, ServerConfig, ServerConnection,
 };
 use std::{
-    error::Error,
-    io::{BufReader, Read, Write},
-    sync::Arc,
+    error::Error, io::{BufReader, Read, Write}, rc::Rc, sync::Arc
 };
 
 pub struct RustlsConnection {
@@ -134,7 +132,7 @@ impl TlsConnection for RustlsConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         let connection = match config {
             RustlsConfig::Client(config) => Connection::Client(ClientConnection::new(

@@ -2,58 +2,69 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    cell::RefCell,
-    collections::VecDeque,
-    io::{BufRead, ErrorKind},
-    rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
+    cell::RefCell, collections::VecDeque, io::{BufRead, ErrorKind}, rc::Rc, sync::atomic::{AtomicBool, Ordering}
 };
 
+use brass_aphid_wire_decryption::decryption::stream_decrypter::StreamDecrypter;
 use byteorder::{BigEndian, ReadBytesExt};
+
+use crate::Mode;
 
 pub type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
 #[derive(Debug, Default)]
 pub struct TestPairIO {
     /// a data buffer that the server writes to and the client reads from
-    pub server_tx_stream: Rc<LocalDataBuffer>,
+    pub server_tx_stream: LocalDataBuffer,
     /// a data buffer that the client writes to and the server reads from
-    pub client_tx_stream: Rc<LocalDataBuffer>,
+    pub client_tx_stream: LocalDataBuffer,
 
-    pub recording: Rc<AtomicBool>,
-    pub client_tx_transcript: Rc<RefCell<Vec<u8>>>,
-    pub server_tx_transcript: Rc<RefCell<Vec<u8>>>,
+    /// indicates whether all client/server writes should be stored to the
+    /// transcript fields
+    pub recording: AtomicBool,
+    pub client_tx_transcript: RefCell<Vec<u8>>,
+    pub server_tx_transcript: RefCell<Vec<u8>>,
+    /// [`Self::enable_decryption`] will initialize the stream decrypter, which
+    /// allows tests to make assertions on the decrypted TLS transcript.
+    ///
+    /// This is especially useful for TLS 1.3 where much of the handshake is encrypted.
+    pub decrypter: RefCell<Option<StreamDecrypter>>,
 }
 
 impl TestPairIO {
-    pub fn client_view(&self) -> ViewIO {
+    pub fn client_view(self: &Rc<Self>) -> ViewIO {
         ViewIO {
-            send_ctx: self.client_tx_stream.clone(),
-            recv_ctx: self.server_tx_stream.clone(),
-            recording: self.recording.clone(),
-            send_transcript: self.client_tx_transcript.clone(),
+            identity: Mode::Client,
+            io: Rc::clone(self),
         }
     }
 
-    pub fn server_view(&self) -> ViewIO {
+    pub fn server_view(self: &Rc<Self>) -> ViewIO {
         ViewIO {
-            send_ctx: self.server_tx_stream.clone(),
-            recv_ctx: self.client_tx_stream.clone(),
-            recording: self.recording.clone(),
-            send_transcript: self.server_tx_transcript.clone(),
+            identity: Mode::Server,
+            io: Rc::clone(self),
         }
     }
 
-    pub fn enable_recording(&mut self) {
+    pub fn enable_recording(&self) {
         self.recording.store(true, Ordering::Relaxed);
     }
 
+    /// Note: this is only available for TLS 1.3
+    pub fn enable_decryption(
+        &self,
+        keys: brass_aphid_wire_decryption::decryption::key_manager::KeyManager,
+    ) {
+        let stream_decrypter = StreamDecrypter::new(keys);
+        *self.decrypter.borrow_mut() = Some(stream_decrypter);
+    }
+
     pub fn client_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.client_tx_transcript.as_ref().borrow().as_slice()).unwrap()
+        Self::record_sizes(self.client_tx_transcript.borrow().as_slice()).unwrap()
     }
 
     pub fn server_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.server_tx_transcript.as_ref().borrow().as_slice()).unwrap()
+        Self::record_sizes(self.server_tx_transcript.borrow().as_slice()).unwrap()
     }
 
     /// Return a list of the record sizes contained in `buffer`.
@@ -80,20 +91,37 @@ impl TestPairIO {
 ///
 /// This view is client/server specific, and notably implements the read and write
 /// traits.
-///
-// This struct is used by Openssl and Rustls which both rely on a "stream" abstraction
-// which implements read and write. This is not used by s2n-tls, which relies on
-// lower level callbacks.
 pub struct ViewIO {
-    pub send_ctx: Rc<LocalDataBuffer>,
-    pub recv_ctx: Rc<LocalDataBuffer>,
-    pub recording: Rc<AtomicBool>,
-    pub send_transcript: Rc<RefCell<Vec<u8>>>,
+    pub identity: Mode,
+    pub io: Rc<TestPairIO>,
+}
+
+impl ViewIO {
+    fn recv_ctx(&self) -> &LocalDataBuffer {
+        match self.identity {
+            Mode::Client => &self.io.server_tx_stream,
+            Mode::Server => &self.io.client_tx_stream,
+        }
+    }
+
+    fn send_ctx(&self) -> &LocalDataBuffer {
+        match self.identity {
+            Mode::Client => &self.io.client_tx_stream,
+            Mode::Server => &self.io.server_tx_stream,
+        }
+    }
+
+    fn send_transcript(&self) -> &RefCell<Vec<u8>> {
+        match self.identity {
+            Mode::Client => &self.io.client_tx_transcript,
+            Mode::Server => &self.io.server_tx_transcript,
+        }
+    }
 }
 
 impl std::io::Read for ViewIO {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let res = self.recv_ctx.borrow_mut().read(buf);
+        let res = self.recv_ctx().borrow_mut().read(buf);
         if let Ok(0) = res {
             // We are "faking" a TcpStream, where a read of length 0 indicates
             // EoF. That is incorrect for this scenario. Instead we return WouldBlock
@@ -107,14 +135,28 @@ impl std::io::Read for ViewIO {
 
 impl std::io::Write for ViewIO {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let write_result = self.send_ctx.borrow_mut().write(buf);
+        let write_result = self.send_ctx().borrow_mut().write(buf);
 
-        if self.recording.load(Ordering::Relaxed) {
-            if let Ok(written) = write_result {
-                self.send_transcript
+        // if we successfully wrote data, we need to record it in the various test
+        // utilities.
+        if let Ok(written) = write_result {
+            // recorder
+            if self.io.recording.load(Ordering::Relaxed) {
+                self.send_transcript()
                     .borrow_mut()
                     .write_all(&buf[0..written])
                     .unwrap();
+            }
+
+            // decrypter
+            let mut decrypter = self.io.decrypter.borrow_mut();
+            if let Some(decrypter) = decrypter.as_mut() {
+                let wire_mode = match self.identity {
+                    Mode::Client => brass_aphid_wire_decryption::decryption::Mode::Client,
+                    Mode::Server => brass_aphid_wire_decryption::decryption::Mode::Server,
+                };
+                decrypter.record_tx(&buf[0..written], wire_mode);
+                decrypter.decrypt_records(wire_mode).unwrap();
             }
         }
 
