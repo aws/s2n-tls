@@ -47,10 +47,11 @@ struct Outcome {
 static PQ_ENABLED_POLICY: LazyLock<s2n_tls::security::Policy> =
     LazyLock::new(|| Policy::from_version("20251014").unwrap());
 
-/// strongly preferred groups -> []
-/// ECC -> []
+/// KEMS -> []
+/// strongly preferred groups -> [secp384r1]
+/// ECC -> [secp384r1, secp256r1, secp521r1]
 static STRONGLY_PREFERRED_GROUPS: LazyLock<s2n_tls::security::Policy> =
-    LazyLock::new(|| Policy::from_version("20251014").unwrap());
+    LazyLock::new(|| Policy::from_version("20251117").unwrap());
 
 impl Trial {
     fn handshake(&self) -> Outcome {
