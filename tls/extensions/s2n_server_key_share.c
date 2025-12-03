@@ -420,10 +420,13 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
             }
             if (strongly_preferred_iana == mutually_supported_kem_group->iana_id) {
                 matched_strongly_preferred_iana = true;
+                strongly_preferred_kem_group = mutually_supported_kem_group;
+
                 /* Check if we can negotiate our strongly preferred KEM Group in 1-RTT */
-                if (client_kem_group != NULL && (strongly_preferred_iana != client_kem_group->iana_id)) {
+                if (client_kem_group != NULL && (strongly_preferred_iana == client_kem_group->iana_id)) {
+                    need_hrr_for_strongly_preferred_group = false;
+                } else {
                     need_hrr_for_strongly_preferred_group = true;
-                    strongly_preferred_kem_group = mutually_supported_kem_group;
                 }
             }
         }
@@ -435,17 +438,20 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
             }
             if (strongly_preferred_iana == mutually_supported_curve->iana_id) {
                 matched_strongly_preferred_iana = true;
+                strongly_preferred_curve = mutually_supported_curve;
+
                 /* Check if we can negotiate our strongly preferred ECC Curve in 1-RTT */
-                if (client_curve != NULL && (strongly_preferred_iana != client_curve->iana_id)) {
+                if (client_curve != NULL && (strongly_preferred_iana == client_curve->iana_id)) {
+                    need_hrr_for_strongly_preferred_group = false;
+                } else {
                     need_hrr_for_strongly_preferred_group = true;
-                    strongly_preferred_curve = mutually_supported_curve;
                 }
             }
         }
     }
 
     /* Option 1: Perform a 2-RTT handshake if there is a strongly-preferred SupportedGroup that requires a 2-RTT handshake. */
-    if (need_hrr_for_strongly_preferred_group) {
+    if (matched_strongly_preferred_iana && need_hrr_for_strongly_preferred_group) {
         /* Ensure that we chose exactly 1 strongly preferred SupportedGroup */
         POSIX_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
