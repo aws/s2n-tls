@@ -16,6 +16,8 @@ use brass_aphid_wire_decryption::decryption::stream_decrypter::StreamDecrypter;
 use byteorder::{BigEndian, ReadBytesExt};
 use openssl::symm::decrypt;
 
+use crate::Mode;
+
 pub type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
 #[derive(Debug, Default)]
@@ -25,23 +27,29 @@ pub struct TestPairIO {
     /// a data buffer that the client writes to and the server reads from
     pub client_tx_stream: LocalDataBuffer,
 
+    /// indicates whether all client/server writes should be stored to the
+    /// transcript fields
     pub recording: AtomicBool,
     pub client_tx_transcript: RefCell<Vec<u8>>,
     pub server_tx_transcript: RefCell<Vec<u8>>,
+    /// [`Self::enable_decryption`] will initialize the stream decrypter, which
+    /// allows tests to make assertions on the decrypted TLS transcript.
+    ///
+    /// This is especially useful for TLS 1.3 where much of the handshake is encrypted.
     pub decrypter: Mutex<Option<StreamDecrypter>>,
 }
 
 impl TestPairIO {
     pub fn client_view(self: &Arc<Self>) -> ViewIO {
         ViewIO {
-            identity: brass_aphid_wire_decryption::decryption::Mode::Client,
+            identity: Mode::Client,
             io: Arc::clone(self),
         }
     }
 
     pub fn server_view(self: &Arc<Self>) -> ViewIO {
         ViewIO {
-            identity: brass_aphid_wire_decryption::decryption::Mode::Server,
+            identity: Mode::Server,
             io: Arc::clone(self),
         }
     }
@@ -50,6 +58,7 @@ impl TestPairIO {
         self.recording.store(true, Ordering::Relaxed);
     }
 
+    /// Note: this is only available for TLS 1.3
     pub fn enable_decryption(
         &self,
         keys: brass_aphid_wire_decryption::decryption::key_manager::KeyManager,
@@ -90,34 +99,30 @@ impl TestPairIO {
 ///
 /// This view is client/server specific, and notably implements the read and write
 /// traits.
-///
-// This struct is used by Openssl and Rustls which both rely on a "stream" abstraction
-// which implements read and write. This is not used by s2n-tls, which relies on
-// lower level callbacks.
 pub struct ViewIO {
-    pub identity: brass_aphid_wire_decryption::decryption::Mode,
+    pub identity: Mode,
     pub io: Arc<TestPairIO>,
 }
 
 impl ViewIO {
     fn recv_ctx(&self) -> &LocalDataBuffer {
         match self.identity {
-            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.server_tx_stream,
-            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.client_tx_stream,
+            Mode::Client => &self.io.server_tx_stream,
+            Mode::Server => &self.io.client_tx_stream,
         }
     }
 
     fn send_ctx(&self) -> &LocalDataBuffer {
         match self.identity {
-            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.client_tx_stream,
-            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.server_tx_stream,
+            Mode::Client => &self.io.client_tx_stream,
+            Mode::Server => &self.io.server_tx_stream,
         }
     }
 
     fn send_transcript(&self) -> &RefCell<Vec<u8>> {
         match self.identity {
-            brass_aphid_wire_decryption::decryption::Mode::Client => &self.io.client_tx_transcript,
-            brass_aphid_wire_decryption::decryption::Mode::Server => &self.io.server_tx_transcript,
+            Mode::Client => &self.io.client_tx_transcript,
+            Mode::Server => &self.io.server_tx_transcript,
         }
     }
 }
@@ -140,21 +145,26 @@ impl std::io::Write for ViewIO {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let write_result = self.send_ctx().borrow_mut().write(buf);
 
-        if self.io.recording.load(Ordering::Relaxed) {
-            if let Ok(written) = write_result {
+        // if we successfully wrote data, we need to record it in the various test
+        // utilities.
+        if let Ok(written) = write_result {
+            // recorder
+            if self.io.recording.load(Ordering::Relaxed) {
                 self.send_transcript()
                     .borrow_mut()
                     .write_all(&buf[0..written])
                     .unwrap();
+            }
 
-                let mut decrypter = self.io.decrypter.lock().unwrap();
-                if decrypter.is_some() {
-                    decrypter.as_mut()
-                        .unwrap()
-                        .record_tx(&buf[0..written], self.identity);
-                    decrypter.as_mut().unwrap().decrypt_records(self.identity).unwrap();
-                }
-
+            // decrypter
+            let mut decrypter = self.io.decrypter.lock().unwrap();
+            if let Some(decrypter) = decrypter.as_mut() {
+                let wire_mode = match self.identity {
+                    Mode::Client => brass_aphid_wire_decryption::decryption::Mode::Client,
+                    Mode::Server => brass_aphid_wire_decryption::decryption::Mode::Server,
+                };
+                decrypter.record_tx(&buf[0..written], wire_mode);
+                decrypter.decrypt_records(wire_mode).unwrap();
             }
         }
 

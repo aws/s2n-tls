@@ -16,8 +16,8 @@ openssl-sys = "0.9.109"
 byteorder = "1.5.0"
 
 
-brass-aphid-wire-decryption = {path = "/home/ubuntu/workspace/brass-aphid/brass-aphid-wire-decryption"}
-brass-aphid-wire-messages = {path = "/home/ubuntu/workspace/brass-aphid/brass-aphid-wire-messages"}
+brass-aphid-wire-decryption = "0.0.1"
+brass-aphid-wire-messages = "0.0.1"
 
 [dev-dependencies]
 # env_logger and log are used to enable logging for rustls, which can help with

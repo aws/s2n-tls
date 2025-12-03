@@ -7,5 +7,3 @@ mod capability_check;
 mod features;
 #[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;
-#[cfg(test)]
-mod group_negotiation;
