@@ -3,6 +3,8 @@
 
 #[cfg(feature = "unstable-cert_authorities")]
 use crate::cert_authorities::CertificateRequestCallback;
+#[cfg(feature = "unstable-events")]
+use crate::events::{EventSubscriber, HandshakeEvent};
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
@@ -10,7 +12,6 @@ use crate::{
     cert_chain::CertificateChain,
     enums::*,
     error::{Error, ErrorType, Fallible},
-    events::{EventSubscriber, HandshakeEvent},
     security,
 };
 use core::{convert::TryInto, ptr::NonNull};
@@ -713,6 +714,7 @@ impl Builder {
         Ok(self)
     }
 
+    #[cfg(feature = "unstable-events")]
     pub fn set_event_subscriber<T: 'static + EventSubscriber>(
         &mut self,
         subscriber: T,
@@ -1128,7 +1130,6 @@ pub(crate) struct Context {
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     pub(crate) session_ticket_callback: Option<Box<dyn SessionTicketCallback>>,
     pub(crate) connection_initializer: Option<Box<dyn ConnectionInitializer>>,
-    pub(crate) event_subscriber: Option<Box<dyn crate::events::EventSubscriber>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
     #[cfg(feature = "unstable-renegotiate")]
@@ -1137,6 +1138,8 @@ pub(crate) struct Context {
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
     #[cfg(feature = "unstable-crl")]
     pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
+    #[cfg(feature = "unstable-events")]
+    pub(crate) event_subscriber: Option<Box<dyn crate::events::EventSubscriber>>,
 }
 
 impl Default for Context {
@@ -1153,7 +1156,6 @@ impl Default for Context {
             verify_host_callback: None,
             session_ticket_callback: None,
             connection_initializer: None,
-            event_subscriber: None,
             wall_clock: None,
             monotonic_clock: None,
             #[cfg(feature = "unstable-renegotiate")]
@@ -1162,6 +1164,8 @@ impl Default for Context {
             cert_authorities: None,
             #[cfg(feature = "unstable-crl")]
             cert_validation_callback_sync: None,
+            #[cfg(feature = "unstable-events")]
+            event_subscriber: None,
         }
     }
 }

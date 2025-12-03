@@ -405,7 +405,7 @@ type SessionState = Vec<u8>;
 /// a last-in, first-out manner through the connection initializer.
 #[derive(Debug, Clone, Default)]
 pub struct LIFOSessionResumption {
-    pub ticket: Arc<Mutex<Vec<SessionState>>>,   
+    pub ticket: Arc<Mutex<Vec<SessionState>>>,
 }
 
 impl SessionTicketCallback for LIFOSessionResumption {

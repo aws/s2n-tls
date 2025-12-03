@@ -1,14 +1,6 @@
-use std::{
-    collections::HashMap,
-    ffi::CStr,
-    fmt::Debug,
-    hash::Hash,
-    io,
-    sync::{atomic::AtomicU64, mpsc::Sender, Arc, LazyLock, Mutex},
-    time::{Duration, Instant, SystemTime},
-};
+use std::{ffi::CStr, fmt::Debug, time::Duration};
 
-use crate::{connection::Connection, enums::Version};
+use crate::connection::Connection;
 
 pub struct HandshakeEvent<'a>(&'a s2n_tls_sys::s2n_event_handshake);
 
@@ -87,8 +79,11 @@ pub trait EventSubscriber: 'static + Send + Sync {
 mod tests {
     use futures_test::task::noop_waker;
 
-    use crate::{error::Error as S2NError, security::DEFAULT_TLS13, testing::LIFOSessionResumption};
-    use std::sync::atomic::Ordering;
+    use crate::{
+        enums::Version, error::Error as S2NError, security::DEFAULT_TLS13,
+        testing::LIFOSessionResumption,
+    };
+    use std::{sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}}, time::SystemTime};
 
     use super::*;
     use crate::{
@@ -124,7 +119,7 @@ mod tests {
     }
 
     impl EventSubscriber for TestSubscriber {
-        fn on_handshake_event(&self, conn: &Connection, event: &HandshakeEvent) {
+        fn on_handshake_event(&self, _conn: &Connection, event: &HandshakeEvent) {
             assert!(event.synchronous_time() <= event.duration());
             let expected_event = self.expected_event.lock().unwrap();
             if let Some(expected) = expected_event.as_ref() {
@@ -299,8 +294,7 @@ mod tests {
 
         let subscriber_config = {
             let mut builder = config_builder(&security::DEFAULT).unwrap();
-            builder
-                .set_event_subscriber(subscriber)?;
+            builder.set_event_subscriber(subscriber)?;
             builder.build()?
         };
 
@@ -326,8 +320,7 @@ mod tests {
         let server_config = {
             // doesn't allow TLS 1.3
             let mut builder = config_builder(&Policy::from_version("20141001")?).unwrap();
-            builder
-                .set_event_subscriber(subscriber)?;
+            builder.set_event_subscriber(subscriber)?;
             builder.build()?
         };
 
