@@ -43,6 +43,7 @@ extern const struct s2n_kem *pq_kems_r3_2021_05[];
 
 extern const struct s2n_kem_group *pq_kem_groups_r3_2021_05[];
 extern const struct s2n_kem_group *pq_kem_groups_r3_2023_06[];
+extern const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[];
 
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01;
