@@ -86,7 +86,13 @@ mod tests {
         enums::Version, error::Error as S2NError, security::DEFAULT_TLS13,
         testing::LIFOSessionResumption,
     };
-    use std::{sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}}, time::SystemTime};
+    use std::{
+        sync::{
+            atomic::{AtomicU64, Ordering},
+            Arc, Mutex,
+        },
+        time::SystemTime,
+    };
 
     use super::*;
     use crate::{
