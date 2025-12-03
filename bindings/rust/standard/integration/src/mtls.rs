@@ -125,7 +125,6 @@ impl VerifyHostNameCallback for HostNameIgnorer {
     }
 }
 
-/// Creates a base s2n-tls builder configured for mTLS.
 fn s2n_mtls_base_builder(sig_type: SigType) -> Builder {
     let mut builder = Builder::new();
     builder.set_chain(sig_type);
@@ -141,7 +140,7 @@ fn s2n_mtls_base_builder(sig_type: SigType) -> Builder {
     builder
 }
 
-/// Helper which registers an async cert validation callback via C FFI
+/// Registers an async cert validation callback and returns (invoked_counter, info_receiver).
 fn register_async_cert_callback(
     s2n_cfg: &mut S2NConfig,
 ) -> (Arc<AtomicU64>, Receiver<SendableCertValidationInfo>) {
@@ -170,7 +169,6 @@ fn register_async_cert_callback(
     (invoked, rx)
 }
 
-/// Builds a rustls mTLS client config for the given TLS version.
 fn rustls_mtls_client(
     sig_type: SigType,
     tls_version: &'static rustls::SupportedProtocolVersion,
@@ -188,7 +186,6 @@ fn rustls_mtls_client(
     client.into()
 }
 
-/// Builds a rustls mTLS server config for the given TLS version.
 fn rustls_mtls_server(
     sig_type: SigType,
     tls_version: &'static rustls::SupportedProtocolVersion,
@@ -216,7 +213,6 @@ fn rustls_mtls_server(
 // Basic mTLS tests
 // ============================================================================
 
-// Helper for basic test case
 fn test_basic<C, S>(client_cfg: &C::Config, server_cfg: &S::Config)
 where
     C: TlsConnection,
@@ -282,7 +278,6 @@ fn s2n_server_basic() {
 // Sync callback tests
 // ============================================================================
 
-// Helper for synchronous callback tests
 fn test_sync_callback<C, S>(client_cfg: &C::Config, server_cfg: &S::Config, handle: Arc<AtomicU64>)
 where
     C: TlsConnection,
@@ -365,7 +360,6 @@ fn s2n_server_sync_callback() {
 // Async callback tests
 // ============================================================================
 
-// Helper for async server-side cert validation tests.
 fn test_async_server_callback<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
@@ -400,7 +394,6 @@ where
     pair
 }
 
-// Helper for async client-side cert validation tests.
 fn test_async_client_callback<C, S>(
     client_cfg: &C::Config,
     server_cfg: &S::Config,
@@ -474,12 +467,10 @@ fn s2n_client_async_callback() {
 // rustls client, s2n server with async callback
 // Rustls TLS 1.2 clients do not send multiple handshake messages in a
 // single record, so s2n never hits the multi-message async-callback
-// bug that appears in TLS 1.3 but both variants are ignored for now
-// for simplicity.
+// bug that appears in TLS 1.3. These tests are split by protocol
+// version until the multi-message bug is fixed.
 #[test]
-#[ignore = "Hangs due to multi-message bug in async cert validation"]
-fn s2n_server_async_callback() {
-    // TLS 1.2
+fn s2n_server_async_callback_tls12() {
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle, rx) = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -489,8 +480,11 @@ fn s2n_server_async_callback() {
     };
     let _pair =
         test_async_server_callback::<RustlsConnection, S2NConnection>(&client, &server, handle, rx);
+}
 
-    // TLS 1.3
+#[test]
+#[ignore = "Hangs due to multi-message bug in async cert validation"]
+fn s2n_server_async_callback_tls13() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {
