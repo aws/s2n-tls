@@ -29,13 +29,27 @@ struct s2n_cert_cb_ctx {
     struct s2n_cert_validation_info *info;
 };
 
-static int s2n_test_cert_validation_callback(struct s2n_connection *conn, struct s2n_cert_validation_info *info, void *ctx)
+static int s2n_test_cert_validation_cb(struct s2n_connection *conn, struct s2n_cert_validation_info *info, void *ctx)
 {
     struct s2n_cert_cb_ctx *data = (struct s2n_cert_cb_ctx *) ctx;
 
     data->info = info;
 
     /* Returning success since we will accept asynchronously */
+    return S2N_SUCCESS;
+}
+
+struct s2n_sig_cb_ctx {
+    struct s2n_async_offload_op *op;
+};
+
+static int s2n_test_signature_verification_cb(struct s2n_connection *conn, struct s2n_async_offload_op *op, void *ctx)
+{
+    struct s2n_sig_cb_ctx *data = (struct s2n_sig_cb_ctx *) ctx;
+
+    data->op = op;
+
+    /* Returning success since we will perform the operation asynchronously */
     return S2N_SUCCESS;
 }
 
@@ -64,10 +78,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
-        /* This test checks that s2n-tls can receive multiple handshake messages in one record. This is
-        * not a comprehensive test, it only tests the usecase where an async callback is triggered
-        * while reading multiple TLS messages in a single record.
-        */
+        /* This test checks that our async callbacks which interrupt the reading of handshake messages do not
+         * affect the server's processing of multiple handshake messages in one record.
+         * This is not a comprehensive test, it only tests the usecase where async callbacks are triggered
+         * while reading multiple TLS messages in a single record. This case requires special testing because
+         * these async callbacks will exit the s2n_negotiate loop with handshake data left unread
+         * and we want to ensure that they re-enter and process the leftover data successfully.
+         */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
@@ -80,10 +97,16 @@ int main(int argc, char **argv)
 
             /* Add a cert validation callback. In this case we will store the cert validation info
             * when the callback triggers and accept the cert outside of the callback. */
-            struct s2n_cert_cb_ctx cb_ctx = { 0 };
-            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(server_config, s2n_test_cert_validation_callback, &cb_ctx));
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            struct s2n_cert_cb_ctx cert_cb_ctx = { 0 };
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(server_config, s2n_test_cert_validation_cb, &cert_cb_ctx));
+
+            /* Add a signature verify callback */
+            struct s2n_sig_cb_ctx sig_cb_ctx = { 0 };
+            EXPECT_SUCCESS(s2n_config_set_async_offload_callback(server_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
+                    s2n_test_signature_verification_cb, &sig_cb_ctx));
+
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -131,7 +154,15 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         S2N_ERR_ASYNC_BLOCKED);
             }
-            EXPECT_SUCCESS(s2n_cert_validation_accept(cb_ctx.info));
+            EXPECT_SUCCESS(s2n_cert_validation_accept(cert_cb_ctx.info));
+
+            /* Handshake will block until the server verifies client signature */
+            for (int i = 0; i < 3; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_ASYNC_BLOCKED);
+            }
+
+            EXPECT_SUCCESS(s2n_async_offload_op_perform(sig_cb_ctx.op));
 
             /* Handshake completes successfully after server accepts client cert */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
