@@ -43,6 +43,10 @@ int main(int argc, char **argv)
         uint16_t ordered_supported_group_count = 0;
 
         POSIX_ENSURE_REF(security_policy->kem_preferences);
+
+        /* Temporarily require that policies either have PQ or strongly supported groups, but not both. */
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
+
         for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
             const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
             POSIX_ENSURE_REF(kem_group);
