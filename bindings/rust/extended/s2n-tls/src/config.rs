@@ -714,6 +714,7 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_set_subscriber] and [s2n_config_set_handshake_event].
     #[cfg(feature = "unstable-events")]
     pub fn set_event_subscriber<T: 'static + EventSubscriber>(
         &mut self,

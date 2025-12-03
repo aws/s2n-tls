@@ -1719,7 +1719,6 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     if (result == S2N_SUCCESS) {
         conn->handshake_event.handshake_end_ns = negotiate_end;
-        // thoughts: could this break the handshake loop in any way?
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
     }

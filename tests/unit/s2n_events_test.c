@@ -31,9 +31,9 @@ struct event_subscriber {
 };
 
 void subscriber_on_handshake_complete(
-    struct s2n_connection *conn, 
-    void *subscriber, 
-    struct s2n_event_handshake *event)
+        struct s2n_connection *conn,
+        void *subscriber,
+        struct s2n_event_handshake *event)
 {
     struct event_subscriber *sub = (struct event_subscriber *) subscriber;
     sub->invoked++;
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     }
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-    struct event_subscriber subscriber = {0};
+    struct event_subscriber subscriber = { 0 };
     s2n_config_set_subscriber(config, &subscriber);
     s2n_config_set_handshake_event(config, subscriber_on_handshake_complete);
 

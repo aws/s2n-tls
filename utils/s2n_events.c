@@ -44,8 +44,7 @@ S2N_RESULT s2n_event_handshake_send(struct s2n_connection *conn, struct s2n_even
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(conn->config);
 
-    if (conn->config->subscriber == NULL || 
-        conn->config->on_handshake_event == NULL) {
+    if (conn->config->subscriber == NULL || conn->config->on_handshake_event == NULL) {
         return S2N_RESULT_OK;
     }
 
