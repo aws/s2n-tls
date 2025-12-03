@@ -86,8 +86,7 @@ function uvinteg {(
     set -eu
     TESTS="${1:-all}"
     apache2_start
-    # TODO: Dynamic Record Sizes needs a rewrite; skip for now.
-    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10 -rpfs --ignore-glob=*test_dynamic_record_sizes*"
+    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10 -rpfs"
     cd ./tests/integrationv2
     echo -n "Comparing the current list of integ tests against what is checked-in..."
     PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
