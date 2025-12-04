@@ -1,4 +1,3 @@
-name: rfc9151
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: yes

@@ -173,19 +173,6 @@ int s2n_socket_write_uncork(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_socket_set_read_size(struct s2n_connection *conn, int size)
-{
-#ifdef SO_RCVLOWAT
-    POSIX_ENSURE_REF(conn);
-    struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
-    POSIX_ENSURE_REF(r_io_ctx);
-
-    setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &size, sizeof(size));
-#endif
-
-    return 0;
-}
-
 int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     POSIX_ENSURE_REF(io_context);

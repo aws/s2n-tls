@@ -190,15 +190,16 @@ where
         &mut self.server
     }
 
-    /// Run handshake on connections
-    /// Two round trips are needed for the server to receive the Finished message
-    /// from the client and be ready to send data
+    /// Run the TLS handshake between client and server until both report completion.
+    /// Continues until the handshake is finished and neither side exchanges
+    /// additional handshake or post-handshake data.
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        for _ in 0..2 {
+        // Keep looping while handshake not complete or progress is still being made
+        while !self.handshake_completed() {
             self.client.handshake()?;
             self.server.handshake()?;
         }
-        assert!(self.handshake_completed());
+
         Ok(())
     }
 

@@ -102,7 +102,7 @@ extern const struct s2n_kem s2n_kyber_512_r3;
 extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
-#define S2N_KEM_GROUPS_COUNT 9
+#define S2N_KEM_GROUPS_COUNT 10
 extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
@@ -141,6 +141,7 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 bool s2n_kem_is_available(const struct s2n_kem *kem);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
+int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found);
 
 /* mlkem768 */
 #define S2N_MLKEM_768_PUBLIC_KEY_BYTES    1184

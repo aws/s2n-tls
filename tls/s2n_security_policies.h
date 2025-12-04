@@ -23,6 +23,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_security_rules.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_supported_group_preferences.h"
 
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
@@ -71,6 +72,13 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    /* This field contains the list of supported group IANA identifiers that s2n's
+    * server negotiation logic will always be willing to perform a 2-RTT
+    * ClientHelloRetry in order to negotiate. Setting this preference list may
+    * cause performance impact and extra round trips when performing TLS
+    * handshakes.
+    */
+    const struct s2n_supported_group_preferences *strongly_preferred_groups;
     /* This field determines what public keys are allowed for use. It restricts
      * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
      * the size of the key. Note that this field structure is likely to change
@@ -82,12 +90,6 @@ struct s2n_security_policy {
      */
     bool certificate_preferences_apply_locally;
     bool rules[S2N_SECURITY_RULES_COUNT];
-
-    /* Historically all security policies are static.
-     * However, the security policy builder can dynamically create policies.
-     * The builder will mark those policies to indicate they should be freed.
-     */
-    bool alloced;
 };
 
 /* Macros to help construct simple policies.
@@ -190,6 +192,13 @@ extern const struct s2n_security_policy security_policy_20250211;
 extern const struct s2n_security_policy security_policy_20250414;
 extern const struct s2n_security_policy security_policy_20250512;
 extern const struct s2n_security_policy security_policy_20250721;
+extern const struct s2n_security_policy security_policy_20251014;
+extern const struct s2n_security_policy security_policy_20251015;
+extern const struct s2n_security_policy security_policy_20251113;
+extern const struct s2n_security_policy security_policy_20251114;
+extern const struct s2n_security_policy security_policy_20251115;
+extern const struct s2n_security_policy security_policy_20251116;
+extern const struct s2n_security_policy security_policy_20251117;
 
 extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;

@@ -30,7 +30,7 @@
 
 #define HELLO_RETRY_MSG_NO 1
 
-int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn);
+int s2n_server_key_share_send_check_pq(struct s2n_connection *conn);
 int s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn);
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload);
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         /* Error if both curve and kem_group are NULL */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
         conn->kex_params.server_kem_group_params.kem_group = NULL;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
@@ -786,49 +786,49 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         };
 
-        /* Test s2n_server_key_share_send_check_pq_hybrid */
+        /* Test s2n_server_key_share_send_check_pq */
         {
             struct s2n_connection *conn = NULL;
-            EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
+            EXPECT_FAILURE(s2n_server_key_share_send_check_pq(conn));
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             if (!s2n_pq_is_enabled()) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_UNIMPLEMENTED);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_UNIMPLEMENTED);
             }
 
             if (s2n_pq_is_enabled()) {
                 conn->security_policy_override = &test_all_supported_kems_security_policy;
 
-                EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
+                EXPECT_FAILURE(s2n_server_key_share_send_check_pq(conn));
                 conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
 
-                EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
+                EXPECT_FAILURE(s2n_server_key_share_send_check_pq(conn));
                 conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
                 conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
                 conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 conn->kex_params.client_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = s2n_secp256r1_kyber_512_r3.curve;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_kem_group_params.ecc_params));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 conn->kex_params.client_kem_group_params.kem_params.kem = s2n_secp256r1_kyber_512_r3.kem;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_kem_group_params.kem_params.public_key,
                         s2n_secp256r1_kyber_512_r3.kem->public_key_length));
                 EXPECT_OK(s2n_kem_generate_keypair(&conn->kex_params.client_kem_group_params.kem_params));
-                EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
+                EXPECT_SUCCESS(s2n_server_key_share_send_check_pq(conn));
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -859,6 +859,11 @@ int main(int argc, char **argv)
                         EXPECT_SUCCESS(s2n_connection_free(conn));
                         continue;
                     }
+                    /* Skip length-prefixed test for pure PQ KEM groups */
+                    if (len_prefixed && kem_group->curve == &s2n_ecc_curve_none) {
+                        EXPECT_SUCCESS(s2n_connection_free(conn));
+                        continue;
+                    }
                     server_params->kem_group = kem_group;
                     server_params->kem_params.kem = kem_group->kem;
                     server_params->ecc_params.negotiated_curve = kem_group->curve;
@@ -869,7 +874,9 @@ int main(int argc, char **argv)
                     client_params->kem_params.len_prefixed = (bool) len_prefixed; /* This would normally be auto-detected when receiving the Client's KeyShare*/
                     client_params->ecc_params.negotiated_curve = kem_group->curve;
 
-                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
+                    if (kem_group->curve != &s2n_ecc_curve_none) {
+                        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
+                    }
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, kem_group->kem->public_key_length));
                     EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
                     EXPECT_SUCCESS(s2n_server_key_share_extension.send(conn, &stuffer));
@@ -986,7 +993,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };

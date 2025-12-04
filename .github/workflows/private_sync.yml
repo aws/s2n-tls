@@ -3,13 +3,16 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: write
+
 jobs:
   build:
     # This should only run in one place.
     if: contains(github.repository, 'aws/s2n-tls')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
           fetch-depth: 0

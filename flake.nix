@@ -30,7 +30,6 @@
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pkgs.corretto21
-          pkgs.iproute2
           pkgs.apacheHttpd
           pkgs.procps
           # stress testing tool for linux
@@ -39,7 +38,7 @@
           pkgs.gnutls
           pkgs.tshark
 
-          # C Compiler Tooling; adding llvm/clang is an involved future task.
+          # C Compiler Tooling
           pkgs.gcc
           pkgs.gdb
           pkgs.valgrind
