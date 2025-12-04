@@ -1645,7 +1645,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
                 POSIX_GUARD_RESULT(s2n_set_blocked_error_from_errno(conn, blocked));
                 S2N_ERROR_PRESERVE_ERRNO();
             }
-            
+
             continue;
         }
 
