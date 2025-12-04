@@ -249,6 +249,7 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_init(&s2n_default_config));
         POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
+        s2n_default_config.security_policy
     }
 
     /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */

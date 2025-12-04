@@ -93,8 +93,8 @@ int main(int argc, char **argv)
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         if (default_config->security_policy != config->security_policy) {
-            const char* default_policy = NULL;
-            const char* new_policy = NULL;
+            const char *default_policy = NULL;
+            const char *new_policy = NULL;
             EXPECT_OK(s2n_security_policy_get_version(default_config->security_policy, &default_policy));
             EXPECT_OK(s2n_security_policy_get_version(config->security_policy, &new_policy));
             printf("default policy is %s but new policy is %s\n", default_policy, new_policy);
