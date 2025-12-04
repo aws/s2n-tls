@@ -1559,21 +1559,6 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_set_blocked_error_from_errno(struct s2n_connection *conn, s2n_blocked_status *blocked)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(blocked);
-
-    if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
-        *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
-        conn->handshake.paused = true;
-    } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
-        *blocked = S2N_BLOCKED_ON_EARLY_DATA;
-    }
-
-    return S2N_RESULT_OK;
-}
-
 static int s2n_handle_retry_state(struct s2n_connection *conn)
 {
     /* If we were blocked reading or writing a record, then the handler is waiting on
@@ -1614,6 +1599,21 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     }
 
     return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_set_blocked_error_from_errno(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(blocked);
+
+    if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+        *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+        conn->handshake.paused = true;
+    } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+        *blocked = S2N_BLOCKED_ON_EARLY_DATA;
+    }
+
+    return S2N_RESULT_OK;
 }
 
 bool s2n_handshake_is_complete(struct s2n_connection *conn)
