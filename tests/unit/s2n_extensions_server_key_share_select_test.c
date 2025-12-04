@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
@@ -44,7 +45,7 @@ int main()
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
@@ -141,7 +142,7 @@ int main()
             server_conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                    S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 

@@ -19,6 +19,7 @@
 #include "crypto/s2n_pq.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "utils/s2n_safety.h"
 
 /* Default as of 10/13 */
@@ -1373,6 +1374,7 @@ const struct s2n_security_policy security_policy_20251113 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251114 = {
@@ -1382,6 +1384,7 @@ const struct s2n_security_policy security_policy_20251114 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251115 = {
@@ -1391,6 +1394,7 @@ const struct s2n_security_policy security_policy_20251115 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251116 = {
@@ -1400,6 +1404,7 @@ const struct s2n_security_policy security_policy_20251116 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_20251117 = {
@@ -1409,6 +1414,7 @@ const struct s2n_security_policy security_policy_20251117 = {
     .signature_preferences = &s2n_signature_preferences_20251113,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20251113,
     .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
 const struct s2n_security_policy security_policy_test_all = {
@@ -1717,6 +1723,17 @@ static int s2n_config_validate_security_policy(struct s2n_config *config, const 
 
     if (security_policy == &security_policy_null) {
         return S2N_SUCCESS;
+    }
+
+    /* Ensure that all strongly preferred groups are supported by our libcrypto. */
+    for (size_t i = 0; security_policy->strongly_preferred_groups != NULL && i < security_policy->strongly_preferred_groups->count; i++) {
+        const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
+        bool found_kem_group_from_iana = false;
+        POSIX_GUARD(s2n_find_kem_group_from_iana_id(security_policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_kem_group, &found_kem_group_from_iana));
+
+        if (found_kem_group_from_iana) {
+            POSIX_ENSURE(s2n_kem_group_is_available(strongly_preferred_kem_group), S2N_ERR_INVALID_SECURITY_POLICY);
+        }
     }
 
     /* Ensure that an ECC or PQ key exchange can occur. */

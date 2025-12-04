@@ -265,7 +265,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                    S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
             /* Assert server negotiated_curve and kem_group are both NULL. */
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
