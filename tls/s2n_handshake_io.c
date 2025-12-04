@@ -1559,6 +1559,21 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+static S2N_RESULT s2n_set_blocked_error_from_errno(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(blocked);
+
+    if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+        *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+        conn->handshake.paused = true;
+    } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+        *blocked = S2N_BLOCKED_ON_EARLY_DATA;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_handle_retry_state(struct s2n_connection *conn)
 {
     /* If we were blocked reading or writing a record, then the handler is waiting on
@@ -1625,7 +1640,12 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         /* If the handshake was paused, retry the current message */
         if (conn->handshake.paused) {
             *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
-            POSIX_GUARD(s2n_handle_retry_state(conn));
+            const int retry_result = s2n_handle_retry_state(conn);
+            if (retry_result != S2N_SUCCESS) {
+                POSIX_GUARD_RESULT(s2n_set_blocked_error_from_errno(conn, blocked));
+                S2N_ERROR_PRESERVE_ERRNO();
+            }
+            
             continue;
         }
 
@@ -1652,12 +1672,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
                     }
                 }
 
-                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
-                    *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
-                    conn->handshake.paused = true;
-                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
-                    *blocked = S2N_BLOCKED_ON_EARLY_DATA;
-                }
+                POSIX_GUARD_RESULT(s2n_set_blocked_error_from_errno(conn, blocked));
 
                 S2N_ERROR_PRESERVE_ERRNO();
             }
@@ -1672,12 +1687,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
                     s2n_try_delete_session_cache(conn);
                 }
 
-                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
-                    *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
-                    conn->handshake.paused = true;
-                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
-                    *blocked = S2N_BLOCKED_ON_EARLY_DATA;
-                }
+                POSIX_GUARD_RESULT(s2n_set_blocked_error_from_errno(conn, blocked));
 
                 S2N_ERROR_PRESERVE_ERRNO();
             }
