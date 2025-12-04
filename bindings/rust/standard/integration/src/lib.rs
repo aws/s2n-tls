@@ -5,5 +5,7 @@
 mod capability_check;
 #[cfg(test)]
 mod features;
+#[cfg(test)]
+mod mtls;
 #[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;
