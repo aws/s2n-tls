@@ -80,10 +80,9 @@ int main(int argc, char **argv)
 
         /* This test checks that our async callbacks which interrupt the reading of handshake messages do not
          * affect the server's processing of multiple handshake messages in one record.
-         * This is not a comprehensive test, it only tests the usecase where async callbacks are triggered
-         * while reading multiple TLS messages in a single record. This case requires special testing because
-         * these async callbacks will exit the s2n_negotiate loop with handshake data left unread
-         * and we want to ensure that they re-enter and process the leftover data successfully.
+         * This case requires special testing because these async callbacks will exit the s2n_negotiate
+         * loop with handshake data left unread and we want to ensure that they re-enter and process
+         * the leftover data successfully.
          */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
