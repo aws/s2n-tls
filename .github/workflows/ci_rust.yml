@@ -34,7 +34,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -87,7 +87,7 @@ jobs:
   sensitive-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: install rust toolchain
         id: toolchain
         run: |
@@ -109,7 +109,7 @@ jobs:
   external-build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -120,7 +120,7 @@ jobs:
       - uses: camshaft/rust-cache@v1
 
       - name: Checkout aws-lc
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: aws/aws-lc
           path: aws-lc
@@ -176,7 +176,7 @@ jobs:
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -198,7 +198,7 @@ jobs:
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -249,7 +249,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -293,7 +293,7 @@ jobs:
   asan-unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -330,7 +330,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -358,7 +358,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -399,7 +399,7 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -422,7 +422,7 @@ jobs:
   pcaps:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -460,7 +460,7 @@ jobs:
           - bindings/rust/extended
           - bindings/rust/standard
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain
@@ -499,7 +499,7 @@ jobs:
   check-generated-cargo-toml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         id: toolchain

@@ -34,7 +34,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out repository and submodules recursively
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
       - name: Parse config file

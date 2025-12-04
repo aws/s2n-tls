@@ -276,7 +276,7 @@ int main(int argc, char **argv)
 
             uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, client_random, S2N_TLS_RANDOM_DATA_LEN));
-            EXPECT_BYTEARRAY_EQUAL(client_random, server_conn->handshake_params.client_random,
+            EXPECT_BYTEARRAY_EQUAL(client_random, server_conn->client_hello.random,
                     S2N_TLS_RANDOM_DATA_LEN);
 
             uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
