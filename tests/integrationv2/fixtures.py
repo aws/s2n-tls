@@ -1,8 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
 import pytest
-import subprocess
 
 from processes import ManagedProcess
 from providers import Provider, S2N
@@ -122,45 +120,3 @@ def managed_process(request: pytest.FixtureRequest):
                 p.kill()
             else:
                 p.join()
-
-
-def _swap_mtu(device, new_mtu):
-    """
-    Swap the device's current MTU for the requested MTU.
-    Return the original MTU so it can be reset later.
-    """
-    cmd = ["ip", "link", "show", device]
-    p = subprocess.Popen(
-        cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    mtu = 65536
-    for line in p.stdout.readlines():
-        s = line.decode("utf-8")
-        pieces = s.split(" ")
-        if len(pieces) >= 4 and pieces[3] == "mtu":
-            mtu = int(pieces[4])
-
-    p.wait()
-
-    subprocess.call(["ip", "link", "set", device, "mtu", str(new_mtu)])
-
-    return int(mtu)
-
-
-@pytest.fixture(scope="module")
-def custom_mtu():
-    """
-    This fixture will swap the loopback's MTU from the default
-    to 1500, which is more reasonable for a network device.
-    Using a fixture allows us to reset the MTU even if the test
-    fails.
-
-    These values are all hardcoded because they are only used
-    from a single test. This simplifies the use of the fixture.
-    """
-    if os.geteuid() != 0:
-        pytest.skip("Test needs root privileges to modify lo MTU")
-
-    original_mtu = _swap_mtu("lo", 1500)
-    yield
-    _swap_mtu("lo", original_mtu)
