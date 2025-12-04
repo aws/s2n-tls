@@ -230,8 +230,8 @@ mod s2n_tls_bench_setup {
                 (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
                 (CipherSuite::TLS_AES_128_GCM_SHA256, KXGroup::X25519) => "20240417",
                 (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
-                (CipherSuite::TLS_AES_128_GCM_SHA256, KXGroup::X25519MLKEM768) => "default_tls13",
-                (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::X25519MLKEM768) => "default_tls13",
+                (CipherSuite::TLS_AES_128_GCM_SHA256, KXGroup::X25519MLKEM768) => "20251014",
+                (CipherSuite::TLS_AES_256_GCM_SHA384, KXGroup::X25519MLKEM768) => "PQ-TLS-1-2-2024-10-09",
             };
 
             let mut builder = s2n_tls::config::Builder::new();
