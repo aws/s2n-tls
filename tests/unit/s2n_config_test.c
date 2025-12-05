@@ -14,6 +14,7 @@
  */
 
 #include "tls/s2n_config.h"
+
 #include <stdlib.h>
 #include <testlib/s2n_sslv2_client_hello.h>
 
@@ -91,6 +92,10 @@ int main(int argc, char **argv)
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         if (default_config->security_policy != config->security_policy) {
+            /* one possible cause for this is attempting to includes s2n_config.c 
+             * for access to internal `static` functions. This causes two copies
+             * of the default config to be created. The default_config in *this*
+             * unit of translation doesn't get properly initialized. */
             const char *default_policy = NULL;
             const char *new_policy = NULL;
             EXPECT_OK(s2n_security_policy_get_version(default_config->security_policy, &default_policy));
