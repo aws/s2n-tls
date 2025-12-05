@@ -38,9 +38,9 @@ static int s2n_aead_test_setup_keys(struct s2n_connection *conn, struct s2n_blob
 }
 
 /* Prepare a connection for testing with the specified record algorithm */
-static int s2n_aead_test_prep_connection(struct s2n_connection *conn, 
-                                          const struct s2n_record_algorithm *record_alg,
-                                          struct s2n_blob *key)
+static int s2n_aead_test_prep_connection(struct s2n_connection *conn,
+        const struct s2n_record_algorithm *record_alg,
+        struct s2n_blob *key)
 {
     POSIX_GUARD(s2n_connection_wipe(conn));
     conn->actual_protocol_version_established = 1;
