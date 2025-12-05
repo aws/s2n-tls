@@ -128,9 +128,8 @@ fn classical_group_selection() {
 
 /// PQ Key Share Preference:
 ///
-/// When s2n-tls receives a key share from the client AND that group is allowed
-/// by the security policy, it will choose that group even if it isn't the highest
-/// server preference.
+/// When the client and server both support PQ but the client didn't send a key share
+/// for its PQ algorithm, then we will force an additional round trip to negotiate PQ.
 #[test]
 fn pq_group_selection() {
     required_capability(&[Capability::Tls13, Capability::MLKem], || {
@@ -147,8 +146,8 @@ fn pq_group_selection() {
 
 /// Strongly Preferred Groups:
 ///
-/// If the server's strongly preferred group is in the clients supported groups,
-/// then negotiated of the group will be forced, even at the cost of an HRR.
+/// If the server's strongly preferred group is in the client's supported groups,
+/// then the strongly preferred group will be negotiated even at the cost of an HRR.
 ///
 /// Otherwise normal group negotiation logic applies
 #[test]
