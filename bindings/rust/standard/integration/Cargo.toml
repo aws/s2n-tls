@@ -32,6 +32,9 @@ tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
 rustls = "0.23"
 
+brass-aphid-wire-decryption = "0.0.1"
+brass-aphid-wire-messages = "0.0.1"
+
 tracing = "0.1"
 tracing-subscriber = "0.3"
 test-log = { version = "0.2", default-features = false, features = ["trace"]}
