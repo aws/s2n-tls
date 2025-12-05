@@ -46,12 +46,14 @@ unsafe extern "C" fn test_async_offload_cb(
 ) -> i32 {
     ASYNC_OFFLOAD_CTX.with(|ctx_cell| {
         let ctx_ref = ctx_cell.borrow();
-        if let Some(ctx) = ctx_ref.as_ref() {
-            ctx.invoked.fetch_add(1, Ordering::SeqCst);
-            ctx.sender
-                .send(SendableAsyncOffloadOp(op))
-                .expect("send async offload op");
-        }
+        let ctx = ctx_ref
+            .as_ref()
+            .expect("ASYNC_OFFLOAD_CTX must be initialized before handshake");
+
+        ctx.invoked.fetch_add(1, Ordering::SeqCst);
+        ctx.sender
+            .send(SendableAsyncOffloadOp(op))
+            .expect("send async offload op");
     });
 
     s2n_status_code::SUCCESS
@@ -94,7 +96,7 @@ fn register_async_pkey_verify_offload(
     (invoked, rx)
 }
 
-// As of 2025-12-4: #[ignore] due to a TLS 1.3 server-side bug in s2n-tls where multi-message
+// #[ignore] due to a TLS 1.3 server-side bug in s2n-tls (as of 2025-12-04) where multi-message
 // async cert validation clears queued handshake messages. This prevents the
 // CertificateVerify message from being processed and causes the handshake to hang.
 // Remove #[ignore] once the multi-message async cert verify bug is fixed.
@@ -121,9 +123,11 @@ fn s2n_server_tls13() {
             let mut pair =
                 TlsConnPair::<RustlsConnection, S2NConnection>::from_configs(&client, &server);
 
+            // Drive early handshake messages (ClientHello, ServerHello, EncryptedExtensions)
             pair.client.handshake().unwrap();
             pair.server.handshake().unwrap();
 
+            // Progress until just before client Certificate is processed:
             pair.client.handshake().unwrap();
             assert_eq!(cert_invoked.load(Ordering::SeqCst), 0);
             assert_eq!(offload_invoked.load(Ordering::SeqCst), 0);

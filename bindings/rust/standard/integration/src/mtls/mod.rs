@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates.
 // SPDX-License-Identifier: Apache-2.0
 
+// async_verify_and_offload contains a “stress” test that wires the async cert-validation
+// and async pkey-verify callbacks together. It’s kept separate from the main mTLS test matrix.
 mod async_verify_and_offload;
 
 // This test suite exercises mTLS interoperability between s2n-tls and rustls,
