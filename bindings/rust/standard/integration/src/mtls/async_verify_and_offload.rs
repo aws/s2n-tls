@@ -35,7 +35,7 @@ struct AsyncOffloadCtx {
 // Thread-local storage for the async offload context
 thread_local! {
     static ASYNC_OFFLOAD_CTX: std::cell::RefCell<Option<AsyncOffloadCtx>> =
-        std::cell::RefCell::new(None);
+        const { std::cell::RefCell::new(None) };
 }
 
 // C-style async offload callback
