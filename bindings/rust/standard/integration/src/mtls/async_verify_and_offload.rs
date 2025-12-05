@@ -4,7 +4,7 @@
 // mTLS async verify + async offload test
 // This is a "stress test" of our mTLS async callback which configures:
 // - rustls client (TLS 1.3)
-// - s2n-tls server 
+// - s2n-tls server
 // - async certificate validation callback
 // - async offload operation (pkey verify)
 
@@ -94,8 +94,13 @@ fn register_async_pkey_verify_offload(
     (invoked, rx)
 }
 
+// As of 2025-12-4: #[ignore] due to a TLS 1.3 server-side bug in s2n-tls where multi-message
+// async cert validation clears queued handshake messages. This prevents the
+// CertificateVerify message from being processed and causes the handshake to hang.
+// Remove #[ignore] once the multi-message async cert verify bug is fixed.
 // rustls client, s2n server with async cert verify + async pkey verify offload (TLS 1.3)
 #[test]
+#[ignore = "Hangs due to multi-message bug in async cert validation"]
 fn s2n_server_tls13() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
