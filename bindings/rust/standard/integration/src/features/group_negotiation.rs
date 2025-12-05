@@ -97,10 +97,6 @@ impl Trial {
 
 /// Classical Key Share Preference:
 ///
-/// When s2n-tls receives a key share from the client AND that group is allowed
-/// by the security policy, it will choose that group even if it isn't the highest
-/// server preference.
-///
 /// As long as the client key share is supported (but not necessarily preferred)
 /// by the server then it will be selected, and there will be no HRR.
 #[test]
