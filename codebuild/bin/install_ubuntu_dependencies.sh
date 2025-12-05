@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-# Shim code to get local docker/ec2 instances bootstraped like a CodeBuild instance.
+# Shim code to get local docker/ec2 instances bootstrapped like a CodeBuild instance.
 # Not actually used by CodeBuild.
 
 source codebuild/bin/s2n_setup_env.sh
