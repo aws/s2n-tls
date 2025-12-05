@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates.
 // SPDX-License-Identifier: Apache-2.0
 
+mod async_verify_and_offload;
+
 // This test suite exercises mTLS interoperability between s2n-tls and rustls,
 // including:
 //   - basic mTLS handshakes (TLS 1.2 and 1.3)
