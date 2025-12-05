@@ -118,7 +118,7 @@ s2n-tls attempts to send any necessary post-handshake messages BEFORE sending an
 
 If the send buffer is configured to be larger than the max record length via [s2n_config_set_send_buffer_size](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a6de9d794c410474e9851880bd4914025), then s2n_send can buffer more than one record in `out` at a time before writing to the network. This reduces syscalls and can improve performance.
 
-This feature does not signficantly impact the s2n_send logic: it really just makes the call to "s2n_flush" after each record is written to `out` conditional on whether or not there's enough space in `out` for another record.
+This feature does not significantly impact the s2n_send logic: it really just makes the call to "s2n_flush" after each record is written to `out` conditional on whether or not there's enough space in `out` for another record.
 
 ## Receiving Application Data
 
@@ -128,7 +128,7 @@ Note: If you are unfamiliar with s2n_recv, read [the usage guide](https://github
 
 ### The header_in, in, and buffer_in buffers
 
-Once upon a time, reading a record involved reading the TLS header into the fixed-sized `header_in` buffer and reading the payload into the `in` buffer. The `in` buffer was allocated with enough memory to hold the largest possible record fragment allowed by the RFC. This made `in` generally analagous to `out`, but often larger. If you're trying to understand most of the s2n_recv logic, this is still a useful mental model.
+Once upon a time, reading a record involved reading the TLS header into the fixed-sized `header_in` buffer and reading the payload into the `in` buffer. The `in` buffer was allocated with enough memory to hold the largest possible record fragment allowed by the RFC. This made `in` generally analogous to `out`, but often larger. If you're trying to understand most of the s2n_recv logic, this is still a useful mental model.
 
 However, in reality, `in` no longer allocates *any* memory. Due to the addition of the "receive buffering" feature, `in` is now just a pointer to a subsection of `buffer_in`, and `buffer_in` is allocated with enough memory to hold the largest possible record allowed by the RFC. This is discussed further in the [Receive Buffering](#receive-buffering) section.
 
@@ -146,7 +146,7 @@ The "s2n_peek" method can be used to check if any plaintext is waiting in `in`. 
 
 Historically, s2n_recv only read a single record each time it was called, regardless of how much application data the caller requested. Applications would need to call s2n_recv in a loop to read all expected data. This behavior has been maintained for backwards compatibility.
 
-However, applications can also call [s2n_config_set_recv_multi_record](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a873c1969c18fdf8663a9b593e62b9460) to instead read records in a loop until the expected amount of application data has been read. This feature does not signficantly impact the s2n_recv logic: it really just wrapped the previous implementation in a loop.
+However, applications can also call [s2n_config_set_recv_multi_record](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a873c1969c18fdf8663a9b593e62b9460) to instead read records in a loop until the expected amount of application data has been read. This feature does not significantly impact the s2n_recv logic: it really just wrapped the previous implementation in a loop.
 
 ### Receive buffering
 
