@@ -46,7 +46,7 @@
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
-static int monotonic_clock(void *data, uint64_t *nanoseconds)
+int s2n_default_monotonic_clock(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time = { 0 };
 
@@ -95,7 +95,7 @@ static int s2n_config_setup_fips(struct s2n_config *config)
 static int s2n_config_init(struct s2n_config *config)
 {
     config->wall_clock = wall_clock;
-    config->monotonic_clock = monotonic_clock;
+    config->monotonic_clock = s2n_default_monotonic_clock;
     config->ct_type = S2N_CT_SUPPORT_NONE;
     config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     config->alert_behavior = S2N_ALERT_FAIL_ON_WARNINGS;
@@ -249,7 +249,6 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_init(&s2n_default_config));
         POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
-        s2n_default_config.security_policy
     }
 
     /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */

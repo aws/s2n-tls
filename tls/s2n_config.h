@@ -267,3 +267,4 @@ S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *outpu
  * in `security_policy` */
 S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);
+int s2n_default_monotonic_clock(void *data, uint64_t *nanoseconds);

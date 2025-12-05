@@ -14,7 +14,6 @@
  */
 
 #include "tls/s2n_config.h"
-/* included for access to static `monotonic_clock`*/
 #include <stdlib.h>
 #include <testlib/s2n_sslv2_client_hello.h>
 
@@ -26,7 +25,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
-#include "tls/s2n_config.c"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
@@ -1232,7 +1230,7 @@ int main(int argc, char **argv)
              * timing 
              */
             struct s2n_config zeroed_config = { 0 };
-            zeroed_config.monotonic_clock = monotonic_clock;
+            zeroed_config.monotonic_clock = s2n_default_monotonic_clock;
             server_conn->config = &zeroed_config;
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
@@ -1274,7 +1272,7 @@ int main(int argc, char **argv)
              * timing 
              */
             struct s2n_config zeroed_config = { 0 };
-            zeroed_config.monotonic_clock = monotonic_clock;
+            zeroed_config.monotonic_clock = s2n_default_monotonic_clock;
             server_conn->config = &zeroed_config;
 
             /* Record version and protocol version are in the header for SSLv2 */
