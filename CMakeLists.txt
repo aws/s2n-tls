@@ -428,6 +428,15 @@ if (S2N_INTERN_LIBCRYPTO)
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
     add_definitions(-DS2N_INTERN_LIBCRYPTO=1)
 
+    # Now that the libcrypto lives inside libs2n, any dependencies of the libcrypto must become
+    # dependencies of libs2n.
+    get_target_property(crypto_LINK_LIBRARIES AWS::crypto INTERFACE_LINK_LIBRARIES)
+    if (crypto_LINK_LIBRARIES)
+        foreach (link_library ${crypto_LINK_LIBRARIES})
+            target_link_libraries(${PROJECT_NAME} PUBLIC ${link_library})
+        endforeach()
+    endif()
+
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
         add_custom_command(
