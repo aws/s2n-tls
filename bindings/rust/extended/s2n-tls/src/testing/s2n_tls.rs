@@ -7,7 +7,7 @@ mod tests {
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
-        testing::{self, client_hello::*, Error, Result, *},
+        testing::{self, client_hello::*, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -28,7 +28,7 @@ mod tests {
     }
 
     #[test]
-    fn kem_group_name_retrieval() -> Result<(), Error> {
+    fn kem_group_name_retrieval() -> Result<(), S2NError> {
         // PQ isn't supported
         {
             let policy = Policy::from_version("20240501")?;
@@ -60,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn default_config_and_clone_interaction() -> Result<(), Error> {
+    fn default_config_and_clone_interaction() -> Result<(), S2NError> {
         let config = build_config(&security::DEFAULT_TLS13)?;
         assert_eq!(config.test_get_refcount()?, 1);
         {
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn set_config_multiple_times() -> Result<(), Error> {
+    fn set_config_multiple_times() -> Result<(), S2NError> {
         let config = build_config(&security::DEFAULT_TLS13)?;
         assert_eq!(config.test_get_refcount()?, 1);
 
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn failing_client_hello_callback_sync() -> Result<(), Error> {
+    fn failing_client_hello_callback_sync() -> Result<(), S2NError> {
         let (waker, wake_count) = new_count_waker();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
@@ -164,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    fn failing_client_hello_callback_async() -> Result<(), Error> {
+    fn failing_client_hello_callback_async() -> Result<(), S2NError> {
         let (waker, wake_count) = new_count_waker();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_callback_async() -> Result<(), Error> {
+    fn client_hello_callback_async() -> Result<(), S2NError> {
         let (waker, wake_count) = new_count_waker();
         let require_pending_count = 10;
         let handle = MockClientHelloHandler::new(require_pending_count);
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_callback_sync() -> Result<(), Error> {
+    fn client_hello_callback_sync() -> Result<(), S2NError> {
         let (waker, wake_count) = new_count_waker();
         #[derive(Clone)]
         struct ClientHelloSyncCallback(Arc<AtomicUsize>);
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn new_security_policy() -> Result<(), Error> {
+    fn new_security_policy() -> Result<(), S2NError> {
         use crate::security::Policy;
 
         let policy = Policy::from_version("default")?;
@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn trust_location() -> Result<(), Error> {
+    fn trust_location() -> Result<(), S2NError> {
         let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs"));
         let mut cert = pem_dir.to_path_buf();
         cert.push("cert.pem");
@@ -289,7 +289,7 @@ mod tests {
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
         builder.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
-        builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+        builder.load_pem(&fs::read(&cert).unwrap(), &fs::read(&key).unwrap())?;
         builder.trust_location(Some(&cert), None)?;
 
         TestPair::handshake_with_config(&builder.build()?)?;
@@ -301,7 +301,7 @@ mod tests {
     /// this test verifies that `trust_location()` does not turn on OCSP. It also verifies that turning
     /// on OCSP explicitly still works when `trust_location()` is called.
     #[test]
-    fn trust_location_does_not_change_ocsp_status() -> Result<(), Error> {
+    fn trust_location_does_not_change_ocsp_status() -> Result<(), S2NError> {
         let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs"));
         let mut cert = pem_dir.to_path_buf();
         cert.push("cert.pem");
@@ -325,7 +325,7 @@ mod tests {
                     extension_iana: OCSP_IANA_EXTENSION_ID,
                     extension_expected: enable_ocsp,
                 })?;
-                config.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+                config.load_pem(&fs::read(&cert).unwrap(), &fs::read(&key).unwrap())?;
                 config.trust_location(Some(&cert), None)?;
                 config.build()?
             };
@@ -338,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn connection_level_verify_host_callback() -> Result<(), Error> {
+    fn connection_level_verify_host_callback() -> Result<(), S2NError> {
         let reject_config = {
             let keypair = CertKeyPair::default();
             let mut config = crate::config::Builder::new();
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn no_client_auth() -> Result<(), Error> {
+    fn no_client_auth() -> Result<(), S2NError> {
         use crate::enums::ClientAuthType;
 
         let config = {
@@ -394,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn client_auth() -> Result<(), Error> {
+    fn client_auth() -> Result<(), S2NError> {
         use crate::enums::ClientAuthType;
 
         let config = {
@@ -422,7 +422,7 @@ mod tests {
     }
 
     #[test]
-    fn system_certs_loaded_by_default() -> Result<(), Error> {
+    fn system_certs_loaded_by_default() -> Result<(), S2NError> {
         let keypair = CertKeyPair::default();
 
         // Load the server certificate into the trust store by overriding the OpenSSL default
@@ -441,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn disable_loading_system_certs() -> Result<(), Error> {
+    fn disable_loading_system_certs() -> Result<(), S2NError> {
         let keypair = CertKeyPair::default();
 
         // Load the server certificate into the trust store by overriding the OpenSSL default
@@ -477,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn peer_chain() -> Result<(), Error> {
+    fn peer_chain() -> Result<(), S2NError> {
         use crate::enums::ClientAuthType;
 
         let config = {
@@ -503,7 +503,7 @@ mod tests {
     }
 
     #[test]
-    fn selected_cert() -> Result<(), Error> {
+    fn selected_cert() -> Result<(), S2NError> {
         use crate::enums::ClientAuthType;
 
         let config = {
@@ -553,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn master_secret_success() -> Result<(), Error> {
+    fn master_secret_success() -> Result<(), S2NError> {
         let policy = security::Policy::from_version("test_all_tls12")?;
         let config = config_builder(&policy)?.build()?;
         let mut pair = TestPair::from_config(&config);
@@ -567,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    fn master_secret_failure() -> Result<(), Error> {
+    fn master_secret_failure() -> Result<(), S2NError> {
         // TLS1.3 does not support getting the master secret
         let mut pair = TestPair::from_config(&build_config(&security::DEFAULT_TLS13)?);
         pair.handshake()?;
@@ -673,7 +673,7 @@ mod tests {
     }
 
     #[test]
-    fn no_application_protocol() -> Result<(), Error> {
+    fn no_application_protocol() -> Result<(), S2NError> {
         let config = config_builder(&security::DEFAULT)?.build()?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
@@ -682,7 +682,7 @@ mod tests {
     }
 
     #[test]
-    fn application_protocol() -> Result<(), Error> {
+    fn application_protocol() -> Result<(), S2NError> {
         let config = config_builder(&security::DEFAULT)?.build()?;
         let mut pair = TestPair::from_config(&config);
         pair.server
@@ -695,7 +695,7 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_sslv2_negative() -> Result<(), testing::Error> {
+    fn client_hello_sslv2_negative() -> Result<(), S2NError> {
         let config = testing::build_config(&security::DEFAULT_TLS13)?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
@@ -704,7 +704,7 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_sslv2_positive() -> Result<(), testing::Error> {
+    fn client_hello_sslv2_positive() -> Result<(), Box<dyn std::error::Error>> {
         // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
         // by concatenating these fields together, a valid SSLv2 formatted client hello
         // can be assembled
