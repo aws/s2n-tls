@@ -111,6 +111,11 @@ const char *cipher_exceptions[] = {
     "CloudFront-Upstream-TLS-1-1-2025-PQ",
     "CloudFront-Upstream-TLS-1-2-2025-PQ",
     "CloudFront-Upstream-TLS-1-3-2025-PQ",
+    "CloudFront-SSL-v-3",
+    "CloudFront-TLS-1-0-2014",
+    "CloudFront-TLS-1-0-2014-PQ-Beta",
+    "CloudFront-TLS-1-0-2014-sha256",
+    "CloudFront-TLS-1-0-2016",
     "test_all",
 };
 
@@ -120,6 +125,12 @@ const char *tls_version_exceptions[] = {
     "CloudFront-Upstream-2025-PQ",
     "CloudFront-Upstream-TLS-1-0-2025-PQ",
     "CloudFront-Upstream-TLS-1-1-2025-PQ",
+    "CloudFront-SSL-v-3",
+    "CloudFront-TLS-1-0-2014",
+    "CloudFront-TLS-1-0-2014-PQ-Beta",
+    "CloudFront-TLS-1-0-2014-sha256",
+    "CloudFront-TLS-1-0-2016",
+    "CloudFront-TLS-1-1-2016",
     "test_all",
 };
 
