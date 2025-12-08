@@ -13,6 +13,7 @@ use boring::ssl::{
 use std::{
     error::Error,
     io::{Read, Write},
+    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -47,7 +48,7 @@ impl TlsConnection for BoringSslConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
          // No tickets/resumption yet: keep it simple
         let ssl = Ssl::new(&config.config)?;
