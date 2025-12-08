@@ -4,37 +4,38 @@
 use crate::{
     get_cert_path,
     harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
-    PemType
+    PemType,
 };
 use boring::ssl::{
     ErrorCode, ShutdownResult, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod,
-    SslSession, SslStream, SslVersion
+    SslSession, SslStream, SslVersion,
 };
 use std::{
     error::Error,
     io::{Read, Write},
-    sync::{Arc, Mutex}
+    sync::{Arc, Mutex},
 };
 
 // Creates session ticket callback handler
 #[derive(Clone, Default)]
-pub struct BoringSessionTicketStorage {
+pub struct SessionTicketStorage {
     pub stored_ticket: Arc<Mutex<Option<SslSession>>>,
 }
 
 pub struct BoringSslConnection {
+    mode: Mode,
     connection: SslStream<ViewIO>,
 }
 
 pub struct BoringSslConfig {
     pub config: SslContext,
-    pub session_ticket_storage: BoringSessionTicketStorage,
+    pub session_ticket_storage: SessionTicketStorage,
 }
 
 impl From<SslContext> for BoringSslConfig {
-    fn from(value: SslContext) -> Self {
+    fn from(ctx: SslContext) -> Self {
         BoringSslConfig {
-            config: value,
+            config: ctx,
             session_ticket_storage: Default::default(),
         }
     }
@@ -48,50 +49,42 @@ impl TlsConnection for BoringSslConnection {
         config: &Self::Config,
         io: &harness::TestPairIO,
     ) -> Result<Self, Box<dyn Error>> {
-        // check if there is a session ticket available
-        // a session ticket will only be available if the Config was created
-        // with session resumption enabled
-        let maybe_ticket = config
-            .session_ticket_storage
-            .stored_ticket
-            .lock()
-            .unwrap()
-            .take();
-        if let Some(ticket) = &maybe_ticket {
-            let _result = unsafe { config.config.add_session(ticket) };
-        }
+         // No tickets/resumption yet: keep it simple
+        let ssl = Ssl::new(&config.config)?;
 
-        let mut connection = Ssl::new(&config.config)?;
-        if let Some(ticket) = &maybe_ticket {
-            unsafe { connection.set_session(ticket)? };
-        }
-
-        let io = match mode {
+        let view = match mode {
             Mode::Client => io.client_view(),
             Mode::Server => io.server_view(),
         };
 
-        let connection = SslStream::new(connection, io)?;
-        Ok(Self { connection })
+        let stream = SslStream::new(ssl, view)?;
+        Ok(Self {
+            mode,
+            connection: stream,
+        })
     }
 
-    fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        let result = if self.connection.ssl().is_server() {
-            self.connection.accept()
-        } else {
-            self.connection.connect()
+    fn handshake(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // If the handshake is already complete, no further work is needed.
+        if self.connection.ssl().is_init_finished() {
+            return Ok(());
+        }
+
+        // Drive handshake based on configured mode.
+        let result = match self.mode {
+            Mode::Server => self.connection.accept(),
+            Mode::Client => self.connection.connect(),
         };
 
-        // treat blocking (`ErrorCode::WANT_READ`) as `Ok`, expected during handshake
         match result {
+            // Completed a handshake step — not necessarily “done” yet.
             Ok(_) => Ok(()),
-            Err(err) => {
-                if err.code() != ErrorCode::WANT_READ {
-                    Err(err.into())
-                } else {
-                    Ok(())
-                }
-            }
+
+            // Nonblocking WANT_READ / WANT_WRITE are normal while handshaking.
+            Err(err) => match err.code() {
+                ErrorCode::WANT_READ | ErrorCode::WANT_WRITE => Ok(()),
+                _ => Err(err.into()),
+            },
         }
     }
 
@@ -131,7 +124,8 @@ impl TlsConnection for BoringSslConnection {
 
 impl TlsInfo for BoringSslConnection {
     fn name() -> String {
-        // boring doesn't expose an OpenSSL-style numeric version; just use a simple tag
+        // BoringSSL doesn't expose a version number in the same way as OpenSSL
+        // It's typically identified just as "boringssl"
         "boringssl".to_string()
     }
 
@@ -148,7 +142,7 @@ impl TlsInfo for BoringSslConnection {
     fn negotiated_tls13(&self) -> bool {
         self.connection
             .ssl()
-            .version2() // same enum-style API as openssl
+            .version2()
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
     }
@@ -158,12 +152,8 @@ impl TlsInfo for BoringSslConnection {
     }
 
     fn mutual_auth(&self) -> bool {
-        let ssl = self.connection.ssl();
-
-        let has_chain = ssl.peer_cert_chain().is_some();
-        let ok = ssl.verify_result().is_ok();
-
-        has_chain && ok
+        assert!(self.connection.ssl().is_server());
+        self.connection.ssl().peer_certificate().is_some()
     }
 }
 
@@ -171,10 +161,11 @@ impl TlsConfigBuilder for SslContextBuilder {
     type Config = BoringSslConfig;
 
     fn new_test_config(mode: Mode) -> Self {
-        let mut builder = match mode {
+        let builder = match mode {
             Mode::Client => SslContext::builder(SslMethod::tls_client()).unwrap(),
             Mode::Server => SslContext::builder(SslMethod::tls_server()).unwrap(),
         };
+        // Note: BoringSSL doesn't have set_security_level like OpenSSL
         builder
     }
 
@@ -196,7 +187,7 @@ impl TlsConfigBuilder for SslContextBuilder {
     fn build(self) -> Self::Config {
         BoringSslConfig {
             config: self.build(),
-            session_ticket_storage: BoringSessionTicketStorage::default(),
+            session_ticket_storage: SessionTicketStorage::default(),
         }
     }
 }
@@ -206,7 +197,7 @@ mod tests {
     use crate::test_utilities;
 
     use super::*;
-
+    
     #[test]
     fn handshake() {
         test_utilities::handshake::<BoringSslConnection, SslContextBuilder>();
