@@ -5,3 +5,10 @@ members = [
     "s2n-tls-hyper",
     "tls-harness",
 ]
+
+# brass-aphid-wire has a dependency on s2n-tls. This patch is necessary to unify
+# the crates.io dependency that brass-aphid-wire declares with the path-based 
+# dependency that the integration tests have
+[patch.crates-io]
+s2n-tls-sys = { path = "../extended/s2n-tls-sys" }
+s2n-tls = { path = "../extended/s2n-tls" }

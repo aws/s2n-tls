@@ -425,13 +425,8 @@ where
     pair
 }
 
-// As of 2025-11-24: s2n as client (TLS 1.2, 1.3) and s2n as
-// server (TLS 1.3) hang due to a multi-message async cert validation bug.
-// s2n incorrectly clears queued handshake messages, causing
-// poll_negotiate() to spin forever. Remove #[ignore] once fixed.
 // s2n client with async callback, rustls server
 #[test]
-#[ignore = "Hangs due to multi-message bug in async cert validation"]
 fn s2n_client_async_callback() {
     // TLS 1.2
     let (client, handle, rx) = {
@@ -463,12 +458,9 @@ fn s2n_client_async_callback() {
 }
 
 // rustls client, s2n server with async callback
-// Rustls TLS 1.2 clients do not send multiple handshake messages in a
-// single record, so s2n never hits the multi-message async-callback
-// bug that appears in TLS 1.3. These tests are split by protocol
-// version until the multi-message bug is fixed.
 #[test]
-fn s2n_server_async_callback_tls12() {
+fn s2n_server_async_callback() {
+    // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle, rx) = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -478,11 +470,8 @@ fn s2n_server_async_callback_tls12() {
     };
     let _pair =
         test_async_server_callback::<RustlsConnection, S2NConnection>(&client, &server, handle, rx);
-}
 
-#[test]
-#[ignore = "Hangs due to multi-message bug in async cert validation"]
-fn s2n_server_async_callback_tls13() {
+    // TLS 1.3
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {

@@ -1,7 +1,7 @@
 These are files detailing the verification of HMAC with respect to the
 HMAC specification provided by Andrew Appel's HMAC verification effort.
 
-The files in this repository constitue a proof of equivalence between
+The files in this repository constitute a proof of equivalence between
 the [Cryptol specification of HMAC](../../HMAC.cry) and the [HMAC
 specification](HMAC_spec.v) used for the FCF proof of HMAC.
 
