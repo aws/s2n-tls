@@ -1,4 +1,3 @@
-name: CloudFront-TLS-1-2-2018-no-sha1
 min version: TLS1.2
 rules:
 - Perfect Forward Secrecy: no

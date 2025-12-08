@@ -1,4 +1,3 @@
-name: CloudFront-TLS-1-3-2025-no-pq
 min version: TLS1.3
 rules:
 - Perfect Forward Secrecy: yes

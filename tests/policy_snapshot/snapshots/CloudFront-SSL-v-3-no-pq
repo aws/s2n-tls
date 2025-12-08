@@ -1,4 +1,3 @@
-name: CloudFront-SSL-v-3-no-pq
 min version: SSLv3
 rules:
 - Perfect Forward Secrecy: no
