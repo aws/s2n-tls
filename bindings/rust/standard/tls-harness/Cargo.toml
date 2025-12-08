@@ -7,7 +7,6 @@ publish = false
 [features]
 default = ["openssl"]
 openssl = ["dep:openssl", "dep:openssl-sys"]
-boringssl = ["dep:boring", "dep:boring-sys"]
 
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls" }
@@ -18,12 +17,15 @@ rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"], optional = true }
 openssl-sys = { version = "0.9.109", optional = true }
-boring = { version = "4", optional = true }
-boring-sys = { version = "4", optional = true }
 byteorder = "1.5.0"
 
 brass-aphid-wire-decryption = "0.0.1"
 brass-aphid-wire-messages = "0.0.1"
+
+[dependencies.boring]
+git = "https://github.com/kaukabrizvi/boring.git"
+branch = "symbol-prefixing"
+features = ["prefix-symbols"]
 
 [dev-dependencies]
 # env_logger and log are used to enable logging for rustls, which can help with
