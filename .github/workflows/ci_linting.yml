@@ -156,7 +156,7 @@ jobs:
       - name: PR Conventional Commit Validation
         id: cc_check
         if: github.event_name == 'pull_request_target'
-        uses: ytanikin/pr-conventional-commits@1.4.2
+        uses: ytanikin/pr-conventional-commits@1.5.1
         with:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
           add_label: 'false'
