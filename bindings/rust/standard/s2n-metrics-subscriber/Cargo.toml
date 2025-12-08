@@ -1,0 +1,13 @@
+[package]
+name = "s2n-metrics-subscriber"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# aws-sdk-cloudwatch = "1.78.0"
+s2n-tls = { version = "=0.3.31", path = "../../extended/s2n-tls", features = ["unstable-events"] }
+s2n-tls-tokio = { version = "=0.3.31", path = "../../extended/s2n-tls-tokio" }
+tracing = "0.1.43"
+
+[dev-dependencies]
+s2n-tls = { version = "=0.3.31", path = "../../extended/s2n-tls", features = ["unstable-testing"] }

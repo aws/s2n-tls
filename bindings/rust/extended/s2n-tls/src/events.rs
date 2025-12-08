@@ -13,19 +13,19 @@ impl<'a> HandshakeEvent<'a> {
     }
 
     /// Return the negotiated protocol version on the connection
-    fn protocol_version(&self) -> crate::enums::Version {
+    pub fn protocol_version(&self) -> crate::enums::Version {
         self.0.protocol_version.try_into().unwrap()
     }
 
     /// The negotiated cipher, in IANA format.
-    fn cipher(&self) -> &'static str {
+    pub fn cipher(&self) -> &'static str {
         maybe_string(self.0.cipher).unwrap()
     }
 
     /// The negotiated key exchange group, in IANA format.
     ///
     /// None in the case of RSA key exchange or TLS 1.2 session resumption.
-    fn group(&self) -> Option<&'static str> {
+    pub fn group(&self) -> Option<&'static str> {
         let group = maybe_string(self.0.group)?;
         if group == "NONE" {
             None
@@ -35,14 +35,14 @@ impl<'a> HandshakeEvent<'a> {
     }
 
     /// Handshake duration, which includes network latency and waiting for the peer.
-    fn duration(&self) -> Duration {
+    pub fn duration(&self) -> Duration {
         Duration::from_nanos(self.0.handshake_end_ns - self.0.handshake_start_ns)
     }
 
     /// Handshake time, which just the amount of time synchronously spent in s2n_negotiate.
     ///
     /// This is roughly the "cpu cost" of the handshake.
-    fn synchronous_time(&self) -> Duration {
+    pub fn synchronous_time(&self) -> Duration {
         Duration::from_nanos(self.0.handshake_time_ns)
     }
 }
