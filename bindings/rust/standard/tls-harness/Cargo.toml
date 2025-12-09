@@ -12,7 +12,7 @@ strum = { version = "0.27", features = ["derive"] }
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }
-openssl-sys = { version = "0.9.109" }
+openssl-sys = "0.9.109"
 byteorder = "1.5.0"
 
 brass-aphid-wire-decryption = "0.0.1"
