@@ -4,10 +4,6 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-[features]
-default = ["openssl"]
-openssl = ["dep:openssl", "dep:openssl-sys"]
-
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3.13"
@@ -15,8 +11,8 @@ libc = "0.2.174"
 strum = { version = "0.27", features = ["derive"] }
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
-openssl = { version = "0.10.73", features = ["vendored"], optional = true }
-openssl-sys = { version = "0.9.109", optional = true }
+openssl = { version = "0.10.73", features = ["vendored"] }
+openssl-sys = { version = "0.9.109" }
 byteorder = "1.5.0"
 
 brass-aphid-wire-decryption = "0.0.1"
