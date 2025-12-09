@@ -176,7 +176,6 @@ impl std::io::Write for ViewIO {
 mod tests {
     use std::collections::HashMap;
 
-    #[cfg(feature = "openssl")]
     use openssl::ssl::SslContextBuilder;
 
     use crate::{
@@ -214,6 +213,7 @@ mod tests {
         const OPENSSL_RECORD_DEFAULT: u16 = 16401;
         const RUSTLS_RECORD_DEFAULT: u16 = 16401;
 
+        // openssl & s2n
         {
             let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
                 let configs =
