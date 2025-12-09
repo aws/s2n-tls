@@ -1,4 +1,5 @@
-# Ensure the symbol-prefixed BoringSSL build is used in tests, and FIPS is disabled.
+# Ensure the symbol-prefixed BoringSSL build is used in tests 
+# to avoid collisions with OpenSSL, and FIPS is disabled.
 [env]
 BORING_BSSL_FIPS = "0"
 BORING_BSSL_PREFIX = "BORING_TLS_HARNESS"
