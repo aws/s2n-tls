@@ -9,13 +9,11 @@
 //! Modules are also public so that utility structs can be accessed, like
 //! `cohort::s2n_tls::SessionTicketStorage`.
 
-#[cfg(feature = "openssl")]
 pub mod openssl;
 pub mod boringssl;
 pub mod rustls;
 pub mod s2n_tls;
 
-#[cfg(feature = "openssl")]
 pub use openssl::{OpenSslConfig, OpenSslConnection};
 pub use boringssl::{BoringSslConfig, BoringSslConnection};
 pub use rustls::{RustlsConfig, RustlsConnection};
