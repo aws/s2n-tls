@@ -50,7 +50,7 @@ impl TlsConnection for BoringSslConnection {
         config: &Self::Config,
         io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
-         // No tickets/resumption yet: keep it simple
+        // No tickets/resumption yet: keep it simple
         let ssl = Ssl::new(&config.config)?;
 
         let view = match mode {
@@ -198,7 +198,7 @@ mod tests {
     use crate::test_utilities;
 
     use super::*;
-    
+
     #[test]
     fn handshake() {
         test_utilities::handshake::<BoringSslConnection, SslContextBuilder>();
