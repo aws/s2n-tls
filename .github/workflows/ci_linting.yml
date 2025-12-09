@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: clang-format check
-        uses: jidicula/clang-format-action@verbose
+        uses: jidicula/clang-format-action@v4.16.0
         with:
           clang-format-version: '18'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
