@@ -23,7 +23,10 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - cmake . -Bbuild -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/32-bit.toolchain
+      - |
+        cmake . -Bbuild \
+          -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/32-bit.toolchain \
+          -DCMAKE_PREFIX_PATH=/usr/lib/i386-linux-gnu
       - cmake --build ./build -j $(nproc)
   post_build:
     on-failure: ABORT

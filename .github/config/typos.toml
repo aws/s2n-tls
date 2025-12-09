@@ -1,11 +1,16 @@
 [default]
 binary = false
 check-filename = true
+extend-ignore-identifiers-re = [
+    "PNGs",
+    "_EDE_",
+    "ETyp",
+]
 
 [default.extend-words]
-alloced = "alloced"
-s2nd = "s2nd"
+# prevent the "nd" in "s2nd" from being corrected to "and"
 nd = "nd"
+# prevent re:Inforce, the AWS cloud security event from being corrected (READING-LIST.md)
 Inforce = "Inforce"
  
 # While we build up the extend-words list
@@ -21,30 +26,33 @@ check-file = false
 [type.make]
 check-file = false
 
-[type.cmake]
-check-file = false
+[type.cmake.extend-words]
+# 'thr' is the FreeBSD threading library
+thr = "thr"
+testss = "testss"
 
 [type.rust]
 check-file = false
 
-[type.sh]
-check-file = false
-
 [files]
 extend-exclude = [
-    "*.bin",
     "**/corpus/*",
+    "**/mime.types",
+    "**/specs/**/*",
+    "*.bin",
+    "*.conf",
     "*.cry",
     "*.der",
     "*.h",
     "*.kat",
-    "*.pem",
     "*.patch",
+    "*.pcap",
     "*.pdf",
+    "*.pem",
     "*.png",
+    "*.priv",
     "*.saw",
     "*.snap",
     "*.suppressions",
-    "**/specs/**/*",
-
+    "tests/integrationv2/README.md",
 ]

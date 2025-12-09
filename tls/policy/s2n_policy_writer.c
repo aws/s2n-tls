@@ -71,6 +71,24 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
         RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", policy->ecc_preferences->ecc_curves[i]->name));
     }
 
+    for (size_t i = 0; policy->strongly_preferred_groups != NULL && i < policy->strongly_preferred_groups->count; i++) {
+        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "strongly preferred groups:\n"));
+        const struct s2n_ecc_named_curve *strongly_preferred_curve = NULL;
+        const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
+        bool found = false;
+        RESULT_GUARD_POSIX(s2n_find_ecc_curve_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_curve, &found));
+        RESULT_GUARD_POSIX(s2n_find_kem_group_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_kem_group, &found));
+        RESULT_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
+
+        if (strongly_preferred_curve != NULL) {
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", strongly_preferred_curve->name));
+        }
+
+        if (strongly_preferred_kem_group != NULL) {
+            RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- %s\n", strongly_preferred_kem_group->name));
+        }
+    }
+
     if (policy->certificate_signature_preferences) {
         if (policy->certificate_preferences_apply_locally) {
             RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "certificate preferences apply locally\n"));

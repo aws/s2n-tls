@@ -375,7 +375,7 @@ endif()
 
 if (S2N_INTERN_LIBCRYPTO)
 
-    # Check if the AWS::crypto target has beeen added and handle it
+    # Check if the AWS::crypto target has been added and handle it
     if (TARGET AWS::crypto)
         # Get the target library type (shared or static)
         get_target_property(target_type AWS::crypto TYPE)
@@ -410,7 +410,7 @@ if (S2N_INTERN_LIBCRYPTO)
           cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
           bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{if ($3) print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
-          # redefine the libcrypto libary symbols
+          # redefine the libcrypto library symbols
           ${CMAKE_OBJCOPY} --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
           rm -rf s2n_libcrypto &&
           mkdir s2n_libcrypto &&
@@ -427,6 +427,15 @@ if (S2N_INTERN_LIBCRYPTO)
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
     add_definitions(-DS2N_INTERN_LIBCRYPTO=1)
+
+    # Now that the libcrypto lives inside libs2n, any dependencies of the libcrypto must become
+    # dependencies of libs2n.
+    get_target_property(crypto_LINK_LIBRARIES AWS::crypto INTERFACE_LINK_LIBRARIES)
+    if (crypto_LINK_LIBRARIES)
+        foreach (link_library ${crypto_LINK_LIBRARIES})
+            target_link_libraries(${PROJECT_NAME} PUBLIC ${link_library})
+        endforeach()
+    endif()
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly

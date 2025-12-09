@@ -198,8 +198,10 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
 static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
     /* Only TLS1.2 considers the alert level. The alert level field is
-     * considered deprecated in TLS1.3. */
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+     * considered deprecated in TLS1.3. If the protocol version has not
+     * been negotiated yet, we allow for warnings to avoid premature
+     * handshake failures before we know the protocol version. */
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13 || !conn->actual_protocol_version_established) {
         return level == S2N_TLS_ALERT_LEVEL_WARNING
                 && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
     }

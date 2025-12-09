@@ -1326,9 +1326,6 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         return S2N_RESULT_OK;
     }
 
-    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
-
     int error_code = s2n_errno;
     int error_type = s2n_error_get_type(error_code);
 
@@ -1342,6 +1339,9 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         default:
             break;
     }
+
+    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
 
     switch (error_code) {
         /* Don't invoke blinding on some of the common errors.

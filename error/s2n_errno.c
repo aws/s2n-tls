@@ -275,6 +275,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ZERO_LIFETIME_TICKET, "Calculated session lifetime is zero") \
     ERR_ENTRY(S2N_ERR_REENTRANCY, "Original execution must complete before method can be called again") \
     ERR_ENTRY(S2N_ERR_INVALID_CERT_STATE, "Certificate validation entered an invalid state and is not able to continue") \
+    ERR_ENTRY(S2N_ERR_INVALID_SUPPORTED_GROUP_STATE, "SupportedGroup preference decision entered invalid state and selected both KEM and EC Curve") \
     ERR_ENTRY(S2N_ERR_INVALID_EARLY_DATA_STATE, "Early data in invalid state") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_NOT_ALLOWED, "Early data is not allowed by the connection") \
     ERR_ENTRY(S2N_ERR_NO_CERT_FOUND, "Certificate not found") \
