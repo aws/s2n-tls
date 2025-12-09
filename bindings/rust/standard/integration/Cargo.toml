@@ -48,6 +48,11 @@ hyper-util = "0.1"
 dhat = "0.3.3"
 tabled = "0.20.0"
 
+[dev-dependencies.boring]
+git = "https://github.com/kaukabrizvi/boring.git"
+branch = "symbol-prefixing"
+features = ["prefix-symbols"]
+
 [build-dependencies]
 # The ML-DSA tests require the ML-DSA support added in Openssl-3.5
 # Since this overrides the dependency from the openssl-src crate,
