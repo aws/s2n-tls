@@ -41,7 +41,10 @@ use s2n_tls_sys::{
 };
 
 use tls_harness::{
-    cohort::{BoringSslConfig, BoringSslConnection, RustlsConfig, RustlsConnection, S2NConfig, S2NConnection},
+    cohort::{
+        BoringSslConfig, BoringSslConnection, RustlsConfig, RustlsConnection, S2NConfig,
+        S2NConnection,
+    },
     harness::{read_to_bytes, TlsConfigBuilder},
     PemType, SigType, TlsConnPair, TlsConnection,
 };
@@ -212,13 +215,16 @@ fn rustls_mtls_server(
 
 fn boringssl_mtls_client(sig_type: SigType) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
-    
+
     let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Client);
     builder.set_trust(sig_type);
-    
+
     // Set client certificate and key
     builder
-        .set_certificate_chain_file(tls_harness::get_cert_path(PemType::ClientCertChain, sig_type))
+        .set_certificate_chain_file(tls_harness::get_cert_path(
+            PemType::ClientCertChain,
+            sig_type,
+        ))
         .unwrap();
     builder
         .set_private_key_file(
@@ -227,7 +233,7 @@ fn boringssl_mtls_client(sig_type: SigType) -> BoringSslConfig {
         )
         .unwrap();
     builder.set_verify(boring::ssl::SslVerifyMode::PEER);
-    
+
     BoringSslConfig {
         config: builder.build(),
         session_ticket_storage: Default::default(),
@@ -236,12 +242,14 @@ fn boringssl_mtls_client(sig_type: SigType) -> BoringSslConfig {
 
 fn boringssl_mtls_server(sig_type: SigType) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
-    
+
     let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Server);
     builder.set_chain(sig_type);
     builder.set_trust(sig_type);
-    builder.set_verify(boring::ssl::SslVerifyMode::PEER | boring::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
-    
+    builder.set_verify(
+        boring::ssl::SslVerifyMode::PEER | boring::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+    );
+
     BoringSslConfig {
         config: builder.build(),
         session_ticket_storage: Default::default(),
