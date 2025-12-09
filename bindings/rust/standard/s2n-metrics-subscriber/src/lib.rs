@@ -9,10 +9,14 @@ use std::{
     time::SystemTime,
 };
 
+mod static_lists;
+
 use s2n_tls::events::EventSubscriber;
 
-const GROUP_COUNT: usize = 5;
-const CIPHER_COUNT: usize = 5;
+use crate::static_lists::{CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N};
+
+const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
+const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 const SIGNATURE_SCHEME_COUNT: usize = 5;
 const SIG_HASH_COUNT: usize = 5;
 const PROTOCOL_VERSION_COUNT: usize = 5;
@@ -59,9 +63,8 @@ struct FrozenStatisticSet {
     sample_count: u64,
 }
 
-
-
-#[derive(Debug, Default)]
+// TODO, this should have +1 for unrecognized things
+#[derive(Debug)]
 struct S2NMetricRecord {
     // groups
     groups: [AtomicU64; GROUP_COUNT],
@@ -78,6 +81,21 @@ struct S2NMetricRecord {
     handshake_duration_us: StatisticSet,
     /// sum of handshake compute
     handshake_compute: StatisticSet,
+}
+
+impl Default for S2NMetricRecord {
+    fn default() -> Self {
+        let ciphers= [0; CIPHER_COUNT].map(|_| AtomicU64::default());
+        Self {
+            groups: Default::default(),
+            ciphers,
+            signature_scheme: Default::default(),
+            sig_hash: Default::default(),
+            protocols: Default::default(),
+            handshake_duration_us: Default::default(),
+            handshake_compute: Default::default(),
+        }
+    }
 }
 
 impl S2NMetricRecord {
@@ -202,8 +220,12 @@ impl EventSubscriber for AggregatedMetricsSubscriber {
         connection: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
     ) {
-        self.current_record.handshake_compute.update(event.synchronous_time().as_micros() as u64);
-        self.current_record.handshake_duration_us.update(event.duration().as_micros() as u64);
+        self.current_record
+            .handshake_compute
+            .update(event.synchronous_time().as_micros() as u64);
+        self.current_record
+            .handshake_duration_us
+            .update(event.duration().as_micros() as u64);
         tracing::debug!("handshake event invoked : {event:?}");
     }
 }
@@ -219,6 +241,8 @@ struct CloudWatchPutMetricDataExporter {}
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use s2n_tls::{
         security::{Policy, DEFAULT_TLS13},
         testing::{build_config, config_builder, TestPair},
@@ -243,5 +267,10 @@ mod tests {
         subscriber_handle.export();
         let event = rx.recv().unwrap();
         println!("{event:?}");
+    }
+
+    #[test]
+    fn iter() {
+        let hashmap: HashMap<u16, AtomicU64> = HashMap::new();
     }
 }
