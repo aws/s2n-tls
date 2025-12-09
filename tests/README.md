@@ -44,7 +44,7 @@ Further information:
 s2n-tls includes a variety of formal methods which are used to _prove_ that s2n-tls has certain behaviors.
 
 ### CBMC
-> CBMC verifies memory safety (which includes array bounds checks and checks for the safe use of pointers), checks for various further variants of undefined behavior, and user-specified as­ser­tions.
+> CBMC verifies memory safety (which includes array bounds checks and checks for the safe use of pointers), checks for various further variants of undefined behavior, and user-specified assertions.
 > [C Bounded Model Checker](https://www.cprover.org/cbmc/)
 
 s2n-tls writes CBMC proofs for a number of sensitive or commonly used functions in the codebase.
