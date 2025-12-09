@@ -1,0 +1,84 @@
+---
+name: C Code
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  libcrypto-with-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache OpenSSL
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: ./openssl-3.5.4/openssl-install
+          key: ${{ runner.os }}-openssl-3.5.4
+
+      - name: Install OpenSSL
+        if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }}
+        run: |
+          wget https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz
+          tar -xzvf openssl-3.5.4.tar.gz
+          
+          pushd openssl-3.5.4
+          install_dir="$(pwd)"/openssl-install
+          mkdir "${install_dir}"
+          
+          # Build OpenSSL with a dependency on zlib.
+          ./config \
+            --prefix="${install_dir}" \
+            --openssldir="${install_dir}/openssl" \
+            --libdir=lib \
+            zlib
+          make
+          make install
+          
+          ls
+          
+          # Ensure the built libcrypto has a dependency on zlib.
+          ldd "${install_dir}"/lib/libcrypto.so | grep libz.so
+          
+          popd
+
+      - name: Build static
+        run: |
+          libcrypto_dir="$(pwd)/openssl-3.5.4/openssl-install"
+          cmake . -Bbuild \
+            -DCMAKE_PREFIX_PATH="${libcrypto_dir}" \
+            -DBUILD_SHARED_LIBS=0
+          
+          jobs=$(nproc)
+          cmake --build build -j $jobs
+          CTEST_PARALLEL_LEVEL=$jobs ctest --test-dir build
+
+      - name: Build shared
+        run: |
+          libcrypto_dir="$(pwd)/openssl-3.5.4/openssl-install"
+          cmake . -Bbuild \
+            -DCMAKE_PREFIX_PATH="${libcrypto_dir}" \
+            -DBUILD_SHARED_LIBS=1
+          
+          jobs=$(nproc)
+          cmake --build build -j $jobs
+          CTEST_PARALLEL_LEVEL=$jobs ctest --test-dir build
+
+      - name: Build with interning
+        run: |
+          libcrypto_dir="$(pwd)/openssl-3.5.4/openssl-install"
+          cmake . -Bbuild \
+            -DCMAKE_PREFIX_PATH="${libcrypto_dir}" \
+            -DS2N_INTERN_LIBCRYPTO=1
+
+          jobs=$(nproc)
+          cmake --build build -j $jobs
+          CTEST_PARALLEL_LEVEL=$jobs ctest --test-dir build
