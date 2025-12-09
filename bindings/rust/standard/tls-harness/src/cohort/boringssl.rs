@@ -162,12 +162,10 @@ impl TlsConfigBuilder for SslContextBuilder {
     type Config = BoringSslConfig;
 
     fn new_test_config(mode: Mode) -> Self {
-        let builder = match mode {
+        match mode {
             Mode::Client => SslContext::builder(SslMethod::tls_client()).unwrap(),
             Mode::Server => SslContext::builder(SslMethod::tls_server()).unwrap(),
-        };
-        // Note: BoringSSL doesn't have set_security_level like OpenSSL
-        builder
+        }
     }
 
     fn set_chain(&mut self, sig_type: crate::SigType) {
