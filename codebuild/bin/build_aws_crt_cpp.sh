@@ -47,6 +47,7 @@ cmake ./aws-crt-cpp \
     -DENFORCE_SUBMODULE_VERSIONS=off \
     -DBUILD_DEPS=ON \
     -DCMAKE_BUILD_TYPE=Release \
+    -DENABLE_SHARED_LIBS=on
     -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 ninja -C ./build install
 CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) ninja -C ./build test
