@@ -48,6 +48,7 @@ hyper-util = "0.1"
 dhat = "0.3.3"
 tabled = "0.20.0"
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
 [dev-dependencies.boring]
 git = "https://github.com/kaukabrizvi/boring.git"
 branch = "symbol-prefixing"

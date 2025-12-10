@@ -8,13 +8,16 @@
 //! so that they can be accessed as `cohort::OpenSslConnection` or `cohort::S2NConnection`.
 //! Modules are also public so that utility structs can be accessed, like
 //! `cohort::s2n_tls::SessionTicketStorage`.
-
+#[cfg(not(target_os = "macos"))]
 pub mod boringssl;
+
 pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
 
+#[cfg(not(target_os = "macos"))]
 pub use boringssl::{BoringSslConfig, BoringSslConnection};
+
 pub use openssl::{OpenSslConfig, OpenSslConnection};
 pub use rustls::{RustlsConfig, RustlsConnection};
 pub use s2n_tls::{S2NConfig, S2NConnection};

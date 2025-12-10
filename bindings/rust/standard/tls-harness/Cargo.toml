@@ -18,6 +18,7 @@ byteorder = "1.5.0"
 brass-aphid-wire-decryption = "0.0.1"
 brass-aphid-wire-messages = "0.0.1"
 
+[target.'cfg(target_os = "macos")'.dependencies]
 [dependencies.boring]
 git = "https://github.com/kaukabrizvi/boring.git"
 branch = "symbol-prefixing"
