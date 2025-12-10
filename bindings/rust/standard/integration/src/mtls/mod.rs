@@ -25,6 +25,8 @@ use std::{
     },
 };
 
+// NOTE: BoringSSL tests are disabled on macOS to avoid symbol collisions with
+// OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
 #[cfg(not(target_os = "macos"))]
 use boring::ssl::SslVersion;
 use rustls::ClientConfig;
