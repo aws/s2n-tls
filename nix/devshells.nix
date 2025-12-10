@@ -44,6 +44,7 @@ let
     pkgs.rustc
     pkgs.rustup
     pkgs.cargo
+    pkgs.go
   ];
 
   # Helper function to create base shell configurations
