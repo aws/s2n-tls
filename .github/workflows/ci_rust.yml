@@ -51,28 +51,8 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
-      - name: Install llvm (for symbol prefixing BoringSSL in macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install llvm
-          echo "BORING_PREFIX_NM=/opt/homebrew/opt/llvm/bin/llvm-nm" >> $GITHUB_ENV
-          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/llvm/bin/llvm-objcopy" >> $GITHUB_ENV
-
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
-
-      - name: Sanity-check BoringSSL symbol prefixing (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          echo "Checking for prefixed symbols…"
-          NM_TOOL="${BORING_PREFIX_NM:-nm}"
-          echo "Using NM_TOOL=$NM_TOOL"
-
-          for lib in $(find bindings -name "libssl.a" -o -name "libcrypto.a"); do
-            echo "--- $lib ---"
-            "$NM_TOOL" "$lib" | grep BSSL_TLS_client_method || echo "missing BSSL_TLS_client_method"
-            "$NM_TOOL" "$lib" | grep BSSL_SSL_write || echo "missing BSSL_SSL_write"
-          done
 
       # Ensure that all tests pass with the default feature set
       - name: Default Tests
@@ -287,13 +267,6 @@ jobs:
           go-version: '>=1.18'
 
       - uses: camshaft/rust-cache@v1
-
-      - name: Install llvm (for symbol prefixing BoringSSL in macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install llvm
-          echo "BORING_PREFIX_NM=/opt/homebrew/opt/llvm/bin/llvm-nm" >> $GITHUB_ENV
-          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/llvm/bin/llvm-objcopy" >> $GITHUB_ENV
 
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh

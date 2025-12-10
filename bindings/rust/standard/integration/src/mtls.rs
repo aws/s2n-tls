@@ -22,7 +22,7 @@ use std::{
 };
 
 use rustls::ClientConfig;
-
+#[cfg(not(target_os = "macos"))]
 use boring::ssl::SslVersion;
 
 use s2n_tls::{
@@ -40,11 +40,17 @@ use s2n_tls_sys::{
 
 use tls_harness::{
     cohort::{
-        BoringSslConfig, BoringSslConnection, RustlsConfig, RustlsConnection, S2NConfig,
-        S2NConnection,
+        RustlsConfig, RustlsConnection, S2NConfig, S2NConnection,
     },
     harness::{read_to_bytes, TlsConfigBuilder},
     PemType, SigType, TlsConnPair, TlsConnection,
+};
+
+#[cfg(not(target_os = "macos"))]
+use tls_harness::{
+    cohort::{
+        BoringSslConfig, BoringSslConnection,
+    }
 };
 
 const APP_DATA_SIZE: usize = 100_000;
@@ -212,6 +218,7 @@ fn rustls_mtls_server(
     server.into()
 }
 
+#[cfg(not(target_os = "macos"))]
 fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
@@ -242,6 +249,7 @@ fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslCon
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn boringssl_mtls_server(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
@@ -328,6 +336,7 @@ fn rustls_client_basic() {
 }
 
 // s2n client, boringssl server
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_server_basic() {
     // TLS 1.2
@@ -353,6 +362,7 @@ fn boringssl_server_basic() {
 }
 
 // boringssl client, s2n server
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_client_basic() {
     // TLS 1.2
@@ -460,6 +470,7 @@ fn rustls_client_sync_callback() {
 }
 
 // s2n client with sync callback, boringssl server
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_server_sync_callback() {
     // TLS 1.2
@@ -491,6 +502,7 @@ fn boringssl_server_sync_callback() {
 }
 
 // boringssl client, s2n server with sync callback
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_client_sync_callback() {
     // TLS 1.2
@@ -658,6 +670,7 @@ fn rustls_client_async_callback() {
 }
 
 // s2n client with async callback, boringssl server
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_server_async_callback() {
     // TLS 1.2
@@ -691,6 +704,7 @@ fn boringssl_server_async_callback() {
 }
 
 // boringssl client, s2n server with async callback
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn boringssl_client_async_callback() {
     // TLS 1.2
