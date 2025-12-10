@@ -51,22 +51,18 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
-      - name: Debug nm/objcopy on macOS
+      - name: Install binutils (for objcopy)
         if: runner.os == 'macOS'
         run: |
-          echo "PATH=$PATH"
-          which nm || echo "nm not found"
-          which objcopy || echo "objcopy not found"
-          which llvm-nm || echo "llvm-nm not found"
-          which llvm-objcopy || echo "llvm-objcopy not found"
-          echo "--- listing /usr/bin"
-          ls /usr/bin | grep -E 'nm|objcopy|llvm' || true
-          echo "--- listing /usr/local/bin"
-          ls /usr/local/bin | grep -E 'nm|objcopy|llvm' || true
-          echo "--- listing Homebrew dirs"
-          ls /opt/homebrew/bin | grep -E 'nm|objcopy|llvm' || true
-          ls /usr/local/opt/llvm/bin | grep -E 'nm|objcopy|llvm' || true
-          
+          brew update
+          brew install binutils
+
+      - name: Configure nm/objcopy for symbol prefixing
+        if: runner.os == 'macOS'
+        run: |
+          echo "BORING_PREFIX_NM=nm" >> $GITHUB_ENV
+          echo "BORING_PREFIX_OBJCOPY=gobjcopy" >> $GITHUB_ENV
+
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
 
