@@ -27,6 +27,8 @@ use std::{
 
 use rustls::ClientConfig;
 
+use boring::ssl::SslVersion;
+
 use s2n_tls::{
     callbacks::{CertValidationCallbackSync, CertValidationInfo, VerifyHostNameCallback},
     config::{Builder, Config},
@@ -213,18 +215,16 @@ fn rustls_mtls_server(
     server.into()
 }
 
-fn boringssl_mtls_client(sig_type: SigType) -> BoringSslConfig {
+fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
     let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Client);
     builder.set_trust(sig_type);
 
-    // Set client certificate and key
     builder
-        .set_certificate_chain_file(tls_harness::get_cert_path(
-            PemType::ClientCertChain,
-            sig_type,
-        ))
+        .set_certificate_chain_file(
+            tls_harness::get_cert_path(PemType::ClientCertChain, sig_type),
+        )
         .unwrap();
     builder
         .set_private_key_file(
@@ -234,13 +234,17 @@ fn boringssl_mtls_client(sig_type: SigType) -> BoringSslConfig {
         .unwrap();
     builder.set_verify(boring::ssl::SslVerifyMode::PEER);
 
+    // Pin the protocol version
+    builder.set_min_proto_version(Some(version)).unwrap();
+    builder.set_max_proto_version(Some(version)).unwrap();
+
     BoringSslConfig {
         config: builder.build(),
         session_ticket_storage: Default::default(),
     }
 }
 
-fn boringssl_mtls_server(sig_type: SigType) -> BoringSslConfig {
+fn boringssl_mtls_server(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
     let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Server);
@@ -249,6 +253,10 @@ fn boringssl_mtls_server(sig_type: SigType) -> BoringSslConfig {
     builder.set_verify(
         boring::ssl::SslVerifyMode::PEER | boring::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
     );
+
+    // Pin the protocol version
+    builder.set_min_proto_version(Some(version)).unwrap();
+    builder.set_max_proto_version(Some(version)).unwrap();
 
     BoringSslConfig {
         config: builder.build(),
@@ -329,7 +337,7 @@ fn boringssl_server_basic() {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
         S2NConfig::from(builder.build().unwrap())
     };
-    let server = boringssl_mtls_server(SigType::Rsa2048);
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
     test_basic::<S2NConnection, BoringSslConnection>(&client, &server);
 
     // TLS 1.3
@@ -340,7 +348,7 @@ fn boringssl_server_basic() {
                 let builder = s2n_mtls_base_builder(SigType::Rsa2048);
                 S2NConfig::from(builder.build().unwrap())
             };
-            let server = boringssl_mtls_server(SigType::Rsa2048);
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
             test_basic::<S2NConnection, BoringSslConnection>(&client, &server);
         },
     );
@@ -350,7 +358,7 @@ fn boringssl_server_basic() {
 #[test]
 fn boringssl_client_basic() {
     // TLS 1.2
-    let client = boringssl_mtls_client(SigType::Rsa2048);
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
     let server = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
         S2NConfig::from(builder.build().unwrap())
@@ -361,7 +369,7 @@ fn boringssl_client_basic() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {
-            let client = boringssl_mtls_client(SigType::Rsa2048);
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
             let server = {
                 let builder = s2n_mtls_base_builder(SigType::Rsa2048);
                 S2NConfig::from(builder.build().unwrap())
@@ -464,7 +472,7 @@ fn boringssl_server_sync_callback() {
         builder.set_cert_validation_callback_sync(cb).unwrap();
         (S2NConfig::from(builder.build().unwrap()), invoked)
     };
-    let server = boringssl_mtls_server(SigType::Rsa2048);
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
     test_sync_callback::<S2NConnection, BoringSslConnection>(&client, &server, handle);
 
     // TLS 1.3
@@ -478,7 +486,7 @@ fn boringssl_server_sync_callback() {
                 builder.set_cert_validation_callback_sync(cb).unwrap();
                 (S2NConfig::from(builder.build().unwrap()), invoked)
             };
-            let server = boringssl_mtls_server(SigType::Rsa2048);
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
             test_sync_callback::<S2NConnection, BoringSslConnection>(&client, &server, handle);
         },
     );
@@ -488,7 +496,7 @@ fn boringssl_server_sync_callback() {
 #[test]
 fn boringssl_client_sync_callback() {
     // TLS 1.2
-    let client = boringssl_mtls_client(SigType::Rsa2048);
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
     let (server, handle) = {
         let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
         let cb = TestCertValidationCallback::new_sync();
@@ -502,7 +510,7 @@ fn boringssl_client_sync_callback() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {
-            let client = boringssl_mtls_client(SigType::Rsa2048);
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
             let (server, handle) = {
                 let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
                 let cb = TestCertValidationCallback::new_sync();
@@ -661,7 +669,7 @@ fn boringssl_server_async_callback() {
         let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
         (s2n_cfg, invoked, rx)
     };
-    let server = boringssl_mtls_server(SigType::Rsa2048);
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
     let _pair = test_async_client_callback::<S2NConnection, BoringSslConnection>(
         &client, &server, handle, rx,
     );
@@ -676,7 +684,7 @@ fn boringssl_server_async_callback() {
                 let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
                 (s2n_cfg, invoked, rx)
             };
-            let server = boringssl_mtls_server(SigType::Rsa2048);
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
             let _pair = test_async_client_callback::<S2NConnection, BoringSslConnection>(
                 &client, &server, handle, rx,
             );
@@ -688,7 +696,7 @@ fn boringssl_server_async_callback() {
 #[test]
 fn boringssl_client_async_callback() {
     // TLS 1.2
-    let client = boringssl_mtls_client(SigType::Rsa2048);
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
     let (server, handle, rx) = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
         let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
@@ -703,7 +711,7 @@ fn boringssl_client_async_callback() {
     crate::capability_check::required_capability(
         &[crate::capability_check::Capability::Tls13],
         || {
-            let client = boringssl_mtls_client(SigType::Rsa2048);
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
             let (server, handle, rx) = {
                 let builder = s2n_mtls_base_builder(SigType::Rsa2048);
                 let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
