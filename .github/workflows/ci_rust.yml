@@ -51,13 +51,12 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
-      - name: Install binutils (for boringssl symbol prefixing on macOS)
+      - name: Install llvm (for symbol prefixing BoringSSL in macOS)
         if: runner.os == 'macOS'
         run: |
-          brew update
-          brew install binutils
-          echo "BORING_PREFIX_NM=nm" >> $GITHUB_ENV
-          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/binutils/bin/gobjcopy" >> $GITHUB_ENV
+          brew install llvm
+          echo "BORING_PREFIX_NM=/opt/homebrew/opt/llvm/bin/llvm-nm" >> $GITHUB_ENV
+          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/llvm/bin/llvm-objcopy" >> $GITHUB_ENV
 
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
@@ -276,13 +275,12 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
-      - name: Install binutils (for boringssl symbol prefixing on macOS)
+      - name: Install llvm (for symbol prefixing BoringSSL in macOS)
         if: runner.os == 'macOS'
         run: |
-          brew update
-          brew install binutils
-          echo "BORING_PREFIX_NM=nm" >> $GITHUB_ENV
-          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/binutils/bin/gobjcopy" >> $GITHUB_ENV
+          brew install llvm
+          echo "BORING_PREFIX_NM=/opt/homebrew/opt/llvm/bin/llvm-nm" >> $GITHUB_ENV
+          echo "BORING_PREFIX_OBJCOPY=/opt/homebrew/opt/llvm/bin/llvm-objcopy" >> $GITHUB_ENV
 
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh
