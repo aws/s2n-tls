@@ -222,9 +222,10 @@ fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslCon
     builder.set_trust(sig_type);
 
     builder
-        .set_certificate_chain_file(
-            tls_harness::get_cert_path(PemType::ClientCertChain, sig_type),
-        )
+        .set_certificate_chain_file(tls_harness::get_cert_path(
+            PemType::ClientCertChain,
+            sig_type,
+        ))
         .unwrap();
     builder
         .set_private_key_file(
