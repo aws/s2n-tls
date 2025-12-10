@@ -21,9 +21,9 @@ use std::{
     },
 };
 
-use rustls::ClientConfig;
 #[cfg(not(target_os = "macos"))]
 use boring::ssl::SslVersion;
+use rustls::ClientConfig;
 
 use s2n_tls::{
     callbacks::{CertValidationCallbackSync, CertValidationInfo, VerifyHostNameCallback},
@@ -39,19 +39,13 @@ use s2n_tls_sys::{
 };
 
 use tls_harness::{
-    cohort::{
-        RustlsConfig, RustlsConnection, S2NConfig, S2NConnection,
-    },
+    cohort::{RustlsConfig, RustlsConnection, S2NConfig, S2NConnection},
     harness::{read_to_bytes, TlsConfigBuilder},
     PemType, SigType, TlsConnPair, TlsConnection,
 };
 
 #[cfg(not(target_os = "macos"))]
-use tls_harness::{
-    cohort::{
-        BoringSslConfig, BoringSslConnection,
-    }
-};
+use tls_harness::cohort::{BoringSslConfig, BoringSslConnection};
 
 const APP_DATA_SIZE: usize = 100_000;
 
