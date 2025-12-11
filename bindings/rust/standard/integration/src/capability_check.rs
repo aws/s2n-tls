@@ -11,6 +11,7 @@ enum Libcrypto {
     OpenSsl102,
     OpenSsl111,
     OpenSsl30,
+    OpenSsl35,
 }
 
 impl Libcrypto {
@@ -33,6 +34,7 @@ impl Libcrypto {
             "openssl-1.0.2" => Libcrypto::OpenSsl102,
             "openssl-1.1.1" => Libcrypto::OpenSsl111,
             "openssl-3.0" => Libcrypto::OpenSsl30,
+            "openssl-3.5" => Libcrypto::OpenSsl35,
             _ => panic!("unexpected libcrypto: {libcrypto}"),
         }
     }
@@ -58,8 +60,8 @@ impl Capability {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
-            Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
-            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
+            Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips | Libcrypto::OpenSsl35),
+            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::OpenSsl35),
         }
     }
 }
