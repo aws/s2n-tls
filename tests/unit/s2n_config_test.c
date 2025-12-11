@@ -1297,9 +1297,8 @@ int main(int argc, char **argv)
     {
         /* Safety */
         uint64_t fake_subscriber = 0;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (void *)&fake_subscriber), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (void *) &fake_subscriber), S2N_ERR_NULL);
     };
-
 
     /* s2n_config_set_handshake_event */
     {
@@ -1307,8 +1306,6 @@ int main(int argc, char **argv)
         uint64_t fake_callback = 0;
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (s2n_event_on_handshake_cb) &fake_callback), S2N_ERR_NULL);
     };
-
-    
 
     END_TEST();
 }

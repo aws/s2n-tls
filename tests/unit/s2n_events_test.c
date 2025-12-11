@@ -43,10 +43,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    if (!s2n_is_tls13_fully_supported()) {
-        END_TEST();
-    }
-
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
     struct event_subscriber subscriber = { 0 };
     s2n_config_set_subscriber(config, &subscriber);
@@ -56,17 +52,17 @@ int main(int argc, char **argv)
     s2n_connection_set_config(conn, config);
 
     /* setup connection fields for s2n_event_handshake_populate */
-    conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+    conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
     conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
-    conn->actual_protocol_version = S2N_TLS13;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* s2n_event_handshake_populate: group, cipher, and protocol version are complete */
     {
         struct s2n_event_handshake event = { 0 };
         EXPECT_OK(s2n_event_handshake_populate(conn, &event));
-        EXPECT_EQUAL(strcmp(event.cipher, "TLS_AES_256_GCM_SHA384"), 0);
+        EXPECT_EQUAL(strcmp(event.cipher, "ECDHE-ECDSA-CHACHA20-POLY1305"), 0);
         EXPECT_EQUAL(strcmp(event.group, "secp521r1"), 0);
-        EXPECT_EQUAL(event.protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(event.protocol_version, S2N_TLS12);
         /* we don't expect handshake_populate to touch the time */
         EXPECT_EQUAL(event.handshake_end_ns, 0);
         EXPECT_EQUAL(event.handshake_start_ns, 0);
