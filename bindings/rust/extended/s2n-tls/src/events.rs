@@ -159,8 +159,7 @@ mod tests {
                     b"a key name",
                     b"good enough bytes for test",
                     SystemTime::UNIX_EPOCH,
-                )?
-                .enable_session_tickets(true)?;
+                )?;
             builder.build()?
         };
 

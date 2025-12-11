@@ -16,6 +16,7 @@
 #pragma once
 
 #include <s2n.h>
+#include <stdint.h>
 
 /* This is a special value assigned to handshake_start_epoch_ns to indicate that
  * it has already been sent to the application and should not be sent again.

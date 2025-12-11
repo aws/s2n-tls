@@ -28,6 +28,8 @@ S2N_RESULT s2n_event_handshake_populate(struct s2n_connection *conn, struct s2n_
 
     event->protocol_version = s2n_connection_get_actual_protocol_version(conn);
     event->cipher = s2n_connection_get_cipher(conn);
+    /* get_key_group is expected to fail in cases where a group is not negotiated,
+     * e.g. RSA key exchange. In this case event->group will be null. */
     s2n_connection_get_key_exchange_group(conn, &event->group);
     return S2N_RESULT_OK;
 }
@@ -42,7 +44,7 @@ S2N_RESULT s2n_event_handshake_send(struct s2n_connection *conn, struct s2n_even
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
-    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_REF(event);
 
     if (conn->config->subscriber == NULL || conn->config->on_handshake_event == NULL) {
         return S2N_RESULT_OK;

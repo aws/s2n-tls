@@ -664,6 +664,7 @@ fail:
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn->config);
     POSIX_ENSURE(!conn->client_hello.callback_async_blocked, S2N_ERR_ASYNC_BLOCKED);
 
     /* Only parse the ClientHello once */
