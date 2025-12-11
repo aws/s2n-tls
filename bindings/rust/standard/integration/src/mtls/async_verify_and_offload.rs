@@ -121,8 +121,7 @@ fn s2n_server_tls13() {
 
             let cert_ptr = cert_rx.recv().unwrap().0;
             unsafe {
-                let rc = s2n_cert_validation_accept(cert_ptr);
-                assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
+                assert_eq!(s2n_cert_validation_accept(cert_ptr), 0);
             }
 
             // Continue server handshake: async offload for pkey verify fires
@@ -131,8 +130,7 @@ fn s2n_server_tls13() {
 
             let SendableAsyncOffloadOp(offload_op_ptr) = offload_rx.recv().unwrap();
             unsafe {
-                let rc = s2n_async_offload_op_perform(offload_op_ptr);
-                assert_eq!(rc, 0, "s2n_async_offload_op_perform failed");
+                assert_eq!(s2n_async_offload_op_perform(offload_op_ptr), 0);
             }
 
             pair.handshake().unwrap();
