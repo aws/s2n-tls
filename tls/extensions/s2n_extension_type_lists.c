@@ -154,9 +154,10 @@ static const s2n_extension_type *const nst_extensions[] = {
     &s2n_nst_early_data_indication_extension,
 };
 
-#define S2N_EXTENSION_LIST(list)                                \
-    {                                                           \
-        .extension_types = (list), .count = s2n_array_len(list) \
+#define S2N_EXTENSION_LIST(list)     \
+    {                                \
+        .extension_types = (list),   \
+        .count = s2n_array_len(list) \
     }
 
 static s2n_extension_type_list extension_lists[] = {
