@@ -42,9 +42,7 @@ unsafe extern "C" fn test_async_offload_cb(
     let ctx = unsafe { &*(ctx as *mut AsyncOffloadCtx) };
 
     ctx.invoked.fetch_add(1, Ordering::SeqCst);
-    ctx.sender
-        .send(SendableAsyncOffloadOp(op))
-        .unwrap();
+    ctx.sender.send(SendableAsyncOffloadOp(op)).unwrap();
 
     s2n_status_code::SUCCESS
 }
@@ -131,8 +129,7 @@ fn s2n_server_tls13() {
             pair.server.handshake().unwrap();
             assert_eq!(offload_invoked.load(Ordering::SeqCst), 1);
 
-            let SendableAsyncOffloadOp(offload_op_ptr) =
-                offload_rx.recv().unwrap();
+            let SendableAsyncOffloadOp(offload_op_ptr) = offload_rx.recv().unwrap();
             unsafe {
                 let rc = s2n_async_offload_op_perform(offload_op_ptr);
                 assert_eq!(rc, 0, "s2n_async_offload_op_perform failed");
