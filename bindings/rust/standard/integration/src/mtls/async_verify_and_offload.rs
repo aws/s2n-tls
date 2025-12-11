@@ -27,34 +27,24 @@ struct SendableAsyncOffloadOp(*mut s2n_async_offload_op);
 // to a worker thread that later performs the operation.
 unsafe impl Send for SendableAsyncOffloadOp {}
 
+// Async offload context for C FFI
 struct AsyncOffloadCtx {
     invoked: Arc<AtomicU64>,
     sender: Sender<SendableAsyncOffloadOp>,
-}
-
-// Thread-local storage for the async offload context
-thread_local! {
-    static ASYNC_OFFLOAD_CTX: std::cell::RefCell<Option<AsyncOffloadCtx>> =
-        const { std::cell::RefCell::new(None) };
 }
 
 // C-style async offload callback
 unsafe extern "C" fn test_async_offload_cb(
     _conn: *mut s2n_connection,
     op: *mut s2n_async_offload_op,
-    _ctx: *mut c_void,
+    ctx: *mut c_void,
 ) -> i32 {
-    ASYNC_OFFLOAD_CTX.with(|ctx_cell| {
-        let ctx_ref = ctx_cell.borrow();
-        let ctx = ctx_ref
-            .as_ref()
-            .expect("ASYNC_OFFLOAD_CTX must be initialized before handshake");
+    let ctx = unsafe { &*(ctx as *mut AsyncOffloadCtx) };
 
-        ctx.invoked.fetch_add(1, Ordering::SeqCst);
-        ctx.sender
-            .send(SendableAsyncOffloadOp(op))
-            .expect("send async offload op");
-    });
+    ctx.invoked.fetch_add(1, Ordering::SeqCst);
+    ctx.sender
+        .send(SendableAsyncOffloadOp(op))
+        .unwrap();
 
     s2n_status_code::SUCCESS
 }
@@ -66,16 +56,15 @@ fn register_async_pkey_verify_offload(
     let invoked = Arc::new(AtomicU64::new(0));
     let (tx, rx) = std::sync::mpsc::channel();
 
-    let ctx = AsyncOffloadCtx {
+    let ctx = Box::new(AsyncOffloadCtx {
         invoked: Arc::clone(&invoked),
         sender: tx,
-    };
-
-    ASYNC_OFFLOAD_CTX.with(|cell| {
-        *cell.borrow_mut() = Some(ctx);
     });
+    let ctx_ptr = Box::into_raw(ctx) as *mut c_void;
 
-    // SAFETY: Register the callback with s2n-tls
+    // SAFETY: s2n stores this context pointer and later returns it in the async
+    // callback. Because s2n never frees it, we intentionally leak the Box so the
+    // memory stays valid for the lifetime of the config (test-only).
     unsafe {
         let raw = raw_config(s2n_cfg);
         let allowed_types = s2n_async_offload_op_type::OFFLOAD_PKEY_VERIFY;
@@ -84,7 +73,7 @@ fn register_async_pkey_verify_offload(
             raw,
             allowed_types,
             Some(test_async_offload_cb),
-            std::ptr::null_mut(),
+            ctx_ptr,
         );
         assert_eq!(
             result,
@@ -132,7 +121,7 @@ fn s2n_server_tls13() {
             pair.server.handshake().unwrap();
             assert_eq!(cert_invoked.load(Ordering::SeqCst), 1);
 
-            let cert_ptr = cert_rx.recv().expect("recv CertValidationInfo ptr").0;
+            let cert_ptr = cert_rx.recv().unwrap().0;
             unsafe {
                 let rc = s2n_cert_validation_accept(cert_ptr);
                 assert_eq!(rc, 0, "s2n_cert_validation_accept failed");
@@ -143,7 +132,7 @@ fn s2n_server_tls13() {
             assert_eq!(offload_invoked.load(Ordering::SeqCst), 1);
 
             let SendableAsyncOffloadOp(offload_op_ptr) =
-                offload_rx.recv().expect("recv async offload op pointer");
+                offload_rx.recv().unwrap();
             unsafe {
                 let rc = s2n_async_offload_op_perform(offload_op_ptr);
                 assert_eq!(rc, 0, "s2n_async_offload_op_perform failed");
