@@ -39,7 +39,7 @@ impl<'a> HandshakeEvent<'a> {
         Duration::from_nanos(self.0.handshake_end_ns - self.0.handshake_start_ns)
     }
 
-    /// Handshake time, which just the amount of time synchronously spent in s2n_negotiate.
+    /// Handshake time, which is just the amount of time synchronously spent in s2n_negotiate.
     ///
     /// This is roughly the "cpu cost" of the handshake.
     fn synchronous_time(&self) -> Duration {
