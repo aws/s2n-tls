@@ -2,43 +2,158 @@
 //! s2n-tls "getter" APIs. These static lists are important because they allow us
 //! to maintain an array of atomic counters instead of having to resort to a hashmap
 
-pub const CIPHERS_AVAILABLE_IN_S2N: &[&'static str] = &[
-    "TLS_AES_128_GCM_SHA256",
-    "TLS_AES_256_GCM_SHA384",
-    "TLS_CHACHA20_POLY1305_SHA256",
-    "TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-    "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-    "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-    "TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-    "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-    "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-    "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-    "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-    "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-    "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-    "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-    "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-    "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
-    "TLS_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_RSA_WITH_AES_128_CBC_SHA256",
-    "TLS_RSA_WITH_AES_128_GCM_SHA256",
-    "TLS_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_RSA_WITH_AES_256_CBC_SHA256",
-    "TLS_RSA_WITH_AES_256_GCM_SHA384",
-    "TLS_RSA_WITH_RC4_128_MD5",
-    "TLS_RSA_WITH_RC4_128_SHA",
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, Mutex},
+};
+
+/// we use the nasty openssl naming, bc that's what s2n-tls currently returns from it's
+/// APIs
+pub const CIPHERS_AVAILABLE_IN_S2N: &[(&'static str, [u8; 2], &'static str)] = &[
+    (
+        "AES128-GCM-SHA256",
+        [0, 156],
+        "TLS_RSA_WITH_AES_128_GCM_SHA256",
+    ),
+    ("AES128-SHA", [0, 47], "TLS_RSA_WITH_AES_128_CBC_SHA"),
+    ("AES128-SHA256", [0, 60], "TLS_RSA_WITH_AES_128_CBC_SHA256"),
+    (
+        "AES256-GCM-SHA384",
+        [0, 157],
+        "TLS_RSA_WITH_AES_256_GCM_SHA384",
+    ),
+    ("AES256-SHA", [0, 53], "TLS_RSA_WITH_AES_256_CBC_SHA"),
+    ("AES256-SHA256", [0, 61], "TLS_RSA_WITH_AES_256_CBC_SHA256"),
+    ("DES-CBC3-SHA", [0, 10], "TLS_RSA_WITH_3DES_EDE_CBC_SHA"),
+    (
+        "DHE-RSA-AES128-GCM-SHA256",
+        [0, 158],
+        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+    ),
+    (
+        "DHE-RSA-AES128-SHA",
+        [0, 51],
+        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+    ),
+    (
+        "DHE-RSA-AES128-SHA256",
+        [0, 103],
+        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+    ),
+    (
+        "DHE-RSA-AES256-GCM-SHA384",
+        [0, 159],
+        "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+    ),
+    (
+        "DHE-RSA-AES256-SHA",
+        [0, 57],
+        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+    ),
+    (
+        "DHE-RSA-AES256-SHA256",
+        [0, 107],
+        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+    ),
+    (
+        "DHE-RSA-CHACHA20-POLY1305",
+        [204, 170],
+        "TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+    ),
+    (
+        "DHE-RSA-DES-CBC3-SHA",
+        [0, 22],
+        "TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
+    ),
+    (
+        "ECDHE-ECDSA-AES128-GCM-SHA256",
+        [192, 43],
+        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+    ),
+    (
+        "ECDHE-ECDSA-AES128-SHA",
+        [192, 9],
+        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+    ),
+    (
+        "ECDHE-ECDSA-AES128-SHA256",
+        [192, 35],
+        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+    ),
+    (
+        "ECDHE-ECDSA-AES256-GCM-SHA384",
+        [192, 44],
+        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+    ),
+    (
+        "ECDHE-ECDSA-AES256-SHA",
+        [192, 10],
+        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+    ),
+    (
+        "ECDHE-ECDSA-AES256-SHA384",
+        [192, 36],
+        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+    ),
+    (
+        "ECDHE-ECDSA-CHACHA20-POLY1305",
+        [204, 169],
+        "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+    ),
+    (
+        "ECDHE-RSA-AES128-GCM-SHA256",
+        [192, 47],
+        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+    ),
+    (
+        "ECDHE-RSA-AES128-SHA",
+        [192, 19],
+        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+    ),
+    (
+        "ECDHE-RSA-AES128-SHA256",
+        [192, 39],
+        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+    ),
+    (
+        "ECDHE-RSA-AES256-GCM-SHA384",
+        [192, 48],
+        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+    ),
+    (
+        "ECDHE-RSA-AES256-SHA",
+        [192, 20],
+        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+    ),
+    (
+        "ECDHE-RSA-AES256-SHA384",
+        [192, 40],
+        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+    ),
+    (
+        "ECDHE-RSA-CHACHA20-POLY1305",
+        [204, 168],
+        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+    ),
+    (
+        "ECDHE-RSA-DES-CBC3-SHA",
+        [192, 18],
+        "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+    ),
+    (
+        "ECDHE-RSA-RC4-SHA",
+        [192, 17],
+        "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+    ),
+    ("RC4-MD5", [0, 4], "TLS_RSA_WITH_RC4_128_MD5"),
+    ("RC4-SHA", [0, 5], "TLS_RSA_WITH_RC4_128_SHA"),
+    ("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256"),
+    ("TLS_AES_256_GCM_SHA384", [19, 2], "TLS_AES_256_GCM_SHA384"),
+    (
+        "TLS_CHACHA20_POLY1305_SHA256",
+        [19, 3],
+        "TLS_CHACHA20_POLY1305_SHA256",
+    ),
 ];
 
 pub const GROUPS_AVAILABLE_IN_S2N: &[&'static str] = &[
@@ -58,11 +173,63 @@ pub const GROUPS_AVAILABLE_IN_S2N: &[&'static str] = &[
     "x25519_kyber-512-r3",
 ];
 
-fn cipher_name_to_index() {
-
+/// We want all of our counters to be prefixed, e.g. `group.secp256r1`
+///
+/// metrique needs the string to be static, so we deliberately "leak" the data.
+///
+/// This is acceptable because it's just a finite set of values.
+pub struct Prefixer<T> {
+    /// e.g. cipher.
+    prefix: &'static str,
+    /// lookup from raw item to prefixed item
+    prefixed_items: Mutex<HashMap<T, &'static str>>,
 }
-fn cipher_index_to_name() {
-    
+
+impl<T> Prefixer<T> {
+    fn new(prefix: &'static str) -> Self {
+        Prefixer {
+            prefix,
+            prefixed_items: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl<T: std::cmp::Eq + std::hash::Hash + std::fmt::Display + Clone> Prefixer<T> {
+    pub fn get_from_display(&self, item: T) -> &'static str {
+        // TODO: R/W Lock
+        self.prefixed_items
+            .lock()
+            .unwrap()
+            .entry(item.clone())
+            .or_insert_with(|| format!("{}{}", &self.prefix, &item).leak())
+    }
+}
+
+impl<T: std::cmp::Eq + std::hash::Hash + std::fmt::Debug + Clone> Prefixer<T> {
+    pub fn get_from_debug(&self, item: T) -> &'static str {
+        // TODO: R/W Lock
+        self.prefixed_items
+            .lock()
+            .unwrap()
+            .entry(item.clone())
+            .or_insert_with(|| format!("{}{:?}", &self.prefix, &item).leak())
+    }
+}
+
+pub static CIPHER_PREFIXER: LazyLock<Prefixer<&'static str>> =
+    LazyLock::new(|| Prefixer::new("cipher."));
+pub static GROUP_PREFIXER: LazyLock<Prefixer<&'static str>> =
+    LazyLock::new(|| Prefixer::new("group."));
+pub static PROTOCOL_VERSION_PREFIXER: LazyLock<Prefixer<s2n_tls::enums::Version>> =
+    LazyLock::new(|| Prefixer::new("protocol_version."));
+
+pub fn cipher_ossl_name_to_index(name: &'static str) -> Option<usize> {
+    CIPHERS_AVAILABLE_IN_S2N
+        .iter()
+        .position(|current_cipher| *current_cipher.0 == *name)
+}
+pub fn cipher_index_to_iana_name(index: usize) -> Option<&'static str> {
+    CIPHERS_AVAILABLE_IN_S2N.get(index).map(|name| (*name).2)
 }
 #[cfg(test)]
 mod tests {
@@ -352,17 +519,21 @@ mod tests {
     }
 
     /// return all of the available s2n-tls ciphers in nasty (openssl) format
-    fn all_available_ciphers() -> Vec<&'static str> {
-        let ciphers: HashSet<&'static str> = SECURITY_POLICY_TABLE
+    fn all_available_ciphers() -> Vec<(&'static str, [u8; 2], &'static str)> {
+        let ciphers: HashSet<(&'static str, [u8; 2], &'static str)> = SECURITY_POLICY_TABLE
             .iter()
             .map(|sp| {
                 let sp = unsafe { &*sp.security_policy };
-                let names: Vec<&'static str> = sp.ciphers().iter().map(|c| c.iana_name()).collect();
+                let names: Vec<(&'static str, [u8; 2], &'static str)> = sp
+                    .ciphers()
+                    .iter()
+                    .map(|c| (c.nasty_name(), c.iana_value(), c.iana_name()))
+                    .collect();
                 names
             })
             .flatten()
             .collect();
-        let mut ciphers: Vec<&'static str> = ciphers.into_iter().collect();
+        let mut ciphers: Vec<(&'static str, [u8; 2], &'static str)> = ciphers.into_iter().collect();
         ciphers.sort();
         ciphers
     }

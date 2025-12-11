@@ -1,0 +1,39 @@
+"_aws": {
+    "CloudWatchMetrics": [
+        {
+            "Namespace": "tls/s2n-tls",
+            "Dimensions": [
+                []
+            ],
+            "Metrics": [
+                {
+                    "Name": "cipher.TLS_AES_128_GCM_SHA256"
+                },
+                {
+                    "Name": "protocol_version.TLS13"
+                },
+                {
+                    "Name": "group.secp256r1"
+                },
+                {
+                    "Name": "handshake_latency",
+                    "Unit": "Milliseconds"
+                },
+                {
+                    "Name": "handshake_duration",
+                    "Unit": "Milliseconds"
+                }
+            ]
+        }
+    ],
+    "Timestamp": 1759693665943
+},
+"cipher.TLS_AES_128_GCM_SHA256": 1,
+"protocol_version.TLS13": 1,
+"group.secp256r1": 1,
+"handshake_latency": 1.77228,
+"handshake_duration": 1.251876,
+"cipher": "TLS_AES_128_GCM_SHA256",
+"protocol_version": "TLS13",
+"group": "secp256r1"
+}
