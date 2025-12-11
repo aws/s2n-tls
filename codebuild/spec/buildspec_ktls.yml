@@ -14,7 +14,7 @@
 
 version: 0.2
 # This is designed to work with CodeBuild's reserved instances fleet and
-# curated Ec2 AMI for AL2023.
+# curated Ec2 AMI for Ubuntu25.
 #
 # Because the Ec2 reserved instance disks persist between runs,
 # we need to do periodic clean up; The `nix store gc` command runs on Sunday to 
@@ -26,25 +26,11 @@ env:
     NIX_INSTALLER: "https://nixos.org/nix/install"
     S2N_KTLS_TESTING_EXPECTED: 1
 phases:
-  install:
-    commands:
-      - yum update -y; yum upgrade -y
   pre_build:
     commands:
-      - id; groupadd nixbld||true
-      - useradd -m -g nixbld -G nixbld nix || true
-      - |
-        echo "Working around the faulty yaml parser..."
-        echo 'nix ALL=NOPASSWD: ALL' > /etc/sudoers.d/nix
-      # (Re)Install nix
-      - sh <(curl -L "$NIX_INSTALLER") --no-daemon
-      # Make sure nix exists in the PATH
-      - export PATH=$HOME/.nix-profile/bin:$PATH
-      # Turn on flakes
-      - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
-      # Populate the store from the nix cache
-      - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
+      # Populate the store from the nix cache.
+      - nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
