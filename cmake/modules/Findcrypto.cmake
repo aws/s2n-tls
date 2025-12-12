@@ -31,49 +31,29 @@ if (TARGET crypto OR TARGET AWS::crypto)
     set(CRYPTO_FOUND true)
     set(crypto_FOUND true)
 else()
-    if(NOT BUILD_SHARED_LIBS AND NOT S2N_USE_CRYPTO_SHARED_LIBS)
-        set(OPENSSL_USE_STATIC_LIBS TRUE)
-    endif()
-    find_package(OpenSSL COMPONENTS Crypto QUIET)
-    if (OpenSSL_FOUND)
-        set(crypto_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
-        set(crypto_LIBRARY ${OPENSSL_CRYPTO_LIBRARY})
+    find_path(crypto_INCLUDE_DIR
+        NAMES openssl/crypto.h
+        HINTS
+        "${CMAKE_PREFIX_PATH}"
+        "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES include
+    )
 
-        # CMakeLists.txt expects the crypto_SHARED_LIBRARY/crypto_STATIC_LIBRARY variables to be
-        # set. However, the FindOpenSSL module doesn't set separate variables depending on whether
-        # the artifact is shared or static. And, the TYPE property isn't set on the OpenSSL::Crypto
-        # target, so we can't use `get_target_property()` to determine this. Instead, we check for
-        # a ".a" suffix in the artifact path.
-        if ("${crypto_LIBRARY}" MATCHES "\\.a$")
-            set(crypto_STATIC_LIBRARY "${crypto_LIBRARY}")
-        else()
-            set(crypto_SHARED_LIBRARY "${crypto_LIBRARY}")
-        endif()
-    else()
-        find_path(crypto_INCLUDE_DIR
-            NAMES openssl/crypto.h
-            HINTS
-            "${CMAKE_PREFIX_PATH}"
-            "${CMAKE_INSTALL_PREFIX}"
-            PATH_SUFFIXES include
-        )
+    find_library(crypto_SHARED_LIBRARY
+        NAMES libcrypto.so libcrypto.dylib
+        HINTS
+        "${CMAKE_PREFIX_PATH}"
+        "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES build/crypto build lib64 lib
+    )
 
-        find_library(crypto_SHARED_LIBRARY
-            NAMES libcrypto.so libcrypto.dylib
-            HINTS
-            "${CMAKE_PREFIX_PATH}"
-            "${CMAKE_INSTALL_PREFIX}"
-            PATH_SUFFIXES build/crypto build lib64 lib
-        )
-
-        find_library(crypto_STATIC_LIBRARY
-            NAMES libcrypto.a
-            HINTS
-            "${CMAKE_PREFIX_PATH}"
-            "${CMAKE_INSTALL_PREFIX}"
-            PATH_SUFFIXES build/crypto build lib64 lib
-        )
-    endif()
+    find_library(crypto_STATIC_LIBRARY
+        NAMES libcrypto.a
+        HINTS
+        "${CMAKE_PREFIX_PATH}"
+        "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES build/crypto build lib64 lib
+    )
 
     if (NOT crypto_LIBRARY)
         if (BUILD_SHARED_LIBS OR S2N_USE_CRYPTO_SHARED_LIBS)
@@ -112,12 +92,6 @@ else()
         set(CRYPTO_FOUND true)
         set(crypto_FOUND true)
 
-        if (TARGET OpenSSL::Crypto)
-            message(STATUS "libcrypto discovered by the FindOpenSSL module")
-        else()
-            message(STATUS "libcrypto discovered by the s2n-tls Findcrypto module")
-        endif()
-
         message(STATUS "LibCrypto Include Dir: ${crypto_INCLUDE_DIR}")
         message(STATUS "LibCrypto Shared Lib:  ${crypto_SHARED_LIBRARY}")
         message(STATUS "LibCrypto Static Lib:  ${crypto_STATIC_LIBRARY}")
@@ -133,19 +107,6 @@ else()
                     IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                     IMPORTED_LOCATION "${crypto_LIBRARY}")
             add_dependencies(AWS::crypto Threads::Threads)
-
-            if (TARGET OpenSSL::Crypto)
-                # The discovered libcrypto may have been configured with additional dependencies
-                # such as zlib. If any dependencies were discovered by the FindOpenSSL module, add
-                # them to the AWS::crypto target.
-                get_target_property(OpenSSL_LINK_LIBRARIES OpenSSL::Crypto
-                        INTERFACE_LINK_LIBRARIES)
-                if (OpenSSL_LINK_LIBRARIES)
-                    foreach (link_library ${OpenSSL_LINK_LIBRARIES})
-                        target_link_libraries(AWS::crypto INTERFACE ${link_library})
-                    endforeach()
-                endif()
-            endif()
         endif()
     endif()
 
