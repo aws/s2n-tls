@@ -4,7 +4,7 @@ pkgs.stdenv.mkDerivation rec {
   version = "3.0.7";
 
   src = pkgs.fetchzip {
-    url = 
+    url =
       "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.0.7.zip";
     sha256 = "sha256-8eECfrnmbUr4ETGhi98LgXUX8T5914JBKxkMr4xtbRg=";
   };
