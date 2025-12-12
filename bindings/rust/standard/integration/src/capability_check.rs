@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{future::Future, panic::AssertUnwindSafe};
-
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -59,7 +57,7 @@ impl Capability {
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
             Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
-            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
+            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
         }
     }
 }
