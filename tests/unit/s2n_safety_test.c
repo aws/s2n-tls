@@ -128,7 +128,7 @@ static int success_memcpy()
 
 static int failure_memcpy()
 {
-    char src[1024];
+    char src[1024] = {0};
     char *ptr = NULL;
 
     POSIX_CHECKED_MEMCPY(ptr, src, 1024);

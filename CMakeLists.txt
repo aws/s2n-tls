@@ -590,6 +590,9 @@ if (BUILD_TESTING)
             -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
             -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99
         )
+        if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
+            target_compile_options(${test_case_name} PRIVATE -Werror)
+        endif()
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
