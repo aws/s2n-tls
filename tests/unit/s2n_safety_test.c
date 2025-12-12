@@ -205,6 +205,15 @@ static int success_ct_pkcs1()
     return memcmp(outbuf, expected, sizeof(expected)) ? -1 : 0;
 }
 
+#if S2N_CLONE_SUPPORTED
+static int s2n_unit_test_clone_child_process(struct s2n_unit_test_clone *data)
+{
+    char src[1024] = { 0 };
+    POSIX_ENSURE_REF(memcpy(src, NULL, sizeof(src)) == NULL);
+    return S2N_SUCCESS;
+}
+#endif
+
 static int success_ct_pkcs1_negative()
 {
     uint8_t pkcs1_data_too_long[] = { 0x00, 0x02, 0x80, 0x0f, 0x00, 0x10, 0xab, 0xcd, 0xef, 0x00 };
