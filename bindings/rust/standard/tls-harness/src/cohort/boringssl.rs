@@ -50,8 +50,27 @@ impl TlsConnection for BoringSslConnection {
         config: &Self::Config,
         io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
-        // No tickets/resumption yet: keep it simple
-        let ssl = Ssl::new(&config.config)?;
+        // Check if there is a session ticket available.
+        // A session ticket will only be available if the Config was created
+        // with session resumption enabled (and a previous handshake stored it).
+        let maybe_ticket = config
+            .session_ticket_storage
+            .stored_ticket
+            .lock()
+            .unwrap()
+            .take();
+
+        // Populate the internal session cache (mirrors the OpenSSL harness pattern).
+        if let Some(ticket) = &maybe_ticket {
+            let _ = unsafe { config.config.add_session(ticket) };
+        }
+
+        let mut ssl = Ssl::new(&config.config)?;
+
+        // If we have a ticket, attempt to resume with it.
+        if let Some(ticket) = &maybe_ticket {
+            unsafe { ssl.set_session(ticket)? };
+        }
 
         let view = match mode {
             Mode::Client => io.client_view(),
@@ -65,7 +84,7 @@ impl TlsConnection for BoringSslConnection {
         })
     }
 
-    fn handshake(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         // If the handshake is already complete, no further work is needed.
         if self.connection.ssl().is_init_finished() {
             return Ok(());
@@ -96,10 +115,7 @@ impl TlsConnection for BoringSslConnection {
     fn send(&mut self, data: &[u8]) {
         let mut write_offset = 0;
         while write_offset < data.len() {
-            write_offset += self
-                .connection
-                .write(&data[write_offset..data.len()])
-                .unwrap();
+            write_offset += self.connection.write(&data[write_offset..]).unwrap();
             self.connection.flush().unwrap(); // make sure internal buffers don't fill up
         }
     }
@@ -107,7 +123,7 @@ impl TlsConnection for BoringSslConnection {
     fn recv(&mut self, data: &mut [u8]) -> std::io::Result<()> {
         let data_len = data.len();
         let mut read_offset = 0;
-        while read_offset < data.len() {
+        while read_offset < data_len {
             read_offset += self.connection.read(&mut data[read_offset..data_len])?
         }
         Ok(())
@@ -125,19 +141,16 @@ impl TlsConnection for BoringSslConnection {
 
 impl TlsInfo for BoringSslConnection {
     fn name() -> String {
-        // BoringSSL doesn't expose a version number in the same way as OpenSSL
-        // It's typically identified just as "boringssl"
         "boringssl".to_string()
     }
 
     fn get_negotiated_cipher_suite(&self) -> String {
-        let cipher_suite = self
-            .connection
+        self.connection
             .ssl()
             .current_cipher()
             .expect("Handshake not completed")
-            .name();
-        cipher_suite.to_string()
+            .name()
+            .to_string()
     }
 
     fn negotiated_tls13(&self) -> bool {
@@ -155,6 +168,7 @@ impl TlsInfo for BoringSslConnection {
     fn mutual_auth(&self) -> bool {
         assert!(self.connection.ssl().is_server());
         self.connection.ssl().peer_certificate().is_some()
+            && self.connection.ssl().verify_result().is_ok()
     }
 }
 
