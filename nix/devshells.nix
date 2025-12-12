@@ -1,5 +1,5 @@
 { pkgs, system, common_packages, openssl_1_0_2, openssl_1_1_1, openssl_3_0
-, openssl_3_5, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
+, aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
   rustShellHook = ''
@@ -59,7 +59,6 @@ let
       OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
       OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
       OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
-      OPENSSL_3_5_INSTALL_DIR = "${openssl_3_5}";
       AWSLC_INSTALL_DIR = "${aws-lc}";
       AWSLC_FIPS_2022_INSTALL_DIR = "${aws-lc-fips-2022}";
       AWSLC_FIPS_2024_INSTALL_DIR = "${aws-lc-fips-2024}";
@@ -108,11 +107,6 @@ let
     libcryptoName = "openssl-1.1.1";
   };
 
-  openssl35 = mkBaseShell {
-    cryptoLib = openssl_3_5;
-    libcryptoName = "openssl-3.5";
-  };
-
   libressl_shell = mkBaseShell {
     cryptoLib = pkgs.libressl;
     libcryptoName = "libressl";
@@ -152,12 +146,6 @@ let
     libcryptoName = "openssl-3.0";
   };
 
-  rust_openssl35 = mkBaseShell {
-    withRustTools = true;
-    cryptoLib = openssl_3_5;
-    libcryptoName = "openssl-3.5";
-  };
-
   rust_awslc = mkBaseShell {
     withRustTools = true;
     cryptoLib = awsLcStatic;
@@ -179,7 +167,6 @@ in {
   default = default;
   openssl102 = openssl102;
   openssl111 = openssl111;
-  openssl35 = openssl35;
   libressl = libressl_shell;
   awslc = awslc_shell;
   awslcfips2022 = awslcfips2022_shell;
@@ -189,7 +176,6 @@ in {
   rust_openssl102 = rust_openssl102;
   rust_openssl111 = rust_openssl111;
   rust_openssl30 = rust_openssl30;
-  rust_openssl35 = rust_openssl35;
   rust_awslc = rust_awslc;
   rust_awslcfips2024 = rust_awslcfips2024;
 }
