@@ -57,7 +57,7 @@ impl Capability {
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
             Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
-            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
+            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
         }
     }
 }
