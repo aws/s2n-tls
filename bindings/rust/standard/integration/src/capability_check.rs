@@ -60,7 +60,10 @@ impl Capability {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
             // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
-            Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips | Libcrypto::OpenSsl35),
+            Capability::MLKem => matches!(
+                libcrypto,
+                Libcrypto::Awslc | Libcrypto::AwslcFips | Libcrypto::OpenSsl35
+            ),
             Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::OpenSsl35),
         }
     }
@@ -78,30 +81,5 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
         println!("expecting test failure");
         let panic = result.unwrap_err();
         println!("panic was {panic:?}");
-    }
-}
-
-pub fn required_capability_async(
-    required_capabilities: &[Capability],
-    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
-) {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
-
-    if required_capabilities.iter().all(Capability::supported) {
-        // 1 -> no panic
-        // 2 -> returned "ok"
-        result.unwrap().unwrap();
-    } else {
-        println!("expecting test failure");
-        match result {
-            Ok(Ok(())) => panic!("test did not fail"),
-            Ok(Err(e)) => println!("err was {e:?}"),
-            Err(e) => println!("panic was {e:?}"),
-        }
     }
 }
