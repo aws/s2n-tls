@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{future::Future, panic::AssertUnwindSafe};
-
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -76,30 +74,5 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
         println!("expecting test failure");
         let panic = result.unwrap_err();
         println!("panic was {panic:?}");
-    }
-}
-
-pub fn required_capability_async(
-    required_capabilities: &[Capability],
-    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
-) {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
-
-    if required_capabilities.iter().all(Capability::supported) {
-        // 1 -> no panic
-        // 2 -> returned "ok"
-        result.unwrap().unwrap();
-    } else {
-        println!("expecting test failure");
-        match result {
-            Ok(Ok(())) => panic!("test did not fail"),
-            Ok(Err(e)) => println!("err was {e:?}"),
-            Err(e) => println!("panic was {e:?}"),
-        }
     }
 }
