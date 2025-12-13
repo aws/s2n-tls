@@ -17,7 +17,7 @@ jobs:
   typos:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -50,7 +50,7 @@ jobs:
         # Upload the doxygen artifacts on pull requests to help reviewers easily
         # view changes.
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
             name: s2n-tls-doxygen
             path: |
