@@ -17,6 +17,7 @@
 
 #include "crypto/s2n_pq.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -146,7 +147,7 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
 
     /* Boolean XOR: exactly one of {server_curve, server_kem_group} should be non-null. */
-    POSIX_ENSURE((curve == NULL) != (kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    POSIX_ENSURE((curve == NULL) != (kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
@@ -382,11 +383,11 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    /* Get the client's preferred groups for the KeyShares that were actually sent by the client */
+    /* Our most preferred mutually supported KeyShares that are negotiable in 1-RTT */
     const struct s2n_ecc_named_curve *client_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
     const struct s2n_kem_group *client_kem_group = conn->kex_params.client_kem_group_params.kem_group;
 
-    /* Get the server's preferred groups (which may or may not have been sent in the KeyShare by the client) */
+    /* Our most preferred mutually supported KeyShares that negotiable in 1 or 2 round trips (which may or may not have been sent in the KeyShare by the client) */
     const struct s2n_ecc_named_curve *server_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
     const struct s2n_kem_group *server_kem_group = conn->kex_params.server_kem_group_params.kem_group;
 
@@ -397,14 +398,54 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
      * groups; key negotiation is not possible and the handshake should be aborted
      * without sending HRR. (The case of both being non-NULL should never occur, and
      * is an error.) */
-    POSIX_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    POSIX_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
-    /* To avoid extra round trips, we prefer to negotiate a group for which we have already
-     * received a key share (even if it is different than the group previously chosen). In
-     * general, we prefer to negotiate PQ over ECDHE; however, if both client and server
-     * support PQ, but the client sent only EC key shares, then we will negotiate ECHDE. */
+    const struct s2n_security_policy *policy = NULL;
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &policy));
+    POSIX_ENSURE_REF(policy);
 
-    /* Option 1: Select the best mutually supported PQ KEM Group that can be negotiated in 1-RTT */
+    const struct s2n_ecc_named_curve *strongly_preferred_curve = NULL;
+    const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
+    bool matched_strongly_preferred_iana = false;
+    bool need_hrr_for_strongly_preferred_group = false;
+
+    /* Check if there are any strongly preferred SupportedGroups worth performing a 2-RTT upgrade for. */
+    for (size_t i = 0; policy->strongly_preferred_groups != NULL && i < policy->strongly_preferred_groups->count && !matched_strongly_preferred_iana; i++) {
+        uint16_t strongly_preferred_iana = policy->strongly_preferred_groups->iana_ids[i];
+
+        /* Strongly preferred groups are not allowed on policies that support PQ, so we don't check KEMs */
+
+        for (int j = 0; j < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT && !matched_strongly_preferred_iana; j++) {
+            const struct s2n_ecc_named_curve *mutually_supported_curve = conn->kex_params.mutually_supported_curves[j];
+            if (mutually_supported_curve == NULL) {
+                break; /* Reached end of mutually supported ECC curves */
+            }
+            if (strongly_preferred_iana == mutually_supported_curve->iana_id) {
+                matched_strongly_preferred_iana = true;
+                strongly_preferred_curve = mutually_supported_curve;
+
+                /* Check if we can negotiate our strongly preferred ECC Curve in 1-RTT */
+                if (client_curve != NULL && (strongly_preferred_iana == client_curve->iana_id)) {
+                    need_hrr_for_strongly_preferred_group = false;
+                } else {
+                    need_hrr_for_strongly_preferred_group = true;
+                }
+            }
+        }
+    }
+
+    /* Option 1: Perform a 2-RTT handshake if there is a strongly-preferred SupportedGroup that requires a 2-RTT handshake. */
+    if (matched_strongly_preferred_iana && need_hrr_for_strongly_preferred_group) {
+        /* Ensure that we chose exactly 1 strongly preferred SupportedGroup */
+        POSIX_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
+
+        conn->kex_params.server_kem_group_params.kem_group = strongly_preferred_kem_group;
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = strongly_preferred_curve;
+        POSIX_GUARD(s2n_set_hello_retry_required(conn));
+        return S2N_SUCCESS;
+    }
+
+    /* Option 2: Select the best mutually supported PQ KEM Group that can be negotiated in 1-RTT */
     if (client_kem_group != NULL) {
         POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.kem_params.kem);
 
@@ -415,7 +456,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select that one. This ensures that
+    /* Option 3: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select that one. This ensures that
      * clients who offer PQ (and presumably therefore have concerns about quantum computing impacting the long term
      * confidentiality of their data), have their choice to offer PQ respected, even if they predict the server-side
      * supports a different PQ KeyShare algorithms. This ensures clients with PQ support are never downgraded to non-PQ
@@ -427,7 +468,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 3: Otherwise, if there is a mutually supported classical ECDHE-only group can be negotiated in 1-RTT, select that one */
+    /* Option 4: Otherwise, if there is a mutually supported classical ECDHE-only group can be negotiated in 1-RTT, select that one */
     if (client_curve) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
         conn->kex_params.server_kem_group_params.kem_group = NULL;
@@ -436,7 +477,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 4: Server and client have at least 1 mutually supported group, but the client did not send key shares for
+    /* Option 5: Server and client have at least 1 mutually supported group, but the client did not send key shares for
      * any of them. Send a HelloRetryRequest indicating the server's preference. */
     POSIX_GUARD(s2n_set_hello_retry_required(conn));
     return S2N_SUCCESS;

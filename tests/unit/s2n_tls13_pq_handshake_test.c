@@ -17,6 +17,7 @@
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem_preferences.h"
@@ -25,8 +26,14 @@
 /* Include C file directly to access static functions */
 #include "tls/s2n_handshake_io.c"
 
-const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct s2n_kem_preferences *client_prefs, const struct s2n_kem_preferences *server_prefs)
+const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct s2n_security_policy *client_policy, const struct s2n_security_policy *server_policy)
 {
+    PTR_ENSURE_REF(client_policy);
+    PTR_ENSURE_REF(server_policy);
+
+    const struct s2n_kem_preferences *client_prefs = client_policy->kem_preferences;
+    const struct s2n_kem_preferences *server_prefs = server_policy->kem_preferences;
+
     PTR_ENSURE_REF(client_prefs);
     PTR_ENSURE_REF(server_prefs);
 
@@ -36,6 +43,15 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
      */
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
     PTR_ENSURE_REF(client_default);
+
+    for (int i = 0; server_policy->strongly_preferred_groups != NULL && i < server_policy->strongly_preferred_groups->count; i++) {
+        for (int j = 0; j < client_policy->kem_preferences->tls13_kem_group_count; j++) {
+            if (server_policy->strongly_preferred_groups->iana_ids[i] == client_policy->kem_preferences->tls13_kem_groups[j]->iana_id
+                    && s2n_kem_group_is_available(client_policy->kem_preferences->tls13_kem_groups[j])) {
+                return client_policy->kem_preferences->tls13_kem_groups[j];
+            }
+        }
+    }
 
     for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
@@ -80,6 +96,14 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
      */
     const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
     PTR_ENSURE_REF(client_default);
+
+    for (int i = 0; server_sec_policy->strongly_preferred_groups != NULL && i < server_sec_policy->strongly_preferred_groups->count; i++) {
+        for (int j = 0; j < client_sec_policy->ecc_preferences->count; j++) {
+            if (server_sec_policy->strongly_preferred_groups->iana_ids[i] == client_sec_policy->ecc_preferences->ecc_curves[j]->iana_id) {
+                return client_sec_policy->ecc_preferences->ecc_curves[j];
+            }
+        }
+    }
 
     for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
         const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
@@ -177,6 +201,20 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        if (expected_curve != server_conn->kex_params.server_ecc_evp_params.negotiated_curve) {
+            const char *expected_name = "NULL";
+            const char *actual_name = "NULL";
+            if (expected_curve != NULL && expected_curve->name != NULL) {
+                expected_name = expected_curve->name;
+            }
+            if (server_conn->kex_params.server_ecc_evp_params.negotiated_curve != NULL && server_conn->kex_params.server_ecc_evp_params.negotiated_curve->name != NULL) {
+                actual_name = server_conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
+            }
+
+            fprintf(stderr, "\n\nError: Unexpected curve was negotiated. Expected: %s, Actual: %s\n", expected_name, actual_name);
+            fflush(stderr);
+        }
+
         POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
@@ -820,6 +858,40 @@ int main()
                 .hrr_expected = hrr_expected_if_mlkem,
                 .len_prefix_expected = false,
         },
+
+        /* Client supports p384 but did not send that key share when connecting to server that strongly prefers p384. */
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251113, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251114, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251115, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251116, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
     };
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
@@ -831,15 +903,42 @@ int main()
         bool hrr_expected = vector->hrr_expected;
         bool len_prefix_expected = vector->len_prefix_expected;
 
+        /* Print Test Vector Info for easier debugging on failure. */
+        {
+            const char *kem_group_str = (kem_group == NULL) ? "NULL" : kem_group->name;
+            const char *curve_str = (curve == NULL) ? "NULL" : curve->name;
+            fprintf(stderr, "\n\nRunning test (%zu/%zu)...\n", i + 1, s2n_array_len(test_vectors));
+            fflush(stderr);
+            fprintf(stderr, "Test Vector: kem_group: %s, curve: %s, hrr_expected: %d, len_prefix_expected: %d\n", kem_group_str, curve_str, hrr_expected, len_prefix_expected);
+            fflush(stderr);
+            uint32_t output_size = 0;
+            fprintf(stderr, "\nClient Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(client_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+
+            fprintf(stderr, "\nServer Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(server_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+            fflush(stderr);
+        }
+
+        /* Check if we need to override the test vector. This may need to be done due to some LibCryptos not supporting PQ. */
+        if (!s2n_kem_group_is_available(kem_group)) {
+            kem_group = NULL;
+            if (curve == NULL) {
+                curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
+            }
+        }
+
         if (!s2n_pq_is_enabled()) {
             EXPECT_TRUE(client_policy->ecc_preferences->count > 0);
             const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
             const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
 
-            /* If either policy doesn't support the default curve, fall back to p256 as it should
-             * be in common with every ECC preference list. */
-            if (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, default_curve->iana_id)
-                    || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, default_curve->iana_id)) {
+            /* If the  default curve is x25519, and the test vector is predicting the default, but neither policy supports x25519,
+             * fall back to predict p256 as it should be in common with every ECC preference list. */
+            if (default_curve->iana_id == s2n_ecc_curve_x25519.iana_id
+                    && curve->iana_id == default_curve->iana_id
+                    && (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id)
+                            || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id))) {
                 EXPECT_TRUE(s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
                 EXPECT_TRUE(s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
                 curve = &s2n_ecc_curve_secp256r1;
@@ -848,6 +947,7 @@ int main()
             /* The client's preferred curve will be a higher priority than the default if both sides
              * support TLS 1.3, and if the client's default can be chosen by the server in 1-RTT. */
             if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
+                    && (server_policy->strongly_preferred_groups == NULL || server_policy->strongly_preferred_groups->count == 0)
                     && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
                 curve = client_default;
             }
@@ -856,12 +956,8 @@ int main()
             EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
         }
 
-        if (!s2n_kem_group_is_available(kem_group)) {
-            kem_group = NULL;
-        }
-
         if (kem_group != NULL) {
-            const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_policy->kem_preferences, server_policy->kem_preferences);
+            const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_policy, server_policy);
             POSIX_ENSURE_REF(predicted_kem_group);
 
             /* Confirm that the expected KEM Group listed in the test vector matches the output of

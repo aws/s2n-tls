@@ -447,6 +447,13 @@ int s2n_config_disable_x509_time_verification(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
+int s2n_config_disable_x509_intent_verification(struct s2n_config *config)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    config->disable_x509_intent_verification = true;
+    return S2N_SUCCESS;
+}
+
 int s2n_config_disable_x509_verification(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);

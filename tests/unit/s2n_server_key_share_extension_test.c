@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         /* Error if both curve and kem_group are NULL */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
         conn->kex_params.server_kem_group_params.kem_group = NULL;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
@@ -993,7 +993,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };

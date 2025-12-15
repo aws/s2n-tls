@@ -68,6 +68,7 @@ struct s2n_config {
     unsigned accept_mfl : 1;
     unsigned check_ocsp : 1;
     unsigned disable_x509_time_validation : 1;
+    unsigned disable_x509_intent_verification : 1;
     unsigned disable_x509_validation : 1;
     unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.

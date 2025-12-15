@@ -113,9 +113,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: clang-format check
-        uses: harrisonkaiser/clang-format-action@verbose
+        uses: jidicula/clang-format-action@v4.16.0
         with:
-          clang-format-version: '15'
+          clang-format-version: '18'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
@@ -156,7 +156,7 @@ jobs:
       - name: PR Conventional Commit Validation
         id: cc_check
         if: github.event_name == 'pull_request_target'
-        uses: ytanikin/pr-conventional-commits@1.4.2
+        uses: ytanikin/pr-conventional-commits@1.5.1
         with:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
           add_label: 'false'
