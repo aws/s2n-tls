@@ -1733,7 +1733,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     uint64_t negotiate_end = 0;
     POSIX_GUARD(s2n_default_monotonic_clock(NULL, &negotiate_start));
-    conn->handshake_event.handshake_time_ns += negotiate_end - negotiate_end;
+    conn->handshake_event.handshake_time_ns += negotiate_end - negotiate_start;
 
     if (result == S2N_SUCCESS) {
         conn->handshake_event.handshake_end_ns = negotiate_end;
