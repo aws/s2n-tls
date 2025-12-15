@@ -46,7 +46,7 @@
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
-int s2n_default_monotonic_clock(void *data, uint64_t *nanoseconds)
+int s2n_default_monotonic_clock(void *unused_data, uint64_t *nanoseconds)
 {
     struct timespec current_time = { 0 };
 

@@ -664,7 +664,6 @@ fail:
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn->config);
     POSIX_ENSURE(!conn->client_hello.callback_async_blocked, S2N_ERR_ASYNC_BLOCKED);
 
     /* Only parse the ClientHello once */
@@ -685,10 +684,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
         /* Do NOT move this null check. A test exists to assert that a server connection can get
          * as far as the client hello callback without using its config. To do this we need a
-         * specific error for a null wall clock config just before the client hello callback.
-         * The test's assertions are weakened if this check is moved. 
-         */
-        POSIX_ENSURE(conn->config->wall_clock, S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
+         * specific error for a null config just before the client hello callback. The test's
+         * assertions are weakened if this check is moved. */
+        POSIX_ENSURE(conn->config, S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
         if (conn->config->client_hello_cb) {
