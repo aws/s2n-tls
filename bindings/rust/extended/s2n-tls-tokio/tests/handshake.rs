@@ -8,7 +8,7 @@ use s2n_tls::{
     enums::{ClientAuthType, Mode, Version},
     error::{Error, ErrorType},
     pool::ConfigPoolBuilder,
-    security::DEFAULT_TLS13,
+    security::{DEFAULT_TLS13, TESTING_TLS12},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use std::{collections::VecDeque, time::Duration};
@@ -135,20 +135,25 @@ async fn handshake_with_connection_config_with_pool() -> Result<(), Box<dyn std:
 }
 
 #[tokio::test]
-async fn handshake_error() -> Result<(), Box<dyn std::error::Error>> {
-    // Config::default() does not include any RSA certificates,
-    // but only provides TLS1.2 cipher suites that require RSA auth.
-    // The server will fail to choose a cipher suite, but
-    // S2N_ERR_CIPHER_NOT_SUPPORTED is specifically excluded from blinding.
-    let bad_config = Config::default();
-    let client_config = common::client_config()?.build()?;
-    let server_config = bad_config;
+async fn handshake_error_without_blinding() -> Result<(), Box<dyn std::error::Error>> {
+    // Server config only supports TLS1.2 cipher suites that require RSA auth.
+    // Additionally, no RSA certs are loaded into the config.
+    // Therefore the server will fail to select a cipher suite, and the error that
+    // gets triggered (S2N_ERR_CIPHER_NOT_SUPPORTED) is specifically excluded from blinding.
+    let mut builder = Config::builder();
+    builder.set_security_policy(&TESTING_TLS12)?;
+
+    let server_config = builder.build()?;
+    let client_config = common::client_config()?.build()?; // Now has pq and no cbc
 
     let client = TlsConnector::new(client_config);
     let server = TlsAcceptor::new(server_config);
 
     let (server_stream, client_stream) = common::get_streams().await?;
+    let time_start = time::Instant::now();
     let result = common::run_negotiate(&client, client_stream, &server, server_stream).await;
+    let time_elapsed = time_start.elapsed();
+    assert!(time_elapsed < Duration::from_secs(1));
     assert!(matches!(result, Err(e) if !e.is_retryable()));
 
     Ok(())
