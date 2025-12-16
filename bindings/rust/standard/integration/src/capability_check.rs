@@ -80,7 +80,7 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
 }
 
 /// Declare the required capabilities for a test to run.
-/// 
+///
 /// This function is identical to [`required_capability`], but allows the test function
 /// to return a result.
 pub fn required_capability_with_inner_result(
