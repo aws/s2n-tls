@@ -144,7 +144,7 @@ async fn handshake_error_without_blinding() -> Result<(), Box<dyn std::error::Er
     builder.set_security_policy(&TESTING_TLS12)?;
 
     let server_config = builder.build()?;
-    let client_config = common::client_config()?.build()?; // Now has pq and no cbc
+    let client_config = common::client_config()?.build()?;
 
     let client = TlsConnector::new(client_config);
     let server = TlsAcceptor::new(server_config);
