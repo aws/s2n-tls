@@ -79,6 +79,24 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
     }
 }
 
+/// Declare the required capabilities for a test to run.
+/// 
+/// This function is identical to [`required_capability`], but allows the test function
+/// to return a result.
+pub fn required_capability_with_inner_result(
+    required_capabilities: &[Capability],
+    test: fn() -> Result<(), Box<dyn std::error::Error>>,
+) {
+    let result = std::panic::catch_unwind(test);
+    if required_capabilities.iter().all(|c| c.supported()) {
+        result.unwrap().unwrap();
+    } else {
+        println!("expecting test failure");
+        let panic = result.unwrap_err();
+        println!("panic was {panic:?}");
+    }
+}
+
 pub fn required_capability_async(
     required_capabilities: &[Capability],
     test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,

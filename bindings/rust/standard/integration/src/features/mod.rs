@@ -6,4 +6,4 @@ mod group_negotiation;
 #[cfg(feature = "pq")]
 mod pq;
 mod record_padding;
-mod selected_key_exchange_group;
+mod group_getters;
