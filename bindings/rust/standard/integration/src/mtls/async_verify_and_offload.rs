@@ -39,7 +39,7 @@ unsafe extern "C" fn test_async_offload_cb(
     op: *mut s2n_async_offload_op,
     ctx: *mut c_void,
 ) -> i32 {
-    let ctx = unsafe { &*(ctx as *mut AsyncOffloadCtx) };
+    let ctx = unsafe { Box::from_raw(ctx as *mut AsyncOffloadCtx) };
 
     ctx.invoked.fetch_add(1, Ordering::SeqCst);
     ctx.sender.send(SendableAsyncOffloadOp(op)).unwrap();
@@ -61,8 +61,7 @@ fn register_async_pkey_verify_offload(
     let ctx_ptr = Box::into_raw(ctx) as *mut c_void;
 
     // SAFETY: s2n stores this context pointer and later returns it in the async
-    // callback. Because s2n never frees it, we intentionally leak the Box so the
-    // memory stays valid for the lifetime of the config (test-only).
+    // callback. The callback will reclaim ownership using Box::from_raw to prevent leaks.
     unsafe {
         let raw = raw_config(s2n_cfg);
         let allowed_types = s2n_async_offload_op_type::OFFLOAD_PKEY_VERIFY;
