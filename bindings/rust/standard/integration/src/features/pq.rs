@@ -3,26 +3,15 @@
 
 use crate::capability_check::{required_capability, Capability};
 use openssl::ssl::SslContextBuilder;
-use s2n_tls::{
-    callbacks::VerifyHostNameCallback,
-    enums::SignatureAlgorithm,
-    security::{Policy, DEFAULT_PQ},
-};
+use s2n_tls::{enums::SignatureAlgorithm, security::{Policy, DEFAULT_PQ}};
 use std::fs;
 use tls_harness::{
-    cohort::{OpenSslConnection, S2NConnection},
+    cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
     TlsConnPair,
 };
 
 const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
-
-struct HostNameIgnorer;
-impl VerifyHostNameCallback for HostNameIgnorer {
-    fn verify_host_name(&self, _host_name: &str) -> bool {
-        true
-    }
-}
 
 #[test]
 fn s2n_mldsa_client() {
@@ -38,11 +27,15 @@ fn s2n_mldsa_client() {
             configs.client.set_security_policy(&DEFAULT_PQ).unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
 
-            // The RFC test cert includes a server name ("LAMPS WG"); however, the in-memory harness does not
-            // set an expected server_name, so default hostname verification would fail without a custom callback.
+            // This test uses the RFC ML-DSA certificate ("LAMPS WG").
+            // In the DEFAULT_PQ / MLDSA path the expected hostname
+            // is "LAMPS WG", so we install a host-verify callback that
+            // accepts that value.
             configs
                 .client
-                .set_verify_host_callback(HostNameIgnorer)
+                .set_verify_host_callback(HostNameHandler {
+                    expected_server_name: "LAMPS WG",
+                })
                 .unwrap();
             let cert = fs::read(&cert_path).unwrap();
             configs.client.trust_pem(&cert).unwrap();
