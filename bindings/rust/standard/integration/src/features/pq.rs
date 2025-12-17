@@ -3,7 +3,10 @@
 
 use crate::capability_check::{required_capability, Capability};
 use openssl::ssl::SslContextBuilder;
-use s2n_tls::{enums::SignatureAlgorithm, security::{Policy, DEFAULT_PQ}};
+use s2n_tls::{
+    enums::SignatureAlgorithm,
+    security::{Policy, DEFAULT_PQ},
+};
 use std::fs;
 use tls_harness::{
     cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
