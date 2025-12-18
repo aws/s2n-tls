@@ -15,12 +15,12 @@ pub mod s2n_tls;
 
 // NOTE: BoringSSL is disabled on macOS to avoid symbol collisions with
 // OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
 pub mod boringssl;
 
 pub use openssl::{OpenSslConfig, OpenSslConnection};
 pub use rustls::{RustlsConfig, RustlsConnection};
 pub use s2n_tls::{S2NConfig, S2NConnection};
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
 pub use boringssl::{BoringSslConfig, BoringSslConnection};

@@ -1,3 +1,7 @@
+[features]
+default = []
+boringssl = ["dep:boring"]
+
 [package]
 name = "tls-harness"
 version = "0.1.0"
@@ -14,6 +18,7 @@ rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }
 openssl-sys = "0.9.109"
 byteorder = "1.5.0"
+boring = { git = "https://github.com/kaukabrizvi/boring.git", branch = "symbol-prefixing", features = ["prefix-symbols"], optional = true }
 
 brass-aphid-wire-decryption = "0.0.1"
 brass-aphid-wire-messages = "0.0.1"

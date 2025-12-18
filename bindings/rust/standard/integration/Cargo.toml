@@ -18,6 +18,8 @@ no-sensitive-tests = []
 # can be disabled by turning off this feature.
 pq = [ "s2n-tls/pq" ]
 
+boringssl = ["tls-harness/boringssl"]
+
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing", "unstable-crl"]}
 s2n-tls-hyper = { path = "../s2n-tls-hyper" }
