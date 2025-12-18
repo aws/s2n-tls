@@ -15,7 +15,12 @@
 
 #pragma once
 
-#define S2N_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#include <stdbool.h>
+#include <stdint.h>
 
-#define S2N_GCC_VERSION_AT_LEAST(major, minor, patch_level) \
-    ((S2N_GCC_VERSION) >= ((major) * 10000 + (minor) * 100 + (patch_level)))
+#include "api/s2n.h"
+#include "api/unstable/events.h"
+#include "utils/s2n_result.h"
+
+S2N_RESULT s2n_event_handshake_populate(struct s2n_connection* conn, struct s2n_event_handshake* event);
+S2N_RESULT s2n_event_handshake_send(struct s2n_connection* conn, struct s2n_event_handshake* event);
