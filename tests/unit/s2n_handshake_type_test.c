@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "s2n_test.h"
 #include "tls/s2n_connection.h"
