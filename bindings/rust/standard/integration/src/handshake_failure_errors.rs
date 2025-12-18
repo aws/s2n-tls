@@ -163,7 +163,7 @@ fn no_signatures_in_common() {
                 })
                 .next()
                 .unwrap();
-            // s2n-tls send a certificate verify with rsa_pss_rsae_sha256, which is not
+            // s2n-tls sent a certificate verify with rsa_pss_rsae_sha256, which is not
             // one of the client's supported signature algorithms
             assert_eq!(
                 certificate_verify.algorithm,
