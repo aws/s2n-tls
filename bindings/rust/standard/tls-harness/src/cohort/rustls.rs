@@ -11,7 +11,7 @@ use rustls::{
     server::ProducesTickets,
     ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
-    RootCertStore, ServerConfig, ServerConnection,
+    RootCertStore, ServerConfig, ServerConnection, SupportedProtocolVersion,
 };
 use std::{
     error::Error,
@@ -253,6 +253,7 @@ impl TlsInfo for RustlsConnection {
 pub struct RustlsConfigBuilder {
     mode: Option<Mode>,
     cert: Option<SigType>,
+    supported_protocols: Vec<&'static SupportedProtocolVersion>,
 }
 
 impl TlsConfigBuilder for RustlsConfigBuilder {
@@ -261,6 +262,7 @@ impl TlsConfigBuilder for RustlsConfigBuilder {
     fn new_test_config(mode: Mode) -> Self {
         Self {
             mode: Some(mode),
+            supported_protocols: vec![&rustls::version::TLS13],
             ..Default::default()
         }
     }
@@ -280,13 +282,13 @@ impl TlsConfigBuilder for RustlsConfigBuilder {
         let crypto_provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
         match mode {
             Mode::Client => ClientConfig::builder_with_provider(crypto_provider)
-                .with_protocol_versions(&[&rustls::version::TLS13])
+                .with_protocol_versions(&self.supported_protocols)
                 .unwrap()
                 .with_root_certificates(RustlsConfig::get_root_cert_store(cert))
                 .with_no_client_auth()
                 .into(),
             Mode::Server => ServerConfig::builder_with_provider(crypto_provider)
-                .with_protocol_versions(&[&rustls::version::TLS13])
+                .with_protocol_versions(&self.supported_protocols)
                 .unwrap()
                 .with_no_client_auth()
                 .with_single_cert(
@@ -296,6 +298,15 @@ impl TlsConfigBuilder for RustlsConfigBuilder {
                 .unwrap()
                 .into(),
         }
+    }
+}
+
+impl RustlsConfigBuilder {
+    pub fn set_protocol_versions(
+        &mut self,
+        protocol_versions: &[&'static SupportedProtocolVersion],
+    ) {
+        self.supported_protocols = protocol_versions.to_vec();
     }
 }
 
