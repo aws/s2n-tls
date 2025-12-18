@@ -171,7 +171,7 @@ fn no_signatures_in_common() {
             );
         }
 
-        // confirm that the client sent an alert indicating it's displeasure
+        // confirm that the client sent an alert indicating its displeasure
         {
             let alert = content
                 .iter()
