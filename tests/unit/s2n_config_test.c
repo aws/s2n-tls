@@ -91,6 +91,17 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
+        if (default_config->security_policy != config->security_policy) {
+            /* one possible cause for this is attempting to includes s2n_config.c 
+             * for access to internal `static` functions. This causes two copies
+             * of the default config to be created. The default_config in *this*
+             * unit of translation doesn't get properly initialized. */
+            const char *default_policy = NULL;
+            const char *new_policy = NULL;
+            EXPECT_OK(s2n_security_policy_get_version(default_config->security_policy, &default_policy));
+            EXPECT_OK(s2n_security_policy_get_version(config->security_policy, &new_policy));
+            printf("default policy is %s but new policy is %s\n", default_policy, new_policy);
+        }
         EXPECT_EQUAL(default_config->security_policy, config->security_policy);
         EXPECT_EQUAL(default_config->security_policy->signature_preferences, config->security_policy->signature_preferences);
         EXPECT_EQUAL(default_config->client_cert_auth_type, config->client_cert_auth_type);
@@ -1270,6 +1281,20 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
         }
     }
+
+    /* s2n_config_set_subscriber */
+    {
+        /* Safety */
+        uint64_t fake_subscriber = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (void *) &fake_subscriber), S2N_ERR_NULL);
+    };
+
+    /* s2n_config_set_handshake_event */
+    {
+        /* Safety */
+        uint64_t fake_callback = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (s2n_event_on_handshake_cb) &fake_callback), S2N_ERR_NULL);
+    };
 
     END_TEST();
 }
