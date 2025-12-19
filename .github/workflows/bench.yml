@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Cpu info
+        run: lscpu
+
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
