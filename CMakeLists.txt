@@ -579,7 +579,7 @@ if (BUILD_TESTING)
         target_compile_options(${test_case_name} PRIVATE 
             -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
             -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
-            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99
+            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
         )
         if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
             target_compile_options(${test_case_name} PRIVATE -Werror)

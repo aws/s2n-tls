@@ -20,11 +20,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
 
-static int mock_time(void *data, uint64_t *timestamp)
-{
-    *timestamp = *(uint64_t *) data;
-    return 0;
-}
+
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
@@ -41,6 +37,11 @@ static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timest
 }
 
 #if S2N_OCSP_STAPLING_SUPPORTED
+static int mock_time(void *data, uint64_t *timestamp)
+{
+    *timestamp = *(uint64_t *) data;
+    return 0;
+}
 static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
     /* 2015-02-27 */
