@@ -15,8 +15,9 @@ openssl = { version = "0.10.73", features = ["vendored"] }
 openssl-sys = "0.9.109"
 byteorder = "1.5.0"
 
-brass-aphid-wire-decryption = "0.0.1"
-brass-aphid-wire-messages = "0.0.1"
+brass-aphid-wire-decryption = "0.0.2"
+brass-aphid-wire-messages = "0.0.2"
+tracing = "0.1.43"
 
 [dev-dependencies]
 # env_logger and log are used to enable logging for rustls, which can help with
