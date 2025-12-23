@@ -128,7 +128,7 @@ fn s2n_client_resumption_with_openssl() {
         Ok(())
     }
 
-    PROTOCOL_VERSIONS.into_iter().for_each(|version| {
+    PROTOCOL_VERSIONS.iter().for_each(|version| {
         s2n_client_case(*version).unwrap();
     });
     required_capability(&[Capability::Tls13], || {
@@ -166,7 +166,7 @@ fn s2n_server_resumption_with_openssl() {
         Ok(())
     }
 
-    PROTOCOL_VERSIONS.into_iter().for_each(|version| {
+    PROTOCOL_VERSIONS.iter().for_each(|version| {
         s2n_server_case(*version).unwrap();
     });
     required_capability(&[Capability::Tls13], || {
