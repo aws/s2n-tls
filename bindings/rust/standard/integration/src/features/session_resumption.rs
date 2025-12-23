@@ -14,6 +14,7 @@ use tls_harness::{
     },
     harness::TlsConfigBuilder,
     Mode, SigType, TlsConnPair,
+    openssl_extension::SslStreamExtension,
 };
 
 use s2n_tls::security::Policy;
@@ -120,6 +121,7 @@ fn s2n_client_resumption_with_openssl() {
         pair.client.connection_mut().set_session_ticket(&ticket).unwrap();
         pair.handshake()?;
         pair.round_trip_assert(10_000)?;
+        assert!(pair.client.connection_mut().resumed());
         pair.shutdown()?;
         Ok(())
     }
@@ -156,11 +158,11 @@ fn s2n_server_resumption_with_openssl() {
         // test with resumption
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
             TlsConnPair::from_configs(&client_config, &server_config);
-        let _ticket = ticket_storage.get_ticket();
-        // For OpenSSL, the session ticket is automatically handled by the config
-        // when creating a new connection, so we don't need to manually set it
+        let ticket = ticket_storage.get_ticket();
+        unsafe { pair.client.connection.mut_ssl().set_session(&ticket)? };
         pair.handshake()?;
         pair.round_trip_assert(10_000)?;
+        assert!(pair.server.connection_mut().resumed());
         pair.shutdown()?;
         Ok(())
     }
