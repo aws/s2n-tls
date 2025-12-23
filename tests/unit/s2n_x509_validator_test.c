@@ -20,8 +20,6 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
 
-
-
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
     /* 2250-01-01 */
