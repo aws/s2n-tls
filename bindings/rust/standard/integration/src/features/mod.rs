@@ -5,4 +5,5 @@ mod dynamic_record_sizing;
 mod group_negotiation;
 #[cfg(feature = "pq")]
 mod pq;
+mod prefer_low_latency;
 mod record_padding;
