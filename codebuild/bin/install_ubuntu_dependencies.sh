@@ -21,12 +21,14 @@ source codebuild/bin/s2n_setup_env.sh
 set -e
 
 github_apt(){
+  echo "running github apt"
   curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list
   apt update -y
   apt install -y gh
 }
 get_rust() {
+  echo "running get rust"
   apt install -y clang-10 sudo
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source $HOME/.cargo/env
