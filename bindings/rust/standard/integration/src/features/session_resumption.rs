@@ -9,12 +9,12 @@ use openssl::ssl::{SslContextBuilder, SslMethod, SslVersion};
 use tls_harness::{
     cohort::{
         openssl::SessionTicketStorage as OSSLTicketStorage,
-        s2n_tls::SessionTicketStorage as S2NTicketStorage,
-        OpenSslConnection, OpenSslConfig, S2NConnection, S2NConfig,
+        s2n_tls::SessionTicketStorage as S2NTicketStorage, OpenSslConfig, OpenSslConnection,
+        S2NConfig, S2NConnection,
     },
     harness::TlsConfigBuilder,
-    Mode, SigType, TlsConnPair,
     openssl_extension::SslStreamExtension,
+    Mode, SigType, TlsConnPair,
 };
 
 use s2n_tls::security::Policy;
@@ -31,7 +31,9 @@ fn s2n_client_resumption_config(cert: SigType) -> (S2NTicketStorage, S2NConfig) 
             .unwrap();
         config.set_trust(cert);
         config.enable_session_tickets(true).unwrap();
-        config.set_session_ticket_callback(ticket_storage.clone()).unwrap();
+        config
+            .set_session_ticket_callback(ticket_storage.clone())
+            .unwrap();
         config.build().unwrap().into()
     };
     (ticket_storage, client_config)
@@ -88,11 +90,8 @@ fn openssl_client_resumption_config(
 
 #[test]
 fn s2n_client_resumption_with_openssl() {
-    const PROTOCOL_VERSIONS: &[SslVersion] = &[
-        SslVersion::TLS1_2,
-        SslVersion::TLS1_1,
-        SslVersion::TLS1,
-    ];
+    const PROTOCOL_VERSIONS: &[SslVersion] =
+        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1];
 
     fn s2n_client_case(protocol: SslVersion) -> Result<(), Box<dyn std::error::Error>> {
         let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
@@ -118,7 +117,10 @@ fn s2n_client_resumption_with_openssl() {
             TlsConnPair::from_configs(&client_config, &server_config);
         let ticket = ticket_storage.get_ticket();
         assert!(!ticket.is_empty());
-        pair.client.connection_mut().set_session_ticket(&ticket).unwrap();
+        pair.client
+            .connection_mut()
+            .set_session_ticket(&ticket)
+            .unwrap();
         pair.handshake()?;
         pair.round_trip_assert(10_000)?;
         assert!(pair.client.connection_mut().resumed());
@@ -136,11 +138,8 @@ fn s2n_client_resumption_with_openssl() {
 
 #[test]
 fn s2n_server_resumption_with_openssl() {
-    const PROTOCOL_VERSIONS: &[SslVersion] = &[
-        SslVersion::TLS1_2,
-        SslVersion::TLS1_1,
-        SslVersion::TLS1,
-    ];
+    const PROTOCOL_VERSIONS: &[SslVersion] =
+        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1];
 
     fn s2n_server_case(version: SslVersion) -> Result<(), Box<dyn std::error::Error>> {
         println!("version: {:?}", version);
