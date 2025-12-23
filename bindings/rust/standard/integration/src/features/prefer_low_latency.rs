@@ -25,11 +25,12 @@ fn assert_all_small(record_sizes: &[u16]) {
         assert!(size as usize <= SMALL_RECORD_MAX,);
     }
 }
-/// Integration test for the feature: s2n_connection_prefer_low_latency()
-///
-/// "Prefer low latency" should cause s2n-tls to use small record sizes for
-/// application data. This is a wire-format behavior change, so we assert
-/// on record sizes.
+// Integration tests for `s2n_connection_prefer_low_latency()`.
+//
+// These tests assert that enabling the "prefer low latency" mode causes
+// s2n-tls to emit small TLS application-data records, which is a
+// wire-format behavior change. Both client-side and server-side
+// configurations are exercised to ensure consistent record sizing behavior.
 #[test]
 fn s2n_server_case() {
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
