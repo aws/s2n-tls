@@ -23,6 +23,13 @@ pub struct SessionTicketStorage {
     pub stored_ticket: Arc<Mutex<Option<SslSession>>>,
 }
 
+impl SessionTicketStorage {
+    // panics if no ticket is available
+    pub fn get_ticket(self) -> SslSession {
+        self.stored_ticket.lock().unwrap().take().unwrap()
+    }
+}
+
 pub struct OpenSslConnection {
     connection: SslStream<ViewIO>,
 }
