@@ -1,14 +1,12 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use openssl::ssl::SslContextBuilder;
 use tls_harness::{
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
     TlsConnPair,
 };
-/// Integration test for the feature: s2n_connection_prefer_low_latency()
-///
-/// "Prefer low latency" should cause s2n-tls to use small record sizes for
-/// application data. This is a wire-format behavior change, so we assert
-/// on record sizes.
 
 const SMALL_RECORD_MAX: usize = 1_500;
 const APP_DATA_SIZE: usize = 100_000;
@@ -27,7 +25,11 @@ fn assert_all_small(record_sizes: &[u16]) {
         assert!(size as usize <= SMALL_RECORD_MAX,);
     }
 }
-
+/// Integration test for the feature: s2n_connection_prefer_low_latency()
+///
+/// "Prefer low latency" should cause s2n-tls to use small record sizes for
+/// application data. This is a wire-format behavior change, so we assert
+/// on record sizes.
 #[test]
 fn s2n_server_case() {
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
