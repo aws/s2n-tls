@@ -23,6 +23,7 @@ phases:
   install:
     commands:
       - ./codebuild/bin/install_ubuntu_dependencies.sh
+      - source $HOME/.cargo/env
       - rustup toolchain install $RUST_TOOLCHAIN
       - rustup override set $RUST_TOOLCHAIN
       - cargo install cargo-criterion
