@@ -51,31 +51,31 @@ struct s2n_tls13_keys {
     struct s2n_hmac_state hmac;
 };
 
-/* Defines TLS 1.3 HKDF Labels */
-extern const struct s2n_blob s2n_tls13_label_derived_secret;
-extern const struct s2n_blob s2n_tls13_label_external_psk_binder_key;
-extern const struct s2n_blob s2n_tls13_label_resumption_psk_binder_key;
+/* Defines TLS 1.3 HKDF Labels (read-only) */
+extern const struct s2n_ro_blob s2n_tls13_label_derived_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_external_psk_binder_key;
+extern const struct s2n_ro_blob s2n_tls13_label_resumption_psk_binder_key;
 
-extern const struct s2n_blob s2n_tls13_label_client_early_traffic_secret;
-extern const struct s2n_blob s2n_tls13_label_early_exporter_master_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_client_early_traffic_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_early_exporter_master_secret;
 
-extern const struct s2n_blob s2n_tls13_label_client_handshake_traffic_secret;
-extern const struct s2n_blob s2n_tls13_label_server_handshake_traffic_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_client_handshake_traffic_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_server_handshake_traffic_secret;
 
-extern const struct s2n_blob s2n_tls13_label_client_application_traffic_secret;
-extern const struct s2n_blob s2n_tls13_label_server_application_traffic_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_client_application_traffic_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_server_application_traffic_secret;
 
-extern const struct s2n_blob s2n_tls13_label_exporter_master_secret;
-extern const struct s2n_blob s2n_tls13_label_resumption_master_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_exporter_master_secret;
+extern const struct s2n_ro_blob s2n_tls13_label_resumption_master_secret;
 
-extern const struct s2n_blob s2n_tls13_label_finished;
+extern const struct s2n_ro_blob s2n_tls13_label_finished;
 
-extern const struct s2n_blob s2n_tls13_label_exporter;
+extern const struct s2n_ro_blob s2n_tls13_label_exporter;
 
 /* Traffic secret labels */
 
-extern const struct s2n_blob s2n_tls13_label_traffic_secret_key;
-extern const struct s2n_blob s2n_tls13_label_traffic_secret_iv;
+extern const struct s2n_ro_blob s2n_tls13_label_traffic_secret_key;
+extern const struct s2n_ro_blob s2n_tls13_label_traffic_secret_iv;
 
 #define s2n_tls13_key_blob(name, bytes) \
     s2n_stack_blob(name, bytes, S2N_TLS13_SECRET_MAX_LEN)
