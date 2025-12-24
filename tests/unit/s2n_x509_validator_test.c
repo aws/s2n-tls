@@ -144,7 +144,7 @@ static bool s2n_libcrypto_supports_2050()
         return false; /* Cannot represent year 2050 safely */
     }
 
-    time_t time_2050 = (time_t)2524608000LL;
+    time_t time_2050 = (time_t) 2524608000LL;
     int result = X509_cmp_time(utc_time, &time_2050);
     ASN1_STRING_free(utc_time);
     return (result != 0);
