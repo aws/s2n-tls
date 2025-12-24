@@ -24,7 +24,7 @@ pub struct SessionTicketStorage {
 }
 
 pub struct OpenSslConnection {
-    connection: SslStream<ViewIO>,
+    pub connection: SslStream<ViewIO>,
 }
 
 pub struct OpenSslConfig {
