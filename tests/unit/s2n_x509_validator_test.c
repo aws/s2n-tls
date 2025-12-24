@@ -131,17 +131,16 @@ static bool s2n_libcrypto_supports_2050()
         return false;
     }
 
-    /* NOTE FOR CI FAILURE:
-     * The range of time_t is platform-specific. Some CI builders use a 32-bit
-     * time_t where the constant for 2050 (2524608000) cannot be represented and
-     * triggers -Wconstant-conversion (treated as an error).
+    /* The `32BitBuildAndUnit` job in s2nGeneralBatch runs on a 32-bit system
+     * where time_t cannot represent the year 2050 (2524608000) and triggers
+     * -Wconstant-conversion (treated as an error).
      *
-     * This helper is intended to detect legacy libcrypto behavior and should
-     * only be evaluated on platforms where time_t can represent large values.
+     * The libcrypto used by the job (i386-linux-gnu) does support year 2050.
+     * Return true to skip the `X509_cmp_time` call.
      */
     if (sizeof(time_t) < 8) {
         ASN1_STRING_free(utc_time);
-        return false; /* Cannot represent year 2050 safely */
+        return true;
     }
 
     time_t time_2050 = (time_t) 2524608000LL;
