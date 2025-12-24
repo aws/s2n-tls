@@ -72,7 +72,7 @@ struct random_communication {
 static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
 {
     int status = 0;
-#if defined(S2N_CLONE_SUPPORTED)
+#if S2N_CLONE_SUPPORTED
     EXPECT_EQUAL(waitpid(proc_pid, &status, __WALL), proc_pid);
 #else
     /* __WALL is not relevant when clone() is not supported
@@ -446,6 +446,7 @@ static S2N_RESULT s2n_fork_test(
     return S2N_RESULT_OK;
 }
 
+#if S2N_CLONE_SUPPORTED
 static int s2n_clone_tests_child_process(void *ipc)
 {
     struct random_communication *ipc_ptr = (struct random_communication *) ipc;
@@ -459,13 +460,14 @@ static int s2n_clone_tests_child_process(void *ipc)
      * statement because we are in a non-void return type function. */
     return EXIT_SUCCESS;
 }
+#endif
 
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static S2N_RESULT s2n_clone_tests(
         S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
         S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
 {
-#if defined(S2N_CLONE_SUPPORTED)
+#if S2N_CLONE_SUPPORTED
 
     int proc_id = 0;
     int pipes[2];
