@@ -127,7 +127,24 @@ static bool s2n_supports_large_time_t()
 static bool s2n_libcrypto_supports_2050()
 {
     ASN1_TIME *utc_time = ASN1_UTCTIME_set(NULL, 0);
-    time_t time_2050 = 2524608000;
+    if (!utc_time) {
+        return false;
+    }
+
+    /* NOTE FOR CI FAILURE:
+     * The range of time_t is platform-specific. Some CI builders use a 32-bit
+     * time_t where the constant for 2050 (2524608000) cannot be represented and
+     * triggers -Wconstant-conversion (treated as an error).
+     *
+     * This helper is intended to detect legacy libcrypto behavior and should
+     * only be evaluated on platforms where time_t can represent large values.
+     */
+    if (sizeof(time_t) < 8) {
+        ASN1_STRING_free(utc_time);
+        return false; /* Cannot represent year 2050 safely */
+    }
+
+    time_t time_2050 = (time_t)2524608000LL;
     int result = X509_cmp_time(utc_time, &time_2050);
     ASN1_STRING_free(utc_time);
     return (result != 0);
