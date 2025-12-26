@@ -1,98 +1,57 @@
-use std::task::Poll;
+use std::io::{Read, Write};
 
-use tls_harness::{
-    cohort::{OpenSslConnection, S2NConnection},
-    harness::{read_to_bytes, PemType, SigType, TlsConfigBuilder,TlsConfigBuilderPair, TlsConnPair, TlsConnection},
-    openssl_extension::{SslExtension, SslStreamExtension},
-};
 use openssl::ssl::{SslContextBuilder, SslVerifyMode};
 use s2n_tls::{enums::ClientAuthType, renegotiate::RenegotiateResponse, security::Policy};
+use tls_harness::{
+    cohort::{OpenSslConnection, S2NConnection},
+    harness::{
+        read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair, TlsConnection,
+    },
+    openssl_extension::{SslExtension, SslStreamExtension},
+};
 
 fn renegotiate_pair(
     pair: &mut TlsConnPair<S2NConnection, OpenSslConnection>,
     app_data: Option<Vec<u8>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // 1) Schedule renegotiation on the OpenSSL server.
+    // schedule the renegotiate request
     pair.server.connection.mut_ssl().renegotiate();
     assert!(pair.server.connection.ssl().renegotiate_pending());
 
-    // 2) Optionally send application data (the thing we actually want to assert on).
+    // send the renegotiate request
+    let _ = pair.server.connection.write(&[]);
+
+    // read the renegotiate request & send the renegotiation client hello
+    let _ = pair.client.connection_mut().poll_recv(&mut [0]);
+
     if let Some(data) = &app_data {
-        let _ = pair.server.send(data);
+        // server sends application data before sending the server hello
+        let _ = pair.server.connection.write(&data);
     }
 
-    let expected = app_data.as_ref().map(|v| v.as_slice());
-    let mut received: Vec<u8> = Vec::new();
-    if let Some(exp) = expected {
-        received.reserve(exp.len());
+    // send the server hello
+    let _ = pair.server.connection.read(&mut [0]);
+
+    if let Some(data) = &app_data {
+        // client receives application data
+        let mut buffer = [0; 1_024];
+        assert!(data.len() < buffer.len());
+        let _ = pair.client.connection_mut().poll_recv(&mut buffer[0..data.len()]);
+        assert_eq!(&buffer[0..data.len()], data);
     }
 
-    let mut server_buf = [0u8; 1024];
+    // client sends key material + finished
+    let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
-    const MAX_ITERS: usize = 10_000;
-    for _ in 0..MAX_ITERS {
-        // Drive OpenSSL forward.
-        let _ = pair.server.recv(&mut server_buf);
+    // server sends finished
+    let _ = pair.server.connection.read(&mut [0]);
 
-        // Drive s2n forward, capturing bytes if we expect app_data.
-        let mut client_buf = [0u8; 1024];
-        match pair.client.connection_mut().poll_recv(&mut client_buf) {
-            Poll::Ready(Ok(n)) if n > 0 => {
-                if let Some(exp) = expected {
-                    if received.len() < exp.len() {
-                        let take = (exp.len() - received.len()).min(n);
-                        received.extend_from_slice(&client_buf[..take]);
-                        if received.len() == exp.len() {
-                            assert_eq!(&received[..], exp, "app_data mismatch");
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
+    // client reads finished
+    let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
-        // Renegotiation complete?
-        if !pair.server.connection.ssl().renegotiate_pending() {
-            // If no app data expected, done.
-            if expected.is_none() {
-                return Ok(());
-            }
-
-            // If app data expected, allow a small drain window for late delivery.
-            let exp = expected.unwrap();
-            if received.len() == exp.len() {
-                return Ok(());
-            }
-
-            for _ in 0..512 {
-                let _ = pair.server.recv(&mut server_buf);
-
-                let mut buf = [0u8; 1024];
-                match pair.client.connection_mut().poll_recv(&mut buf) {
-                    Poll::Ready(Ok(n)) if n > 0 => {
-                        if received.len() < exp.len() {
-                            let take = (exp.len() - received.len()).min(n);
-                            received.extend_from_slice(&buf[..take]);
-                            if received.len() == exp.len() {
-                                assert_eq!(&received[..], exp, "app_data mismatch (late)");
-                                return Ok(());
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            return Err(format!(
-                "Renegotiation completed, but expected {} bytes of app_data; only observed {} bytes",
-                exp.len(),
-                received.len()
-            )
-            .into());
-        }
-    }
-
-    Err("Renegotiation did not complete within MAX_ITERS".into())
+    // the request is no longer pending, because s2n-tls accepted it
+    assert!(!pair.server.connection.ssl().renegotiate_pending());
+    Ok(())
 }
 #[test]
 fn s2n_client_renegotiation_is_patched() {
@@ -175,7 +134,7 @@ mod tests {
         assert!(!pair.io.server_tx_stream.borrow().is_empty());
 
         // perform a recv call to read the renegotiation request
-        pair.client.recv(&mut [0]);
+        pair.client.recv(&mut [0]).unwrap();
         // perform a send call to send the rejection
         pair.client.send(&mut [0]);
 
@@ -251,15 +210,16 @@ mod tests {
 
     /// The s2n-tls client successfully reads ApplicationData during the renegotiation handshake.
     #[test]
-    fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>>
-    {
+    fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>> {
         let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
-            TlsConfigBuilderPair::default();
+        TlsConfigBuilderPair::default();
         configs.set_cert(SigType::Ecdsa256);
         configs
             .client
             .set_security_policy(&Policy::from_version("default")?)?
             .set_renegotiate_callback(RenegotiateResponse::Schedule)?;
+
+        // Renegotiation is TLS 1.2-only.
         configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
@@ -268,7 +228,6 @@ mod tests {
         renegotiate_pair(&mut pair, Some(Vec::from(b"some application data")))?;
         pair.round_trip_assert(1_024)?;
         pair.shutdown()?;
-
         Ok(())
     }
 }
