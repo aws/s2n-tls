@@ -5,7 +5,8 @@ use s2n_tls::{enums::ClientAuthType, renegotiate::RenegotiateResponse, security:
 use tls_harness::{
     cohort::{OpenSslConnection, S2NConnection},
     harness::{
-        read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair, TlsConnection,
+        read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair,
+        TlsConnection,
     },
     openssl_extension::{SslExtension, SslStreamExtension},
 };
@@ -36,7 +37,10 @@ fn renegotiate_pair(
         // client receives application data
         let mut buffer = [0; 1_024];
         assert!(data.len() < buffer.len());
-        let _ = pair.client.connection_mut().poll_recv(&mut buffer[0..data.len()]);
+        let _ = pair
+            .client
+            .connection_mut()
+            .poll_recv(&mut buffer[0..data.len()]);
         assert_eq!(&buffer[0..data.len()], data);
     }
 
@@ -73,7 +77,7 @@ fn s2n_client_renegotiation_is_patched() {
 ///
 /// This tests the default behavior for customers who do not enable renegotiation.
 #[test]
-fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::error::Error>>{
+fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
@@ -81,7 +85,9 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
         .client
         .set_security_policy(&Policy::from_version("default").unwrap())
         .unwrap();
-    configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
+    configs
+        .server
+        .set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
@@ -107,10 +113,7 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
 // https://docs.openssl.org/3.3/man3/SSL_key_update/#description
 
 mod tests {
-    use openssl::ssl::SslVersion;
-
     use super::*;
-
     /// Renegotiation request rejected by s2n-tls client.
     #[test]
     fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::Error>> {
@@ -121,7 +124,9 @@ mod tests {
             .client
             .set_security_policy(&Policy::from_version("default")?)?
             .set_renegotiate_callback(RenegotiateResponse::Reject)?;
-        configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
+        configs
+            .server
+            .set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
@@ -156,7 +161,9 @@ mod tests {
             .client
             .set_security_policy(&Policy::from_version("default").unwrap())?
             .set_renegotiate_callback(RenegotiateResponse::Schedule)?;
-        configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
+        configs
+            .server
+            .set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
@@ -188,7 +195,9 @@ mod tests {
                 read_to_bytes(PemType::ClientCertChain, SigType::Ecdsa256).as_slice(),
                 read_to_bytes(PemType::ClientKey, SigType::Ecdsa256).as_slice(),
             )?;
-        configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
+        configs
+            .server
+            .set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
         configs.server.set_trust(SigType::Ecdsa256);
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
@@ -210,9 +219,10 @@ mod tests {
 
     /// The s2n-tls client successfully reads ApplicationData during the renegotiation handshake.
     #[test]
-    fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>> {
+    fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>>
+    {
         let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
-        TlsConfigBuilderPair::default();
+            TlsConfigBuilderPair::default();
         configs.set_cert(SigType::Ecdsa256);
         configs
             .client
@@ -220,7 +230,9 @@ mod tests {
             .set_renegotiate_callback(RenegotiateResponse::Schedule)?;
 
         // Renegotiation is TLS 1.2-only.
-        configs.server.set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
+        configs
+            .server
+            .set_max_proto_version(Some(openssl::ssl::SslVersion::TLS1_2))?;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
         pair.handshake()?;
