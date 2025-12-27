@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = ["renegotiate"]
+renegotiate = ["s2n-tls/unstable-renegotiate"]
+
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3.13"
@@ -14,6 +18,7 @@ rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }
 openssl-sys = "0.9.109"
 byteorder = "1.5.0"
+foreign-types-shared = "0.1.1"
 
 brass-aphid-wire-decryption = "0.0.1"
 brass-aphid-wire-messages = "0.0.1"
