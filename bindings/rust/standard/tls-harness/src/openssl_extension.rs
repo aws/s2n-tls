@@ -5,7 +5,7 @@
 //! crate. Ideally all of this logic would live _in_ the openssl crate, but they
 //! don't always accept PRs.
 
-use openssl::ssl::SslContextBuilder;
+use openssl::ssl::{SslContextBuilder, SslRef, SslStream};
 use openssl_sys::SSL_CTX;
 
 extern "C" {
@@ -28,5 +28,17 @@ impl SslContextExtension for SslContextBuilder {
             let res = SSL_CTX_set_block_padding(self.as_ptr(), block_size as _);
             assert_eq!(res, 1);
         }
+    }
+}
+
+pub trait SslStreamExtension {
+    fn mut_ssl(&mut self) -> &mut SslRef;
+}
+
+impl<T> SslStreamExtension for SslStream<T> {
+    /// PR open upstream: https://github.com/sfackler/rust-openssl/pull/2223
+    #[allow(invalid_reference_casting)]
+    fn mut_ssl(&mut self) -> &mut SslRef {
+        unsafe { &mut *(self.ssl() as *const openssl::ssl::SslRef as *mut openssl::ssl::SslRef) }
     }
 }
