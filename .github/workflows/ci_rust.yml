@@ -11,9 +11,7 @@ on:
     branches: [main]
 
 env:
-  # Pin the nightly toolchain to prevent breakage.
-  # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
+  RUST_NIGHTLY_TOOLCHAIN: nightly
   # Extended support MSRV
   ROOT_PATH: bindings/rust/extended
   # Standard support MSRV
