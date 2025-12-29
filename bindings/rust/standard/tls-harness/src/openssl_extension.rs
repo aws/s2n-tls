@@ -41,7 +41,6 @@ impl SslContextExtension for SslContextBuilder {
     }
 }
 
-
 pub trait SslStreamExtension {
     fn mut_ssl(&mut self) -> &mut SslRef;
 }

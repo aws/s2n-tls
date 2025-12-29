@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::io::{Read, Write};
 
 use openssl::ssl::{SslContextBuilder, SslVerifyMode, SslVersion};
@@ -27,7 +30,7 @@ fn renegotiate_pair(
 
     if let Some(data) = &app_data {
         // server sends application data before sending the server hello
-        let _ = pair.server.connection.write(&data);
+        let _ = pair.server.connection.write(data);
     }
 
     // send the server hello
@@ -137,7 +140,7 @@ fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::
     // perform a recv call to read the renegotiation request
     pair.client.recv(&mut [0]).unwrap();
     // perform a send call to send the rejection
-    pair.client.send(&mut [0]);
+    pair.client.send(&[0]);
 
     let server_error = pair.server.recv(&mut [0]).unwrap_err();
     assert!(server_error.to_string().contains("no renegotiation"));
@@ -177,8 +180,8 @@ fn s2n_client_renegotiate_with_openssl() -> Result<(), Box<dyn std::error::Error
 /// The openssl server does not require client auth during the first handshake,
 /// but does require client auth during the second handshake.
 #[test]
-fn s2n_client_renegotiate_with_client_auth_with_openssl(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn std::error::Error>>
+{
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
@@ -215,8 +218,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl(
 
 /// The s2n-tls client successfully reads ApplicationData during the renegotiation handshake.
 #[test]
-fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>>
-{
+fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
