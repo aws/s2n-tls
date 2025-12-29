@@ -8,7 +8,22 @@ use tls_harness::{
     TlsConnPair,
 };
 
-const SMALL_RECORD_MAX: usize = 1_500;
+/// Upper bound on recorded TLS application-data record payload size when
+/// `s2n_connection_prefer_low_latency()` is enabled.
+//
+// Plaintext fragment target:
+//   1500 (MTU)
+// -   20 (IPv4)
+// -   20 (TCP)
+// -   20 (TLS overhead budget)
+// -    5 (TLS record header)
+// = 1435
+//
+// Observed record payload (TLS 1.3 + AES-GCM):
+// +    1 (inner content type)
+// +   16 (AEAD tag)
+// = 1452
+const SMALL_RECORD_MAX: usize = 1_452;
 const APP_DATA_SIZE: usize = 100_000;
 
 fn assert_all_small(record_sizes: &[u16]) {
