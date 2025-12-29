@@ -34,9 +34,7 @@ fn assert_all_small(record_sizes: &[u16], max: usize) {
     assert!(!sizes.is_empty());
 
     for &size in sizes {
-        assert!(
-            size as usize <= max,
-        );
+        assert!(size as usize <= max,);
     }
 }
 
