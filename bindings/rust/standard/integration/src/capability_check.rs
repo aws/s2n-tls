@@ -92,8 +92,10 @@ pub fn required_capability_with_inner_result(
         println!("expecting test failure");
         match result {
             Ok(Ok(())) => {
-                panic!("The test should have failed, but instead succeeded. \
-                    Required capabilities are misconfigured");
+                panic!(
+                    "The test should have failed, but instead succeeded. \
+                    Required capabilities are misconfigured"
+                );
             }
             Ok(Err(e)) => {
                 println!("Test failed as expected with explicit error: {e:?}");
@@ -101,31 +103,6 @@ pub fn required_capability_with_inner_result(
             Err(panic) => {
                 println!("Test failed as expected with panic: {panic:?}");
             }
-        }
-    }
-}
-
-pub fn required_capability_async(
-    required_capabilities: &[Capability],
-    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
-) {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
-
-    if required_capabilities.iter().all(Capability::supported) {
-        // 1 -> no panic
-        // 2 -> returned "ok"
-        result.unwrap().unwrap();
-    } else {
-        println!("expecting test failure");
-        match result {
-            Ok(Ok(())) => panic!("test did not fail"),
-            Ok(Err(e)) => println!("err was {e:?}"),
-            Err(e) => println!("panic was {e:?}"),
         }
     }
 }
