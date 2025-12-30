@@ -92,8 +92,18 @@ pub fn required_capability_with_inner_result(
         result.unwrap().unwrap();
     } else {
         println!("expecting test failure");
-        let panic = result.unwrap_err();
-        println!("panic was {panic:?}");
+        match result {
+            Ok(Ok(())) => {
+                panic!("The test should have failed, but instead succeeded. \
+                    Required capabilities are misconfigured");
+            }
+            Ok(Err(e)) => {
+                println!("Test failed as expected with explicit error: {e:?}");
+            }
+            Err(panic) => {
+                println!("Test failed as expected with panic: {panic:?}");
+            }
+        }
     }
 }
 
