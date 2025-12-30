@@ -235,9 +235,7 @@ mod tests {
         };
         const RESUMPTION_EVENT: ExpectedEvent = ExpectedEvent {
             cipher: "ECDHE-RSA-AES128-GCM-SHA256",
-            // TODO: This is unexpected, and should be None, because TLS 1.2 session
-            // resumption does not include any ECDHE.
-            group: Some("secp256r1"),
+            group: None,
             protocol: Version::TLS12,
         };
 
