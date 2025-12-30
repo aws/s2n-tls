@@ -1,6 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates.
 // SPDX-License-Identifier: Apache-2.0
 
+// async_verify_and_offload contains a “stress” test that wires the async cert-validation
+// and async pkey-verify callbacks together. It’s kept separate from the main mTLS test matrix.
+mod async_verify_and_offload;
+
 // This test suite exercises mTLS interoperability between s2n-tls and rustls,
 // including:
 //   - basic mTLS handshakes (TLS 1.2 and 1.3)
@@ -105,7 +109,7 @@ extern "C" fn test_async_cert_cb(
     info: *mut s2n_cert_validation_info,
     ctx: *mut c_void,
 ) -> i32 {
-    let ctx = unsafe { &*(ctx as *mut AsyncCertCtx) };
+    let ctx = unsafe { Box::from_raw(ctx as *mut AsyncCertCtx) };
 
     ctx.invoked.fetch_add(1, Ordering::SeqCst);
     ctx.sender
@@ -152,8 +156,7 @@ fn register_async_cert_callback(
     let ctx_ptr = Box::into_raw(ctx) as *mut c_void;
 
     // SAFETY: s2n stores this context pointer and later returns it in the async
-    // callback. Because s2n never frees it, we intentionally leak the Box so the
-    // memory stays valid for the lifetime of the config (test-only).
+    // callback. The callback will reclaim ownership using Box::from_raw to prevent leaks.
     unsafe {
         let raw = raw_config(s2n_cfg);
         let result = s2n_config_set_cert_validation_cb(raw, Some(test_async_cert_cb), ctx_ptr);

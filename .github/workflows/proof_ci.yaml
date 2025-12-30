@@ -228,7 +228,7 @@ jobs:
             && mv $FINAL_REPORT_DIR/${{ steps.artifact.outputs.name }}.zip .
       - name: Upload zip artifact of CBMC proof results to GitHub Actions
         if: ${{ env.REPO_VISIBILITY == 'public' }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: ${{ steps.artifact.outputs.name }}.zip

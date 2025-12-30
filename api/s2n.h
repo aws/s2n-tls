@@ -1049,6 +1049,30 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  */
 S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
 
+/* Disable TLS intent verification for received certificates.
+ *
+ * By default, s2n-tls will verify that received certificates set Key Usage / Extended Key Usage
+ * fields that are consistent with the current TLS context (e.g. checking that serverAuth is set
+ * when verifying server certificates as a client, or checking that clientAuth is set when
+ * verifying client certificates as a server). This verification ensures that received certificates
+ * are being used for their intended purpose as specified by the issuer.
+ *
+ * This verification may be incompatible with some PKIs where intent is improperly specified.
+ * `s2n_config_disable_x509_intent_verification()` may be called in this case to disable the
+ * verification. This verification should only be disabled if it is known that all received
+ * certificates will be issued from a CA that intended for the certificates to be used in the given
+ * TLS context, despite what's indicated in the Key Usage / Extended Key Usage extensions.
+ *
+ * @note If a received certificate doesn't contain a Key Usage / Extended Key Usage extension, it's
+ *       assumed that the issuer permits the certificate to be used for any purpose. s2n-tls will
+ *       only reject a certificate due to invalid intent if the issuer explicitly indicates a
+ *       purpose that is invalid for the TLS context in which it is received.
+ *
+ * @param config The associated connection config.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_config_disable_x509_intent_verification(struct s2n_config *config);
+
 /**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
  * be used for testing or debugging purposes.

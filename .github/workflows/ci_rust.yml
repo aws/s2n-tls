@@ -11,9 +11,7 @@ on:
     branches: [main]
 
 env:
-  # Pin the nightly toolchain to prevent breakage.
-  # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-12-01
+  RUST_NIGHTLY_TOOLCHAIN: nightly
   # Extended support MSRV
   ROOT_PATH: bindings/rust/extended
   # Standard support MSRV
@@ -210,7 +208,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/openssl-102/install
           key: ${{ runner.os }}-openssl-102
