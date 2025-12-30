@@ -290,6 +290,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_128_cbc_sha256;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        EXPECT_OK(s2n_handshake_type_set_flag(conn, FULL_HANDSHAKE));
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
         curve_name = NULL;

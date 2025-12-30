@@ -981,9 +981,11 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
     if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
         bool tls13 = conn->actual_protocol_version >= S2N_TLS13;
-        bool ecdhe_cipher_without_resumption = s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)
-                && !IS_RESUMPTION_HANDSHAKE(conn);
-        if (tls13 || ecdhe_cipher_without_resumption) {
+        /* we check for a full handshake, because TLS 1.2 resumption does not perform
+         * and additional diffie-hellman exchange */
+        bool ecdhe_cipher_negotiated = s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)
+                && IS_FULL_HANDSHAKE(conn);
+        if (tls13 || ecdhe_cipher_negotiated) {
             return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }
