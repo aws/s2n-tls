@@ -24,7 +24,7 @@ pub struct SessionTicketStorage {
 }
 
 pub struct OpenSslConnection {
-    pub connection: SslStream<ViewIO>,
+    connection: SslStream<ViewIO>,
 }
 
 pub struct OpenSslConfig {
@@ -38,6 +38,36 @@ impl From<SslContext> for OpenSslConfig {
             config: value,
             session_ticket_storage: Default::default(),
         }
+    }
+}
+
+impl OpenSslConnection {
+    /// Drive the OpenSSL state machine without sending application data.
+    /// Useful for handshake/renegotiation progress where OpenSSL won't emit bytes
+    /// until it is polled.
+    pub fn drive_io(&mut self) -> std::io::Result<()> {
+        // Writing an empty buffer is a common way to nudge OpenSSL to flush pending records.
+        let _ = self.connection.write(&[]);
+        Ok(())
+    }
+
+    pub fn read_io(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.connection.read(buf)
+    }
+
+    pub fn write_io(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.connection.write(buf)
+    }
+    
+    /// Provides mutable access to the underlying SSL context for advanced operations
+    pub fn ssl_mut(&mut self) -> &mut openssl::ssl::SslRef {
+        use crate::openssl_extension::SslStreamExtension;
+        self.connection.mut_ssl()
+    }
+
+    /// Provides read-only access to the underlying SSL context
+    pub fn ssl(&self) -> &openssl::ssl::SslRef {
+        self.connection.ssl()
     }
 }
 

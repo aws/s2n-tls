@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::io::{Read, Write};
-
 use openssl::ssl::{SslContextBuilder, SslVerifyMode, SslVersion};
 use s2n_tls::{enums::ClientAuthType, renegotiate::RenegotiateResponse, security::Policy};
 use tls_harness::{
@@ -11,7 +9,7 @@ use tls_harness::{
         read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair,
         TlsConnection,
     },
-    openssl_extension::{SslExtension, SslStreamExtension},
+    openssl_extension::SslExtension,
 };
 
 fn renegotiate_pair(
@@ -19,22 +17,22 @@ fn renegotiate_pair(
     app_data: Option<Vec<u8>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // schedule the renegotiate request
-    pair.server.connection.mut_ssl().renegotiate();
-    assert!(pair.server.connection.ssl().renegotiate_pending());
+    pair.server.ssl_mut().renegotiate();
+    assert!(pair.server.ssl_mut().renegotiate_pending());
 
     // send the renegotiate request
-    let _ = pair.server.connection.write(&[]);
+    let _ = pair.server.drive_io();
 
     // read the renegotiate request & send the renegotiation client hello
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     if let Some(data) = &app_data {
         // server sends application data before sending the server hello
-        let _ = pair.server.connection.write(data);
+        let _ = pair.server.write_io(data);
     }
 
     // send the server hello
-    let _ = pair.server.connection.read(&mut [0]);
+    let _ = pair.server.read_io(&mut [0]);
 
     if let Some(data) = &app_data {
         // client receives application data
@@ -51,13 +49,13 @@ fn renegotiate_pair(
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     // server sends finished
-    let _ = pair.server.connection.read(&mut [0]);
+    let _ = pair.server.read_io(&mut [0]);
 
     // client reads finished
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     // the request is no longer pending, because s2n-tls accepted it
-    assert!(!pair.server.connection.ssl().renegotiate_pending());
+    assert!(!pair.server.ssl_mut().renegotiate_pending());
     Ok(())
 }
 #[test]
@@ -73,7 +71,7 @@ fn s2n_client_renegotiation_is_patched() {
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
     assert!(pair.handshake().is_ok());
-    assert!(pair.server.connection.ssl().secure_renegotiation_support());
+    assert!(pair.server.ssl_mut().secure_renegotiation_support());
 }
 
 /// Renegotiation request ignored by s2n-tls client
@@ -97,9 +95,9 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     assert!(pair.handshake().is_ok());
 
     // schedule and send the renegotiate request
-    pair.server.connection.mut_ssl().renegotiate();
+    pair.server.ssl_mut().renegotiate();
     pair.server.send(&[0]);
-    assert!(pair.server.connection.ssl().renegotiate_pending());
+    assert!(pair.server.ssl_mut().renegotiate_pending());
     assert!(!pair.io.server_tx_stream.borrow().is_empty());
 
     // do some client IO to recv and potentially respond to the request
@@ -107,7 +105,7 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     pair.round_trip_assert(1_024).unwrap();
 
     // the request is still pending, because s2n-tls ignored it
-    assert!(pair.server.connection.ssl().renegotiate_pending());
+    assert!(pair.server.ssl_mut().renegotiate_pending());
 
     pair.shutdown().unwrap();
     Ok(())
@@ -132,9 +130,9 @@ fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::
     pair.handshake()?;
 
     // schedule & send the renegotiate request
-    pair.server.connection.mut_ssl().renegotiate();
+    pair.server.ssl_mut().renegotiate();
     pair.server.send(&[0]);
-    assert!(pair.server.connection.ssl().renegotiate_pending());
+    assert!(pair.server.ssl_mut().renegotiate_pending());
     assert!(!pair.io.server_tx_stream.borrow().is_empty());
 
     // perform a recv call to read the renegotiation request
@@ -205,8 +203,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
 
     // require client auth for the renegotiation
     pair.server
-        .connection
-        .mut_ssl()
+        .ssl_mut()
         .set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
 
     renegotiate_pair(&mut pair, None)?;
