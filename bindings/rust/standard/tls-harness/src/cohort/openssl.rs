@@ -58,7 +58,7 @@ impl OpenSslConnection {
     pub fn write_io(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.connection.write(buf)
     }
-    
+
     /// Provides mutable access to the underlying SSL context for advanced operations
     pub fn ssl_mut(&mut self) -> &mut openssl::ssl::SslRef {
         use crate::openssl_extension::SslStreamExtension;
