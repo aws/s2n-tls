@@ -80,7 +80,6 @@ fn openssl_client_resumption_config(
         }
     });
 
-    // Lower the security level to allow legacy protocols and algorithms in tests.
     builder.set_security_level(0);
 
     builder
