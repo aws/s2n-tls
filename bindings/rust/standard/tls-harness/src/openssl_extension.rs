@@ -15,9 +15,10 @@ fn ssl_get_secure_renegotiation_support(ssl: *mut openssl_sys::SSL) -> std::ffi:
     unsafe { openssl_sys::SSL_ctrl(ssl, SSL_CTRL_GET_RI_SUPPORT, 0, std::ptr::null_mut()) }
 }
 extern "C" {
-    // int SSL_CTX_set_block_padding(SSL_CTX *ctx, size_t block_size);
+    /// ```c
+    /// int SSL_CTX_set_block_padding(SSL_CTX *ctx, size_t block_size);
+    /// ```
     pub fn SSL_CTX_set_block_padding(ctx: *mut SSL_CTX, block_size: usize) -> std::ffi::c_int;
-    // pub fn SSL_CTX_set_block_padding(ctx: *mut c_void, block_size: usize) -> std::ffi::c_int;
 
     pub fn SSLv3_method() -> *const openssl_sys::SSL_METHOD;
 
