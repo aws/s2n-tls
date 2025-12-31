@@ -76,3 +76,33 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
         println!("panic was {panic:?}");
     }
 }
+
+/// Declare the required capabilities for a test to run.
+///
+/// This function is identical to [`required_capability`], but allows the test function
+/// to return a result.
+pub fn required_capability_with_inner_result(
+    required_capabilities: &[Capability],
+    test: fn() -> Result<(), Box<dyn std::error::Error>>,
+) {
+    let result = std::panic::catch_unwind(test);
+    if required_capabilities.iter().all(|c| c.supported()) {
+        result.unwrap().unwrap();
+    } else {
+        println!("expecting test failure");
+        match result {
+            Ok(Ok(())) => {
+                panic!(
+                    "The test should have failed, but instead succeeded. \
+                    Required capabilities are misconfigured"
+                );
+            }
+            Ok(Err(e)) => {
+                println!("Test failed as expected with explicit error: {e:?}");
+            }
+            Err(panic) => {
+                println!("Test failed as expected with panic: {panic:?}");
+            }
+        }
+    }
+}
