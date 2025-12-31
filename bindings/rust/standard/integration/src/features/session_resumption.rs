@@ -252,7 +252,6 @@ fn tls13_openssl_ticket_does_not_resume_with_s2n_server() {
 /// Verifies that a TLS 1.3-capable s2n client can resume sessions with a TLS 1.2 server.
 #[test]
 fn resumption_client_supports_tls13_server_tls12() {
-    required_capability(&[Capability::Tls13], || {
         // Configure s2n client to support up to TLS 1.3 (normal configuration)
         let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
 
@@ -274,7 +273,6 @@ fn resumption_client_supports_tls13_server_tls12() {
         pair.handshake().unwrap();
         pair.round_trip_assert(10_000).unwrap();
 
-        // Assert negotiated version == TLS 1.2 and resumed == false
         assert!(!pair.server.negotiated_tls13());
         assert!(!pair.client.connection().resumed());
         assert!(!pair.server.resumed_connection());
@@ -299,13 +297,11 @@ fn resumption_client_supports_tls13_server_tls12() {
         assert!(pair.server.resumed_connection());
 
         pair.shutdown().unwrap();
-    });
-}
+    }
 
 /// Verifies that a TLS 1.3-capable OpenSSL client can resume sessions with an s2n TLS 1.2 server.
 #[test]
 fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
-    required_capability(&[Capability::Tls13], || {
         // Configure OpenSSL client to support up to TLS 1.3
         let (ticket_storage, client_config) = {
             let session_ticket_storage = OSSLTicketStorage::default();
@@ -353,7 +349,6 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
         pair.handshake().unwrap();
         pair.round_trip_assert(10_000).unwrap();
 
-        // Assert negotiated version == TLS 1.2 and resumed == false
         assert!(!pair.client.negotiated_tls13());
         assert!(!pair.server.connection().resumed());
         assert!(!pair.client.resumed_connection());
@@ -368,11 +363,9 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
         pair.handshake().unwrap();
         pair.round_trip_assert(10_000).unwrap();
 
-        // Assert negotiated version == TLS 1.2 and resumed == true
         assert!(!pair.client.negotiated_tls13());
         assert!(pair.server.connection().resumed());
         assert!(pair.client.resumed_connection());
 
         pair.shutdown().unwrap();
-    });
-}
+    }
