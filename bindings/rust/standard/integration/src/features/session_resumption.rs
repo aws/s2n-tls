@@ -21,14 +21,26 @@ use s2n_tls::security::Policy;
 const KEY_NAME: &str = "InsecureTestKey";
 const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
 
+// Use a two-pronged policy approach:
+// - legacy policy for TLS1.0/1.1 coverage
+// - pinned default-equivalent policy for TLS1.2/1.3 customer-like coverage
+fn policy_for_protocol(v: SslVersion) -> &'static str {
+    match v {
+        // Legacy lane: keep TLS1.0/TLS1.1 coverage under a policy that supports them.
+        SslVersion::TLS1 | SslVersion::TLS1_1 => "20170210",
+        // Modern lane: customer-like default equivalent.
+        _ => "20251014",
+    }
+}
+
 /// Builds an s2n-tls client configuration with session ticket support enabled,
 /// returning both the config and the associated ticket storage.
-fn s2n_client_resumption_config(cert: SigType) -> (S2NTicketStorage, S2NConfig) {
+fn s2n_client_resumption_config(cert: SigType, protocol: SslVersion) -> (S2NTicketStorage, S2NConfig) {
     let ticket_storage = S2NTicketStorage::default();
     let client_config = {
         let mut config = s2n_tls::config::Builder::new_test_config(Mode::Client);
         config
-            .set_security_policy(&Policy::from_version("test_all").unwrap())
+            .set_security_policy(&Policy::from_version(policy_for_protocol(protocol)).unwrap())
             .unwrap();
         config.set_trust(cert);
         config.enable_session_tickets(true).unwrap();
@@ -42,10 +54,10 @@ fn s2n_client_resumption_config(cert: SigType) -> (S2NTicketStorage, S2NConfig) 
 
 /// Builds an s2n-tls server configuration with session tickets enabled and a
 /// deterministic test ticket key installed.
-fn s2n_server_resumption_config(cert: SigType) -> S2NConfig {
+fn s2n_server_resumption_config(cert: SigType, protocol: SslVersion) -> S2NConfig {
     let mut config = s2n_tls::config::Builder::new_test_config(Mode::Server);
     config
-        .set_security_policy(&Policy::from_version("test_all").unwrap())
+        .set_security_policy(&Policy::from_version(policy_for_protocol(protocol)).unwrap())
         .unwrap();
     config.set_chain(cert);
     config.enable_session_tickets(true).unwrap();
@@ -79,7 +91,8 @@ fn openssl_client_resumption_config(
             let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
         }
     });
-
+    // Disable OpenSSL security-level policy checks so test certs / pinned protocol
+    // versions don’t prevent exercising s2n’s resumption logic.
     builder.set_security_level(0);
 
     builder
@@ -97,12 +110,14 @@ fn openssl_client_resumption_config(
 #[test]
 fn s2n_client_resumption_with_openssl() {
     const PROTOCOL_VERSIONS: &[SslVersion] =
-        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1];
+        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1, SslVersion::TLS1_3];
 
     fn s2n_client_case(protocol: SslVersion) -> Result<(), Box<dyn std::error::Error>> {
-        let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
+        let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048, protocol);
 
-        // OpenSSL enables session resumption by default.
+        // Configure a minimal, permissive OpenSSL server so policy defaults do not
+        // block the handshake. This keeps OpenSSL acting as a simple peer and ensures
+        // the tests are focused s2n’s session resumption behavior.
         let server_config = OpenSslConfig::from({
             let mut builder = SslContextBuilder::new(SslMethod::tls_server())?;
             builder.set_chain(SigType::Rsa2048);
@@ -136,10 +151,13 @@ fn s2n_client_resumption_with_openssl() {
     }
 
     PROTOCOL_VERSIONS.iter().for_each(|version| {
-        s2n_client_case(*version).unwrap();
-    });
-    required_capability(&[Capability::Tls13], || {
-        s2n_client_case(SslVersion::TLS1_3).unwrap();
+        if *version == SslVersion::TLS1_3 {
+            required_capability(&[Capability::Tls13], || {
+                s2n_client_case(SslVersion::TLS1_3).unwrap();
+            });
+        } else {
+            s2n_client_case(*version).unwrap();
+        }
     });
 }
 
@@ -148,10 +166,10 @@ fn s2n_client_resumption_with_openssl() {
 #[test]
 fn s2n_server_resumption_with_openssl() {
     const PROTOCOL_VERSIONS: &[SslVersion] =
-        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1];
+        &[SslVersion::TLS1_2, SslVersion::TLS1_1, SslVersion::TLS1, SslVersion::TLS1_3];
 
     fn s2n_server_case(version: SslVersion) -> Result<(), Box<dyn std::error::Error>> {
-        let server_config = s2n_server_resumption_config(SigType::Rsa2048);
+        let server_config = s2n_server_resumption_config(SigType::Rsa2048, version);
         let (ticket_storage, client_config) =
             openssl_client_resumption_config(SigType::Rsa2048, version);
 
@@ -175,10 +193,13 @@ fn s2n_server_resumption_with_openssl() {
     }
 
     PROTOCOL_VERSIONS.iter().for_each(|version| {
-        s2n_server_case(*version).unwrap();
-    });
-    required_capability(&[Capability::Tls13], || {
-        s2n_server_case(SslVersion::TLS1_3).unwrap();
+        if *version == SslVersion::TLS1_3 {
+            required_capability(&[Capability::Tls13], || {
+                s2n_server_case(SslVersion::TLS1_3).unwrap();
+            });
+        } else {
+            s2n_server_case(*version).unwrap();
+        }
     });
 }
 
@@ -190,7 +211,7 @@ fn s2n_server_resumption_with_openssl() {
 /// them. An s2n server will not recognize a ticket issued by an OpenSSL server, so
 /// the client’s resumption attempt must result in a full handshake (not resumption).
 #[test]
-fn tls13_openssl_ticket_does_not_resume_with_s2n_server() {
+fn invalid_ticket_falls_back_to_full_handshake() {
     required_capability(&[Capability::Tls13], || {
         // Step 1: OpenSSL client ↔ OpenSSL server handshake to generate a session
         let (openssl_ticket_storage, openssl_client_config) =
@@ -209,43 +230,47 @@ fn tls13_openssl_ticket_does_not_resume_with_s2n_server() {
             builder.build()
         });
 
-        // Initial OpenSSL ↔ OpenSSL handshake to generate session ticket
-        let mut openssl_pair: TlsConnPair<OpenSslConnection, OpenSslConnection> =
-            TlsConnPair::from_configs(&openssl_client_config, &openssl_server_config);
-        openssl_pair.handshake().unwrap();
-        openssl_pair.round_trip_assert(10_000).unwrap();
-        openssl_pair.shutdown().unwrap();
-
         // Step 2: Extract the OpenSSL session from the client
-        let openssl_session = openssl_ticket_storage.get_ticket();
+        let openssl_session = {
+            let mut openssl_pair: TlsConnPair<OpenSslConnection, OpenSslConnection> =
+                TlsConnPair::from_configs(&openssl_client_config, &openssl_server_config);
+            openssl_pair.handshake().unwrap();
+            openssl_pair.round_trip_assert(10_000).unwrap();
+            openssl_pair.shutdown().unwrap();
+            openssl_ticket_storage.get_ticket()
+        };
 
         // Step 3: Create OpenSSL client ↔ s2n server connection
-        let s2n_server_config = s2n_server_resumption_config(SigType::Rsa2048);
+        let s2n_server_config = s2n_server_resumption_config(SigType::Rsa2048, SslVersion::TLS1_3);
 
         // Create a fresh OpenSSL client config for the second connection
         let (_, fresh_openssl_client_config) =
             openssl_client_resumption_config(SigType::Rsa2048, SslVersion::TLS1_3);
 
-        let mut mixed_pair: TlsConnPair<OpenSslConnection, S2NConnection> =
-            TlsConnPair::from_configs(&fresh_openssl_client_config, &s2n_server_config);
-
         // Step 4: Install the OpenSSL session into the client and attempt connection
-        unsafe {
-            mixed_pair
-                .client
-                .ssl_mut()
-                .set_session(&openssl_session)
-                .unwrap();
-        }
+        let resumed = {
+            let mut mixed_pair: TlsConnPair<OpenSslConnection, S2NConnection> =
+                TlsConnPair::from_configs(&fresh_openssl_client_config, &s2n_server_config);
 
-        mixed_pair.handshake().unwrap();
-        mixed_pair.round_trip_assert(10_000).unwrap();
+            unsafe {
+                mixed_pair
+                    .client
+                    .ssl_mut()
+                    .set_session(&openssl_session)
+                    .unwrap();
+            }
 
-        // Step 5: Assert that resumption failed (full handshake occurred)
-        // The s2n server should report no resumption
-        assert!(!mixed_pair.server.connection().resumed());
+            mixed_pair.handshake().unwrap();
+            mixed_pair.round_trip_assert(10_000).unwrap();
 
-        mixed_pair.shutdown().unwrap();
+            // Step 5: Assert that resumption failed (full handshake occurred)
+            // The s2n server should report no resumption
+            let resumed = mixed_pair.server.connection().resumed();
+            mixed_pair.shutdown().unwrap();
+            resumed
+        };
+
+        assert!(!resumed);
     });
 }
 
@@ -253,14 +278,13 @@ fn tls13_openssl_ticket_does_not_resume_with_s2n_server() {
 #[test]
 fn resumption_client_supports_tls13_server_tls12() {
     // Configure s2n client to support up to TLS 1.3 (normal configuration)
-    let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
+    let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048, SslVersion::TLS1_3);
 
     // Configure OpenSSL server with max TLS 1.2
     let server_config = OpenSslConfig::from({
         let mut builder = SslContextBuilder::new(SslMethod::tls_server()).unwrap();
         builder.set_chain(SigType::Rsa2048);
         builder.set_security_level(0);
-        // Allow TLS 1.2 and below, but not TLS 1.3
         builder
             .set_max_proto_version(Some(SslVersion::TLS1_2))
             .unwrap();
@@ -273,7 +297,7 @@ fn resumption_client_supports_tls13_server_tls12() {
     pair.handshake().unwrap();
     pair.round_trip_assert(10_000).unwrap();
 
-    assert!(!pair.server.negotiated_tls13());
+    assert_eq!(pair.client.connection().actual_protocol_version().unwrap(), s2n_tls::enums::Version::TLS12);
     assert!(!pair.client.connection().resumed());
     assert!(!pair.server.resumed_connection());
 
@@ -292,7 +316,7 @@ fn resumption_client_supports_tls13_server_tls12() {
     pair.round_trip_assert(10_000).unwrap();
 
     // Assert negotiated version == TLS 1.2 and resumed == true
-    assert!(!pair.server.negotiated_tls13());
+    assert_eq!(pair.client.connection().actual_protocol_version().unwrap(), s2n_tls::enums::Version::TLS12);
     assert!(pair.client.connection().resumed());
     assert!(pair.server.resumed_connection());
 
@@ -317,7 +341,6 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
         });
 
         builder.set_security_level(0);
-        // Allow up to TLS 1.3
         builder
             .set_max_proto_version(Some(SslVersion::TLS1_3))
             .unwrap();
@@ -349,7 +372,7 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
     pair.handshake().unwrap();
     pair.round_trip_assert(10_000).unwrap();
 
-    assert!(!pair.client.negotiated_tls13());
+    assert_eq!(pair.server.connection().actual_protocol_version().unwrap(), s2n_tls::enums::Version::TLS12);
     assert!(!pair.server.connection().resumed());
     assert!(!pair.client.resumed_connection());
 
@@ -363,7 +386,7 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
     pair.handshake().unwrap();
     pair.round_trip_assert(10_000).unwrap();
 
-    assert!(!pair.client.negotiated_tls13());
+    assert_eq!(pair.server.connection().actual_protocol_version().unwrap(), s2n_tls::enums::Version::TLS12);
     assert!(pair.server.connection().resumed());
     assert!(pair.client.resumed_connection());
 
