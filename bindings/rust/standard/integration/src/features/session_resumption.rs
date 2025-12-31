@@ -121,12 +121,8 @@ fn s2n_client_resumption_with_openssl() {
             s2n_client_resumption_config(SigType::Rsa2048, protocol);
 
         let server_config = OpenSslConfig::from({
-            let mut builder = SslContextBuilder::new(SslMethod::tls_server())?;
+            let mut builder = SslContextBuilder::new_test_config(Mode::Server);
             builder.set_chain(SigType::Rsa2048);
-            // OpenSSL security level 1 can reject the configuration ("no protocols available")
-            // so we set level 0 to ensure the test exercises s2n’s session resumption logic
-            // rather than OpenSSL policy enforcement.
-            builder.set_security_level(0);
             builder.set_min_proto_version(Some(protocol)).unwrap();
             builder.set_max_proto_version(Some(protocol)).unwrap();
             builder.build()
