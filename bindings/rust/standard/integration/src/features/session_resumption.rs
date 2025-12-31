@@ -252,120 +252,120 @@ fn tls13_openssl_ticket_does_not_resume_with_s2n_server() {
 /// Verifies that a TLS 1.3-capable s2n client can resume sessions with a TLS 1.2 server.
 #[test]
 fn resumption_client_supports_tls13_server_tls12() {
-        // Configure s2n client to support up to TLS 1.3 (normal configuration)
-        let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
+    // Configure s2n client to support up to TLS 1.3 (normal configuration)
+    let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
 
-        // Configure OpenSSL server with max TLS 1.2
-        let server_config = OpenSslConfig::from({
-            let mut builder = SslContextBuilder::new(SslMethod::tls_server()).unwrap();
-            builder.set_chain(SigType::Rsa2048);
-            builder.set_security_level(0);
-            // Allow TLS 1.2 and below, but not TLS 1.3
-            builder
-                .set_max_proto_version(Some(SslVersion::TLS1_2))
-                .unwrap();
-            builder.build()
-        });
-
-        // Handshake #1: Initial connection
-        let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> =
-            TlsConnPair::from_configs(&client_config, &server_config);
-        pair.handshake().unwrap();
-        pair.round_trip_assert(10_000).unwrap();
-
-        assert!(!pair.server.negotiated_tls13());
-        assert!(!pair.client.connection().resumed());
-        assert!(!pair.server.resumed_connection());
-
-        pair.shutdown().unwrap();
-
-        // Handshake #2: Resume using the stored session ticket
-        let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> =
-            TlsConnPair::from_configs(&client_config, &server_config);
-        let ticket = ticket_storage.get_ticket();
-        assert!(!ticket.is_empty());
-        pair.client
-            .connection_mut()
-            .set_session_ticket(&ticket)
+    // Configure OpenSSL server with max TLS 1.2
+    let server_config = OpenSslConfig::from({
+        let mut builder = SslContextBuilder::new(SslMethod::tls_server()).unwrap();
+        builder.set_chain(SigType::Rsa2048);
+        builder.set_security_level(0);
+        // Allow TLS 1.2 and below, but not TLS 1.3
+        builder
+            .set_max_proto_version(Some(SslVersion::TLS1_2))
             .unwrap();
-        pair.handshake().unwrap();
-        pair.round_trip_assert(10_000).unwrap();
+        builder.build()
+    });
 
-        // Assert negotiated version == TLS 1.2 and resumed == true
-        assert!(!pair.server.negotiated_tls13());
-        assert!(pair.client.connection().resumed());
-        assert!(pair.server.resumed_connection());
+    // Handshake #1: Initial connection
+    let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> =
+        TlsConnPair::from_configs(&client_config, &server_config);
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10_000).unwrap();
 
-        pair.shutdown().unwrap();
-    }
+    assert!(!pair.server.negotiated_tls13());
+    assert!(!pair.client.connection().resumed());
+    assert!(!pair.server.resumed_connection());
+
+    pair.shutdown().unwrap();
+
+    // Handshake #2: Resume using the stored session ticket
+    let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> =
+        TlsConnPair::from_configs(&client_config, &server_config);
+    let ticket = ticket_storage.get_ticket();
+    assert!(!ticket.is_empty());
+    pair.client
+        .connection_mut()
+        .set_session_ticket(&ticket)
+        .unwrap();
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10_000).unwrap();
+
+    // Assert negotiated version == TLS 1.2 and resumed == true
+    assert!(!pair.server.negotiated_tls13());
+    assert!(pair.client.connection().resumed());
+    assert!(pair.server.resumed_connection());
+
+    pair.shutdown().unwrap();
+}
 
 /// Verifies that a TLS 1.3-capable OpenSSL client can resume sessions with an s2n TLS 1.2 server.
 #[test]
 fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
-        // Configure OpenSSL client to support up to TLS 1.3
-        let (ticket_storage, client_config) = {
-            let session_ticket_storage = OSSLTicketStorage::default();
-            let mut builder = SslContextBuilder::new_test_config(Mode::Client);
-            builder.set_trust(SigType::Rsa2048);
-            builder.set_session_cache_mode(openssl::ssl::SslSessionCacheMode::CLIENT);
+    // Configure OpenSSL client to support up to TLS 1.3
+    let (ticket_storage, client_config) = {
+        let session_ticket_storage = OSSLTicketStorage::default();
+        let mut builder = SslContextBuilder::new_test_config(Mode::Client);
+        builder.set_trust(SigType::Rsa2048);
+        builder.set_session_cache_mode(openssl::ssl::SslSessionCacheMode::CLIENT);
 
-            builder.set_new_session_callback({
-                let sts = session_ticket_storage.clone();
-                move |_, ticket| {
-                    let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
-                }
-            });
+        builder.set_new_session_callback({
+            let sts = session_ticket_storage.clone();
+            move |_, ticket| {
+                let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
+            }
+        });
 
-            builder.set_security_level(0);
-            // Allow up to TLS 1.3
-            builder
-                .set_max_proto_version(Some(SslVersion::TLS1_3))
-                .unwrap();
+        builder.set_security_level(0);
+        // Allow up to TLS 1.3
+        builder
+            .set_max_proto_version(Some(SslVersion::TLS1_3))
+            .unwrap();
 
-            (session_ticket_storage, builder.build().into())
-        };
+        (session_ticket_storage, builder.build().into())
+    };
 
-        // Configure s2n server with max TLS 1.2
-        let server_config = {
-            let mut config = s2n_tls::config::Builder::new_test_config(Mode::Server);
-            config
-                .set_security_policy(&Policy::from_version("20170210").unwrap()) // TLS 1.2 max policy
-                .unwrap();
-            config.set_chain(SigType::Rsa2048);
-            config.enable_session_tickets(true).unwrap();
-            config
-                .add_session_ticket_key(
-                    KEY_NAME.as_bytes(),
-                    KEY_VALUE.as_slice(),
-                    SystemTime::UNIX_EPOCH,
-                )
-                .unwrap();
-            config.build().unwrap().into()
-        };
+    // Configure s2n server with max TLS 1.2
+    let server_config = {
+        let mut config = s2n_tls::config::Builder::new_test_config(Mode::Server);
+        config
+            .set_security_policy(&Policy::from_version("20170210").unwrap()) // TLS 1.2 max policy
+            .unwrap();
+        config.set_chain(SigType::Rsa2048);
+        config.enable_session_tickets(true).unwrap();
+        config
+            .add_session_ticket_key(
+                KEY_NAME.as_bytes(),
+                KEY_VALUE.as_slice(),
+                SystemTime::UNIX_EPOCH,
+            )
+            .unwrap();
+        config.build().unwrap().into()
+    };
 
-        // Handshake #1: Initial connection
-        let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
-            TlsConnPair::from_configs(&client_config, &server_config);
-        pair.handshake().unwrap();
-        pair.round_trip_assert(10_000).unwrap();
+    // Handshake #1: Initial connection
+    let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
+        TlsConnPair::from_configs(&client_config, &server_config);
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10_000).unwrap();
 
-        assert!(!pair.client.negotiated_tls13());
-        assert!(!pair.server.connection().resumed());
-        assert!(!pair.client.resumed_connection());
+    assert!(!pair.client.negotiated_tls13());
+    assert!(!pair.server.connection().resumed());
+    assert!(!pair.client.resumed_connection());
 
-        pair.shutdown().unwrap();
+    pair.shutdown().unwrap();
 
-        // Handshake #2: Resume using the stored OpenSSL session
-        let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
-            TlsConnPair::from_configs(&client_config, &server_config);
-        let ticket = ticket_storage.get_ticket();
-        unsafe { pair.client.ssl_mut().set_session(&ticket).unwrap() };
-        pair.handshake().unwrap();
-        pair.round_trip_assert(10_000).unwrap();
+    // Handshake #2: Resume using the stored OpenSSL session
+    let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
+        TlsConnPair::from_configs(&client_config, &server_config);
+    let ticket = ticket_storage.get_ticket();
+    unsafe { pair.client.ssl_mut().set_session(&ticket).unwrap() };
+    pair.handshake().unwrap();
+    pair.round_trip_assert(10_000).unwrap();
 
-        assert!(!pair.client.negotiated_tls13());
-        assert!(pair.server.connection().resumed());
-        assert!(pair.client.resumed_connection());
+    assert!(!pair.client.negotiated_tls13());
+    assert!(pair.server.connection().resumed());
+    assert!(pair.client.resumed_connection());
 
-        pair.shutdown().unwrap();
-    }
+    pair.shutdown().unwrap();
+}
