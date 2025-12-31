@@ -94,9 +94,6 @@ fn openssl_client_resumption_config(
             let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
         }
     });
-    // Disable OpenSSL security-level policy checks so test certs / pinned protocol
-    // versions don’t prevent exercising s2n’s resumption logic.
-    builder.set_security_level(0);
 
     builder
         .set_min_proto_version(Some(protocol_version))
@@ -123,12 +120,12 @@ fn s2n_client_resumption_with_openssl() {
         let (ticket_storage, client_config) =
             s2n_client_resumption_config(SigType::Rsa2048, protocol);
 
-        // Configure a minimal, permissive OpenSSL server so policy defaults do not
-        // block the handshake. This keeps OpenSSL acting as a simple peer and ensures
-        // the tests are focused s2n’s session resumption behavior.
         let server_config = OpenSslConfig::from({
             let mut builder = SslContextBuilder::new(SslMethod::tls_server())?;
             builder.set_chain(SigType::Rsa2048);
+            // OpenSSL security level 1 can reject the configuration ("no protocols available")
+            // so we set level 0 to ensure the test exercises s2n’s session resumption logic
+            // rather than OpenSSL policy enforcement.
             builder.set_security_level(0);
             builder.set_min_proto_version(Some(protocol)).unwrap();
             builder.set_max_proto_version(Some(protocol)).unwrap();
@@ -232,7 +229,6 @@ fn invalid_ticket_falls_back_to_full_handshake() {
         let openssl_server_config = OpenSslConfig::from({
             let mut builder = SslContextBuilder::new(SslMethod::tls_server()).unwrap();
             builder.set_chain(SigType::Rsa2048);
-            builder.set_security_level(0);
             builder
                 .set_min_proto_version(Some(SslVersion::TLS1_3))
                 .unwrap();
@@ -297,7 +293,6 @@ fn resumption_client_supports_tls13_server_tls12() {
     let server_config = OpenSslConfig::from({
         let mut builder = SslContextBuilder::new(SslMethod::tls_server()).unwrap();
         builder.set_chain(SigType::Rsa2048);
-        builder.set_security_level(0);
         builder
             .set_max_proto_version(Some(SslVersion::TLS1_2))
             .unwrap();
@@ -359,7 +354,6 @@ fn resumption_openssl_client_supports_tls13_s2n_server_tls12() {
             }
         });
 
-        builder.set_security_level(0);
         builder
             .set_max_proto_version(Some(SslVersion::TLS1_3))
             .unwrap();
