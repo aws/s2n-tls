@@ -982,7 +982,7 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
         /* TLS1.3 currently only uses ECC groups. */
         bool tls13 = conn->actual_protocol_version >= S2N_TLS13;
         /* we check for a full handshake, because TLS 1.2 resumption does not perform
-         * and additional diffie-hellman exchange */
+         * an additional diffie-hellman exchange */
         bool ecdhe_cipher_negotiated = s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)
                 && IS_FULL_HANDSHAKE(conn);
         if (tls13 || ecdhe_cipher_negotiated) {
