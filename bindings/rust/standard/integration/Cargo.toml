@@ -54,7 +54,6 @@ tabled = "0.20.0"
 # OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
 [target.'cfg(not(target_os = "macos"))'.dev-dependencies.boring]
 git = "https://github.com/kaukabrizvi/boring.git"
-branch = "symbol-prefixing"
 features = ["prefix-symbols"]
 
 [build-dependencies]
