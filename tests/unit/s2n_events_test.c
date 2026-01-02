@@ -55,6 +55,7 @@ int main(int argc, char **argv)
     conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
     conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
     conn->actual_protocol_version = S2N_TLS12;
+    EXPECT_OK(s2n_handshake_type_set_flag(conn, FULL_HANDSHAKE));
 
     /* s2n_event_handshake_populate: group, cipher, and protocol version are complete */
     {

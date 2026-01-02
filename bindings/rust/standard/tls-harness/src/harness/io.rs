@@ -126,6 +126,8 @@ impl ViewIO {
 impl std::io::Read for ViewIO {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let res = self.recv_ctx().borrow_mut().read(buf);
+        tracing::debug!("{:?} read {:?}", self.identity, res);
+
         if let Ok(0) = res {
             // We are "faking" a TcpStream, where a read of length 0 indicates
             // EoF. That is incorrect for this scenario. Instead we return WouldBlock
@@ -140,6 +142,7 @@ impl std::io::Read for ViewIO {
 impl std::io::Write for ViewIO {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let write_result = self.send_ctx().borrow_mut().write(buf);
+        tracing::debug!("{:?} wrote {:?}", self.identity, write_result);
 
         // if we successfully wrote data, we need to record it in the various test
         // utilities.

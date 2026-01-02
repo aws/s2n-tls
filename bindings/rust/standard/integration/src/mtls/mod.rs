@@ -25,6 +25,10 @@ use std::{
     },
 };
 
+// NOTE: BoringSSL tests are disabled on macOS to avoid symbol collisions with
+// OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+use boring::ssl::SslVersion;
 use rustls::ClientConfig;
 
 use s2n_tls::{
@@ -45,6 +49,9 @@ use tls_harness::{
     harness::{read_to_bytes, TlsConfigBuilder},
     PemType, SigType, TlsConnPair, TlsConnection,
 };
+
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+use tls_harness::cohort::{BoringSslConfig, BoringSslConnection};
 
 const APP_DATA_SIZE: usize = 100_000;
 
@@ -210,6 +217,58 @@ fn rustls_mtls_server(
     server.into()
 }
 
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
+    use tls_harness::harness::{Mode, TlsConfigBuilder};
+
+    let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Client);
+    builder.set_trust(sig_type);
+
+    builder
+        .set_certificate_chain_file(tls_harness::get_cert_path(
+            PemType::ClientCertChain,
+            sig_type,
+        ))
+        .unwrap();
+    builder
+        .set_private_key_file(
+            tls_harness::get_cert_path(PemType::ClientKey, sig_type),
+            boring::ssl::SslFiletype::PEM,
+        )
+        .unwrap();
+    builder.set_verify(boring::ssl::SslVerifyMode::PEER);
+
+    // Pin the protocol version
+    builder.set_min_proto_version(Some(version)).unwrap();
+    builder.set_max_proto_version(Some(version)).unwrap();
+
+    BoringSslConfig {
+        config: builder.build(),
+        session_ticket_storage: Default::default(),
+    }
+}
+
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+fn boringssl_mtls_server(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
+    use tls_harness::harness::{Mode, TlsConfigBuilder};
+
+    let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Server);
+    builder.set_chain(sig_type);
+    builder.set_trust(sig_type);
+    builder.set_verify(
+        boring::ssl::SslVerifyMode::PEER | boring::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+    );
+
+    // Pin the protocol version
+    builder.set_min_proto_version(Some(version)).unwrap();
+    builder.set_max_proto_version(Some(version)).unwrap();
+
+    BoringSslConfig {
+        config: builder.build(),
+        session_ticket_storage: Default::default(),
+    }
+}
+
 // ============================================================================
 // Basic mTLS tests
 // ============================================================================
@@ -227,7 +286,7 @@ where
 
 // s2n client, rustls server
 #[test]
-fn s2n_client_basic() {
+fn rustls_server_basic() {
     // TLS 1.2
     let client = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -252,7 +311,7 @@ fn s2n_client_basic() {
 
 // rustls client, s2n server
 #[test]
-fn s2n_server_basic() {
+fn rustls_client_basic() {
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let server = {
@@ -271,6 +330,58 @@ fn s2n_server_basic() {
                 S2NConfig::from(builder.build().unwrap())
             };
             test_basic::<RustlsConnection, S2NConnection>(&client, &server);
+        },
+    );
+}
+
+// s2n client, boringssl server
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_server_basic() {
+    // TLS 1.2
+    let client = {
+        let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        S2NConfig::from(builder.build().unwrap())
+    };
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
+    test_basic::<S2NConnection, BoringSslConnection>(&client, &server);
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = {
+                let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                S2NConfig::from(builder.build().unwrap())
+            };
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
+            test_basic::<S2NConnection, BoringSslConnection>(&client, &server);
+        },
+    );
+}
+
+// boringssl client, s2n server
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_client_basic() {
+    // TLS 1.2
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
+    let server = {
+        let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        S2NConfig::from(builder.build().unwrap())
+    };
+    test_basic::<BoringSslConnection, S2NConnection>(&client, &server);
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
+            let server = {
+                let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                S2NConfig::from(builder.build().unwrap())
+            };
+            test_basic::<BoringSslConnection, S2NConnection>(&client, &server);
         },
     );
 }
@@ -294,7 +405,7 @@ where
 
 // s2n client with sync callback, rustls server
 #[test]
-fn s2n_client_sync_callback() {
+fn rustls_server_sync_callback() {
     // TLS 1.2
     let (client, handle) = {
         let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -326,7 +437,7 @@ fn s2n_client_sync_callback() {
 
 // rustls client, s2n server with sync callback
 #[test]
-fn s2n_server_sync_callback() {
+fn rustls_client_sync_callback() {
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle) = {
@@ -353,6 +464,70 @@ fn s2n_server_sync_callback() {
             };
 
             test_sync_callback::<RustlsConnection, S2NConnection>(&client, &server, handle);
+        },
+    );
+}
+
+// s2n client with sync callback, boringssl server
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_server_sync_callback() {
+    // TLS 1.2
+    let (client, handle) = {
+        let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        let cb = TestCertValidationCallback::new_sync();
+        let invoked = Arc::clone(cb.invoked_count());
+        builder.set_cert_validation_callback_sync(cb).unwrap();
+        (S2NConfig::from(builder.build().unwrap()), invoked)
+    };
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
+    test_sync_callback::<S2NConnection, BoringSslConnection>(&client, &server, handle);
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let (client, handle) = {
+                let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                let cb = TestCertValidationCallback::new_sync();
+                let invoked = Arc::clone(cb.invoked_count());
+                builder.set_cert_validation_callback_sync(cb).unwrap();
+                (S2NConfig::from(builder.build().unwrap()), invoked)
+            };
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
+            test_sync_callback::<S2NConnection, BoringSslConnection>(&client, &server, handle);
+        },
+    );
+}
+
+// boringssl client, s2n server with sync callback
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_client_sync_callback() {
+    // TLS 1.2
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
+    let (server, handle) = {
+        let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        let cb = TestCertValidationCallback::new_sync();
+        let invoked = Arc::clone(cb.invoked_count());
+        builder.set_cert_validation_callback_sync(cb).unwrap();
+        (S2NConfig::from(builder.build().unwrap()), invoked)
+    };
+    test_sync_callback::<BoringSslConnection, S2NConnection>(&client, &server, handle);
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
+            let (server, handle) = {
+                let mut builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                let cb = TestCertValidationCallback::new_sync();
+                let invoked = Arc::clone(cb.invoked_count());
+                builder.set_cert_validation_callback_sync(cb).unwrap();
+                (S2NConfig::from(builder.build().unwrap()), invoked)
+            };
+            test_sync_callback::<BoringSslConnection, S2NConnection>(&client, &server, handle);
         },
     );
 }
@@ -430,7 +605,7 @@ where
 
 // s2n client with async callback, rustls server
 #[test]
-fn s2n_client_async_callback() {
+fn rustls_server_async_callback() {
     // TLS 1.2
     let (client, handle, rx) = {
         let builder = s2n_mtls_base_builder(SigType::Rsa2048);
@@ -462,7 +637,7 @@ fn s2n_client_async_callback() {
 
 // rustls client, s2n server with async callback
 #[test]
-fn s2n_server_async_callback() {
+fn rustls_client_async_callback() {
     // TLS 1.2
     let client = rustls_mtls_client(SigType::Rsa2048, &rustls::version::TLS12);
     let (server, handle, rx) = {
@@ -487,6 +662,74 @@ fn s2n_server_async_callback() {
             };
 
             let _pair = test_async_server_callback::<RustlsConnection, S2NConnection>(
+                &client, &server, handle, rx,
+            );
+        },
+    );
+}
+
+// s2n client with async callback, boringssl server
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_server_async_callback() {
+    // TLS 1.2
+    let (client, handle, rx) = {
+        let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
+        let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
+        (s2n_cfg, invoked, rx)
+    };
+    let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_2);
+    let _pair = test_async_client_callback::<S2NConnection, BoringSslConnection>(
+        &client, &server, handle, rx,
+    );
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let (client, handle, rx) = {
+                let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
+                let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
+                (s2n_cfg, invoked, rx)
+            };
+            let server = boringssl_mtls_server(SigType::Rsa2048, SslVersion::TLS1_3);
+            let _pair = test_async_client_callback::<S2NConnection, BoringSslConnection>(
+                &client, &server, handle, rx,
+            );
+        },
+    );
+}
+
+// boringssl client, s2n server with async callback
+#[cfg(all(feature = "boringssl", not(target_os = "macos")))]
+#[test]
+fn boringssl_client_async_callback() {
+    // TLS 1.2
+    let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_2);
+    let (server, handle, rx) = {
+        let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+        let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
+        let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
+        (s2n_cfg, invoked, rx)
+    };
+    let _pair = test_async_server_callback::<BoringSslConnection, S2NConnection>(
+        &client, &server, handle, rx,
+    );
+
+    // TLS 1.3
+    crate::capability_check::required_capability(
+        &[crate::capability_check::Capability::Tls13],
+        || {
+            let client = boringssl_mtls_client(SigType::Rsa2048, SslVersion::TLS1_3);
+            let (server, handle, rx) = {
+                let builder = s2n_mtls_base_builder(SigType::Rsa2048);
+                let mut s2n_cfg = S2NConfig::from(builder.build().unwrap());
+                let (invoked, rx) = register_async_cert_callback(&mut s2n_cfg);
+                (s2n_cfg, invoked, rx)
+            };
+            let _pair = test_async_server_callback::<BoringSslConnection, S2NConnection>(
                 &client, &server, handle, rx,
             );
         },
