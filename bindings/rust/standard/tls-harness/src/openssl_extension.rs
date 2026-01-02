@@ -55,10 +55,7 @@ impl<T> SslStreamExtension for SslStream<T> {
 }
 
 pub trait SslExtension {
-    /// Returns `true` if the peer supports secure renegotiation and 0 if it does not.
-    ///
-    /// Probably better to say "returns true" if the peer is patched against insecure
-    /// renegotiation.
+    /// Returns `true` if the peer is patched against insecure renegotiation.
     fn secure_renegotiation_support(&self) -> bool;
 
     fn renegotiate_pending(&self) -> bool;
@@ -73,7 +70,7 @@ impl SslExtension for openssl::ssl::SslRef {
         match result {
             1 => true,
             0 => false,
-            _ => unreachable!("openssl documentation lied. It Lied!"),
+            _ => unreachable!("unexpected OpenSSL return value; expected 0 or 1"),
         }
     }
 
@@ -81,7 +78,7 @@ impl SslExtension for openssl::ssl::SslRef {
         match unsafe { SSL_renegotiate_pending(self.as_ptr()) } {
             1 => true,
             0 => false,
-            _ => unreachable!("openssl documentation lied."),
+            _ => unreachable!("unexpected OpenSSL return value; expected 0 or 1"),
         }
     }
 

@@ -46,7 +46,7 @@ impl OpenSslConnection {
     /// Useful for handshake/renegotiation progress where OpenSSL won't emit bytes
     /// until it is polled.
     pub fn drive_io(&mut self) -> std::io::Result<()> {
-        // Writing an empty buffer is a common way to nudge OpenSSL to flush pending records.
+        // Writing an empty buffer should nudge OpenSSL to flush pending records.
         let _ = self.connection.write(&[]);
         Ok(())
     }

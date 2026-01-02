@@ -21,7 +21,7 @@ fn renegotiate_pair(
     assert!(pair.server.ssl_mut().renegotiate_pending());
 
     // send the renegotiate request
-    let _ = pair.server.drive_io();
+    let _ = pair.server.write_io(&[]);
 
     // read the renegotiate request & send the renegotiation client hello
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
@@ -31,7 +31,7 @@ fn renegotiate_pair(
         let _ = pair.server.write_io(data);
     }
 
-    // send the server hello
+    // read the client hello, and send the server hello
     let _ = pair.server.read_io(&mut [0]);
 
     if let Some(data) = &app_data {
@@ -58,6 +58,9 @@ fn renegotiate_pair(
     assert!(!pair.server.ssl_mut().renegotiate_pending());
     Ok(())
 }
+
+/// Verifies that an OpenSSL peer observes secure renegotiation support
+/// when connecting to an s2n-tls client.
 #[test]
 fn s2n_client_renegotiation_is_patched() {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
@@ -112,6 +115,8 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
 }
 
 /// Renegotiation request rejected by s2n-tls client.
+///
+/// This tests the behavior when renegotiation is explicitly disabled by the client.
 #[test]
 fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
@@ -149,6 +154,8 @@ fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::
 }
 
 /// Renegotiation request accepted by s2n-tls client.
+///
+/// This tests the behavior when renegotiation is enabled by the client.
 #[test]
 fn s2n_client_renegotiate_with_openssl() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
@@ -200,6 +207,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
     pair.handshake()?;
+    assert!(pair.server.ssl().peer_certificate().is_none());
 
     // require client auth for the renegotiation
     pair.server
@@ -207,6 +215,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
         .set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
 
     renegotiate_pair(&mut pair, None)?;
+    assert!(pair.server.ssl().peer_certificate().is_some());
     pair.round_trip_assert(1_024)?;
     pair.shutdown()?;
 
