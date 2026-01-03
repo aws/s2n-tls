@@ -8,3 +8,4 @@ mod group_negotiation;
 mod pq;
 mod prefer_low_latency;
 mod record_padding;
+mod session_resumption;

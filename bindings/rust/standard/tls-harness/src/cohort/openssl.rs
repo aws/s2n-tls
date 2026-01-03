@@ -23,6 +23,13 @@ pub struct SessionTicketStorage {
     pub stored_ticket: Arc<Mutex<Option<SslSession>>>,
 }
 
+impl SessionTicketStorage {
+    // panics if no ticket is available
+    pub fn get_ticket(self) -> SslSession {
+        self.stored_ticket.lock().unwrap().take().unwrap()
+    }
+}
+
 pub struct OpenSslConnection {
     connection: SslStream<ViewIO>,
 }
@@ -38,6 +45,19 @@ impl From<SslContext> for OpenSslConfig {
             config: value,
             session_ticket_storage: Default::default(),
         }
+    }
+}
+
+impl OpenSslConnection {
+    /// Provides mutable access to the underlying SSL context for advanced operations
+    pub fn ssl_mut(&mut self) -> &mut openssl::ssl::SslRef {
+        use crate::openssl_extension::SslStreamExtension;
+        self.connection.mut_ssl()
+    }
+
+    /// Provides read-only access to the underlying SSL context
+    pub fn ssl(&self) -> &openssl::ssl::SslRef {
+        self.connection.ssl()
     }
 }
 
