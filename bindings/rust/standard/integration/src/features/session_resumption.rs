@@ -420,7 +420,10 @@ fn s2n_client_resumption_with_s2n_server_tls12() {
         TlsConnPair::from_configs(&client_config, &server_config);
     let ticket = ticket_storage.get_ticket();
     assert!(!ticket.is_empty());
-    pair.client.connection_mut().set_session_ticket(&ticket).unwrap();
+    pair.client
+        .connection_mut()
+        .set_session_ticket(&ticket)
+        .unwrap();
     pair.handshake().unwrap();
     pair.round_trip_assert(10_000).unwrap();
 
