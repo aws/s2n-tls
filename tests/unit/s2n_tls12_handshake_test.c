@@ -107,8 +107,8 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), state_machine);
-        EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), handshakes);
+        EXPECT_EQUAL(&ACTIVE_STATE_MACHINE(conn)[0], &state_machine[0]);
+        EXPECT_EQUAL(&ACTIVE_HANDSHAKES(conn)[0], &handshakes[0]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
