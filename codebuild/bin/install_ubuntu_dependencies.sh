@@ -21,12 +21,10 @@ source codebuild/bin/s2n_setup_env.sh
 set -e
 
 github_apt(){
-  echo "running github apt"
   apt update -y
   apt install -y gh
 }
 get_rust() {
-  echo "running get rust"
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source $HOME/.cargo/env
   rustup default nightly
