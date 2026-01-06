@@ -209,7 +209,7 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1)
+#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
 static S2N_RESULT s2n_ecc_check_key(EVP_PKEY *evp_pkey)
 {
     RESULT_ENSURE_REF(evp_pkey);
