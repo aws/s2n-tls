@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
     if (kbs_per_conn != expected_kbs_per_conn) {
         printf("\nExpected KB per connection: %i\n", expected_kbs_per_conn);
-        printf("\nActual KB per connection: %li\n", kbs_per_conn);
+        printf("\nActual KB per connection: %zi\n", kbs_per_conn);
         printf("This is a %.2f%% change\n",
                 (kbs_per_conn - expected_kbs_per_conn) * 100.0 / expected_kbs_per_conn);
 
