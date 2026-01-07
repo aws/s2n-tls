@@ -23,7 +23,7 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         timeout-minutes: 45
         with:
-          prepare: pkg update && pkg install -y ninja cmake
+          prepare: pkg update -f && pkg install -y ninja cmake
           run: |
             freebsd-version
             .github/s2n_bsd.sh
