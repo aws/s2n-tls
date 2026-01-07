@@ -42,15 +42,6 @@ impl From<SslContext> for OpenSslConfig {
 }
 
 impl OpenSslConnection {
-    /// Drive the OpenSSL state machine without sending application data.
-    /// Useful for handshake/renegotiation progress where OpenSSL won't emit bytes
-    /// until it is polled.
-    pub fn drive_io(&mut self) -> std::io::Result<()> {
-        // Writing an empty buffer should nudge OpenSSL to flush pending records.
-        let _ = self.connection.write(&[]);
-        Ok(())
-    }
-
     pub fn read_io(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.connection.read(buf)
     }

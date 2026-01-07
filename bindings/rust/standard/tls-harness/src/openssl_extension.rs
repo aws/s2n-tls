@@ -20,8 +20,6 @@ extern "C" {
     /// ```
     pub fn SSL_CTX_set_block_padding(ctx: *mut SSL_CTX, block_size: usize) -> std::ffi::c_int;
 
-    pub fn SSLv3_method() -> *const openssl_sys::SSL_METHOD;
-
     pub fn SSL_renegotiate_pending(ssl: *mut openssl_sys::SSL) -> std::ffi::c_int;
     pub fn SSL_renegotiate(ssl: *mut openssl_sys::SSL) -> std::ffi::c_int;
 }

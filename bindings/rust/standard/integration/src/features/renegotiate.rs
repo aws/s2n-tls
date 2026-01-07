@@ -70,6 +70,9 @@ fn s2n_client_renegotiation_is_patched() {
         .client
         .set_security_policy(&Policy::from_version("default").unwrap())
         .unwrap();
+    configs
+        .server
+        .set_max_proto_version(Some(SslVersion::TLS1_2)).unwrap();
 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
@@ -118,7 +121,7 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
 ///
 /// This tests the behavior when renegotiation is explicitly disabled by the client.
 #[test]
-fn s2n_client_rejects_openssl_hello_request() -> Result<(), Box<dyn std::error::Error>> {
+fn s2n_client_rejects_openssl_renegotiate_request() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
