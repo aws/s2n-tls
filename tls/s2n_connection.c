@@ -980,7 +980,12 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 
     if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
-        if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
+        bool tls13 = conn->actual_protocol_version >= S2N_TLS13;
+        /* we check for a full handshake, because TLS 1.2 resumption does not perform
+         * an additional diffie-hellman exchange */
+        bool ecdhe_cipher_negotiated = s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)
+                && IS_FULL_HANDSHAKE(conn);
+        if (tls13 || ecdhe_cipher_negotiated) {
             return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }
@@ -1326,9 +1331,6 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         return S2N_RESULT_OK;
     }
 
-    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
-
     int error_code = s2n_errno;
     int error_type = s2n_error_get_type(error_code);
 
@@ -1342,6 +1344,9 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         default:
             break;
     }
+
+    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
 
     switch (error_code) {
         /* Don't invoke blinding on some of the common errors.
@@ -1558,13 +1563,9 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     POSIX_ENSURE_REF(validator);
     POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
 
-    /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
-     * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.
-     * See the comments here:
-     * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
-     */
-    DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx),
-            s2n_openssl_x509_stack_pop_free);
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    POSIX_GUARD_RESULT(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+    STACK_OF(X509) *cert_chain_validated = validated_cert_chain.stack;
     POSIX_ENSURE_REF(cert_chain_validated);
 
     int cert_count = sk_X509_num(cert_chain_validated);

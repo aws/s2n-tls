@@ -131,7 +131,6 @@ phases:
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
         fi
   post_build:
-    # Dynamic_record_sizes is being excluded in nix/shell.sh and needs a rewrite.
     commands:
       - |
         set -e

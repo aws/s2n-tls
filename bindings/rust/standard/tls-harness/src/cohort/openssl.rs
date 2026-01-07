@@ -13,6 +13,7 @@ use openssl::ssl::{
 use std::{
     error::Error,
     io::{Read, Write},
+    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -46,7 +47,7 @@ impl TlsConnection for OpenSslConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         // check if there is a session ticket available
         // a session ticket will only be available if the Config was created

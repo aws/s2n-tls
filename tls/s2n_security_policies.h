@@ -23,6 +23,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_security_rules.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_supported_group_preferences.h"
 
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
@@ -71,6 +72,13 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    /* This field contains the list of supported group IANA identifiers that s2n's
+    * server negotiation logic will always be willing to perform a 2-RTT
+    * ClientHelloRetry in order to negotiate. Setting this preference list may
+    * cause performance impact and extra round trips when performing TLS
+    * handshakes.
+    */
+    const struct s2n_supported_group_preferences *strongly_preferred_groups;
     /* This field determines what public keys are allowed for use. It restricts
      * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
      * the size of the key. Note that this field structure is likely to change
@@ -186,6 +194,11 @@ extern const struct s2n_security_policy security_policy_20250512;
 extern const struct s2n_security_policy security_policy_20250721;
 extern const struct s2n_security_policy security_policy_20251014;
 extern const struct s2n_security_policy security_policy_20251015;
+extern const struct s2n_security_policy security_policy_20251113;
+extern const struct s2n_security_policy security_policy_20251114;
+extern const struct s2n_security_policy security_policy_20251115;
+extern const struct s2n_security_policy security_policy_20251116;
+extern const struct s2n_security_policy security_policy_20251117;
 
 extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;
@@ -248,16 +261,47 @@ extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_09;
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls10;
+extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls11;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls12;
+/* CloudFront viewer facing */
 extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025;
+/* CloudFront non-pq viewer facing */
+extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025_no_pq;
+/* CloudFront undocumented policies for testing */
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_pq_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1_pq_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted;
+/* CloudFront viewer facing legacy */
+extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_legacy;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021;
-extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted;
 
 extern const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10;
 extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;

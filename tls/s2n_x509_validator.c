@@ -460,6 +460,52 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_x509_validator_get_validated_cert_chain(const struct s2n_x509_validator *validator,
+        struct s2n_validated_cert_chain *validated_cert_chain)
+{
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(validated_cert_chain);
+
+    RESULT_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_INVALID_CERT_STATE);
+    RESULT_ENSURE_REF(validator->store_ctx);
+
+#if S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN
+    /* X509_STORE_CTX_get0_chain is used when available, since it returns a pointer to the
+     * validated cert chain in the X509_STORE_CTX, avoiding an allocation/copy.
+     */
+    validated_cert_chain->stack = X509_STORE_CTX_get0_chain(validator->store_ctx);
+#else
+    /* Otherwise, X509_STORE_CTX_get1_chain is used instead, which allocates a new cert chain. */
+    validated_cert_chain->stack = X509_STORE_CTX_get1_chain(validator->store_ctx);
+#endif
+
+    RESULT_ENSURE_REF(validated_cert_chain->stack);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_x509_validator_validated_cert_chain_free(struct s2n_validated_cert_chain *validated_cert_chain)
+{
+    RESULT_ENSURE_REF(validated_cert_chain);
+
+#if !S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN
+    /* When X509_STORE_CTX_get0_chain isn't supported, X509_STORE_CTX_get1_chain is used instead,
+     * which allocates a new cert chain that is owned by s2n-tls and MUST be freed.
+     *
+     * X509_STORE_CTX_get0_chain returns a pointer to the cert chain within the X509_STORE_CTX,
+     * which is NOT owned by s2n-tls and MUST NOT be manually freed.
+     */
+    RESULT_GUARD(s2n_openssl_x509_stack_pop_free(&validated_cert_chain->stack));
+#endif
+
+    /* Even though the cert chain reference is still valid in the case that get0_chain is used, set
+     * it to null for consistency with the get1_chain case.
+     */
+    validated_cert_chain->stack = NULL;
+
+    return S2N_RESULT_OK;
+}
+
 /* Validates that the root certificate uses a key allowed by the security policy
  * certificate preferences.
  */
@@ -472,9 +518,9 @@ static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
     RESULT_ENSURE_REF(security_policy);
 
-    RESULT_ENSURE_REF(validator->store_ctx);
-    DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
-            s2n_openssl_x509_stack_pop_free);
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    RESULT_GUARD(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+    STACK_OF(X509) *cert_chain = validated_cert_chain.stack;
     RESULT_ENSURE_REF(cert_chain);
 
     const int certs_in_chain = sk_X509_num(cert_chain);
@@ -684,6 +730,56 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_x509_validator_verify_intent_for_cert(struct s2n_connection *conn, X509 *cert, bool is_leaf)
+{
+    RESULT_ENSURE_REF(cert);
+
+    /* The X509_PURPOSE values indicate the purpose that certificates must specify. For servers,
+     * received client certificates MUST have a TLS client purpose. For clients, received server
+     * certificates MUST have a TLS server purpose.
+     */
+    int purpose = X509_PURPOSE_SSL_CLIENT;
+    if (conn->mode == S2N_CLIENT) {
+        purpose = X509_PURPOSE_SSL_SERVER;
+    }
+
+    RESULT_GUARD_OSSL(X509_check_purpose(cert, purpose, !is_leaf), S2N_ERR_CERT_INTENT_INVALID);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_x509_validator_verify_intent(struct s2n_x509_validator *validator, struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
+    if (conn->config->disable_x509_intent_verification) {
+        return S2N_RESULT_OK;
+    }
+
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    RESULT_GUARD(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+
+    int cert_count = sk_X509_num(validated_cert_chain.stack);
+    RESULT_ENSURE_GT(cert_count, 0);
+
+    /* The validated cert chain returned from the libcrypto includes the trust anchor. The trust
+     * anchor is omitted from intent verification since its TLS intent is implicitly indicated by
+     * its presence in the s2n-tls trust store.
+     */
+    cert_count -= 1;
+
+    for (int i = 0; i < cert_count; i++) {
+        X509 *cert = sk_X509_value(validated_cert_chain.stack, i);
+        RESULT_ENSURE_REF(cert);
+
+        bool is_leaf = (i == 0);
+        RESULT_GUARD(s2n_x509_validator_verify_intent_for_cert(conn, cert, is_leaf));
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
@@ -816,6 +912,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain_pre_cb(struct s2n_x509_validat
 
     if (validator->state == READY_TO_VERIFY) {
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
+        RESULT_GUARD(s2n_x509_validator_verify_intent(validator, conn));
         RESULT_GUARD(s2n_x509_validator_check_root_cert(validator, conn));
     }
 
@@ -907,13 +1004,9 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     DEFER_CLEANUP(OCSP_BASICRESP *basic_response = OCSP_response_get1_basic(ocsp_response), OCSP_BASICRESP_free_pointer);
     RESULT_ENSURE(basic_response != NULL, S2N_ERR_INVALID_OCSP_RESPONSE);
 
-    /* X509_STORE_CTX_get0_chain() is better because it doesn't return a copy. But it's not available for Openssl 1.0.2.
-     * Therefore, we call this variant and clean it up at the end of the function.
-     * See the comments here:
-     * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
-     */
-    DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
-            s2n_openssl_x509_stack_pop_free);
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    RESULT_GUARD(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+    STACK_OF(X509) *cert_chain = validated_cert_chain.stack;
     RESULT_ENSURE_REF(cert_chain);
 
     const int certs_in_chain = sk_X509_num(cert_chain);

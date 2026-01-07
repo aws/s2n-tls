@@ -173,6 +173,7 @@ static int s2n_unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
     return S2N_SUCCESS;
 }
 
+#if S2N_CLONE_SUPPORTED
 static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
 {
     /* In child */
@@ -191,6 +192,7 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
 
     exit(EXIT_SUCCESS);
 }
+#endif
 
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static int s2n_unit_test_clone(uint64_t parent_process_fgn)
