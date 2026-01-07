@@ -72,7 +72,8 @@ fn s2n_client_renegotiation_is_patched() {
         .unwrap();
     configs
         .server
-        .set_max_proto_version(Some(SslVersion::TLS1_2)).unwrap();
+        .set_max_proto_version(Some(SslVersion::TLS1_2))
+        .unwrap();
 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
