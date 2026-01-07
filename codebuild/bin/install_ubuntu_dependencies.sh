@@ -16,6 +16,8 @@
 # Shim code to get local docker/ec2 instances bootstrapped like a CodeBuild instance.
 # Not actually used by CodeBuild.
 
+# This script is now targeting Ubuntu 24 not Ubuntu 18.
+
 source codebuild/bin/s2n_setup_env.sh
 
 set -e
@@ -45,7 +47,6 @@ base_packages() {
 
   apt-get -y install --no-install-recommends ${DEPENDENCIES}
 }
-
 
 base_packages
 github_apt
