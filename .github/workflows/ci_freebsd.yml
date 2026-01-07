@@ -21,10 +21,9 @@ jobs:
       - name: Build and test in FreeBSD
         id: test
         uses: vmactions/freebsd-vm@v1
-        with:
-          release: "15.0"
         timeout-minutes: 45
         with:
+          release: "15.0"
           prepare: pkg install -y ninja cmake
           run: |
             freebsd-version
