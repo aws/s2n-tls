@@ -2,7 +2,7 @@
   description = "A flake for s2n-tls";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     # Pure nix functions, not relying on nixpkgs https://github.com/numtide/flake-utils
     flake-utils.url = "github:numtide/flake-utils";
     awslc.url = "github:aws/aws-lc";
