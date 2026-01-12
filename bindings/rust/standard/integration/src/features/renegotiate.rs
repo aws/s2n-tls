@@ -3,36 +3,40 @@
 
 use openssl::ssl::{SslContextBuilder, SslVerifyMode, SslVersion};
 use s2n_tls::{enums::ClientAuthType, renegotiate::RenegotiateResponse, security::Policy};
+use std::io::{Read, Write};
 use tls_harness::{
     cohort::{OpenSslConnection, S2NConnection},
     harness::{
         read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair,
         TlsConnection,
     },
-    openssl_extension::SslExtension,
+    openssl_extension::{SslExtension, SslStreamExtension},
 };
+
+// Use a specific policy that supports TLS 1.2, renegotiation isn't supported in TLS 1.3
+const POLICY_WITH_TLS12: &str = "20240503";
 
 fn renegotiate_pair(
     pair: &mut TlsConnPair<S2NConnection, OpenSslConnection>,
     app_data: Option<Vec<u8>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // schedule the renegotiate request
-    pair.server.ssl_mut().renegotiate();
-    assert!(pair.server.ssl_mut().renegotiate_pending());
+    pair.server.connection.mut_ssl().renegotiate();
+    assert!(pair.server.connection.ssl().renegotiate_pending());
 
     // send the renegotiate request
-    let _ = pair.server.write_io(&[]);
+    let _ = pair.server.connection.write(&[]);
 
     // read the renegotiate request & send the renegotiation client hello
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     if let Some(data) = &app_data {
         // server sends application data before sending the server hello
-        let _ = pair.server.write_io(data);
+        let _ = pair.server.connection.write(data);
     }
 
     // read the client hello, and send the server hello
-    let _ = pair.server.read_io(&mut [0]);
+    let _ = pair.server.connection.read(&mut [0]);
 
     if let Some(data) = &app_data {
         // client receives application data
@@ -49,36 +53,35 @@ fn renegotiate_pair(
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     // server sends finished
-    let _ = pair.server.read_io(&mut [0]);
+    let _ = pair.server.connection.read(&mut [0]);
 
     // client reads finished
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);
 
     // the request is no longer pending, because s2n-tls accepted it
-    assert!(!pair.server.ssl_mut().renegotiate_pending());
+    assert!(!pair.server.connection.ssl().renegotiate_pending());
     Ok(())
 }
 
 /// Verifies that an OpenSSL peer observes secure renegotiation support
 /// when connecting to an s2n-tls client.
 #[test]
-fn s2n_client_renegotiation_is_patched() {
+fn s2n_client_renegotiation_is_patched() -> Result<(), Box<dyn std::error::Error>> {
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
-    configs
-        .client
-        .set_security_policy(&Policy::from_version("default").unwrap())
-        .unwrap();
+    // renegotiation isn't available in TLS 1.3, so we must use TLS 1.2
+    let policy_with_tls12 = Policy::from_version(POLICY_WITH_TLS12)?;
+    configs.client.set_security_policy(&policy_with_tls12)?;
     configs
         .server
-        .set_max_proto_version(Some(SslVersion::TLS1_2))
-        .unwrap();
+        .set_max_proto_version(Some(SslVersion::TLS1_2))?;
 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
     assert!(pair.handshake().is_ok());
-    assert!(pair.server.ssl_mut().secure_renegotiation_support());
+    assert!(pair.server.connection.ssl().secure_renegotiation_support());
+    Ok(())
 }
 
 /// Renegotiation request ignored by s2n-tls client
@@ -89,10 +92,9 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     let mut configs: TlsConfigBuilderPair<s2n_tls::config::Builder, SslContextBuilder> =
         TlsConfigBuilderPair::default();
     configs.set_cert(SigType::Ecdsa256);
-    configs
-        .client
-        .set_security_policy(&Policy::from_version("default").unwrap())
-        .unwrap();
+    // renegotiation isn't available in TLS 1.3, so we must use TLS 1.2
+    let policy_with_tls12 = Policy::from_version(POLICY_WITH_TLS12)?;
+    configs.client.set_security_policy(&policy_with_tls12)?;
     configs
         .server
         .set_max_proto_version(Some(SslVersion::TLS1_2))?;
@@ -102,9 +104,9 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     assert!(pair.handshake().is_ok());
 
     // schedule and send the renegotiate request
-    pair.server.ssl_mut().renegotiate();
+    pair.server.connection.mut_ssl().renegotiate();
     pair.server.send(&[0]);
-    assert!(pair.server.ssl_mut().renegotiate_pending());
+    assert!(pair.server.connection.ssl().renegotiate_pending());
     assert!(!pair.io.server_tx_stream.borrow().is_empty());
 
     // do some client IO to recv and potentially respond to the request
@@ -112,7 +114,7 @@ fn s2n_client_ignores_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     pair.round_trip_assert(1_024).unwrap();
 
     // the request is still pending, because s2n-tls ignored it
-    assert!(pair.server.ssl_mut().renegotiate_pending());
+    assert!(pair.server.connection.ssl().renegotiate_pending());
 
     pair.shutdown().unwrap();
     Ok(())
@@ -128,7 +130,7 @@ fn s2n_client_rejects_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     configs.set_cert(SigType::Ecdsa256);
     configs
         .client
-        .set_security_policy(&Policy::from_version("default")?)?
+        .set_security_policy(&Policy::from_version(POLICY_WITH_TLS12)?)?
         .set_renegotiate_callback(RenegotiateResponse::Reject)?;
     configs
         .server
@@ -139,9 +141,9 @@ fn s2n_client_rejects_openssl_renegotiate_request() -> Result<(), Box<dyn std::e
     pair.handshake()?;
 
     // schedule & send the renegotiate request
-    pair.server.ssl_mut().renegotiate();
+    pair.server.connection.mut_ssl().renegotiate();
     pair.server.send(&[0]);
-    assert!(pair.server.ssl_mut().renegotiate_pending());
+    assert!(pair.server.connection.ssl().renegotiate_pending());
     assert!(!pair.io.server_tx_stream.borrow().is_empty());
 
     // perform a recv call to read the renegotiation request
@@ -167,7 +169,7 @@ fn s2n_client_renegotiate_with_openssl() -> Result<(), Box<dyn std::error::Error
     configs.set_cert(SigType::Ecdsa256);
     configs
         .client
-        .set_security_policy(&Policy::from_version("default").unwrap())?
+        .set_security_policy(&Policy::from_version(POLICY_WITH_TLS12)?)?
         .set_renegotiate_callback(RenegotiateResponse::Schedule)?;
     configs
         .server
@@ -196,7 +198,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
     configs.set_cert(SigType::Ecdsa256);
     configs
         .client
-        .set_security_policy(&Policy::from_version("default")?)?
+        .set_security_policy(&Policy::from_version(POLICY_WITH_TLS12)?)?
         .set_renegotiate_callback(RenegotiateResponse::Schedule)?
         .set_client_auth_type(ClientAuthType::Optional)?
         .load_pem(
@@ -215,7 +217,8 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
 
     // require client auth for the renegotiation
     pair.server
-        .ssl_mut()
+        .connection
+        .mut_ssl()
         .set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
 
     renegotiate_pair(&mut pair, None)?;
@@ -234,7 +237,7 @@ fn s2n_client_renegotiate_with_app_data_with_openssl() -> Result<(), Box<dyn std
     configs.set_cert(SigType::Ecdsa256);
     configs
         .client
-        .set_security_policy(&Policy::from_version("default")?)?
+        .set_security_policy(&Policy::from_version(POLICY_WITH_TLS12)?)?
         .set_renegotiate_callback(RenegotiateResponse::Schedule)?;
 
     // Renegotiation is TLS 1.2-only.

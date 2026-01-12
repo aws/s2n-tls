@@ -45,7 +45,9 @@ pub trait SslStreamExtension {
 }
 
 impl<T> SslStreamExtension for SslStream<T> {
-    /// PR open upstream: https://github.com/sfackler/rust-openssl/pull/2223
+    /// Required to obtain a mutable `SslRef` from `SslStream` for test-only
+    /// logic. The cast is safe under our usage and tracked by an
+    /// upstream PR: https://github.com/sfackler/rust-openssl/pull/2223
     #[allow(invalid_reference_casting)]
     fn mut_ssl(&mut self) -> &mut SslRef {
         unsafe { &mut *(self.ssl() as *const openssl::ssl::SslRef as *mut openssl::ssl::SslRef) }
