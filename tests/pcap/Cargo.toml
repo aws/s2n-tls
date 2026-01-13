@@ -12,7 +12,7 @@ download = [] # Download additional pcaps from a list of configured urls
 anyhow = "1.0.86"
 bytes = "1.7.1"
 hex = "0.4.3"
-reqwest = { version = "0.12.7", features = ["blocking"] }
+reqwest = { version = "0.13.1", features = ["blocking"] }
 semver = "1.0.23"
 rtshark = "4.0.0"
 
