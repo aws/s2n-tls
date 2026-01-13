@@ -405,7 +405,11 @@ fn mismatched_stek_falls_back_to_full_handshake() {
 
         // Set the ticket from server 1 on the OpenSSL client
         unsafe {
-            pair.client.connection.mut_ssl().set_session(&ticket).unwrap();
+            pair.client
+                .connection
+                .mut_ssl()
+                .set_session(&ticket)
+                .unwrap();
         }
 
         pair.handshake().unwrap();
