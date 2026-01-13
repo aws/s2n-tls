@@ -13,6 +13,7 @@ use tls_harness::{
         S2NConfig, S2NConnection,
     },
     harness::{TlsConfigBuilder, TlsInfo},
+    openssl_extension::SslStreamExtension,
     Mode, SigType, TlsConnPair,
 };
 
@@ -172,7 +173,7 @@ fn s2n_server_resumption_with_openssl() {
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
             TlsConnPair::from_configs(&client_config, &server_config);
         let ticket = ticket_storage.get_ticket();
-        unsafe { pair.client.ssl_mut().set_session(&ticket)? };
+        unsafe { pair.client.connection.mut_ssl().set_session(&ticket)? };
         pair.handshake()?;
         pair.round_trip_assert(10_000)?;
         assert!(pair.server.connection_mut().resumed());
@@ -273,7 +274,7 @@ fn s2n_client_reuses_ticket_tls13() {
             // Assert resumption happened
             assert!(pair.client.connection().resumed());
             // Assert the ticket was reused
-            assert!(pair.server.ssl().session_reused());
+            assert!(pair.server.connection.ssl().session_reused());
 
             pair.shutdown().unwrap();
         }
@@ -327,7 +328,8 @@ fn invalid_ticket_falls_back_to_full_handshake() {
             unsafe {
                 mixed_pair
                     .client
-                    .ssl_mut()
+                    .connection
+                    .mut_ssl()
                     .set_session(&openssl_session)
                     .unwrap();
             }
@@ -403,7 +405,7 @@ fn mismatched_stek_falls_back_to_full_handshake() {
 
         // Set the ticket from server 1 on the OpenSSL client
         unsafe {
-            pair.client.ssl_mut().set_session(&ticket).unwrap();
+            pair.client.connection.mut_ssl().set_session(&ticket).unwrap();
         }
 
         pair.handshake().unwrap();
