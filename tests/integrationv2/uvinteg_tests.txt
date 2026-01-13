@@ -9,7 +9,6 @@
   <Module test_key_update.py>
   <Module test_npn.py>
   <Module test_ocsp.py>
-  <Module test_pq_handshake.py>
   <Module test_record_padding.py>
   <Module test_renegotiate.py>
   <Module test_renegotiate_apache.py>
