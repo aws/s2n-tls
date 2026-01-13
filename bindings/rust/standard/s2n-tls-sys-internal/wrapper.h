@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // This is a wrapper header file that includes all the necessary s2n-tls headers
 // for generating Rust bindings with bindgen
 
@@ -9,8 +12,8 @@
 #include "tls/s2n_security_rules.h"
 
 // Include cipher suites and preferences
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_cipher_suites.h"
 
 // Include ECC preferences
 #include "tls/s2n_ecc_preferences.h"
