@@ -15,17 +15,14 @@ version: 0.2
 
 env:
   shell: bash
-  variables:
-    RUST_TOOLCHAIN: stable
-    PLATFORM: Linux-X64
 
 phases:
   install:
     commands:
       - ./codebuild/bin/install_ubuntu_dependencies.sh
       - source $HOME/.cargo/env
-      - rustup toolchain install $RUST_TOOLCHAIN
-      - rustup override set $RUST_TOOLCHAIN
+      - rustup toolchain install stable
+      - rustup override set stable
       - cargo install cargo-criterion
       
       - pip3 install --break-system-packages "boto3[crt]"
@@ -48,4 +45,4 @@ phases:
         python3 .github/bin/criterion_to_cloudwatch.py \
           --criterion_output_path bindings/rust/standard/benchmarks/criterion_output.log \
           --namespace s2n-tls-bench \
-          --platform $PLATFORM
+          --platform Linux-X64
