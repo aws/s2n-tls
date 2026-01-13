@@ -6,17 +6,15 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
-    
+
     let s2n_tls_sys_dir = PathBuf::from("../../extended/s2n-tls-sys");
     let s2n_lib_include_path = s2n_tls_sys_dir.join("lib");
-    
+
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate bindings for
         .header("wrapper.h")
-        
         .clang_arg(format!("-I{}", s2n_lib_include_path.display()))
         .clang_arg(format!("-I{}/api", s2n_lib_include_path.display()))
-
         .size_t_is_usize(true)
         .allowlist_type("s2n_security_policy_selection")
         .allowlist_type("s2n_security_policy")
@@ -27,7 +25,6 @@ fn main() {
         .allowlist_type("s2n_kem_preferences")
         .allowlist_type("s2n_kem_group")
         .allowlist_var("security_policy_selection")
-        
         .generate()
         .expect("Unable to generate bindings");
 

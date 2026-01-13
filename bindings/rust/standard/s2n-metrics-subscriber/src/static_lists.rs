@@ -111,7 +111,6 @@ impl Group {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct SignatureScheme {
     iana_description: &'static str,
@@ -136,7 +135,6 @@ impl SignatureScheme {
         }
     }
 }
-
 
 /// We are required to track OpenSSL naming because that is what 
 #[rustfmt::skip]
