@@ -41,13 +41,6 @@ impl From<SslContext> for OpenSslConfig {
     }
 }
 
-impl OpenSslConnection {
-    /// Provides read-only access to the underlying SSL context
-    pub fn ssl(&self) -> &openssl::ssl::SslRef {
-        self.connection.ssl()
-    }
-}
-
 impl TlsConnection for OpenSslConnection {
     type Config = OpenSslConfig;
 
