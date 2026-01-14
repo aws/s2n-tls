@@ -90,6 +90,7 @@ pub struct CertKeyPair {
     ca_path: String,
     cert: Vec<u8>,
     key: Vec<u8>,
+    ca_cert: Vec<u8>,
 }
 
 impl Default for CertKeyPair {
@@ -132,12 +133,15 @@ impl CertKeyPair {
             .unwrap_or_else(|_| panic!("Failed to read cert at {cert_path}"));
         let key =
             std::fs::read(&key_path).unwrap_or_else(|_| panic!("Failed to read key at {key_path}"));
+        let ca_cert =
+            std::fs::read(&ca_path).unwrap_or_else(|_| panic!("Failed to read cert at {ca_path}"));
         CertKeyPair {
             cert_path,
             key_path,
             ca_path,
             cert,
             key,
+            ca_cert,
         }
     }
 
@@ -165,6 +169,10 @@ impl CertKeyPair {
 
     pub fn key(&self) -> &[u8] {
         &self.key
+    }
+
+    pub fn ca_cert(&self) -> &[u8] {
+        &self.ca_cert
     }
 }
 
