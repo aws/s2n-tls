@@ -19,13 +19,18 @@ env:
 phases:
   install:
     commands:
+      # Install Rust dependencies
       - ./codebuild/bin/install_ubuntu_dependencies.sh
       - source $HOME/.cargo/env
       - rustup toolchain install stable
       - rustup override set stable
       - cargo install cargo-criterion
       
-      - pip3 install --break-system-packages "boto3[crt]"
+      # Install Python dependencies
+      - sudo apt install python3.12-venv
+      - python3 -m venv .venv
+      - source .venv/bin/activate
+      - pip3 install "boto3[crt]"
 
   pre_build:
     commands:
