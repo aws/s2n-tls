@@ -31,15 +31,9 @@ typedef uint16_t kem_ciphertext_key_size;
 #define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_KEM)
-    #define S2N_NID_KYBER512  NID_KYBER512_R3
-    #define S2N_NID_KYBER768  NID_KYBER768_R3
-    #define S2N_NID_KYBER1024 NID_KYBER1024_R3
-#else
-    #define S2N_NID_KYBER512  NID_undef
-    #define S2N_NID_KYBER768  NID_undef
-    #define S2N_NID_KYBER1024 NID_undef
-#endif
+#define S2N_NID_KYBER512  NID_undef
+#define S2N_NID_KYBER768  NID_undef
+#define S2N_NID_KYBER1024 NID_undef
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
     #define S2N_NID_MLKEM768  NID_MLKEM768
