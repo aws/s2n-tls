@@ -213,6 +213,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
     let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = configs.connection_pair();
 
     pair.handshake()?;
+    assert!(pair.server.connection.ssl().peer_certificate().is_none());
 
     // require client auth for the renegotiation
     pair.server
@@ -221,6 +222,7 @@ fn s2n_client_renegotiate_with_client_auth_with_openssl() -> Result<(), Box<dyn 
         .set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
 
     renegotiate_pair(&mut pair, None)?;
+    assert!(pair.server.connection.ssl().peer_certificate().is_some());
     pair.round_trip_assert(1_024)?;
     pair.shutdown()?;
 
