@@ -327,7 +327,7 @@ int main(int argc, char **argv)
             "AWS-CRT-SDK-TLSv1.2-2023",
             "20230317",
             "20210816",
-            "PQ-TLS-1-2-2023-04-08",
+            "PQ-TLS-1-2-2024-10-07",
             "test_all"
         };
 
