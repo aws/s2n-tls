@@ -730,6 +730,56 @@ static S2N_RESULT s2n_x509_validator_add_custom_extensions(struct s2n_x509_valid
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_x509_validator_verify_intent_for_cert(struct s2n_connection *conn, X509 *cert, bool is_leaf)
+{
+    RESULT_ENSURE_REF(cert);
+
+    /* The X509_PURPOSE values indicate the purpose that certificates must specify. For servers,
+     * received client certificates MUST have a TLS client purpose. For clients, received server
+     * certificates MUST have a TLS server purpose.
+     */
+    int purpose = X509_PURPOSE_SSL_CLIENT;
+    if (conn->mode == S2N_CLIENT) {
+        purpose = X509_PURPOSE_SSL_SERVER;
+    }
+
+    RESULT_GUARD_OSSL(X509_check_purpose(cert, purpose, !is_leaf), S2N_ERR_CERT_INTENT_INVALID);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_x509_validator_verify_intent(struct s2n_x509_validator *validator, struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
+    if (conn->config->disable_x509_intent_verification) {
+        return S2N_RESULT_OK;
+    }
+
+    DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
+    RESULT_GUARD(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+
+    int cert_count = sk_X509_num(validated_cert_chain.stack);
+    RESULT_ENSURE_GT(cert_count, 0);
+
+    /* The validated cert chain returned from the libcrypto includes the trust anchor. The trust
+     * anchor is omitted from intent verification since its TLS intent is implicitly indicated by
+     * its presence in the s2n-tls trust store.
+     */
+    cert_count -= 1;
+
+    for (int i = 0; i < cert_count; i++) {
+        X509 *cert = sk_X509_value(validated_cert_chain.stack, i);
+        RESULT_ENSURE_REF(cert);
+
+        bool is_leaf = (i == 0);
+        RESULT_GUARD(s2n_x509_validator_verify_intent_for_cert(conn, cert, is_leaf));
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
@@ -862,6 +912,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain_pre_cb(struct s2n_x509_validat
 
     if (validator->state == READY_TO_VERIFY) {
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
+        RESULT_GUARD(s2n_x509_validator_verify_intent(validator, conn));
         RESULT_GUARD(s2n_x509_validator_check_root_cert(validator, conn));
     }
 

@@ -79,6 +79,13 @@ pub unsafe extern "C" fn generic_recv_cb<T: std::io::Read>(
 #[derive(Clone, Debug, Default)]
 pub struct SessionTicketStorage(Arc<Mutex<Option<Vec<u8>>>>);
 
+impl SessionTicketStorage {
+    /// panics if a ticket is not available
+    pub fn get_ticket(self) -> Vec<u8> {
+        self.0.lock().unwrap().borrow_mut().take().unwrap()
+    }
+}
+
 impl SessionTicketCallback for SessionTicketStorage {
     fn on_session_ticket(
         &self,

@@ -245,15 +245,15 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
         if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
             if (s2n_libcrypto_supports_mlkem()) {
-                EXPECT_EQUAL(S2N_KEM_GROUPS_COUNT, available_groups);
+                EXPECT_EQUAL(4, available_groups);
             } else {
-                EXPECT_EQUAL(6, available_groups);
+                EXPECT_EQUAL(4, available_groups);
             }
         } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
             if (s2n_libcrypto_supports_mlkem()) {
-                EXPECT_EQUAL(5, available_groups);
+                EXPECT_EQUAL(3, available_groups);
             } else {
-                EXPECT_EQUAL(4, available_groups);
+                EXPECT_EQUAL(0, available_groups);
             }
         } else {
             EXPECT_EQUAL(0, available_groups);
@@ -280,13 +280,8 @@ int main(int argc, char **argv)
         /* All supported kem groups should be in the preference list, but not all of them may be available. */
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
-        if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(6, available_groups);
-        } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(4, available_groups);
-        } else {
-            EXPECT_EQUAL(0, available_groups);
-        }
+        /* PQ-TLS-1-3-2023-06-01 only contains Kyber groups, so zero are available */
+        EXPECT_EQUAL(0, available_groups);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("20141001", &security_policy));

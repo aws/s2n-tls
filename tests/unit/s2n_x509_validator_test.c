@@ -20,12 +20,6 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
 
-static int mock_time(void *data, uint64_t *timestamp)
-{
-    *timestamp = *(uint64_t *) data;
-    return 0;
-}
-
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
     /* 2250-01-01 */
@@ -41,6 +35,11 @@ static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timest
 }
 
 #if S2N_OCSP_STAPLING_SUPPORTED
+static int mock_time(void *data, uint64_t *timestamp)
+{
+    *timestamp = *(uint64_t *) data;
+    return 0;
+}
 static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
     /* 2015-02-27 */
@@ -128,7 +127,23 @@ static bool s2n_supports_large_time_t()
 static bool s2n_libcrypto_supports_2050()
 {
     ASN1_TIME *utc_time = ASN1_UTCTIME_set(NULL, 0);
-    time_t time_2050 = 2524608000;
+    if (!utc_time) {
+        return false;
+    }
+
+    /* The `32BitBuildAndUnit` job in s2nGeneralBatch runs on a 32-bit system
+     * where time_t cannot represent the year 2050 (2524608000) and triggers
+     * -Wconstant-conversion (treated as an error).
+     *
+     * The libcrypto used by the job (i386-linux-gnu) does support year 2050.
+     * Return true to skip the `X509_cmp_time` call.
+     */
+    if (sizeof(time_t) < 8) {
+        ASN1_STRING_free(utc_time);
+        return true;
+    }
+
+    time_t time_2050 = (time_t) 2524608000LL;
     int result = X509_cmp_time(utc_time, &time_2050);
     ASN1_STRING_free(utc_time);
     return (result != 0);
