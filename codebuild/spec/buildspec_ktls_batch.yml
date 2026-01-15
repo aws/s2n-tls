@@ -19,8 +19,7 @@ version: 0.2
 env:
   shell: bash
   variables:
-    NIX_CACHE_BUCKET_x86_64: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
-    NIX_CACHE_BUCKET_aarch64: "s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2"
+    NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
 
 batch:
   build-list:
@@ -44,8 +43,7 @@ phases:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from our private nix cache.
       # If this fails, continue- we can build from source.
-      - if [[ $(uname -m) == "x86_64" ]]; then nix copy --from $NIX_CACHE_BUCKET_x86_64 --all --no-check-sigs || true; fi
-      - if [[ $(uname -m) == "aarch64" ]]; then nix copy --from $NIX_CACHE_BUCKET_aarch64 --all --no-check-sigs || true; fi
+      - nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
