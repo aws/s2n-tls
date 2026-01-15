@@ -292,7 +292,7 @@ int main(int argc, char **argv)
         }
 
         /* Test parsing of tls 1.3 aead record */
-        S2N_BLOB_LABEL(expect_plaintext, "Hello world");
+        S2N_RO_BLOB_LABEL(expect_plaintext, "Hello world");
 
         static uint8_t hello_data[] = "Hello world";
         struct s2n_blob plaintext = { 0 };
