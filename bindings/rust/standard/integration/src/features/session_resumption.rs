@@ -35,6 +35,8 @@ fn s2n_client_resumption_config(cert: SigType) -> (S2NTicketStorage, S2NConfig) 
     let ticket_storage = S2NTicketStorage::default();
     let client_config = {
         let mut config = s2n_tls::config::Builder::new_test_config(Mode::Client);
+        // Use the 20190801 security policy since it supports TLS 1.0–1.3, which this
+        // test relies on to validate resumption behavior across protocol versions.
         config
             .set_security_policy(&Policy::from_version("20190801").unwrap())
             .unwrap();
@@ -49,15 +51,11 @@ fn s2n_client_resumption_config(cert: SigType) -> (S2NTicketStorage, S2NConfig) 
 }
 
 /// Builds an s2n-tls server configuration with session tickets enabled and a
-/// deterministic test ticket key installed.
-fn s2n_server_resumption_config(cert: SigType) -> S2NConfig {
-    s2n_server_resumption_config_with_key(cert, &KEY_VALUE)
-}
-
-/// Builds an s2n-tls server configuration with session tickets enabled and a
 /// custom test ticket key installed.
-fn s2n_server_resumption_config_with_key(cert: SigType, key_value: &[u8]) -> S2NConfig {
+fn s2n_server_resumption_config(cert: SigType, key_value: &[u8]) -> S2NConfig {
     let mut config = s2n_tls::config::Builder::new_test_config(Mode::Server);
+    // Use the 20190801 security policy since it supports TLS 1.0–1.3, which this
+    // test relies on to validate resumption behavior across protocol versions.
     config
         .set_security_policy(&Policy::from_version("20190801").unwrap())
         .unwrap();
@@ -158,7 +156,7 @@ fn s2n_client_resumption_with_openssl() {
 #[test]
 fn s2n_server_resumption_with_openssl() {
     fn s2n_server_case(version: SslVersion) -> Result<(), Box<dyn std::error::Error>> {
-        let server_config = s2n_server_resumption_config(SigType::Rsa2048);
+        let server_config = s2n_server_resumption_config(SigType::Rsa2048, &KEY_VALUE);
         let (ticket_storage, client_config) =
             openssl_client_resumption_config(SigType::Rsa2048, version);
 
@@ -195,9 +193,9 @@ fn s2n_server_resumption_with_openssl() {
 /// Verifies native s2n↔s2n session resumption behavior in isolation.
 /// This serves as a stable baseline independent of OpenSSL.
 #[test]
-fn s2n_client_resumption_with_s2n_server_tls12() {
+fn s2n_client_resumption_with_s2n_server() {
     let (ticket_storage, client_config) = s2n_client_resumption_config(SigType::Rsa2048);
-    let server_config = s2n_server_resumption_config(SigType::Rsa2048);
+    let server_config = s2n_server_resumption_config(SigType::Rsa2048, &KEY_VALUE);
 
     // Initial handshake to generate a session ticket.
     let mut pair: TlsConnPair<S2NConnection, S2NConnection> =
@@ -271,9 +269,7 @@ fn s2n_client_reuses_ticket_tls13() {
             pair.handshake().unwrap();
             pair.round_trip_assert(10_000).unwrap();
 
-            // Assert resumption happened
             assert!(pair.client.connection().resumed());
-            // Assert the ticket was reused
             assert!(pair.server.connection.ssl().session_reused());
 
             pair.shutdown().unwrap();
@@ -314,7 +310,7 @@ fn invalid_ticket_falls_back_to_full_handshake() {
         };
 
         // Create OpenSSL client ↔ s2n server connection
-        let s2n_server_config = s2n_server_resumption_config(SigType::Rsa2048);
+        let s2n_server_config = s2n_server_resumption_config(SigType::Rsa2048, &KEY_VALUE);
 
         // Create a fresh OpenSSL client config for the second connection
         let (_, fresh_openssl_client_config) =
@@ -353,12 +349,11 @@ fn invalid_ticket_falls_back_to_full_handshake() {
 fn mismatched_stek_falls_back_to_full_handshake() {
     required_capability(&[Capability::Tls13], || {
         // Create first s2n server with default STEK
-        let server_config_1 = s2n_server_resumption_config(SigType::Rsa2048);
+        let server_config_1 = s2n_server_resumption_config(SigType::Rsa2048, &KEY_VALUE);
 
         // Create second s2n server with different STEK
         const DIFFERENT_KEY_VALUE: [u8; 16] = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 3, 4, 5, 6];
-        let server_config_2 =
-            s2n_server_resumption_config_with_key(SigType::Rsa2048, &DIFFERENT_KEY_VALUE);
+        let server_config_2 = s2n_server_resumption_config(SigType::Rsa2048, &DIFFERENT_KEY_VALUE);
 
         // Create OpenSSL client config constrained to TLS 1.3
         let (ticket_storage, client_config) = {
