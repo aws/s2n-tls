@@ -14,9 +14,13 @@
 
 # This is designed to work with CodeBuild's reserved instances fleet and
 # our modified Ec2 AMI for Ubuntu25.
+# Batch env vars must be static - no $(cmd) or ${var} expansion at top level
 version: 0.2
 env:
   shell: bash
+  variables:
+    NIX_CACHE_BUCKET_x86_64: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
+    NIX_CACHE_BUCKET_aarch64: "s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2"
 
 batch:
   build-list:
@@ -24,14 +28,12 @@ batch:
       env:
         fleet: ubuntu25_x86_64-x86_64
         variables:
-          NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
           S2N_KTLS_TESTING_EXPECTED: 1
           S2N_KTLS_KEYUPDATE_TESTING_EXPECTED: 1
     - identifier: ktls
       env:
         fleet: ubuntu25_x86_64-x86_64
         variables:
-          NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
           S2N_KTLS_TESTING_EXPECTED: 1
 
 phases:
@@ -42,7 +44,8 @@ phases:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from our private nix cache.
       # If this fails, continue- we can build from source.
-      - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs || true
+      - if [[ $(uname -m) == "x86_64" ]]; then nix copy --from $NIX_CACHE_BUCKET_x86_64 --all --no-check-sigs || true; fi
+      - if [[ $(uname -m) == "aarch64" ]]; then nix copy --from $NIX_CACHE_BUCKET_aarch64 --all --no-check-sigs || true; fi
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
@@ -50,4 +53,3 @@ phases:
     commands:
       - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
       - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
-
