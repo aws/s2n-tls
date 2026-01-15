@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{future::Future, panic::AssertUnwindSafe};
-
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -79,27 +77,32 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
     }
 }
 
-pub fn required_capability_async(
+/// Declare the required capabilities for a test to run.
+///
+/// This function is identical to [`required_capability`], but allows the test function
+/// to return a result.
+pub fn required_capability_with_inner_result(
     required_capabilities: &[Capability],
-    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
+    test: fn() -> Result<(), Box<dyn std::error::Error>>,
 ) {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
-
-    if required_capabilities.iter().all(Capability::supported) {
-        // 1 -> no panic
-        // 2 -> returned "ok"
+    let result = std::panic::catch_unwind(test);
+    if required_capabilities.iter().all(|c| c.supported()) {
         result.unwrap().unwrap();
     } else {
         println!("expecting test failure");
         match result {
-            Ok(Ok(())) => panic!("test did not fail"),
-            Ok(Err(e)) => println!("err was {e:?}"),
-            Err(e) => println!("panic was {e:?}"),
+            Ok(Ok(())) => {
+                panic!(
+                    "The test should have failed, but instead succeeded. \
+                    Required capabilities are misconfigured"
+                );
+            }
+            Ok(Err(e)) => {
+                println!("Test failed as expected with explicit error: {e:?}");
+            }
+            Err(panic) => {
+                println!("Test failed as expected with panic: {panic:?}");
+            }
         }
     }
 }
