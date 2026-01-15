@@ -980,7 +980,12 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 
     if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
-        if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
+        bool tls13 = conn->actual_protocol_version >= S2N_TLS13;
+        /* we check for a full handshake, because TLS 1.2 resumption does not perform
+         * an additional diffie-hellman exchange */
+        bool ecdhe_cipher_negotiated = s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)
+                && IS_FULL_HANDSHAKE(conn);
+        if (tls13 || ecdhe_cipher_negotiated) {
             return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }
@@ -1326,9 +1331,6 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         return S2N_RESULT_OK;
     }
 
-    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
-
     int error_code = s2n_errno;
     int error_type = s2n_error_get_type(error_code);
 
@@ -1342,6 +1344,9 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         default:
             break;
     }
+
+    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
 
     switch (error_code) {
         /* Don't invoke blinding on some of the common errors.

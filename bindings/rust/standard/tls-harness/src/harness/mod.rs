@@ -3,7 +3,7 @@
 mod io;
 pub use io::{LocalDataBuffer, TestPairIO, ViewIO};
 
-use std::{error::Error, fmt::Debug, fs::read_to_string};
+use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
 use strum::EnumIter;
 
 #[derive(Clone, Copy, EnumIter)]
@@ -86,7 +86,7 @@ pub trait TlsConnection: Sized {
     fn new_from_config(
         mode: Mode,
         config: &Self::Config,
-        io: &TestPairIO,
+        io: &Rc<TestPairIO>,
     ) -> Result<Self, Box<dyn Error>>;
 
     /// Run one handshake step: receive msgs from other connection, process, and send new msgs
@@ -159,7 +159,7 @@ pub trait TlsConfigBuilder {
 pub struct TlsConnPair<C, S> {
     pub client: C,
     pub server: S,
-    pub io: TestPairIO,
+    pub io: Rc<TestPairIO>,
 }
 
 impl<C, S> TlsConnPair<C, S>
@@ -168,7 +168,7 @@ where
     S: TlsConnection,
 {
     pub fn from_configs(client_config: &C::Config, server_config: &S::Config) -> Self {
-        let io = TestPairIO::default();
+        let io = Rc::new(TestPairIO::default());
         let client = C::new_from_config(Mode::Client, client_config, &io).unwrap();
         let server = S::new_from_config(Mode::Server, server_config, &io).unwrap();
         Self { client, server, io }
@@ -199,7 +199,6 @@ where
             self.client.handshake()?;
             self.server.handshake()?;
         }
-
         Ok(())
     }
 

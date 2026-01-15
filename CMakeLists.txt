@@ -375,7 +375,7 @@ endif()
 
 if (S2N_INTERN_LIBCRYPTO)
 
-    # Check if the AWS::crypto target has beeen added and handle it
+    # Check if the AWS::crypto target has been added and handle it
     if (TARGET AWS::crypto)
         # Get the target library type (shared or static)
         get_target_property(target_type AWS::crypto TYPE)
@@ -410,7 +410,7 @@ if (S2N_INTERN_LIBCRYPTO)
           cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
           bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{if ($3) print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
-          # redefine the libcrypto libary symbols
+          # redefine the libcrypto library symbols
           ${CMAKE_OBJCOPY} --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
           rm -rf s2n_libcrypto &&
           mkdir s2n_libcrypto &&
@@ -579,8 +579,11 @@ if (BUILD_TESTING)
         target_compile_options(${test_case_name} PRIVATE 
             -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
             -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
-            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99
+            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
         )
+        if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
+            target_compile_options(${test_case_name} PRIVATE -Werror)
+        endif()
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
