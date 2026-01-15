@@ -150,7 +150,8 @@ S2N_RESULT s2n_fips_validate_hybrid_group(const struct s2n_kem_group *hybrid_gro
      *
      * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr2.pdf
      */
-    if (hybrid_group->send_kem_first) {
+
+    if (hybrid_group->send_kem_first || hybrid_group->curve == &s2n_ecc_curve_none) {
         RESULT_GUARD(s2n_fips_validate_kem(hybrid_group->kem, valid));
     } else {
         RESULT_GUARD(s2n_fips_validate_curve(hybrid_group->curve, valid));

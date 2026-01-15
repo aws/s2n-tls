@@ -274,12 +274,12 @@ mod memory_test {
         /// lifecycle. The static memory row is an absolute measurement, not a diff.
         fn assert_expected(&self) {
             const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
-                (Lifecycle::ConnectionInit, 61_578),
-                (Lifecycle::AfterClientHello, 88_406),
-                (Lifecycle::AfterServerHello, 116_773),
-                (Lifecycle::AfterClientFinished, 108_080),
-                (Lifecycle::HandshakeComplete, 90_667),
-                (Lifecycle::ApplicationData, 90_667),
+                (Lifecycle::ConnectionInit, 61_466),
+                (Lifecycle::AfterClientHello, 88_294),
+                (Lifecycle::AfterServerHello, 116_661),
+                (Lifecycle::AfterClientFinished, 107_968),
+                (Lifecycle::HandshakeComplete, 90_555),
+                (Lifecycle::ApplicationData, 90_555),
             ];
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()
