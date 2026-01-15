@@ -138,6 +138,24 @@ bool s2n_ecc_evp_supports_fips_check()
 #endif
 }
 
+int s2n_find_ecc_curve_from_iana_id(uint16_t iana_id, const struct s2n_ecc_named_curve **out, bool *found)
+{
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(found);
+    *found = false;
+
+    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
+        const struct s2n_ecc_named_curve *curve = s2n_all_supported_curves_list[i];
+        POSIX_ENSURE_REF(curve);
+        if (curve->iana_id == iana_id) {
+            *out = curve;
+            *found = true;
+            return S2N_SUCCESS;
+        }
+    }
+    return S2N_SUCCESS;
+}
+
 #if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
 {

@@ -31,15 +31,9 @@ typedef uint16_t kem_ciphertext_key_size;
 #define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_KEM)
-    #define S2N_NID_KYBER512  NID_KYBER512_R3
-    #define S2N_NID_KYBER768  NID_KYBER768_R3
-    #define S2N_NID_KYBER1024 NID_KYBER1024_R3
-#else
-    #define S2N_NID_KYBER512  NID_undef
-    #define S2N_NID_KYBER768  NID_undef
-    #define S2N_NID_KYBER1024 NID_undef
-#endif
+#define S2N_NID_KYBER512  NID_undef
+#define S2N_NID_KYBER768  NID_undef
+#define S2N_NID_KYBER1024 NID_undef
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
     #define S2N_NID_MLKEM768  NID_MLKEM768
@@ -102,7 +96,7 @@ extern const struct s2n_kem s2n_kyber_512_r3;
 extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
-#define S2N_KEM_GROUPS_COUNT 9
+#define S2N_KEM_GROUPS_COUNT 10
 extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
@@ -141,6 +135,7 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 bool s2n_kem_is_available(const struct s2n_kem *kem);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
+int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found);
 
 /* mlkem768 */
 #define S2N_MLKEM_768_PUBLIC_KEY_BYTES    1184

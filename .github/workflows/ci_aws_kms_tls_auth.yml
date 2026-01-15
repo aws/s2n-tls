@@ -9,6 +9,9 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: rustfmt and clippy
@@ -17,7 +20,7 @@ jobs:
       run:
         working-directory: bindings/rust/aws-kms-tls-auth
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Rust toolchain
         run: |
           rustup toolchain install stable --component clippy,rustfmt
@@ -33,7 +36,7 @@ jobs:
       run:
         working-directory: bindings/rust/aws-kms-tls-auth
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Rust toolchain
         run: |
           rustup toolchain install stable
@@ -49,7 +52,7 @@ jobs:
       run:
         working-directory: bindings/rust/aws-kms-tls-auth/fuzz
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # the nightly toolchain is needed for ASAN, which is turned on for fuzz tests
       - name: Install Rust toolchain

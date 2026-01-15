@@ -111,44 +111,6 @@ class Provider(object):
         return cmd_line[0]
 
 
-class Tcpdump(Provider):
-    """
-    TcpDump is used by the dynamic record test. It only needs to watch
-    a handful of packets before it can exit.
-
-    This class still follows the provider setup, but all values are hardcoded
-    because this isn't expected to be used outside of the dynamic record test.
-    """
-
-    def __init__(self, options: ProviderOptions):
-        Provider.__init__(self, options)
-
-    def setup_client(self):
-        self.ready_to_test_marker = "listening on lo"
-        tcpdump_filter = "dst port {}".format(self.options.port)
-
-        cmd_line = [
-            "tcpdump",
-            # Line buffer the output
-            "-l",
-            # Only read 10 packets before exiting. This is enough to find a large
-            # packet, and still exit before the timeout.
-            "-c",
-            "10",
-            # Watch the loopback device
-            "-i",
-            "lo",
-            # Don't resolve IP addresses
-            "-nn",
-            # Set the buffer size to 1k
-            "-B",
-            "1024",
-            tcpdump_filter,
-        ]
-
-        return cmd_line
-
-
 class S2N(Provider):
     """
     The S2N provider translates flags into s2nc/s2nd command line arguments.

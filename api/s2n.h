@@ -1049,6 +1049,30 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  */
 S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
 
+/* Disable TLS intent verification for received certificates.
+ *
+ * By default, s2n-tls will verify that received certificates set Key Usage / Extended Key Usage
+ * fields that are consistent with the current TLS context (e.g. checking that serverAuth is set
+ * when verifying server certificates as a client, or checking that clientAuth is set when
+ * verifying client certificates as a server). This verification ensures that received certificates
+ * are being used for their intended purpose as specified by the issuer.
+ *
+ * This verification may be incompatible with some PKIs where intent is improperly specified.
+ * `s2n_config_disable_x509_intent_verification()` may be called in this case to disable the
+ * verification. This verification should only be disabled if it is known that all received
+ * certificates will be issued from a CA that intended for the certificates to be used in the given
+ * TLS context, despite what's indicated in the Key Usage / Extended Key Usage extensions.
+ *
+ * @note If a received certificate doesn't contain a Key Usage / Extended Key Usage extension, it's
+ *       assumed that the issuer permits the certificate to be used for any purpose. s2n-tls will
+ *       only reject a certificate due to invalid intent if the issuer explicitly indicates a
+ *       purpose that is invalid for the TLS context in which it is received.
+ *
+ * @param config The associated connection config.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_config_disable_x509_intent_verification(struct s2n_config *config);
+
 /**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
  * be used for testing or debugging purposes.
@@ -1500,7 +1524,7 @@ S2N_API extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client
 /**
  * Copies `max_length` bytes of the ClientHello message into the `out` buffer.
  * The ClientHello instrumented using this function will have the Random bytes
- * zero-ed out.
+ * zero-ed out. Use s2n_client_hello_get_random to access the random bytes.
  *
  * Note: SSLv2 ClientHello messages follow a different structure than more modern
  * ClientHello messages. See [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).
@@ -1663,6 +1687,22 @@ S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_he
  * @param out The protocol version in the client hello.
  */
 S2N_API extern int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
+ * Retrieves the client random value from the Client Hello.
+ *
+ * The client random is a 32-byte value sent by the client in the ClientHello message.
+ * It is used in the TLS handshake for key derivation and to prevent replay attacks.
+ *
+ * Copies up to `max_length` bytes of the client random into the `out` buffer. The number
+ * of bytes copied will be the minimum of `max_length` and S2N_TLS_RANDOM_DATA_LEN (32 bytes).
+ *
+ * @param ch A pointer to the client hello struct
+ * @param out A pointer to a buffer where the client random will be copied.
+ * @param max_length The maximum number of bytes to copy into the `out` buffer.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 
 /**
  * Retrieves the supported groups received from the client in the supported groups extension.
@@ -3915,7 +3955,10 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * s2n_config object associated with this connection before this connection began its TLS handshake.
  * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
  * buffer parameter.
- * @note This API will error if the handshake is not yet complete.
+ * @note This API will error if the handshake is not yet complete. Additionally it will error if there
+ * is still application data in the IO buffers given that this data does not get serialized by s2n-tls.
+ * You can use `s2n_send` to drain the send buffer and `s2n_peek` + `s2n_recv` to drain the read buffer.
+ * @note Serialization is unsupported for SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.

@@ -18,6 +18,7 @@ use std::{
     io::ErrorKind,
     os::raw::c_int,
     pin::Pin,
+    rc::Rc,
     sync::{Arc, Mutex},
     task::Poll,
 };
@@ -114,11 +115,20 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
     connection: Connection,
+    // We have to store the result of s2n_negotiate to know when the handshake is complete.
+    //
+    // As of 2025-11-16 s2n-tls does not provide a convenient way to figure out if the handshake is
+    // complete. Checking if `handshake_type()` contains "NEGOTIATED" is _not_ sufficient.
+    handshake_done: bool,
 }
 
 impl S2NConnection {
     pub fn connection(&self) -> &Connection {
         &self.connection
+    }
+
+    pub fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.connection
     }
 }
 
@@ -128,7 +138,7 @@ impl TlsConnection for S2NConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         let s2n_mode = match mode {
             Mode::Client => s2n_tls::enums::Mode::Client,
@@ -158,23 +168,23 @@ impl TlsConnection for S2NConnection {
             connection.set_session_ticket(&ticket)?;
         }
 
-        Ok(Self { io, connection })
+        Ok(Self {
+            io,
+            connection,
+            handshake_done: false,
+        })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         if let Poll::Ready(res) = self.connection.poll_negotiate() {
             res?;
+            self.handshake_done = true;
         }
         Ok(())
     }
 
     fn handshake_completed(&self) -> bool {
-        let complete = self
-            .connection
-            .handshake_type()
-            .unwrap()
-            .contains("NEGOTIATED");
-        complete
+        self.handshake_done
     }
 
     fn send(&mut self, data: &[u8]) {

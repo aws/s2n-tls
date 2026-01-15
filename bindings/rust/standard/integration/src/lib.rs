@@ -5,5 +5,9 @@
 mod capability_check;
 #[cfg(test)]
 mod features;
-#[cfg(all(not(feature = "no-network-tests"), test))]
+#[cfg(test)]
+mod handshake_failure_errors;
+#[cfg(test)]
+mod mtls;
+#[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;

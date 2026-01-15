@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::VerifyHostNameCallback,
+    callbacks::{SessionTicketCallback, VerifyHostNameCallback},
     cert_chain::{self, CertificateChain},
     config::{self, *},
     connection,
@@ -20,6 +20,7 @@ use std::{
     cell::RefCell,
     io::{Read, Write},
     pin::Pin,
+    sync::Mutex,
 };
 
 pub mod client_hello;
@@ -199,6 +200,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     builder
         .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
         .expect("Unable to set a host verify callback.");
+    builder.with_system_certs(false).unwrap();
     builder.trust_pem(keypair.cert()).expect("load cert pem");
     Ok(builder)
 }
@@ -392,5 +394,42 @@ impl TestPair {
                 panic!("{err:?}");
             }
         }
+    }
+}
+
+type SessionState = Vec<u8>;
+
+/// This is a simple struct to enable session resumption in unit tests.
+///
+/// It will store all tickets that it gets from the server, and offering them in
+/// a last-in, first-out manner through the connection initializer.
+#[derive(Debug, Clone, Default)]
+pub struct LIFOSessionResumption {
+    pub ticket: Arc<Mutex<Vec<SessionState>>>,
+}
+
+impl SessionTicketCallback for LIFOSessionResumption {
+    fn on_session_ticket(
+        &self,
+        _connection: &mut connection::Connection,
+        session_ticket: &crate::callbacks::SessionTicket,
+    ) {
+        println!("got a session ticket of {}", session_ticket.len().unwrap());
+        let mut ticket_buffer = vec![0; session_ticket.len().unwrap()];
+        session_ticket.data(&mut ticket_buffer).unwrap();
+        self.ticket.lock().unwrap().push(ticket_buffer);
+    }
+}
+
+impl ConnectionInitializer for LIFOSessionResumption {
+    fn initialize_connection(
+        &self,
+        connection: &mut crate::connection::Connection,
+    ) -> crate::callbacks::ConnectionFutureResult {
+        let latest_ticket = self.ticket.lock().unwrap().pop();
+        if let Some(ticket) = latest_ticket {
+            connection.set_session_ticket(&ticket).unwrap();
+        }
+        Ok(None)
     }
 }

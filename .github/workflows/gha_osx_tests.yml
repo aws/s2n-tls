@@ -10,12 +10,15 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   OSX:
     runs-on: macos-latest
     steps:
       - name: Checkout Dependencies
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Prebuild
         run: |

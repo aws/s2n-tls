@@ -59,8 +59,6 @@ ubuntu@host:s2n_root/ $ make -C tests/integrationv2 all
 The Makefile automatically sets your PATH and LD_LIBRARY_PATH environment. It will execute `tox` to setup your
 Python environment. Then all the integration tests will be collected and executed.
 
-**Note** If you are running the dynamic record size test you will need to use `sudo`.
-
 ## Run one test
 
 If you only want to run a single test, you can set the `TOX_TEST_NAME` environment variable:

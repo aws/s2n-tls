@@ -217,9 +217,9 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2025_07);
+        EXPECT_EQUAL(3, security_policy->kem_preferences->tls13_kem_group_count);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &security_policy));
@@ -245,15 +245,15 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
         if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
             if (s2n_libcrypto_supports_mlkem()) {
-                EXPECT_EQUAL(S2N_KEM_GROUPS_COUNT, available_groups);
+                EXPECT_EQUAL(4, available_groups);
             } else {
-                EXPECT_EQUAL(6, available_groups);
+                EXPECT_EQUAL(4, available_groups);
             }
         } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
             if (s2n_libcrypto_supports_mlkem()) {
-                EXPECT_EQUAL(5, available_groups);
+                EXPECT_EQUAL(3, available_groups);
             } else {
-                EXPECT_EQUAL(4, available_groups);
+                EXPECT_EQUAL(0, available_groups);
             }
         } else {
             EXPECT_EQUAL(0, available_groups);
@@ -280,13 +280,8 @@ int main(int argc, char **argv)
         /* All supported kem groups should be in the preference list, but not all of them may be available. */
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
-        if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(6, available_groups);
-        } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(4, available_groups);
-        } else {
-            EXPECT_EQUAL(0, available_groups);
-        }
+        /* PQ-TLS-1-3-2023-06-01 only contains Kyber groups, so zero are available */
+        EXPECT_EQUAL(0, available_groups);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("20141001", &security_policy));
@@ -309,8 +304,6 @@ int main(int argc, char **argv)
 
     {
         char tls12_only_security_policy_strings[][255] = {
-            "default",
-            "default_fips",
             "ELBSecurityPolicy-TLS-1-0-2015-04",
             "ELBSecurityPolicy-TLS-1-0-2015-05",
             "ELBSecurityPolicy-2016-08",
@@ -364,6 +357,8 @@ int main(int argc, char **argv)
         }
 
         char tls13_security_policy_strings[][255] = {
+            "default",
+            "default_fips",
             "default_tls13",
             "test_all",
             "test_all_tls13",
@@ -374,13 +369,18 @@ int main(int argc, char **argv)
             /* CloudFront viewer facing */
             "CloudFront-SSL-v-3",
             "CloudFront-TLS-1-0-2014",
+            "CloudFront-TLS-1-0-2014-PQ-Beta",
             "CloudFront-TLS-1-0-2016",
             "CloudFront-TLS-1-1-2016",
             "CloudFront-TLS-1-2-2017",
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
+            "CloudFront-TLS-1-2-2021-no-sha1-PQ-Beta",
+            "CloudFront-TLS-1-2-2021-no-sha1",
             "CloudFront-TLS-1-2-2021",
             "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
+            "CloudFront-TLS-1-2-2025",
+            "CloudFront-TLS-1-3-2025",
             /* CloudFront upstream facing */
             "CloudFront-Upstream-2025",
             "CloudFront-Upstream-2025-PQ",
@@ -421,12 +421,129 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test CloudFront security policies */
+    {
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-0-2014-PQ-Beta", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2024_10);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(security_policy->minimum_protocol_version, S2N_TLS10);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-2-2021-no-sha1-PQ-Beta", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2024_10);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(security_policy->minimum_protocol_version, S2N_TLS12);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-2-2025", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_OK(s2n_test_security_policies_compatible(security_policy, "default_fips", rsa_chain_and_key));
+        EXPECT_OK(s2n_test_security_policies_compatible(security_policy, "default_fips", ecdsa_chain_and_key));
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20250813);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-3-2025", &security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(security_policy->minimum_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20250813);
+    }
+
+    /* Test CloudFront security policies for pq support */
+    {
+        char pq_enabled_cloudfront_security_policy_strings[][255] = {
+            /* CloudFront viewer facing */
+            "CloudFront-SSL-v-3",
+            "CloudFront-TLS-1-0-2014",
+            "CloudFront-TLS-1-0-2014-sha256",
+            "CloudFront-TLS-1-0-2016",
+            "CloudFront-TLS-1-1-2016",
+            "CloudFront-TLS-1-2-2017",
+            "CloudFront-TLS-1-2-2018-no-sha1",
+            "CloudFront-TLS-1-2-2019-no-sha1",
+            "CloudFront-TLS-1-2-2021-no-sha1",
+            "CloudFront-TLS-1-2-2025",
+            "CloudFront-TLS-1-3-2025",
+            /* CloudFront undocumented policies for testing */
+            "CloudFront-TLS-1-0-2014-PQ-Beta",
+            "CloudFront-TLS-1-2-2021-no-sha1-PQ-Beta",
+        };
+
+        for (size_t i = 0; i < s2n_array_len(pq_enabled_cloudfront_security_policy_strings); i++) {
+            security_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_enabled_cloudfront_security_policy_strings[i], &security_policy));
+            EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+            EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2024_10);
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+        }
+
+        char pq_disabled_cloudfront_security_policy_strings[][255] = {
+            /* CloudFront upstream  */
+            "CloudFront-Upstream",
+            "CloudFront-Upstream-TLS-1-0",
+            "CloudFront-Upstream-TLS-1-1",
+            "CloudFront-Upstream-TLS-1-2",
+            /* CloudFront viewer facing */
+            "CloudFront-SSL-v-3-no-pq",
+            "CloudFront-TLS-1-0-2014-no-pq",
+            "CloudFront-TLS-1-0-2014-sha256-no-pq",
+            "CloudFront-TLS-1-0-2016-no-pq",
+            "CloudFront-TLS-1-1-2016-no-pq",
+            "CloudFront-TLS-1-2-2017-no-pq",
+            "CloudFront-TLS-1-2-2018-no-sha1-no-pq",
+            "CloudFront-TLS-1-2-2019-no-sha1-no-pq",
+            "CloudFront-TLS-1-2-2021-no-sha1-no-pq",
+            "CloudFront-TLS-1-2-2025-no-pq",
+            "CloudFront-TLS-1-3-2025-no-pq",
+            /* CloudFront undocumented policies for testing */
+            "CloudFront-TLS-1-2-2018-Beta",
+            "CloudFront-TLS-1-2-2021-Chacha20-Boosted",
+            /* CloudFront legacy viewer facing policies */
+            "CloudFront-SSL-v-3-Legacy",
+            "CloudFront-TLS-1-0-2014-Legacy",
+            "CloudFront-TLS-1-0-2016-Legacy",
+            "CloudFront-TLS-1-1-2016-Legacy",
+            "CloudFront-TLS-1-2-2018-Legacy",
+            "CloudFront-TLS-1-2-2019-Legacy",
+            "CloudFront-TLS-1-2-2018",
+            "CloudFront-TLS-1-2-2019",
+            "CloudFront-TLS-1-2-2021",
+        };
+
+        for (size_t i = 0; i < s2n_array_len(pq_disabled_cloudfront_security_policy_strings); i++) {
+            security_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_disabled_cloudfront_security_policy_strings[i], &security_policy));
+            EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
+        }
+    }
+
     /* Test that null fails */
     {
         security_policy = NULL;
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+    }
+
+    /* Test signature preferences for CloudFront 2025 no PQ policies */
+    {
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-2-2025-no-pq", &security_policy));
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20250813);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-3-2025-no-pq", &security_policy));
+        EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20250813);
     }
 
     /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
@@ -905,6 +1022,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20170210,
                 &security_policy_20240501,
+                &security_policy_20251014,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -958,6 +1076,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
+                &security_policy_20251015,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -1010,6 +1129,7 @@ int main(int argc, char **argv)
         {
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20250429,
+                &security_policy_20251013,
             };
 
             struct s2n_test_cert_chain_list cert_chains = {

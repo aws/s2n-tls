@@ -9,12 +9,40 @@ on:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Install rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup override set stable
+
+      - uses: camshaft/install@v1
+        with:
+          crate: typos-cli
+          bins: typos
+
+      - name: Run typos
+        run: |
+          typos -c .github/config/typos.toml --format json | tee /tmp/typos.json | jq -rs '.[] | "::error file=\(.path),line=\(.line_num),col=\(.byte_offset)::\(.typo) should be \"" + (.corrections // [] | join("\" or \"") + "\"")'
+          cat /tmp/typos.json
+          ! grep -q '[^[:space:]]' /tmp/typos.json
+
   generate-doxygen:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Create Documentation
         run: |
             .github/s2n_doxygen.sh
@@ -22,7 +50,7 @@ jobs:
         # Upload the doxygen artifacts on pull requests to help reviewers easily
         # view changes.
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
             name: s2n-tls-doxygen
             path: |
