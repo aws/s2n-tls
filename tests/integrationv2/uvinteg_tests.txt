@@ -10,7 +10,6 @@
   <Module test_npn.py>
   <Module test_ocsp.py>
   <Module test_record_padding.py>
-  <Module test_renegotiate.py>
   <Module test_renegotiate_apache.py>
   <Module test_serialization.py>
   <Module test_signature_algorithms.py>
