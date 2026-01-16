@@ -4,7 +4,7 @@ s2n-tls supports both post-quantum key exchange and post-quantum authentication 
 
 ## Key Exchange: ML-KEM
 
-Currently, only [ML-KEM](https://csrc.nist.gov/pubs/fips/203) is supported for post-quantum key exchange.
+Currently, only [ML-KEM](https://csrc.nist.gov/pubs/fips/203/final) is supported for post-quantum key exchange.
 
 Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.
 
@@ -12,7 +12,7 @@ Careful: An s2n-tls server that enables post-quantum cryptography will mandate p
 
 ## Authentication: ML-DSA
 
-Currently, only [ML-DSA](https://csrc.nist.gov/pubs/fips/204) is supported for post-quantum authentication.
+Currently, only [ML-DSA](https://csrc.nist.gov/pubs/fips/204/final) is supported for post-quantum authentication.
 
 In order to use ML-DSA, you must configure s2n-tls to use an ML-DSA certificate, just as you would configure an RSA or ECDSA certificate. See [certificates](./ch09-certificates.md).
 
