@@ -19,7 +19,7 @@ rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }
 openssl-sys = "0.9.109"
 byteorder = "1.5.0"
-foreign-types-shared = "0.1.1"
+foreign-types-shared = "0.3.1"
 boring = { git = "https://github.com/kaukabrizvi/boring.git", features = ["prefix-symbols"], optional = true }
 
 brass-aphid-wire-decryption = "0.0.2"
