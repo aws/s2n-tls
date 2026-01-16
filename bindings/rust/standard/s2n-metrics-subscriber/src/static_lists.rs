@@ -224,11 +224,7 @@ pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureScheme] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        collections::HashSet,
-        ffi::{c_char, c_int, c_void, CStr},
-        sync::LazyLock,
-    };
+    use std::collections::HashSet;
 
     /// return all of the ciphers defined in any s2n-tls security policy
     fn all_available_ciphers() -> Vec<Cipher> {

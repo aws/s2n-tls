@@ -6,15 +6,33 @@ use std::{env, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
 
+    // for (k, v) in std::env::vars() {
+    //     if k.starts_with("DEP_AWS_LC") {
+    //         println!("{k}={v}");
+    //     }
+    // }
 
     let s2n_tls_sys_dir = PathBuf::from("../../extended/s2n-tls-sys");
     let s2n_lib_include_path = s2n_tls_sys_dir.join("lib");
+
+    // Get the libcrypto headers path from aws-lc-sys
+    // Find any DEP_AWS_LC_*_INCLUDE variable, regardless of version
+    let libcrypto_include_path = std::env::vars()
+        .find_map(|(k, v)| {
+            if k.starts_with("DEP_AWS_LC_") && k.ends_with("_INCLUDE") {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .expect("No DEP_AWS_LC_*_INCLUDE environment variable found");
 
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate bindings for
         .header("wrapper.h")
         .clang_arg(format!("-I{}", s2n_lib_include_path.display()))
         .clang_arg(format!("-I{}/api", s2n_lib_include_path.display()))
+        .clang_arg(format!("-I{}", libcrypto_include_path))
         .size_t_is_usize(true)
         .allowlist_type("s2n_security_policy_selection")
         .allowlist_type("s2n_security_policy")

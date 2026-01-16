@@ -3,8 +3,8 @@
 
 // let the rust compiler that s2n-tls needs to be linked for any of these bindings
 // to work
-use s2n_tls_sys as _;
 use aws_lc_sys as _;
+use s2n_tls_sys as _;
 
 // Include the bindgen generated bindings
 #[allow(
