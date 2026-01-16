@@ -18,6 +18,8 @@
 version: 0.2
 env:
   shell: bash
+  # CodeBuild batch limitation: top-level env vars must be static strings.
+  # Command substitution $(cmd) and variable expansion ${VAR} stay literal and don't propagate to child jobs.
   variables:
     NIX_CACHE_BUCKET: "s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2"
 
