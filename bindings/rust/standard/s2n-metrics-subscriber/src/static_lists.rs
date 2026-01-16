@@ -33,6 +33,8 @@ impl ToStaticString for s2n_tls::enums::Version {
     }
 }
 
+/// This list should match the negotiable TLS versions in s2n-tls, and determines
+/// how many "counter" slots the negotiated version metrics have.
 pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
     &["SSLv3", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"];
 
@@ -139,7 +141,8 @@ impl SignatureScheme {
     }
 }
 
-/// We are required to track OpenSSL naming because that is what 
+/// We are required to track OpenSSL naming because that is what the s2n-tls 
+/// connection API's return.
 #[rustfmt::skip]
 pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[Cipher] = &[
     Cipher::new("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256" ),
