@@ -11,6 +11,7 @@ publish = false
 [dependencies]
 s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
 libc = "0.2.121"
+aws-lc-sys = "*"
 
 [build-dependencies]
 bindgen = "0.72"

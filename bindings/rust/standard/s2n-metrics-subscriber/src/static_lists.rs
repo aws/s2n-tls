@@ -10,6 +10,9 @@
 #![allow(unused)]
 
 #[cfg(test)]
+use std::ffi::c_char;
+
+#[cfg(test)]
 use s2n_tls_sys_internal::{
     s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
 };
@@ -38,7 +41,7 @@ pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
 /// Safety: the memory pointed to by value is static
 /// Safety: the bytes are null terminated
 #[cfg(test)]
-unsafe fn static_memory_to_str(value: *const u8) -> &'static str {
+unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
     use std::ffi::CStr;
     CStr::from_ptr(value).to_str().unwrap()
 }
@@ -231,7 +234,7 @@ mod tests {
     fn all_available_ciphers() -> Vec<Cipher> {
         let ciphers: HashSet<Cipher> = s2n_tls_sys_internal::security_policy_table()
             .iter()
-            .map(|sp| {
+            .flat_map(|sp| {
                 let sp = unsafe { &*sp.security_policy };
                 let names: Vec<Cipher> = sp
                     .ciphers()
@@ -241,7 +244,6 @@ mod tests {
                     .collect();
                 names
             })
-            .flatten()
             .collect();
         let mut ciphers: Vec<Cipher> = ciphers.into_iter().collect();
         ciphers.sort_by_key(|cipher| cipher.iana_description);
@@ -252,7 +254,7 @@ mod tests {
     fn all_available_groups() -> Vec<Group> {
         let groups: HashSet<Group> = s2n_tls_sys_internal::security_policy_table()
             .iter()
-            .map(|sp| {
+            .flat_map(|sp| {
                 let sp = unsafe { &*sp.security_policy };
                 let curves = sp
                     .curves()
@@ -261,7 +263,6 @@ mod tests {
                 let kem_groups = sp.kems().iter().map(|kem| Group::from_s2n_kem_group(kem));
                 curves.chain(kem_groups).collect::<Vec<Group>>()
             })
-            .flatten()
             .collect();
         let mut groups: Vec<Group> = groups.into_iter().collect();
         groups.sort_by_key(|group| group.iana_description);
@@ -272,13 +273,12 @@ mod tests {
     fn all_available_signatures() -> Vec<SignatureScheme> {
         let sigs: HashSet<SignatureScheme> = s2n_tls_sys_internal::security_policy_table()
             .iter()
-            .map(|sp| {
+            .flat_map(|sp| {
                 let sp = unsafe { &*sp.security_policy };
                 sp.signatures()
                     .iter()
                     .map(|sig| SignatureScheme::from_s2n_signature_scheme(sig))
             })
-            .flatten()
             .collect();
         let mut sigs: Vec<SignatureScheme> = sigs.into_iter().collect();
         sigs.sort_by_key(|group| group.iana_description);
