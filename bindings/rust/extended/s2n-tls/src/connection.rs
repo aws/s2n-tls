@@ -31,7 +31,7 @@ use s2n_tls_sys::*;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    ffi::CStr,
+    ffi::{c_char, CStr},
 };
 
 mod builder;
@@ -1169,6 +1169,32 @@ impl Connection {
                 .into_result()?;
         }
         sig_alg.try_into()
+    }
+
+    /// Corresponds to [s2n_connection_get_signature_scheme].
+    pub fn selected_signature_scheme(&self) -> Option<&'static str> {
+        /// # Safety
+        ///
+        /// The caller must ensure the char pointer must contain a valid
+        /// UTF-8 string from a trusted source
+        unsafe fn cstr_to_str(v: *const c_char) -> &'static str {
+            let slice = CStr::from_ptr(v);
+            let bytes = slice.to_bytes();
+            core::str::from_utf8_unchecked(bytes)
+        }
+
+        let mut sig_alg: *const u8 = std::ptr::null();
+        unsafe {
+            s2n_connection_get_signature_scheme(self.connection.as_ptr(), &mut sig_alg)
+                .into_result()
+                .ok()?;
+        }
+        let result = unsafe { cstr_to_str(sig_alg) };
+        if result == "none" {
+            None
+        } else {
+            Some(result)
+        }
     }
 
     /// Corresponds to [s2n_connection_get_selected_digest_algorithm].
