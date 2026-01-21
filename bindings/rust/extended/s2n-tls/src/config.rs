@@ -3,6 +3,8 @@
 
 #[cfg(feature = "unstable-cert_authorities")]
 use crate::cert_authorities::CertificateRequestCallback;
+#[cfg(feature = "unstable-events")]
+use crate::events::{EventSubscriber, HandshakeEvent};
 #[cfg(feature = "unstable-renegotiate")]
 use crate::renegotiate::RenegotiateCallback;
 use crate::{
@@ -292,6 +294,18 @@ impl Builder {
     /// Corresponds to [s2n_config_disable_x509_verification].
     pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
         s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()?;
+        Ok(self)
+    }
+
+    /// Turns off x509 intent verification
+    ///
+    /// # Safety
+    /// This API disables the x509 intent verification functionality. It should only
+    /// be used when updating an incompatible certificate would not be possible.
+    ///
+    /// Corresponds to [s2n_config_disable_x509_intent_verification].
+    pub fn disable_x509_intent_verification(&mut self) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_disable_x509_intent_verification(self.as_mut_ptr()).into_result() }?;
         Ok(self)
     }
 
@@ -712,6 +726,47 @@ impl Builder {
         Ok(self)
     }
 
+    /// Corresponds to [s2n_config_set_subscriber] and [s2n_config_set_handshake_event].
+    #[cfg(feature = "unstable-events")]
+    pub fn set_event_subscriber<T: 'static + EventSubscriber>(
+        &mut self,
+        subscriber: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn on_handshake_event(
+            conn_ptr: *mut s2n_tls_sys::s2n_connection,
+            _subscriber: *mut c_void,
+            event: *mut s2n_tls_sys::s2n_event_handshake,
+        ) {
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.event_subscriber.as_ref();
+                if let Some(callback) = callback {
+                    callback.on_handshake_event(conn, &HandshakeEvent::new(&*event));
+                }
+            });
+        }
+
+        let handler = Box::new(subscriber);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.event_subscriber = Some(handler);
+
+        unsafe {
+            s2n_config_set_subscriber(
+                self.as_mut_ptr(),
+                self.config.context_mut() as *mut Context as *mut c_void,
+            )
+        };
+
+        unsafe {
+            s2n_config_set_handshake_event(self.as_mut_ptr(), Some(on_handshake_event))
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn set_connection_initializer<T: 'static + ConnectionInitializer>(
         &mut self,
         handler: T,
@@ -1096,6 +1151,8 @@ pub(crate) struct Context {
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
     #[cfg(feature = "unstable-crl")]
     pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
+    #[cfg(feature = "unstable-events")]
+    pub(crate) event_subscriber: Option<Box<dyn crate::events::EventSubscriber>>,
 }
 
 impl Default for Context {
@@ -1120,6 +1177,8 @@ impl Default for Context {
             cert_authorities: None,
             #[cfg(feature = "unstable-crl")]
             cert_validation_callback_sync: None,
+            #[cfg(feature = "unstable-events")]
+            event_subscriber: None,
         }
     }
 }
@@ -1199,6 +1258,7 @@ impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::*;
 
     // ensure the config context is send and sync
     #[test]
@@ -1235,6 +1295,42 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn disable_intent_verification() -> Result<(), Error> {
+        let invalid_certs = CertKeyPair::from_path(
+            "intent/cert_chains/ku_key_cert_sign_leaf/",
+            "cert-chain",
+            "leaf-key",
+            "root-cert",
+        );
+
+        for disable_intent in [true, false] {
+            let config = {
+                let mut config = Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+
+                if disable_intent {
+                    config.disable_x509_intent_verification()?;
+                }
+
+                config.load_pem(invalid_certs.cert(), invalid_certs.key())?;
+                config.trust_pem(invalid_certs.ca_cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+
+            if disable_intent {
+                pair.handshake()?;
+            } else {
+                let s2n_err = pair.handshake().unwrap_err();
+                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_INTENT_INVALID");
+            }
+        }
+
+        Ok(())
+    }
+
     #[cfg(all(
         // The `add_custom_x509_extension` API is only exposed when its unstable feature is enabled.
         feature = "unstable-custom_x509_extensions",
@@ -1246,8 +1342,6 @@ mod tests {
     ))]
     #[test]
     fn custom_critical_extensions() -> Result<(), Error> {
-        use crate::testing::*;
-
         let certs = CertKeyPair::from_path(
             "custom_oids/",
             "single_oid_cert_chain",

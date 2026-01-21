@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{future::Future, panic::AssertUnwindSafe};
-
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -29,7 +27,7 @@ impl Libcrypto {
 
         match libcrypto.as_str() {
             "awslc" => Libcrypto::Awslc,
-            "awslc-fips" => Libcrypto::AwslcFips,
+            "awslc-fips" | "awslc-fips-2022" | "awslc-fips-2024" => Libcrypto::AwslcFips,
             "openssl-1.0.2" => Libcrypto::OpenSsl102,
             "openssl-1.1.1" => Libcrypto::OpenSsl111,
             "openssl-3.0" => Libcrypto::OpenSsl30,
@@ -44,8 +42,8 @@ impl Libcrypto {
 pub enum Capability {
     /// Support for TLS 1.3
     Tls13,
-    /// Support for ML-DSA and ML-KEM
-    PQAlgorithms,
+    MLKem,
+    MLDsa,
 }
 
 impl Capability {
@@ -57,10 +55,9 @@ impl Capability {
         match self {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
-            // PQ is only supported for AWS-LC
-            Capability::PQAlgorithms => {
-                libcrypto == Libcrypto::Awslc || libcrypto == Libcrypto::AwslcFips
-            }
+            // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
+            Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
+            Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
         }
     }
 }
@@ -80,27 +77,32 @@ pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
     }
 }
 
-pub fn required_capability_async(
+/// Declare the required capabilities for a test to run.
+///
+/// This function is identical to [`required_capability`], but allows the test function
+/// to return a result.
+pub fn required_capability_with_inner_result(
     required_capabilities: &[Capability],
-    test: impl Future<Output = Result<(), Box<dyn std::error::Error>>>,
+    test: fn() -> Result<(), Box<dyn std::error::Error>>,
 ) {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| rt.block_on(test)));
-
-    if required_capabilities.iter().all(Capability::supported) {
-        // 1 -> no panic
-        // 2 -> returned "ok"
+    let result = std::panic::catch_unwind(test);
+    if required_capabilities.iter().all(|c| c.supported()) {
         result.unwrap().unwrap();
     } else {
         println!("expecting test failure");
         match result {
-            Ok(Ok(())) => panic!("test did not fail"),
-            Ok(Err(e)) => println!("err was {e:?}"),
-            Err(e) => println!("panic was {e:?}"),
+            Ok(Ok(())) => {
+                panic!(
+                    "The test should have failed, but instead succeeded. \
+                    Required capabilities are misconfigured"
+                );
+            }
+            Ok(Err(e)) => {
+                println!("Test failed as expected with explicit error: {e:?}");
+            }
+            Err(panic) => {
+                println!("Test failed as expected with panic: {panic:?}");
+            }
         }
     }
 }

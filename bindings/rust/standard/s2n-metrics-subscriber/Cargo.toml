@@ -1,0 +1,13 @@
+[package]
+name = "s2n-metrics-subscriber"
+version = "0.0.1"
+edition = "2021"
+
+# the crate is in development, and should not be published
+publish = false
+
+[dependencies]
+s2n-tls = { path = "../../extended/s2n-tls"}
+
+[dev-dependencies]
+s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }

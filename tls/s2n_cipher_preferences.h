@@ -66,6 +66,11 @@ extern const struct s2n_cipher_preferences cipher_preferences_20250429;
 extern const struct s2n_cipher_preferences cipher_preferences_20251013;
 extern const struct s2n_cipher_preferences cipher_preferences_20251014;
 extern const struct s2n_cipher_preferences cipher_preferences_20251015;
+extern const struct s2n_cipher_preferences cipher_preferences_20251113;
+extern const struct s2n_cipher_preferences cipher_preferences_20251114;
+extern const struct s2n_cipher_preferences cipher_preferences_20251115;
+extern const struct s2n_cipher_preferences cipher_preferences_20251116;
+extern const struct s2n_cipher_preferences cipher_preferences_20251117;
 
 extern const struct s2n_cipher_preferences cipher_preferences_default_fips;
 
@@ -102,10 +107,15 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstrea
 /* CloudFront viewer facing */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014_sha256;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2017;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_beta;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2025;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_3_2025;
+/* CloudFront undocumented policies for testing */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted;

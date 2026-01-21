@@ -208,6 +208,7 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
     &s2n_secp384r1_mlkem_1024,
+    &s2n_pure_mlkem_1024,
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
@@ -521,4 +522,22 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
     }
 
     return available;
+}
+
+int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found)
+{
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(found);
+    *found = false;
+
+    for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
+        const struct s2n_kem_group *kem_group = ALL_SUPPORTED_KEM_GROUPS[i];
+        POSIX_ENSURE_REF(kem_group);
+        if (kem_group->iana_id == iana_id) {
+            *out = kem_group;
+            *found = true;
+            return S2N_SUCCESS;
+        }
+    }
+    return S2N_SUCCESS;
 }

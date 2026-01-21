@@ -40,8 +40,8 @@ batch:
             - "test_signature_algorithms test_session_resumption test_early_data test_external_psk"
             - "test_version_negotiation test_ocsp test_renegotiate test_serialization test_record_padding
                test_npn test_cross_compatibility test_renegotiate_apache test_hello_retry_requests
-               test_sni_match test_pq_handshake test_fragmentation test_key_update
-               test_client_authentication test_dynamic_record_sizes test_sslyze test_sslv2_client_hello"
+               test_sni_match test_fragmentation test_key_update
+               test_client_authentication test_sslyze test_sslv2_client_hello"
 
 env:
   variables:

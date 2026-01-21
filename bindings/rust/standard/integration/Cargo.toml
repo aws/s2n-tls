@@ -18,11 +18,13 @@ no-sensitive-tests = []
 # can be disabled by turning off this feature.
 pq = [ "s2n-tls/pq" ]
 
+boringssl = ["tls-harness/boringssl"]
+
 [dependencies]
-s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing"]}
+s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing", "unstable-crl"]}
 s2n-tls-hyper = { path = "../s2n-tls-hyper" }
 s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
-s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
+s2n-tls-sys = { path = "../../extended/s2n-tls-sys", features = ["unstable-async_offload", "unstable-renegotiate"] }
 aws-lc-sys = "*"
 tls-harness = { path = "../tls-harness" }
 
@@ -30,6 +32,10 @@ tls-harness = { path = "../tls-harness" }
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
+rustls = "0.23"
+
+brass-aphid-wire-decryption = "0.0.2"
+brass-aphid-wire-messages = "0.0.2"
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -42,6 +48,13 @@ hyper = "1.5"
 hyper-util = "0.1"
 
 dhat = "0.3.3"
+tabled = "0.20.0"
+
+# NOTE: BoringSSL is disabled on macOS to avoid symbol collisions with
+# OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
+[target.'cfg(not(target_os = "macos"))'.dev-dependencies.boring]
+git = "https://github.com/kaukabrizvi/boring.git"
+features = ["prefix-symbols"]
 
 [build-dependencies]
 # The ML-DSA tests require the ML-DSA support added in Openssl-3.5

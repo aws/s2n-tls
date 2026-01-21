@@ -9,12 +9,9 @@
   <Module test_key_update.py>
   <Module test_npn.py>
   <Module test_ocsp.py>
-  <Module test_pq_handshake.py>
   <Module test_record_padding.py>
-  <Module test_renegotiate.py>
   <Module test_renegotiate_apache.py>
   <Module test_serialization.py>
-  <Module test_session_resumption.py>
   <Module test_signature_algorithms.py>
   <Module test_sni_match.py>
   <Module test_sslv2_client_hello.py>

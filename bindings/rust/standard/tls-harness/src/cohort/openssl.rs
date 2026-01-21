@@ -13,6 +13,7 @@ use openssl::ssl::{
 use std::{
     error::Error,
     io::{Read, Write},
+    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -22,8 +23,15 @@ pub struct SessionTicketStorage {
     pub stored_ticket: Arc<Mutex<Option<SslSession>>>,
 }
 
+impl SessionTicketStorage {
+    // panics if no ticket is available
+    pub fn get_ticket(self) -> SslSession {
+        self.stored_ticket.lock().unwrap().take().unwrap()
+    }
+}
+
 pub struct OpenSslConnection {
-    connection: SslStream<ViewIO>,
+    pub connection: SslStream<ViewIO>,
 }
 
 pub struct OpenSslConfig {
@@ -46,7 +54,7 @@ impl TlsConnection for OpenSslConnection {
     fn new_from_config(
         mode: harness::Mode,
         config: &Self::Config,
-        io: &harness::TestPairIO,
+        io: &Rc<harness::TestPairIO>,
     ) -> Result<Self, Box<dyn Error>> {
         // check if there is a session ticket available
         // a session ticket will only be available if the Config was created
