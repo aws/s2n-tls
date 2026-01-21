@@ -140,6 +140,11 @@ jobs:
         # in the same unit of compilation as the definition. Generally this just
         # means that if the linker can't resolve foo_method in tls/foo.c, you
         # forgot to include api/unstable/foo.h in tls/foo.c
+
+        # Note that we don't test the whole "standard" workspace, only the
+        # integration crate. This is because `s2n-tls-sys-internal` (one of our
+        # test dependencies) can not be built with libs2n.so, and requires static
+        # linking to access internal details.
         run: |
           cmake . -Bbuild \
             -DBUILD_SHARED_LIBS=on \
@@ -160,7 +165,7 @@ jobs:
 
           # Run tests with the external build
           cargo test --manifest-path ${{env.ROOT_PATH}}/Cargo.toml
-          cargo test --manifest-path ${{env.STANDARD_PATH}}/Cargo.toml
+          cargo test --manifest-path ${{env.STANDARD_PATH}}/integration/Cargo.toml
 
           echo ""
           echo "Test that the external build will enable the proper cfg flag in s2n-tls. The"
