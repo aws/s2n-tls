@@ -1181,7 +1181,7 @@ impl Connection {
     ///
     /// Corresponds to [s2n_connection_get_signature_scheme].
     pub fn signature_scheme(&self) -> Option<&'static str> {
-        let mut sig_alg: *const u8 = std::ptr::null();
+        let mut sig_alg: *const std::ffi::c_char = std::ptr::null();
         unsafe {
             s2n_connection_get_signature_scheme(self.connection.as_ptr(), &mut sig_alg)
                 .into_result()
