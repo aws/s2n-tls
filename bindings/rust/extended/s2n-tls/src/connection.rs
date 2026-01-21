@@ -15,6 +15,7 @@ use crate::{
     error::{Error, Fallible, Pollable},
     psk::Psk,
     security,
+    utilities::cstr_to_str,
 };
 
 use core::{
@@ -1171,6 +1172,33 @@ impl Connection {
         sig_alg.try_into()
     }
 
+    /// Return the negotiated signature scheme, e.g. "rsa_pss_rsae_sha256".
+    ///
+    /// Note that this does not strictly follow IANA naming conventions for ECDSA
+    /// signatures and legacy SHA224/SHA1 signatures.
+    ///
+    /// This will be `None` in the case of session resumption or RSA key exchange.
+    ///
+    /// Corresponds to [s2n_connection_get_signature_scheme].
+    pub fn signature_scheme(&self) -> Option<&'static str> {
+        let mut sig_alg: *const u8 = std::ptr::null();
+        unsafe {
+            s2n_connection_get_signature_scheme(self.connection.as_ptr(), &mut sig_alg)
+                .into_result()
+                .ok()?;
+        }
+        let result = unsafe {
+            // Safety: signature schemes are C string literals in the s2n-tls codebase,
+            // so they are null-terminated and static.
+            cstr_to_str(sig_alg)
+        };
+        if result == "none" {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
     /// Corresponds to [s2n_connection_get_selected_digest_algorithm].
     pub fn selected_hash_algorithm(&self) -> Result<HashAlgorithm, Error> {
         let mut hash_alg = s2n_tls_hash_algorithm::NONE;
@@ -1618,9 +1646,17 @@ impl Drop for Connection {
 
 #[cfg(test)]
 mod tests {
+    use futures_test::task::noop_waker;
+
     use super::*;
-    use crate::testing::{build_config, SniTestCerts, TestPair};
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use crate::{
+        security::Policy,
+        testing::{build_config, config_builder, LIFOSessionResumption, SniTestCerts, TestPair},
+    };
+    use std::{
+        net::{IpAddr, Ipv4Addr, SocketAddr},
+        time::SystemTime,
+    };
 
     // ensure the connection context is send
     #[test]
@@ -1803,6 +1839,60 @@ mod tests {
         };
 
         assert_eq!(server_name, test_server_name);
+        Ok(())
+    }
+
+    #[test]
+    fn signature_scheme_before_handshake() {
+        let connection = Connection::new_server();
+        assert_eq!(connection.signature_scheme(), None);
+    }
+
+    #[test]
+    fn signature_scheme_after_handshake() -> Result<(), Box<dyn std::error::Error>> {
+        let server_config = {
+            // arbitrary policy that negotiates a cipher suite with a signature scheme
+            let policy = Policy::from_version("20240503")?;
+            let mut builder = config_builder(&policy).unwrap();
+            builder.add_session_ticket_key(
+                b"a key name",
+                b"good enough bytes for test",
+                SystemTime::UNIX_EPOCH,
+            )?;
+            builder.build()?
+        };
+
+        let client_config = {
+            let session_tickets = LIFOSessionResumption::default();
+            let mut builder = config_builder(&security::DEFAULT).unwrap();
+            builder.enable_session_tickets(true)?;
+            builder.set_session_ticket_callback(session_tickets.clone())?;
+            builder.set_connection_initializer(session_tickets.clone())?;
+            builder.build()?
+        };
+
+        // full handshake: signature is reported
+        {
+            let mut test_pair = TestPair::from_configs(&client_config, &server_config);
+            test_pair.client.set_waker(Some(&noop_waker()))?;
+            test_pair.handshake().unwrap();
+            // read in session_ticket
+            assert!(test_pair.client.poll_recv(&mut [0]).is_pending());
+
+            for conn in [&test_pair.client, &test_pair.server] {
+                assert_eq!(conn.signature_scheme(), Some("rsa_pss_rsae_sha256"))
+            }
+        }
+
+        // session resumption: signature is not reported
+        {
+            let mut test_pair = TestPair::from_configs(&client_config, &server_config);
+            test_pair.client.set_waker(Some(&noop_waker()))?;
+            test_pair.handshake().unwrap();
+            assert!(test_pair.client.resumed());
+            assert_eq!(test_pair.client.signature_scheme(), None);
+            assert_eq!(test_pair.server.signature_scheme(), None);
+        }
         Ok(())
     }
 }
