@@ -516,6 +516,50 @@ int main()
      * If PQ is disabled, the expected negotiation outcome is overridden below
      * before performing the handshake test. */
     const struct pq_handshake_test_vector test_vectors[] = {
+        /* Server does not support PQ; client sends a PQ key share and an EC key share;
+         * server should negotiate EC without HRR. */
+        {
+                .client_policy = &security_policy_pq_tls_1_2_2024_10_09,
+                .server_policy = &security_policy_test_all_tls13,
+                .expected_kem_group = NULL,
+                .expected_curve = default_curve,
+                .hrr_expected = false,
+                .len_prefix_expected = true,
+        },
+
+        /* Server does not support PQ; client sends a PQ key share, but no EC shares;
+         * server should negotiate EC and send HRR. */
+        {
+                .client_policy = &security_policy_test_tls13_retry_with_pq,
+                .server_policy = &security_policy_test_all_tls13,
+                .expected_kem_group = NULL,
+                .expected_curve = default_curve,
+                .hrr_expected = true,
+                .len_prefix_expected = true,
+        },
+
+        /* Server supports PQ, but client does not. Client sent an EC share,
+         * EC should be negotiated without HRR */
+        {
+                .client_policy = &security_policy_test_all_tls13,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
+                .expected_kem_group = NULL,
+                .expected_curve = default_curve,
+                .hrr_expected = false,
+                .len_prefix_expected = true,
+        },
+
+        /* Server supports PQ, but client does not. Client did not send any EC shares,
+        * EC should be negotiated after exchanging HRR */
+        {
+                .client_policy = &security_policy_test_tls13_retry,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
+                .expected_kem_group = NULL,
+                .expected_curve = default_curve,
+                .hrr_expected = true,
+                .len_prefix_expected = true,
+        },
+
         /* Confirm that MLKEM768 is negotiable */
         {
                 .client_policy = &mlkem768_test_policy,

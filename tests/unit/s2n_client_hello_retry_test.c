@@ -1306,13 +1306,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
-            const struct s2n_security_policy security_policy_test_tls13_retry_with_pq = {
-                .minimum_protocol_version = S2N_TLS11,
-                .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-                .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
-                .signature_preferences = &s2n_signature_preferences_20200207,
-                .ecc_preferences = &ecc_preferences_for_retry,
-            };
             client_conn->security_policy_override = &security_policy_test_tls13_retry_with_pq;
 
             /* Setup all extensions */
