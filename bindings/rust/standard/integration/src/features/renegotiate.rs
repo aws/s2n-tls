@@ -7,8 +7,8 @@ use std::io::{Read, Write};
 use tls_harness::{
     cohort::{OpenSslConnection, S2NConnection},
     harness::{
-        read_to_bytes, PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair,
-        TlsConnection,
+        PemType, SigType, TlsConfigBuilder, TlsConfigBuilderPair, TlsConnPair, TlsConnection,
+        read_to_bytes,
     },
     openssl_extension::{SslExtension, SslStreamExtension},
 };

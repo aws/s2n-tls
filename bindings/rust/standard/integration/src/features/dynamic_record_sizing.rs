@@ -4,9 +4,9 @@
 use openssl::ssl::SslContextBuilder;
 use std::{thread::sleep, time::Duration};
 use tls_harness::{
+    TlsConnPair,
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
-    TlsConnPair,
 };
 
 /// The byte threshold at which records switch from small to large

@@ -15,12 +15,12 @@ use brass_aphid_wire_messages::iana;
 use openssl::ssl::SslContextBuilder;
 use s2n_tls::security::Policy;
 use tls_harness::{
+    TlsConnPair,
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
-    TlsConnPair,
 };
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 
 struct Trial {
     client_group_configuration: String,

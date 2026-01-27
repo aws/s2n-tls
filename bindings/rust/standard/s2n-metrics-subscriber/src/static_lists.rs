@@ -45,7 +45,7 @@ pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
 #[cfg(test)]
 unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
     use std::ffi::CStr;
-    CStr::from_ptr(value).to_str().unwrap()
+    unsafe { CStr::from_ptr(value).to_str().unwrap() }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

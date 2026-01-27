@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{TlsConfigBuilder, TlsConfigBuilderPair},
     TlsConnPair, TlsConnection,
+    harness::{TlsConfigBuilder, TlsConfigBuilderPair},
 };
 
 /// Perform a simple server-auth handshake.
@@ -45,8 +45,8 @@ mod tests {
     use openssl::ssl::SslContextBuilder;
 
     use crate::{
-        cohort::{OpenSslConnection, S2NConnection},
         TlsConnPair,
+        cohort::{OpenSslConnection, S2NConnection},
     };
 
     /// make sure that the brass-aphid-wire integration is able to correctly decrypt

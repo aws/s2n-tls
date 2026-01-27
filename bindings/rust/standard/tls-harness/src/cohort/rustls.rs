@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{self, read_to_bytes, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
     PemType::{self, *},
     SigType,
+    harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO, read_to_bytes},
 };
 use rustls::{
-    pki_types::{CertificateDer, PrivateKeyDer, ServerName},
-    server::ProducesTickets,
     ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
     RootCertStore, ServerConfig, ServerConnection, SupportedProtocolVersion,
+    pki_types::{CertificateDer, PrivateKeyDer, ServerName},
+    server::ProducesTickets,
 };
 use std::{
     error::Error,

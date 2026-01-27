@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-sys-internal"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 description = "Internal bindings to s2n-tls C library for s2n-metrics-subscriber"
 license = "Apache-2.0"
 

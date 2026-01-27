@@ -7,4 +7,4 @@ pub mod openssl_extension;
 #[cfg(test)]
 pub mod test_utilities;
 
-pub use crate::harness::{get_cert_path, Mode, PemType, SigType, TlsConnPair, TlsConnection};
+pub use crate::harness::{Mode, PemType, SigType, TlsConnPair, TlsConnection, get_cert_path};

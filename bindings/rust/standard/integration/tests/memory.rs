@@ -14,7 +14,7 @@ mod memory_test {
         testing::{self, TestPair},
     };
     use std::{collections::BTreeMap, task::Poll};
-    use tabled::{settings::Style, Table, Tabled};
+    use tabled::{Table, Tabled, settings::Style};
 
     /// Return an estimation of the memory size of the IO buffers
     ///

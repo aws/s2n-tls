@@ -3,13 +3,13 @@
 
 use openssl::ssl::SslContextBuilder;
 use tls_harness::{
+    TlsConnPair,
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
     openssl_extension::SslContextExtension,
-    TlsConnPair,
 };
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 
 const AES_GCM_TAG_LEN: u16 = 16;
 

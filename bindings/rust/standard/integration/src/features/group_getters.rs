@@ -10,12 +10,12 @@ use std::time::SystemTime;
 use openssl::ssl::{SslContextBuilder, SslVersion};
 use s2n_tls::security::Policy;
 use tls_harness::{
-    cohort::{rustls::RustlsConfigBuilder, OpenSslConnection, RustlsConnection, S2NConnection},
-    harness::{TlsConfigBuilderPair, TlsInfo},
     TlsConnPair,
+    cohort::{OpenSslConnection, RustlsConnection, S2NConnection, rustls::RustlsConfigBuilder},
+    harness::{TlsConfigBuilderPair, TlsInfo},
 };
 
-use crate::capability_check::{required_capability_with_inner_result, Capability};
+use crate::capability_check::{Capability, required_capability_with_inner_result};
 
 /// When TLS 1.2 session resumption occurs, the curve and group on the resumed
 /// connection should be none, because TLS 1.2 does not perform a diffie-hellman

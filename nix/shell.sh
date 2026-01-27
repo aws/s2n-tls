@@ -256,5 +256,5 @@ function rust_test {(set -e
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
     echo "rust_test: Running Rust integration tests"
-    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml --features boringssl
+    cargo +stable test --manifest-path bindings/rust/standard/integration/Cargo.toml --features boringssl
 )}

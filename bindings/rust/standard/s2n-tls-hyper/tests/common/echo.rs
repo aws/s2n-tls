@@ -3,7 +3,7 @@
 
 use bytes::Bytes;
 use http::{Request, Response};
-use http_body_util::{combinators::BoxBody, BodyExt};
+use http_body_util::{BodyExt, combinators::BoxBody};
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use s2n_tls::connection::Builder;

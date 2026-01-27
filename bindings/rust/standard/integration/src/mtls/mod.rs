@@ -19,9 +19,9 @@ use std::{
     os::raw::c_void,
     ptr::NonNull,
     sync::{
+        Arc,
         atomic::{AtomicU64, Ordering},
         mpsc::{Receiver, Sender},
-        Arc,
     },
 };
 
@@ -45,9 +45,9 @@ use s2n_tls_sys::{
 };
 
 use tls_harness::{
-    cohort::{RustlsConfig, RustlsConnection, S2NConfig, S2NConnection},
-    harness::{read_to_bytes, TlsConfigBuilder},
     PemType, SigType, TlsConnPair, TlsConnection,
+    cohort::{RustlsConfig, RustlsConnection, S2NConfig, S2NConnection},
+    harness::{TlsConfigBuilder, read_to_bytes},
 };
 
 #[cfg(all(feature = "boringssl", not(target_os = "macos")))]

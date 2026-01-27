@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{self, read_to_bytes, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
     PemType,
+    harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO, read_to_bytes},
 };
 use s2n_tls::{
     callbacks::{SessionTicketCallback, VerifyHostNameCallback},
@@ -215,7 +215,7 @@ impl TlsConnection for S2NConnection {
                     return Err(std::io::Error::new(
                         ErrorKind::WouldBlock,
                         "poll_recv returned pending",
-                    ))
+                    ));
                 }
             }
         }
