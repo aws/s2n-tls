@@ -182,9 +182,9 @@ mod tests {
     use openssl::ssl::SslContextBuilder;
 
     use crate::{
-        cohort::{rustls::RustlsConfigBuilder, OpenSslConnection, RustlsConnection, S2NConnection},
-        harness::TlsConfigBuilderPair,
         TlsConnPair,
+        cohort::{OpenSslConnection, RustlsConnection, S2NConnection, rustls::RustlsConfigBuilder},
+        harness::TlsConfigBuilderPair,
     };
 
     use super::*;

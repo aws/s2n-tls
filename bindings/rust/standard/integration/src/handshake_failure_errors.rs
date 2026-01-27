@@ -5,19 +5,19 @@ use brass_aphid_wire_decryption::decryption::key_manager::KeyManager;
 use brass_aphid_wire_messages::{
     iana::{self},
     protocol::{
-        content_value::{ContentValue, HandshakeMessageValue},
         AlertDescription, AlertLevel,
+        content_value::{ContentValue, HandshakeMessageValue},
     },
 };
 use openssl::ssl::{SslContextBuilder, SslVersion};
 use s2n_tls::{error::ErrorType, security::Policy};
 use tls_harness::{
+    TlsConnPair,
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
-    TlsConnPair,
 };
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 
 #[test]
 fn no_protocols_in_common() {
@@ -96,7 +96,10 @@ fn no_groups_in_common() {
         let s2n_error: Box<s2n_tls::error::Error> = error.downcast().unwrap();
         assert_eq!(s2n_error.kind(), ErrorType::InternalError);
         assert_eq!(s2n_error.name(), "S2N_ERR_INVALID_SUPPORTED_GROUP_STATE");
-        assert_eq!(s2n_error.message(), "SupportedGroup preference decision entered invalid state and selected both KEM and EC Curve");
+        assert_eq!(
+            s2n_error.message(),
+            "SupportedGroup preference decision entered invalid state and selected both KEM and EC Curve"
+        );
     })
 }
 

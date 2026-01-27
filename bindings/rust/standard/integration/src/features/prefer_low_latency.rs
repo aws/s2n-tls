@@ -1,12 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 use openssl::ssl::{SslContextBuilder, SslVersion};
 use tls_harness::{
+    TlsConnPair,
     cohort::{OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
-    TlsConnPair,
 };
 
 /// Maximum observed TLS application-data record payload size when

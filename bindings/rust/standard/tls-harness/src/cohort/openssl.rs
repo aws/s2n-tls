@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    get_cert_path,
+    PemType, get_cert_path,
     harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
-    PemType,
 };
 use openssl::ssl::{
     ErrorCode, ShutdownResult, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod,
