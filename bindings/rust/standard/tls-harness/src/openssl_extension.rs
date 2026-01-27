@@ -14,7 +14,7 @@ fn ssl_get_secure_renegotiation_support(ssl: *mut openssl_sys::SSL) -> std::ffi:
     const SSL_CTRL_GET_RI_SUPPORT: std::ffi::c_int = 76;
     unsafe { openssl_sys::SSL_ctrl(ssl, SSL_CTRL_GET_RI_SUPPORT, 0, std::ptr::null_mut()) }
 }
-extern "C" {
+unsafe extern "C" {
     /// ```c
     /// int SSL_CTX_set_block_padding(SSL_CTX *ctx, size_t block_size);
     /// ```
