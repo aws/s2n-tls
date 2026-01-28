@@ -10,12 +10,15 @@
 //! or `ecdsa_secp384r1_sha384`. A server can only choose that scheme if it's ECDSA
 //! cert matches the curve specified in the signature scheme.
 //!
-//! s2n-tls previously has a bug in this selection logic (). This test protects
-//! against regressions in that behavior
+//! s2n-tls previously has a bug in this selection logic (https://github.com/aws/s2n-tls/pull/5713).
+//! This test protects against regressions in that behavior.
 
 use std::fs;
 
-use crate::TEST_PEMS_PATH;
+use crate::{
+    capability_check::{required_capability, Capability},
+    TEST_PEMS_PATH,
+};
 use brass_aphid_wire_decryption::decryption::{key_manager::KeyManager, Mode};
 use brass_aphid_wire_messages::{
     iana::{self, SignatureScheme},
@@ -96,9 +99,9 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 /// go through its own server preference list and correctly skip signatures incompatible
 /// with its certificate
 #[test]
-fn signature_aware_selection() {
+fn signature_selection() {
     // ECDSA
-    {
+    required_capability(&[Capability::Tls13], || {
         let secp256r1 = CertMaterials::from_permutation("ec_ecdsa_p256_sha256");
         let secp521r1 = CertMaterials::from_permutation("ec_ecdsa_p521_sha512");
 
@@ -113,10 +116,10 @@ fn signature_aware_selection() {
             trial(&policy, &secp521r1),
             iana::constants::ecdsa_secp521r1_sha512
         );
-    }
+    });
 
     // MLDSA
-    {
+    required_capability(&[Capability::MLDsa], || {
         let mldsa87 = CertMaterials {
             private_key_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv"),
             server_chain_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt"),
@@ -130,5 +133,5 @@ fn signature_aware_selection() {
 
         assert_eq!(trial(&DEFAULT_PQ, &mldsa87), iana::constants::mldsa87);
         assert_eq!(trial(&DEFAULT_PQ, &mldsa44), iana::constants::mldsa44);
-    }
+    });
 }

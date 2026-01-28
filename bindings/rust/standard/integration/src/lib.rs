@@ -8,6 +8,8 @@ const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../t
 #[cfg(test)]
 mod capability_check;
 #[cfg(test)]
+mod cert_aware_sig_selection;
+#[cfg(test)]
 mod features;
 #[cfg(test)]
 mod handshake_failure_errors;
@@ -15,5 +17,3 @@ mod handshake_failure_errors;
 mod mtls;
 #[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;
-#[cfg(test)]
-mod signature_aware_selection;
