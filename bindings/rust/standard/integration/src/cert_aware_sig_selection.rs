@@ -61,7 +61,7 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
         // Setup OpenSSL client
         configs.client.set_ca_file(&cert_materials.ca_path).unwrap();
 
-        configs.server.set_security_policy(&server_policy).unwrap();
+        configs.server.set_security_policy(server_policy).unwrap();
         configs.server.set_max_blinding_delay(0).unwrap();
         let chain = fs::read(&cert_materials.server_chain_path).unwrap();
         let key = fs::read(&cert_materials.private_key_path).unwrap();

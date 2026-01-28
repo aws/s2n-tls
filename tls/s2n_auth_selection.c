@@ -124,7 +124,7 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
         } else {
             /* We expect any future signature schemes to also have these restrictions
              * so we concretely fail here until they are properly handled */
-            return S2N_FAILURE;
+            POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
         }
     }
 
