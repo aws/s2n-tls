@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(test)]
+/// the `pems` folder storing most of the s2n-tls unit test certs
+const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
+
+#[cfg(test)]
 mod capability_check;
+#[cfg(test)]
+mod cert_aware_sig_selection;
 #[cfg(test)]
 mod features;
 #[cfg(test)]

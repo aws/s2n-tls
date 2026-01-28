@@ -14,7 +14,7 @@ use tls_harness::{
     TlsConnPair,
 };
 
-const TEST_PEMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/");
+use crate::TEST_PEMS_PATH;
 
 #[test]
 fn s2n_mldsa_client() {
@@ -92,6 +92,8 @@ fn s2n_mldsa_server() {
         pair.handshake().unwrap();
 
         let conn = pair.server.connection();
+        // TODO: use `signature_scheme` api after https://github.com/aws/s2n-tls/pull/5708
+        // is merged
         assert_eq!(
             conn.selected_signature_algorithm().unwrap(),
             SignatureAlgorithm::MLDSA
