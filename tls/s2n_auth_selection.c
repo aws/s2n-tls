@@ -94,18 +94,38 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
 
     s2n_pkey_type cert_type = S2N_PKEY_TYPE_UNKNOWN;
     POSIX_GUARD_RESULT(s2n_signature_algorithm_get_pkey_type(sig_scheme->sig_alg, &cert_type));
-
     /* A valid cert must exist for the authentication method. */
     struct s2n_cert_chain_and_key *cert = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     POSIX_ENSURE_REF(cert);
 
-    /* For TLS1.3 sig_algs that include a curve, the group must also match. */
-    if (sig_scheme->signature_curve && conn->actual_protocol_version >= S2N_TLS13) {
-        POSIX_ENSURE_REF(cert->private_key);
-        POSIX_ENSURE_REF(cert->cert_chain);
-        POSIX_ENSURE_REF(cert->cert_chain->head);
-        POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
-        POSIX_ENSURE_EQ(cert->cert_chain->head->info.public_key_nid, sig_scheme->signature_curve->libcrypto_nid);
+    /* In TLS 1.3, signature scheme may further restrict the certs */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        if (cert_type == S2N_PKEY_TYPE_RSA || cert_type == S2N_PKEY_TYPE_RSA_PSS) {
+            /* a RSA cert is valid for any corresponding RSA signature scheme. For
+             * example an rsae cert can be used for both rsa_pss_rsae_sha256
+             * and rsa_pss_rsae_sha384 */
+            return S2N_SUCCESS;
+        } else if (cert_type == S2N_PKEY_TYPE_ECDSA) {
+            /* TLS 1.3 ECDSA signatures schemes e.g. ecdsa_secp384r1_sha384 also specify
+             * a curve. We must make sure that the certificate has the correct curve */
+            POSIX_ENSURE_REF(cert->private_key);
+            POSIX_ENSURE_REF(cert->cert_chain);
+            POSIX_ENSURE_REF(cert->cert_chain->head);
+            POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
+            POSIX_ENSURE_EQ(cert->cert_chain->head->info.public_key_nid, sig_scheme->signature_curve->libcrypto_nid);
+        } else if (cert_type == S2N_PKEY_TYPE_MLDSA) {
+            /* ML-DSA signatures e.g. mldsa65 include a parameter set (65) which must
+             * match the cert */
+            POSIX_ENSURE_REF(cert->private_key);
+            POSIX_ENSURE_REF(cert->cert_chain);
+            POSIX_ENSURE_REF(cert->cert_chain->head);
+            POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_MLDSA);
+            POSIX_ENSURE_EQ(cert->cert_chain->head->info.signature_nid, sig_scheme->libcrypto_nid);
+        } else {
+            /* We expect any future signature schemes to also have these restrictions
+             * so we concretely fail here until they are properly handled */
+            return S2N_FAILURE;
+        }
     }
 
     return S2N_SUCCESS;
