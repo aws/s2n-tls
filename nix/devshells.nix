@@ -46,10 +46,10 @@ let
       pkgs.lib.optionalString pkgs.stdenv.cc.isGNU ''
         -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
           pkgs.lib.getVersion pkgs.stdenv.cc.cc
-        }
+        } 
               -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
                 pkgs.lib.getVersion pkgs.stdenv.cc.cc
-              }/${pkgs.stdenv.hostPlatform.config}
+              }/${pkgs.stdenv.hostPlatform.config} 
               -idirafter ${pkgs.stdenv.cc.cc}/lib/gcc/${pkgs.stdenv.hostPlatform.config}/${
                 pkgs.lib.getVersion pkgs.stdenv.cc.cc
               }/include''
@@ -90,7 +90,7 @@ let
         } environment from flake.nix...
         export PATH=${openssl_1_1_1}/bin:$PATH
         export PS1="[nix${
-          if withRustTools then " rustup" else ""
+          if withRustTools then " rust" else ""
         } $S2N_LIBCRYPTO] $PS1"
 
         ${extraCMakeFlags}
