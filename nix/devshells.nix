@@ -3,7 +3,8 @@
 
 let
   # --- rustup-driven toolchain selection (from rust-toolchain.toml) ---
-  rustToolchainToml = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
+  rustToolchainToml =
+    builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
 
   RUSTC_VERSION = rustToolchainToml.toolchain.channel or "stable";
 
