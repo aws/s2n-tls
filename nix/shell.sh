@@ -248,16 +248,12 @@ function rust_test {(set -e
     export RUSTUP_HOME=$(pwd)/.rustup
     export CARGO_HOME=$(pwd)/.cargo
     export PATH=$(pwd)/.cargo/bin:$PATH
-    rustup toolchain install stable --profile minimal
-    # Use the toolchain binaries (not rustup proxies), to avoid Nix rustc-wrapper.
-    TOOLCHAIN=stable
-    TOOLCHAIN_RUSTC="$(rustup which --toolchain "$TOOLCHAIN" rustc)"
-    TOOLCHAIN_CARGO="$(rustup which --toolchain "$TOOLCHAIN" cargo)"
+    rustup set profile minimal
+    rustup toolchain install stable
+    rustup override set stable
     echo "rust_test: Exporting s2n-tls headers and libs for Cargo"
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
     echo "rust_test: Running Rust integration tests"
-    RUSTC="$TOOLCHAIN_RUSTC" "$TOOLCHAIN_CARGO" test \
-        --manifest-path bindings/rust/standard/integration/Cargo.toml \
-        --features boringssl
+    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml --features boringssl
 )}

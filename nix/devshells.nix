@@ -2,6 +2,26 @@
 , aws-lc, aws-lc-fips-2022, aws-lc-fips-2024, writeScript }:
 
 let
+  # --- rustup-driven toolchain selection (from rust-toolchain.toml) ---
+  rustToolchainToml = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
+
+  RUSTC_VERSION = rustToolchainToml.toolchain.channel or "stable";
+
+  # rustup uses a target triple in the toolchain directory name
+  RUSTUP_TARGET = pkgs.stdenv.hostPlatform.rust.rustcTarget;
+
+  # The toolchain folder name rustup creates is typically "${channel}-${target}"
+  RUSTUP_TOOLCHAIN = "${RUSTC_VERSION}-${RUSTUP_TARGET}";
+
+  # Ensure rustup-installed cargo/rustc take precedence over anything else.
+  rustupPathHook = ''
+    export RUSTC_VERSION="${RUSTC_VERSION}"
+    export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN}"
+
+    export PATH="$PATH:''${CARGO_HOME:-$HOME/.cargo}/bin"
+    export PATH="$PATH:''${RUSTUP_HOME:-$HOME/.rustup}/toolchains/$RUSTUP_TOOLCHAIN/bin"
+  '';
+
   rustShellHook = ''
     # rust-bindgen uses libclang directly instead of calling the system's cc compiler wrapper.
     # This means it doesn't automatically get the include paths and flags that Nix's gcc-wrapper provides.
@@ -25,10 +45,10 @@ let
       pkgs.lib.optionalString pkgs.stdenv.cc.isGNU ''
         -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
           pkgs.lib.getVersion pkgs.stdenv.cc.cc
-        } 
+        }
               -isystem ${pkgs.stdenv.cc.cc}/include/c++/${
                 pkgs.lib.getVersion pkgs.stdenv.cc.cc
-              }/${pkgs.stdenv.hostPlatform.config} 
+              }/${pkgs.stdenv.hostPlatform.config}
               -idirafter ${pkgs.stdenv.cc.cc}/lib/gcc/${pkgs.stdenv.hostPlatform.config}/${
                 pkgs.lib.getVersion pkgs.stdenv.cc.cc
               }/include''
@@ -41,9 +61,7 @@ let
     pkgs.llvmPackages_18.libclang
     pkgs.llvmPackages_18.bintools
     pkgs.cmake
-    pkgs.rustc
     pkgs.rustup
-    pkgs.cargo
     pkgs.go
   ];
 
@@ -71,10 +89,14 @@ let
         } environment from flake.nix...
         export PATH=${openssl_1_1_1}/bin:$PATH
         export PS1="[nix${
-          if withRustTools then " rust" else ""
+          if withRustTools then " rustup" else ""
         } $S2N_LIBCRYPTO] $PS1"
 
         ${extraCMakeFlags}
+
+        # Use rustup instead of nixpkgs rustc/cargo to avoid rustc-wrapper MSRV mismatches
+        ${pkgs.lib.optionalString withRustTools rustupPathHook}
+
         ${rustShellHook}
         source ${writeScript ./shell.sh}
       '';
