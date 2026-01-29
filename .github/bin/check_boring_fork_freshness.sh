@@ -39,23 +39,11 @@ ERROR: BoringSSL fork branch appears stale.
 
 Why this is failing:
   s2n-tls currently depends on a forked BoringSSL branch (for symbol prefixing) to avoid
-  OpenSSL symbol collisions in integration tests. A stale fork is a maintenance risk.
+  OpenSSL symbol collisions in integration tests. A stale fork risks outdated testing.
 
-How to refresh the fork (typical workflow):
-  1) Sync fork branch with upstream BoringSSL:
-       git clone git@github.com:${FORK_REPO}.git
-       cd boring
-       git remote add upstream https://github.com/google/boringssl.git
-       git fetch upstream
-       git checkout ${FORK_BRANCH}
-       git merge --ff-only upstream/master   # adjust if upstream uses main
-       git push origin ${FORK_BRANCH}
-
-  2) Update s2n-tls to point at the refreshed fork commit (wherever this is pinned),
-     then open a PR.
-
-If the fork is intentionally frozen, raise THRESHOLD_DAYS or disable this check with a comment
-explaining why.
+Refresh git@github.com:${FORK_REPO}/tree/${FORK_BRANCH} by syncing it with the upstream repository, 
+resolving merge conflicts if they appear. This should be done periodically and has not been done in
+~${age_days} days.
 EOF
   exit 1
 fi
