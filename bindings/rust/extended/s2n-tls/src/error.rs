@@ -3,9 +3,10 @@
 
 use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use errno::{errno, Errno};
-use libc::c_char;
 use s2n_tls_sys::*;
-use std::{convert::TryFrom, ffi::CStr};
+use std::convert::TryFrom;
+
+use crate::utilities::cstr_to_str;
 
 /// Corresponds to [s2n_error_type].
 #[non_exhaustive]
@@ -300,16 +301,6 @@ impl Error {
             }
         }
     }
-}
-
-/// # Safety
-///
-/// The caller must ensure the char pointer must contain a valid
-/// UTF-8 string from a trusted source
-unsafe fn cstr_to_str(v: *const c_char) -> &'static str {
-    let slice = CStr::from_ptr(v);
-    let bytes = slice.to_bytes();
-    core::str::from_utf8_unchecked(bytes)
 }
 
 impl TryFrom<std::io::Error> for Error {
