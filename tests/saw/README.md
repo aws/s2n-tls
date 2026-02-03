@@ -25,7 +25,7 @@ specification/implementation of HMAC. Cryptol can be seen as an
 implementation because it is executable. It can be given a message and
 a key as input, and produce output. It is a specification because the
 cryptol language looks like the mathematical language that
-cryptographers like to specify cryptograpy in. It does not have many
+cryptographers like to specify cryptography in. It does not have many
 of the safety risks that a C program has, and it is typically much
 easier to read and understand than a C program.
 
