@@ -1,17 +1,17 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 use openssl::ssl::SslContextBuilder;
 use s2n_tls::{
     enums::SignatureAlgorithm,
-    security::{Policy, DEFAULT_PQ},
+    security::{DEFAULT_PQ, Policy},
 };
 use std::fs;
 use tls_harness::{
-    cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
-    harness::TlsConfigBuilderPair,
     TlsConnPair,
+    cohort::{OpenSslConnection, S2NConnection, s2n_tls::HostNameHandler},
+    harness::TlsConfigBuilderPair,
 };
 
 use crate::TEST_PEMS_PATH;

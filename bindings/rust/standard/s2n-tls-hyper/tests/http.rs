@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::common::{echo::echo, InsecureAcceptAllCertificatesHandler};
+use crate::common::{InsecureAcceptAllCertificatesHandler, echo::echo};
 use bytes::Bytes;
 use common::echo::serve_echo;
 use http::{Method, Request, Uri, Version};

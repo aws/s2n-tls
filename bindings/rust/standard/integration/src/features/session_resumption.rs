@@ -1,20 +1,20 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::capability_check::{required_capability, Capability};
+use crate::capability_check::{Capability, required_capability};
 use std::time::SystemTime;
 
 use openssl::ssl::{SslContextBuilder, SslMethod, SslVersion};
 
 use tls_harness::{
+    Mode, SigType, TlsConnPair,
     cohort::{
+        OpenSslConfig, OpenSslConnection, S2NConfig, S2NConnection,
         openssl::SessionTicketStorage as OSSLTicketStorage,
-        s2n_tls::SessionTicketStorage as S2NTicketStorage, OpenSslConfig, OpenSslConnection,
-        S2NConfig, S2NConnection,
+        s2n_tls::SessionTicketStorage as S2NTicketStorage,
     },
     harness::{TlsConfigBuilder, TlsInfo},
     openssl_extension::SslStreamExtension,
-    Mode, SigType, TlsConnPair,
 };
 
 use s2n_tls::security::Policy;
