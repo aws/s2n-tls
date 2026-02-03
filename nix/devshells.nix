@@ -19,8 +19,8 @@ let
     export RUSTC_VERSION="${RUSTC_VERSION}"
     export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN}"
 
-    export PATH="$PATH:''${CARGO_HOME:-$HOME/.cargo}/bin"
-    export PATH="$PATH:''${RUSTUP_HOME:-$HOME/.rustup}/toolchains/$RUSTUP_TOOLCHAIN/bin"
+    export PATH="''${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+    export PATH="''${RUSTUP_HOME:-$HOME/.rustup}/toolchains/$RUSTUP_TOOLCHAIN/bin:$PATH"
   '';
 
   rustShellHook = ''
