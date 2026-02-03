@@ -29,7 +29,7 @@
 
 /* The number of bytes needed to assign 1 bit to every supported extension.
  * The +1 is necessary to handle any remainder left over when dividing. */
-#define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN ((S2N_SUPPORTED_EXTENSIONS_COUNT / sizeof(char)) + 1)
+#define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN ((S2N_SUPPORTED_EXTENSIONS_COUNT / CHAR_BIT) + 1)
 
 struct s2n_connection;
 typedef struct {
