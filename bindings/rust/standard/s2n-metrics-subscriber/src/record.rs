@@ -53,11 +53,11 @@ pub(crate) struct HandshakeRecordInProgress {
     negotiated_signatures: [AtomicU64; SIGNATURE_COUNT],
 
     /// sum of handshake duration, including network latency and waiting
-    /// 
+    ///
     /// To get the average, divide this by handshake_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
-    /// 
+    ///
     /// To get the average, divide this by handshake_count.
     handshake_compute_us: AtomicU64,
 }
@@ -97,7 +97,7 @@ impl HandshakeRecordInProgress {
         /////////////////////   fields from connection   ///////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        conn.selected_signature_scheme()
+        conn.signature_scheme()
             .and_then(|name| TlsParam::SignatureScheme.description_to_index(name))
             .and_then(|index| self.negotiated_signatures.get(index))
             .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
@@ -223,11 +223,7 @@ mod tests {
             .unwrap();
         assert_eq!(record.negotiated_groups[expected_index], 1);
 
-        let expected_sig = result
-            .client
-            .selected_signature_scheme()
-            .unwrap()
-            .to_owned();
+        let expected_sig = result.client.signature_scheme().unwrap().to_owned();
         let expected_index = TlsParam::SignatureScheme
             .description_to_index(expected_sig.as_str())
             .unwrap();

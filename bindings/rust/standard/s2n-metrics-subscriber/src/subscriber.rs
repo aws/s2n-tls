@@ -1,12 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Arc, Mutex,
-    },
-    time::Instant,
+use std::sync::{
+    mpsc::{self, Receiver, Sender},
+    Arc, Mutex,
 };
 
 use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
@@ -28,19 +25,19 @@ pub struct AggregatedMetricsSubscriber<E> {
 
 /// The [`s2n_tls::events::EventSubscriber`] may be invoked concurrently, which
 /// means that multiple threads might be incrementing the current record. To handle
-/// this and ensure that the `HandshakeRecordInProgress` is never flushed while 
+/// this and ensure that the `HandshakeRecordInProgress` is never flushed while
 /// an update is in progress we use an [`arc_swap::ArcSwap`].
 ///
 /// ArcSwap is basically an `Atomic<Arc<HandshakeRecordInProgress>>`
 ///
 /// We use this as a relatively intuitive form of synchronization. Once there
 /// are no references to the HandshakeRecordInProgress (e.g. no threads updating
-/// it) then its `drop` implementation will write it to the channel, where it can 
+/// it) then its `drop` implementation will write it to the channel, where it can
 /// then be read by the export pipeline.
 #[derive(Debug)]
 struct MetricSubscriberInner<E> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
-    /// This handle is not directly used, but is used when constructing new 
+    /// This handle is not directly used, but is used when constructing new
     /// HandshakeRecordInProgress items.
     tx_handle: Sender<FrozenHandshakeRecord>,
 
@@ -120,16 +117,8 @@ impl Exporter for mpsc::Sender<MetricRecord> {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, time::Instant};
-
-    use s2n_tls::{
-        security::{Policy, DEFAULT, DEFAULT_TLS13},
-        testing::{build_config, config_builder, TestPair},
-    };
 
     use crate::test_utils::TestEndpoint;
-
-    use super::*;
 
     #[test]
     fn record_is_exported() {

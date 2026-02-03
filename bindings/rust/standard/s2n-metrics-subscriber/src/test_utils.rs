@@ -4,7 +4,7 @@
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use s2n_tls::{
-    security::{Policy, DEFAULT_TLS13},
+    security::DEFAULT_TLS13,
     testing::{build_config, config_builder, TestPair},
 };
 
