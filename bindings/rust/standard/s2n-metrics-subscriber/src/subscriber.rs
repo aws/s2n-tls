@@ -9,41 +9,40 @@ use std::{
     time::Instant,
 };
 
-use crate::record::{HandshakeRecord, HandshakeRecordInProgress, MetricRecord};
+use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
 use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
 
 #[derive(Debug)]
 struct ExportPipeline<E> {
-    metric_receiver: Receiver<HandshakeRecord>,
+    metric_receiver: Receiver<FrozenHandshakeRecord>,
     exporter: E,
 }
 
 /// The AggregatedMetricSubscriber can be used to aggregate events over some period
 /// of time, and then export them using an [`Exporter`].
-///
-/// The [`s2n_tls::events::EventSubscriber`] may be invoked concurrently, which
-/// means that multiple threads might be incrementing the current record. To handle
-/// this and ensure that the `S2NMetricRecord` is never flushed while an update
-/// is in progress we use an [`arc_swap::ArcSwap`].
-///
-/// ArcSwap is basically an `Atomic<Arc<S2NMetricRecord>>`
-///
-/// We use this as a relatively intuitive form of synchronization. Once there
-/// are no references to the S2NMetricRecord (e.g. no threads updating it) then
-/// its `drop` implementation will write it to the channel, where it can then
-/// be read by the export pipeline.
 #[derive(Debug, Clone)]
 pub struct AggregatedMetricsSubscriber<E> {
     inner: Arc<MetricSubscriberInner<E>>,
 }
 
+/// The [`s2n_tls::events::EventSubscriber`] may be invoked concurrently, which
+/// means that multiple threads might be incrementing the current record. To handle
+/// this and ensure that the `HandshakeRecordInProgress` is never flushed while 
+/// an update is in progress we use an [`arc_swap::ArcSwap`].
+///
+/// ArcSwap is basically an `Atomic<Arc<HandshakeRecordInProgress>>`
+///
+/// We use this as a relatively intuitive form of synchronization. Once there
+/// are no references to the HandshakeRecordInProgress (e.g. no threads updating
+/// it) then its `drop` implementation will write it to the channel, where it can 
+/// then be read by the export pipeline.
 #[derive(Debug)]
 struct MetricSubscriberInner<E> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
     /// This handle is not directly used, but is used when constructing new S2NMetricRecord
     /// items
-    tx_handle: Sender<HandshakeRecord>,
+    tx_handle: Sender<FrozenHandshakeRecord>,
 
     // the mutex is necessary because s2n-tls callbacks must be Send + Sync
     export_pipeline: Mutex<ExportPipeline<E>>,
@@ -101,10 +100,7 @@ impl<E: Send + Sync + 'static> EventSubscriber for AggregatedMetricsSubscriber<E
         event: &s2n_tls::events::HandshakeEvent,
     ) {
         let current_record = self.inner.current_record.load_full();
-        let start = Instant::now();
         current_record.update(connection, event);
-        let elapsed = start.elapsed();
-        println!("{elapsed:?}");
     }
 }
 

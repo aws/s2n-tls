@@ -78,7 +78,8 @@ impl Display for TlsParam {
     }
 }
 
-/// Maps from the the s2n cipher string representation to the array of the
+/// get the counter index from the openssl name. We prefer to work with IANA id's
+/// but s2n-tls returns the OpenSSL cipher name.
 pub fn cipher_ossl_name_to_index(name: &str) -> Option<usize> {
     CIPHERS_AVAILABLE_IN_S2N
         .iter()

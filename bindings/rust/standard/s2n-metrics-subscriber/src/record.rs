@@ -28,22 +28,24 @@ const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 // likely rely on an enum to handle different record types, e.g. SessionResumptionFailure.
 #[derive(Debug, Clone)]
 pub struct MetricRecord {
-    handshake: HandshakeRecord,
+    handshake: FrozenHandshakeRecord,
 }
 
 impl MetricRecord {
-    pub(crate) fn new(handshake: HandshakeRecord) -> Self {
+    pub(crate) fn new(handshake: FrozenHandshakeRecord) -> Self {
         Self { handshake }
     }
 }
-/// The S2NMetricRecord stores various metrics
+/// The HandshakeRecordInProgress stores the in-flight counters for handshake
+/// information - e.g. negotiated parameters.
 #[derive(Debug)]
 pub(crate) struct HandshakeRecordInProgress {
     /// This is used to send a frozen version back to the Aggregator, after which
     /// point it can be exported. This is only used in the drop impl.
-    exporter: std::sync::mpsc::Sender<HandshakeRecord>,
+    exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
-    sample_count: AtomicU64,
+    /// the total number of handshakes that this record represents.
+    handshake_count: AtomicU64,
 
     negotiated_protocols: [AtomicU64; PROTOCOL_COUNT],
     negotiated_ciphers: [AtomicU64; CIPHER_COUNT],
@@ -51,8 +53,12 @@ pub(crate) struct HandshakeRecordInProgress {
     negotiated_signatures: [AtomicU64; SIGNATURE_COUNT],
 
     /// sum of handshake duration, including network latency and waiting
+    /// 
+    /// To get the average, divide this by handshake_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
+    /// 
+    /// To get the average, divide this by handshake_count.
     handshake_compute_us: AtomicU64,
 }
 
@@ -63,11 +69,11 @@ fn relaxed_freeze<const T: usize>(array: &[AtomicU64; T]) -> [u64; T] {
 }
 
 impl HandshakeRecordInProgress {
-    pub fn new(exporter: std::sync::mpsc::Sender<HandshakeRecord>) -> Self {
+    pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         // default is not implemented for arrays this large
         let ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
         Self {
-            sample_count: Default::default(),
+            handshake_count: Default::default(),
 
             negotiated_groups: Default::default(),
             negotiated_ciphers: ciphers,
@@ -85,7 +91,7 @@ impl HandshakeRecordInProgress {
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
     ) {
-        self.sample_count.fetch_add(1, Ordering::Relaxed);
+        self.handshake_count.fetch_add(1, Ordering::Relaxed);
 
         ////////////////////////////////////////////////////////////////////////
         /////////////////////   fields from connection   ///////////////////////
@@ -115,8 +121,9 @@ impl HandshakeRecordInProgress {
             .and_then(|index| self.negotiated_groups.get(index))
             .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
 
-        // Assumption: durations are less than 500,000 years, otherwise this cast
-        // will panic
+        // accuracy: as long as the handshake took less than 500,000 years
+        // this cast will not truncate. We prefer truncation/less accurate metrics
+        // over a panic.
         self.handshake_compute_us.fetch_add(
             event.synchronous_time().as_micros() as u64,
             Ordering::Relaxed,
@@ -135,10 +142,10 @@ impl HandshakeRecordInProgress {
     /// Simple Intuition: This function takes a `&mut`. Therefore the rust compiler
     /// enforces that there are no other references to this memory and there isn't
     /// anything to actually synchronize. So a Relaxed load is fine.
-    fn finish(&mut self) -> HandshakeRecord {
-        HandshakeRecord {
+    fn finish(&mut self) -> FrozenHandshakeRecord {
+        FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
-            sample_count: self.sample_count.load(Ordering::Relaxed),
+            handshake_count: self.handshake_count.load(Ordering::Relaxed),
             negotiated_protocols: relaxed_freeze(&self.negotiated_protocols),
             negotiated_ciphers: relaxed_freeze(&self.negotiated_ciphers),
             negotiated_groups: relaxed_freeze(&self.negotiated_groups),
@@ -158,10 +165,10 @@ impl Drop for HandshakeRecordInProgress {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct HandshakeRecord {
+pub(crate) struct FrozenHandshakeRecord {
     freeze_time: SystemTime,
 
-    sample_count: u64,
+    handshake_count: u64,
 
     negotiated_protocols: [u64; PROTOCOL_COUNT],
     negotiated_ciphers: [u64; CIPHER_COUNT],
@@ -185,7 +192,7 @@ mod tests {
         let record = endpoint.rx.recv().unwrap();
         let record = record.handshake;
 
-        assert_eq!(record.sample_count, 1);
+        assert_eq!(record.handshake_count, 1);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 1);
         assert_eq!(record.negotiated_groups.iter().sum::<u64>(), 1);
         assert_eq!(record.negotiated_signatures.iter().sum::<u64>(), 1);
@@ -239,7 +246,7 @@ mod tests {
         let record = endpoint.rx.recv().unwrap();
         let record = record.handshake;
 
-        assert_eq!(record.sample_count, 3);
+        assert_eq!(record.handshake_count, 3);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 3);
         assert_eq!(record.negotiated_groups.iter().sum::<u64>(), 3);
         assert_eq!(record.negotiated_signatures.iter().sum::<u64>(), 3);

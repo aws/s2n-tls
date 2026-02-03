@@ -7,5 +7,5 @@ mod subscriber;
 #[cfg(test)]
 mod test_utils;
 
-pub use crate::record::MetricRecord;
+pub use record::MetricRecord;
 pub use subscriber::AggregatedMetricsSubscriber;
