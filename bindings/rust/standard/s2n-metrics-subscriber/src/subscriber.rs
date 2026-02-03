@@ -40,8 +40,8 @@ pub struct AggregatedMetricsSubscriber<E> {
 #[derive(Debug)]
 struct MetricSubscriberInner<E> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
-    /// This handle is not directly used, but is used when constructing new S2NMetricRecord
-    /// items
+    /// This handle is not directly used, but is used when constructing new 
+    /// HandshakeRecordInProgress items.
     tx_handle: Sender<FrozenHandshakeRecord>,
 
     // the mutex is necessary because s2n-tls callbacks must be Send + Sync
