@@ -32,7 +32,7 @@ use s2n_tls_sys::*;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    ffi::{c_char, CStr},
+    ffi::CStr,
 };
 
 mod builder;
