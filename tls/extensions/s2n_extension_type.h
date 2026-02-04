@@ -28,10 +28,10 @@
 #define S2N_SUPPORTED_EXTENSIONS_COUNT (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[0]))
 
 /* The number of bytes needed to assign 1 bit to every supported extension.
- * Uses ceiling devision so the value is rounded up when there is a remainder, for example:
+ * Uses ceiling devision so the value is rounded up as necessary, for example:
  *     S2N_SUPPORTED_EXTENSIONS_COUNT = 21
  *     CHAR_BIT = 8
- *     21 + 7 / 8 = 3.5 = 3 */
+ *     (21 + 7) / 8 = 3.5 = 3 */
 #define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN (((S2N_SUPPORTED_EXTENSIONS_COUNT) + CHAR_BIT - 1) / CHAR_BIT)
 
 struct s2n_connection;
