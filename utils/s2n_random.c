@@ -276,12 +276,35 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
+static inline bool s2n_use_libcrypto_rand(void)
+{
+    /* In FIPS mode we must use libcrypto RNG. */
+    if (s2n_is_in_fips_mode()) {
+        return true;
+    }
+
+    /* Outside FIPS, use libcrypto RNG whenever it supports private randomness,
+     * since that’s the key capability needed to keep "private" distinct.
+     *
+     * Note: Some libcryptos do not provide RAND_public_bytes; in that case
+     * RAND_bytes is used for "public", which is acceptable.
+     */
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    return true;
+#else
+    return false;
+#endif
+}
+
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #else
+    /* Should be unreachable if callers gate on s2n_use_libcrypto_rand(),
+     * but keep a safe fallback.
+     */
     RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #endif
     return S2N_RESULT_OK;
@@ -294,7 +317,7 @@ static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob
     RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #else
     RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
-    #endif
+#endif
     return S2N_RESULT_OK;
 }
 
@@ -325,7 +348,7 @@ static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_use_libcrypto_rand()) {
         RESULT_GUARD(s2n_get_libcrypto_public_random_data(blob));
     } else {
         RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
@@ -335,7 +358,7 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_use_libcrypto_rand()) {
         RESULT_GUARD(s2n_get_libcrypto_private_random_data(blob));
     } else {
         RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
