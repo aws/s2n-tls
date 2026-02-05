@@ -296,29 +296,53 @@ static inline bool s2n_use_libcrypto_rand(void)
 #endif
 }
 
-static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
+bool s2n_random_uses_libcrypto(void)
+{
+    return s2n_use_libcrypto_rand();
+}
+
+static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
+    int (*rand_fn)(unsigned char *buf, int num),
+    struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
-#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
-#else
-    /* Should be unreachable if callers gate on s2n_use_libcrypto_rand(),
-     * but keep a safe fallback.
-     */
-    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
-#endif
+    RESULT_ENSURE_REF(out_blob->data);
+
+    uint8_t *p = out_blob->data;
+    uint32_t remaining = out_blob->size;
+
+    while (remaining > 0) {
+        /* RAND_*bytes takes an int. Never pass a value that can overflow. */
+        const uint32_t max_chunk_u32 =
+            (S2N_DRBG_GENERATE_LIMIT < (uint32_t)INT_MAX) ? S2N_DRBG_GENERATE_LIMIT : (uint32_t)INT_MAX;
+
+        int chunk = (remaining > max_chunk_u32) ? (int)max_chunk_u32 : (int)remaining;
+
+        RESULT_GUARD_OSSL(rand_fn(p, chunk), S2N_ERR_DRBG);
+
+        p += (uint32_t)chunk;
+        remaining -= (uint32_t)chunk;
+    }
+
     return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
+{
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    return s2n_libcrypto_rand_bytes_chunked(RAND_priv_bytes, out_blob);
+#else
+    return s2n_libcrypto_rand_bytes_chunked(RAND_bytes, out_blob);
+#endif
 }
 
 static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob)
 {
-    RESULT_GUARD_PTR(out_blob);
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    return s2n_libcrypto_rand_bytes_chunked(RAND_public_bytes, out_blob);
 #else
-    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    return s2n_libcrypto_rand_bytes_chunked(RAND_bytes, out_blob);
 #endif
-    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s2n_drbg *drbg_state)
@@ -590,7 +614,7 @@ bool s2n_supports_custom_rand(void)
 #elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
     return false;
 #else
-    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
+    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode() && !s2n_use_libcrypto_rand();
 #endif
 }
 

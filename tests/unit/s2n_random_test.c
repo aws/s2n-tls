@@ -80,10 +80,33 @@ static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
      */
     EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
 #endif
-    /* Check that child exited with status = expected_status. If not, this
-     * indicates that an error was encountered in the unit tests executed in
-     * that child process.
-     */
+
+    if (!WIFEXITED(status)) {
+        if (WIFSIGNALED(status)) {
+            fprintf(stderr,
+                "\nChild terminated by signal %d%s\n",
+                WTERMSIG(status),
+#ifdef WCOREDUMP
+                WCOREDUMP(status) ? " (core dumped)" : ""
+#else
+                ""
+#endif
+            );
+        } else {
+            fprintf(stderr,
+                "\nChild did not exit normally. Raw wait status: 0x%x\n",
+                status);
+        }
+    } else {
+        int code = WEXITSTATUS(status);
+        if (code != expected_status) {
+            fprintf(stderr,
+                "\nChild exited with code %d (expected %d)\n",
+                code, expected_status);
+        }
+    }
+
+    /* Original assertions */
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
     EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
 }
@@ -551,7 +574,7 @@ static S2N_RESULT s2n_random_implementation_test(void)
     uint64_t private_bytes_used = 0;
     EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
 
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_random_uses_libcrypto()) {
         /* The libcrypto random implementation should be used when operating in FIPS mode, so
          * the bytes used in the custom DRBG state should not have changed.
          */
@@ -862,8 +885,8 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
         uint64_t public_bytes_used = 0;
         EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
 
-        if (s2n_is_in_fips_mode()) {
-            /* The urandom implementation should not be in use when s2n-tls is in FIPS mode. */
+        if (s2n_random_uses_libcrypto()) {
+            /* The urandom implementation should not be in use when s2n-tls uses the libcrypto random. */
             EXPECT_EQUAL(public_bytes_used, 0);
         } else {
             /* When the urandom implementation is used, the file descriptor is re-opened and
