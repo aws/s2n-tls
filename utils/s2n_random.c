@@ -278,21 +278,26 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
 
 static inline bool s2n_use_libcrypto_rand(void)
 {
-    /* In FIPS mode we must use libcrypto RNG. */
     if (s2n_is_in_fips_mode()) {
         return true;
     }
 
-    /* Outside FIPS, use libcrypto RNG whenever it supports private randomness,
-     * since that’s the key capability needed to keep "private" distinct.
-     *
-     * Note: Some libcryptos do not provide RAND_public_bytes; in that case
-     * RAND_bytes is used for "public", which is acceptable.
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    return true;
+#else
+    /* AWS-LC prior to https://github.com/aws/aws-lc/pull/2963: RAND_priv_bytes 
+     * just wrapped RAND_bytes, so s2n would *not* get distinct public/private 
+     * randomness streams.
      */
+#if defined(OPENSSL_IS_AWSLC)
+    return false;
+#else
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     return true;
 #else
     return false;
+#endif
+#endif 
 #endif
 }
 
@@ -300,6 +305,53 @@ bool s2n_random_uses_libcrypto(void)
 {
     return s2n_use_libcrypto_rand();
 }
+
+/* RAND_*bytes has different signatures across libcryptos (int vs size_t);
+ * adapters normalize to (unsigned char *, int) so we can use function pointers.
+ */
+#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
+
+static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_bytes((uint8_t *)buf, (size_t)num);
+}
+
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_priv_bytes((uint8_t *)buf, (size_t)num);
+}
+#endif
+
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_public_bytes((uint8_t *)buf, (size_t)num);
+}
+#endif
+
+#else /* OpenSSL/LibreSSL */
+
+static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_bytes(buf, num);
+}
+
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_priv_bytes(buf, num);
+}
+#endif
+
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
+{
+    return RAND_public_bytes(buf, num);
+}
+#endif
+
+#endif
 
 static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
     int (*rand_fn)(unsigned char *buf, int num),
@@ -330,18 +382,18 @@ static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
 {
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    return s2n_libcrypto_rand_bytes_chunked(RAND_priv_bytes, out_blob);
+    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_priv_bytes_adapter, out_blob);
 #else
-    return s2n_libcrypto_rand_bytes_chunked(RAND_bytes, out_blob);
+    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_bytes_adapter, out_blob);
 #endif
 }
 
 static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob)
 {
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    return s2n_libcrypto_rand_bytes_chunked(RAND_public_bytes, out_blob);
+    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_public_bytes_adapter, out_blob);
 #else
-    return s2n_libcrypto_rand_bytes_chunked(RAND_bytes, out_blob);
+    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_bytes_adapter, out_blob);
 #endif
 }
 
