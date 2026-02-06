@@ -1,0 +1,20 @@
+name: BoringSSL fork freshness
+
+on:
+  pull_request:
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Check BoringSSL fork freshness (time-bomb)
+        env:
+          FORK_REPO: kaukabrizvi/boring
+          FORK_BRANCH: symbol-prefixing
+          THRESHOLD_DAYS: "180"
+        run: .github/bin/check_boringssl_fork_freshness.sh
