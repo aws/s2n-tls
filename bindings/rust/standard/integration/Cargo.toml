@@ -30,7 +30,7 @@ tls-harness = { path = "../tls-harness" }
 
 [dev-dependencies]
 # Pin for now to avoid 1.88 msrv
-time = "=0.3.45"
+time = "=0.3.47"
 
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
