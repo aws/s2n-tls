@@ -285,7 +285,7 @@ static inline bool s2n_use_libcrypto_rand(void)
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
     return true;
 #else
-    /* AWS-LC prior to https://github.com/aws/aws-lc/pull/2963: RAND_priv_bytes 
+    /* Prior to https://github.com/aws/aws-lc/pull/2963, AWS-LC RAND_priv_bytes 
      * just wrapped RAND_bytes, so s2n would *not* get distinct public/private 
      * randomness streams.
      */
@@ -306,8 +306,8 @@ bool s2n_random_uses_libcrypto(void)
     return s2n_use_libcrypto_rand();
 }
 
-/* RAND_*bytes has different signatures across libcryptos (int vs size_t);
- * adapters normalize to (unsigned char *, int) so we can use function pointers.
+/* RAND_*bytes signatures differ across libcryptos (unsigned char/int vs uint8_t/size_t).
+ * Normalize to (unsigned char *, int) so RAND_*bytes can be used as function pointers.
  */
 #if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
 
@@ -330,7 +330,7 @@ static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
 }
 #endif
 
-#else /* OpenSSL/LibreSSL */
+#else 
 
 static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
 {

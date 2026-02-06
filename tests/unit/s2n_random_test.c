@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
@@ -80,33 +81,10 @@ static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
      */
     EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
 #endif
-
-    if (!WIFEXITED(status)) {
-        if (WIFSIGNALED(status)) {
-            fprintf(stderr,
-                "\nChild terminated by signal %d%s\n",
-                WTERMSIG(status),
-#ifdef WCOREDUMP
-                WCOREDUMP(status) ? " (core dumped)" : ""
-#else
-                ""
-#endif
-            );
-        } else {
-            fprintf(stderr,
-                "\nChild did not exit normally. Raw wait status: 0x%x\n",
-                status);
-        }
-    } else {
-        int code = WEXITSTATUS(status);
-        if (code != expected_status) {
-            fprintf(stderr,
-                "\nChild exited with code %d (expected %d)\n",
-                code, expected_status);
-        }
-    }
-
-    /* Original assertions */
+    /* Check that child exited with status = expected_status. If not, this
+     * indicates that an error was encountered in the unit tests executed in
+     * that child process.
+     */
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
     EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
 }
@@ -579,11 +557,30 @@ static S2N_RESULT s2n_random_implementation_test(void)
          * the bytes used in the custom DRBG state should not have changed.
          */
         EXPECT_EQUAL(public_bytes_used, previous_public_bytes_used);
-        EXPECT_EQUAL(private_bytes_used, previous_public_bytes_used);
+        EXPECT_EQUAL(private_bytes_used, previous_private_bytes_used);
     } else {
         EXPECT_TRUE(public_bytes_used > previous_public_bytes_used);
         EXPECT_TRUE(private_bytes_used > previous_private_bytes_used);
     }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_random_large_generate_test(void)
+{
+    const uint32_t size = (S2N_DRBG_GENERATE_LIMIT * 2) + 123;
+    DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
+    EXPECT_SUCCESS(s2n_alloc(&blob, size));
+
+    EXPECT_OK(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_private_random_data(&blob));
+
+    /* Sanity: not all zeros */
+    uint8_t acc = 0;
+    for (uint32_t i = 0; i < size; i++) {
+        acc |= blob.data[i];
+    }
+    EXPECT_NOT_EQUAL(acc, 0);
 
     return S2N_RESULT_OK;
 }
@@ -636,6 +633,9 @@ static int s2n_common_tests(struct random_test_case *test_case)
 
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
+
+    /* Verify large requests succeed (exercises libcrypto chunking / limits). */
+    EXPECT_OK(s2n_random_large_generate_test());
 
     /* Test that the correct random implementation is used */
     EXPECT_OK(s2n_random_implementation_test());
