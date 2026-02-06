@@ -479,10 +479,8 @@ int main(int argc, char** argv)
             int ret = s2n_ecc_evp_compute_shared_secret_from_params(&server_params,
                     &client_params, &shared_key);
 
-            /* If s2n-tls is in FIPS mode and the libcrypto supports the EC_KEY_check_fips API,
-             * ensure that this API is called by checking for the correct error.
-             */
-            if (s2n_is_in_fips_mode() && s2n_ecc_evp_supports_fips_check()) {
+            /* If s2n-tls is in FIPS mode, ensure that the FIPS-specific error is returned. */
+            if (s2n_is_in_fips_mode()) {
                 EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
