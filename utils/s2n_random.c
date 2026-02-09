@@ -311,10 +311,13 @@ bool s2n_random_uses_libcrypto(void)
  */
 #if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
 
-static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
+/* Only needed if we don't have both public and private rand */
+    #if !defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || !defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
+    static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
 {
     return RAND_bytes((uint8_t *) buf, (size_t) num);
 }
+    #endif
 
     #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
 static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
@@ -331,12 +334,13 @@ static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
     #endif
 
 #else
-
+    #if !defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || !defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
 static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
 {
     return RAND_bytes(buf, num);
 }
-
+    #endif
+    
     #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
 static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
 {
