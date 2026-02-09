@@ -289,15 +289,15 @@ static inline bool s2n_use_libcrypto_rand(void)
      * just wrapped RAND_bytes, so s2n would *not* get distinct public/private 
      * randomness streams.
      */
-#if defined(OPENSSL_IS_AWSLC)
+    #if defined(OPENSSL_IS_AWSLC)
     return false;
-#else
-#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    #else
+        #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     return true;
-#else
+        #else
     return false;
-#endif
-#endif 
+        #endif
+    #endif
 #endif
 }
 
@@ -313,49 +313,49 @@ bool s2n_random_uses_libcrypto(void)
 
 static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
 {
-    return RAND_bytes((uint8_t *)buf, (size_t)num);
+    return RAND_bytes((uint8_t *) buf, (size_t) num);
 }
 
-#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
 static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
 {
-    return RAND_priv_bytes((uint8_t *)buf, (size_t)num);
+    return RAND_priv_bytes((uint8_t *) buf, (size_t) num);
 }
-#endif
+    #endif
 
-#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
 static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
 {
-    return RAND_public_bytes((uint8_t *)buf, (size_t)num);
+    return RAND_public_bytes((uint8_t *) buf, (size_t) num);
 }
-#endif
+    #endif
 
-#else 
+#else
 
 static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
 {
     return RAND_bytes(buf, num);
 }
 
-#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
 static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
 {
     return RAND_priv_bytes(buf, num);
 }
-#endif
+    #endif
 
-#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
 static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
 {
     return RAND_public_bytes(buf, num);
 }
-#endif
+    #endif
 
 #endif
 
 static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
-    int (*rand_fn)(unsigned char *buf, int num),
-    struct s2n_blob *out_blob)
+        int (*rand_fn)(unsigned char *buf, int num),
+        struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
     RESULT_ENSURE_REF(out_blob->data);
@@ -366,14 +366,14 @@ static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
     while (remaining > 0) {
         /* RAND_*bytes takes an int. Never pass a value that can overflow. */
         const uint32_t max_chunk_u32 =
-            (S2N_DRBG_GENERATE_LIMIT < (uint32_t)INT_MAX) ? S2N_DRBG_GENERATE_LIMIT : (uint32_t)INT_MAX;
+                (S2N_DRBG_GENERATE_LIMIT < (uint32_t) INT_MAX) ? S2N_DRBG_GENERATE_LIMIT : (uint32_t) INT_MAX;
 
-        int chunk = (remaining > max_chunk_u32) ? (int)max_chunk_u32 : (int)remaining;
+        int chunk = (remaining > max_chunk_u32) ? (int) max_chunk_u32 : (int) remaining;
 
         RESULT_GUARD_OSSL(rand_fn(p, chunk), S2N_ERR_DRBG);
 
-        p += (uint32_t)chunk;
-        remaining -= (uint32_t)chunk;
+        p += (uint32_t) chunk;
+        remaining -= (uint32_t) chunk;
     }
 
     return S2N_RESULT_OK;

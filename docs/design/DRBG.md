@@ -1,7 +1,7 @@
 # Deterministic Random Bit Generator
 
 ## Background
-s2n-tls uses a deterministic random bit geenerator (DRBG) to generate cryptographically secure randomness. s2n uses randomly generated data in several places including:
+s2n-tls uses a deterministic random bit generator (DRBG) to generate cryptographically secure randomness. s2n uses randomly generated data in several places including:
 - Random field of a client/server hello handshake message
 - RSA TLS 1.2 fallback pre-master secret generation.
 - TLS 1.3 new session ticket: random ticket_age_add per ticket.
@@ -45,7 +45,7 @@ Even when specific bugs are resolved, changes in platform behavior, toolchains, 
 ## Current Behavior
 The "libcrypto" layer refers to randomness generated inside the cryptographic backend itself (e.g., via RAND_bytes() / RAND_priv_bytes() and other internal libcrypto consumers), while the "TLS layer" refers to randomness generated directly by s2n-tls to implement the TLS protocol (handshake randoms, nonces, tickets, and key schedule inputs).
 
-s2n relies on the backend libcrypto’s native random implementation at the libcrypto layer when building with AWS-LC, BoringSSL, LibreSSL, or wtih FIPS libcrypto. The only configuration where s2n forces its custom random implementation into the libcrypto layer is when building against OpenSSL in non-FIPS mode. At the TLS layer, s2n uses its custom per-thread DRBG by default, delegating TLS-layer randomness to libcrypto only when operating in FIPS mode.
+s2n relies on the backend libcrypto’s native random implementation at the libcrypto layer when building with AWS-LC, BoringSSL, LibreSSL, or with FIPS libcrypto. The only configuration where s2n forces its custom random implementation into the libcrypto layer is when building against OpenSSL in non-FIPS mode. At the TLS layer, s2n uses its custom per-thread DRBG by default, delegating TLS-layer randomness to libcrypto only when operating in FIPS mode.
 
 s2n’s custom DRBG has been maintained primarily because AWS-LC did not provide distinct public and private randomness, which s2n guarantees as a defense-in-depth measure for TLS-layer randomness. AWS-LC added separate public/private randomness support in this [PR](https://github.com/aws/aws-lc/pull/2963), removing the primary blocker.
 
