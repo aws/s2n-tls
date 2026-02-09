@@ -16,5 +16,5 @@ jobs:
         env:
           FORK_REPO: kaukabrizvi/boring
           FORK_BRANCH: symbol-prefixing
-          THRESHOLD_DAYS: "180"
+          THRESHOLD_DAYS: "1"
         run: .github/bin/check_boringssl_fork_freshness.sh
