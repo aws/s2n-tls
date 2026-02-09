@@ -5,20 +5,15 @@ let
   # --- rustup-driven toolchain selection (from rust-toolchain.toml) ---
   rustToolchainToml =
     builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
-
   RUSTC_VERSION = rustToolchainToml.toolchain.channel or "stable";
-
   # rustup uses a target triple in the toolchain directory name
   RUSTUP_TARGET = pkgs.stdenv.hostPlatform.rust.rustcTarget;
-
-  # The toolchain folder name rustup creates is typically "${channel}-${target}"
+  # The toolchain folder name rustup creates is "${channel}-${target}"
   RUSTUP_TOOLCHAIN = "${RUSTC_VERSION}-${RUSTUP_TARGET}";
-
-  # Ensure rustup-installed cargo/rustc take precedence over anything else.
+  # Ensure rustup-installed cargo/rustc take precedence in path
   rustupPathHook = ''
     export RUSTC_VERSION="${RUSTC_VERSION}"
     export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN}"
-
     export PATH="''${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
     export PATH="''${RUSTUP_HOME:-$HOME/.rustup}/toolchains/$RUSTUP_TOOLCHAIN/bin:$PATH"
   '';
