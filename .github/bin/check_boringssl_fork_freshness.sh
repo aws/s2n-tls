@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Configurable via env (easy to adjust in CI)
+# The script is configurable via environment variablesß
 FORK_REPO="${FORK_REPO:-kaukabrizvi/boring}"          # owner/repo
 FORK_BRANCH="${FORK_BRANCH:-symbol-prefixing}"        # branch to check
-THRESHOLD_DAYS="${THRESHOLD_DAYS:-180}"               # ~6 months
+THRESHOLD_DAYS="${THRESHOLD_DAYS:-60}"               # ~2 months
 
-# Requires: curl, jq
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required for the BoringSSL fork freshness check."
   exit 2
