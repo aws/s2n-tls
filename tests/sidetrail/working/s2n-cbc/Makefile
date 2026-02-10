@@ -1,5 +1,6 @@
 include ../../lib/ct-verif.mk
 
+unroll := 15
 cflags +=-D__TIMING_CONTRACTS__
 #the overriden .h
 cflags += -I$(CURDIR)
