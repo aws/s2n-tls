@@ -121,17 +121,8 @@ impl EmfDimension {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::LazyLock;
-
     use super::*;
-    use crate::{
-        test_utils::{TestEndpoint, ARBITRARY_POLICY_1, ARBITRARY_POLICY_2},
-        AggregatedMetricsSubscriber,
-    };
-    use s2n_tls::{
-        security::Policy,
-        testing::{build_config, config_builder, TestPair},
-    };
+    use crate::test_utils::{TestEndpoint, ARBITRARY_POLICY_1, ARBITRARY_POLICY_2};
 
     /// Sanity check, non-empty records are emitted
     #[test]
