@@ -31,7 +31,7 @@ tls-harness = { path = "../tls-harness" }
 [dev-dependencies]
 # Pin for now to avoid 1.88 msrv
 time = "=0.3.45"
-# Pin for now to avoid 1.85 msrv
+# Pin for now to avoid msrv bump
 deranged = "=0.5.5"
 
 openssl = { version = "0.10", features = ["vendored"] }
