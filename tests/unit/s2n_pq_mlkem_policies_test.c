@@ -184,7 +184,7 @@ int main(int argc, char **argv)
             }
         }
 
-        /* Policies that have ML-KEM should not have 3DES, RC4, or (abandoned/deprecated) draft TLS 1.2 Kyber support */
+        /* Policies that have ML-KEM should not have 3DES or RC4 */
         for (int j = 0; j < s2n_array_len(legacy_cipher_suites); j++) {
             bool has_cipher = false;
             EXPECT_OK(s2n_policy_has_cipher(security_policy, legacy_cipher_suites[j], &has_cipher));
