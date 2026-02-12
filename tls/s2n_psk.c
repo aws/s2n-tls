@@ -329,6 +329,11 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         return S2N_SUCCESS;
     }
 
+    /* Using an uninitialized psk could cause a crash.
+     * The identity will not have been set, so the data will be NULL.
+     */
+    POSIX_ENSURE_REF(psk->identity.data);
+
     if (psk_params->type == S2N_PSK_TYPE_RESUMPTION && psk_list->conn->config->use_tickets) {
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
         POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));
