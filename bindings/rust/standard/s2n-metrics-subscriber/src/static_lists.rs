@@ -9,13 +9,83 @@
 // won't be used until the subscriber is actually implemented
 #![allow(unused)]
 
-#[cfg(test)]
-use std::ffi::c_char;
+use std::{
+    collections::HashMap,
+    ffi::c_char,
+    fmt::Display,
+    sync::{LazyLock, Mutex},
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TlsParam {
+    /// E.g. TLS 1.2
+    Version,
+    /// E.g. TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    Cipher,
+    /// E.g. SecP256r1MLKEM768
+    Group,
+    /// E.g. ecdsa_secp384r1_sha384
+    SignatureScheme,
+}
 
 #[cfg(test)]
 use s2n_tls_sys_internal::{
     s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
 };
+
+impl TlsParam {
+    pub fn index_to_description(&self, index: usize) -> Option<&'static str> {
+        match self {
+            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N.get(index).copied(),
+            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
+                .get(index)
+                .map(|name| name.iana_description),
+            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
+                .get(index)
+                .map(|name| name.iana_description),
+            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+                .get(index)
+                .map(|name| name.description),
+        }
+    }
+
+    pub fn description_to_index(&self, name: &str) -> Option<usize> {
+        match self {
+            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
+                .iter()
+                .position(|version| *version == name),
+            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
+                .iter()
+                .position(|cipher| cipher.iana_description == name),
+            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
+                .iter()
+                .position(|group| group.iana_description == name),
+            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+                .iter()
+                .position(|sig| sig.description == name),
+        }
+    }
+}
+
+impl Display for TlsParam {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TlsParam::Version => write!(f, "version"),
+            TlsParam::Cipher => write!(f, "cipher"),
+            TlsParam::Group => write!(f, "group"),
+            TlsParam::SignatureScheme => write!(f, "signature_scheme"),
+        }
+    }
+}
+
+/// get the counter index from the openssl name. We prefer to work with IANA id's
+/// but s2n-tls returns the OpenSSL cipher name.
+pub fn cipher_ossl_name_to_index(name: &str) -> Option<usize> {
+    CIPHERS_AVAILABLE_IN_S2N
+        .iter()
+        .position(|current_cipher| *current_cipher.openssl_name == *name)
+}
+
 pub trait ToStaticString {
     fn to_static_string(&self) -> &'static str;
 }
@@ -48,7 +118,7 @@ unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
     CStr::from_ptr(value).to_str().unwrap()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Cipher {
     iana_description: &'static str,
     iana_value: [u8; 2],
@@ -118,16 +188,24 @@ impl Group {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct SignatureScheme {
-    iana_description: &'static str,
+    /// This is the IANA description only where that is unambiguously correct.
+    ///
+    /// Examples of non-iana signatures include legacy hashes (e.g. `legacy_ecdsa_sha224`)
+    /// and ECDSA signatures (e.g. `ecdsa_sha256`).
+    description: &'static str,
     iana_value: u16,
 }
 
 impl SignatureScheme {
     const fn new(iana_description: &'static str, iana_value: u16) -> Self {
         Self {
-            iana_description,
+            description: iana_description,
             iana_value,
         }
+    }
+
+    pub fn description(&self) -> &'static str {
+        self.description
     }
 
     #[cfg(test)]
@@ -227,7 +305,10 @@ pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureScheme] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::{
+        collections::HashSet,
+        ffi::{c_char, c_int, c_void, CStr},
+    };
 
     /// return all of the ciphers defined in any s2n-tls security policy
     fn all_available_ciphers() -> Vec<Cipher> {
@@ -280,7 +361,7 @@ mod tests {
             })
             .collect();
         let mut sigs: Vec<SignatureScheme> = sigs.into_iter().collect();
-        sigs.sort_by_key(|group| group.iana_description);
+        sigs.sort_by_key(|sig| sig.description);
         sigs
     }
 
@@ -300,5 +381,41 @@ mod tests {
     fn all_signature_schemes_in_static_list() {
         let schemes = all_available_signatures();
         assert_eq!(&schemes, SIGNATURE_SCHEMES_AVAILABLE_IN_S2N);
+    }
+
+    #[test]
+    fn index_and_name_lookup() {
+        for (index, item) in CIPHERS_AVAILABLE_IN_S2N.iter().enumerate() {
+            let returned_index = TlsParam::Cipher
+                .description_to_index(item.iana_description)
+                .unwrap();
+            let returned_description = TlsParam::Cipher
+                .index_to_description(returned_index)
+                .unwrap();
+            assert_eq!(returned_description, item.iana_description);
+            assert_eq!(returned_index, index);
+        }
+
+        for (index, item) in GROUPS_AVAILABLE_IN_S2N.iter().enumerate() {
+            let returned_index = TlsParam::Group
+                .description_to_index(item.iana_description)
+                .unwrap();
+            let returned_description = TlsParam::Group
+                .index_to_description(returned_index)
+                .unwrap();
+            assert_eq!(returned_description, item.iana_description);
+            assert_eq!(returned_index, index);
+        }
+
+        for (index, item) in SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.iter().enumerate() {
+            let returned_index = TlsParam::SignatureScheme
+                .description_to_index(item.description)
+                .unwrap();
+            let returned_description = TlsParam::SignatureScheme
+                .index_to_description(returned_index)
+                .unwrap();
+            assert_eq!(returned_description, item.description);
+            assert_eq!(returned_index, index);
+        }
     }
 }
