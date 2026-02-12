@@ -1,0 +1,12 @@
+[package]
+name = "s2n-metrics-subscriber"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+arc-swap = "1.8.0"
+# we at least need 0.3.33, because that is when the event APIs were introduced
+s2n-tls = { version = "0.3.33", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
+
+[dev-dependencies]
+s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }

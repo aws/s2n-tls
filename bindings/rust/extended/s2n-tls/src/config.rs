@@ -297,6 +297,18 @@ impl Builder {
         Ok(self)
     }
 
+    /// Turns off x509 intent verification
+    ///
+    /// # Safety
+    /// This API disables the x509 intent verification functionality. It should only
+    /// be used when updating an incompatible certificate would not be possible.
+    ///
+    /// Corresponds to [s2n_config_disable_x509_intent_verification].
+    pub fn disable_x509_intent_verification(&mut self) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_disable_x509_intent_verification(self.as_mut_ptr()).into_result() }?;
+        Ok(self)
+    }
+
     /// Corresponds to [s2n_config_add_dhparams].
     pub fn add_dhparams(&mut self, pem: &[u8]) -> Result<&mut Self, Error> {
         let cstring = CString::new(pem).map_err(|_| Error::INVALID_INPUT)?;
@@ -1246,6 +1258,7 @@ impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::*;
 
     // ensure the config context is send and sync
     #[test]
@@ -1282,6 +1295,42 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn disable_intent_verification() -> Result<(), Error> {
+        let invalid_certs = CertKeyPair::from_path(
+            "intent/cert_chains/ku_key_cert_sign_leaf/",
+            "cert-chain",
+            "leaf-key",
+            "root-cert",
+        );
+
+        for disable_intent in [true, false] {
+            let config = {
+                let mut config = Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+
+                if disable_intent {
+                    config.disable_x509_intent_verification()?;
+                }
+
+                config.load_pem(invalid_certs.cert(), invalid_certs.key())?;
+                config.trust_pem(invalid_certs.ca_cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+
+            if disable_intent {
+                pair.handshake()?;
+            } else {
+                let s2n_err = pair.handshake().unwrap_err();
+                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_INTENT_INVALID");
+            }
+        }
+
+        Ok(())
+    }
+
     #[cfg(all(
         // The `add_custom_x509_extension` API is only exposed when its unstable feature is enabled.
         feature = "unstable-custom_x509_extensions",
@@ -1293,8 +1342,6 @@ mod tests {
     ))]
     #[test]
     fn custom_critical_extensions() -> Result<(), Error> {
-        use crate::testing::*;
-
         let certs = CertKeyPair::from_path(
             "custom_oids/",
             "single_oid_cert_chain",

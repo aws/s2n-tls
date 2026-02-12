@@ -22,9 +22,9 @@ int main()
     if (ctx == NULL) {
         return 1;
     }
-    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_KYBER512_R3)
-            || !EVP_PKEY_CTX_kem_set_params(ctx, NID_KYBER768_R3)
-            || !EVP_PKEY_CTX_kem_set_params(ctx, NID_KYBER1024_R3)) {
+    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM512)
+            || !EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM768)
+            || !EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM1024)) {
         EVP_PKEY_CTX_free(ctx);
         return 1;
     }

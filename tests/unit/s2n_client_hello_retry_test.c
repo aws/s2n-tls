@@ -274,18 +274,18 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
                     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
 
-                    /* Client sends ClientHello containing key share for p256+Kyber
-                     * (but indicates support for x25519+Kyber in supported_groups) */
+                    /* Client sends ClientHello containing key share for X25519MLKEM768
+                     * (but indicates support for SecP256r1MLKEM768 in supported_groups) */
                     EXPECT_SUCCESS(s2n_client_hello_send(conn));
 
                     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
                     conn->session_id_len = 0; /* Wipe the session id to match the HRR hex */
 
-                    /* Server responds with HRR indicating x25519+Kyber as choice for negotiation;
-                     * the last 6 bytes (0033 0002 2F39) are the key share extension with x25519+Kyber */
+                    /* Server responds with HRR indicating SecP256r1MLKEM768 as choice for negotiation;
+                     * the last 6 bytes (0033 0002 11EB) are the key share extension with SecP256r1MLKEM768 */
                     DEFER_CLEANUP(struct s2n_stuffer hrr = { 0 }, s2n_stuffer_free);
                     EXPECT_OK(s2n_stuffer_alloc_from_hex(&hrr,
-                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F39"));
+                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B000203040033000211EB"));
 
                     EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));
                     conn->handshake.message_number = HELLO_RETRY_MSG_NO;

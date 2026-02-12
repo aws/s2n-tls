@@ -24,11 +24,14 @@ boringssl = ["tls-harness/boringssl"]
 s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing", "unstable-crl"]}
 s2n-tls-hyper = { path = "../s2n-tls-hyper" }
 s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
-s2n-tls-sys = { path = "../../extended/s2n-tls-sys", features = ["unstable-async_offload"] }
+s2n-tls-sys = { path = "../../extended/s2n-tls-sys", features = ["unstable-async_offload", "unstable-renegotiate"] }
 aws-lc-sys = "*"
 tls-harness = { path = "../tls-harness" }
 
 [dev-dependencies]
+# Pin for now to avoid 1.88 msrv
+time = "=0.3.45"
+
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
