@@ -1,7 +1,7 @@
 min version: TLS1.2
 rules:
-- Perfect Forward Secrecy: no
-- FIPS 140-3 (2019): yes
+- Perfect Forward Secrecy: yes
+- FIPS 140-3 (2019): yes (required)
 cipher suites:
 - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
 - TLS_DHE_RSA_WITH_AES_256_CBC_SHA

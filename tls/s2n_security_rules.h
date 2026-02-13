@@ -48,6 +48,9 @@ struct s2n_security_rule {
     S2N_RESULT (*validate_version)(uint8_t version, bool *valid);
 };
 
+S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rule,
+        const struct s2n_security_policy *policy, struct s2n_security_rule_result *result);
+
 S2N_RESULT s2n_security_policy_validate_security_rules(
         const struct s2n_security_policy *policy,
         struct s2n_security_rule_result *result);
