@@ -23,7 +23,7 @@
 #include "tls/s2n_security_rules.h"
 #include "utils/s2n_safety.h"
 
-#define MEETS_BOOL_STR(b) ((b) ? "yes" : "no")
+#define MEETS_BOOL_STR(b)    ((b) ? "yes" : "no")
 #define REQUIRED_BOOL_STR(b) ((b) ? "yes, required" : "not required")
 
 extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
@@ -51,7 +51,7 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
     RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "rules:\n"));
     for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
         bool requiredRule = policy->rules[i];
-        const char* status = REQUIRED_BOOL_STR(requiredRule);
+        const char *status = REQUIRED_BOOL_STR(requiredRule);
         if (!requiredRule) {
             struct s2n_security_rule_result result;
             RESULT_GUARD(s2n_security_rule_validate_policy(&security_rule_definitions[i], policy, &result));
