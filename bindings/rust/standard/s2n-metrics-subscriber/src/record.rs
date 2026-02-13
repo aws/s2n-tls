@@ -1,18 +1,17 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// allow dead code until we have the EMF conversion code in place, otherwise the
-// record fields will have a "never read" warning
-#![allow(dead_code)]
-
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::SystemTime,
 };
 
-use crate::static_lists::{
-    self, TlsParam, ToStaticString, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
-    SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, VERSIONS_AVAILABLE_IN_S2N,
+use crate::{
+    label::{metric_label, State},
+    static_lists::{
+        self, TlsParam, ToStaticString, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
+        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, VERSIONS_AVAILABLE_IN_S2N,
+    },
 };
 
 const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
@@ -36,6 +35,13 @@ impl MetricRecord {
         Self { handshake }
     }
 }
+
+impl metrique_writer::Entry for MetricRecord {
+    fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        self.handshake.write(writer)
+    }
+}
+
 /// The HandshakeRecordInProgress stores the in-flight counters for handshake
 /// information - e.g. negotiated parameters.
 #[derive(Debug)]
@@ -178,18 +184,71 @@ pub(crate) struct FrozenHandshakeRecord {
     handshake_duration_us: u64,
     handshake_compute_us: u64,
 }
+
+impl metrique_writer::Entry for FrozenHandshakeRecord {
+    fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        writer.timestamp(self.freeze_time);
+
+        for (list, parameter, state) in [
+            (
+                self.negotiated_protocols.as_slice(),
+                TlsParam::Version,
+                State::Negotiated,
+            ),
+            (
+                self.negotiated_ciphers.as_slice(),
+                TlsParam::Cipher,
+                State::Negotiated,
+            ),
+            (
+                self.negotiated_groups.as_slice(),
+                TlsParam::Group,
+                State::Negotiated,
+            ),
+            (
+                self.negotiated_signatures.as_slice(),
+                TlsParam::SignatureScheme,
+                State::Negotiated,
+            ),
+        ] {
+            list.iter()
+                .enumerate()
+                .filter(|(_index, count)| **count > 0)
+                .filter_map(
+                    |(index, count)| match parameter.index_to_description(index) {
+                        Some(name) => Some((name, count)),
+                        None => {
+                            debug_assert!(false, "failed to get name for {index} of {parameter:?}");
+                            None
+                        }
+                    },
+                )
+                .for_each(|(name, count)| {
+                    let label = metric_label(name, parameter, state);
+                    writer.value(label, count);
+                });
+        }
+
+        writer.value("handshake_count", &self.handshake_count);
+        writer.value("handshake_duration_us", &self.handshake_duration_us);
+        writer.value("handshake_compute_us", &self.handshake_compute_us);
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::sync::mpsc::Receiver;
+
     use super::*;
-    use crate::test_utils::TestEndpoint;
+    use crate::test_utils::{TestEndpoint, ARBITRARY_POLICY_1};
 
     #[test]
     fn record_contents() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
 
-        let result = endpoint.client_handshake();
+        let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.rx.recv().unwrap();
+        let record = endpoint.exporter.recv().unwrap();
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 1);
@@ -232,14 +291,14 @@ mod tests {
 
     #[test]
     fn multiple_records() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
 
-        endpoint.client_handshake();
-        endpoint.client_handshake();
-        endpoint.client_handshake();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         endpoint.subscriber.finish_record();
-        let record = endpoint.rx.recv().unwrap();
+        let record = endpoint.exporter.recv().unwrap();
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 3);
@@ -255,17 +314,17 @@ mod tests {
     /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
 
-        endpoint.client_handshake();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let single_handshake = endpoint.rx.recv().unwrap().handshake;
+        let single_handshake = endpoint.exporter.recv().unwrap().handshake;
 
-        endpoint.client_handshake();
-        endpoint.client_handshake();
-        endpoint.client_handshake();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let multiple_handshakes = endpoint.rx.recv().unwrap().handshake;
+        let multiple_handshakes = endpoint.exporter.recv().unwrap().handshake;
 
         assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
         assert!(
