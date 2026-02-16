@@ -34,13 +34,13 @@ int main(int argc, char **argv)
     /* This testfile includes various scenarios where the signature writer ignores the curve preferences of the
      * peer when creating the transcript signature. The setup is slightly different depending on the protocol
      * version being negotiated.
-     * 
+     *
      * In TLS1.2, an endpoint advertised its supported curves list through the supported curves extension.
-     * Therefore, in TLS12, we error when a signature is received using a curve outside of our supported
+     * In TLS1.2, we error when the peer's public key curve type is not in our supported
      * curves list.
-     * In TLS1.3, supported curves is now implied by the supported signature algorithms list.
-     * Therefore in TLS1.3 we error if the curve in the signature algorithm doesn't match the curve
-     * used in the signature.
+     * In TLS1.3, signature algorithms now imply a specific curve.
+     * In TLS1.3 we error if the curve in the peer's public key doesn't match the signature algorithm's
+     * intended curve.
      */
 
     /* Test TLS1.3 codepaths */
