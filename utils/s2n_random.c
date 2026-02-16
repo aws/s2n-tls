@@ -276,6 +276,17 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
+/*
+ * Decide whether s2n should delegate randomness to libcrypto.
+ *
+ * We only delegate when libcrypto provides *distinct* public and private
+ * randomness streams. 
+ *
+ * Older AWS-LC versions did not expose RAND_public_bytes but implemented 
+ * RAND_priv_bytes as a wrapper around RAND_bytes, meaning the streams were 
+ * not actually separate. Those versions, along with OpenSSL 1.0.2 which 
+ * lacks the required APIs, continue to use s2n's internal DRBG.
+ */
 static inline bool s2n_use_libcrypto_rand(void)
 {
     if (s2n_is_in_fips_mode()) {
@@ -285,10 +296,6 @@ static inline bool s2n_use_libcrypto_rand(void)
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
     return true;
 #else
-    /* Prior to https://github.com/aws/aws-lc/pull/2963, AWS-LC RAND_priv_bytes 
-     * just wrapped RAND_bytes, so s2n would *not* get distinct public/private 
-     * randomness streams.
-     */
     #if defined(OPENSSL_IS_AWSLC)
     return false;
     #else
@@ -356,7 +363,12 @@ static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
     #endif
 
 #endif
-
+/* Generate arbitrary-sized output by chunking requests.
+ * Both DRBG and libcrypto RAND APIs are designed around a maximum
+ * per-call generate size (and libcrypto also takes an `int` length).
+ * Chunking preserves expected behavior and avoids overflow for
+ * large requests.
+ */
 static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
         int (*rand_fn)(unsigned char *buf, int num),
         struct s2n_blob *out_blob)
@@ -368,7 +380,6 @@ static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
     uint32_t remaining = out_blob->size;
 
     while (remaining > 0) {
-        /* RAND_*bytes takes an int. Never pass a value that can overflow. */
         const uint32_t max_chunk_u32 =
                 (S2N_DRBG_GENERATE_LIMIT < (uint32_t) INT_MAX) ? S2N_DRBG_GENERATE_LIMIT : (uint32_t) INT_MAX;
 

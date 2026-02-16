@@ -568,15 +568,26 @@ static S2N_RESULT s2n_random_implementation_test(void)
 
 static S2N_RESULT s2n_random_large_generate_test(void)
 {
+    /* Request more than S2N_DRBG_GENERATE_LIMIT to ensure large requests succeed */
     const uint32_t size = (S2N_DRBG_GENERATE_LIMIT * 2) + 123;
+
     DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
     EXPECT_SUCCESS(s2n_alloc(&blob, size));
-
     EXPECT_OK(s2n_get_public_random_data(&blob));
-    EXPECT_OK(s2n_get_private_random_data(&blob));
 
-    /* Sanity: not all zeros */
+    /* Ensure the buffer was written to. A successful return does not
+     * guarantee mutation, so verify the output is not entirely zero.
+     * The probability of a true RNG producing all zeros for this size
+     * is incredibly small.
+     */
     uint8_t acc = 0;
+    for (uint32_t i = 0; i < size; i++) {
+        acc |= blob.data[i];
+    }
+    EXPECT_NOT_EQUAL(acc, 0);
+
+    EXPECT_OK(s2n_get_private_random_data(&blob));
+    acc = 0;
     for (uint32_t i = 0; i < size; i++) {
         acc |= blob.data[i];
     }
