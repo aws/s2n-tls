@@ -17,6 +17,17 @@
 
 #include "tests/s2n_test.h"
 
+/* Test DH parameters (2048-bit prime from RFC 3526) */
+static const char dhparams_pem[] =
+        "-----BEGIN DH PARAMETERS-----\n"
+        "MIIBCAKCAQEA///////////JD9qiIWjCNMTGYouA3BzRKQJOCIpnzHQCC76mOxOb\n"
+        "IlFKCHmONATd75UZs806QxswKwpt8l8UN0/hNW1tUcJF5IW1dmJefsb0TELppjft\n"
+        "awv/XLb0Brft7jhr+1qJn6WunyQRfEsf5kkoZlHs5Fs9wgB8uKFjvwWY2kg2HFXT\n"
+        "mmkWP6j9JM9fg2VdI9yjrZYcYvNWIIVSu57VKQdwlpZtZww1Tkq8mATxdGwIyhgh\n"
+        "fDKQXkYuNs474553LBgOhgObJ4Oi7Aeij7XFXfBvTFLJ3ivL9pVYFxg5lUl86pVq\n"
+        "5RXSJhiY+gUQFXKOWoqsqmj//////////wIBAg==\n"
+        "-----END DH PARAMETERS-----\n";
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -73,6 +84,54 @@ int main(int argc, char **argv)
         /* False if one kex null */
         EXPECT_FALSE(s2n_kex_includes(&s2n_rsa, NULL));
         EXPECT_FALSE(s2n_kex_includes(NULL, &s2n_rsa));
+    };
+
+    /* DHE Test: Client sends Yc_length larger than server DH params size */
+    {
+        struct s2n_dh_params server_dh_params = { 0 };
+        struct s2n_blob shared_key = { 0 };
+        struct s2n_stuffer Yc_in = { 0 };
+        struct s2n_stuffer dhparams_in = { 0 };
+        struct s2n_stuffer dhparams_out = { 0 };
+
+        /* Setup server DH params (2048-bit = 256 bytes) */
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&dhparams_in, (uint8_t *) dhparams_pem, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
+
+        uint32_t available_size = s2n_stuffer_data_available(&dhparams_out);
+        struct s2n_blob dhparams_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&dhparams_blob, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
+        EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&server_dh_params, &dhparams_blob));
+        EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&server_dh_params));
+
+        int server_dh_size = DH_size(server_dh_params.dh);
+        EXPECT_EQUAL(server_dh_size, 256); /* 2048 bits = 256 bytes */
+
+        /* Allocate stuffer for client-controlled input */
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&Yc_in, 1024));
+        /* Client sends Yc_length = 512 (larger than server_dh_size = 256) */
+        uint16_t malicious_Yc_length = 512;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&Yc_in, malicious_Yc_length));
+
+        /* Fill with dummy data to satisfy stuffer bounds check */
+        for (int i = 0; i < malicious_Yc_length; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&Yc_in, 0xFF));
+        }
+        /* Verify the oversized input: Yc_length (512) > server_dh_size (256) */
+        EXPECT_TRUE(malicious_Yc_length > server_dh_size);
+
+        /* This function should fail due to the bound check */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_dh_compute_shared_secret_as_server(&server_dh_params, &Yc_in, &shared_key),
+                S2N_ERR_DH_SHARED_SECRET);
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_free(&shared_key));
+        EXPECT_SUCCESS(s2n_stuffer_free(&Yc_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
+        EXPECT_SUCCESS(s2n_dh_params_free(&server_dh_params));
     };
 
     END_TEST();
