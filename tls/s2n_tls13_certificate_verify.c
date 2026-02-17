@@ -195,7 +195,7 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
         pkey = &conn->handshake_params.client_public_key;
     }
 
-    /* Assert that the public key type on the cert matches the wire signature scheme */
+    /* Assert that the public key params matches the wire signature scheme */
     POSIX_ENSURE(s2n_result_is_ok(s2n_signature_scheme_params_match(conn, pkey, chosen_sig_scheme)),
             S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 
