@@ -456,9 +456,9 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
             }
             RESULT_BAIL(S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
 
-        /* In TLS1.3, the signature algorithm definition also specifies a curve.
-         * Therefore we can simply check the wire signature algorithm curve matches the one on the key. */
         } else {
+            /* In TLS1.3, the signature algorithm definition also specifies a curve.
+             * Therefore we can simply check the wire signature algorithm curve matches the one on the key. */
             RESULT_ENSURE_REF(wire_scheme->signature_curve);
             RESULT_ENSURE(wire_scheme->signature_curve->libcrypto_nid == pub_key_curve_nid, S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
         }
