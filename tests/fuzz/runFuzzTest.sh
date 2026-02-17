@@ -33,15 +33,13 @@ S2N_ROOT=$3
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
-# TEMPORARY: Force all tests to expect success to test failure upload path.
-# Revert this after testing.
-# if [[ $TEST_NAME == *_negative_test ]];
-# then
-#     EXPECTED_TEST_FAILURE=1
-# else
-#     EXPECTED_TEST_FAILURE=0
-# fi
-EXPECTED_TEST_FAILURE=0
+# Failures for negative tests can be ignored.
+if [[ $TEST_NAME == *_negative_test ]];
+then
+    EXPECTED_TEST_FAILURE=1
+else
+    EXPECTED_TEST_FAILURE=0
+fi
 
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
@@ -117,10 +115,13 @@ then
 else
     cat ${TEST_NAME}_output.txt
     printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
-    # Upload output and failure artifacts to S3 for debugging/reproduction.
+    # Upload failure log.
     FAILURE_TIMESTAMP=$(date +%Y-%m-%d-%T)
     aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_${FAILURE_TIMESTAMP}.txt
     # Upload libfuzzer failure artifacts (the exact inputs that triggered the failure).
+    # To reproduce locally, download the artifact from S3 and run:
+    #   ./build/bin/<TEST_NAME> <artifact>
+    # e.g. ./build/bin/s2n_example_test leak-abcdef1234567890
     for artifact in crash-* timeout-* leak-* oom-*; do
         [ -e "$artifact" ] && aws s3 cp "./$artifact" ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${artifact}_${FAILURE_TIMESTAMP}
     done
