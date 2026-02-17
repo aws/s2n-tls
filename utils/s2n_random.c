@@ -275,37 +275,31 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
 
     return S2N_RESULT_OK;
 }
-
 /*
  * Decide whether s2n should delegate randomness to libcrypto.
  *
  * We only delegate when libcrypto provides *distinct* public and private
  * randomness streams. 
- *
- * Older AWS-LC versions did not expose RAND_public_bytes but implemented 
- * RAND_priv_bytes as a wrapper around RAND_bytes, meaning the streams were 
- * not actually separate. Those versions, along with OpenSSL 1.0.2 which 
- * lacks the required APIs, continue to use s2n's internal DRBG.
  */
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 1
+#elif defined(OPENSSL_IS_AWSLC)
+    /* AWS-LC: if public rand isn't available, priv rand is not distinct from RAND_bytes. */
+    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 0
+#elif S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    /* Non-AWS-LC: RAND_priv_bytes implies a distinct "private" interface from RAND_bytes. */
+    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 1
+#else
+    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 0
+#endif
+
 static inline bool s2n_use_libcrypto_rand(void)
 {
     if (s2n_is_in_fips_mode()) {
         return true;
     }
 
-#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    return true;
-#else
-    #if defined(OPENSSL_IS_AWSLC)
-    return false;
-    #else
-        #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    return true;
-        #else
-    return false;
-        #endif
-    #endif
-#endif
+    return S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS;
 }
 
 bool s2n_random_uses_libcrypto(void)
