@@ -405,6 +405,23 @@ S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg
 
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 
+/**
+ * Ensure that the cryptographic signatures match the parameters expected from the TLS protocol.
+ *
+ * The TLS Protocol definition of signatures differs from the "cryptographic"
+ * definition of signatures, so we have to do additional verification to ensure
+ * that the signature's parameters (curve, etc) match what was negotiated
+ * at the TLS protocol layer. We parse the peer's public key to get these parameters
+ * since the signature verification is completely delegated to the libcrypto.
+ *
+ * In TLS 1.2 we check to ensure that the signature params were one of the
+ * items included in our supported_curves extension, which is internally the
+ * security policy `ecc_preferences`.
+ *
+ * In TLS 1.3, the negotiated signature scheme directly encodes the signature
+ * parameters (e.g. `ecdsa_secp256r1_sha256`) so we check to ensure that
+ * the signature params actually use that curve.
+ **/
 S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const struct s2n_pkey *pub_key, const struct s2n_signature_scheme *wire_scheme)
 {
     RESULT_ENSURE_REF(pub_key);
@@ -416,7 +433,6 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
 
     RESULT_GUARD(s2n_pkey_get_type(evp_key, &pkey_type));
 
-    /* Validate parameters for ECDSA */
     if (pkey_type == S2N_PKEY_TYPE_ECDSA) {
         /* Get the curve that the key is using */
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_key), EC_KEY_free_pointer);
@@ -440,12 +456,19 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
             }
             RESULT_BAIL(S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
 
-            /* In TLS1.3, the signature algorithm definition also specifies a curve.
+        /* In TLS1.3, the signature algorithm definition also specifies a curve.
          * Therefore we can simply check the wire signature algorithm curve matches the one on the key. */
         } else {
             RESULT_ENSURE_REF(wire_scheme->signature_curve);
             RESULT_ENSURE(wire_scheme->signature_curve->libcrypto_nid == pub_key_curve_nid, S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
         }
+    } else if (pkey_type == S2N_PKEY_TYPE_MLDSA) {
+        /* TODO: https://github.com/aws/s2n-tls/issues/5740 */
+        return S2N_RESULT_OK;
+    } else if (pkey_type == S2N_PKEY_TYPE_RSA | S2N_PKEY_TYPE_RSA_PSS) {
+        return S2N_RESULT_OK;
+    } else {
+        RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
     }
 
     return S2N_RESULT_OK;
