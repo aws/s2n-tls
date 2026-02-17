@@ -280,6 +280,26 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     int server_dh_params_size = DH_size(server_dh_params->dh);
     POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
 
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.2
+     *# struct {
+     *#     select (PublicValueEncoding) {
+     *#         case implicit: struct { };
+     *#         case explicit: opaque dh_Yc<1..2^16-1>;
+     *#     } dh_public;
+     *# } ClientDiffieHellmanPublic;
+     *
+     * The client's DH public value (Yc) is sent as a variable-length opaque value.
+     * Validate that Yc_length does not exceed the DH group size to prevent
+     * unnecessary computation and memory allocation on oversized keys.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc2631#section-2.1.5
+     *# 1. Verify that y lies within the interval [2,p-1]. If it does not,
+     *#    the key is invalid.
+     *
+     * When encoding a BIGNUM to bytes, leading zeros are often stripped,
+     * in which case Yc_length might be less than server_dh_params_size.
+     */
     POSIX_GUARD(s2n_stuffer_read_uint16(Yc_in, &Yc_length));
     POSIX_ENSURE(Yc_length > 0, S2N_ERR_DH_SHARED_SECRET);
     POSIX_ENSURE((int) Yc_length <= server_dh_params_size, S2N_ERR_DH_SHARED_SECRET);
