@@ -465,7 +465,7 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
     } else if (pkey_type == S2N_PKEY_TYPE_MLDSA) {
         /* TODO: https://github.com/aws/s2n-tls/issues/5740 */
         return S2N_RESULT_OK;
-    } else if (pkey_type == S2N_PKEY_TYPE_RSA | pkey_type == S2N_PKEY_TYPE_RSA_PSS) {
+    } else if ((pkey_type == S2N_PKEY_TYPE_RSA) | (pkey_type == S2N_PKEY_TYPE_RSA_PSS)) {
         return S2N_RESULT_OK;
     } else {
         RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
