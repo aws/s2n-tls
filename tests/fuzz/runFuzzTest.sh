@@ -120,9 +120,9 @@ else
     # Upload output and failure artifacts to S3 for debugging/reproduction.
     FAILURE_TIMESTAMP=$(date +%Y-%m-%d-%T)
     aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_${FAILURE_TIMESTAMP}.txt
-    # Upload libfuzzer failure artifacts. These files contain the exact inputs that triggered the failure).
+    # Upload libfuzzer failure artifacts (the exact inputs that triggered the failure).
     for artifact in crash-* timeout-* leak-* oom-*; do
-        [ -e "$artifact" ] && aws s3 cp "./$artifact" ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/
+        [ -e "$artifact" ] && aws s3 cp "./$artifact" ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${artifact}_${FAILURE_TIMESTAMP}
     done
     exit -1
 fi
