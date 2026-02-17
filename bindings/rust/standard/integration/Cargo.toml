@@ -29,6 +29,11 @@ aws-lc-sys = "*"
 tls-harness = { path = "../tls-harness" }
 
 [dev-dependencies]
+# Pin for now to avoid 1.88 msrv
+time = "=0.3.45"
+# Pin for now to avoid 1.85 msrv
+deranged = "=0.5.5"
+
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
