@@ -110,7 +110,7 @@ impl EmfEmitter {
 
 #[derive(Entry)]
 struct EmfDimension {
-    /// The service name to be used as a `server_name` dimension in CloudWatch.
+    /// The service name to be used as a `service_name` dimension in CloudWatch.
     service_name: String,
 }
 impl EmfDimension {
