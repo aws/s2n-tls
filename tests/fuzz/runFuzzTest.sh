@@ -33,13 +33,15 @@ S2N_ROOT=$3
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
-# Failures for negative tests can be ignored.
-if [[ $TEST_NAME == *_negative_test ]];
-then
-    EXPECTED_TEST_FAILURE=1
-else
-    EXPECTED_TEST_FAILURE=0
-fi
+# TEMPORARY: Force all tests to expect success to test failure upload path.
+# Revert this after testing.
+# if [[ $TEST_NAME == *_negative_test ]];
+# then
+#     EXPECTED_TEST_FAILURE=1
+# else
+#     EXPECTED_TEST_FAILURE=0
+# fi
+EXPECTED_TEST_FAILURE=0
 
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
@@ -115,8 +117,12 @@ then
 else
     cat ${TEST_NAME}_output.txt
     printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
-    # Store generated output files in the S3 bucket for debugging.
-    aws s3 cp ./tests/fuzz/${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%T).txt
-    aws s3 cp ./tests/fuzz/${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%T).txt
+    # Upload output and failure artifacts to S3 for debugging/reproduction.
+    FAILURE_TIMESTAMP=$(date +%Y-%m-%d-%T)
+    aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_${FAILURE_TIMESTAMP}.txt
+    # Upload libfuzzer failure artifacts. These files contain the exact inputs that triggered the failure).
+    for artifact in crash-* timeout-* leak-* oom-*; do
+        [ -e "$artifact" ] && aws s3 cp "./$artifact" ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/
+    done
     exit -1
 fi
