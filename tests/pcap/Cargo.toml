@@ -14,15 +14,12 @@ bytes = "1.7.1"
 hex = "0.4.3"
 reqwest = { version = "0.13.1", features = ["blocking"] }
 semver = "1.0.23"
-# TODO(https://github.com/CrabeDeFrance/rtshark/issues/40): rtshark 4.2.0
-# produces XML parsing errors ("tag not closed") when reading tshark output.
-# Remove pin once the issue is resolved.
-rtshark = ">=4.0.0, <4.2.0"
+rtshark = "4.3.0"
 
 [dependencies]
 anyhow = "1.0.86"
 hex = "0.4.3"
-rtshark = ">=4.0.0, <4.2.0"
+rtshark = "4.3.0"
 
 [dev-dependencies]
 # We want to test against the latest, local version of s2n
