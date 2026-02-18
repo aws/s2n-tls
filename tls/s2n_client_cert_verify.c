@@ -38,6 +38,10 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
         const struct s2n_signature_scheme *chosen_sig_scheme = conn->handshake_params.client_cert_sig_scheme;
         POSIX_ENSURE_REF(chosen_sig_scheme);
 
+        struct s2n_pkey *pkey = &conn->handshake_params.client_public_key;
+
+        POSIX_ENSURE(s2n_result_is_ok(s2n_signature_scheme_params_match(conn, pkey, chosen_sig_scheme)), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+
         uint16_t signature_size = 0;
         struct s2n_blob signature = { 0 };
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_size));
