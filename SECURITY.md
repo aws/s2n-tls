@@ -1,4 +1,4 @@
-# Security Policy
+# Security Reporting Policy
 
 ## Reporting Security Issues
 
