@@ -256,7 +256,18 @@ impl Builder {
     /// Creates a fingerprint operation for a given [ClientHello].
     ///
     /// Corresponds to [s2n_fingerprint_set_client_hello].
-    pub fn build<'a>(&'a mut self, client_hello: &ClientHello) -> Result<Fingerprint<'a>, Error> {
+    ///
+    /// The ClientHello must outlive the Fingerprint. The following code is expected to
+    /// fail compilation due to the ClientHello `ch` dropping out of scope before `fingerprint`.
+    /// ```compile_fail,E0597
+    /// # use s2n_tls::{client_hello::ClientHello, fingerprint::{Fingerprint, FingerprintType}};
+    /// # let mut builder = Fingerprint::builder(FingerprintType::JA3).unwrap();
+    /// let fingerprint = {
+    ///     let ch = ClientHello::parse_client_hello(&[0; 6]).unwrap();
+    ///     builder.build(&ch)
+    /// };
+    /// ```
+    pub fn build<'a>(&'a mut self, client_hello: &'a ClientHello) -> Result<Fingerprint<'a>, Error> {
         unsafe {
             s2n_fingerprint_set_client_hello(self.ptr.as_ptr(), client_hello.deref_mut_ptr())
                 .into_result()
