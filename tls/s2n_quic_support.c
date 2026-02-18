@@ -121,6 +121,10 @@ int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocke
     POSIX_ENSURE(message_type == TLS_SERVER_NEW_SESSION_TICKET, S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
 
+    /* Successfully read the message, wipe the header and message buffer */
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    POSIX_GUARD_RESULT(s2n_record_wipe(conn));
+
     *blocked = S2N_NOT_BLOCKED;
 
     return S2N_SUCCESS;
