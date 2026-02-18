@@ -17,3 +17,8 @@ jobs:
         with:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
           add_label: 'false'
+      - name: Failure case
+        if: failure()
+        run: |
+          echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
+          exit 1
