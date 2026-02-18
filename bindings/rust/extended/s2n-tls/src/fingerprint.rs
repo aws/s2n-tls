@@ -267,7 +267,10 @@ impl Builder {
     ///     builder.build(&ch)
     /// };
     /// ```
-    pub fn build<'a>(&'a mut self, client_hello: &'a ClientHello) -> Result<Fingerprint<'a>, Error> {
+    pub fn build<'a>(
+        &'a mut self,
+        client_hello: &'a ClientHello,
+    ) -> Result<Fingerprint<'a>, Error> {
         unsafe {
             s2n_fingerprint_set_client_hello(self.ptr.as_ptr(), client_hello.deref_mut_ptr())
                 .into_result()
