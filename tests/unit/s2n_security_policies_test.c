@@ -1074,7 +1074,6 @@ int main(int argc, char **argv)
         /* "default_fips" */
         {
             const struct s2n_security_policy *versioned_policies[] = {
-                &security_policy_20240416,
                 &security_policy_20240502,
                 &security_policy_20251015,
             };
