@@ -34,8 +34,6 @@ If you are unsure whether an issue falls in or out of scope, we encourage you to
 
 The following adversarial models describe the threats that s2n-tls is designed to defend against. The degree of protection achieved depends on the security policy selected by the application. For example, forward secrecy against long-term key compromise requires ephemeral key exchange, and protection against harvest-now-decrypt-later attacks requires post-quantum key exchange. See the [Security Policies](https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html) section of the Usage Guide for more information on selecting an appropriate policy.
 
-s2n-tls considers the following adversarial models to be in scope:
-
 #### Network Adversary
 
 An active network attacker with complete control over the network used to communicate between a client and server. This attacker can:
