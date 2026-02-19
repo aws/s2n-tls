@@ -195,6 +195,10 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
         pkey = &conn->handshake_params.client_public_key;
     }
 
+    /* Assert that the public key params match the wire signature scheme */
+    POSIX_ENSURE(s2n_result_is_ok(s2n_signature_scheme_params_match(conn, pkey, chosen_sig_scheme)),
+            S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+
     POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
     POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
     POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data,
