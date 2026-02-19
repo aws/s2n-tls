@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, edited]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 permissions:
   contents: read
 
@@ -13,12 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: PR Conventional Commit Validation
+        if: github.event_name == 'pull_request'
         uses: ytanikin/pr-conventional-commits@1.5.1
         with:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
           add_label: 'false'
       - name: Failure case
-        if: failure()
+        if: failure() && github.event_name == 'pull_request'
         run: |
           echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
           exit 1
