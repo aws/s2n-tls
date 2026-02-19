@@ -281,7 +281,7 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
  *  - We are in FIPS mode, or
  *  - Libcrypto provides distinct public/private random streams.
  */
-bool s2n_random_uses_libcrypto(void)
+bool s2n_use_libcrypto_rand(void)
 {
     if (s2n_is_in_fips_mode()) {
         return true;
