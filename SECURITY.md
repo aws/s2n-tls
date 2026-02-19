@@ -14,15 +14,25 @@ Thank you in advance for collaborating with us to help protect our customers.
 
 ## Threat Model
 
-### Out of Scope Attacks
+### Shared Responsibility Model
 
-Applications integrating with s2n-tls are responsible for the security of the host on which the process loading the s2n-tls library runs. This means the following attacks are considered out of scope:
+Security is a shared responsibility between s2n-tls and the applications that integrate with it.
+
+s2n-tls is responsible for correctly and securely implementing the TLS protocol, its features, and supported cryptographic algorithms, and for providing safe defaults and secure building blocks for applications to use. While s2n-tls avoids implementing rarely used options and extensions, it continues to support older algorithms and functionality that are necessary for backward compatibility and interoperability, even when they are no longer considered best in class.
+
+Applications integrating with s2n-tls are responsible for the security of the host on which the process loading the s2n-tls library runs, and for configuring s2n-tls in a way that achieves their required security goals. This includes selecting an appropriate security policy that excludes any algorithms they consider insufficient, and correctly configuring and using features.
+
+Given this shared responsibility, the following attacks are considered out of scope for s2n-tls:
 * On-host side-channel attacks via CPU/hardware flaws such as Meltdown/Spectre
-* Attacks requiring on-host root access to processes, memory, sockets or files 
+* Attacks requiring on-host root access to processes, memory, sockets or files
 * Attacks involving physical fault injection, such as high voltage and temperatures or electromagnetic pulses
 * Side-channel attacks requiring physical observation to detect
 
+If you are unsure whether an issue falls in or out of scope, we encourage you to report it; we'd rather investigate a potential concern than miss a real one. Even for out-of-scope attacks, we may still choose to apply mitigations after weighing the potential cost to performance, maintainability, and complexity. All reported findings will be investigated and mitigations will be decided on a case-by-case basis.
+
 ### Adversarial Models
+
+The following adversarial models describe the threats that s2n-tls is designed to defend against. The degree of protection achieved depends on the security policy selected by the application. For example, forward secrecy against long-term key compromise requires ephemeral key exchange, and protection against harvest-now-decrypt-later attacks requires post-quantum key exchange. See the [Security Policies](https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html) section of the Usage Guide for more information on selecting an appropriate policy.
 
 s2n-tls considers the following adversarial models to be in scope:
 
@@ -54,22 +64,22 @@ In addition to the network adversary capabilities above, a malicious server may:
 
 * Attempt to downgrade the connection by offering only weak ciphersuites, keys, DH groups, or hash functions
 * Send crafted payloads (e.g. server certificates, extensions, handshake messages) to exploit flaws in parsers
-* Present certificates that have been revoked or flagged via Certificate Transparency
+* Present revoked or misissued certificates
 
 ### Vulnerability Scope
 
-Given the adversarial models above, the following are examples of issues considered security-relevant and should be reported in accordance with [Reporting Security Issues](#reporting-security-issues):
+Given the adversarial models above, the following are examples of security-relevant issues that should be reported in accordance with [Reporting Security Issues](#reporting-security-issues):
 
 * Implementation defects that compromise confidentiality, integrity, or availability (e.g. memory safety bugs, undefined behavior)
 * Logic bugs that lead to incorrect TLS negotiation, handshake errors, or authentication bypass
-* Negotiation of weak or non-policy-approved cryptographic algorithms
+* Negotiation of cryptographic algorithms not specified in the configured security policy
 * Flaws in default configurations that could lead to insecure operation
 
 The following are generally not considered vulnerabilities in this project's context:
 
 * Application misuse of APIs that behave as documented
 * Issues in the operating environment (e.g. OS, networking stack, hardware)
-* Usage patterns documented as warnings in the [usage guide](https://aws.github.io/s2n-tls/usage-guide/)
+* Usage patterns documented as warnings in the [Usage Guide](https://aws.github.io/s2n-tls/usage-guide/)
 
 If you are unsure whether an issue is security-relevant, please err on the side of caution and report it through the [Reporting Security Issues](#reporting-security-issues) process.
 
