@@ -269,21 +269,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-3-2023-06-01", &security_policy));
-        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_2023_06);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2023_06);
-        /* All supported kem groups should be in the preference list, but not all of them may be available. */
-        EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
-        EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
-        /* PQ-TLS-1-3-2023-06-01 only contains Kyber groups, so zero are available */
-        EXPECT_EQUAL(0, available_groups);
-
-        security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("20141001", &security_policy));
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
@@ -404,15 +389,10 @@ int main(int argc, char **argv)
             "AWS-CRT-SDK-TLSv1.2-2023",
             "AWS-CRT-SDK-TLSv1.3-2023",
             /* PQ TLS */
-            "PQ-TLS-1-2-2023-04-07",
-            "PQ-TLS-1-2-2023-04-08",
-            "PQ-TLS-1-2-2023-04-09",
-            "PQ-TLS-1-2-2023-04-10",
-            "PQ-TLS-1-3-2023-06-01",
-            "PQ-TLS-1-2-2023-10-07",
-            "PQ-TLS-1-2-2023-10-08",
-            "PQ-TLS-1-2-2023-10-09",
-            "PQ-TLS-1-2-2023-10-10",
+            "PQ-TLS-1-2-2024-10-07",
+            "PQ-TLS-1-2-2024-10-08",
+            "PQ-TLS-1-2-2024-10-08_gcm",
+            "PQ-TLS-1-2-2024-10-09",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
@@ -638,7 +618,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
         EXPECT_EQUAL(config->security_policy, &security_policy_test_all_tls12);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
-        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_pq_tls_1_0_2021_05);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
@@ -722,7 +702,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
         EXPECT_EQUAL(security_policy, &security_policy_test_all_tls12);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
-        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_0_2021_05);
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
@@ -809,12 +789,6 @@ int main(int argc, char **argv)
             },
             {
                     .kem_count = 0,
-                    .kems = pq_kems_r3_2021_05,
-                    .tls13_kem_group_count = 0,
-                    .tls13_kem_groups = NULL,
-            },
-            {
-                    .kem_count = 0,
                     .kems = NULL,
                     .tls13_kem_group_count = 0,
                     .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
@@ -825,7 +799,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
-        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_0_2021_05, 0));
+        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_3_ietf_2025_07, 0));
     }
 
     /* Checks that NUM_RSA_PSS_SCHEMES accurately represents the number of rsa_pss signature schemes usable in a
@@ -1094,7 +1068,6 @@ int main(int argc, char **argv)
         /* "default_pq" */
         {
             const struct s2n_security_policy *versioned_policies[] = {
-                &security_policy_20240730,
                 &security_policy_20241001,
                 &security_policy_20250512,
                 &security_policy_20250721,

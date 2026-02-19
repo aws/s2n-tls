@@ -49,66 +49,13 @@ const struct s2n_kem s2n_mlkem_1024 = {
     .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
-const struct s2n_kem s2n_kyber_512_r3 = {
-    .name = "kyber512r3",
-    .kem_nid = S2N_NID_KYBER512,
-    .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
-    .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
-    .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
-    .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
-    .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_evp_kem_generate_keypair,
-    .encapsulate = &s2n_evp_kem_encapsulate,
-    .decapsulate = &s2n_evp_kem_decapsulate,
-};
-
-const struct s2n_kem s2n_kyber_768_r3 = {
-    .name = "kyber768r3",
-    .kem_nid = S2N_NID_KYBER768,
-    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
-    .public_key_length = S2N_KYBER_768_R3_PUBLIC_KEY_BYTES,
-    .private_key_length = S2N_KYBER_768_R3_SECRET_KEY_BYTES,
-    .shared_secret_key_length = S2N_KYBER_768_R3_SHARED_SECRET_BYTES,
-    .ciphertext_length = S2N_KYBER_768_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_evp_kem_generate_keypair,
-    .encapsulate = &s2n_evp_kem_encapsulate,
-    .decapsulate = &s2n_evp_kem_decapsulate,
-};
-
-const struct s2n_kem s2n_kyber_1024_r3 = {
-    .name = "kyber1024r3",
-    .kem_nid = S2N_NID_KYBER1024,
-    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
-    .public_key_length = S2N_KYBER_1024_R3_PUBLIC_KEY_BYTES,
-    .private_key_length = S2N_KYBER_1024_R3_SECRET_KEY_BYTES,
-    .shared_secret_key_length = S2N_KYBER_1024_R3_SHARED_SECRET_BYTES,
-    .ciphertext_length = S2N_KYBER_1024_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_evp_kem_generate_keypair,
-    .encapsulate = &s2n_evp_kem_encapsulate,
-    .decapsulate = &s2n_evp_kem_decapsulate,
-};
-
-const struct s2n_kem *tls12_kyber_kems[] = {
-    &s2n_kyber_512_r3,
-};
-
 const struct s2n_iana_to_kem kem_mapping[1] = {
     {
-            .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
-            .kems = tls12_kyber_kems,
-            .kem_count = s2n_array_len(tls12_kyber_kems),
+            .iana_value = { TLS_NULL_WITH_NULL_NULL },
+            .kems = NULL,
+            .kem_count = 0,
     },
 };
-
-/* Specific assignments of KEM group IDs and names have not yet been
- * published in an RFC (or draft). There is consensus in the
- * community to use values in the proposed reserved range defined in
- * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
- * Values for interoperability are defined in
- * https://github.com/open-quantum-safe/oqs-provider/blob/main/oqs-template/oqs-kem-info.md
- * and
- * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
- */
 
 /*
  * ML-KEM based pure PQ KEMs as specified by IETF and registered in IANA.
@@ -156,65 +103,11 @@ const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
     .send_kem_first = 0,
 };
 
-const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
-    .name = "secp256r1_kyber-512-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
-    .curve = &s2n_ecc_curve_secp256r1,
-    .kem = &s2n_kyber_512_r3,
-    .send_kem_first = 0,
-};
-
-const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
-    .name = "SecP256r1Kyber768Draft00",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
-    .curve = &s2n_ecc_curve_secp256r1,
-    .kem = &s2n_kyber_768_r3,
-    .send_kem_first = 0,
-};
-
-const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
-    .name = "secp384r1_kyber-768-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3,
-    .curve = &s2n_ecc_curve_secp384r1,
-    .kem = &s2n_kyber_768_r3,
-    .send_kem_first = 0,
-};
-
-const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
-    .name = "secp521r1_kyber-1024-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3,
-    .curve = &s2n_ecc_curve_secp521r1,
-    .kem = &s2n_kyber_1024_r3,
-    .send_kem_first = 0,
-};
-
-const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
-    .name = "x25519_kyber-512-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
-    .curve = &s2n_ecc_curve_x25519,
-    .kem = &s2n_kyber_512_r3,
-    .send_kem_first = 0,
-};
-
-const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
-    .name = "X25519Kyber768Draft00",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
-    .curve = &s2n_ecc_curve_x25519,
-    .kem = &s2n_kyber_768_r3,
-    .send_kem_first = 0,
-};
-
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
     &s2n_secp384r1_mlkem_1024,
     &s2n_pure_mlkem_1024,
-    &s2n_secp256r1_kyber_768_r3,
-    &s2n_x25519_kyber_768_r3,
-    &s2n_secp384r1_kyber_768_r3,
-    &s2n_secp521r1_kyber_1024_r3,
-    &s2n_secp256r1_kyber_512_r3,
-    &s2n_x25519_kyber_512_r3,
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST

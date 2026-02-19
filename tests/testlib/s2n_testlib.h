@@ -24,6 +24,7 @@
 
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
+extern const struct s2n_security_policy security_policy_test_tls13_retry_with_pq;
 
 /* Hex methods for testing */
 S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *stuffer, const char *str);

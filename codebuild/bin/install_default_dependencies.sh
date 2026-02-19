@@ -105,12 +105,6 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
       codebuild/bin/install_gnutls37.sh "$(mktemp -d)" "$GNUTLS37_INSTALL_DIR" > /dev/null ;
     fi
 
-    if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
-      # Download and Install OQS OpenSSL for integration tests
-      mkdir -p "$OQS_OPENSSL_1_1_1_INSTALL_DIR" ||true
-      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
-    fi
-
     if [[ "$DISTRO" == "ubuntu" ]]; then
         # Install SSLyze for all Integration Tests on Ubuntu.
         # There is a nassl dependency issue preventing this from working on on AL2 ARM (others?).

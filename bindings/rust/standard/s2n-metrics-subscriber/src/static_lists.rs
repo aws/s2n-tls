@@ -264,19 +264,13 @@ pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[Cipher] = &[
 
 pub(crate) const GROUPS_AVAILABLE_IN_S2N: &[Group] = &[
     Group::new("MLKEM1024", 514),
-    Group::new("SecP256r1Kyber768Draft00", 25498),
     Group::new("SecP256r1MLKEM768", 4587),
     Group::new("SecP384r1MLKEM1024", 4589),
-    Group::new("X25519Kyber768Draft00", 25497),
     Group::new("X25519MLKEM768", 4588),
     Group::new("secp256r1", 23),
-    Group::new("secp256r1_kyber-512-r3", 12090),
     Group::new("secp384r1", 24),
-    Group::new("secp384r1_kyber-768-r3", 12092),
     Group::new("secp521r1", 25),
-    Group::new("secp521r1_kyber-1024-r3", 12093),
     Group::new("x25519", 29),
-    Group::new("x25519_kyber-512-r3", 12089),
 ];
 
 pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureScheme] = &[
