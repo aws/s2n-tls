@@ -552,7 +552,7 @@ static S2N_RESULT s2n_random_implementation_test(void)
     uint64_t private_bytes_used = 0;
     EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
 
-    if (s2n_random_uses_libcrypto()) {
+    if (s2n_use_libcrypto_rand()) {
         /* The libcrypto random implementation should be used when operating in FIPS mode, so
          * the bytes used in the custom DRBG state should not have changed.
          */
@@ -896,7 +896,7 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
         uint64_t public_bytes_used = 0;
         EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
 
-        if (s2n_random_uses_libcrypto()) {
+        if (s2n_use_libcrypto_rand()) {
             /* The urandom implementation should not be in use when s2n-tls uses the libcrypto random. */
             EXPECT_EQUAL(public_bytes_used, 0);
         } else {
