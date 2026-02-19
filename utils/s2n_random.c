@@ -275,36 +275,33 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
 
     return S2N_RESULT_OK;
 }
-/*
- * Decide whether s2n should delegate randomness to libcrypto.
- *
- * We only delegate when libcrypto provides *distinct* public and private
- * randomness streams. 
- */
-#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 1
-#elif defined(OPENSSL_IS_AWSLC)
-    /* AWS-LC: if public rand isn't available, priv rand is not distinct from RAND_bytes. */
-    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 0
-#elif S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    /* Non-AWS-LC: RAND_priv_bytes implies a distinct "private" interface from RAND_bytes. */
-    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 1
-#else
-    #define S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS 0
-#endif
 
-static inline bool s2n_use_libcrypto_rand(void)
+/*
+ * Delegate randomness to libcrypto when:
+ *  - We are in FIPS mode, or
+ *  - Libcrypto provides distinct public/private random streams.
+ */
+bool s2n_random_uses_libcrypto(void)
 {
     if (s2n_is_in_fips_mode()) {
         return true;
     }
 
-    return S2N_LIBCRYPTO_HAS_DISTINCT_RAND_STREAMS;
-}
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    /* AWS-LC with RAND_public_bytes: distinct streams */
+    return true;
 
-bool s2n_random_uses_libcrypto(void)
-{
-    return s2n_use_libcrypto_rand();
+#elif defined(OPENSSL_IS_AWSLC)
+    /* AWS-LC without public rand: no distinct streams */
+    return false;
+
+#elif S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+    /* Non-AWS-LC: RAND_priv_bytes implies distinct stream */
+    return true;
+
+#else
+    return false;
+#endif
 }
 
 /* RAND_*bytes signatures differ across libcryptos (unsigned char/int vs uint8_t/size_t).
