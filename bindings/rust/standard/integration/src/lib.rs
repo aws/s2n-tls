@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(test)]
-#[cfg(test)]
 mod utilities;
 #[cfg(test)]
 use utilities::capability_check;
