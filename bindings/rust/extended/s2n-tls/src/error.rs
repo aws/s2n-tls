@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::connection::Connection;
 use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use errno::{errno, Errno};
 use libc::c_char;
@@ -47,9 +48,87 @@ impl From<libc::c_int> for ErrorType {
     }
 }
 
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AlertDescription {
+    CloseNotify,
+    UnexpectedMessage,
+    BadRecordMac,
+    RecordOverflow,
+    HandshakeFailure,
+    BadCertificate,
+    UnsupportedCertificate,
+    CertificateRevoked,
+    CertificateExpired,
+    CertificateUnknown,
+    IllegalParameter,
+    UnknownCa,
+    AccessDenied,
+    DecodeError,
+    DecryptError,
+    ProtocolVersion,
+    InsufficientSecurity,
+    InternalError,
+    InappropriateFallback,
+    UserCanceled,
+    NoRenegotiation,
+    MissingExtension,
+    UnsupportedExtension,
+    UnrecognizedName,
+    BadCertificateStatusResponse,
+    UnknownPskIdentity,
+    CertificateRequired,
+    NoApplicationProtocol,
+    Unknown(u8),
+}
+
+impl From<u8> for AlertDescription {
+    fn from(code: u8) -> Self {
+        match code {
+            0 => AlertDescription::CloseNotify,
+            10 => AlertDescription::UnexpectedMessage,
+            20 => AlertDescription::BadRecordMac,
+            22 => AlertDescription::RecordOverflow,
+            40 => AlertDescription::HandshakeFailure,
+            42 => AlertDescription::BadCertificate,
+            43 => AlertDescription::UnsupportedCertificate,
+            44 => AlertDescription::CertificateRevoked,
+            45 => AlertDescription::CertificateExpired,
+            46 => AlertDescription::CertificateUnknown,
+            47 => AlertDescription::IllegalParameter,
+            48 => AlertDescription::UnknownCa,
+            49 => AlertDescription::AccessDenied,
+            50 => AlertDescription::DecodeError,
+            51 => AlertDescription::DecryptError,
+            70 => AlertDescription::ProtocolVersion,
+            71 => AlertDescription::InsufficientSecurity,
+            80 => AlertDescription::InternalError,
+            86 => AlertDescription::InappropriateFallback,
+            90 => AlertDescription::UserCanceled,
+            100 => AlertDescription::NoRenegotiation,
+            109 => AlertDescription::MissingExtension,
+            110 => AlertDescription::UnsupportedExtension,
+            112 => AlertDescription::UnrecognizedName,
+            113 => AlertDescription::BadCertificateStatusResponse,
+            115 => AlertDescription::UnknownPskIdentity,
+            116 => AlertDescription::CertificateRequired,
+            120 => AlertDescription::NoApplicationProtocol,
+            code => AlertDescription::Unknown(code),
+        }
+    }
+}
+
+/// Errors are not necessarily tied to connections.
+/// However, some errors are difficult to debug without additional information
+/// from a connection. Store any helpful connection context here.
+#[derive(Clone, Debug, Default, PartialEq)]
+struct ConnContext {
+    alert: Option<AlertDescription>,
+}
+
 enum Context {
     Bindings(ErrorType, &'static str, &'static str),
-    Code(s2n_status_code::Type, Errno),
+    Code(s2n_status_code::Type, Errno, ConnContext),
     Application(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
@@ -70,6 +149,16 @@ impl Fallible for s2n_status_code::Type {
         } else {
             Err(Error::capture())
         }
+    }
+}
+
+impl<C: AsRef<Connection>, R: Fallible> Fallible for (C, R) {
+    type Output = R::Output;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        self.1
+            .into_result()
+            .map_err(|e| e.capture_context(self.0.as_ref()))
     }
 }
 
@@ -186,6 +275,7 @@ impl Error {
 
     fn capture() -> Self {
         unsafe {
+            let errno = errno();
             let s2n_errno = s2n_errno_location();
 
             let code = *s2n_errno;
@@ -195,8 +285,18 @@ impl Error {
             //# an error: s2n_errno = S2N_ERR_T_OK
             *s2n_errno = s2n_error_type::OK as _;
 
-            Self(Context::Code(code, errno()))
+            Self(Context::Code(code, errno, ConnContext::default()))
         }
+    }
+
+    fn capture_context(mut self, conn: &Connection) -> Self {
+        let kind = self.kind();
+        if let Context::Code(_, _, debug) = &mut self.0 {
+            if kind == ErrorType::Alert {
+                debug.alert = conn.alert().map(|a| a.into());
+            }
+        }
+        self
     }
 
     /// Corresponds to [s2n_strerror_name] for ErrorSource::Library errors.
@@ -204,7 +304,7 @@ impl Error {
         match self.0 {
             Context::Bindings(_, name, _) => name,
             Context::Application(_) => "ApplicationError",
-            Context::Code(code, _) => unsafe {
+            Context::Code(code, _, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror_name(code))
             },
@@ -216,7 +316,7 @@ impl Error {
         match self.0 {
             Context::Bindings(_, _, msg) => msg,
             Context::Application(_) => "An error occurred while executing application code",
-            Context::Code(code, _) => unsafe {
+            Context::Code(code, _, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror(code, core::ptr::null()))
             },
@@ -227,7 +327,7 @@ impl Error {
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
-            Context::Code(code, _) => unsafe {
+            Context::Code(code, _, _) => unsafe {
                 let debug_info = s2n_strerror_debug(code, core::ptr::null());
 
                 // The debug string should be set to a constant static string
@@ -249,7 +349,7 @@ impl Error {
         match self.0 {
             Context::Bindings(error_type, _, _) => error_type,
             Context::Application(_) => ErrorType::Application,
-            Context::Code(code, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
+            Context::Code(code, _, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
         }
     }
 
@@ -257,7 +357,7 @@ impl Error {
         match self.0 {
             Context::Bindings(_, _, _) => ErrorSource::Bindings,
             Context::Application(_) => ErrorSource::Application,
-            Context::Code(_, _) => ErrorSource::Library,
+            Context::Code(_, _, _) => ErrorSource::Library,
         }
     }
 
@@ -269,6 +369,13 @@ impl Error {
             Some(err)
         } else {
             None
+        }
+    }
+
+    pub fn alert_description(&self) -> Option<AlertDescription> {
+        match &self.0 {
+            Context::Code(_, _, debug) => debug.alert,
+            _ => None,
         }
     }
 
@@ -290,7 +397,7 @@ impl Error {
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
-            Context::Code(code, _) => {
+            Context::Code(code, _, _) => {
                 let mut alert = 0;
                 let r = unsafe { s2n_error_get_alert(code, &mut alert) };
                 match r.into_result() {
@@ -327,7 +434,7 @@ impl From<Error> for std::io::Error {
     fn from(input: Error) -> Self {
         let kind = match input.kind() {
             ErrorType::IOError => {
-                if let Context::Code(_, errno) = input.0 {
+                if let Context::Code(_, errno, _) = input.0 {
                     let bare = std::io::Error::from_raw_os_error(errno.0);
                     bare.kind()
                 } else {
@@ -350,7 +457,7 @@ impl fmt::Debug for Error {
         }
 
         let mut s = f.debug_struct("Error");
-        if let Context::Code(code, _) = self.0 {
+        if let Context::Code(code, _, _) = self.0 {
             s.field("code", &code);
         }
 
@@ -363,10 +470,14 @@ impl fmt::Debug for Error {
             s.field("debug", &debug);
         }
 
+        if let Some(alert) = self.alert_description() {
+            s.field("alert", &alert);
+        }
+
         // "errno" is only known to be meaningful for IOErrors.
         // However, it has occasionally proved useful for debugging
         // other errors, so include it for all errors.
-        if let Context::Code(_, errno) = self.0 {
+        if let Context::Code(_, errno, _) = self.0 {
             s.field("errno", &errno.to_string());
         }
 
@@ -399,8 +510,13 @@ impl std::error::Error for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{enums::Version, testing::client_hello::CustomError};
+    use crate::{
+        enums::Version,
+        security, testing,
+        testing::{client_hello::CustomError, TestPair},
+    };
     use errno::set_errno;
+    use std::io::Write;
 
     const FAILURE: isize = -1;
 
@@ -507,5 +623,28 @@ mod tests {
         assert_eq!(error.message(), message);
         assert_eq!(error.debug(), None);
         assert_eq!(error.source(), ErrorSource::Bindings);
+    }
+
+    #[test]
+    fn handshake_error_includes_alert() -> Result<(), Box<dyn std::error::Error>> {
+        let mut builder = testing::config_builder(&security::DEFAULT_TLS13)?;
+        builder.set_max_blinding_delay(0)?;
+        let config = builder.build()?;
+        let mut pair = TestPair::from_config(&config);
+
+        const ALERT_CODE: u8 = 45;
+        const ALERT: &[u8] = &[21, 3, 3, 0, 2, 1, ALERT_CODE];
+
+        // buffer the alert so that it's the first data read by the client
+        pair.io.server_tx_stream.borrow_mut().write_all(ALERT)?;
+
+        let result = pair.handshake();
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.kind() == ErrorType::Alert);
+        assert!(error.alert_description().unwrap() == ALERT_CODE.into());
+        assert!(format!("{:?}", error).contains("alert: CertificateExpired"));
+
+        Ok(())
     }
 }
