@@ -14,12 +14,19 @@ use crate::utilities::cstr_to_str;
 pub enum ErrorType {
     UnknownErrorType,
     NoError,
+    /// The underlying I/O operation failed, check the system errno
     IOError,
+    /// EoF
     ConnectionClosed,
+    /// The underlying I/O operation would block
     Blocked,
+    /// Incoming Alert
     Alert,
+    /// Failure in some part of the TLS protocol. E.g. CBC verification failure
     ProtocolError,
+    /// Error internal to s2n-tls. Feel free to open an issue if you see this: https://github.com/aws/s2n-tls/issues/new/choose
     InternalError,
+    /// User input error. E.g. Providing an invalid security policy version string
     UsageError,
     Application,
 }
