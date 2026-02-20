@@ -10,7 +10,6 @@ use s2n_tls::{
     enums::SignatureAlgorithm,
     security::{Policy, DEFAULT_PQ},
 };
-use std::fs;
 use tls_harness::{
     cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
