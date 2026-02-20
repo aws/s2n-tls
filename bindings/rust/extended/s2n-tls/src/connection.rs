@@ -770,10 +770,11 @@ impl Connection {
 
     /// Returns the TLS alert code, if any
     ///
-    /// Corresponds to [s2n_connection_get_alert].
+    /// Corresponds to [s2n_connection_get_alert], but does not modify the connection
+    /// or consume the alert.
     pub fn alert(&self) -> Option<u8> {
         let alert =
-            unsafe { s2n_connection_get_alert(self.connection.as_ptr()).into_result() }.ok()?;
+            unsafe { s2n_connection_peek_alert(self.connection.as_ptr()).into_result() }.ok()?;
         Some(alert as u8)
     }
 

@@ -3383,6 +3383,9 @@ S2N_API extern int s2n_connection_get_key_exchange_group(struct s2n_connection *
  * Function to get the alert that caused a connection to close. s2n-tls considers all
  * TLS alerts fatal and shuts down a connection whenever one is received.
  *
+ * @warning This method mutates the connection and consumes any available alert.
+ * Calling it twice without receiving a second alert will cause an error.
+ *
  * @param conn A pointer to the s2n connection
  * @returns The TLS alert code that caused a connection to be shut down
  */
