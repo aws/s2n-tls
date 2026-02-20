@@ -141,7 +141,7 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
     RESULT_ENSURE(!conn->recv_buffering, S2N_ERR_INVALID_STATE);
 
     /* Wipe any stale header bytes from a previous call */
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
     RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
