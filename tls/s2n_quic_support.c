@@ -115,9 +115,6 @@ int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocke
      * and clients only receive session tickets.) Therefore it is safe for us
      * to use the stuffer here.
      */
-    /* Wipe any stale header bytes from a previous post-handshake call */
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-
     POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
 
     /* The only post-handshake messages we support from QUIC currently are session tickets */
