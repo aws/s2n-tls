@@ -36,10 +36,7 @@ pub static BEAVER: LazyLock<CertMaterials> = LazyLock::new(|| CertMaterials {
 pub struct CertMaterials {
     pub server_key_path: String,
     pub server_chain_path: String,
-    pub client_key_path: Option<String>,
-    pub client_chain_path: Option<String>,
     /// This will either be set to the specific CA, or may be set to the server_chain
-    /// patch in the case of a self signed cert
     /// path in the case of a self signed cert
     pub ca_path: String,
 }
