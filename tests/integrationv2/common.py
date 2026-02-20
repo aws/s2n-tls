@@ -566,8 +566,6 @@ class Curves(object):
     # default P-256 in SSLv3.
     P384 = Curve("P-384", Protocols.TLS10)
     P521 = Curve("P-521", Protocols.TLS10)
-    SecP256r1Kyber768Draft00 = Curve("SecP256r1Kyber768Draft00")
-    X25519Kyber768Draft00 = Curve("X25519Kyber768Draft00")
 
     @staticmethod
     def from_name(name):
@@ -579,27 +577,6 @@ class Curves(object):
             and curve.name
         ]
         return {curve.name: curve for curve in curves}.get(name)
-
-
-class KemGroup(object):
-    def __init__(self, oqs_name):
-        self.oqs_name = oqs_name
-
-    def __str__(self):
-        return self.oqs_name
-
-
-class KemGroups(object):
-    # Though s2n and oqs_openssl 3.x support KEM groups with 128-bit security
-    # ECC + Kyber >512, oqs_openssl 1.1.1 does not:
-    #
-    # https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md
-    X25519_KYBER512R3 = KemGroup("X25519_kyber512")
-    P256_KYBER512R3 = KemGroup("p256_kyber512")
-    P384_KYBER768R3 = KemGroup("p384_kyber768")
-    P521_KYBER1024R3 = KemGroup("p521_kyber1024")
-    SecP256r1Kyber768Draft00 = KemGroup("SecP256r1Kyber768Draft00")
-    X25519Kyber768Draft00 = KemGroup("X25519Kyber768Draft00")
 
 
 class Signature(object):

@@ -31,10 +31,6 @@ typedef uint16_t kem_ciphertext_key_size;
 #define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
-#define S2N_NID_KYBER512  NID_undef
-#define S2N_NID_KYBER768  NID_undef
-#define S2N_NID_KYBER1024 NID_undef
-
 #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
     #define S2N_NID_MLKEM768  NID_MLKEM768
     #define S2N_NID_MLKEM1024 NID_MLKEM1024
@@ -92,25 +88,16 @@ struct s2n_kem_group_params {
 
 extern const struct s2n_kem s2n_mlkem_768;
 extern const struct s2n_kem s2n_mlkem_1024;
-extern const struct s2n_kem s2n_kyber_512_r3;
-extern const struct s2n_kem s2n_kyber_768_r3;
-extern const struct s2n_kem s2n_kyber_1024_r3;
 
-#define S2N_KEM_GROUPS_COUNT 10
+#define S2N_KEM_GROUPS_COUNT 4
 extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
 extern const struct s2n_kem_group s2n_secp256r1_mlkem_768;
 extern const struct s2n_kem_group s2n_secp384r1_mlkem_1024;
-extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
-extern const struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
-extern const struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
-extern const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
 
 /* x25519 KEM Groups */
 extern const struct s2n_kem_group s2n_x25519_mlkem_768;
-extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
-extern const struct s2n_kem_group s2n_x25519_kyber_768_r3;
 
 /* Pure ML-KEM Groups */
 extern const struct s2n_kem_group s2n_pure_mlkem_1024;
@@ -148,21 +135,3 @@ int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group
 #define S2N_MLKEM_1024_SECRET_KEY_BYTES    3168
 #define S2N_MLKEM_1024_CIPHERTEXT_BYTES    1568
 #define S2N_MLKEM_1024_SHARED_SECRET_BYTES 32
-
-/* kyber512r3 */
-#define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES    800
-#define S2N_KYBER_512_R3_SECRET_KEY_BYTES    1632
-#define S2N_KYBER_512_R3_CIPHERTEXT_BYTES    768
-#define S2N_KYBER_512_R3_SHARED_SECRET_BYTES 32
-
-/* kyber768r3 */
-#define S2N_KYBER_768_R3_PUBLIC_KEY_BYTES    1184
-#define S2N_KYBER_768_R3_SECRET_KEY_BYTES    2400
-#define S2N_KYBER_768_R3_CIPHERTEXT_BYTES    1088
-#define S2N_KYBER_768_R3_SHARED_SECRET_BYTES 32
-
-/* kyber1024r3 */
-#define S2N_KYBER_1024_R3_PUBLIC_KEY_BYTES    1568
-#define S2N_KYBER_1024_R3_SECRET_KEY_BYTES    3168
-#define S2N_KYBER_1024_R3_CIPHERTEXT_BYTES    1568
-#define S2N_KYBER_1024_R3_SHARED_SECRET_BYTES 32

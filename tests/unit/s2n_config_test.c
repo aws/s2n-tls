@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
             /* Test a policy with and without PQ kem groups */
             const char *policies[] = {
                 "20170210",
-                "PQ-TLS-1-2-2023-10-07",
+                "PQ-TLS-1-2-2024-10-07",
             };
 
             for (size_t i = 0; i < s2n_array_len(policies); i++) {
