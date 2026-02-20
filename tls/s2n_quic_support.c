@@ -115,13 +115,17 @@ int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocke
      * and clients only receive session tickets.) Therefore it is safe for us
      * to use the stuffer here.
      */
+    /* Wipe any stale header bytes from a previous post-handshake call */
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+
     POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
 
     /* The only post-handshake messages we support from QUIC currently are session tickets */
     POSIX_ENSURE(message_type == TLS_SERVER_NEW_SESSION_TICKET, S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
 
-    /* Successfully read the message, wipe the message buffer */
+    /* Successfully read the message, wipe the header and message buffer */
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     POSIX_GUARD_RESULT(s2n_record_wipe(conn));
 
     *blocked = S2N_NOT_BLOCKED;
@@ -140,9 +144,6 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
      */
     RESULT_ENSURE(!conn->recv_buffering, S2N_ERR_INVALID_STATE);
 
-    /* Wipe any stale header bytes from a previous call */
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
-
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
     RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
@@ -150,9 +151,11 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
 
     uint32_t message_len = 0;
     RESULT_GUARD(s2n_handshake_parse_header(&conn->handshake.io, message_type, &message_len));
-
-    /* We are done parsing the header so wipe the stuffer to cleanup */
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
+    /* Reset the read cursor rather than wiping the stuffer. During the
+     * handshake, s2n_read_full_handshake_message expects the header to still
+     * be present in handshake.io so it can accumulate the full message.
+    */
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
 
     RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
     RESULT_GUARD(s2n_read_in_bytes(conn, &conn->buffer_in, message_len));
