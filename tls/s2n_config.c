@@ -19,6 +19,7 @@
 #endif
 
 #include <strings.h>
+#include <pthread.h>
 #include <time.h>
 
 #include "api/unstable/custom_x509_extensions.h"
@@ -73,7 +74,7 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
 static struct s2n_config s2n_default_tls13_config = { 0 };
-static bool s2n_default_config_initialized = 0;
+static pthread_once_t s2n_config_once = PTHREAD_ONCE_INIT;
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -218,13 +219,15 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
     return 0;
 }
 
+static void s2n_config_defaults_init_once(void)
+{
+    s2n_config_defaults_init();
+}
+
 struct s2n_config *s2n_fetch_default_config(void)
 {
     /* if config defaults are not initialized, lazy load them */
-    if (!s2n_default_config_initialized) {
-        s2n_config_defaults_init();
-        s2n_default_config_initialized = 1;
-    }
+    pthread_once(&s2n_config_once, s2n_config_defaults_init_once);
 
     if (s2n_use_default_tls13_config()) {
         return &s2n_default_tls13_config;
