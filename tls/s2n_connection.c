@@ -1127,17 +1127,28 @@ int s2n_connection_client_cert_used(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_connection_get_alert_impl(struct s2n_stuffer *alert)
+{
+    S2N_ERROR_IF(s2n_stuffer_data_available(alert) != 2, S2N_ERR_NO_ALERT);
+
+    uint8_t alert_code = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(alert, &alert_code));
+    POSIX_GUARD(s2n_stuffer_read_uint8(alert, &alert_code));
+
+    return alert_code;
+}
+
 int s2n_connection_get_alert(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    return s2n_connection_get_alert_impl(&conn->alert_in);
+}
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) != 2, S2N_ERR_NO_ALERT);
-
-    uint8_t alert_code = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
-    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
-
-    return alert_code;
+int s2n_connection_peek_alert(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    struct s2n_stuffer alert_in_copy = conn->alert_in;
+    return s2n_connection_get_alert_impl(&alert_in_copy);
 }
 
 int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)

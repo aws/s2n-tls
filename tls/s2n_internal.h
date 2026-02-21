@@ -59,3 +59,8 @@ S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
  * is still waiting for encryption.
  */
 S2N_PRIVATE_API int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked);
+
+/*
+ * An alternative to s2n_connection_get_alert that does not mutate the connection.
+ */
+S2N_PRIVATE_API int s2n_connection_peek_alert(struct s2n_connection *conn);

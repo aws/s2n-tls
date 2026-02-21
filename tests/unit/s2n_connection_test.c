@@ -1109,6 +1109,40 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test s2n_connection_peek_alert */
+    {
+        /* Safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_peek_alert(NULL), S2N_ERR_NULL);
+        }
+
+        /* Test: no alert */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_peek_alert(conn), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test: Does not interfere with s2n_connection_get_alert */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            const uint8_t alert_code = 42;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, alert_code));
+
+            /* We can repeatedly peek at alerts */
+            for (size_t i = 0; i < 10; i++) {
+                EXPECT_EQUAL(s2n_connection_peek_alert(conn), alert_code);
+            }
+
+            /* We can still read the alert once */
+            EXPECT_EQUAL(s2n_connection_get_alert(conn), alert_code);
+            /* But we can't read the alert twice */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_alert(conn), S2N_ERR_NO_ALERT);
+        }
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
     END_TEST();
