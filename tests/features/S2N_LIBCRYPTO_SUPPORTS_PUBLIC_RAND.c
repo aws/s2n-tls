@@ -14,12 +14,7 @@
  */
 
 /*
- * Not all libcryptos support RAND_priv_bytes.
- *
- * Note: the existence of RAND_priv_bytes() does NOT mean that the libcrypto
- * actually supports a separate, private source of randomness. For example, 
- * versions of awslc prior to https://github.com/aws/aws-lc/pull/2963
- * just alias RAND_priv_bytes to RAND_bytes.
+ * Not all libcryptos support RAND_public_bytes.
  */
 
 #include <openssl/rand.h>
@@ -27,6 +22,6 @@
 int main()
 {
     uint8_t bytes[10] = { 0 };
-    RAND_priv_bytes(bytes, sizeof(bytes));
+    RAND_public_bytes(bytes, sizeof(bytes));
     return 0;
 }
