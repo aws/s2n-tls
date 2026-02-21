@@ -1382,6 +1382,25 @@ typedef enum {
 S2N_API extern struct s2n_connection *s2n_connection_new(s2n_mode mode);
 
 /**
+ * Creates a new connection object. Each s2n-tls SSL/TLS connection uses
+ * one of these objects. These connection objects can be operated on by up
+ * to two threads at a time, one sender and one receiver, but neither sending
+ * nor receiving are atomic, so if these objects are being called by multiple
+ * sender or receiver threads, you must perform your own locking to ensure 
+ * that only one sender or receiver is active at a time. 
+ * 
+ * The `mode` parameters specifies if the caller is a server, or is a client.
+ * Connections objects are re-usable across many connections, and should be
+ * re-used (to avoid deallocating and allocating memory). You should wipe
+ * connections immediately after use.
+ *
+ * @param config The configuration object beign associated
+ * @param mode The desired connection type
+ * @returns A s2n_connection handle
+ */
+S2N_API extern struct s2n_connection *s2n_connection_new_with_config(struct s2n_config *config, s2n_mode mode);
+
+/**
  * Associates a configuration object with a connection.
  *
  * @param conn The connection object being associated
