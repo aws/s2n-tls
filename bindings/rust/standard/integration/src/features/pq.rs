@@ -35,9 +35,7 @@ fn s2n_mldsa_client() {
             // accepts that value.
             configs
                 .client
-                .set_verify_host_callback(HostNameHandler {
-                    expected_server_name: "LAMPS WG",
-                })
+                .set_verify_host_callback(HostNameHandler::new("LAMPS WG"))
                 .unwrap();
             configs.client.trust_pem(&mldsa87.ca()).unwrap();
 

@@ -18,6 +18,13 @@ pub static ML_DSA_44: LazyLock<CertMaterials> = LazyLock::new(|| CertMaterials {
     ca_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-44.crt"),
 });
 
+/// A self-signed cert with a SAN of `www.beaver.com`
+pub static BEAVER: LazyLock<CertMaterials> = LazyLock::new(|| CertMaterials {
+    server_key_path: format!("{TEST_PEMS_PATH}sni/beaver_key.pem"),
+    server_chain_path: format!("{TEST_PEMS_PATH}sni/beaver_cert.pem"),
+    ca_path: format!("{TEST_PEMS_PATH}sni/beaver_cert.pem"),
+});
+
 /// CertMaterials holds the paths to PEM-formatted files
 #[derive(Debug, Clone)]
 pub struct CertMaterials {
