@@ -553,8 +553,8 @@ static S2N_RESULT s2n_random_implementation_test(void)
     EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
 
     if (s2n_use_libcrypto_rand()) {
-        /* The libcrypto random implementation should be used when operating in FIPS mode, so
-         * the bytes used in the custom DRBG state should not have changed.
+        /* When the libcrypto random implementation is used, the amount of random bytes did not change 
+         * because s2n_get_public/private_random_data did not trigger our custom DRBG implementation.
          */
         EXPECT_EQUAL(public_bytes_used, previous_public_bytes_used);
         EXPECT_EQUAL(private_bytes_used, previous_private_bytes_used);
@@ -576,22 +576,22 @@ static S2N_RESULT s2n_random_large_generate_test(void)
     EXPECT_OK(s2n_get_public_random_data(&blob));
 
     /* Ensure the buffer was written to. A successful return does not
-     * guarantee mutation, so verify the output is not entirely zero.
-     * The probability of a true RNG producing all zeros for this size
-     * is incredibly small.
+    * guarantee mutation, so OR all bytes into `mask` and verify the
+    * result is non-zero (i.e. not every byte is zero). The chance of
+    * a real RNG producing all zeros for this size is negligible.
      */
-    uint8_t acc = 0;
+    uint8_t mask = 0;
     for (uint32_t i = 0; i < size; i++) {
-        acc |= blob.data[i];
+        mask |= blob.data[i];
     }
-    EXPECT_NOT_EQUAL(acc, 0);
+    EXPECT_NOT_EQUAL(mask, 0);
 
     EXPECT_OK(s2n_get_private_random_data(&blob));
-    acc = 0;
+    mask = 0;
     for (uint32_t i = 0; i < size; i++) {
-        acc |= blob.data[i];
+        mask |= blob.data[i];
     }
-    EXPECT_NOT_EQUAL(acc, 0);
+    EXPECT_NOT_EQUAL(mask, 0);
 
     return S2N_RESULT_OK;
 }

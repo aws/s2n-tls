@@ -287,120 +287,46 @@ bool s2n_use_libcrypto_rand(void)
         return true;
     }
 
+    if (s2n_libcrypto_is_awslc()) {
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    /* AWS-LC with RAND_public_bytes: distinct streams */
-    return true;
-
-#elif defined(OPENSSL_IS_AWSLC)
-    /* AWS-LC without public rand: no distinct streams */
-    return false;
-
-#elif S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    /* Non-AWS-LC: RAND_priv_bytes implies distinct stream */
-    return true;
-
+        /* AWS-LC with RAND_public_bytes: distinct streams */
+        return true;
 #else
-    return false;
+        /* AWS-LC without public rand: no distinct streams */
+        return false;
 #endif
-}
-
-/* RAND_*bytes signatures differ across libcryptos (unsigned char/int vs uint8_t/size_t).
- * Normalize to (unsigned char *, int) so RAND_*bytes can be used as function pointers.
- */
-#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
-
-/* Only needed if we don't have both public and private rand */
-    #if !defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || !defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
-static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_bytes((uint8_t *) buf, (size_t) num);
-}
-    #endif
-
-    #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_priv_bytes((uint8_t *) buf, (size_t) num);
-}
-    #endif
-
-    #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_public_bytes((uint8_t *) buf, (size_t) num);
-}
-    #endif
-
-#else
-    #if !defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || !defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
-static int s2n_rand_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_bytes(buf, num);
-}
-    #endif
-
-    #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-static int s2n_rand_priv_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_priv_bytes(buf, num);
-}
-    #endif
-
-    #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-static int s2n_rand_public_bytes_adapter(unsigned char *buf, int num)
-{
-    return RAND_public_bytes(buf, num);
-}
-    #endif
-
+    } else {
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+        /* Non-AWS-LC: RAND_priv_bytes implies distinct stream */
+        return true;
 #endif
-/* Generate arbitrary-sized output by chunking requests.
- * Both DRBG and libcrypto RAND APIs are designed around a maximum
- * per-call generate size (and libcrypto also takes an `int` length).
- * Chunking preserves expected behavior and avoids overflow for
- * large requests.
- */
-static S2N_RESULT s2n_libcrypto_rand_bytes_chunked(
-        int (*rand_fn)(unsigned char *buf, int num),
-        struct s2n_blob *out_blob)
-{
-    RESULT_GUARD_PTR(out_blob);
-    RESULT_ENSURE_REF(out_blob->data);
-
-    uint8_t *p = out_blob->data;
-    uint32_t remaining = out_blob->size;
-
-    while (remaining > 0) {
-        const uint32_t max_chunk_u32 =
-                (S2N_DRBG_GENERATE_LIMIT < (uint32_t) INT_MAX) ? S2N_DRBG_GENERATE_LIMIT : (uint32_t) INT_MAX;
-
-        int chunk = (remaining > max_chunk_u32) ? (int) max_chunk_u32 : (int) remaining;
-
-        RESULT_GUARD_OSSL(rand_fn(p, chunk), S2N_ERR_DRBG);
-
-        p += (uint32_t) chunk;
-        remaining -= (uint32_t) chunk;
     }
 
-    return S2N_RESULT_OK;
+    return false;
 }
 
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
 {
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_ENSURE_REF(out_blob->data);
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_priv_bytes_adapter, out_blob);
+    RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #else
-    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_bytes_adapter, out_blob);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #endif
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob)
 {
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_ENSURE_REF(out_blob->data);
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_public_bytes_adapter, out_blob);
+    RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #else
-    return s2n_libcrypto_rand_bytes_chunked(s2n_rand_bytes_adapter, out_blob);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #endif
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s2n_drbg *drbg_state)
@@ -672,7 +598,7 @@ bool s2n_supports_custom_rand(void)
 #elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
     return false;
 #else
-    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode() && !s2n_use_libcrypto_rand();
+    return s2n_libcrypto_is_openssl() && !s2n_use_libcrypto_rand();
 #endif
 }
 
