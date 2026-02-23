@@ -17,32 +17,6 @@
 
 #include "tls/s2n_kem.h"
 
-const struct s2n_kem *pq_kems_r3_2021_05[] = {
-    /* Round 3 Algorithms */
-    &s2n_kyber_512_r3,
-};
-
-const struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
-    &s2n_x25519_kyber_512_r3,
-    &s2n_secp256r1_kyber_512_r3,
-};
-
-const struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
-    &s2n_secp256r1_kyber_768_r3,
-    &s2n_x25519_kyber_768_r3,
-    &s2n_secp384r1_kyber_768_r3,
-    &s2n_secp521r1_kyber_1024_r3,
-    &s2n_secp256r1_kyber_512_r3,
-    &s2n_x25519_kyber_512_r3,
-};
-
-const struct s2n_kem_group *pq_kem_groups_r3_2023_12[] = {
-    &s2n_secp256r1_kyber_768_r3,
-    &s2n_secp384r1_kyber_768_r3,
-    &s2n_secp521r1_kyber_1024_r3,
-    &s2n_secp256r1_kyber_512_r3,
-};
-
 /* Includes only IETF standard KEM Groups. */
 const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[] = {
     &s2n_x25519_mlkem_768,
@@ -53,52 +27,6 @@ const struct s2n_kem_group *pq_kem_groups_ietf_2025_07[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
     &s2n_secp384r1_mlkem_1024,
-};
-
-/* Includes both IETF standard KEM Groups, and earlier draft standards with Kyber. */
-const struct s2n_kem_group *pq_kem_groups_mixed_2024_10[] = {
-    &s2n_x25519_mlkem_768,
-    &s2n_secp256r1_mlkem_768,
-    &s2n_secp256r1_kyber_768_r3,
-    &s2n_x25519_kyber_768_r3,
-    &s2n_secp384r1_kyber_768_r3,
-    &s2n_secp521r1_kyber_1024_r3,
-    &s2n_secp256r1_kyber_512_r3,
-    &s2n_x25519_kyber_512_r3,
-};
-
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05 = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2021_05),
-    .tls13_kem_groups = pq_kem_groups_r3_2021_05,
-    .tls13_pq_hybrid_draft_revision = 0
-};
-
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01 = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2021_05),
-    .tls13_kem_groups = pq_kem_groups_r3_2021_05,
-    .tls13_pq_hybrid_draft_revision = 5
-};
-
-/* TLS 1.3 specifies KEMS via SupportedGroups extension, not TLS 1.2's KEM-specific extension. */
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_06 = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_06),
-    .tls13_kem_groups = pq_kem_groups_r3_2023_06,
-    .tls13_pq_hybrid_draft_revision = 5
-};
-
-/* Same as kem_preferences_pq_tls_1_3_2023_06, but without x25519 */
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_12 = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_12),
-    .tls13_kem_groups = pq_kem_groups_r3_2023_12,
-    .tls13_pq_hybrid_draft_revision = 5
 };
 
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2024_10 = {
@@ -114,14 +42,6 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_07 = {
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_ietf_2025_07),
     .tls13_kem_groups = pq_kem_groups_ietf_2025_07,
-    .tls13_pq_hybrid_draft_revision = 5
-};
-
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_mixed_2024_10 = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_mixed_2024_10),
-    .tls13_kem_groups = pq_kem_groups_mixed_2024_10,
     .tls13_pq_hybrid_draft_revision = 5
 };
 

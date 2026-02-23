@@ -277,16 +277,30 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     BIGNUM *pub_key = NULL;
 
     POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
+    int server_dh_params_size = DH_size(server_dh_params->dh);
+    POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
 
+    /*
+     * As defined in https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.2,
+     * the client's DH public value (Yc) is sent as a variable-length opaque value.
+     * Validate that Yc_length does not exceed the DH group size to prevent
+     * unnecessary computation and memory allocation on oversized keys.
+     *
+     * According to https://www.rfc-editor.org/rfc/rfc2631#section-2.1.5,
+     * the valid range of Yc is [2, p-1]. When encoding a BIGNUM to bytes,
+     * leading zeros are often stripped, in which case Yc_length might be
+     * less than server_dh_params_size.
+     */
     POSIX_GUARD(s2n_stuffer_read_uint16(Yc_in, &Yc_length));
+    POSIX_ENSURE(Yc_length > 0, S2N_ERR_DH_SHARED_SECRET);
+    POSIX_ENSURE((int) Yc_length <= server_dh_params_size, S2N_ERR_DH_SHARED_SECRET);
+
     Yc.size = Yc_length;
     Yc.data = s2n_stuffer_raw_read(Yc_in, Yc.size);
     POSIX_ENSURE_REF(Yc.data);
 
     pub_key = BN_bin2bn((const unsigned char *) Yc.data, Yc.size, NULL);
     POSIX_ENSURE_REF(pub_key);
-    int server_dh_params_size = DH_size(server_dh_params->dh);
-    POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_GUARD(s2n_alloc(shared_key, server_dh_params_size));
 
     shared_key_size = DH_compute_key(shared_key->data, pub_key, server_dh_params->dh);

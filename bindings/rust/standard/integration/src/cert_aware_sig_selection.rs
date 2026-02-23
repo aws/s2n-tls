@@ -13,11 +13,9 @@
 //! s2n-tls previously has a bug in this selection logic (https://github.com/aws/s2n-tls/pull/5713).
 //! This test protects against regressions in that behavior.
 
-use std::fs;
-
 use crate::{
     capability_check::{required_capability, Capability},
-    TEST_PEMS_PATH,
+    utilities::certs::{self, CertMaterials},
 };
 use brass_aphid_wire_decryption::decryption::{key_manager::KeyManager, Mode};
 use brass_aphid_wire_messages::{
@@ -32,24 +30,6 @@ use tls_harness::{
     TlsConnPair,
 };
 
-struct CertMaterials {
-    private_key_path: String,
-    server_chain_path: String,
-    ca_path: String,
-}
-
-impl CertMaterials {
-    /// return the cert materials from a "permutation" in test/pems/
-    fn from_permutation(permutation: &str) -> Self {
-        let folder = format!("{TEST_PEMS_PATH}permutations/{permutation}");
-        CertMaterials {
-            private_key_path: format!("{folder}/server-key.pem"),
-            server_chain_path: format!("{folder}/server-chain.pem"),
-            ca_path: format!("{folder}/ca-cert.pem"),
-        }
-    }
-}
-
 /// Handshake `server_policy` with `cert_materials`, and return the SignatureScheme
 /// from the server's CertVerify message.
 fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureScheme {
@@ -63,9 +43,10 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 
         configs.server.set_security_policy(server_policy).unwrap();
         configs.server.set_max_blinding_delay(0).unwrap();
-        let chain = fs::read(&cert_materials.server_chain_path).unwrap();
-        let key = fs::read(&cert_materials.private_key_path).unwrap();
-        configs.server.load_pem(&chain, &key).unwrap();
+        configs
+            .server
+            .load_pem(&cert_materials.server_chain(), &cert_materials.server_key())
+            .unwrap();
         key_manager.enable_s2n_logging(&mut configs.server);
 
         configs.connection_pair()
@@ -120,18 +101,13 @@ fn signature_selection() {
 
     // MLDSA
     required_capability(&[Capability::MLDsa], || {
-        let mldsa87 = CertMaterials {
-            private_key_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv"),
-            server_chain_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt"),
-            ca_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt"),
-        };
-        let mldsa44 = CertMaterials {
-            private_key_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-44-seed.priv"),
-            server_chain_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-44.crt"),
-            ca_path: format!("{TEST_PEMS_PATH}mldsa/ML-DSA-44.crt"),
-        };
-
-        assert_eq!(trial(&DEFAULT_PQ, &mldsa87), iana::constants::mldsa87);
-        assert_eq!(trial(&DEFAULT_PQ, &mldsa44), iana::constants::mldsa44);
+        assert_eq!(
+            trial(&DEFAULT_PQ, &certs::ML_DSA_87),
+            iana::constants::mldsa87
+        );
+        assert_eq!(
+            trial(&DEFAULT_PQ, &certs::ML_DSA_44),
+            iana::constants::mldsa44
+        );
     });
 }

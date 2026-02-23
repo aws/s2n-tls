@@ -1,26 +1,25 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::capability_check::{required_capability, Capability};
+use crate::{
+    capability_check::{required_capability, Capability},
+    utilities::certs::{self, CertMaterials},
+};
 use openssl::ssl::SslContextBuilder;
 use s2n_tls::{
     enums::SignatureAlgorithm,
     security::{Policy, DEFAULT_PQ},
 };
-use std::fs;
 use tls_harness::{
     cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
     TlsConnPair,
 };
 
-use crate::TEST_PEMS_PATH;
-
 #[test]
 fn s2n_mldsa_client() {
     required_capability(&[Capability::MLDsa], || {
-        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
-        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+        let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = {
             let mut configs =
@@ -40,17 +39,16 @@ fn s2n_mldsa_client() {
                     expected_server_name: "LAMPS WG",
                 })
                 .unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            configs.client.trust_pem(&cert).unwrap();
+            configs.client.trust_pem(&mldsa87.ca()).unwrap();
 
             // Setup OpenSSL server with ML-DSA certs
             configs
                 .server
-                .set_private_key_file(&key_path, openssl::ssl::SslFiletype::PEM)
+                .set_private_key_file(&mldsa87.server_key_path, openssl::ssl::SslFiletype::PEM)
                 .unwrap();
             configs
                 .server
-                .set_certificate_chain_file(&cert_path)
+                .set_certificate_chain_file(&mldsa87.server_chain_path)
                 .unwrap();
 
             configs.connection_pair()
@@ -69,22 +67,22 @@ fn s2n_mldsa_client() {
 #[test]
 fn s2n_mldsa_server() {
     required_capability(&[Capability::MLDsa], || {
-        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
-        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+        let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
                 TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
 
             // Setup OpenSSL client
-            configs.client.set_ca_file(&cert_path).unwrap();
+            configs.client.set_ca_file(&mldsa87.ca_path).unwrap();
 
             // Setup s2n-tls server with ML-DSA certs
             configs.server.set_security_policy(&DEFAULT_PQ).unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            let key = fs::read(&key_path).unwrap();
-            configs.server.load_pem(&cert, &key).unwrap();
+            configs
+                .server
+                .load_pem(&mldsa87.server_chain(), &mldsa87.server_key())
+                .unwrap();
 
             configs.connection_pair()
         };
@@ -104,9 +102,7 @@ fn s2n_mldsa_server() {
 #[test]
 fn s2n_mlkem_client() {
     required_capability(&[Capability::MLKem], || {
-        let cert_path =
-            format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
-        let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
+        let certs = CertMaterials::from_permutation("ec_ecdsa_p256_sha384");
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = {
             let mut configs =
@@ -115,17 +111,16 @@ fn s2n_mlkem_client() {
             // Setup s2n-tls client with default_pq
             configs.client.set_security_policy(&DEFAULT_PQ).unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            configs.client.trust_pem(&cert).unwrap();
+            configs.client.trust_pem(&certs.ca()).unwrap();
 
             // Setup OpenSSL server restricted to SecP384r1MLKEM1024
             configs
                 .server
-                .set_private_key_file(&key_path, openssl::ssl::SslFiletype::PEM)
+                .set_private_key_file(&certs.server_key_path, openssl::ssl::SslFiletype::PEM)
                 .unwrap();
             configs
                 .server
-                .set_certificate_chain_file(&cert_path)
+                .set_certificate_chain_file(&certs.server_chain_path)
                 .unwrap();
             configs
                 .server
@@ -146,16 +141,14 @@ fn s2n_mlkem_client() {
 #[test]
 fn s2n_mlkem_server() {
     required_capability(&[Capability::MLKem], || {
-        let cert_path =
-            format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-chain.pem");
-        let key_path = format!("{TEST_PEMS_PATH}permutations/ec_ecdsa_p256_sha384/server-key.pem");
+        let certs = CertMaterials::from_permutation("ec_ecdsa_p256_sha384");
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
                 TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
 
             // Setup OpenSSL client restricted to SecP384r1MLKEM1024
-            configs.client.set_ca_file(&cert_path).unwrap();
+            configs.client.set_ca_file(&certs.ca_path).unwrap();
             configs
                 .client
                 .set_groups_list("SecP384r1MLKEM1024")
@@ -164,9 +157,10 @@ fn s2n_mlkem_server() {
             // Setup s2n-tls server
             configs.server.set_security_policy(&DEFAULT_PQ).unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            let key = fs::read(&key_path).unwrap();
-            configs.server.load_pem(&cert, &key).unwrap();
+            configs
+                .server
+                .load_pem(&certs.server_chain(), &certs.server_key())
+                .unwrap();
 
             configs.connection_pair()
         };
@@ -183,8 +177,7 @@ fn s2n_mlkem_server() {
 #[test]
 fn s2n_pure_mlkem_client() {
     required_capability(&[Capability::MLKem], || {
-        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
-        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+        let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = {
             let mut configs =
@@ -197,17 +190,16 @@ fn s2n_pure_mlkem_client() {
                 .set_security_policy(&test_all_policy)
                 .unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            configs.client.trust_pem(&cert).unwrap();
+            configs.client.trust_pem(&mldsa87.ca()).unwrap();
 
             // Setup OpenSSL server restricted to MLKEM1024
             configs
                 .server
-                .set_private_key_file(&key_path, openssl::ssl::SslFiletype::PEM)
+                .set_private_key_file(&mldsa87.server_key_path, openssl::ssl::SslFiletype::PEM)
                 .unwrap();
             configs
                 .server
-                .set_certificate_chain_file(&cert_path)
+                .set_certificate_chain_file(&mldsa87.server_chain_path)
                 .unwrap();
             configs.server.set_groups_list("MLKEM1024").unwrap();
 
@@ -226,15 +218,14 @@ fn s2n_pure_mlkem_client() {
 #[test]
 fn s2n_pure_mlkem_server() {
     required_capability(&[Capability::MLKem, Capability::MLDsa], || {
-        let cert_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87.crt");
-        let key_path = format!("{TEST_PEMS_PATH}mldsa/ML-DSA-87-seed.priv");
+        let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
                 TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
 
             // Setup OpenSSL client restricted to MLKEM1024
-            configs.client.set_ca_file(&cert_path).unwrap();
+            configs.client.set_ca_file(&mldsa87.ca_path).unwrap();
             configs.client.set_groups_list("MLKEM1024").unwrap();
 
             // Setup s2n-tls server with test_all
@@ -244,9 +235,10 @@ fn s2n_pure_mlkem_server() {
                 .set_security_policy(&test_all_policy)
                 .unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
-            let cert = fs::read(&cert_path).unwrap();
-            let key = fs::read(&key_path).unwrap();
-            configs.server.load_pem(&cert, &key).unwrap();
+            configs
+                .server
+                .load_pem(&mldsa87.server_chain(), &mldsa87.server_key())
+                .unwrap();
 
             configs.connection_pair()
         };
