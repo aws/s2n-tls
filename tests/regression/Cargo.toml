@@ -1,7 +1,7 @@
 [package]
 name = "regression"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 s2n-tls = { version = "=0.3", path = "../../bindings/rust/extended/s2n-tls", features = ["unstable-testing"] }
