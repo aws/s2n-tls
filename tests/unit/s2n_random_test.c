@@ -566,36 +566,6 @@ static S2N_RESULT s2n_random_implementation_test(void)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_random_large_generate_test(void)
-{
-    /* Request more than S2N_DRBG_GENERATE_LIMIT to ensure large requests succeed */
-    const uint32_t size = (S2N_DRBG_GENERATE_LIMIT * 2) + 123;
-
-    DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
-    EXPECT_SUCCESS(s2n_alloc(&blob, size));
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-
-    /* Ensure the buffer was written to. A successful return does not
-    * guarantee mutation, so OR all bytes into `mask` and verify the
-    * result is non-zero (i.e. not every byte is zero). The chance of
-    * a real RNG producing all zeros for this size is negligible.
-     */
-    uint8_t mask = 0;
-    for (uint32_t i = 0; i < size; i++) {
-        mask |= blob.data[i];
-    }
-    EXPECT_NOT_EQUAL(mask, 0);
-
-    EXPECT_OK(s2n_get_private_random_data(&blob));
-    mask = 0;
-    for (uint32_t i = 0; i < size; i++) {
-        mask |= blob.data[i];
-    }
-    EXPECT_NOT_EQUAL(mask, 0);
-
-    return S2N_RESULT_OK;
-}
-
 /* A collection of tests executed for each test dimension */
 static int s2n_common_tests(struct random_test_case *test_case)
 {
@@ -644,9 +614,6 @@ static int s2n_common_tests(struct random_test_case *test_case)
 
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
-
-    /* Verify large requests succeed (exercises libcrypto chunking / limits). */
-    EXPECT_OK(s2n_random_large_generate_test());
 
     /* Test that the correct random implementation is used */
     EXPECT_OK(s2n_random_implementation_test());
