@@ -173,10 +173,9 @@ fn s2n_mlkem_server() {
     });
 }
 
-// Client-side test only exercises MLKEM key exchange; trusting the leaf cert avoids ML-DSA verification.
 #[test]
 fn s2n_pure_mlkem_client() {
-    required_capability(&[Capability::MLKem], || {
+    required_capability(&[Capability::MLKem, Capability::MLDsa], || {
         let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = {
@@ -220,7 +219,6 @@ fn s2n_pure_mlkem_client() {
     });
 }
 
-// Server-side test exercises MLKEM plus ML-DSA, since the server must sign CertificateVerify with an ML-DSA key.
 #[test]
 fn s2n_pure_mlkem_server() {
     required_capability(&[Capability::MLKem, Capability::MLDsa], || {
