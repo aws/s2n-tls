@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 tls-harness = { path = "../tls-harness" }
 s2n-tls = { path = "../../extended/s2n-tls" }
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 rustls = "0.23.31"
 openssl = { version = "0.10.73", features = ["vendored"] }
 

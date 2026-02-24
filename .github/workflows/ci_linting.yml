@@ -113,7 +113,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: clang-format check
-        run: ./codebuild/bin/run_clang_format.sh
+        uses: jidicula/clang-format-action@v4.16.0
+        with:
+          clang-format-version: '18'
+          include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
@@ -146,19 +149,3 @@ jobs:
           exit 1
       - name: Success
         run: echo "All nix files passed format check"
-  validate-pr-title:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: PR Conventional Commit Validation
-        id: cc_check
-        if: github.event_name == 'pull_request'
-        uses: ytanikin/pr-conventional-commits@1.5.1
-        with:
-          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","build"]'
-          add_label: 'false'
-      - name: Failure case
-        if: github.event_name == 'pull_request_target' && steps.cc_check.outcome != 'success'
-        run: |
-          echo "Make sure the PR title/commit follows https://www.conventionalcommits.org/"
-          exit 1
