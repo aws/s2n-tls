@@ -190,13 +190,17 @@ fn s2n_pure_mlkem_client() {
             let mut configs =
                 TlsConfigBuilderPair::<s2n_tls::config::Builder, SslContextBuilder>::default();
 
-            // Setup s2n-tls client with test_all
-            let test_all_policy = Policy::from_version("test_all").unwrap();
+            // Setup s2n-tls client with cnsa2 policy
+            let cnsa2_policy = Policy::from_version("cnsa2").unwrap();
+            configs.client.set_security_policy(&cnsa2_policy).unwrap();
+            configs.client.set_max_blinding_delay(0).unwrap();
+            // This test uses the RFC ML-DSA certificate with the hostname "LAMPS WG".
             configs
                 .client
-                .set_security_policy(&test_all_policy)
+                .set_verify_host_callback(HostNameHandler {
+                    expected_server_name: "LAMPS WG",
+                })
                 .unwrap();
-            configs.client.set_max_blinding_delay(0).unwrap();
             let cert = fs::read(&cert_path).unwrap();
             configs.client.trust_pem(&cert).unwrap();
 
@@ -219,6 +223,7 @@ fn s2n_pure_mlkem_client() {
         let conn = pair.client.connection();
         let kem_group = conn.kem_group_name().unwrap();
         assert_eq!(kem_group, "MLKEM1024");
+        assert_eq!(conn.signature_scheme(), Some("mldsa87"));
     });
 }
 
@@ -237,12 +242,9 @@ fn s2n_pure_mlkem_server() {
             configs.client.set_ca_file(&cert_path).unwrap();
             configs.client.set_groups_list("MLKEM1024").unwrap();
 
-            // Setup s2n-tls server with test_all
-            let test_all_policy = Policy::from_version("test_all").unwrap();
-            configs
-                .server
-                .set_security_policy(&test_all_policy)
-                .unwrap();
+            // Setup s2n-tls server with cnsa2 policy
+            let cnsa2_policy = Policy::from_version("cnsa2").unwrap();
+            configs.server.set_security_policy(&cnsa2_policy).unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
             let cert = fs::read(&cert_path).unwrap();
             let key = fs::read(&key_path).unwrap();
@@ -256,5 +258,6 @@ fn s2n_pure_mlkem_server() {
         let conn = pair.server.connection();
         let kem_group = conn.kem_group_name().unwrap();
         assert_eq!(kem_group, "MLKEM1024");
+        assert_eq!(conn.signature_scheme(), Some("mldsa87"));
     });
 }

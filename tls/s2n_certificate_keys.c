@@ -85,6 +85,14 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+const struct s2n_certificate_key s2n_mldsa_87 = {
+    .public_key_libcrypto_nid = NID_PQDSA,
+    .name = "mldsa_87",
+    .bits = 20736, /* The ML-DSA-87 public key size is 2592 bytes. */
+};
+#endif
+
 const struct s2n_certificate_key *s2n_certificate_keys_20250429[] = {
     /**
      *= https://www.rfc-editor.org/rfc/rfc9151#section-5.1
@@ -106,4 +114,23 @@ const struct s2n_certificate_key *s2n_certificate_keys_20250429[] = {
 struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20250429 = {
     .count = s2n_array_len(s2n_certificate_keys_20250429),
     .certificate_keys = s2n_certificate_keys_20250429,
+};
+
+const struct s2n_certificate_key *s2n_certificate_keys_20260218[] = {
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+    /* CNSA 2.0 */
+    &s2n_mldsa_87,
+#endif
+
+    /* CNSA 1.0 */
+    &s2n_ec_p384,
+    &s2n_rsa_rsae_3072,
+    &s2n_rsa_rsae_4096,
+    &s2n_rsa_pss_3072,
+    &s2n_rsa_pss_4096,
+};
+
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20260218 = {
+    .count = s2n_array_len(s2n_certificate_keys_20260218),
+    .certificate_keys = s2n_certificate_keys_20260218,
 };

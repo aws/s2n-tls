@@ -37,6 +37,11 @@ int main(int argc, char **argv)
     }
 
     if (!s2n_mldsa_is_supported()) {
+        /* If ML-DSA is not supported by the libcrypto, loading ML-DSA certs will trigger an error. */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY),
+                S2N_ERR_DECODE_PRIVATE_KEY);
+
         END_TEST();
     }
 
