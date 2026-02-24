@@ -238,91 +238,87 @@ fn host_name_verification() {
 /// `certificate_signature_preferences` field in the security policy we return an
 /// S2N_ERR_CERT_UNTRUSTED error
 #[test]
-fn mtls_cert_signature_not_allowed() {
+fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
     /// Certificate Signatures must have a SHA384 digest
     /// Transcript Signatures must have a SHA384 digest
     /// Certificate keys must be RSA3072 or secp384r1
     const POLICY: &str = "20251013";
 
-    required_capability_with_inner_result(&[Capability::Tls13], || {
-        let server_cert = CertMaterials::from_permutation("rsae_pkcs_3072_sha384");
-        // The client cert has a valid key (RSA3072) but an invalid signature
-        // (SHA256 digest)
-        let client_cert = CertMaterials::from_permutation("rsae_pkcs_3072_sha256");
+    let server_cert = CertMaterials::from_permutation("rsae_pkcs_3072_sha384");
+    // The client cert has a valid key (RSA3072) but an invalid signature
+    // (SHA256 digest)
+    let client_cert = CertMaterials::from_permutation("rsae_pkcs_3072_sha256");
 
-        let mut pair: TlsConnPair<S2NConnection, S2NConnection> = {
-            let sha384_only_policy = Policy::from_version(POLICY)?;
-            let mut server = s2n_tls::config::Builder::new();
+    let mut pair: TlsConnPair<S2NConnection, S2NConnection> = {
+        let sha384_only_policy = Policy::from_version(POLICY)?;
+        let mut server = s2n_tls::config::Builder::new();
 
-            server
-                .set_security_policy(&sha384_only_policy)?
-                .set_verify_host_callback(HostNameHandler::new("localhost"))?
-                .load_pem(&server_cert.server_chain(), &server_cert.server_key())?
-                .set_client_auth_type(s2n_tls::enums::ClientAuthType::Required)?
-                .trust_pem(&client_cert.ca())?;
-            let server = server.build().unwrap();
+        server
+            .set_security_policy(&sha384_only_policy)?
+            .set_verify_host_callback(HostNameHandler::new("localhost"))?
+            .load_pem(&server_cert.server_chain(), &server_cert.server_key())?
+            .set_client_auth_type(s2n_tls::enums::ClientAuthType::Required)?
+            .trust_pem(&client_cert.ca())?;
+        let server = server.build().unwrap();
 
-            let mut client = s2n_tls::config::Builder::new();
-            client
-                .set_verify_host_callback(HostNameHandler::new("localhost"))?
-                .load_pem(&client_cert.server_chain(), &client_cert.server_key())?
-                .trust_pem(&server_cert.ca())?;
-            let client = client.build().unwrap();
+        let mut client = s2n_tls::config::Builder::new();
+        client
+            .set_verify_host_callback(HostNameHandler::new("localhost"))?
+            .load_pem(&client_cert.server_chain(), &client_cert.server_key())?
+            .trust_pem(&server_cert.ca())?;
+        let client = client.build().unwrap();
 
-            TlsConnPair::from_configs(&client.into(), &server.into())
-        };
+        TlsConnPair::from_configs(&client.into(), &server.into())
+    };
 
-        let error = pair.handshake().unwrap_err();
-        let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
-        assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
-        assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
-        Ok(())
-    });
+    let error = pair.handshake().unwrap_err();
+    let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
+    assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
+    assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
+    Ok(())
 }
 
 /// When a client cert chain uses keys that aren't allowed by the `certificate_key_preferences`
 /// field in the security policy, we return an S2N_ERR_CERT_UNTRUSTED error
 #[test]
-fn mtls_cert_key_not_allowed() {
+fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
     /// Certificate Signatures must have a SHA384 digest
     /// Transcript Signatures must have a SHA384 digest
     /// Certificate keys must be RSA3072 or secp384r1
     const POLICY: &str = "20251013";
 
-    required_capability_with_inner_result(&[Capability::Tls13], || {
-        let server_cert = CertMaterials::from_permutation("ec_ecdsa_p384_sha384");
-        // the cert has a valid signature (ECDSA+SHA384) but an invalid key (p256).
-        let client_cert = CertMaterials::from_permutation("ec_ecdsa_p256_sha384");
+    let server_cert = CertMaterials::from_permutation("ec_ecdsa_p384_sha384");
+    // the cert has a valid signature (ECDSA+SHA384) but an invalid key (p256).
+    let client_cert = CertMaterials::from_permutation("ec_ecdsa_p256_sha384");
 
-        let mut pair: TlsConnPair<S2NConnection, S2NConnection> = {
-            let policy = Policy::from_version(POLICY)?;
+    let mut pair: TlsConnPair<S2NConnection, S2NConnection> = {
+        let policy = Policy::from_version(POLICY)?;
 
-            let mut server = s2n_tls::config::Builder::new();
-            server
-                .set_verify_host_callback(HostNameHandler::new("localhost"))?
-                .load_pem(&server_cert.server_chain(), &server_cert.server_key())?
-                .set_security_policy(&policy)?
-                .set_client_auth_type(s2n_tls::enums::ClientAuthType::Required)?
-                .trust_pem(&client_cert.ca())?;
-            let server = server.build()?;
+        let mut server = s2n_tls::config::Builder::new();
+        server
+            .set_verify_host_callback(HostNameHandler::new("localhost"))?
+            .load_pem(&server_cert.server_chain(), &server_cert.server_key())?
+            .set_security_policy(&policy)?
+            .set_client_auth_type(s2n_tls::enums::ClientAuthType::Required)?
+            .trust_pem(&client_cert.ca())?;
+        let server = server.build()?;
 
-            let mut client = s2n_tls::config::Builder::new();
+        let mut client = s2n_tls::config::Builder::new();
 
-            client
-                .set_verify_host_callback(HostNameHandler::new("localhost"))?
-                .load_pem(&client_cert.server_chain(), &client_cert.server_key())?
-                .trust_pem(&server_cert.ca())?;
-            let client = client.build()?;
-            TlsConnPair::from_configs(&client.into(), &server.into())
-        };
+        client
+            .set_verify_host_callback(HostNameHandler::new("localhost"))?
+            .load_pem(&client_cert.server_chain(), &client_cert.server_key())?
+            .trust_pem(&server_cert.ca())?;
+        let client = client.build()?;
+        TlsConnPair::from_configs(&client.into(), &server.into())
+    };
 
-        let error = pair.handshake().unwrap_err();
-        let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
-        println!("{s2n_error:?}");
-        assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
-        assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
-        Ok(())
-    });
+    let error = pair.handshake().unwrap_err();
+    let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
+    println!("{s2n_error:?}");
+    assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
+    assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
+    Ok(())
 }
 
 /// When a server is doing mTLS, it sends a CertificateRequest to the client
