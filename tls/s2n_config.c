@@ -18,8 +18,8 @@
     #error "Expected s2n_prelude.h to be included as part of the compiler flags"
 #endif
 
-#include <strings.h>
 #include <pthread.h>
+#include <strings.h>
 #include <time.h>
 
 #include "api/unstable/custom_x509_extensions.h"
