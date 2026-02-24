@@ -220,15 +220,6 @@ fn host_name_verification() {
     {
         let mut pair = TestPair::from_configs(&client, &server);
         let err = pair.handshake().unwrap_err();
-        // Error {
-        //     code: 335544366,
-        //     name: "S2N_ERR_CERT_UNTRUSTED",
-        //     message: "Certificate is untrusted",
-        //     kind: ProtocolError,
-        //     source: Library,
-        //     debug: "Error encountered in lib/utils/s2n_io.c:26", <- badge of shame
-        //     errno: "Success"
-        // }
         assert_eq!(err.kind(), ErrorType::ProtocolError);
         assert_eq!(err.name(), "S2N_ERR_CERT_UNTRUSTED");
     }
