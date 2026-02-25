@@ -1,4 +1,4 @@
-# Deterministic Random Bit Generator
+# Deterministic Random Bit Generator Deprecation
 
 ## Background
 s2n-tls uses a deterministic random bit generator (DRBG) to generate cryptographically secure randomness. s2n uses randomly generated data in several places including:
@@ -10,7 +10,7 @@ s2n-tls uses a deterministic random bit generator (DRBG) to generate cryptograph
 s2n defines two streams of randomness, public and private, to ensure that the public entropy which is visible on the wire cannot be used to leak information about the private entropy. 
 
 ## Historical Context
-From its inception, s2n has taken the stance of implementing its own custom DRBG implementation to ensure a high cryptographic security and performance bar though this has come in different shapes and sizes over the years.
+From its inception, s2n has taken the stance of implementing its own custom DRBG implementation to ensure a high cryptographic security and performance bar though this has looked different over the years. Here's a breif timeline:
 
 1. Direct kernel entropy (defense-in-depth): Initially s2n sourced randomness straight from /dev/urandom, preferring kernel randomness over userspace RNGs for defense-in-depth ([article](https://sockpuppet.org/blog/2014/02/25/safely-generate-random-numbers/) for more).
 
@@ -42,7 +42,7 @@ These are areas prone to portability issues across platforms, runtimes, and depl
 
 Even when specific bugs are resolved, changes in platform behavior, toolchains, or usage patterns can reintroduce similar classes of issues. The ongoing risk is not any single historical failure, but the continued exposure to lifecycle concerns. Libcrypto providers are better positioned to design, validate, and maintain DRBG implementations for our customers.
 
-## Current Behavior
+## Behavior Prior to Deprecation
 The "libcrypto" layer refers to randomness generated inside the cryptographic backend itself (e.g., via RAND_bytes() / RAND_priv_bytes() and other internal libcrypto consumers), while the "TLS layer" refers to randomness generated directly by s2n-tls to implement the TLS protocol (handshake randoms, nonces, tickets, and key schedule inputs).
 
 s2n relies on the backend libcrypto’s native random implementation at the libcrypto layer when building with AWS-LC, BoringSSL, LibreSSL, or with FIPS libcrypto. The only configuration where s2n forces its custom random implementation into the libcrypto layer is when building against OpenSSL in non-FIPS mode. At the TLS layer, s2n uses its custom per-thread DRBG by default, delegating TLS-layer randomness to libcrypto only when operating in FIPS mode.
