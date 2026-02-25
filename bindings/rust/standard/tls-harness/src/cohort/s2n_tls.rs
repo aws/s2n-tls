@@ -30,8 +30,16 @@ pub const LOCALHOST_VERIFY_CALLBACK: HostNameHandler = HostNameHandler {
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
 /// so this is to make a fair comparison
 pub struct HostNameHandler {
-    pub expected_server_name: &'static str,
+    expected_server_name: &'static str,
 }
+impl HostNameHandler {
+    pub fn new(expected_server_name: &'static str) -> Self {
+        Self {
+            expected_server_name,
+        }
+    }
+}
+
 impl VerifyHostNameCallback for HostNameHandler {
     fn verify_host_name(&self, hostname: &str) -> bool {
         self.expected_server_name == hostname

@@ -39,19 +39,10 @@ struct s2n_kem_preferences {
     uint8_t tls13_pq_hybrid_draft_revision;
 };
 
-extern const struct s2n_kem *pq_kems_r3_2021_05[];
-
-extern const struct s2n_kem_group *pq_kem_groups_r3_2021_05[];
-extern const struct s2n_kem_group *pq_kem_groups_r3_2023_06[];
 extern const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[];
 
-extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05;
-extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01;
-extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_06;
-extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_12;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_07;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2024_10;
-extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_mixed_2024_10;
 extern const struct s2n_kem_preferences kem_preferences_all;
 extern const struct s2n_kem_preferences kem_preferences_null;
 

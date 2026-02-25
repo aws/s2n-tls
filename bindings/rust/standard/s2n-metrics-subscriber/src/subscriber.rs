@@ -118,16 +118,21 @@ impl Exporter for mpsc::Sender<MetricRecord> {
 #[cfg(test)]
 mod tests {
 
-    use crate::test_utils::TestEndpoint;
+    use std::sync::mpsc::Receiver;
+
+    use crate::{
+        test_utils::{TestEndpoint, ARBITRARY_POLICY_1},
+        MetricRecord,
+    };
 
     #[test]
     fn record_is_exported() {
-        let endpoint = TestEndpoint::new();
-        endpoint.client_handshake();
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
-        assert!(endpoint.rx.try_recv().is_err());
+        assert!(endpoint.exporter.try_recv().is_err());
         endpoint.subscriber.finish_record();
-        endpoint.rx.recv().unwrap();
+        endpoint.exporter.recv().unwrap();
     }
 
     /// Ensure that the `finish_record` method won't complete until no other threads
@@ -139,8 +144,8 @@ mod tests {
     /// test across CI/development.
     #[test]
     fn export_blocking() {
-        let endpoint = TestEndpoint::new();
-        endpoint.client_handshake();
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         // hold a reference to the current record being updated.
         let current_record = endpoint.subscriber.inner.current_record.load_full();

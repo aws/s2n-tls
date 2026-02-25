@@ -213,7 +213,12 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&rereader));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&rereader, test_case->with_wrong_hash->iana_value));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
+        /* We have special checks for ECDSA curves and therefore it errors earlier than signature verification */
+        if (test_case->sig_scheme->sig_alg == S2N_SIGNATURE_ECDSA) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
+        }
     };
 
     return 0;
