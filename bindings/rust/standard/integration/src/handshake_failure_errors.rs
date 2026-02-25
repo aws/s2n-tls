@@ -221,13 +221,13 @@ fn host_name_verification() {
         let mut pair = TestPair::from_configs(&client, &server);
         let err = pair.handshake().unwrap_err();
         assert_eq!(err.kind(), ErrorType::ProtocolError);
-        assert_eq!(err.name(), "S2N_ERR_CERT_UNTRUSTED");
+        assert_eq!(err.name(), "S2N_ERR_CERT_INVALID_HOSTNAME");
     }
 }
 
 /// When a client cert chain is signed with signatures that aren't allowed by the
 /// `certificate_signature_preferences` field in the security policy we return an
-/// S2N_ERR_CERT_UNTRUSTED error
+/// S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT error
 #[test]
 fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
     /// Certificate Signatures must have a SHA384 digest
@@ -264,13 +264,18 @@ fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
 
     let error = pair.handshake().unwrap_err();
     let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
-    assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
-    assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
+    assert_eq!(s2n_error.kind(), ErrorType::UsageError);
+    assert_eq!(
+        s2n_error.name(),
+        "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
+    );
+
     Ok(())
 }
 
 /// When a client cert chain uses keys that aren't allowed by the `certificate_key_preferences`
-/// field in the security policy, we return an S2N_ERR_CERT_UNTRUSTED error
+/// field in the security policy, we return an
+/// S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT error
 #[test]
 fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
     /// Certificate Signatures must have a SHA384 digest
@@ -306,8 +311,11 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
 
     let error = pair.handshake().unwrap_err();
     let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
-    assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
-    assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
+    assert_eq!(s2n_error.kind(), ErrorType::UsageError);
+    assert_eq!(
+        s2n_error.name(),
+        "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
+    );
     Ok(())
 }
 
