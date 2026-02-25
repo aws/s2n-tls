@@ -306,7 +306,6 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
 
     let error = pair.handshake().unwrap_err();
     let s2n_error: Box<s2n_tls::error::Error> = error.downcast()?;
-    println!("{s2n_error:?}");
     assert_eq!(s2n_error.kind(), ErrorType::ProtocolError);
     assert_eq!(s2n_error.name(), "S2N_ERR_CERT_UNTRUSTED");
     Ok(())
