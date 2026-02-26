@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-a8875fde</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-8800df88</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -6401,6 +6401,7 @@ Only a minimal amount of information about the original TLS connection is serial
       </table>
 </div><div class="memdoc">
 <p >Function to get the alert that caused a connection to close. s2n-tls considers all TLS alerts fatal and shuts down a connection whenever one is received.</p>
+<dl class="section warning"><dt>Warning</dt><dd>This method mutates the connection and consumes any available alert. Calling it twice without receiving a second alert will cause an error.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
