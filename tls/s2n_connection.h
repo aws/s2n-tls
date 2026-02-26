@@ -40,6 +40,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
+#include "unstable/events.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_timer.h"
@@ -406,6 +407,8 @@ struct s2n_connection {
     /* Track KeyUpdates for metrics */
     uint8_t send_key_updated;
     uint8_t recv_key_updated;
+
+    struct s2n_event_handshake handshake_event;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

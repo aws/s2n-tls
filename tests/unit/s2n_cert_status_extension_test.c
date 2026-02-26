@@ -250,6 +250,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(server_config, S2N_STATUS_REQUEST_OCSP));
 
+            /* The OCSP certificate chain was not issued with the purpose of TLS clientAuth, but is
+             * being used as a client certificate. Intent verification is disabled to allow this
+             * certificate to be used as a client certificate anyway.
+             */
+            EXPECT_SUCCESS(s2n_config_disable_x509_intent_verification(server_config));
+
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_OCSP_CA_CERT, NULL));
 
@@ -304,6 +310,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(server_config, S2N_STATUS_REQUEST_OCSP));
+
+            /* The OCSP certificate chain was not issued with the purpose of TLS clientAuth, but is
+             * being used as a client certificate. Intent verification is disabled to allow this
+             * certificate to be used as a client certificate anyway.
+             */
+            EXPECT_SUCCESS(s2n_config_disable_x509_intent_verification(server_config));
 
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_OCSP_CA_CERT, NULL));

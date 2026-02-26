@@ -3,15 +3,17 @@
 import pytest
 import tempfile
 
-from configuration import ALL_TEST_CURVES
-from common import ProviderOptions
+from configuration import ALL_TEST_CURVES, PROTOCOLS
+from common import ProviderOptions, Protocols
 from fixtures import managed_process  # noqa: F401
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
 
-from test_renegotiate import TEST_PROTOCOLS, S2N_RENEG_OPTION, S2N_RENEG_ACCEPT
+TEST_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
+S2N_RENEG_OPTION = "--renegotiation"
+S2N_RENEG_ACCEPT = "accept"
 
 APACHE_SERVER_IP = "127.0.0.1"
 APACHE_SERVER_PORT = 7777

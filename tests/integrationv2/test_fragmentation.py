@@ -24,62 +24,6 @@ CIPHERS_TO_TEST = [
 CERTIFICATES_TO_TEST = [Certificates.RSA_4096_SHA384, Certificates.ECDSA_384]
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS], ids=get_parameter_name)
-@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
-def test_s2n_server_low_latency(
-    managed_process,  # noqa: F811
-    cipher,
-    provider,
-    other_provider,
-    protocol,
-    certificate,
-):
-    if provider is OpenSSL and "openssl-1.0.2" in provider.get_version():
-        pytest.skip(
-            "{} does not allow setting max fragmentation for packets".format(provider)
-        )
-
-    port = next(available_ports)
-
-    random_bytes = data_bytes(65519)
-    client_options = ProviderOptions(
-        mode=Provider.ClientMode,
-        port=port,
-        cipher=cipher,
-        data_to_send=random_bytes,
-        insecure=True,
-        protocol=protocol,
-    )
-
-    server_options = copy.copy(client_options)
-    server_options.data_to_send = None
-    server_options.mode = Provider.ServerMode
-    server_options.extra_flags = ["--prefer-low-latency"]
-    server_options.key = certificate.key
-    server_options.cert = certificate.cert
-    server_options.cipher = None
-
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
-
-    for results in client.get_results():
-        results.assert_success()
-
-    expected_version = get_expected_s2n_version(protocol, provider)
-
-    for results in server.get_results():
-        results.assert_success()
-        assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
-            in results.stdout
-        )
-        assert random_bytes in results.stdout
-
-
 def invalid_test_parameters_frag_len(*args, **kwargs):
     provider = kwargs.get("provider")
     frag_len = kwargs.get("frag_len")

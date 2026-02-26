@@ -86,8 +86,7 @@ function uvinteg {(
     set -eu
     TESTS="${1:-all}"
     apache2_start
-    # TODO: Dynamic Record Sizes needs a rewrite; skip for now.
-    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10 -rpfs --ignore-glob=*test_dynamic_record_sizes*"
+    PYTEST_ARGS="--provider-version $S2N_LIBCRYPTO -x -n auto --durations=10 -rpfs"
     cd ./tests/integrationv2
     echo -n "Comparing the current list of integ tests against what is checked-in..."
     PYTHONPATH="" uv run pytest --collect-only $PYTEST_ARGS | grep Module > /tmp/uvinteg_tests.txt
@@ -243,19 +242,13 @@ function rust_build {(set -e
 )}
 
 function rust_test {(set -e
-    # Set up local Rust toolchain to avoid conflicts between CI and Nix Rust installations.
-    # This ensures we use a consistent, isolated toolchain regardless of environment.
     echo "rust_test: Setting up local Rust toolchain (rustup stable)"
     export RUSTUP_HOME=$(pwd)/.rustup
     export CARGO_HOME=$(pwd)/.cargo
     export PATH=$(pwd)/.cargo/bin:$PATH
-    rustup set profile minimal
-    rustup set auto-self-update disable
-    rustup toolchain install stable
-    rustup default stable
     echo "rust_test: Exporting s2n-tls headers and libs for Cargo"
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
     echo "rust_test: Running Rust integration tests"
-    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml 
+    cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml --features boringssl
 )}

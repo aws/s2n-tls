@@ -2053,6 +2053,92 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_hello_get_random */
+    {
+        /* Safety */
+        {
+            uint8_t out[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+            struct s2n_client_hello client_hello = { 0 };
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_client_hello_get_random(NULL, out, sizeof(out)),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_client_hello_get_random(&client_hello, NULL, sizeof(out)),
+                    S2N_ERR_NULL);
+
+            /* Buffer size must be large enough to hold the full client random */
+            uint8_t small_buffer[S2N_TLS_RANDOM_DATA_LEN - 1] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_client_hello_get_random(&client_hello, small_buffer, sizeof(small_buffer)),
+                    S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        };
+
+        /* Retrieves the client random and zeroes it from the raw message */
+        {
+            /* Construct a minimal ClientHello with a custom random value */
+            uint8_t custom_random[S2N_TLS_RANDOM_DATA_LEN] = { ZERO_TO_THIRTY_ONE };
+
+            /* clang-format off */
+            uint8_t raw_client_hello[] = {
+                /* message type */
+                TLS_CLIENT_HELLO,
+                /* message size */
+                0x00, 0x00, 43,
+                /* protocol version - TLS1.2 */
+                0x03, 0x03,
+                /* random - custom value */
+                ZERO_TO_THIRTY_ONE,
+                /* session id */
+                0x00,
+                /* cipher suites */
+                0x00, 0x02,
+                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                /* legacy compression methods */
+                0x01, 0x00,
+                /* extensions - empty */
+                0x00, 0x00,
+            };
+            /* clang-format on */
+
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
+            client_hello = s2n_client_hello_parse_message(raw_client_hello, sizeof(raw_client_hello));
+            EXPECT_NOT_NULL(client_hello);
+
+            /* Exact-size buffer: retrieve the client random */
+            uint8_t retrieved_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_client_hello_get_random(
+                    client_hello, retrieved_random, S2N_TLS_RANDOM_DATA_LEN));
+            EXPECT_BYTEARRAY_EQUAL(retrieved_random, custom_random, S2N_TLS_RANDOM_DATA_LEN);
+
+            /* Buffer size > 32 bytes must also succeed and only write the first 32 bytes */
+            {
+                uint8_t large_buffer[S2N_TLS_RANDOM_DATA_LEN + 10] = { 0 };
+                EXPECT_SUCCESS(s2n_client_hello_get_random(
+                        client_hello, large_buffer, sizeof(large_buffer)));
+
+                /* First 32 bytes match the client random */
+                EXPECT_BYTEARRAY_EQUAL(large_buffer, custom_random, S2N_TLS_RANDOM_DATA_LEN);
+
+                /* Tail remains untouched */
+                uint8_t zero_tail[10] = { 0 };
+                EXPECT_BYTEARRAY_EQUAL(
+                        large_buffer + S2N_TLS_RANDOM_DATA_LEN,
+                        zero_tail,
+                        sizeof(zero_tail));
+            }
+
+            /* The raw message should have the random zeroed out after retrieval */
+            uint8_t *raw_message = client_hello->raw_message.data;
+            uint8_t client_random_offset = S2N_TLS_PROTOCOL_VERSION_LEN;
+            uint8_t zeroed_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+            EXPECT_BYTEARRAY_EQUAL(
+                    raw_message + client_random_offset,
+                    zeroed_random,
+                    S2N_TLS_RANDOM_DATA_LEN);
+        };
+    };
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     END_TEST();

@@ -169,6 +169,16 @@ ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *ou
     return len;
 }
 
+int s2n_client_hello_get_random(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+
+    POSIX_ENSURE(max_length >= S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_CHECKED_MEMCPY(out, ch->random, S2N_TLS_RANDOM_DATA_LEN);
+    return S2N_SUCCESS;
+}
+
 int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello)
 {
     POSIX_ENSURE_REF(client_hello);
@@ -251,7 +261,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
          */
         RESULT_ENSURE(s2n_constant_time_equals(
                               previous_client_random,
-                              conn->handshake_params.client_random,
+                              conn->client_hello.random,
                               S2N_TLS_RANDOM_DATA_LEN),
                 S2N_ERR_BAD_MESSAGE);
 
@@ -354,8 +364,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
-        uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN])
+S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello)
 {
     RESULT_ENSURE_REF(client_hello);
 
@@ -392,8 +401,8 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
      */
     client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
 
-    /* random */
-    RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
+    /* random - read and store it, erasing from raw message */
+    RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_hello->random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* legacy_session_id */
     uint8_t session_id_len = 0;
@@ -439,6 +448,12 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      */
     DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
             s2n_client_hello_free_raw_message);
+
+    /* Save the client random before clearing for retry validation */
+    uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+    POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.random,
+            S2N_TLS_RANDOM_DATA_LEN);
+
     if (s2n_is_hello_retry_handshake(conn)) {
         POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
     }
@@ -450,14 +465,8 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Save the current client_random for comparison in the case of a retry */
-    uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_client_random, conn->handshake_params.client_random,
-            S2N_TLS_RANDOM_DATA_LEN);
-
     /* Parse raw, collected client hello */
-    POSIX_GUARD_RESULT(s2n_client_hello_parse_raw(&conn->client_hello,
-            conn->handshake_params.client_random));
+    POSIX_GUARD_RESULT(s2n_client_hello_parse_raw(&conn->client_hello));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -501,8 +510,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     RESULT_GUARD_POSIX(s2n_collect_client_hello(client_hello, &in));
     RESULT_ENSURE(s2n_stuffer_data_available(&in) == 0, S2N_ERR_BAD_MESSAGE);
 
-    uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    RESULT_GUARD(s2n_client_hello_parse_raw(client_hello, random));
+    RESULT_GUARD(s2n_client_hello_parse_raw(client_hello));
 
     *result = client_hello;
     ZERO_TO_DISABLE_DEFER_CLEANUP(client_hello);
@@ -729,7 +737,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->client_hello.random, S2N_TLS_RANDOM_DATA_LEN));
     if (!s2n_is_hello_retry_handshake(conn)) {
         /* Only generate the random data for our first client hello.
          * If we retry, we'll reuse the value. */
@@ -857,7 +865,7 @@ int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
     }
 
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->client_hello.random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;

@@ -1,0 +1,17 @@
+[package]
+name = "s2n-tls-sys-internal"
+version = "0.0.1"
+edition = "2021"
+description = "Internal bindings to s2n-tls C library for s2n-metrics-subscriber"
+license = "Apache-2.0"
+
+# the crate is only used for testing, and should never be published.
+publish = false
+
+[dependencies]
+s2n-tls-sys = { path = "../../extended/s2n-tls-sys" }
+libc = "0.2.121"
+aws-lc-sys = "*"
+
+[build-dependencies]
+bindgen = "0.72"

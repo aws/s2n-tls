@@ -92,7 +92,7 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
                 brew install python@3
                 python3 -m pip install --user tox ;;
             *)
-                echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
+                echo "Unknown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
                 exit 1
                 ;;
             esac
@@ -105,15 +105,9 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
       codebuild/bin/install_gnutls37.sh "$(mktemp -d)" "$GNUTLS37_INSTALL_DIR" > /dev/null ;
     fi
 
-    if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
-      # Download and Install OQS OpenSSL for integration tests
-      mkdir -p "$OQS_OPENSSL_1_1_1_INSTALL_DIR" ||true
-      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
-    fi
-
     if [[ "$DISTRO" == "ubuntu" ]]; then
         # Install SSLyze for all Integration Tests on Ubuntu.
-        # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
+        # There is a nassl dependency issue preventing this from working on on AL2 ARM (others?).
         if [[ "$S2N_NO_SSLYZE" != "true" ]]; then
             codebuild/bin/install_sslyze.sh
         fi

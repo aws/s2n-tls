@@ -74,6 +74,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          */
         S2N_ALERT_CASE(S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
         S2N_ALERT_CASE(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+        S2N_ALERT_CASE(S2N_ERR_CERT_INVALID_HOSTNAME, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
 
         /*
          *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
@@ -154,6 +155,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_SHUTDOWN_CLOSED);
         S2N_NO_ALERT(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         S2N_NO_ALERT(S2N_ERR_RECORD_LIMIT);
+        S2N_NO_ALERT(S2N_ERR_CERT_INTENT_INVALID);
         S2N_NO_ALERT(S2N_ERR_CRL_LOOKUP_FAILED);
         S2N_NO_ALERT(S2N_ERR_CRL_SIGNATURE);
         S2N_NO_ALERT(S2N_ERR_CRL_ISSUER);
@@ -197,8 +199,10 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
 static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
     /* Only TLS1.2 considers the alert level. The alert level field is
-     * considered deprecated in TLS1.3. */
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+     * considered deprecated in TLS1.3. If the protocol version has not
+     * been negotiated yet, we allow for warnings to avoid premature
+     * handshake failures before we know the protocol version. */
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13 || !conn->actual_protocol_version_established) {
         return level == S2N_TLS_ALERT_LEVEL_WARNING
                 && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
     }

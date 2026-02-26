@@ -157,7 +157,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(X509 *test_cert = NULL, X509_free_pointer);
             EXPECT_OK(s2n_openssl_x509_parse(&ecdsa_p384_sha256->cert_chain->head->raw, &test_cert));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, test_cert), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1

@@ -21,6 +21,8 @@ pub mod client_hello;
 pub mod config;
 pub mod connection;
 pub mod enums;
+#[cfg(feature = "unstable-events")]
+pub mod events;
 #[cfg(feature = "unstable-fingerprint")]
 pub mod fingerprint;
 pub mod init;
@@ -29,6 +31,7 @@ pub mod psk;
 #[cfg(feature = "unstable-renegotiate")]
 pub mod renegotiate;
 pub mod security;
+pub(crate) mod utilities;
 
 pub use s2n_tls_sys as ffi;
 

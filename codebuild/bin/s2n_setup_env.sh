@@ -42,7 +42,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${OPENSSL_3_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0}"
 : "${OPENSSL_3_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0-fips}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2}"
-: "${OQS_OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/oqs_openssl-1.1.1}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2-fips}"
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
@@ -73,7 +72,7 @@ if [[ -f "/etc/os-release" ]]; then
 elif [[ -x "/usr/bin/sw_vers" ]]; then
   export DISTRO="apple"
   export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
-  export VERSION_CODENAME="unknown"  # not queriable via CLI
+  export VERSION_CODENAME="unknown"  # not queryable via CLI
 else
   export DISTRO="unknown"
   export VERSION_ID="unknown"
@@ -103,7 +102,6 @@ export OPENSSL_3_0_INSTALL_DIR
 export OPENSSL_3_FIPS_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
-export OQS_OPENSSL_1_1_1_INSTALL_DIR
 export BORINGSSL_INSTALL_DIR
 export AWSLC_INSTALL_DIR
 export AWSLC_FIPS_INSTALL_DIR

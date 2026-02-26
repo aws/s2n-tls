@@ -146,7 +146,6 @@ struct s2n_handshake_parameters {
     uint8_t exact_sni_match_exists;
     uint8_t wc_sni_match_exists;
 
-    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
     uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
 };
 

@@ -111,49 +111,6 @@ int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_s
  */
 int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);
 
-struct s2n_security_policy_builder;
-
-/**
- * Get a new security policy builder from an existing versioned security policy.
- *
- * @returns A builder to construct security policies
- */
-struct s2n_security_policy_builder *s2n_security_policy_builder_from_version(const char *version);
-
-/**
- * Free a security policy builder.
- *
- * @param builder The security policy builder to free
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
- */
-int s2n_security_policy_builder_free(struct s2n_security_policy_builder **builder);
-
-/**
- * Construct a new security policy from a builder.
- * 
- * The new security policy will be owned by the application instead of the library,
- * so will need to be freed with `s2n_security_policy_free`.
- *
- * @param builder The security policy builder
- * @returns A new, application owned security policy
- */
-struct s2n_security_policy *s2n_security_policy_build(struct s2n_security_policy_builder *builder);
-
-/**
- * Free an application-owned security policy.
- * 
- * Do NOT free any security policy still in use! It is recommended that your
- * security policies live for the full lifetime of your application to avoid mistakes.
- * 
- * Only security policies constructed via `s2n_security_policy_builder_build`
- * need to be freed. Security policies retrieved via `s2n_security_policy_get`
- * do NOT need to be freed.
- *
- * @param policy The security policy to free
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
- */
-int s2n_security_policy_free(struct s2n_security_policy **policy);
-
 /**
  * Output format types for verbose policy output.
  */

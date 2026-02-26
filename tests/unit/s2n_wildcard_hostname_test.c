@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "This cert name is unlikely to exist."));
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_CERT_UNTRUSTED);
+                    S2N_ERR_CERT_INVALID_HOSTNAME);
 
             s2n_cert_sni_match match_status = 0;
             EXPECT_SUCCESS(s2n_connection_get_certificate_match(server_conn, &match_status));

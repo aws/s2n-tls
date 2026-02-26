@@ -29,6 +29,8 @@ Python-*
 clang-*
 fuzz_dependencies/*
 .vscode/
+.cargo/
+.rustup/
 test-deps/*
 .idea/*
 CMakeCache.txt

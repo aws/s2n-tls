@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout s2n-tls
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: build policy util
         run: |

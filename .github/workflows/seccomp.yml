@@ -27,10 +27,10 @@ jobs:
           sudo apt install clang golang
 
       - name: checkout s2n-tls
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: checkout aws-lc
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: aws/aws-lc
           path: awslc

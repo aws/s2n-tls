@@ -87,3 +87,4 @@ int s2n_ecc_evp_find_supported_curve(struct s2n_connection *conn, struct s2n_blo
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_is_evp_apis_supported();
 bool s2n_ecc_evp_supports_fips_check();
+int s2n_find_ecc_curve_from_iana_id(uint16_t iana_id, const struct s2n_ecc_named_curve **out, bool *found);

@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
@@ -72,7 +73,7 @@ struct random_communication {
 static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
 {
     int status = 0;
-#if defined(S2N_CLONE_SUPPORTED)
+#if S2N_CLONE_SUPPORTED
     EXPECT_EQUAL(waitpid(proc_pid, &status, __WALL), proc_pid);
 #else
     /* __WALL is not relevant when clone() is not supported
@@ -446,6 +447,7 @@ static S2N_RESULT s2n_fork_test(
     return S2N_RESULT_OK;
 }
 
+#if S2N_CLONE_SUPPORTED
 static int s2n_clone_tests_child_process(void *ipc)
 {
     struct random_communication *ipc_ptr = (struct random_communication *) ipc;
@@ -459,13 +461,14 @@ static int s2n_clone_tests_child_process(void *ipc)
      * statement because we are in a non-void return type function. */
     return EXIT_SUCCESS;
 }
+#endif
 
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static S2N_RESULT s2n_clone_tests(
         S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
         S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
 {
-#if defined(S2N_CLONE_SUPPORTED)
+#if S2N_CLONE_SUPPORTED
 
     int proc_id = 0;
     int pipes[2];
@@ -549,12 +552,12 @@ static S2N_RESULT s2n_random_implementation_test(void)
     uint64_t private_bytes_used = 0;
     EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
 
-    if (s2n_is_in_fips_mode()) {
-        /* The libcrypto random implementation should be used when operating in FIPS mode, so
-         * the bytes used in the custom DRBG state should not have changed.
+    if (s2n_use_libcrypto_rand()) {
+        /* When the libcrypto random implementation is used, the amount of random bytes did not change 
+         * because s2n_get_public/private_random_data did not trigger our custom DRBG implementation.
          */
         EXPECT_EQUAL(public_bytes_used, previous_public_bytes_used);
-        EXPECT_EQUAL(private_bytes_used, previous_public_bytes_used);
+        EXPECT_EQUAL(private_bytes_used, previous_private_bytes_used);
     } else {
         EXPECT_TRUE(public_bytes_used > previous_public_bytes_used);
         EXPECT_TRUE(private_bytes_used > previous_private_bytes_used);
@@ -860,8 +863,8 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
         uint64_t public_bytes_used = 0;
         EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
 
-        if (s2n_is_in_fips_mode()) {
-            /* The urandom implementation should not be in use when s2n-tls is in FIPS mode. */
+        if (s2n_use_libcrypto_rand()) {
+            /* The urandom implementation should not be in use when s2n-tls uses the libcrypto random. */
             EXPECT_EQUAL(public_bytes_used, 0);
         } else {
             /* When the urandom implementation is used, the file descriptor is re-opened and

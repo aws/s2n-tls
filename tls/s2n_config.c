@@ -46,7 +46,7 @@
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
-static int monotonic_clock(void *data, uint64_t *nanoseconds)
+int s2n_default_monotonic_clock(void *unused_data, uint64_t *nanoseconds)
 {
     struct timespec current_time = { 0 };
 
@@ -95,7 +95,7 @@ static int s2n_config_setup_fips(struct s2n_config *config)
 static int s2n_config_init(struct s2n_config *config)
 {
     config->wall_clock = wall_clock;
-    config->monotonic_clock = monotonic_clock;
+    config->monotonic_clock = s2n_default_monotonic_clock;
     config->ct_type = S2N_CT_SUPPORT_NONE;
     config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     config->alert_behavior = S2N_ALERT_FAIL_ON_WARNINGS;
@@ -444,6 +444,13 @@ int s2n_config_disable_x509_time_verification(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     config->disable_x509_time_validation = true;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_disable_x509_intent_verification(struct s2n_config *config)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    config->disable_x509_intent_verification = true;
     return S2N_SUCCESS;
 }
 
@@ -1197,7 +1204,20 @@ int s2n_config_set_npn(struct s2n_config *config, bool enable)
  */
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
 {
+    RESULT_ENSURE_REF(config);
     RESULT_ENSURE(config->wall_clock(config->sys_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    return S2N_RESULT_OK;
+}
+
+/*
+ * Get the indicated time from the monotonic clock.
+ * 
+ * This callback ensures that the correct errno is set in the case of failure.
+ */
+S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *output)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     return S2N_RESULT_OK;
 }
 
@@ -1291,5 +1311,19 @@ int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t second
     config->custom_blinding_set = 1;
     config->max_blinding = seconds;
 
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_subscriber(struct s2n_config *config, void *subscriber)
+{
+    POSIX_ENSURE_REF(config);
+    config->subscriber = subscriber;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_handshake_cb callback)
+{
+    POSIX_ENSURE_REF(config);
+    config->on_handshake_event = callback;
     return S2N_SUCCESS;
 }

@@ -57,6 +57,10 @@ struct s2n_cert_validation_info {
     unsigned accepted : 1;
 };
 
+struct s2n_validated_cert_chain {
+    STACK_OF(X509) *stack;
+};
+
 /**
  * You should have one instance of this per connection.
  */
@@ -135,3 +139,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
  * Should be verified before any use of the peer's certificate data.
  */
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
+
+S2N_RESULT s2n_x509_validator_get_validated_cert_chain(const struct s2n_x509_validator *validator,
+        struct s2n_validated_cert_chain *validated_cert_chain);
+
+S2N_CLEANUP_RESULT s2n_x509_validator_validated_cert_chain_free(struct s2n_validated_cert_chain *validated_cert_chain);
