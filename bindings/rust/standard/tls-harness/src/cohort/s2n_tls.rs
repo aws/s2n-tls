@@ -154,8 +154,8 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 // io contexts.
 #[allow(dead_code)]
 pub struct S2NConnection {
-    io: Pin<Box<ViewIO>>,
-    connection: Connection,
+    pub io: Pin<Box<ViewIO>>,
+    pub connection: Connection,
 }
 
 impl S2NConnection {

@@ -21,21 +21,21 @@ pq = [ "s2n-tls/pq" ]
 boringssl = ["tls-harness/boringssl"]
 
 [dependencies]
-s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing", "unstable-crl", "unstable-events"]}
-s2n-tls-hyper = { path = "../s2n-tls-hyper" }
-s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
 s2n-tls-sys = { path = "../../extended/s2n-tls-sys", features = ["unstable-async_offload", "unstable-renegotiate"] }
 aws-lc-sys = "*"
-tls-harness = { path = "../tls-harness" }
 
 [dev-dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 tokio = { version = "1", features = ["macros", "test-util"] }
 tokio-openssl = { version = "0.6.5" }
 rustls = "0.23"
-
 brass-aphid-wire-decryption = "0.0.4"
 brass-aphid-wire-messages = "0.0.6"
+foreign-types = "0.3" # newer versions require updated ForeignTypeRef, see https://github.com/sfackler/rust-openssl/issues/2298
+s2n-tls = { path = "../../extended/s2n-tls", features = ["unstable-testing", "unstable-crl", "unstable-events", "unstable-ktls"]}
+s2n-tls-hyper = { path = "../s2n-tls-hyper" }
+s2n-tls-tokio = { path = "../../extended/s2n-tls-tokio" }
+tls-harness = { path = "../tls-harness" }
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
