@@ -1342,6 +1342,9 @@ const struct s2n_security_policy security_policy_20260219 = {
     .signature_preferences = &s2n_signature_preferences_20260219,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20260219,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_20260220 = {
@@ -1353,6 +1356,9 @@ const struct s2n_security_policy security_policy_20260220 = {
     .certificate_key_preferences = &s2n_certificate_key_preferences_20260218,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .certificate_preferences_apply_locally = true,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_test_all = {
@@ -1419,6 +1425,9 @@ const struct s2n_security_policy security_policy_test_pq_only = {
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_signature_preferences_20240501,
     .ecc_preferences = &s2n_ecc_preferences_null,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_20200207 = {
