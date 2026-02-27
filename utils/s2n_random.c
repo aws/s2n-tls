@@ -133,9 +133,9 @@ static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blo
     RESULT_GUARD_PTR(out_blob);
     RESULT_ENSURE_REF(out_blob->data);
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-    RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #else
-    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #endif
     return S2N_RESULT_OK;
 }
@@ -145,9 +145,9 @@ static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob
     RESULT_GUARD_PTR(out_blob);
     RESULT_ENSURE_REF(out_blob->data);
 #if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-    RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #else
-    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #endif
     return S2N_RESULT_OK;
 }
