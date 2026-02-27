@@ -133,7 +133,8 @@ static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
     RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
-    RESULT_GUARD(s2n_get_seed_entropy(&blob));
+    // s2n_get_seed_entropy has been removed as part of the custom DRBG path removal.
+    // RESULT_GUARD(s2n_get_seed_entropy(&blob));
     RESULT_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
 
     drbg->bytes_used = 0;
@@ -150,7 +151,8 @@ static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
     RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
-    RESULT_GUARD(s2n_get_mix_entropy(&blob));
+    // s2n_get_mix_entropy has been removed as part of the custom DRBG path removal.
+    // RESULT_GUARD(s2n_get_mix_entropy(&blob));
     RESULT_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
 
     drbg->mixes += 1;

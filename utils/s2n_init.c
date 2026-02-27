@@ -17,7 +17,6 @@
 
 #include <pthread.h>
 
-#include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_locking.h"
@@ -111,21 +110,12 @@ static bool s2n_cleanup_atexit_impl(void)
 
     bool cleaned_up = s2n_result_is_ok(s2n_cipher_suites_cleanup())
             && s2n_result_is_ok(s2n_hash_algorithms_cleanup())
-            && s2n_result_is_ok(s2n_rand_cleanup_thread())
             && s2n_result_is_ok(s2n_rand_cleanup())
             && s2n_result_is_ok(s2n_locking_cleanup())
             && (s2n_mem_cleanup() == S2N_SUCCESS);
 
     initialized = !cleaned_up;
     return cleaned_up;
-}
-
-int s2n_cleanup_thread(void)
-{
-    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
-     * so ensure that whatever clean ups we have here are thread safe */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
-    return S2N_SUCCESS;
 }
 
 int s2n_cleanup_final(void)
@@ -139,8 +129,6 @@ int s2n_cleanup_final(void)
 
 int s2n_cleanup(void)
 {
-    POSIX_GUARD(s2n_cleanup_thread());
-
     return S2N_SUCCESS;
 }
 
