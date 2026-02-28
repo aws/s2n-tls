@@ -276,9 +276,39 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
+/*
+ * Delegate randomness to libcrypto when:
+ *  - We are in FIPS mode, or
+ *  - Libcrypto provides distinct public/private random streams.
+ */
+bool s2n_use_libcrypto_rand(void)
+{
+    if (s2n_is_in_fips_mode()) {
+        return true;
+    }
+
+    if (s2n_libcrypto_is_awslc()) {
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+        /* AWS-LC with RAND_public_bytes: distinct streams */
+        return true;
+#else
+        /* AWS-LC without public rand: no distinct streams */
+        return false;
+#endif
+    } else {
+#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
+        /* Non-AWS-LC: RAND_priv_bytes implies distinct stream */
+        return true;
+#endif
+    }
+
+    return false;
+}
+
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
+    RESULT_ENSURE_REF(out_blob->data);
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
 #else
@@ -287,10 +317,15 @@ static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blo
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_libcrypto_random_data(struct s2n_blob *out_blob)
+static S2N_RESULT s2n_get_libcrypto_public_random_data(struct s2n_blob *out_blob)
 {
     RESULT_GUARD_PTR(out_blob);
+    RESULT_ENSURE_REF(out_blob->data);
+#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
+    RESULT_GUARD_OSSL(RAND_public_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+#else
     RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+#endif
     return S2N_RESULT_OK;
 }
 
@@ -321,8 +356,8 @@ static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    if (s2n_is_in_fips_mode()) {
-        RESULT_GUARD(s2n_get_libcrypto_random_data(blob));
+    if (s2n_use_libcrypto_rand()) {
+        RESULT_GUARD(s2n_get_libcrypto_public_random_data(blob));
     } else {
         RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
     }
@@ -331,7 +366,7 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_use_libcrypto_rand()) {
         RESULT_GUARD(s2n_get_libcrypto_private_random_data(blob));
     } else {
         RESULT_GUARD(s2n_get_custom_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
@@ -563,7 +598,7 @@ bool s2n_supports_custom_rand(void)
 #elif defined(S2N_DISABLE_RAND_ENGINE_OVERRIDE)
     return false;
 #else
-    return s2n_libcrypto_is_openssl() && !s2n_is_in_fips_mode();
+    return s2n_libcrypto_is_openssl() && !s2n_use_libcrypto_rand();
 #endif
 }
 

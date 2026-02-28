@@ -177,7 +177,7 @@ if(S2N_LTO)
     endif()
 endif()
 
-if(NOT APPLE)
+if(NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "AIX")
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
 endif()
 
