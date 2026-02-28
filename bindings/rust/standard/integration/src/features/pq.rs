@@ -187,9 +187,7 @@ fn s2n_pure_mlkem_client() {
             // This test uses the RFC ML-DSA certificate with the hostname "LAMPS WG".
             configs
                 .client
-                .set_verify_host_callback(HostNameHandler {
-                    expected_server_name: "LAMPS WG",
-                })
+                .set_verify_host_callback(HostNameHandler::new("LAMPS WG"))
                 .unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
             configs.client.trust_pem(&mldsa87.ca()).unwrap();
