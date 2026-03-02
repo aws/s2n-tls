@@ -50,7 +50,7 @@ jobs:
         # Upload the doxygen artifacts on pull requests to help reviewers easily
         # view changes.
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
             name: s2n-tls-doxygen
             path: |

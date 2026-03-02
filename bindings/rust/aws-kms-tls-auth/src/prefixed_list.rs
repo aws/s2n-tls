@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::codec::{DecodeByteSource, DecodeValue, EncodeBytesSink, EncodeValue};
-use std::{any::type_name, fmt::Debug, io::ErrorKind};
+use std::{any::type_name, fmt::Debug, io::ErrorKind, mem::size_of};
 
 /// An opaque list of bytes, where the size of the list is prefixed on the wire as `L`.
 ///
@@ -121,7 +121,14 @@ where
         }
         let target_buffer_size = current_buffer_size - length_usize;
 
-        let mut list: Vec<T> = Vec::with_capacity(length_usize);
+        // Estimate how many elements we expect to decode to avoid reallocation.
+        let element_count = if size_of::<T>() == 0 {
+            0
+        } else {
+            length_usize / size_of::<T>()
+        };
+
+        let mut list: Vec<T> = Vec::with_capacity(element_count);
         while buffer.len() > target_buffer_size {
             let (item, remaining_buffer) = buffer.decode_value()?;
             list.push(item);
@@ -163,7 +170,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::codec::{DecodeValue, EncodeValue};
     use crate::prefixed_list::PrefixedBlob;
+    use crate::prefixed_list::PrefixedList;
+    use std::mem::size_of;
 
     #[test]
     fn list_too_long() {
@@ -172,5 +182,43 @@ mod tests {
             error.to_string(),
             "failed to convert list length of 257 into u8"
         );
+    }
+
+    /// Ensure allocation based on the number of items when each element is a single byte
+    #[test]
+    fn prefixed_list_decodes_correct_element_count() {
+        let items: Vec<u8> = vec![0u8; 1024];
+
+        let list = PrefixedList::<u8, u16> {
+            // length, in this case, equals total bytes (u8 => 1 byte each)
+            length: items.len() as u16,
+            items: items.clone(),
+        };
+        let mut encoded = Vec::new();
+        list.encode_to(&mut encoded).unwrap();
+
+        let (decoded, remaining) = PrefixedList::<u8, u16>::decode_from(&encoded).unwrap();
+        assert!(remaining.is_empty());
+        assert_eq!(decoded.items.capacity(), items.len());
+    }
+
+    /// Ensure allocation based on the number of items when each element is large
+    #[test]
+    fn prefixed_list_large_bytes_few_elements() {
+        // 1024 chosen to create a large "wire size" for a single element
+        let items = vec![[0u8; 1024]];
+        let items_length = (items.len() * size_of::<[u8; 1024]>()) as u16;
+
+        let list = PrefixedList::<[u8; 1024], u16> {
+            length: items_length,
+            items,
+        };
+        let mut encoded = Vec::new();
+        list.encode_to(&mut encoded).unwrap();
+
+        let (decoded, remaining) = PrefixedList::<[u8; 1024], u16>::decode_from(&encoded).unwrap();
+        assert!(remaining.is_empty());
+        assert_eq!(decoded.items.capacity(), decoded.items.len());
+        assert_eq!(decoded.items.len(), 1);
     }
 }
