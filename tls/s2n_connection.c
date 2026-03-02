@@ -1133,9 +1133,12 @@ int s2n_connection_get_alert(struct s2n_connection *conn)
 
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) != 2, S2N_ERR_NO_ALERT);
 
+    /* Shallow copy the stuffer. We assume that multiple threads might call this
+     * function concurrently, so we must not mutate anything outside of the function scope */
+    struct s2n_stuffer alert_stuffer = conn->alert_in;
     uint8_t alert_code = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
-    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&alert_stuffer, &alert_code));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&alert_stuffer, &alert_code));
 
     return alert_code;
 }
