@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 
+#include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_locking.h"
@@ -129,6 +130,14 @@ int s2n_cleanup_final(void)
 
 int s2n_cleanup(void)
 {
+    return S2N_SUCCESS;
+}
+
+int s2n_cleanup_thread(void)
+{
+    /* Thread-local DRBG state has been removed. This is now a no-op kept
+     * for backwards compatibility with callers of the public API.
+     */
     return S2N_SUCCESS;
 }
 

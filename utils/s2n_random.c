@@ -100,32 +100,17 @@ static int s2n_rand_entropy_fd_close_ptr(int *fd)
 }
 
 /*
- * Delegate randomness to libcrypto when:
- *  - We are in FIPS mode, or
- *  - Libcrypto provides distinct public/private random streams.
+ * Delegate all randomness to libcrypto. Every supported libcrypto provides
+ * at least RAND_bytes(). Newer versions additionally provide distinct
+ * public/private streams via RAND_priv_bytes / RAND_public_bytes.
+ *
+ * For older libcryptos (e.g. OpenSSL 1.0.2) that lack distinct streams,
+ * the private path mixes in extra entropy via RAND_add before calling
+ * RAND_bytes to differentiate the private stream from the public one.
  */
 bool s2n_use_libcrypto_rand(void)
 {
-    if (s2n_is_in_fips_mode()) {
-        return true;
-    }
-
-    if (s2n_libcrypto_is_awslc()) {
-#if S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND
-        /* AWS-LC with RAND_public_bytes: distinct streams */
-        return true;
-#else
-        /* AWS-LC without public rand: no distinct streams */
-        return false;
-#endif
-    } else {
-#if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
-        /* Non-AWS-LC: RAND_priv_bytes implies distinct stream */
-        return true;
-#endif
-    }
-
-    return false;
+    return true;
 }
 
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
@@ -135,6 +120,15 @@ static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blo
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #else
+    /* Libcryptos without RAND_priv_bytes (e.g. OpenSSL 1.0.2) have a single
+     * shared PRNG. To make the private stream distinct from the public stream,
+     * mix in additional entropy from /dev/urandom before generating private
+     * random data. This ensures that observing public RAND_bytes output does
+     * not reveal the private stream's state.
+     */
+    uint8_t extra_entropy[32] = { 0 };
+    RESULT_GUARD_POSIX(s2n_rand_get_entropy_from_urandom(extra_entropy, sizeof(extra_entropy)));
+    RAND_add(extra_entropy, sizeof(extra_entropy), sizeof(extra_entropy));
     RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #endif
     return S2N_RESULT_OK;
@@ -320,4 +314,20 @@ S2N_RESULT s2n_rand_cleanup(void)
     RESULT_ENSURE(s2n_rand_cleanup_cb_impl() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     return S2N_RESULT_OK;
+}
+
+int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback,
+        s2n_rand_cleanup_callback rand_cleanup_callback,
+        s2n_rand_seed_callback rand_seed_callback,
+        s2n_rand_mix_callback rand_mix_callback)
+{
+    /* Custom random callbacks are no longer supported. Randomness is now
+     * delegated directly to libcrypto or /dev/urandom. This stub is kept
+     * for backwards compatibility.
+     */
+    (void) rand_init_callback;
+    (void) rand_cleanup_callback;
+    (void) rand_seed_callback;
+    (void) rand_mix_callback;
+    return S2N_SUCCESS;
 }

@@ -563,34 +563,32 @@ S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 
 /**
- * A callback function that will be called when s2n-tls is initialized.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_init_callback)(void);
 
 /**
- * A callback function that will be called when `s2n_cleanup` is executed.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_cleanup_callback)(void);
 
 /**
- * A callback function that will be used to provide entropy to the s2n-tls
- * random number generators.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
 
 /**
- * A callback function that will be used to mix in entropy every time the RNG
- * is invoked.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
 
 /**
  * Allows the caller to override s2n-tls's entropy functions.
  * 
- * @warning This function must be called before s2n_init().
+ * @deprecated Custom random callbacks are no longer supported. Randomness is
+ * now delegated directly to libcrypto or /dev/urandom. This function is a
+ * no-op kept for backwards compatibility.
  *
- * @note The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.
- * 
  * @param rand_init_callback The s2n_rand_init_callback
  * @param rand_cleanup_callback The s2n_rand_cleanup_callback
  * @param rand_seed_callback The s2n_rand_seed_callback

@@ -31,11 +31,9 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
-// #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
-// #include "utils/s2n_fork_detection.h"
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
@@ -54,7 +52,6 @@ bool s2n_libcrypto_is_fips(void);
 bool s2n_libcrypto_is_openssl(void);
 S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device);
 S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device);
-S2N_RESULT s2n_rand_set_urandom_for_test();
 
 struct random_test_case {
     const char *test_case_label;
@@ -112,8 +109,6 @@ void *s2n_thread_test_cb(void *thread_comms)
 
     EXPECT_NOT_NULL(thread_comms_ptr->s2n_get_random_data_cb_1);
     EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_1(&thread_blob));
-
-    // EXPECT_OK(s2n_rand_cleanup_thread());
 
     return NULL;
 }
@@ -191,12 +186,7 @@ int main(int argc, char **argv)
      * https://github.com/aws/s2n-tls/issues/4900
      */
 
-    /* For each test case, creates a child process that runs the test case.
-     *
-     * Fork detection is lazily initialised on first invocation of
-     * s2n_get_fork_generation_number(). Hence, it is important that children
-     * are created before calling into the fork detection code.
-     */
+    /* For each test case, creates a child process that runs the test case. */
     for (size_t i = 0; i < s2n_array_len(random_test_cases); i++) {
         pid_t proc_id = 0;
 
