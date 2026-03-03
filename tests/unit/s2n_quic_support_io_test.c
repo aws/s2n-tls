@@ -561,13 +561,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
-            /* Construct ST handshake message */
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes, sizeof(ticket_message_bytes)));
+            /* Construct and process multiple ST handshake messages */
+            for (size_t i = 1; i < 10; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes, sizeof(ticket_message_bytes)));
+                EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
 
-            EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
-
-            /* Callback was triggered */
-            EXPECT_EQUAL(session_ticket_cb_count, 1);
+                /* Callback was triggered */
+                EXPECT_EQUAL(session_ticket_cb_count, i);
+            }
         };
 
         /* Test: successfully reads and processes fragmented post-handshake message */

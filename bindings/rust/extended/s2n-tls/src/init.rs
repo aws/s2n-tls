@@ -65,7 +65,7 @@ pub fn fips_mode() -> Result<FipsMode, Error> {
 mod mem {
     use super::*;
     use alloc::alloc::{alloc, dealloc, Layout};
-    use core::{ffi::c_void, mem::size_of};
+    use core::{ffi::c_void, mem::align_of};
 
     /// Corresponds to [s2n_mem_set_callbacks].
     pub unsafe fn init() -> Result<(), Error> {
@@ -128,7 +128,11 @@ mod mem {
         //# The malloc() and calloc() functions return a pointer to the
         //# allocated memory, which is suitably aligned for any built-in
         //# type.
-        const ALIGNMENT: usize = size_of::<usize>();
+
+        // `max_align_t` is a type with the largest alignment of any scalar
+        // type, so aligning to its requirement will produce an alignment
+        // suitable to the C requirement for malloc.
+        const ALIGNMENT: usize = align_of::<libc::max_align_t>();
 
         // * align must not be zero,
         //

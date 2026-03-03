@@ -98,6 +98,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty") \
     ERR_ENTRY(S2N_ERR_RECORD_LIMIT, "TLS record limit reached") \
     ERR_ENTRY(S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted") \
+    ERR_ENTRY(S2N_ERR_CERT_INVALID_HOSTNAME, "Certificate is not valid for the supplied hostname") \
     ERR_ENTRY(S2N_ERR_CERT_REVOKED, "Certificate has been revoked by the CA") \
     ERR_ENTRY(S2N_ERR_CERT_NOT_YET_VALID, "Certificate is not yet valid") \
     ERR_ENTRY(S2N_ERR_CERT_EXPIRED, "Certificate has expired") \
@@ -107,7 +108,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
     ERR_ENTRY(S2N_ERR_CERT_REJECTED, "Certificate failed custom application validation") \
     ERR_ENTRY(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, "Unhandled critical certificate extension") \
-    ERR_ENTRY(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, "Incompatibility found between loaded certificates and chosen security policy") \
+    ERR_ENTRY(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT, "The certificate key or signature is not allowed by the security policy") \
     ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
     ERR_ENTRY(S2N_ERR_CRL_ISSUER, "Unable to get the CRL issuer certificate") \

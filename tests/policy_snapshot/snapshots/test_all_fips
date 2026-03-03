@@ -42,3 +42,10 @@ curves:
 - secp256r1
 - secp384r1
 - secp521r1
+pq:
+- revision: 5
+- kem groups:
+-- X25519MLKEM768
+-- SecP256r1MLKEM768
+-- SecP384r1MLKEM1024
+-- MLKEM1024
