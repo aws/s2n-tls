@@ -642,7 +642,8 @@ impl Connection {
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         self.poll_negotiate_method(|conn| unsafe {
-            s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll()
+            let result = s2n_negotiate(conn.as_ptr(), &mut blocked);
+            (conn, result).into_poll()
         })
         .map_ok(|_| self)
     }
@@ -658,7 +659,10 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        unsafe {
+            let result = s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked);
+            (self, result).into_poll()
+        }
     }
 
     #[cfg(not(feature = "unstable-renegotiate"))]
@@ -668,7 +672,10 @@ impl Connection {
         buf_len: isize,
     ) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        unsafe {
+            let result = s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked);
+            (self, result).into_poll()
+        }
     }
 
     /// Reads and decrypts data from a connection where
@@ -723,9 +730,8 @@ impl Connection {
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
-            s2n_flush(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
+            let result = s2n_flush(self.connection.as_ptr(), &mut blocked);
+            (&self, result).into_poll().map_ok(|_| self)
         }
     }
 
@@ -749,9 +755,8 @@ impl Connection {
         }
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
-            s2n_shutdown(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
+            let result = s2n_shutdown(self.connection.as_ptr(), &mut blocked);
+            (&self, result).into_poll().map_ok(|_| self)
         }
     }
 
@@ -767,9 +772,8 @@ impl Connection {
         }
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
-            s2n_shutdown_send(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
+            let result = s2n_shutdown_send(self.connection.as_ptr(), &mut blocked);
+            (&self, result).into_poll().map_ok(|_| self)
         }
     }
 
