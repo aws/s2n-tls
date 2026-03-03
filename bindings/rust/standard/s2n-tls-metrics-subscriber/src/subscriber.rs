@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
     Arc, Mutex,
+    mpsc::{self, Receiver, Sender},
 };
 
 use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
@@ -121,8 +121,8 @@ mod tests {
     use std::sync::mpsc::Receiver;
 
     use crate::{
-        test_utils::{TestEndpoint, ARBITRARY_POLICY_1},
         MetricRecord,
+        test_utils::{ARBITRARY_POLICY_1, TestEndpoint},
     };
 
     #[test]
