@@ -1655,7 +1655,7 @@ impl Drop for Connection {
         let count = context.refcount.fetch_sub(1, Ordering::Release);
         debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
-        // only free the config if this is the last instance
+        // only free the connection if this is the last instance
         if count != 1 {
             return;
         }

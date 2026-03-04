@@ -32,7 +32,7 @@ pub struct WriteHalf {
 }
 
 impl WriteHalf {
-    pub fn poll_send(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+    pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         self.conn.poll_send(buf)
     }
 }
@@ -80,20 +80,20 @@ mod tests {
         /* Instantiate buffers */
         let client_recv_buffer = vec![0; test_data.len()];
         let server_recv_buffer = vec![0; test_data.len()];
-        let mut client_data = test_data.to_vec();
-        let mut server_data = test_data.to_vec();
+        let client_data = test_data.to_vec();
+        let server_data = test_data.to_vec();
 
         /* Split the client */
         let (mut read, mut write) = test_pair.client.split();
 
-        assert!(test_pair.server.poll_send(&mut server_data).is_ready());
+        assert!(test_pair.server.poll_send(&server_data).is_ready());
 
         // Test parallel reads/writes by sending the client halves to separate threads
         let recv = thread::spawn(move || {
             receive(|buf| read.poll_recv(buf), client_recv_buffer, server_data);
         });
         let send = thread::spawn(move || {
-            assert!(write.poll_send(&mut client_data).is_ready());
+            assert!(write.poll_send(&client_data).is_ready());
         });
         assert!(send.join().is_ok());
         assert!(recv.join().is_ok());
