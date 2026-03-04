@@ -59,10 +59,7 @@ mod tests {
         let mut total_data_recv = 0;
         while total_data_recv != expected_output.len() {
             let recv_len = match poll_recv(&mut recv_buffer[total_data_recv..]) {
-                Poll::Ready(res) => match res {
-                    Ok(len) => len,
-                    Err(_) => 0,
-                },
+                Poll::Ready(res) => res.unwrap_or_default(),
                 Poll::Pending => 0,
             };
             assert_ne!(recv_len, 0);
