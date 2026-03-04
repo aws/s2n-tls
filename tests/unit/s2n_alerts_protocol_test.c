@@ -635,5 +635,24 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: s2n_connection_get_alert is idempotent */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        /* Write a fatal alert directly into alert_in */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, S2N_TLS_ALERT_LEVEL_FATAL));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+
+        /* Repeated calls should all return the same alert */
+        for (size_t i = 0; i < 5; i++) {
+            EXPECT_EQUAL(s2n_connection_get_alert(conn), S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+        }
+
+        /* The stuffer should still have the original data */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->alert_in), 2);
+    };
+
     END_TEST();
 }
