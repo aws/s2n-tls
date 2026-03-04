@@ -15,6 +15,7 @@
 
 #include "utils/s2n_init.h"
 
+#include <openssl/rand.h>
 #include <pthread.h>
 
 #include "api/unstable/cleanup.h"
@@ -28,12 +29,29 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_secrets.h"
+#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 
 static void s2n_cleanup_atexit(void);
+
+/* After fork(), AWS-LC v1.60.0+ detects the new process and reseeds its
+ * DRBG using CPU Jitter Entropy. This reseed is expensive and would
+ * otherwise be paid on the first RAND_bytes() call in the child. Calling
+ * RAND_bytes() in a pthread_atfork child handler moves that reseed cost
+ * out of the handshake. If the call fails, the reseed just happens later.
+ *
+ * See: https://github.com/aws/aws-lc-rs/issues/899
+ */
+#if defined(OPENSSL_IS_AWSLC)
+static void s2n_entropy_prewarm_after_fork(void)
+{
+    uint8_t entropy_warmup = 0;
+    RAND_bytes(&entropy_warmup, sizeof(entropy_warmup));
+}
+#endif
 
 static pthread_t main_thread = 0;
 static bool initialized = false;
@@ -94,6 +112,9 @@ int s2n_init(void)
 
 #if defined(OPENSSL_IS_AWSLC)
     CRYPTO_pre_sandbox_init();
+    if (s2n_is_pthread_atfork_supported()) {
+        POSIX_ENSURE(pthread_atfork(NULL, NULL, s2n_entropy_prewarm_after_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    }
 #endif
 
     initialized = true;
