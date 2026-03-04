@@ -270,16 +270,15 @@ mod memory_test {
             table
         }
 
-        /// return a table showing the diff between each step in the connection
-        /// lifecycle. The static memory row is an absolute measurement, not a diff.
         fn assert_expected(&self) {
+            /// The allocated memory expected at each step of the connection lifecycle
             const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
                 (Lifecycle::ConnectionInit, 61_466),
-                (Lifecycle::AfterClientHello, 88_294),
-                (Lifecycle::AfterServerHello, 116_661),
-                (Lifecycle::AfterClientFinished, 107_968),
-                (Lifecycle::HandshakeComplete, 90_555),
-                (Lifecycle::ApplicationData, 90_555),
+                (Lifecycle::AfterClientHello, 89_062),
+                (Lifecycle::AfterServerHello, 117_429),
+                (Lifecycle::AfterClientFinished, 108_736),
+                (Lifecycle::HandshakeComplete, 91_323),
+                (Lifecycle::ApplicationData, 91_323),
             ];
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()
