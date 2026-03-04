@@ -15,9 +15,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include "error/s2n_errno.h"
@@ -70,38 +67,4 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
         *bytes_sent = w;
     }
     return S2N_SUCCESS;
-}
-
-int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
-{
-    POSIX_ENSURE_MUT(stuffer);
-    struct stat st = { 0 };
-
-    POSIX_ENSURE(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
-
-    POSIX_ENSURE_GT(st.st_size, 0);
-    POSIX_ENSURE_LTE((uint64_t) st.st_size, UINT32_MAX);
-
-    uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
-    POSIX_ENSURE(map != MAP_FAILED, S2N_ERR_MMAP);
-
-    struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, map, (uint32_t) st.st_size));
-    return s2n_stuffer_init(stuffer, &b);
-}
-
-int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
-{
-    POSIX_ENSURE_MUT(stuffer);
-    POSIX_ENSURE_REF(file);
-
-    int fd = 0;
-    S2N_IO_RETRY_EINTR(fd, open(file, O_RDONLY));
-    POSIX_ENSURE(fd >= 0, S2N_ERR_OPEN);
-
-    int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);
-
-    POSIX_GUARD(close(fd));
-
-    return r;
 }
