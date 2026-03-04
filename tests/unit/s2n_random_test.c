@@ -186,6 +186,19 @@ int main(int argc, char **argv)
      * https://github.com/aws/s2n-tls/issues/4900
      */
 
+    /* Test: s2n_use_libcrypto_rand() returns the expected value based on
+     * whether the linked libcrypto supports RAND_priv_bytes or RAND_public_bytes.
+     * Validates: Requirements 1.1, 1.2, 2.1, 2.2, 2.3, 2.4
+     */
+    {
+#if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
+        bool expected = true;
+#else
+        bool expected = false;
+#endif
+        EXPECT_EQUAL(s2n_use_libcrypto_rand(), expected);
+    };
+
     /* For each test case, creates a child process that runs the test case. */
     for (size_t i = 0; i < s2n_array_len(random_test_cases); i++) {
         pid_t proc_id = 0;

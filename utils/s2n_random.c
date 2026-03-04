@@ -100,17 +100,18 @@ static int s2n_rand_entropy_fd_close_ptr(int *fd)
 }
 
 /*
- * Delegate all randomness to libcrypto. Every supported libcrypto provides
- * at least RAND_bytes(). Newer versions additionally provide distinct
- * public/private streams via RAND_priv_bytes / RAND_public_bytes.
- *
- * For older libcryptos (e.g. OpenSSL 1.0.2) that lack distinct streams,
- * the private path mixes in extra entropy via RAND_add before calling
- * RAND_bytes to differentiate the private stream from the public one.
+ * Use libcrypto for randomness when the linked libcrypto supports at least
+ * one of RAND_priv_bytes or RAND_public_bytes. For older libcryptos that
+ * lack both (e.g. OpenSSL 1.0.2), fall back to system random (/dev/urandom)
+ * to avoid depending on the weaker single-stream PRNG.
  */
 bool s2n_use_libcrypto_rand(void)
 {
+#if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
     return true;
+#else
+    return false;
+#endif
 }
 
 static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blob)
@@ -120,15 +121,11 @@ static S2N_RESULT s2n_get_libcrypto_private_random_data(struct s2n_blob *out_blo
 #if S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND
     RESULT_GUARD_OSSL(RAND_priv_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #else
-    /* Libcryptos without RAND_priv_bytes (e.g. OpenSSL 1.0.2) have a single
-     * shared PRNG. To make the private stream distinct from the public stream,
-     * mix in additional entropy from /dev/urandom before generating private
-     * random data. This ensures that observing public RAND_bytes output does
-     * not reveal the private stream's state.
+    /* Libcryptos that support RAND_public_bytes but not RAND_priv_bytes still
+     * provide RAND_bytes. OpenSSL 1.0.2 (which lacks both) is handled by
+     * s2n_use_libcrypto_rand() returning false, so this path is only reached
+     * by libcryptos that have at least RAND_public_bytes.
      */
-    uint8_t extra_entropy[32] = { 0 };
-    RESULT_GUARD_POSIX(s2n_rand_get_entropy_from_urandom(extra_entropy, sizeof(extra_entropy)));
-    RAND_add(extra_entropy, sizeof(extra_entropy), sizeof(extra_entropy));
     RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_RANDOM);
 #endif
     return S2N_RESULT_OK;
