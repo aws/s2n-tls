@@ -33,7 +33,6 @@ use std::{
     any::{Any, TypeId},
     collections::HashMap,
     ffi::CStr,
-    sync::atomic::{AtomicUsize, Ordering},
 };
 
 mod builder;
@@ -663,6 +662,14 @@ impl Connection {
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
+    /// Copy of poll_send but using &self
+    unsafe fn immutable_poll_send(&self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
+        s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+    }
+
     #[cfg(not(feature = "unstable-renegotiate"))]
     pub(crate) fn poll_recv_raw(
         &mut self,
@@ -684,6 +691,14 @@ impl Connection {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         self.poll_recv_raw(buf_ptr, buf_len)
+    }
+
+    /// Copy of poll_recv but using &self
+    unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     /// Reads and decrypts data from a connection where
@@ -1519,7 +1534,6 @@ impl Connection {
 
 struct Context {
     mode: Mode,
-    refcount: AtomicUsize,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
@@ -1535,7 +1549,6 @@ impl Context {
     fn new(mode: Mode) -> Self {
         Context {
             mode,
-            refcount: AtomicUsize::new(1),
             waker: None,
             async_callback: None,
             verify_host_callback: None,
@@ -1631,34 +1644,9 @@ impl AsMut<Connection> for Connection {
     }
 }
 
-impl Clone for Connection {
-    fn clone(&self) -> Self {
-        let context = self.context();
-
-        // Safety
-        //
-        // Using a relaxed ordering is alright here, as knowledge of the
-        // original reference prevents other threads from erroneously deleting
-        // the object.
-        // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1329
-        let _count = context.refcount.fetch_add(1, Ordering::Relaxed);
-        Self {
-            connection: self.connection,
-        }
-    }
-}
-
 impl Drop for Connection {
     /// Corresponds to [s2n_connection_free].
     fn drop(&mut self) {
-        let context = self.context();
-        let count = context.refcount.fetch_sub(1, Ordering::Release);
-        debug_assert!(count > 0, "refcount should not drop below 1 instance");
-
-        // only free the connection if this is the last instance
-        if count != 1 {
-            return;
-        }
         // ignore failures since there's not much we can do about it
         unsafe {
             // clean up context

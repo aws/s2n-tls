@@ -7,33 +7,34 @@
 //! separate tasks without having to wrap the Connection in a mutex.
 
 use crate::{connection::Connection, error::Error};
-use std::task::Poll;
+use std::{sync::Arc, task::Poll};
 
 impl Connection {
     pub fn split(self) -> (ReadHalf, WriteHalf) {
+        let conn = Arc::new(self);
         (
-            ReadHalf { conn: self.clone() },
-            WriteHalf { conn: self.clone() },
+            ReadHalf { conn: conn.clone() },
+            WriteHalf { conn: conn.clone() },
         )
     }
 }
 
 pub struct ReadHalf {
-    conn: Connection,
+    conn: Arc<Connection>,
 }
 
 impl ReadHalf {
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        self.conn.poll_recv(buf)
+        unsafe { self.conn.immutable_poll_recv(buf) }
     }
 }
 pub struct WriteHalf {
-    conn: Connection,
+    conn: Arc<Connection>,
 }
 
 impl WriteHalf {
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
-        self.conn.poll_send(buf)
+        unsafe { self.conn.immutable_poll_send(buf) }
     }
 }
 
@@ -50,8 +51,7 @@ mod tests {
         thread::{self},
     };
 
-    /* This is in a separate function since receive logic is kind of tedious in s2n-tls as
-     * you are only able to receive one record at a time. */
+    /* Contains necessary looping logic because in s2n-tls you are only able to receive one record at a time. */
     fn receive<F>(mut poll_recv: F, mut recv_buffer: Vec<u8>, expected_output: Vec<u8>)
     where
         F: FnMut(&mut [u8]) -> Poll<Result<usize, Error>>,
