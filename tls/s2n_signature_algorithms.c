@@ -463,8 +463,12 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
             RESULT_ENSURE(wire_scheme->signature_curve->libcrypto_nid == pub_key_curve_nid, S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
         }
     } else if (pkey_type == S2N_PKEY_TYPE_MLDSA) {
-        /* TODO: https://github.com/aws/s2n-tls/issues/5740 */
-        return S2N_RESULT_OK;
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+        int mldsa_key_type = EVP_PKEY_pqdsa_get_type(evp_key);
+        RESULT_ENSURE(wire_scheme->libcrypto_nid == mldsa_key_type, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+#else
+        RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+#endif
     } else if ((pkey_type == S2N_PKEY_TYPE_RSA) | (pkey_type == S2N_PKEY_TYPE_RSA_PSS)) {
         return S2N_RESULT_OK;
     } else {
