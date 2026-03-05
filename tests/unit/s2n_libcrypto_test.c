@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_libcrypto.h"
+#include "utils/s2n_random.h"
 
 #include "s2n_test.h"
 
@@ -57,6 +58,29 @@ int main(int argc, char** argv)
     if (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3")) {
         EXPECT_TRUE(s2n_libcrypto_supports_providers());
     }
+
+    /* Verify randomness delegation assumptions.
+     *
+     * s2n delegates to libcrypto when it supports RAND_priv_bytes and/or
+     * RAND_public_bytes, and falls back to /dev/urandom otherwise.
+     */
+    {
+        /* These libcryptos support libcrypto randomness delegation */
+        if (strstr(env_libcrypto, "awslc") != NULL
+                || (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "1.1.1"))
+                || (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3"))) {
+            EXPECT_TRUE(s2n_use_libcrypto_rand());
+        }
+
+        /* These libcryptos lack RAND_priv_bytes and RAND_public_bytes,
+         * so s2n falls back to system random (/dev/urandom).
+         */
+        if ((strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "1.0.2"))
+                || strcmp(env_libcrypto, "boringssl") == 0
+                || strcmp(env_libcrypto, "libressl") == 0) {
+            EXPECT_FALSE(s2n_use_libcrypto_rand());
+        }
+    };
 
     END_TEST();
 }

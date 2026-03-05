@@ -211,12 +211,17 @@ S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
     RESULT_ENSURE_REF(device);
     RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
 
+   /* Ensure that the random device is still valid by comparing it to the current file descriptor
+    * status. From:
+    * https://github.com/openssl/openssl/blob/260d97229c467d17934ca3e2e0455b1b5c0994a6/providers/implementations/rands/seeding/rand_unix.c#L513
+    */
     struct stat st = { 0 };
     RESULT_ENSURE(fstat(device->fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
     RESULT_ENSURE_EQ(device->dev, st.st_dev);
     RESULT_ENSURE_EQ(device->ino, st.st_ino);
     RESULT_ENSURE_EQ(device->rdev, st.st_rdev);
 
+    /* Ensure that the mode is the same (equal to 0 when xor'd), but don't check the permission bits. */
     mode_t permission_mask = ~(S_IRWXU | S_IRWXG | S_IRWXO);
     RESULT_ENSURE_EQ((device->mode ^ st.st_mode) & permission_mask, 0);
 
@@ -228,6 +233,14 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
     POSIX_ENSURE_REF(ptr);
     POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
+    /* It's possible that the file descriptor pointing to /dev/urandom was closed or changed from
+     * when it was last opened. Ensure that the file descriptor is still valid, and if it isn't,
+     * re-open it before getting entropy.
+     *
+     * If the file descriptor is invalid and the process doesn't have access to /dev/urandom (as is
+     * the case within a chroot tree), an error is raised here before attempting to indefinitely
+     * read.
+     */
     if (s2n_result_is_error(s2n_rand_device_validate(&s2n_dev_urandom))) {
         POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
     }
@@ -241,6 +254,24 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
         errno = 0;
         int r = read(s2n_dev_urandom.fd, data, n);
         if (r <= 0) {
+            /*
+             * A non-blocking read() on /dev/urandom should "never" fail,
+             * except for EINTR. If it does, briefly pause and use
+             * exponential backoff to avoid creating a tight spinning loop.
+             *
+             * iteration          delay
+             * ---------    -----------------
+             *    1         10          nsec
+             *    2         100         nsec
+             *    3         1,000       nsec
+             *    4         10,000      nsec
+             *    5         100,000     nsec
+             *    6         1,000,000   nsec
+             *    7         10,000,000  nsec
+             *    8         99,999,999  nsec
+             *    9         99,999,999  nsec
+             *    ...
+             */
             if (errno != EINTR) {
                 backoff = MIN(backoff * 10, ONE_S - 1);
                 sleep_time.tv_nsec = backoff;
@@ -273,6 +304,19 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
         RESULT_GUARD_POSIX(s2n_blob_init(&blob, (void *) &r, sizeof(r)));
         RESULT_GUARD(s2n_get_public_random_data(&blob));
 
+        /* Imagine an int was one byte and UINT_MAX was 256. If the
+         * caller asked for s2n_random(129, ...) we'd end up in
+         * trouble. Each number in the range 0...127 would be twice
+         * as likely as 128. That's because r == 0 % 129 -> 0, and
+         * r == 129 % 129 -> 0, but only r == 128 returns 128,
+         * r == 257 is out of range.
+         *
+         * To de-bias the dice, we discard values of r that are higher
+         * that the highest multiple of 'bound' an int can support. If
+         * bound is a uint, then in the worst case we discard 50% - 1 r's.
+         * But since 'bound' is an int and INT_MAX is <= UINT_MAX / 2,
+         * in the worst case we discard 25% - 1 r's.
+         */
         if (r < (UINT64_MAX - (UINT64_MAX % bound))) {
             *output = r % bound;
             return S2N_RESULT_OK;
@@ -289,14 +333,21 @@ static int s2n_rand_init_cb_impl(void)
 
 S2N_RESULT s2n_rand_init(void)
 {
-    RESULT_ENSURE(s2n_rand_init_cb_impl() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    /* Only open /dev/urandom when we actually need it for randomness.
+     * When libcrypto handles randomness, avoid the extra syscall and fd.
+     */
+    if (!s2n_use_libcrypto_rand()) {
+        RESULT_ENSURE(s2n_rand_init_cb_impl() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    }
 
     return S2N_RESULT_OK;
 }
 
 static int s2n_rand_cleanup_cb_impl(void)
 {
-    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    if (s2n_dev_urandom.fd == UNINITIALIZED_ENTROPY_FD) {
+        return S2N_SUCCESS;
+    }
 
     if (s2n_result_is_ok(s2n_rand_device_validate(&s2n_dev_urandom))) {
         POSIX_GUARD(close(s2n_dev_urandom.fd));
@@ -308,7 +359,9 @@ static int s2n_rand_cleanup_cb_impl(void)
 
 S2N_RESULT s2n_rand_cleanup(void)
 {
-    RESULT_ENSURE(s2n_rand_cleanup_cb_impl() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    if (!s2n_use_libcrypto_rand()) {
+        RESULT_ENSURE(s2n_rand_cleanup_cb_impl() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    }
 
     return S2N_RESULT_OK;
 }

@@ -130,6 +130,9 @@ int s2n_cleanup_final(void)
 
 int s2n_cleanup(void)
 {
+    /* Previously cleaned up thread-local DRBG state. The custom DRBG has
+     * been removed, so this is now a no-op kept for API compatibility.
+     */
     return S2N_SUCCESS;
 }
 
