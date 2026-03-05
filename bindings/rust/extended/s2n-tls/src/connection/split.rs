@@ -25,7 +25,9 @@ pub struct ReadHalf {
 
 impl ReadHalf {
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        unsafe { self.conn.immutable_poll_recv(buf) }
+        let conn = Arc::as_ptr(&self.conn);
+        let conn = conn as *mut Connection;
+        unsafe { Connection::poll_ptr_recv(conn, buf) }
     }
 }
 pub struct WriteHalf {
@@ -34,7 +36,9 @@ pub struct WriteHalf {
 
 impl WriteHalf {
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
-        unsafe { self.conn.immutable_poll_send(buf) }
+        let conn = Arc::as_ptr(&self.conn);
+        let conn = conn as *mut Connection;
+        unsafe { Connection::poll_ptr_send(conn, buf) }
     }
 }
 

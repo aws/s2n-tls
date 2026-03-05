@@ -656,28 +656,40 @@ impl Connection {
     /// Corresponds to [s2n_send].
     #[cfg(not(feature = "unstable-renegotiate"))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        unsafe { Self::poll_ptr_send(self, buf) }
     }
 
-    /// Copy of poll_send but using &self
-    unsafe fn immutable_poll_send(&self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+    unsafe fn poll_ptr_send(conn: *mut Self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+        unsafe {
+            s2n_send(
+                *(conn as *mut *mut s2n_connection),
+                buf_ptr,
+                buf_len,
+                &mut blocked,
+            )
+            .into_poll()
+        }
     }
 
     #[cfg(not(feature = "unstable-renegotiate"))]
     pub(crate) fn poll_recv_raw(
-        &mut self,
+        conn: *mut Self,
         buf_ptr: *mut ::libc::c_void,
         buf_len: isize,
     ) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        unsafe {
+            s2n_recv(
+                *(conn as *mut *mut s2n_connection),
+                buf_ptr,
+                buf_len,
+                &mut blocked,
+            )
+            .into_poll()
+        }
     }
 
     /// Reads and decrypts data from a connection where
@@ -688,17 +700,13 @@ impl Connection {
     ///
     /// Corresponds to [s2n_recv].
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
-        self.poll_recv_raw(buf_ptr, buf_len)
+        unsafe { Self::poll_ptr_recv(self, buf) }
     }
 
-    /// Copy of poll_recv but using &self
-    unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+    unsafe fn poll_ptr_recv(conn: *mut Self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+        Self::poll_recv_raw(conn, buf_ptr, buf_len)
     }
 
     /// Reads and decrypts data from a connection where
@@ -726,7 +734,7 @@ impl Connection {
         // 2. if s2n_recv returns `+n`, it guarantees that the first
         // `n` bytes of `buf` have been initialized, which allows this
         // function to return `Ok(n)`
-        self.poll_recv_raw(buf_ptr, buf_len)
+        Self::poll_recv_raw(self, buf_ptr, buf_len)
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
