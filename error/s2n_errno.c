@@ -160,7 +160,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused") \
     ERR_ENTRY(S2N_ERR_SIZE_MISMATCH, "size mismatch") \
     ERR_ENTRY(S2N_ERR_RANDOM, "Error generating random data") \
-    ERR_ENTRY(S2N_ERR_RANDOM_REQUEST_SIZE, "Request for too much random data") \
     ERR_ENTRY(S2N_ERR_KEY_CHECK, "Invalid key") \
     ERR_ENTRY(S2N_ERR_CIPHER_TYPE, "Unknown cipher type used") \
     ERR_ENTRY(S2N_ERR_MAP_DUPLICATE, "Duplicate map key inserted") \

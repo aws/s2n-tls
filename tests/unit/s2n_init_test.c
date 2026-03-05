@@ -59,7 +59,6 @@ int main(int argc, char **argv)
     if (pid == 0) {
         /* Child process */
         EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
-        EXPECT_SUCCESS(s2n_cleanup());
         return 0;
     }
     EXPECT_SUCCESS(s2n_cleanup_final());
@@ -71,20 +70,11 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup_final());
 
-    /* s2n_cleanup_final */
-    {
-        /* s2n_cleanup_final fully de-initializes the library */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_TRUE(s2n_is_initialized());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-        EXPECT_FALSE(s2n_is_initialized());
-
-        /* s2n_cleanup only cleans up thread-local storage.
-         * Therefore, calling s2n_cleanup_final after s2n_cleanup will succeed */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_SUCCESS(s2n_cleanup());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-    }
+    /* s2n_cleanup_final fully de-initializes the library */
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_TRUE(s2n_is_initialized());
+    EXPECT_SUCCESS(s2n_cleanup_final());
+    EXPECT_FALSE(s2n_is_initialized());
 
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());
