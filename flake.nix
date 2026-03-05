@@ -15,7 +15,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          config = { permittedInsecurePackages = [ "openssl-1.1.1w" ]; };
+          config = { permittedInsecurePackages = [ "openssl-1.1.1w" "gradle-7.6.6" ]; };
         };
         # Internal variable = input.awslc ...<package name from flake>
         aws-lc = awslc.packages.${system}.aws-lc;
