@@ -18,6 +18,7 @@
     #error "Expected s2n_prelude.h to be included as part of the compiler flags"
 #endif
 
+#include <pthread.h>
 #include <strings.h>
 #include <time.h>
 
@@ -73,6 +74,8 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
 static struct s2n_config s2n_default_tls13_config = { 0 };
+static pthread_mutex_t s2n_config_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+static bool s2n_config_initialized = false;
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -217,8 +220,24 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
     return 0;
 }
 
+static void s2n_config_defaults_init_once(void)
+{
+    s2n_config_defaults_init();
+}
+
 struct s2n_config *s2n_fetch_default_config(void)
 {
+    /* if config defaults are not initialized, lazy load them */
+    if (!s2n_config_initialized) {
+        pthread_mutex_lock(&s2n_config_init_mutex);
+        if (!s2n_config_initialized) {
+            if (s2n_config_defaults_init() == S2N_SUCCESS) {
+                s2n_config_initialized = true;
+            }
+        }
+        pthread_mutex_unlock(&s2n_config_init_mutex);
+    }
+
     if (s2n_use_default_tls13_config()) {
         return &s2n_default_tls13_config;
     }
@@ -260,9 +279,14 @@ int s2n_config_defaults_init(void)
 
 void s2n_wipe_static_configs(void)
 {
+    pthread_mutex_lock(&s2n_config_init_mutex);
+
     s2n_config_cleanup(&s2n_default_fips_config);
     s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_tls13_config);
+
+    s2n_config_initialized = false;
+    pthread_mutex_unlock(&s2n_config_init_mutex);
 }
 
 int s2n_config_load_system_certs(struct s2n_config *config)
