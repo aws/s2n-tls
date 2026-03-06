@@ -247,8 +247,8 @@ endif()
 
 if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
     # No-op: the custom RAND engine was removed as part of the DRBG
-    # deprecation. This define is retained so that builds passing
-    # -DS2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE continue to succeed.
+    # deprecation. This option is retained so that existing builds
+    # setting S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=0 continue to succeed.
     message(STATUS "S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=OFF (no-op, custom RAND engine was removed)")
 endif()
 

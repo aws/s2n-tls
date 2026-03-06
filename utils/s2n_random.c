@@ -101,13 +101,21 @@ static int s2n_rand_entropy_fd_close_ptr(int *fd)
 
 /*
  * Use libcrypto for randomness when the linked libcrypto supports at least
- * one of RAND_priv_bytes or RAND_public_bytes. For older libcryptos that
- * lack both (e.g. OpenSSL 1.0.2), fall back to system random (/dev/urandom)
+ * one of RAND_priv_bytes or RAND_public_bytes, or when the libcrypto is
+ * AWS-LC (whose RAND_bytes is trusted even in older FIPS builds that lack
+ * the distinct pub/priv APIs). For older libcryptos that lack both and are
+ * not AWS-LC (e.g. OpenSSL 1.0.2), fall back to system random (/dev/urandom)
  * to avoid depending on the weaker single-stream PRNG.
  */
 bool s2n_use_libcrypto_rand(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
+    return true;
+#elif defined(OPENSSL_IS_AWSLC)
+    /* Older AWS-LC FIPS builds (e.g. aws-lc-fips-2022) may lack
+     * RAND_priv_bytes/RAND_public_bytes but still provide a trusted
+     * RAND_bytes implementation that we can defer to.
+     */
     return true;
 #else
     return false;
@@ -211,7 +219,7 @@ S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
     RESULT_ENSURE_REF(device);
     RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
 
-   /* Ensure that the random device is still valid by comparing it to the current file descriptor
+    /* Ensure that the random device is still valid by comparing it to the current file descriptor
     * status. From:
     * https://github.com/openssl/openssl/blob/260d97229c467d17934ca3e2e0455b1b5c0994a6/providers/implementations/rands/seeding/rand_unix.c#L513
     */

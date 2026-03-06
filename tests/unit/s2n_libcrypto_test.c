@@ -14,9 +14,9 @@
  */
 
 #include "crypto/s2n_libcrypto.h"
-#include "utils/s2n_random.h"
 
 #include "s2n_test.h"
+#include "utils/s2n_random.h"
 
 int main(int argc, char** argv)
 {
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 
     /* Verify randomness delegation assumptions.
      *
-     * s2n delegates to libcrypto when it supports RAND_priv_bytes and/or
+     * s2n delegates to libcrypto for AWS-LC or when it supports RAND_priv_bytes/
      * RAND_public_bytes, and falls back to /dev/urandom otherwise.
      */
     {
