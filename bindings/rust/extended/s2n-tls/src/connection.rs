@@ -37,6 +37,7 @@ use std::{
 
 mod builder;
 pub use builder::*;
+mod split;
 
 /// return a &str scoped to the lifetime of the surrounding function
 ///
@@ -655,10 +656,20 @@ impl Connection {
     /// Corresponds to [s2n_send].
     #[cfg(not(feature = "unstable-renegotiate"))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        unsafe { self.immutable_poll_send(buf) }
+    }
+
+    /// Copy of poll_send using &self
+    ///
+    /// # Safety
+    ///
+    /// Exclusively for use with the split poll_send/recv APIs. This is safe as we know
+    /// that only the write half is able to call this API.
+    unsafe fn immutable_poll_send(&self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     #[cfg(not(feature = "unstable-renegotiate"))]
@@ -682,6 +693,19 @@ impl Connection {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         self.poll_recv_raw(buf_ptr, buf_len)
+    }
+
+    /// Copy of poll_recv using &self
+    ///
+    /// # Safety
+    ///
+    /// Exclusively for use with the split poll_send/recv APIs. This is safe as we know
+    /// that only the read half is able to call this API.
+    unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     /// Reads and decrypts data from a connection where
