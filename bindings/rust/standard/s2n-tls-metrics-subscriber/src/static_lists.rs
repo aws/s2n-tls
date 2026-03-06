@@ -121,8 +121,10 @@ pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
 /// Safety: the bytes are null terminated
 #[cfg(test)]
 unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
-    use std::ffi::CStr;
-    CStr::from_ptr(value).to_str().unwrap()
+    unsafe {
+        use std::ffi::CStr;
+        CStr::from_ptr(value).to_str().unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
@@ -408,7 +410,7 @@ mod tests {
     use super::*;
     use std::{
         collections::HashSet,
-        ffi::{c_char, c_int, c_void, CStr},
+        ffi::{CStr, c_char, c_int, c_void},
     };
 
     /// return all of the ciphers defined in any s2n-tls security policy

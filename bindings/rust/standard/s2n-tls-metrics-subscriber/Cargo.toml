@@ -1,7 +1,11 @@
 [package]
-name = "s2n-metrics-subscriber"
-version = "0.1.0"
-edition = "2021"
+name = "s2n-tls-metrics-subscriber"
+version = "0.0.1"
+edition = "2024"
+description = "Telemetry provider for s2n-tls"
+authors = ["AWS s2n"]
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
 
 [dependencies]
 s2n-codec = {path = "/home/ubuntu/workspace/s2n-quic/common/s2n-codec"}

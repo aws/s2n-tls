@@ -10,8 +10,8 @@ use crate::{
     label::{metric_label, State},
     parsing::ClientHelloSupportedParameters,
     static_lists::{
-        self, TlsParam, ToStaticString, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
-        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, VERSIONS_AVAILABLE_IN_S2N,
+        self, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
+        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, TlsParam, ToStaticString, VERSIONS_AVAILABLE_IN_S2N,
     },
 };
 
@@ -338,7 +338,7 @@ mod tests {
     use std::sync::mpsc::Receiver;
 
     use super::*;
-    use crate::test_utils::{TestEndpoint, ARBITRARY_POLICY_1};
+    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_contents() {
