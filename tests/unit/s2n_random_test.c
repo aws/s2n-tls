@@ -187,11 +187,12 @@ int main(int argc, char **argv)
      */
 
     /* Test: s2n_use_libcrypto_rand() returns the expected value based on
-     * whether the linked libcrypto supports RAND_priv_bytes or RAND_public_bytes.
-     * Validates: Requirements 1.1, 1.2, 2.1, 2.2, 2.3, 2.4
+     * whether the linked libcrypto supports RAND_priv_bytes, RAND_public_bytes,
+     * or is AWS-LC.
      */
     {
-#if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND) \
+        || defined(OPENSSL_IS_AWSLC)
         bool expected = true;
 #else
         bool expected = false;
