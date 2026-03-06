@@ -160,8 +160,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered") \
     ERR_ENTRY(S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused") \
     ERR_ENTRY(S2N_ERR_SIZE_MISMATCH, "size mismatch") \
-    ERR_ENTRY(S2N_ERR_DRBG, "Error using Deterministic Random Bit Generator") \
-    ERR_ENTRY(S2N_ERR_DRBG_REQUEST_SIZE, "Request for too much entropy") \
+    ERR_ENTRY(S2N_ERR_RANDOM, "Error generating random data") \
     ERR_ENTRY(S2N_ERR_KEY_CHECK, "Invalid key") \
     ERR_ENTRY(S2N_ERR_CIPHER_TYPE, "Unknown cipher type used") \
     ERR_ENTRY(S2N_ERR_MAP_DUPLICATE, "Duplicate map key inserted") \
@@ -291,8 +290,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KEYING_MATERIAL_EXPIRED, "The lifetime of the connection keying material has exceeded the limit. Perform a new full handshake.") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_TRIAL_DECRYPT, "Unable to decrypt rejected early data") \
     ERR_ENTRY(S2N_ERR_PKEY_CTX_INIT, "Unable to initialize the libcrypto pkey context") \
-    ERR_ENTRY(S2N_ERR_FORK_DETECTION_INIT, "Fork detection initialization failed") \
-    ERR_ENTRY(S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER, "Retrieving fork generation number failed") \
     ERR_ENTRY(S2N_ERR_SECRET_SCHEDULE_STATE, "Correct inputs to secret calculation not available") \
     ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH, "The libcrypto major version number seen at compile-time is different from the major version number seen at run-time") \
     ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH, "The libcrypto major version name seen at compile-time is different from the major version name seen at run-time") \
