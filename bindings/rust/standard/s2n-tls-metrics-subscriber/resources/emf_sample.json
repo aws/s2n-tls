@@ -30,6 +30,30 @@
             "Name": "signature_scheme.negotiated.rsa_pss_rsae_sha256"
           },
           {
+            "Name": "version.supported.TLSv1_2"
+          },
+          {
+            "Name": "version.supported.TLSv1_3"
+          },
+          {
+            "Name": "cipher.supported.TLS_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "group.supported.secp256r1"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pkcs1_sha256"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_rsae_sha256"
+          },
+          {
+            "Name": "sslv2_client_hello"
+          },
+          {
             "Name": "handshake_count"
           },
           {
@@ -42,18 +66,26 @@
         "Namespace": "tls/s2n-tls"
       }
     ],
-    "Timestamp": 1770836420055
+    "Timestamp": 1772506377920
   },
   "cipher.negotiated.TLS_AES_128_GCM_SHA256": 1,
   "cipher.negotiated.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
   "group.negotiated.secp256r1": 2,
-  "handshake_compute_us": 12428,
+  "group.supported.secp256r1": 2,
+  "handshake_compute_us": 12446,
   "handshake_count": 2,
-  "handshake_duration_us": 13512,
+  "handshake_duration_us": 13545,
   "resource": "cute-kitten",
   "service_name": "test_server",
   "signature_scheme.negotiated.rsa_pkcs1_sha256": 1,
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 1,
+  "signature_scheme.supported.rsa_pkcs1_sha256": 1,
+  "signature_scheme.supported.rsa_pss_rsae_sha256": 1,
+  "sslv2_client_hello": 0,
   "version.negotiated.TLSv1_2": 1,
-  "version.negotiated.TLSv1_3": 1
+  "version.negotiated.TLSv1_3": 1,
+  "version.supported.TLSv1_2": 1,
+  "version.supported.TLSv1_3": 1
 }
