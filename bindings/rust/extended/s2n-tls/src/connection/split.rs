@@ -51,7 +51,9 @@ mod tests {
         thread::{self},
     };
 
-    /* Contains necessary looping logic because in s2n-tls you are only able to receive one record at a time. */
+    /* Contains tedious recv logic to receive multiple records; in s2n-tls poll_recv only returns
+     * one record at a time. */
+    #[track_caller]
     fn receive<F>(mut poll_recv: F, mut recv_buffer: Vec<u8>, expected_output: Vec<u8>)
     where
         F: FnMut(&mut [u8]) -> Poll<Result<usize, Error>>,
