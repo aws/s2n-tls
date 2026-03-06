@@ -1,7 +1,11 @@
 [package]
 name = "s2n-tls-metrics-subscriber"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
+description = "Telemetry provider for s2n-tls"
+authors = ["AWS s2n"]
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
 
 [dependencies]
 tracing = "0.1.43"
