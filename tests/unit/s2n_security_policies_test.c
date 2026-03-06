@@ -173,6 +173,7 @@ int main(int argc, char **argv)
         if (has_tls_13_cipher) {
             bool has_tls_13_sig_alg = false;
             bool has_rsa_pss = false;
+            bool has_mldsa = false;
 
             for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
                 int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
@@ -189,10 +190,14 @@ int main(int argc, char **argv)
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
+
+                if (sig_alg == S2N_SIGNATURE_MLDSA) {
+                    has_mldsa = true;
+                }
             }
 
             EXPECT_TRUE(has_tls_13_sig_alg);
-            EXPECT_TRUE(has_rsa_pss);
+            EXPECT_TRUE(has_rsa_pss || has_mldsa);
         }
     }
 

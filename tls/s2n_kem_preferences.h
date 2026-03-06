@@ -43,6 +43,7 @@ extern const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[];
 
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_07;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2024_10;
+extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_cnsa2_2026_02;
 extern const struct s2n_kem_preferences kem_preferences_all;
 extern const struct s2n_kem_preferences kem_preferences_null;
 
