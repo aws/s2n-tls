@@ -133,6 +133,10 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
     return S2N_RESULT_OK;
 }
 
+/* SSLv3 PRF uses MD5 and SHA-1 in a custom hash-based construction (not
+ * HMAC). The use of weak hash algorithms is inherent to the SSLv3 protocol
+ * specification. SSLv3 is disabled by default and not recommended.
+ */
 static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
