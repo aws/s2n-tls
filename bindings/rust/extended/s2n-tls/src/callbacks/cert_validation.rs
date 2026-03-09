@@ -62,11 +62,7 @@ mod tests {
 
     struct SyncCallback(Counter);
     impl CertValidationCallbackSync for SyncCallback {
-        fn handle_validation(
-            &self,
-            conn: &mut Connection,
-            _info: &mut CertValidationInfo,
-        ) -> bool {
+        fn handle_validation(&self, conn: &mut Connection, _info: &mut CertValidationInfo) -> bool {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
             context.accept
