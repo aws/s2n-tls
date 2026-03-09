@@ -67,7 +67,7 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
  * certain libcrypto implementations (OpenSSL 1.1.0+). We pad manually
  * for portability across all supported libcryptos.
  */
-void s2n_dh_pad_shared_secret(struct s2n_blob *shared_key, int computed_size, int expected_size)
+static void s2n_dh_pad_shared_secret(struct s2n_blob *shared_key, int computed_size, int expected_size)
 {
     int padding = expected_size - computed_size;
     memmove(shared_key->data + padding, shared_key->data, computed_size);

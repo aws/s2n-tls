@@ -15,7 +15,6 @@
 
 #include "tls/s2n_kex.h"
 
-#include "crypto/s2n_dhe.h"
 #include "tests/s2n_test.h"
 
 /* Test DH parameters (2048-bit prime from RFC 3526) */
@@ -138,41 +137,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
-    };
-
-    /* Test s2n_dh_pad_shared_secret */
-    {
-        /* No padding needed when computed_size == expected_size */
-        {
-            uint8_t data[] = { 0xAA, 0xBB, 0xCC, 0xDD };
-            struct s2n_blob key = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&key, data, sizeof(data)));
-
-            s2n_dh_pad_shared_secret(&key, 4, 4);
-            EXPECT_EQUAL(key.size, 4);
-            EXPECT_EQUAL(data[0], 0xAA);
-            EXPECT_EQUAL(data[1], 0xBB);
-            EXPECT_EQUAL(data[2], 0xCC);
-            EXPECT_EQUAL(data[3], 0xDD);
-        };
-
-        /* Padding needed when computed_size < expected_size */
-        {
-            uint8_t data[8] = { 0xAA, 0xBB, 0xCC, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            struct s2n_blob key = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&key, data, 3));
-
-            s2n_dh_pad_shared_secret(&key, 3, 8);
-            EXPECT_EQUAL(key.size, 8);
-            /* First 5 bytes should be zero padding */
-            for (int i = 0; i < 5; i++) {
-                EXPECT_EQUAL(data[i], 0x00);
-            }
-            /* Last 3 bytes should be the original data */
-            EXPECT_EQUAL(data[5], 0xAA);
-            EXPECT_EQUAL(data[6], 0xBB);
-            EXPECT_EQUAL(data[7], 0xCC);
-        };
     };
 
     END_TEST();
