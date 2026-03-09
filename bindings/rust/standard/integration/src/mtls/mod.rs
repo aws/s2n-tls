@@ -98,9 +98,9 @@ impl CertValidationCallbackSync for TestCertValidationCallback {
         &self,
         _conn: &mut Connection,
         _info: &mut CertValidationInfo,
-    ) -> Result<bool, S2NError> {
+    ) -> bool {
         self.invoked.fetch_add(1, Ordering::SeqCst);
-        Ok(true)
+        true
     }
 }
 
