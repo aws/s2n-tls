@@ -94,11 +94,7 @@ impl TestCertValidationCallback {
 }
 
 impl CertValidationCallbackSync for TestCertValidationCallback {
-    fn handle_validation(
-        &self,
-        _conn: &mut Connection,
-        _info: &mut CertValidationInfo,
-    ) -> bool {
+    fn handle_validation(&self, _conn: &mut Connection, _info: &mut CertValidationInfo) -> bool {
         self.invoked.fetch_add(1, Ordering::SeqCst);
         true
     }
