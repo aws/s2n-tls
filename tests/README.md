@@ -55,7 +55,7 @@ Further information:
 - [CBMC project](https://www.cprover.org/cbmc/)
 
 ### SAW
-SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for its HMAC implementation as well as the TLS handshake state machine.
+SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for its HMAC and DRBG implementations, as well as the TLS handshake state machine.
 
 Further information:
 - [readme](saw/README.md)
