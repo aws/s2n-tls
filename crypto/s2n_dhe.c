@@ -58,6 +58,23 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
     return p;
 }
 
+/* Pad the shared secret with leading zeros to a constant length equal to
+ * expected_size. DH_compute_key may return fewer bytes when the result has
+ * leading zeros, and a variable-length output could theoretically leak
+ * information about the shared secret via timing.
+ *
+ * DH_compute_key_padded exists to handle this, but is only available in
+ * certain libcrypto implementations (OpenSSL 1.1.0+). We pad manually
+ * for portability across all supported libcryptos.
+ */
+void s2n_dh_pad_shared_secret(struct s2n_blob *shared_key, int computed_size, int expected_size)
+{
+    int padding = expected_size - computed_size;
+    memmove(shared_key->data + padding, shared_key->data, computed_size);
+    memset(shared_key->data, 0, padding);
+    shared_key->size = expected_size;
+}
+
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *g = NULL;
@@ -254,6 +271,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
 
     /* server_dh_params already validated */
     const BIGNUM *server_pub_key_bn = s2n_get_Ys_dh_param(server_dh_params);
+    int server_dh_params_size = DH_size(server_dh_params->dh);
     shared_key_size = DH_compute_key(shared_key->data, server_pub_key_bn, client_params.dh);
     if (shared_key_size < 0) {
         POSIX_GUARD(s2n_free(shared_key));
@@ -261,7 +279,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
         POSIX_BAIL(S2N_ERR_DH_SHARED_SECRET);
     }
 
-    shared_key->size = shared_key_size;
+    s2n_dh_pad_shared_secret(shared_key, shared_key_size, server_dh_params_size);
 
     POSIX_GUARD(s2n_dh_params_free(&client_params));
 
@@ -309,7 +327,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
         POSIX_BAIL(S2N_ERR_DH_SHARED_SECRET);
     }
 
-    shared_key->size = shared_key_size;
+    s2n_dh_pad_shared_secret(shared_key, shared_key_size, server_dh_params_size);
 
     BN_free(pub_key);
 

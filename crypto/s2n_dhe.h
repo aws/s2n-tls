@@ -33,3 +33,4 @@ int s2n_dh_params_copy(struct s2n_dh_params *from, struct s2n_dh_params *to);
 int s2n_dh_params_check(struct s2n_dh_params *dh_params);
 int s2n_dh_generate_ephemeral_key(struct s2n_dh_params *dh_params);
 int s2n_dh_params_free(struct s2n_dh_params *dh_params);
+void s2n_dh_pad_shared_secret(struct s2n_blob *shared_key, int computed_size, int expected_size);
