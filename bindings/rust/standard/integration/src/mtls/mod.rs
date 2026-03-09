@@ -36,7 +36,6 @@ use s2n_tls::{
     config::{Builder, Config},
     connection::Connection,
     enums::ClientAuthType,
-    error::Error as S2NError,
 };
 
 use s2n_tls_sys::{
