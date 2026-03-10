@@ -8,6 +8,7 @@ use std::{
 
 use crate::{
     label::{State, metric_label},
+    parsing::ClientHelloSupportedParameters,
     static_lists::{
         self, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
         SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, TlsParam, ToStaticString, VERSIONS_AVAILABLE_IN_S2N,
@@ -58,6 +59,14 @@ pub(crate) struct HandshakeRecordInProgress {
     negotiated_groups: [AtomicU64; GROUP_COUNT],
     negotiated_signatures: [AtomicU64; SIGNATURE_COUNT],
 
+    // we do not attempt to detect supported parameters for SSLv2 formatted client
+    // hellos
+    sslv2_client_hello: AtomicU64,
+    supported_protocols: [AtomicU64; PROTOCOL_COUNT],
+    supported_ciphers: [AtomicU64; CIPHER_COUNT],
+    supported_groups: [AtomicU64; GROUP_COUNT],
+    supported_signatures: [AtomicU64; SIGNATURE_COUNT],
+
     /// sum of handshake duration, including network latency and waiting
     ///
     /// To get the average, divide this by handshake_count.
@@ -77,14 +86,21 @@ fn relaxed_freeze<const T: usize>(array: &[AtomicU64; T]) -> [u64; T] {
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         // default is not implemented for arrays this large
-        let ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
+        let negotiated_ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
+        let supported_ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
         Self {
             handshake_count: Default::default(),
 
             negotiated_groups: Default::default(),
-            negotiated_ciphers: ciphers,
+            negotiated_ciphers,
             negotiated_protocols: Default::default(),
             negotiated_signatures: Default::default(),
+
+            sslv2_client_hello: Default::default(),
+            supported_groups: Default::default(),
+            supported_ciphers,
+            supported_protocols: Default::default(),
+            supported_signatures: Default::default(),
 
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
@@ -96,7 +112,7 @@ impl HandshakeRecordInProgress {
         &self,
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
-    ) {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.handshake_count.fetch_add(1, Ordering::Relaxed);
 
         ////////////////////////////////////////////////////////////////////////
@@ -107,6 +123,57 @@ impl HandshakeRecordInProgress {
             .and_then(|name| TlsParam::SignatureScheme.description_to_index(name))
             .and_then(|index| self.negotiated_signatures.get(index))
             .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
+
+        if conn.client_hello_is_sslv2()? {
+            self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
+        } else {
+            let supported_parameter = ClientHelloSupportedParameters::new(conn.client_hello()?);
+
+            supported_parameter
+                .supported_versions()?
+                .iter()
+                .filter_map(|version| version.known_description())
+                .filter_map(|description| TlsParam::Version.description_to_index(description))
+                .filter_map(|index| self.supported_protocols.get(index))
+                .for_each(|counter| {
+                    counter.fetch_add(1, Ordering::Relaxed);
+                });
+
+            supported_parameter
+                .supported_ciphers()?
+                .iter()
+                .filter_map(|cipher| cipher.known_description())
+                .filter_map(|description| TlsParam::Cipher.description_to_index(description))
+                .filter_map(|index| self.supported_ciphers.get(index))
+                .for_each(|counter| {
+                    counter.fetch_add(1, Ordering::Relaxed);
+                });
+
+            if let Some(supported_groups) = supported_parameter.supported_groups()? {
+                supported_groups
+                    .iter()
+                    .filter_map(|group| group.known_description())
+                    .filter_map(|description| TlsParam::Group.description_to_index(description))
+                    .filter_map(|index| self.supported_groups.get(index))
+                    .for_each(|counter| {
+                        counter.fetch_add(1, Ordering::Relaxed);
+                    });
+            }
+
+            if let Some(supported_sigs) = supported_parameter.supported_signatures()? {
+                println!("supported sigs: {supported_sigs:?}");
+                supported_sigs
+                    .iter()
+                    .filter_map(|signature| signature.known_description())
+                    .filter_map(|description| {
+                        TlsParam::SignatureScheme.description_to_index(description)
+                    })
+                    .filter_map(|index| self.supported_signatures.get(index))
+                    .for_each(|counter| {
+                        counter.fetch_add(1, Ordering::Relaxed);
+                    });
+            }
+        }
 
         ////////////////////////////////////////////////////////////////////////
         //////////////////////   fields from event   ///////////////////////////
@@ -136,6 +203,8 @@ impl HandshakeRecordInProgress {
         );
         self.handshake_duration_us
             .fetch_add(event.duration().as_micros() as u64, Ordering::Relaxed);
+
+        Ok(())
     }
 
     /// make a copy of this record to be exported.
@@ -156,6 +225,13 @@ impl HandshakeRecordInProgress {
             negotiated_ciphers: relaxed_freeze(&self.negotiated_ciphers),
             negotiated_groups: relaxed_freeze(&self.negotiated_groups),
             negotiated_signatures: relaxed_freeze(&self.negotiated_signatures),
+
+            sslv2_client_hello: self.sslv2_client_hello.fetch_add(1, Ordering::SeqCst),
+            supported_protocols: relaxed_freeze(&self.supported_protocols),
+            supported_ciphers: relaxed_freeze(&self.supported_ciphers),
+            supported_groups: relaxed_freeze(&self.supported_groups),
+            supported_signatures: relaxed_freeze(&self.supported_signatures),
+
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
         }
@@ -180,6 +256,12 @@ pub(crate) struct FrozenHandshakeRecord {
     negotiated_ciphers: [u64; CIPHER_COUNT],
     negotiated_groups: [u64; GROUP_COUNT],
     negotiated_signatures: [u64; SIGNATURE_COUNT],
+
+    sslv2_client_hello: u64,
+    supported_protocols: [u64; PROTOCOL_COUNT],
+    supported_ciphers: [u64; CIPHER_COUNT],
+    supported_groups: [u64; GROUP_COUNT],
+    supported_signatures: [u64; SIGNATURE_COUNT],
 
     handshake_duration_us: u64,
     handshake_compute_us: u64,
@@ -210,6 +292,26 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
                 TlsParam::SignatureScheme,
                 State::Negotiated,
             ),
+            (
+                self.supported_protocols.as_slice(),
+                TlsParam::Version,
+                State::Supported,
+            ),
+            (
+                self.supported_ciphers.as_slice(),
+                TlsParam::Cipher,
+                State::Supported,
+            ),
+            (
+                self.supported_groups.as_slice(),
+                TlsParam::Group,
+                State::Supported,
+            ),
+            (
+                self.supported_signatures.as_slice(),
+                TlsParam::SignatureScheme,
+                State::Supported,
+            ),
         ] {
             list.iter()
                 .enumerate()
@@ -229,6 +331,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
                 });
         }
 
+        writer.value("sslv2_client_hello", &self.sslv2_client_hello);
         writer.value("handshake_count", &self.handshake_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
@@ -243,7 +346,7 @@ mod tests {
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
-    fn record_contents() {
+    fn record_contents_negotiated_parameters() {
         let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -287,6 +390,109 @@ mod tests {
             .description_to_index(expected_sig.as_str())
             .unwrap();
         assert_eq!(record.negotiated_signatures[expected_index], 1);
+    }
+
+    #[test]
+    fn record_contents_supported_parameters() {
+        const EXPECTED_VERSIONS: &[&str] = &["TLSv1_3", "TLSv1_2"];
+        const EXPECTED_CIPHERS: &[&str] = &[
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+        ];
+        const EXPECTED_GROUPS: &[&str] = &["secp256r1", "secp384r1", "secp521r1", "x25519"];
+        const EXPECTED_SIGS: &[&str] = &[
+            "ecdsa_sha256",
+            "ecdsa_sha384",
+            "ecdsa_sha512",
+            "rsa_pkcs1_sha256",
+            "rsa_pkcs1_sha384",
+            "rsa_pkcs1_sha512",
+            "rsa_pss_rsae_sha256",
+            "rsa_pss_rsae_sha384",
+            "rsa_pss_rsae_sha512",
+            "rsa_pss_pss_sha256",
+            "rsa_pss_pss_sha384",
+            "rsa_pss_pss_sha512",
+        ];
+
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+
+        let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+        let record = endpoint.exporter.recv().unwrap();
+        let record = record.handshake;
+
+        let expected_version: Vec<usize> = EXPECTED_VERSIONS
+            .iter()
+            .map(|description| TlsParam::Version.description_to_index(description).unwrap())
+            .collect();
+        let expected_ciphers: Vec<usize> = EXPECTED_CIPHERS
+            .iter()
+            .map(|description| TlsParam::Cipher.description_to_index(description).unwrap())
+            .collect();
+        let expected_groups: Vec<usize> = EXPECTED_GROUPS
+            .iter()
+            .map(|description| TlsParam::Group.description_to_index(description).unwrap())
+            .collect();
+        let expected_sigs: Vec<usize> = EXPECTED_SIGS
+            .iter()
+            .map(|description| {
+                TlsParam::SignatureScheme
+                    .description_to_index(description)
+                    .unwrap()
+            })
+            .collect();
+
+        for (index, count) in record.supported_protocols.iter().enumerate() {
+            let param = TlsParam::Version.index_to_description(index).unwrap();
+            if expected_version.contains(&index) {
+                assert_eq!(*count, 1, "{param} count is {count}, not one");
+            } else {
+                assert_eq!(*count, 0, "{param} count is {count}, not zero");
+            }
+        }
+
+        for (index, count) in record.supported_ciphers.iter().enumerate() {
+            let param = TlsParam::Cipher.index_to_description(index).unwrap();
+            if expected_ciphers.contains(&index) {
+                assert_eq!(*count, 1, "{param} count is {count}, not one");
+            } else {
+                assert_eq!(*count, 0, "{param} count is {count}, not zero");
+            }
+        }
+
+        for (index, count) in record.supported_groups.iter().enumerate() {
+            let param = TlsParam::Group.index_to_description(index).unwrap();
+            if expected_groups.contains(&index) {
+                assert_eq!(*count, 1, "{param} count is {count}, not one");
+            } else {
+                assert_eq!(*count, 0, "{param} count is {count}, not zero");
+            }
+        }
+
+        println!("sigs: {:?}", record.supported_signatures);
+
+        for (index, count) in record.supported_signatures.iter().enumerate() {
+            let param = TlsParam::SignatureScheme
+                .index_to_description(index)
+                .unwrap();
+            if expected_sigs.contains(&index) {
+                assert_eq!(*count, 1, "{param} count is {count}, not one");
+            } else {
+                assert_eq!(*count, 0, "{param} count is {count}, not zero");
+            }
+        }
     }
 
     #[test]
