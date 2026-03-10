@@ -93,6 +93,8 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
  */
 #if defined(LIBRESSL_VERSION_NUMBER)
     unsigned long run_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
+#elif (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    unsigned long run_time_version_number = OpenSSL_version_num() & VERSION_NUMBER_MASK;
 #else
     unsigned long run_time_version_number = SSLeay() & VERSION_NUMBER_MASK;
 #endif
