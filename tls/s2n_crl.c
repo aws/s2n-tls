@@ -97,7 +97,11 @@ int s2n_crl_validate_active(struct s2n_crl *crl)
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
 
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+    const ASN1_TIME *this_update = X509_CRL_get0_lastUpdate(crl->crl);
+#else
     ASN1_TIME *this_update = X509_CRL_get_lastUpdate(crl->crl);
+#endif
     POSIX_ENSURE_REF(this_update);
 
     int ret = X509_cmp_time(this_update, NULL);
