@@ -116,7 +116,11 @@ int s2n_crl_validate_not_expired(struct s2n_crl *crl)
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
 
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+    const ASN1_TIME *next_update = X509_CRL_get0_nextUpdate(crl->crl);
+#else
     ASN1_TIME *next_update = X509_CRL_get_nextUpdate(crl->crl);
+#endif
     if (next_update == NULL) {
         /* If the CRL has no nextUpdate field, assume it will never expire */
         return S2N_SUCCESS;
