@@ -88,13 +88,11 @@ const struct s2n_certificate_key s2n_ec_p521 = {
 const struct s2n_certificate_key s2n_mldsa_87 = {
 #if S2N_LIBCRYPTO_SUPPORTS_MLDSA
     .public_key_libcrypto_nid = NID_PQDSA,
-    .name = "mldsa_87",
-    .bits = 20736, /* The ML-DSA-87 public key size is 2592 bytes. */
 #else
     .public_key_libcrypto_nid = NID_undef,
-    .name = "mldsa_undefined",
-    .bits = 0,
 #endif
+    .name = "mldsa_87",
+    .bits = 20736, /* The ML-DSA-87 public key size is 2592 bytes. */
 };
 
 const struct s2n_certificate_key *s2n_certificate_keys_20250429[] = {

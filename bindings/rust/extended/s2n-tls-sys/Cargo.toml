@@ -54,7 +54,7 @@ aws-lc-rs = { version = ">=1.16.1" }
 libc = "0.2.121"
 
 [build-dependencies]
-cc = { version = "1.0.100", features = ["parallel"] }
+cc = { version = "1.2.26", features = ["parallel"] }
 
 [dev-dependencies]
 home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
