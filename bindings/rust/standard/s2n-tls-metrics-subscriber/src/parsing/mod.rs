@@ -152,7 +152,7 @@ impl S2NClientHelloExtension for s2n_tls::client_hello::ClientHello {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{collections::HashSet, ffi::CStr, hash::Hash};
+    use std::ffi::CStr;
 
     use s2n_codec::{DecoderBuffer, zerocopy::U16};
     use s2n_tls::{

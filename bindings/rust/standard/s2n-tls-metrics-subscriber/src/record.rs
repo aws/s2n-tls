@@ -340,13 +340,10 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, sync::mpsc::Receiver};
+    use std::sync::mpsc::Receiver;
 
     use super::*;
-    use crate::{
-        static_lists::{Cipher, CipherInformation, Version},
-        test_utils::{ARBITRARY_POLICY_1, TestEndpoint},
-    };
+    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_contents_negotiated_parameters() {
@@ -437,19 +434,19 @@ mod tests {
         let record = record.handshake;
 
         let expected_version: Vec<usize> = EXPECTED_VERSIONS
-            .into_iter()
+            .iter()
             .map(|description| TlsParam::Version.description_to_index(description).unwrap())
             .collect();
         let expected_ciphers: Vec<usize> = EXPECTED_CIPHERS
-            .into_iter()
+            .iter()
             .map(|description| TlsParam::Cipher.description_to_index(description).unwrap())
             .collect();
         let expected_groups: Vec<usize> = EXPECTED_GROUPS
-            .into_iter()
+            .iter()
             .map(|description| TlsParam::Group.description_to_index(description).unwrap())
             .collect();
         let expected_sigs: Vec<usize> = EXPECTED_SIGS
-            .into_iter()
+            .iter()
             .map(|description| {
                 TlsParam::SignatureScheme
                     .description_to_index(description)
