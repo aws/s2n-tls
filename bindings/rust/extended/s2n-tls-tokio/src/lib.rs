@@ -241,7 +241,8 @@ where
 
     unsafe extern "C" fn recv_io_cb(ctx: *mut c_void, buf: *mut u8, len: u32) -> c_int {
         Self::poll_io(ctx, |stream, async_context| {
-            let mut dest = ReadBuf::new(std::slice::from_raw_parts_mut(buf, len as usize));
+            let len: usize = len.try_into().unwrap();
+            let mut dest = ReadBuf::new(std::slice::from_raw_parts_mut(buf, len));
             stream
                 .poll_read(async_context, &mut dest)
                 .map_ok(|_| dest.filled().len())
@@ -250,7 +251,8 @@ where
 
     unsafe extern "C" fn send_io_cb(ctx: *mut c_void, buf: *const u8, len: u32) -> c_int {
         Self::poll_io(ctx, |stream, async_context| {
-            let src = std::slice::from_raw_parts(buf, len as usize);
+            let len: usize = len.try_into().unwrap();
+            let src = std::slice::from_raw_parts(buf, len);
             stream.poll_write(async_context, src)
         })
     }
