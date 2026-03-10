@@ -291,8 +291,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
         const char *ecdsa_sha384_cert = "../pems/permutations/ec_ecdsa_p384_sha384/server-chain.pem";
 
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa44_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa44_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *cnsa2_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(cnsa2_config);
+        /* `cnsa2` policy only accepts ML-DSA-87 for signing. */
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(cnsa2_config, mldsa44_chain_and_key));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(cnsa2_config, "cnsa2"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
         /* clang-format off */
         struct {
@@ -313,7 +322,7 @@ int main(int argc, char **argv)
                 .expected_group = "MLKEM1024",
                 .expected_sig_scheme = "mldsa87",
             },
-            /* `test_all` supports both pure MLKEM1024 and ML-DSA-87, but not the most preferred options. */
+            /* `test_all` supports both pure MLKEM1024 (not the most preferred) and ML-DSA-87. */
             {
                 .client_policy = "test_all",
                 .server_policy = "cnsa2",
@@ -323,9 +332,9 @@ int main(int argc, char **argv)
                 .expected_group = "MLKEM1024",
                 .expected_sig_scheme = "mldsa87",
             },
-            /* `default_pq` does not support pure MLKEM1024. */
+            /* `20250721` does not support pure MLKEM1024. */
             {
-                .client_policy = "default_pq",
+                .client_policy = "20250721",
                 .server_policy = "cnsa2",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_INVALID_SUPPORTED_GROUP_STATE,
@@ -334,8 +343,8 @@ int main(int argc, char **argv)
             {
                 .client_policy = "test_pq_only",
                 .server_policy = "cnsa2",
-                .server_name = "localhost",
-                .expected_error = S2N_ERR_NO_VALID_SIGNATURE_SCHEME,
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_INVALID_SIGNATURE_SCHEME,
             },
             /* `cnsa_1_2_hybrid` is compatible with the CNSA 2.0 policy. */
             {
@@ -357,9 +366,19 @@ int main(int argc, char **argv)
                 .expected_group = "secp384r1",
                 .expected_sig_scheme = "ecdsa_secp384r1_sha384",
             },
-            /* `default_pq` does not support pure MLKEM1024 and prefers ML-DSA-44 over ML-DSA-87. */
+            /* `cnsa_1_2_hybrid` prefers pure MLKEM1024 over secp384r1 curve. */
             {
-                .client_policy = "default_pq",
+                .client_policy = "cnsa_1_2_hybrid",
+                .server_policy = "cnsa_1_2_hybrid",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = false,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `20250721` does not support pure MLKEM1024 and prefers secp256r1 over secp384r1. */
+            {
+                .client_policy = "20250721",
                 .server_policy = "cnsa_1_2_hybrid",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
@@ -386,7 +405,7 @@ int main(int argc, char **argv)
 
             /* "LAMPS WG" is the server name used by the RFC ML-DSA test certificate. */
             if (strcmp(test_cases[i].server_name, "LAMPS WG") == 0) {
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, mldsa_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, mldsa87_chain_and_key));
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_MLDSA87_CERT, NULL));
             } else {
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_sha384_chain_and_key));
@@ -398,6 +417,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, test_cases[i].client_policy));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_cases[i].server_name));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);

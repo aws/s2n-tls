@@ -85,13 +85,17 @@ const struct s2n_certificate_key s2n_ec_p521 = {
     .bits = 521,
 };
 
-#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
 const struct s2n_certificate_key s2n_mldsa_87 = {
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
     .public_key_libcrypto_nid = NID_PQDSA,
     .name = "mldsa_87",
     .bits = 20736, /* The ML-DSA-87 public key size is 2592 bytes. */
-};
+#else
+    .public_key_libcrypto_nid = NID_undef,
+    .name = "mldsa_undefined",
+    .bits = 0,
 #endif
+};
 
 const struct s2n_certificate_key *s2n_certificate_keys_20250429[] = {
     /**
@@ -116,11 +120,19 @@ struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20250429 
     .certificate_keys = s2n_certificate_keys_20250429,
 };
 
-const struct s2n_certificate_key *s2n_certificate_keys_20260218[] = {
-#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+const struct s2n_certificate_key *s2n_certificate_keys_20260219[] = {
     /* CNSA 2.0 */
     &s2n_mldsa_87,
-#endif
+};
+
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20260219 = {
+    .count = s2n_array_len(s2n_certificate_keys_20260219),
+    .certificate_keys = s2n_certificate_keys_20260219,
+};
+
+const struct s2n_certificate_key *s2n_certificate_keys_20260220[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa_87,
 
     /* CNSA 1.0 */
     &s2n_ec_p384,
@@ -130,7 +142,7 @@ const struct s2n_certificate_key *s2n_certificate_keys_20260218[] = {
     &s2n_rsa_pss_4096,
 };
 
-struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20260218 = {
-    .count = s2n_array_len(s2n_certificate_keys_20260218),
-    .certificate_keys = s2n_certificate_keys_20260218,
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_20260220 = {
+    .count = s2n_array_len(s2n_certificate_keys_20260220),
+    .certificate_keys = s2n_certificate_keys_20260220,
 };

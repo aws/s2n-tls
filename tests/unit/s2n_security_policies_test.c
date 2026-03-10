@@ -187,6 +187,8 @@ int main(int argc, char **argv)
                     has_tls_13_sig_alg = true;
                 }
 
+                /* Added in PR 2974(https://github.com/aws/s2n-tls/pull/2974) to fix a compatibility issue where
+                 * a PQ security policy supported ECDSA but missed RSA_PSS signature algorithms. */
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
@@ -197,6 +199,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_TRUE(has_tls_13_sig_alg);
+            /* Enforcing RSA_PSS does not apply to CNSA 2.0, which only supports ML-DSA signatures. */
             EXPECT_TRUE(has_rsa_pss || has_mldsa);
         }
     }

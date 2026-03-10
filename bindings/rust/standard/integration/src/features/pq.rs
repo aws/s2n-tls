@@ -222,7 +222,7 @@ fn s2n_pure_mlkem_server() {
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
-                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
 
             // Setup OpenSSL client restricted to MLKEM1024
             configs.client.set_ca_file(&mldsa87.ca_path).unwrap();

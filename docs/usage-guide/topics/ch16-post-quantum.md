@@ -6,7 +6,7 @@ s2n-tls supports both post-quantum key exchange and post-quantum authentication 
 
 Currently, only [ML-KEM](https://csrc.nist.gov/pubs/fips/203/final) is supported for post-quantum key exchange.
 
-Specifically, s2n-tls supports both hybrid and pure PQ key exchange.
+s2n-tls supports both hybrid and pure PQ key exchange.
 
 - Hybrid PQ key exchange involves performing both classic ECDH key exchange and post-quantum key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth. 
 

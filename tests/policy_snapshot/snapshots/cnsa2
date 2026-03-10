@@ -7,8 +7,11 @@ cipher suites:
 signature schemes:
 - mldsa87
 curves:
+certificate preferences apply locally
 certificate signature schemes:
 - mldsa87
+certificate keys:
+- mldsa_87
 pq:
 - revision: 5
 - kem groups:

@@ -20,6 +20,7 @@ certificate signature schemes:
 - ecdsa_sha384
 - rsa_pkcs1_sha384
 certificate keys:
+- mldsa_87
 - ecdsa_p384
 - rsa_3072
 - rsa_4096
