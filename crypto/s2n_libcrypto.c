@@ -57,7 +57,11 @@
  */
 const char *s2n_libcrypto_get_version_name(void)
 {
-    return SSLeay_version(SSLEAY_VERSION);
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    return OpenSSL_version(OPENSSL_VERSION);
+#else
+     return SSLeay_version(SSLEAY_VERSION);
+#endif
 }
 
 static S2N_RESULT s2n_libcrypto_validate_expected_version_prefix(const char *expected_name_prefix)
