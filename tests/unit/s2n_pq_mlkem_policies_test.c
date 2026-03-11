@@ -204,7 +204,7 @@ int main(int argc, char **argv)
     }
 
     /* Test configuring a PQ only policy on different libcryptos. */
-    const char *pq_only_policies[] = { "test_pq_only", "cnsa2" };
+    const char *pq_only_policies[] = { "test_pq_only", "cnsa_2" };
     for (int i = 0; i < s2n_array_len(pq_only_policies); i++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Self-talk tests for `cnsa2` and `cnsa_1_2_hybrid` policies on supported libcryptos. */
+    /* Self-talk tests for `cnsa_2` and `cnsa_1_2_interop` policies on supported libcryptos. */
     if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem() && s2n_mldsa_is_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
@@ -299,9 +299,9 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *cnsa2_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(cnsa2_config);
-        /* `cnsa2` policy only accepts ML-DSA-87 for signing. */
+        /* `cnsa_2` policy only accepts ML-DSA-87 for signing. */
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(cnsa2_config, mldsa44_chain_and_key));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(cnsa2_config, "cnsa2"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(cnsa2_config, "cnsa_2"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
         /* clang-format off */
         struct {
@@ -314,8 +314,8 @@ int main(int argc, char **argv)
             const char *expected_sig_scheme;
         } test_cases[] = {
             {
-                .client_policy = "cnsa2",
-                .server_policy = "cnsa2",
+                .client_policy = "cnsa_2",
+                .server_policy = "cnsa_2",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = false,
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
             /* `test_all` supports both pure MLKEM1024 (not the most preferred) and ML-DSA-87. */
             {
                 .client_policy = "test_all",
-                .server_policy = "cnsa2",
+                .server_policy = "cnsa_2",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = true,
@@ -335,41 +335,41 @@ int main(int argc, char **argv)
             /* `20250721` does not support pure MLKEM1024. */
             {
                 .client_policy = "20250721",
-                .server_policy = "cnsa2",
+                .server_policy = "cnsa_2",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_INVALID_SUPPORTED_GROUP_STATE,
             },
             /* `test_pq_only` does not support ML-DSA-87. */
             {
                 .client_policy = "test_pq_only",
-                .server_policy = "cnsa2",
+                .server_policy = "cnsa_2",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_INVALID_SIGNATURE_SCHEME,
             },
-            /* `cnsa_1_2_hybrid` is compatible with the CNSA 2.0 policy. */
+            /* `cnsa_1_2_interop` is compatible with the CNSA 2.0 policy. */
             {
-                .client_policy = "cnsa2",
-                .server_policy = "cnsa_1_2_hybrid",
+                .client_policy = "cnsa_2",
+                .server_policy = "cnsa_1_2_interop",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = false,
                 .expected_group = "MLKEM1024",
                 .expected_sig_scheme = "mldsa87",
             },
-            /* `cnsa_1_2_hybrid` is compatible with the CNSA 1.0 policy. */
+            /* `cnsa_1_2_interop` is compatible with the CNSA 1.0 policy. */
             {
                 .client_policy = "rfc9151",
-                .server_policy = "cnsa_1_2_hybrid",
+                .server_policy = "cnsa_1_2_interop",
                 .server_name = "localhost",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = false,
                 .expected_group = "secp384r1",
                 .expected_sig_scheme = "ecdsa_secp384r1_sha384",
             },
-            /* `cnsa_1_2_hybrid` prefers pure MLKEM1024 over secp384r1 curve. */
+            /* `cnsa_1_2_interop` prefers pure MLKEM1024 over secp384r1 curve. */
             {
-                .client_policy = "cnsa_1_2_hybrid",
-                .server_policy = "cnsa_1_2_hybrid",
+                .client_policy = "cnsa_1_2_interop",
+                .server_policy = "cnsa_1_2_interop",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = false,
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
             /* `20250721` does not support pure MLKEM1024 and prefers secp256r1 over secp384r1. */
             {
                 .client_policy = "20250721",
-                .server_policy = "cnsa_1_2_hybrid",
+                .server_policy = "cnsa_1_2_interop",
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = true,
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
             /* `test_pq_only` does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
             {
                 .client_policy = "test_pq_only",
-                .server_policy = "cnsa_1_2_hybrid",
+                .server_policy = "cnsa_1_2_interop",
                 .server_name = "localhost",
                 .expected_error = S2N_ERR_OK,
                 .hrr_expected = true,

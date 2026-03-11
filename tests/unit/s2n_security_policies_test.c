@@ -161,7 +161,7 @@ int main(int argc, char **argv)
             }
         }
 
-        /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test */
+        /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test (if TLS 1.2 is supported) */
         bool has_tls_13_cipher = false;
         for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
             if (security_policy->cipher_preferences->suites[i]->minimum_required_tls_version == S2N_TLS13) {
@@ -169,11 +169,11 @@ int main(int argc, char **argv)
                 break;
             }
         }
+        bool min_below_tls_13 = security_policy->minimum_protocol_version < S2N_TLS13;
 
-        if (has_tls_13_cipher) {
+        if (min_below_tls_13 && has_tls_13_cipher) {
             bool has_tls_13_sig_alg = false;
             bool has_rsa_pss = false;
-            bool has_mldsa = false;
 
             for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
                 int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
@@ -192,15 +192,10 @@ int main(int argc, char **argv)
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
-
-                if (sig_alg == S2N_SIGNATURE_MLDSA) {
-                    has_mldsa = true;
-                }
             }
 
             EXPECT_TRUE(has_tls_13_sig_alg);
-            /* Enforcing RSA_PSS does not apply to CNSA 2.0, which only supports ML-DSA signatures. */
-            EXPECT_TRUE(has_rsa_pss || has_mldsa);
+            EXPECT_TRUE(has_rsa_pss);
         }
     }
 

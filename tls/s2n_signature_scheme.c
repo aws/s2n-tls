@@ -786,6 +786,11 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_test_all_fips[
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
     &s2n_ecdsa_sha224,
+
+    /* ML-DSA */
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips = {

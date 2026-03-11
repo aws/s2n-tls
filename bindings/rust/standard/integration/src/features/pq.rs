@@ -180,8 +180,8 @@ fn s2n_pure_mlkem_client() {
             let mut configs =
                 TlsConfigBuilderPair::<s2n_tls::config::Builder, SslContextBuilder>::default();
 
-            // Setup s2n-tls client with cnsa2 policy
-            let cnsa2_policy = Policy::from_version("cnsa2").unwrap();
+            // Setup s2n-tls client with CNSA 2.0 policy
+            let cnsa2_policy = Policy::from_version("cnsa_2").unwrap();
             configs.client.set_security_policy(&cnsa2_policy).unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
             // This test uses the RFC ML-DSA certificate with the hostname "LAMPS WG".
@@ -228,8 +228,8 @@ fn s2n_pure_mlkem_server() {
             configs.client.set_ca_file(&mldsa87.ca_path).unwrap();
             configs.client.set_groups_list("MLKEM1024").unwrap();
 
-            // Setup s2n-tls server with cnsa2 policy
-            let cnsa2_policy = Policy::from_version("cnsa2").unwrap();
+            // Setup s2n-tls server with CNSA 2.0 policy
+            let cnsa2_policy = Policy::from_version("cnsa_2").unwrap();
             configs.server.set_security_policy(&cnsa2_policy).unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
             configs

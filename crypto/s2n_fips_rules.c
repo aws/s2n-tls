@@ -25,6 +25,7 @@ const s2n_hash_algorithm fips_hash_algs[] = {
     S2N_HASH_SHA256,
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
+    S2N_HASH_SHAKE256_64,
 };
 S2N_RESULT s2n_fips_validate_hash_algorithm(s2n_hash_algorithm hash_alg, bool *valid)
 {

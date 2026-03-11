@@ -39,9 +39,9 @@ Post-quantum algorithms are enabled by configuring a security policy (see [Secur
 
 "default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.
 
-"cnsa2" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS 1.3](https://datatracker.ietf.org/doc/draft-becker-cnsa2-tls-profile/). This is a TLS 1.3 PQ only policy that requires pure ML-KEM-1024 for key exchange and ML-DSA-87 for signature and certificate verification.
+"cnsa_2" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS 1.3](https://datatracker.ietf.org/doc/draft-becker-cnsa2-tls-profile/). This is a TLS 1.3 PQ only policy that requires pure ML-KEM-1024 for key exchange and ML-DSA-87 for signature and certificate verification.
 
-"cnsa_1_2_hybrid" is a transitional policy from CNSA 1.0 / RFC 9151 (non-PQ) to CNSA 2.0 (PQ only). It combines all the supported algorithms in the "cnsa2" and "rfc9151" (see [Security Policies](./ch06-security-policies.md)) policies. Like other default policies, these CNSA policies are subject to the source RFC definition changes.
+"cnsa_1_2_interop" is a transitional policy from CNSA 1.0 / RFC 9151 (non-PQ) to CNSA 2.0 (PQ only). It combines all the supported algorithms in the "cnsa_2" and "rfc9151" (see [Security Policies](./ch06-security-policies.md)) policies. Like other default policies, these CNSA policies are subject to the source RFC definition changes.
 
 Other available PQ policies are compared in the tables below.
 
@@ -51,8 +51,8 @@ Other available PQ policies are compared in the tables below.
 |-----------------------|-----------------|--------------------|---------------------|-----------|
 | default_pq / 20250721 |        X        |          X         |          X          |           |
 | 20250512              |        X        |          X         |                     |           |
-| cnsa2                 |                 |                    |                     |     X     |
-| cnsa_1_2_hybrid       |                 |                    |                     |     X     |
+| cnsa_2                |                 |                    |                     |     X     |
+| cnsa_1_2_interop      |                 |                    |                     |     X     |
 
 ### Chart: Security Policy Version To Signature Schemes
 
@@ -60,20 +60,20 @@ Other available PQ policies are compared in the tables below.
 |-----------------------|--------|-------|-----|---------|-------------|
 | default_pq / 20250721 |   X    |   X   |  X  |    X    |             |
 | 20250512              |   X    |   X   |  X  |    X    |             |
-| cnsa2                 |   87   |       |     |         |             |
-| cnsa_1_2_hybrid       |   87   |   X   |  X  |    X    |             |
+| cnsa_2                |   87   |       |     |         |             |
+| cnsa_1_2_interop      |   87   |   X   |  X  |    X    |             |
 
 ### Chart: Security Policy Version To Classic Key Exchange
 
 If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall back to a classical option.
 
-Note: the "cnsa2" policy only allows ML-KEM-1024, thus there is no fallback to classic key exchange.
+Note: the "cnsa_2" policy only allows ML-KEM-1024, thus there is no fallback to classic key exchange.
 
 |        Version        | secp256r1 | x25519 | secp384r1 | secp521r1 | DHE | RSA |
 |-----------------------|-----------|--------|-----------|-----------|-----|-----|
 | default_pq / 20250721 |     X     |   X    |     X     |     X     |     |     |
 | 20250512              |     X     |   X    |     X     |     X     |     |     |
-| cnsa_1_2_hybrid       |           |        |     X     |           |     |     |
+| cnsa_1_2_interop      |           |        |     X     |           |     |     |
 
 ### Chart: Security Policy Version To Ciphers
 
@@ -81,8 +81,8 @@ Note: the "cnsa2" policy only allows ML-KEM-1024, thus there is no fallback to c
 |-----------------------|---------|---------|------------|------|
 | default_pq / 20250721 |    X    |    X    |     X      |      |
 | 20250512              |    X    |    X    |     X      |      |
-| cnsa2                 |         |    X    |            |      |
-| cnsa_1_2_hybrid       |         |    X    |            |      |
+| cnsa_2                |         |    X    |            |      |
+| cnsa_1_2_interop      |         |    X    |            |      |
 
 ### Chart: Security Policy Version To TLS Protocol Version
 
@@ -90,8 +90,8 @@ Note: the "cnsa2" policy only allows ML-KEM-1024, thus there is no fallback to c
 |-----------------------|-----|-----|
 | default_pq / 20250721 |  X  |  X  |
 | 20250512              |  X  |  X  |
-| cnsa2                 |     |  X  |
-| cnsa_1_2_hybrid       |  X  |  X  |
+| cnsa_2                |     |  X  |
+| cnsa_1_2_interop      |  X  |  X  |
 
 #### Default Policy History
 |  Version   | "default_pq" |
