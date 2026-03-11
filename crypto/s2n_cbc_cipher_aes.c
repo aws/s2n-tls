@@ -109,7 +109,7 @@ static S2N_RESULT s2n_cbc_cipher_aes_init(struct s2n_session_key *key)
 
 static S2N_RESULT s2n_cbc_cipher_aes_destroy_key(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
+    s2n_evp_ctx_cleanup(key->evp_cipher_ctx);
 
     return S2N_RESULT_OK;
 }

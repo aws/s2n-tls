@@ -155,7 +155,11 @@ int main()
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
             char ssleay_version_text[MAX_LIBCRYPTO_NAME_LEN] = { 0 };
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+            EXPECT_OK(s2n_test_lowercase_copy(OpenSSL_version(OPENSSL_VERSION), &ssleay_version_text[0], MAX_LIBCRYPTO_NAME_LEN));
+#else
             EXPECT_OK(s2n_test_lowercase_copy(SSLeay_version(SSLEAY_VERSION), &ssleay_version_text[0], MAX_LIBCRYPTO_NAME_LEN));
+#endif
             EXPECT_NOT_NULL(strstr(ssleay_version_text, name));
         }
     };
@@ -163,7 +167,11 @@ int main()
     /* Check libcrypto version matches the intent of the CI.  */
     {
         if (version != NULL) {
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+            const char *ssleay_version_text = OpenSSL_version(OPENSSL_VERSION);
+#else
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
+#endif
             if (strstr(ssleay_version_text, version) == NULL) {
                 char fail_msg[256] = { 0 };
                 snprintf(
