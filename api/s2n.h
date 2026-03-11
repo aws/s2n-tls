@@ -3947,9 +3947,9 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * connection object that can talk to the original peer with the same encryption keys.
  *
  * @warning This feature is dangerous because it provides cryptographic material from a TLS session
- * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
- * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
- * without encryption.
+ * in plaintext. The serialized blob also does not include a MAC or signature, so a modified blob
+ * will be deserialized and used as-is. Users MUST both encrypt and MAC the serialized connection to
+ * provide secrecy and integrity before storing or sending it off-box.
  *
  * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
  * s2n_config object associated with this connection before this connection began its TLS handshake.
@@ -3970,10 +3970,12 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
 /**
  * Deserializes the provided buffer into the `s2n_connection` parameter.
  *
- * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
- * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
- * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
- * connection before sending it off-box and deserializing it.
+ * @warning s2n-tls does not check the integrity of the provided buffer. The serialized blob does
+ * not include a MAC or signature, so a modified buffer will be deserialized and used as-is. A
+ * corrupted buffer will cause a connection failure when attempting to resume sending or receiving
+ * encrypted data. To avoid this, callers MUST MAC and encrypt the serialized connection before
+ * storing or sending it off-box. Encrypt-then-MAC using a key not stored alongside the blob is
+ * the recommended approach.
  *
  * @warning Only a minimal amount of information about the original TLS connection is serialized.
  * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
