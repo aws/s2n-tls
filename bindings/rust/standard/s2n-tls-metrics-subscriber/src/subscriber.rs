@@ -3,8 +3,11 @@
 
 use std::sync::{
     Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, Sender},
 };
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
 use arc_swap::ArcSwap;
@@ -18,9 +21,19 @@ struct ExportPipeline<E> {
 
 /// The AggregatedMetricSubscriber can be used to aggregate events over some period
 /// of time, and then export them using an [`Exporter`].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AggregatedMetricsSubscriber<E> {
     inner: Arc<MetricSubscriberInner<E>>,
+}
+
+// Manual Clone impl: the derive would add an unnecessary `E: Clone` bound,
+// but we only need to clone the Arc.
+impl<E> Clone for AggregatedMetricsSubscriber<E> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 /// The [`s2n_tls::events::EventSubscriber`] may be invoked concurrently, which
@@ -43,6 +56,9 @@ struct MetricSubscriberInner<E> {
 
     // the mutex is necessary because s2n-tls callbacks must be Send + Sync
     export_pipeline: Mutex<ExportPipeline<E>>,
+
+    /// Optional resource name associated with this subscriber.
+    resource_name: Option<Arc<str>>,
 }
 
 impl<E: Exporter + Send + Sync> AggregatedMetricsSubscriber<E> {
@@ -59,6 +75,31 @@ impl<E: Exporter + Send + Sync> AggregatedMetricsSubscriber<E> {
             current_record: ArcSwap::new(Arc::new(record)),
             tx_handle: tx,
             export_pipeline: Mutex::new(export_pipe),
+            resource_name: None,
+        };
+        Self {
+            inner: Arc::new(inner),
+        }
+    }
+
+    /// Create a new subscriber with an associated resource name.
+    ///
+    /// The resource name will be included in all exported [`MetricRecord`]s,
+    /// allowing metrics to be tagged per-resource.
+    pub fn with_resource_name(exporter: E, resource_name: impl Into<Arc<str>>) -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        let record = HandshakeRecordInProgress::new(tx.clone());
+
+        let export_pipe = ExportPipeline {
+            metric_receiver: rx,
+            exporter,
+        };
+        let inner = MetricSubscriberInner {
+            current_record: ArcSwap::new(Arc::new(record)),
+            tx_handle: tx,
+            export_pipeline: Mutex::new(export_pipe),
+            resource_name: Some(resource_name.into()),
         };
         Self {
             inner: Arc::new(inner),
@@ -86,7 +127,7 @@ impl<E: Exporter + Send + Sync> AggregatedMetricsSubscriber<E> {
         let handshake = export_pipeline.metric_receiver.recv().unwrap();
         export_pipeline
             .exporter
-            .export(MetricRecord::new(handshake));
+            .export(MetricRecord::new(handshake, self.inner.resource_name.clone()));
     }
 }
 
@@ -121,19 +162,62 @@ impl Exporter for mpsc::Sender<MetricRecord> {
     }
 }
 
+/// Handle for a periodic export background thread.
+///
+/// When dropped, signals the background thread to stop, performs a final
+/// `finish_record()` call, and joins the thread.
+pub struct PeriodicExportHandle<E: Exporter + Send + Sync + 'static> {
+    stop: Arc<AtomicBool>,
+    handle: Option<JoinHandle<()>>,
+    subscriber: AggregatedMetricsSubscriber<E>,
+}
+
+impl<E: Exporter + Send + Sync + 'static> AggregatedMetricsSubscriber<E> {
+    /// Start a background thread that calls `finish_record()` at the given interval.
+    ///
+    /// Returns a [`PeriodicExportHandle`] that stops the background thread and
+    /// performs a final export when dropped.
+    pub fn start_periodic_export(&self, interval: Duration) -> PeriodicExportHandle<E> {
+        let stop = Arc::new(AtomicBool::new(false));
+        let stop_clone = stop.clone();
+        let subscriber = self.clone();
+
+        let handle = thread::spawn(move || {
+            while !stop_clone.load(Ordering::Relaxed) {
+                thread::sleep(interval);
+                if !stop_clone.load(Ordering::Relaxed) {
+                    subscriber.finish_record();
+                }
+            }
+        });
+
+        PeriodicExportHandle {
+            stop,
+            handle: Some(handle),
+            subscriber: self.clone(),
+        }
+    }
+}
+
+impl<E: Exporter + Send + Sync + 'static> Drop for PeriodicExportHandle<E> {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(handle) = self.handle.take() {
+            handle.join().ok();
+        }
+        // Final export to flush any remaining metrics
+        self.subscriber.finish_record();
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use std::sync::mpsc::Receiver;
-
-    use crate::{
-        MetricRecord,
-        test_utils::{ARBITRARY_POLICY_1, TestEndpoint},
-    };
+    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_is_exported() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         assert!(endpoint.exporter.try_recv().is_err());
@@ -150,7 +234,7 @@ mod tests {
     /// test across CI/development.
     #[test]
     fn export_blocking() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         // hold a reference to the current record being updated.

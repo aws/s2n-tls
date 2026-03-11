@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{atomic::{AtomicU64, Ordering}, Arc},
     time::SystemTime,
 };
 
@@ -29,16 +29,27 @@ const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 #[derive(Debug, Clone)]
 pub struct MetricRecord {
     handshake: FrozenHandshakeRecord,
+    resource_name: Option<Arc<str>>,
 }
 
 impl MetricRecord {
-    pub(crate) fn new(handshake: FrozenHandshakeRecord) -> Self {
-        Self { handshake }
+    pub(crate) fn new(handshake: FrozenHandshakeRecord, resource_name: Option<Arc<str>>) -> Self {
+        Self {
+            handshake,
+            resource_name,
+        }
+    }
+
+    pub fn resource_name(&self) -> Option<&str> {
+        self.resource_name.as_deref()
     }
 }
 
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        if let Some(name) = &self.resource_name {
+            writer.value("resource", name.as_ref());
+        }
         self.handshake.write(writer)
     }
 }
@@ -362,14 +373,12 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::mpsc::Receiver;
-
     use super::*;
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_contents_negotiated_parameters() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
@@ -517,7 +526,7 @@ mod tests {
 
     #[test]
     fn multiple_records() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -553,7 +562,7 @@ mod tests {
     /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod emf_emitter;
+mod emf_sink;
 mod label;
 mod parsing;
 mod record;
@@ -11,5 +12,6 @@ mod subscriber;
 mod test_utils;
 
 pub use emf_emitter::EmfEmitter;
+pub use emf_sink::{EmfSink, StdoutSink, WriterSink};
 pub use record::MetricRecord;
-pub use subscriber::AggregatedMetricsSubscriber;
+pub use subscriber::{AggregatedMetricsSubscriber, Exporter, PeriodicExportHandle};
