@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -203,10 +204,11 @@ int main(int argc, char **argv)
     }
 
     /* Test configuring a PQ only policy on different libcryptos. */
-    {
+    const char *pq_only_policies[] = { "test_pq_only", "cnsa_2" };
+    for (int i = 0; i < s2n_array_len(pq_only_policies); i++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        const char *policy = "test_pq_only";
+        const char *policy = pq_only_policies[i];
 
         if (!s2n_is_tls13_fully_supported()) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, policy), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
@@ -280,6 +282,169 @@ int main(int argc, char **argv)
             /* Assert server negotiated_curve and kem_group are both NULL. */
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+        }
+    }
+
+    /* Self-talk tests for `cnsa_2` and `cnsa_1_2_interop` policies on supported libcryptos. */
+    if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem() && s2n_mldsa_is_supported()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
+        const char *ecdsa_sha384_cert = "../pems/permutations/ec_ecdsa_p384_sha384/server-chain.pem";
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa44_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa44_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *cnsa2_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(cnsa2_config);
+        /* `cnsa_2` policy only accepts ML-DSA-87 for signing. */
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(cnsa2_config, mldsa44_chain_and_key));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(cnsa2_config, "cnsa_2"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+
+        /* clang-format off */
+        struct {
+            const char *client_policy;
+            const char *server_policy;
+            const char *server_name;
+            s2n_error expected_error;
+            bool hrr_expected;
+            const char *expected_group;
+            const char *expected_sig_scheme;
+        } test_cases[] = {
+            {
+                .client_policy = "cnsa_2",
+                .server_policy = "cnsa_2",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = false,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `test_all` supports both pure MLKEM1024 (not the most preferred) and ML-DSA-87. */
+            {
+                .client_policy = "test_all",
+                .server_policy = "cnsa_2",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = true,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `20250721` does not support pure MLKEM1024. */
+            {
+                .client_policy = "20250721",
+                .server_policy = "cnsa_2",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_INVALID_SUPPORTED_GROUP_STATE,
+            },
+            /* `test_pq_only` does not support ML-DSA-87. */
+            {
+                .client_policy = "test_pq_only",
+                .server_policy = "cnsa_2",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_INVALID_SIGNATURE_SCHEME,
+            },
+            /* `cnsa_1_2_interop` is compatible with the CNSA 2.0 policy. */
+            {
+                .client_policy = "cnsa_2",
+                .server_policy = "cnsa_1_2_interop",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = false,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `cnsa_1_2_interop` is compatible with the CNSA 1.0 policy. */
+            {
+                .client_policy = "rfc9151",
+                .server_policy = "cnsa_1_2_interop",
+                .server_name = "localhost",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = false,
+                .expected_group = "secp384r1",
+                .expected_sig_scheme = "ecdsa_secp384r1_sha384",
+            },
+            /* `cnsa_1_2_interop` prefers pure MLKEM1024 over secp384r1 curve. */
+            {
+                .client_policy = "cnsa_1_2_interop",
+                .server_policy = "cnsa_1_2_interop",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = false,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `20250721` does not support pure MLKEM1024 and prefers secp256r1 over secp384r1. */
+            {
+                .client_policy = "20250721",
+                .server_policy = "cnsa_1_2_interop",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = true,
+                .expected_group = "secp384r1",
+                .expected_sig_scheme = "mldsa87",
+            },
+            /* `test_pq_only` does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
+            {
+                .client_policy = "test_pq_only",
+                .server_policy = "cnsa_1_2_interop",
+                .server_name = "localhost",
+                .expected_error = S2N_ERR_OK,
+                .hrr_expected = true,
+                .expected_group = "MLKEM1024",
+                .expected_sig_scheme = "ecdsa_secp384r1_sha384",
+            },
+        };
+        /* clang-format on */
+
+        for (int i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            /* "LAMPS WG" is the server name used by the RFC ML-DSA test certificate. */
+            if (strcmp(test_cases[i].server_name, "LAMPS WG") == 0) {
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, mldsa87_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_MLDSA87_CERT, NULL));
+            } else {
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_sha384_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, ecdsa_sha384_cert, NULL));
+            }
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, test_cases[i].client_policy));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_cases[i].server_name));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, test_cases[i].server_policy));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            if (test_cases[i].expected_error == S2N_ERR_OK) {
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), test_cases[i].expected_error);
+                continue;
+            }
+            EXPECT_EQUAL(test_cases[i].hrr_expected, s2n_is_hello_retry_handshake(server_conn));
+
+            const char *selected_group;
+            EXPECT_SUCCESS(s2n_connection_get_key_exchange_group(server_conn, &selected_group));
+            EXPECT_EQUAL(strcmp(test_cases[i].expected_group, selected_group), 0);
+
+            const char *selected_sig_scheme;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(server_conn, &selected_sig_scheme));
+            EXPECT_EQUAL(strcmp(test_cases[i].expected_sig_scheme, selected_sig_scheme), 0);
         }
     }
 

@@ -161,7 +161,7 @@ int main(int argc, char **argv)
             }
         }
 
-        /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test */
+        /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test (if TLS 1.2 is supported) */
         bool has_tls_13_cipher = false;
         for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
             if (security_policy->cipher_preferences->suites[i]->minimum_required_tls_version == S2N_TLS13) {
@@ -169,8 +169,9 @@ int main(int argc, char **argv)
                 break;
             }
         }
+        bool min_below_tls_13 = security_policy->minimum_protocol_version < S2N_TLS13;
 
-        if (has_tls_13_cipher) {
+        if (min_below_tls_13 && has_tls_13_cipher) {
             bool has_tls_13_sig_alg = false;
             bool has_rsa_pss = false;
 
@@ -186,6 +187,8 @@ int main(int argc, char **argv)
                     has_tls_13_sig_alg = true;
                 }
 
+                /* Added in PR 2974(https://github.com/aws/s2n-tls/pull/2974) to fix a compatibility issue where
+                 * a PQ security policy supported ECDSA but missed RSA_PSS signature algorithms. */
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
