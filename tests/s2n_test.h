@@ -21,6 +21,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(S2N_EXECINFO_AVAILABLE)
+    #include <execinfo.h>
+#endif
+
 #include "error/s2n_errno.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
@@ -32,31 +36,58 @@ int test_count;
 
 bool s2n_use_color_in_output = true;
 
+/* Helper function to print assertion backtrace */
+#if defined(S2N_EXECINFO_AVAILABLE)
+    #define MAX_BACKTRACE_DEPTH 20
+static inline void s2n_test_print_assertion_backtrace(void)
+{
+    int old_errno = errno;
+    void *array[MAX_BACKTRACE_DEPTH];
+    int trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+    char **trace_symbols = backtrace_symbols(array, trace_size);
+    if (trace_symbols != NULL) {
+        fprintf(stderr, "\nAssertion backtrace:\n");
+        for (int i = 0; i < trace_size; ++i) {
+            fprintf(stderr, "%s\n", trace_symbols[i]);
+        }
+        free(trace_symbols);
+    }
+    errno = old_errno;
+}
+#else
+static inline void s2n_test_print_assertion_backtrace(void)
+{
+    /* execinfo not available on this platform */
+}
+#endif
+
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
-#define EXPECT_TRUE_WITHOUT_COUNT( condition )    do { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
-#define EXPECT_FALSE_WITHOUT_COUNT( condition )   EXPECT_TRUE_WITHOUT_COUNT( !(condition) )
+#define EXPECT_TRUE_WITHOUT_COUNT(condition)      \
+    do {                                          \
+        if (!(condition)) {                       \
+            FAIL_MSG(#condition " is not true "); \
+        }                                         \
+    } while (0)
+#define EXPECT_FALSE_WITHOUT_COUNT(condition) EXPECT_TRUE_WITHOUT_COUNT(!(condition))
 
-#define EXPECT_NOT_EQUAL_WITHOUT_COUNT( p1, p2 )  EXPECT_FALSE_WITHOUT_COUNT( (p1) == (p2) )
+#define EXPECT_NOT_EQUAL_WITHOUT_COUNT(p1, p2) EXPECT_FALSE_WITHOUT_COUNT((p1) == (p2))
 
-#define EXPECT_SUCCESS_WITHOUT_COUNT( function_call )  EXPECT_NOT_EQUAL_WITHOUT_COUNT( (function_call) ,  -1 )
+#define EXPECT_SUCCESS_WITHOUT_COUNT(function_call) EXPECT_NOT_EQUAL_WITHOUT_COUNT((function_call), -1)
 
-#define END_TEST_PRINT()                                                            \
-    if (s2n_use_color_in_output && isatty(fileno(stdout))) {                                                   \
-        if (test_count) {                                                           \
-            fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count );   \
-        }                                                                           \
-        else {                                                                      \
-            fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" );         \
-        }                                                                           \
-    }                                                                               \
-    else {                                                                          \
-        if (test_count) {                                                           \
-            fprintf(stdout, "PASSED %10d tests\n", test_count );                    \
-        }                                                                           \
-        else {                                                                      \
-            fprintf(stdout, "SKIPPED       ALL tests\n" );                          \
-        }                                                                           \
+#define END_TEST_PRINT()                                                         \
+    if (s2n_use_color_in_output && isatty(fileno(stdout))) {                     \
+        if (test_count) {                                                        \
+            fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count); \
+        } else {                                                                 \
+            fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n");       \
+        }                                                                        \
+    } else {                                                                     \
+        if (test_count) {                                                        \
+            fprintf(stdout, "PASSED %10d tests\n", test_count);                  \
+        } else {                                                                 \
+            fprintf(stdout, "SKIPPED       ALL tests\n");                        \
+        }                                                                        \
     }
 
 /* Macros similar to BEGIN_TEST() and END_TEST() but for tests where s2n should
@@ -73,196 +104,209 @@ bool s2n_use_color_in_output = true;
         EXPECT_SUCCESS(s2n_enable_atexit());                      \
     } while (0)
 
-#define END_TEST_NO_INIT()                                          \
-    do {                                                            \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
-        END_TEST_PRINT()                                            \
-        return 0;                                                   \
-    } while(0)
+#define END_TEST_NO_INIT()                                         \
+    do {                                                           \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false)); \
+        END_TEST_PRINT()                                           \
+        return 0;                                                  \
+    } while (0)
 
 /* This is a very basic, but functional unit testing framework. All testing
  * should happen in main() and start with a BEGIN_TEST() and end with an
  * END_TEST().
  */
-#define BEGIN_TEST()                                                \
-    do {                                                            \
-        BEGIN_TEST_NO_INIT();                                       \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
-    } while(0)
-
-#define END_TEST()                                                  \
-    do {                                                            \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
-        END_TEST_NO_INIT();                                         \
-    } while(0)
-
-#define FAIL()      FAIL_MSG("")
-
-#define FAIL_MSG( msg ) do { \
-                          FAIL_MSG_PRINT(msg); \
-                          exit(1);  \
-                        } while(0)
-
-#define FAIL_MSG_PRINT( msg ) do { \
-                          /* isatty and s2n_print_stacktrace will overwrite errno on failure */ \
-                          int real_errno = errno; \
-                          s2n_print_stacktrace(stderr); \
-                          if (s2n_use_color_in_output && isatty(fileno(stderr))) { \
-                            errno = real_errno; \
-                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
-                          } \
-                          else { \
-                            errno = real_errno; \
-                            fprintf(stderr, "FAILED test %d\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
-                          } \
-                        } while(0)
-
-#define RESET_ERRNO() \
-    do { \
-        s2n_errno = 0; \
-        s2n_debug_info_reset(); \
-        errno = 0; \
-    } while(0);
-
-#define EXPECT_TRUE( condition )    do { test_count++; if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
-#define EXPECT_FALSE( condition )   EXPECT_TRUE( !(condition) )
-
-#define EXPECT_EQUAL( p1, p2 )      EXPECT_TRUE( (p1) == (p2) )
-#define EXPECT_NOT_EQUAL( p1, p2 )  EXPECT_FALSE( (p1) == (p2) )
-
-#define EXPECT_NULL( ptr )      EXPECT_EQUAL( ptr, NULL )
-#define EXPECT_NOT_NULL( ptr )  EXPECT_NOT_EQUAL( ptr, NULL )
-
-#define EXPECT_FAILURE( function_call ) \
-    do { \
-        EXPECT_EQUAL( (function_call) ,  -1 ); \
-        EXPECT_NOT_EQUAL(s2n_errno, 0); \
-        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
-        RESET_ERRNO(); \
-    } while(0)
-#define EXPECT_ERROR( function_call ) \
-    do { \
-        EXPECT_TRUE( s2n_result_is_error(function_call) ); \
-        EXPECT_NOT_EQUAL(s2n_errno, 0); \
-        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
-        RESET_ERRNO(); \
-    } while(0)
-
-#define EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ) \
-    do { \
-        EXPECT_EQUAL( (function_call), -1 ); \
-        EXPECT_EQUAL(s2n_errno, err); \
-        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
-    } while(0)
-
-#define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) \
-    do { \
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); \
-        RESET_ERRNO(); \
-    } while(0)
-
-#define EXPECT_FAILURE_WITH_ALERT( function_call, err, alert ) \
-    do { \
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err); \
-        uint8_t _alert_for_failure = 0; \
-        EXPECT_SUCCESS(s2n_error_get_alert(s2n_errno, &_alert_for_failure)); \
-        EXPECT_EQUAL(_alert_for_failure, (alert)); \
-        RESET_ERRNO(); \
-    } while(0)
-
-/* for use with S2N_RESULT */
-#define EXPECT_ERROR_WITH_ERRNO_NO_RESET( function_call, err ) \
-    do { \
-        EXPECT_TRUE( s2n_result_is_error(function_call) ); \
-        EXPECT_EQUAL(s2n_errno, err); \
-        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
-    } while(0)
-
-/* for use with S2N_RESULT */
-#define EXPECT_ERROR_WITH_ERRNO( function_call, err ) \
-    do { \
-        EXPECT_ERROR_WITH_ERRNO_NO_RESET( function_call, err ); \
-        RESET_ERRNO(); \
-    } while(0)
-
-#define EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ) \
-    do { \
-        EXPECT_NULL( (function_call) ); \
-        EXPECT_EQUAL(s2n_errno, err); \
-        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
-    } while(0)
-
-#define EXPECT_NULL_WITH_ERRNO( function_call, err ) \
-    do { \
-        EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ); \
-        RESET_ERRNO(); \
-    } while(0)
-
-#define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
-/* for use with S2N_RESULT */
-#define EXPECT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )
-
-#define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) \
-    do { \
-        if (l != 0) { \
-            EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 ); \
-        } \
+#define BEGIN_TEST()                              \
+    do {                                          \
+        BEGIN_TEST_NO_INIT();                     \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
     } while (0)
 
-#define EXPECT_BYTEARRAY_NOT_EQUAL( p1, p2, l ) EXPECT_NOT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
+#define END_TEST()                                   \
+    do {                                             \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup()); \
+        END_TEST_NO_INIT();                          \
+    } while (0)
 
-#define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
-#define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
+#define FAIL() FAIL_MSG("")
+
+#define FAIL_MSG(msg)        \
+    do {                     \
+        FAIL_MSG_PRINT(msg); \
+        exit(1);             \
+    } while (0)
+
+#define FAIL_MSG_PRINT(msg)                                                                                                                                                                                                                                                        \
+    do {                                                                                                                                                                                                                                                                           \
+        /* isatty and s2n_print_stacktrace will overwrite errno on failure */                                                                                                                                                                                                      \
+        int real_errno = errno;                                                                                                                                                                                                                                                    \
+        s2n_print_stacktrace(stderr);                                                                                                                                                                                                                                              \
+        /* Print assertion backtrace to help identify which test failed */                                                                                                                                                                                                         \
+        s2n_test_print_assertion_backtrace();                                                                                                                                                                                                                                      \
+        if (s2n_use_color_in_output && isatty(fileno(stderr))) {                                                                                                                                                                                                                   \
+            errno = real_errno;                                                                                                                                                                                                                                                    \
+            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
+        } else {                                                                                                                                                                                                                                                                   \
+            errno = real_errno;                                                                                                                                                                                                                                                    \
+            fprintf(stderr, "FAILED test %d\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno);                  \
+        }                                                                                                                                                                                                                                                                          \
+    } while (0)
+
+#define RESET_ERRNO()           \
+    do {                        \
+        s2n_errno = 0;          \
+        s2n_debug_info_reset(); \
+        errno = 0;              \
+    } while (0);
+
+#define EXPECT_TRUE(condition)                    \
+    do {                                          \
+        test_count++;                             \
+        if (!(condition)) {                       \
+            FAIL_MSG(#condition " is not true "); \
+        }                                         \
+    } while (0)
+#define EXPECT_FALSE(condition) EXPECT_TRUE(!(condition))
+
+#define EXPECT_EQUAL(p1, p2)     EXPECT_TRUE((p1) == (p2))
+#define EXPECT_NOT_EQUAL(p1, p2) EXPECT_FALSE((p1) == (p2))
+
+#define EXPECT_NULL(ptr)     EXPECT_EQUAL(ptr, NULL)
+#define EXPECT_NOT_NULL(ptr) EXPECT_NOT_EQUAL(ptr, NULL)
+
+#define EXPECT_FAILURE(function_call)                         \
+    do {                                                      \
+        EXPECT_EQUAL((function_call), -1);                    \
+        EXPECT_NOT_EQUAL(s2n_errno, 0);                       \
+        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
+        RESET_ERRNO();                                        \
+    } while (0)
+#define EXPECT_ERROR(function_call)                           \
+    do {                                                      \
+        EXPECT_TRUE(s2n_result_is_error(function_call));      \
+        EXPECT_NOT_EQUAL(s2n_errno, 0);                       \
+        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
+        RESET_ERRNO();                                        \
+    } while (0)
+
+#define EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err) \
+    do {                                                       \
+        EXPECT_EQUAL((function_call), -1);                     \
+        EXPECT_EQUAL(s2n_errno, err);                          \
+        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN"));  \
+    } while (0)
+
+#define EXPECT_FAILURE_WITH_ERRNO(function_call, err)           \
+    do {                                                        \
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err); \
+        RESET_ERRNO();                                          \
+    } while (0)
+
+#define EXPECT_FAILURE_WITH_ALERT(function_call, err, alert)                 \
+    do {                                                                     \
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err);              \
+        uint8_t _alert_for_failure = 0;                                      \
+        EXPECT_SUCCESS(s2n_error_get_alert(s2n_errno, &_alert_for_failure)); \
+        EXPECT_EQUAL(_alert_for_failure, (alert));                           \
+        RESET_ERRNO();                                                       \
+    } while (0)
+
+/* for use with S2N_RESULT */
+#define EXPECT_ERROR_WITH_ERRNO_NO_RESET(function_call, err)  \
+    do {                                                      \
+        EXPECT_TRUE(s2n_result_is_error(function_call));      \
+        EXPECT_EQUAL(s2n_errno, err);                         \
+        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
+    } while (0)
+
+/* for use with S2N_RESULT */
+#define EXPECT_ERROR_WITH_ERRNO(function_call, err)           \
+    do {                                                      \
+        EXPECT_ERROR_WITH_ERRNO_NO_RESET(function_call, err); \
+        RESET_ERRNO();                                        \
+    } while (0)
+
+#define EXPECT_NULL_WITH_ERRNO_NO_RESET(function_call, err)   \
+    do {                                                      \
+        EXPECT_NULL((function_call));                         \
+        EXPECT_EQUAL(s2n_errno, err);                         \
+        EXPECT_NOT_NULL(s2n_strerror_debug(s2n_errno, "EN")); \
+    } while (0)
+
+#define EXPECT_NULL_WITH_ERRNO(function_call, err)           \
+    do {                                                     \
+        EXPECT_NULL_WITH_ERRNO_NO_RESET(function_call, err); \
+        RESET_ERRNO();                                       \
+    } while (0)
+
+#define EXPECT_SUCCESS(function_call) EXPECT_NOT_EQUAL((function_call), -1)
+/* for use with S2N_RESULT */
+#define EXPECT_OK(function_call) EXPECT_TRUE(s2n_result_is_ok(function_call))
+
+#define EXPECT_BYTEARRAY_EQUAL(p1, p2, l)             \
+    do {                                              \
+        if (l != 0) {                                 \
+            EXPECT_EQUAL(memcmp((p1), (p2), (l)), 0); \
+        }                                             \
+    } while (0)
+
+#define EXPECT_BYTEARRAY_NOT_EQUAL(p1, p2, l) EXPECT_NOT_EQUAL(memcmp((p1), (p2), (l)), 0)
+
+#define EXPECT_STRING_EQUAL(p1, p2)     EXPECT_EQUAL(strcmp((p1), (p2)), 0)
+#define EXPECT_STRING_NOT_EQUAL(p1, p2) EXPECT_NOT_EQUAL(strcmp((p1), (p2)), 0)
 
 /* Ensures fuzz test input length is greater than or equal to the minimum needed for the test */
-#define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return S2N_SUCCESS;} while (0)
+#define S2N_FUZZ_ENSURE_MIN_LEN(len, min) \
+    do {                                  \
+        if ((len) < (min))                \
+            return S2N_SUCCESS;           \
+    } while (0)
 
-#define EXPECT_MEMCPY_SUCCESS(d, s, n)                                         \
-    do {                                                                       \
-        __typeof(n) __tmp_n = (n);                                             \
-        if (__tmp_n) {                                                         \
-            if (memmove((d), (s), (__tmp_n)) == NULL) {                         \
-                FAIL_MSG(#d "is NULL, memmove() failed");                       \
-            }                                                                  \
-        }                                                                      \
+#define EXPECT_MEMCPY_SUCCESS(d, s, n)                    \
+    do {                                                  \
+        __typeof(n) __tmp_n = (n);                        \
+        if (__tmp_n) {                                    \
+            if (memmove((d), (s), (__tmp_n)) == NULL) {   \
+                FAIL_MSG(#d "is NULL, memmove() failed"); \
+            }                                             \
+        }                                                 \
     } while (0)
 
 #if defined(S2N_TEST_DEBUG)
-#define TEST_DEBUG_PRINT(...)                \
-    do {                                     \
-        (void) fprintf(stderr, __VA_ARGS__); \
-    } while (0)
+    #define TEST_DEBUG_PRINT(...)                \
+        do {                                     \
+            (void) fprintf(stderr, __VA_ARGS__); \
+        } while (0)
 #else
-#define TEST_DEBUG_PRINT(...)
+    #define TEST_DEBUG_PRINT(...)
 #endif
 
 /* Creates a fuzz target */
-#define S2N_FUZZ_TARGET(fuzz_init, fuzz_entry, fuzz_cleanup) \
-void s2n_test__fuzz_cleanup() \
-{ \
-    if (fuzz_cleanup) { \
-        ((void (*)()) fuzz_cleanup)(); \
-    } \
-    s2n_cleanup_final(); \
-} \
-int LLVMFuzzerInitialize(int *argc, char **argv[]) \
-{ \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
-    EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup)); \
-    if (!fuzz_init) { \
-        return S2N_SUCCESS; \
-    } \
-    int result = ((int (*)(int *argc, char **argv[])) fuzz_init)(argc, argv); \
-    if (result != S2N_SUCCESS) { \
-        FAIL_MSG_PRINT(#fuzz_init " did not return S2N_SUCCESS"); \
-    } \
-    return result; \
-} \
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) \
-{ \
-    int result = fuzz_entry(buf, len); \
-    if (result != S2N_SUCCESS) { \
-        FAIL_MSG_PRINT(#fuzz_entry " did not return S2N_SUCCESS"); \
-    } \
-    return result; \
-}
+#define S2N_FUZZ_TARGET(fuzz_init, fuzz_entry, fuzz_cleanup)                      \
+    void s2n_test__fuzz_cleanup()                                                 \
+    {                                                                             \
+        if (fuzz_cleanup) {                                                       \
+            ((void (*)()) fuzz_cleanup)();                                        \
+        }                                                                         \
+        s2n_cleanup_final();                                                      \
+    }                                                                             \
+    int LLVMFuzzerInitialize(int *argc, char **argv[])                            \
+    {                                                                             \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                                 \
+        EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup));             \
+        if (!fuzz_init) {                                                         \
+            return S2N_SUCCESS;                                                   \
+        }                                                                         \
+        int result = ((int (*)(int *argc, char **argv[])) fuzz_init)(argc, argv); \
+        if (result != S2N_SUCCESS) {                                              \
+            FAIL_MSG_PRINT(#fuzz_init " did not return S2N_SUCCESS");             \
+        }                                                                         \
+        return result;                                                            \
+    }                                                                             \
+    int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)                    \
+    {                                                                             \
+        int result = fuzz_entry(buf, len);                                        \
+        if (result != S2N_SUCCESS) {                                              \
+            FAIL_MSG_PRINT(#fuzz_entry " did not return S2N_SUCCESS");            \
+        }                                                                         \
+        return result;                                                            \
+    }
