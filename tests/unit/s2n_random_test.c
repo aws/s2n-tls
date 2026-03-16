@@ -86,32 +86,6 @@ static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
     EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
 }
 
-/* Very basic test generating random data a few times and checking that the
- * output is different
- */
-static S2N_RESULT s2n_basic_generate_tests(void)
-{
-    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
-    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob1 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
-    struct s2n_blob blob2 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
-
-    /* Generate two random data blobs and confirm that they are unique */
-    blob1.size = RANDOM_GENERATE_DATA_SIZE;
-    blob2.size = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_get_public_random_data(&blob1));
-    EXPECT_OK(s2n_get_public_random_data(&blob2));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-    EXPECT_OK(s2n_get_private_random_data(&blob1));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-    EXPECT_OK(s2n_get_private_random_data(&blob2));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-
-    return S2N_RESULT_OK;
-}
-
 int qsort_comparator(const void *pval1, const void *pval2)
 {
     const uint64_t val1 = *(const uint64_t *) pval1;
@@ -289,28 +263,17 @@ static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get
     exit(EXIT_SUCCESS);
 }
 
-/* A simple fork test. Generates random data in the parent and child, and
- * verifies that the two resulting data blobs are different.
- */
-static S2N_RESULT s2n_simple_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
+static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
     uint8_t child_data[RANDOM_GENERATE_DATA_SIZE];
     uint8_t parent_data[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob parent_blob = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&parent_blob, parent_data, RANDOM_GENERATE_DATA_SIZE));
 
-    int pipes[2];
-    EXPECT_SUCCESS(pipe(pipes));
-
-    pid_t proc_id = fork();
-    if (proc_id == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(pipes[0]));
-        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-    }
+    /* Quickly verify we are in the parent process and not the child */
+    EXPECT_NOT_EQUAL(proc_id, 0);
 
     /* This is the parent process, close the write end of the pipe */
-    EXPECT_NOT_EQUAL(proc_id, 0);
     EXPECT_SUCCESS(close(pipes[1]));
 
     /* Read the child's data from the pipe */
@@ -329,6 +292,27 @@ static S2N_RESULT s2n_simple_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(stru
 
     return S2N_RESULT_OK;
 }
+
+/* A simple fork test. Generates random data in the parent and child, and
+ * verifies that the two resulting data blobs are different.
+ */
+static S2N_RESULT s2n_simple_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
+{
+    pid_t proc_id = 0;
+    int pipes[2];
+
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+    }
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    return S2N_RESULT_OK;
+}
+
 
 static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 {
@@ -383,22 +367,23 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
     EXPECT_SUCCESS(s2n_init());
 
     if (!s2n_use_libcrypto_rand()) {
-        /* When using urandom, validation should succeed after initialization. */
+        /* Validation should succeed after initialization. */
         EXPECT_OK(s2n_rand_device_validate(dev_urandom));
 
         EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
 
-        /* Close the fd to simulate it becoming invalid */
+        /* Test for closed dev_urandom fd */
         EXPECT_EQUAL(close(dev_urandom->fd), 0);
 
-        /* Validation should fail when the file descriptor is closed. */
+        /* Validation should fail when the file descriptor is invalid. */
         EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
 
-        /* Getting random data should still succeed because the fd is re-opened. */
         s2n_stack_blob(rand_data, 16, 16);
         EXPECT_OK(s2n_get_public_random_data(&rand_data));
 
-        /* After re-open, validation should succeed again. */
+        /* When the urandom implementation is used, the file descriptor is re-opened and
+         * validation should succeed.
+         */
         EXPECT_OK(s2n_rand_device_validate(dev_urandom));
     }
 
@@ -407,7 +392,35 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
     return S2N_SUCCESS;
 }
 
-/* Runs the basic set of randomness tests that exercise still-existing APIs */
+/* Very basic test generating random data a few times and checking that the
+ * output is different
+ */
+static S2N_RESULT s2n_basic_generate_tests(void)
+{
+    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
+    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob1 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
+    struct s2n_blob blob2 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
+
+    /* Generate two random data blobs and confirm that they are unique */
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    blob2.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_get_public_random_data(&blob2));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+
+    return S2N_RESULT_OK;
+}
+
+/* Runs the basic set of randomness tests that exercise still-existing APIs:
+ * basic generate, thread uniqueness, fork uniqueness, and range tests.
+ */
 static int s2n_random_common_tests_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
@@ -440,7 +453,7 @@ struct random_test_case random_test_cases[] = {
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
     { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
-    { "Verifies that calling s2n_cleanup_final() does not interfere with libcrypto randomness", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
+    { "Test libcrypto's RAND engine is reset correctly after manual s2n_cleanup()", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Test getting entropy with an invalid file descriptor", s2n_random_invalid_urandom_fd_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
 };
 
@@ -469,10 +482,7 @@ int main(int argc, char **argv)
      * https://github.com/aws/s2n-tls/issues/4900
      */
 
-    /* Test: s2n_use_libcrypto_rand() returns the expected value based on
-     * whether the linked libcrypto supports RAND_priv_bytes, RAND_public_bytes,
-     * or is AWS-LC.
-     */
+    /* s2n_use_libcrypto_rand */
     {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND) \
         || defined(OPENSSL_IS_AWSLC)
