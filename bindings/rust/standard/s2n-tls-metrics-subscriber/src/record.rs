@@ -161,7 +161,6 @@ impl HandshakeRecordInProgress {
             }
 
             if let Some(supported_sigs) = supported_parameter.supported_signatures()? {
-                println!("supported sigs: {supported_sigs:?}");
                 supported_sigs
                     .iter()
                     .filter_map(|signature| signature.known_description())
@@ -226,7 +225,7 @@ impl HandshakeRecordInProgress {
             negotiated_groups: relaxed_freeze(&self.negotiated_groups),
             negotiated_signatures: relaxed_freeze(&self.negotiated_signatures),
 
-            sslv2_client_hello: self.sslv2_client_hello.fetch_add(1, Ordering::SeqCst),
+            sslv2_client_hello: self.sslv2_client_hello.load(Ordering::Relaxed),
             supported_protocols: relaxed_freeze(&self.supported_protocols),
             supported_ciphers: relaxed_freeze(&self.supported_ciphers),
             supported_groups: relaxed_freeze(&self.supported_groups),
@@ -480,8 +479,6 @@ mod tests {
                 assert_eq!(*count, 0, "{param} count is {count}, not zero");
             }
         }
-
-        println!("sigs: {:?}", record.supported_signatures);
 
         for (index, count) in record.supported_signatures.iter().enumerate() {
             let param = TlsParam::SignatureScheme

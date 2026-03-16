@@ -166,7 +166,7 @@ impl Cipher {
 
     /// e.g. "TLS_AES_256_GCM_SHA384"
     ///
-    /// `None` if the group is not supported by s2n-tls
+    /// `None` if the cipher is not supported by s2n-tls
     pub fn known_description(&self) -> Option<&'static str> {
         CIPHERS_AVAILABLE_IN_S2N
             .iter()
@@ -195,7 +195,7 @@ pub(crate) struct Group(pub(crate) s2n_codec::zerocopy::U16);
 impl Group {
     /// e.g. "secp256r1"
     ///
-    /// "unknown" if the group is not supported by s2n-tls
+    /// `None` if the group is not supported by s2n-tls
     pub fn known_description(&self) -> Option<&'static str> {
         GROUPS_AVAILABLE_IN_S2N
             .iter()
@@ -205,7 +205,7 @@ impl Group {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CipherInformation {
+pub(crate) struct CipherInformation {
     cipher: Cipher,
     iana_description: &'static str,
     openssl_name: &'static str,
@@ -221,14 +221,6 @@ impl CipherInformation {
             openssl_name,
             iana_description,
             cipher: Cipher(iana_value),
-        }
-    }
-
-    fn unknown(iana_value: [u8; 2]) -> Self {
-        Self {
-            iana_description: "unknown",
-            cipher: Cipher(iana_value),
-            openssl_name: "unknown",
         }
     }
 
@@ -257,21 +249,6 @@ impl GroupInformation {
             iana_description,
             group: Group(U16::new(iana_value)),
         }
-    }
-
-    fn unknown(iana_value: u16) -> Self {
-        Self {
-            iana_description: "unknown",
-            group: Group(U16::new(iana_value)),
-        }
-    }
-
-    fn from_iana_value(iana_value: u16) -> Self {
-        GROUPS_AVAILABLE_IN_S2N
-            .iter()
-            .find(|info| info.group.0.get() == iana_value)
-            .cloned()
-            .unwrap_or(Self::unknown(iana_value))
     }
 
     #[cfg(test)]

@@ -66,18 +66,18 @@ impl<'a> ClientHelloSupportedParameters<'a> {
         let bytes = self
             .client_hello
             .get_extension(Self::SIGNATURE_ALGORITHMS_ID)?;
-        let groups = match bytes {
+        let sigs = match bytes {
             Some(buffer) => {
                 let buffer = DecoderBuffer::new(&buffer);
-                let supported_groups = buffer.decode_exact::<SignatureSchemeList>()?;
-                supported_groups
+                let sig_list = buffer.decode_exact::<SignatureSchemeList>()?;
+                sig_list
                     .supported_signature_algorithms
                     .list
                     .to_vec()
             }
             None => return Ok(None),
         };
-        Ok(Some(groups))
+        Ok(Some(sigs))
     }
 
     pub fn supported_versions(&self) -> Result<Vec<Version>, Box<dyn std::error::Error>> {
@@ -135,20 +135,20 @@ impl S2NClientHelloExtension for s2n_tls::client_hello::ClientHello {
             return Ok(None);
         }
 
-        let mut psk_extension = vec![0; extension_length];
+        let mut extension_data = vec![0; extension_length];
         let written_length = unsafe {
             s2n_client_hello_get_extension_by_id(
                 raw_ch,
                 extension_id as c_uint,
-                psk_extension.as_mut_ptr(),
-                psk_extension.len() as u32,
+                extension_data.as_mut_ptr(),
+                extension_data.len() as u32,
             )
             .into_result()
         }?;
 
         debug_assert_eq!(extension_length, written_length);
 
-        Ok(Some(psk_extension))
+        Ok(Some(extension_data))
     }
 }
 
