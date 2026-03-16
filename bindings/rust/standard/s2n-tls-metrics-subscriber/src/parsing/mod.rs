@@ -70,10 +70,7 @@ impl<'a> ClientHelloSupportedParameters<'a> {
             Some(buffer) => {
                 let buffer = DecoderBuffer::new(&buffer);
                 let sig_list = buffer.decode_exact::<SignatureSchemeList>()?;
-                sig_list
-                    .supported_signature_algorithms
-                    .list
-                    .to_vec()
+                sig_list.supported_signature_algorithms.list.to_vec()
             }
             None => return Ok(None),
         };
