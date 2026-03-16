@@ -285,7 +285,7 @@ mod tests {
     }
 
     /// the list of supported protocol versions is not directly contained in the
-    /// security policy so instead use a number of know security policies.
+    /// security policy so instead use a number of known security policies.
     #[test]
     fn expected_protocol_version() {
         let test_cases = vec![

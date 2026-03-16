@@ -245,7 +245,7 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FrozenHandshakeRecord {
     freeze_time: SystemTime,
 
@@ -264,6 +264,29 @@ pub(crate) struct FrozenHandshakeRecord {
 
     handshake_duration_us: u64,
     handshake_compute_us: u64,
+}
+
+// This is just cfg(test) because we only use it in tests to assert on cases of
+// all-zero records
+#[cfg(test)]
+impl Default for FrozenHandshakeRecord {
+    fn default() -> Self {
+        Self {
+            freeze_time: SystemTime::UNIX_EPOCH,
+            handshake_count: 0,
+            negotiated_protocols: [0; PROTOCOL_COUNT],
+            negotiated_ciphers: [0; CIPHER_COUNT],
+            negotiated_groups: [0; GROUP_COUNT],
+            negotiated_signatures: [0; SIGNATURE_COUNT],
+            sslv2_client_hello: 0,
+            supported_protocols: [0; PROTOCOL_COUNT],
+            supported_ciphers: [0; CIPHER_COUNT],
+            supported_groups: [0; GROUP_COUNT],
+            supported_signatures: [0; SIGNATURE_COUNT],
+            handshake_duration_us: 0,
+            handshake_compute_us: 0,
+        }
+    }
 }
 
 impl metrique_writer::Entry for FrozenHandshakeRecord {
@@ -509,6 +532,19 @@ mod tests {
         assert_eq!(record.negotiated_groups.iter().sum::<u64>(), 3);
         assert_eq!(record.negotiated_signatures.iter().sum::<u64>(), 3);
         assert_eq!(record.negotiated_protocols.iter().sum::<u64>(), 3);
+    }
+
+    /// A record with no handshakes should be entirely empty/default.
+    #[test]
+    fn empty_record() {
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+
+        endpoint.subscriber.finish_record();
+        let mut record = endpoint.exporter.recv().unwrap().handshake;
+
+        // ignore the freeze time, since that "default" value is set to the Unix Epoch.
+        record.freeze_time = SystemTime::UNIX_EPOCH;
+        assert_eq!(record, FrozenHandshakeRecord::default());
     }
 
     /// Make sure that the compute time is less than the overall handshake time.
