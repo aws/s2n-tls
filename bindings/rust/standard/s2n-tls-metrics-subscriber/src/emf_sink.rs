@@ -39,9 +39,10 @@ impl<W: Write + Send + 'static> WriterSink<W> {
 
 impl<W: Write + Send + 'static> EmfSink for WriterSink<W> {
     fn write_record(&self, record: &[u8]) -> io::Result<()> {
-        let mut writer = self.writer.lock().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("lock poisoned: {}", e))
-        })?;
+        let mut writer = self
+            .writer
+            .lock()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("lock poisoned: {}", e)))?;
         writer.write_all(record)?;
         writer.write_all(b"\n")?;
         writer.flush()

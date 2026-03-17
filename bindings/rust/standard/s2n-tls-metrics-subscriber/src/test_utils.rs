@@ -12,10 +12,7 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber,
-    emf_emitter::EmfEmitter,
-    emf_sink::EmfSink,
-    record::MetricRecord,
+    AggregatedMetricsSubscriber, emf_emitter::EmfEmitter, emf_sink::EmfSink, record::MetricRecord,
 };
 
 // arbitrary numbered policies that won't change. We use two different policies
@@ -90,8 +87,7 @@ impl TestEndpoint<EmfEmitter<TestBuffer>, TestBuffer> {
     pub fn new_emf(resource: &str, policy: &Policy) -> Self {
         let buffer = TestBuffer::new();
         let emitter = EmfEmitter::new("test_server".to_owned(), buffer.clone());
-        let subscriber =
-            AggregatedMetricsSubscriber::with_resource_name(emitter, resource);
+        let subscriber = AggregatedMetricsSubscriber::with_resource_name(emitter, resource);
 
         let server_config = {
             let mut config = config_builder(policy).unwrap();

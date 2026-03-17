@@ -12,7 +12,7 @@
 //! setup). To see exported MetricRecords, we use an `mpsc::Sender<MetricRecord>`
 //! as the exporter, which implements the `Exporter` trait.
 
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::time::Duration;
 
 use s2n_tls_metrics_subscriber::{
@@ -47,8 +47,7 @@ fn main() {
     // Because `EmfSink` is implemented for `Arc<T> where T: EmfSink`,
     // both emitters write to the same underlying `Vec<u8>`.
     let emitter_b = EmfEmitter::new("my-service".to_owned(), Arc::clone(&shared_sink));
-    let subscriber_b =
-        AggregatedMetricsSubscriber::with_resource_name(emitter_b, "backend-server");
+    let subscriber_b = AggregatedMetricsSubscriber::with_resource_name(emitter_b, "backend-server");
 
     // ── Step 5: Start periodic export ───────────────────────────────────
     //
@@ -70,8 +69,7 @@ fn main() {
     // the exporter. It implements `Exporter` and sends each record through
     // the channel.
     let (tx, rx) = mpsc::channel::<MetricRecord>();
-    let inspector =
-        AggregatedMetricsSubscriber::with_resource_name(tx, "inspectable-server");
+    let inspector = AggregatedMetricsSubscriber::with_resource_name(tx, "inspectable-server");
 
     // In a real application, TLS handshake events would populate the
     // record. Here we just export the (empty) record to show the API.

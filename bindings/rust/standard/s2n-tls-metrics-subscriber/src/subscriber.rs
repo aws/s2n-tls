@@ -125,9 +125,10 @@ impl<E: Exporter + Send + Sync> AggregatedMetricsSubscriber<E> {
 
         // This will block the thread until the record is received.
         let handshake = export_pipeline.metric_receiver.recv().unwrap();
-        export_pipeline
-            .exporter
-            .export(MetricRecord::new(handshake, self.inner.resource_name.clone()));
+        export_pipeline.exporter.export(MetricRecord::new(
+            handshake,
+            self.inner.resource_name.clone(),
+        ));
     }
 }
 

@@ -89,7 +89,10 @@ mod tests {
 
         endpoint.subscriber.finish_record();
         let output = endpoint.exporter.take();
-        assert!(!output.is_empty(), "EMF output should not be empty after finish_record");
+        assert!(
+            !output.is_empty(),
+            "EMF output should not be empty after finish_record"
+        );
     }
 
     /// Snapshot test: verify the EMF output structure matches the expected sample.
@@ -108,8 +111,7 @@ mod tests {
 
         let mut actual: serde_json::Value = serde_json::from_str(&output_str).unwrap();
 
-        let expected_str =
-            include_str!("../resources/emf_sample.json");
+        let expected_str = include_str!("../resources/emf_sample.json");
         let mut expected: serde_json::Value = serde_json::from_str(expected_str).unwrap();
 
         // Normalize dynamic fields so the snapshot is stable.

@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    sync::{atomic::{AtomicU64, Ordering}, Arc},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::SystemTime,
 };
 
@@ -457,7 +460,7 @@ mod tests {
             "rsa_pss_pss_sha512",
         ];
 
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
@@ -546,7 +549,7 @@ mod tests {
     /// A record with no handshakes should be entirely empty/default.
     #[test]
     fn empty_record() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
         let mut record = endpoint.exporter.recv().unwrap().handshake;
