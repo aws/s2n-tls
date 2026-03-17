@@ -313,7 +313,6 @@ static S2N_RESULT s2n_simple_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(stru
     return S2N_RESULT_OK;
 }
 
-
 static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
