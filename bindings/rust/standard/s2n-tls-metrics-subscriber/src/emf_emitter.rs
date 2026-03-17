@@ -13,8 +13,6 @@ use crate::{emf_sink::EmfSink, record::MetricRecord, subscriber::Exporter};
 /// a pluggable [`EmfSink`].
 pub struct EmfEmitter<S: EmfSink> {
     sink: S,
-    #[allow(dead_code)]
-    service_name: String,
     emf_formatter: Mutex<metrique_writer::stream::MergeGlobals<Emf, EmfDimension>>,
 }
 
@@ -37,7 +35,6 @@ impl<S: EmfSink> EmfEmitter<S> {
 
         EmfEmitter {
             sink,
-            service_name,
             emf_formatter: Mutex::new(emf),
         }
     }

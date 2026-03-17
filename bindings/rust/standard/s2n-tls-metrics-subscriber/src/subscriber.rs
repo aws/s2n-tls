@@ -1,9 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::sync::Condvar;
 use std::sync::{
     Arc, Mutex,
-    atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, Sender},
 };
 use std::thread::{self, JoinHandle};
@@ -168,7 +168,7 @@ impl Exporter for mpsc::Sender<MetricRecord> {
 /// When dropped, signals the background thread to stop, performs a final
 /// `finish_record()` call, and joins the thread.
 pub struct PeriodicExportHandle<E: Exporter + Send + Sync + 'static> {
-    stop: Arc<AtomicBool>,
+    stop: Arc<(Mutex<bool>, Condvar)>,
     handle: Option<JoinHandle<()>>,
     subscriber: AggregatedMetricsSubscriber<E>,
 }
@@ -179,16 +179,24 @@ impl<E: Exporter + Send + Sync + 'static> AggregatedMetricsSubscriber<E> {
     /// Returns a [`PeriodicExportHandle`] that stops the background thread and
     /// performs a final export when dropped.
     pub fn start_periodic_export(&self, interval: Duration) -> PeriodicExportHandle<E> {
-        let stop = Arc::new(AtomicBool::new(false));
+        let stop = Arc::new((Mutex::new(false), Condvar::new()));
         let stop_clone = stop.clone();
         let subscriber = self.clone();
 
         let handle = thread::spawn(move || {
-            while !stop_clone.load(Ordering::Relaxed) {
-                thread::sleep(interval);
-                if !stop_clone.load(Ordering::Relaxed) {
-                    subscriber.finish_record();
+            let (lock, cvar) = &*stop_clone;
+            loop {
+                let guard = lock.lock().unwrap();
+                if *guard {
+                    break;
                 }
+                // Wait for the interval or until signaled to stop.
+                let (guard, _) = cvar.wait_timeout(guard, interval).unwrap();
+                if *guard {
+                    break;
+                }
+                drop(guard);
+                subscriber.finish_record();
             }
         });
 
@@ -202,7 +210,12 @@ impl<E: Exporter + Send + Sync + 'static> AggregatedMetricsSubscriber<E> {
 
 impl<E: Exporter + Send + Sync + 'static> Drop for PeriodicExportHandle<E> {
     fn drop(&mut self) {
-        self.stop.store(true, Ordering::Relaxed);
+        {
+            let (lock, cvar) = &*self.stop;
+            let mut stopped = lock.lock().unwrap();
+            *stopped = true;
+            cvar.notify_one();
+        }
         if let Some(handle) = self.handle.take() {
             handle.join().ok();
         }
