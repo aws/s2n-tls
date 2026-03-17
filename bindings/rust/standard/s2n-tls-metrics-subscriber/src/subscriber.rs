@@ -248,4 +248,37 @@ mod tests {
         drop(current_record);
         handle.join().unwrap();
     }
+
+    #[test]
+    fn periodic_export_produces_record() {
+        let endpoint = TestEndpoint::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+        let _handle = endpoint
+            .subscriber
+            .start_periodic_export(std::time::Duration::from_millis(50));
+
+        // Wait long enough for at least one export cycle
+        std::thread::sleep(std::time::Duration::from_millis(150));
+
+        // The periodic export should have produced at least one record
+        assert!(endpoint.exporter.try_recv().is_ok());
+    }
+
+    #[test]
+    fn periodic_export_drop_produces_final_record() {
+        let endpoint = TestEndpoint::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+        // Use a long interval so the background thread won't fire on its own
+        let handle = endpoint
+            .subscriber
+            .start_periodic_export(std::time::Duration::from_secs(60));
+
+        // Drop the handle — this should trigger a final finish_record()
+        drop(handle);
+
+        // The final export from Drop should have produced a record
+        assert!(endpoint.exporter.try_recv().is_ok());
+    }
 }
