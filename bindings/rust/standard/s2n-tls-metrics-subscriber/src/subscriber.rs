@@ -273,11 +273,12 @@ mod tests {
             .subscriber
             .start_periodic_export(std::time::Duration::from_millis(50));
 
-        // Wait long enough for at least one export cycle
-        std::thread::sleep(std::time::Duration::from_millis(150));
-
-        // The periodic export should have produced at least one record
-        assert!(endpoint.exporter.try_recv().is_ok());
+        // Block until a record arrives, with a generous timeout to avoid
+        // flakiness under CI load.
+        endpoint
+            .exporter
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("periodic export should have produced a record");
     }
 
     #[test]
