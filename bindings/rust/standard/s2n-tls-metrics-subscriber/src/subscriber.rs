@@ -1,13 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::sync::Condvar;
-use std::sync::{
-    Arc, Mutex,
-    mpsc::{self, Receiver, Sender},
+use std::{
+    sync::{
+        Arc, Condvar, Mutex,
+        mpsc::{self, Receiver, Sender},
+    },
+    thread::{self, JoinHandle},
+    time::Duration,
 };
-use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
 use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
 use arc_swap::ArcSwap;

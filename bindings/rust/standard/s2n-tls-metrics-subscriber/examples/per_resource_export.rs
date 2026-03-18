@@ -6,11 +6,12 @@
 //! Two subscribers share a single write destination (via Arc) but use different
 //! resource names, so their metrics are distinguishable in the output.
 
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use s2n_tls::security::DEFAULT_TLS13;
-use s2n_tls::testing::{TestPair, build_config, config_builder};
+use s2n_tls::{
+    security::DEFAULT_TLS13,
+    testing::{TestPair, build_config, config_builder},
+};
 
 use s2n_tls_metrics_subscriber::{AggregatedMetricsSubscriber, EmfEmitter, StdoutSink, WriterSink};
 
