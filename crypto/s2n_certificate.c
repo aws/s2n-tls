@@ -721,7 +721,11 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
         * Since this is an internal pointer it should not be freed or modified in any way.
         * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
         */
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+        const unsigned char *internal_data = ASN1_STRING_get0_data(asn1_str);
+#else
         unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+#endif
         POSIX_ENSURE_REF(internal_data);
         POSIX_CHECKED_MEMCPY(out_data, internal_data, len);
     }
@@ -827,7 +831,11 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
                  * Since this is an internal pointer it should not be freed or modified in any way.
                  * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
                  */
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+                const unsigned char *internal_data = ASN1_STRING_get0_data(asn1_str);
+#else
                 unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+#endif
                 POSIX_ENSURE_REF(internal_data);
                 POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
             }

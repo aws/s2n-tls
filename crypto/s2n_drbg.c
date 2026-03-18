@@ -229,7 +229,7 @@ S2N_RESULT s2n_drbg_wipe(struct s2n_drbg *drbg)
     RESULT_ENSURE_REF(drbg);
 
     if (drbg->ctx) {
-        RESULT_GUARD_OSSL(EVP_CIPHER_CTX_cleanup(drbg->ctx), S2N_ERR_DRBG);
+        RESULT_GUARD_OSSL(s2n_evp_ctx_cleanup(drbg->ctx), S2N_ERR_DRBG);
 
         EVP_CIPHER_CTX_free(drbg->ctx);
         drbg->ctx = NULL;
