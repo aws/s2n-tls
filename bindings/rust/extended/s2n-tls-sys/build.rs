@@ -27,6 +27,10 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     std::env::var(name).ok()
 }
 
+fn no_link_enabled() -> bool {
+    option_env("CARGO_FEATURE_NO_LINK").is_some()
+}
+
 struct FeatureDetector<'a> {
     builder: cc::Build,
     out_dir: &'a Path,
@@ -148,6 +152,10 @@ fn build_vendored() {
     // to do anything with it
     build.warnings(false);
 
+    if no_link_enabled() {
+        build.cargo_metadata(false);
+    }
+
     build.compile("s2n-tls");
 
     // linking to the libcrypto is handled by the rust compiler through the
@@ -262,14 +270,16 @@ impl External {
         // `DEP_S2N_TLS_EXTERNAL_BUILD=true`.
         println!("cargo:external_build=true");
 
-        println!(
-            "cargo:rustc-link-search={}",
-            self.lib_dir.as_ref().unwrap().display()
-        );
-        println!("cargo:rustc-link-lib=s2n");
+        if !no_link_enabled() {
+            println!(
+                "cargo:rustc-link-search={}",
+                self.lib_dir.as_ref().unwrap().display()
+            );
+            println!("cargo:rustc-link-lib=s2n");
 
-        // tell rust we're linking with libcrypto
-        println!("cargo:rustc-link-lib=crypto");
+            // tell rust we're linking with libcrypto
+            println!("cargo:rustc-link-lib=crypto");
+        }
 
         if let Some(include_dir) = self.include_dir.as_ref() {
             println!("cargo:include={}", include_dir.display());
