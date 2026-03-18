@@ -106,6 +106,13 @@ mod tests {
         let output = endpoint.exporter.take();
         let output_str = String::from_utf8(output).unwrap();
 
+        // uncomment to update snapshot
+        // {
+        //     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+        //     let pretty = serde_json::to_string_pretty(&json).unwrap();
+        //     std::fs::write("resources/emf_sample.json", pretty).unwrap();
+        // }
+
         let mut actual: serde_json::Value = serde_json::from_str(&output_str).unwrap();
 
         let expected_str = include_str!("../resources/emf_sample.json");
