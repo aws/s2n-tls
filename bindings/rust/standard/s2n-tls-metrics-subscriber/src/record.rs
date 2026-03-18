@@ -43,6 +43,8 @@ impl MetricRecord {
         }
     }
 
+    /// Returns the optional resource label attached to this record.
+    /// This is emitted as a regular EMF field named `resource`.
     pub fn resource_name(&self) -> Option<&str> {
         self.resource_name.as_deref()
     }

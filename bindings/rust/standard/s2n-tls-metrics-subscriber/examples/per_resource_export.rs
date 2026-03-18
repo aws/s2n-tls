@@ -43,11 +43,14 @@ fn main() {
     // Manual export: flushes the aggregated record immediately.
     subscriber_a.finish_record();
 
-    // Periodic export: a background thread calls finish_record() on an interval.
-    // The handle stops the thread and does a final flush when dropped.
+    // subscriber_b is only used to demonstrate periodic export setup here.
+    // Since it is not attached to a config, it will not receive handshake
+    // events in this example.
     let _handle = subscriber_b.start_periodic_export(Duration::from_secs(60));
 
-    // You can also write directly to stdout for CloudWatch container environments.
+    // You can also configure an emitter to write EMF records to stdout,
+    // for example in container environments where EMF is collected from logs.
+    // This emitter is not wired into a subscriber in this example.
     let _stdout_emitter = EmfEmitter::new("my-service".to_owned(), StdoutSink);
 
     println!("done");

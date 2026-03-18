@@ -184,6 +184,8 @@ impl<E: Exporter + Send + Sync + 'static> AggregatedMetricsSubscriber<E> {
         let stop_clone = stop.clone();
         let subscriber = self.clone();
 
+        // Use a Condvar so Drop can wake the worker promptly instead of
+        // waiting for the full interval to elapse.
         let handle = thread::spawn(move || {
             let (lock, cvar) = &*stop_clone;
             loop {
@@ -220,7 +222,8 @@ impl<E: Exporter + Send + Sync + 'static> Drop for PeriodicExportHandle<E> {
         if let Some(handle) = self.handle.take() {
             handle.join().ok();
         }
-        // Final export to flush any remaining metrics
+        // Perform one final synchronous flush so metrics accumulated since
+        // the last interval are not lost during shutdown.
         self.subscriber.finish_record();
     }
 }

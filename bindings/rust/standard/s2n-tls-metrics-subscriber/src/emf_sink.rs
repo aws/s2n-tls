@@ -6,7 +6,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-/// Trait abstracting the write destination for EMF records.
+/// Trait abstracting the write destination for serialized EMF records.
+/// Implementations are expected to preserve record boundaries.
 pub trait EmfSink: Send + Sync + 'static {
     fn write_record(&self, record: &[u8]) -> io::Result<()>;
 }
