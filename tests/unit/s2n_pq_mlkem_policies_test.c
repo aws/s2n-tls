@@ -346,6 +346,13 @@ int main(int argc, char **argv)
                 .server_name = "LAMPS WG",
                 .expected_error = S2N_ERR_INVALID_SIGNATURE_SCHEME,
             },
+            /* Client side `cnsa_2` failure case: server sends an ML-DSA-44 cert. */
+            {
+                .client_policy = "cnsa_2",
+                .server_policy = "test_all",
+                .server_name = "LAMPS WG",
+                .expected_error = S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT,
+            },
             /* `cnsa_1_2_interop` is compatible with the CNSA 2.0 policy. */
             {
                 .client_policy = "cnsa_2",
@@ -400,28 +407,34 @@ int main(int argc, char **argv)
         /* clang-format on */
 
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
 
-            /* "LAMPS WG" is the server name used by the RFC ML-DSA test certificate. */
-            if (strcmp(test_cases[i].server_name, "LAMPS WG") == 0) {
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, mldsa87_chain_and_key));
-                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_MLDSA87_CERT, NULL));
+            if (strcmp(test_cases[i].server_policy, "test_all") == 0) {
+                /* Client side `cnsa_2` failure case: server sends an ML-DSA-44 cert. */
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, mldsa44_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_MLDSA44_CERT, NULL));
+            } else if (strcmp(test_cases[i].server_name, "LAMPS WG") == 0) {
+                /* "LAMPS WG" is the server name used by the RFC ML-DSA test certificate. */
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, mldsa87_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_MLDSA87_CERT, NULL));
             } else {
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_sha384_chain_and_key));
-                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, ecdsa_sha384_cert, NULL));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_sha384_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, ecdsa_sha384_cert, NULL));
             }
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, test_cases[i].client_policy));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_cases[i].server_name));
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, test_cases[i].server_policy));
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
