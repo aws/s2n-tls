@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ae861d1a.js";
+            window.path_to_searchindex_js = "searchindex-8ea6c11d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6a963795.js"></script>
@@ -943,8 +943,8 @@ simply shutdown and cleanup the connection as you would for any other error.</p>
 <h1 id="connection-serialization"><a class="header" href="#connection-serialization">Connection Serialization</a></h1>
 <p>Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different host or stored to disk.</p>
 <div class="warning">
-This feature is dangerous. It provides cryptographic material from a TLS session in plaintext. An attacker with access to the serialized connection can decrypt any past and future communications from the connection. Users MUST both encrypt and MAC the contents of the serialized connection to provide secrecy and integrity. 
-<p>The simplest way to provide secrecy and integrity is to transport the serialized connection using a protocol like TLS which protects the secrecy and integrity of all transported data.</p>
+This feature is dangerous. The serialized connection contains cryptographic secrets, sequence numbers, the cipher suite, and the protocol version in plaintext. An attacker with access to this data can decrypt any past and future communications from the connection. Additionally, s2n-tls does not include a MAC or signature over the serialized data, so a modified blob will be deserialized and used as-is.
+<p>Users MUST both encrypt and MAC the serialized connection to provide secrecy and integrity. The simplest way to do this is to transport the serialized connection using a protocol like TLS. If the blob is stored in a database, shared cache, or sent over a network, it must be protected before storage or transmission.</p>
 </div>
 
 <h2 id="use-case"><a class="header" href="#use-case">Use Case</a></h2>
