@@ -31,11 +31,9 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
-#include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
-#include "utils/s2n_fork_detection.h"
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
@@ -54,7 +52,6 @@ bool s2n_libcrypto_is_fips(void);
 bool s2n_libcrypto_is_openssl(void);
 S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device);
 S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device);
-S2N_RESULT s2n_rand_set_urandom_for_test();
 
 struct random_test_case {
     const char *test_case_label;
@@ -87,80 +84,6 @@ static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
      */
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
     EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
-}
-
-static int s2n_init_cb(void)
-{
-    return S2N_SUCCESS;
-}
-
-static int s2n_cleanup_cb(void)
-{
-    return S2N_SUCCESS;
-}
-
-static int s2n_entropy_cb(void *ptr, uint32_t size)
-{
-    return S2N_SUCCESS;
-}
-
-/* Generates random data (every size between 1 and 5120 bytes) and performs
- * basic pattern tests on the resulting output
- */
-static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
-{
-    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-    uint8_t bit_set_run[8];
-    uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob, data, 0));
-    int trailing_zeros[8] = { 0 };
-
-    for (int size = 0; size < MAX_RANDOM_GENERATE_DATA_SIZE; size++) {
-        blob.size = size;
-        EXPECT_OK(s2n_get_random_data_cb(&blob));
-
-        if (size >= 64) {
-            /* Set the run counts to 0 */
-            memset(bit_set_run, 0, 8);
-
-            /* Apply 8 monobit tests to the data. Basically, we're
-             * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in
-             * a row, then the data doesn't look randomly generated.
-             */
-            for (int j = 0; j < size; j++) {
-                for (int k = 0; k < 8; k++) {
-                    if (data[j] & bits[k]) {
-                        bit_set_run[k]++;
-
-                        if (j >= 64) {
-                            RESULT_ENSURE_LT(bit_set_run[k], 64);
-                        }
-                    } else {
-                        bit_set_run[k] = 0;
-                    }
-                }
-            }
-        }
-
-        /* A common mistake in array filling leaves the last bytes zero
-         * depending on the length
-         */
-        int remainder = size % 8;
-        int non_zero_found = 0;
-        for (int t = size - remainder; t < size; t++) {
-            non_zero_found |= data[t];
-        }
-        if (!non_zero_found) {
-            trailing_zeros[remainder]++;
-        }
-    }
-    for (int t = 1; t < 8; t++) {
-        RESULT_ENSURE_LT(trailing_zeros[t], 5120 / 16);
-    }
-
-    return S2N_RESULT_OK;
 }
 
 int qsort_comparator(const void *pval1, const void *pval2)
@@ -281,8 +204,6 @@ void *s2n_thread_test_cb(void *thread_comms)
     EXPECT_NOT_NULL(thread_comms_ptr->s2n_get_random_data_cb_1);
     EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_1(&thread_blob));
 
-    EXPECT_OK(s2n_rand_cleanup_thread());
-
     return NULL;
 }
 
@@ -372,22 +293,14 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     return S2N_RESULT_OK;
 }
 
-/* This function lists a number of stanzas performing various random data
- * generation tests. Each stanza goes through a different combination of forking
- * a process and threading. Each stanza must end with
- * s2n_fork_test_verify_result() to verify the result and the exit code of the
- * child process.
+/* A simple fork test. Generates random data in the parent and child, and
+ * verifies that the two resulting data blobs are different.
  */
-static S2N_RESULT s2n_fork_test(
-        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
-        S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
+static S2N_RESULT s2n_simple_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
     pid_t proc_id = 0;
     int pipes[2];
 
-    /* A simple fork test. Generates random data in the parent and child, and
-     * verifies that the two resulting data blobs are different.
-     */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
     if (proc_id == 0) {
@@ -397,365 +310,7 @@ static S2N_RESULT s2n_fork_test(
     }
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Creates a fork, but immediately creates threads in the child process. See
-     * https://github.com/aws/s2n-tls/issues/3107 why this might be an issue.
-     */
-    EXPECT_SUCCESS(pipe(pipes));
-    proc_id = fork();
-    if (proc_id == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(pipes[0]));
-        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
-        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-    }
-    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
-
-    /* Creates threads and generates random data but only after generating
-     * random data in the child process */
-    EXPECT_SUCCESS(pipe(pipes));
-    proc_id = fork();
-    if (proc_id == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(pipes[0]));
-        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
-    }
-    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
-
-    /* Creates threads in the parent process before generating random data */
-    EXPECT_SUCCESS(pipe(pipes));
-    proc_id = fork();
-    if (proc_id == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(pipes[0]));
-        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-    }
-    EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
-    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
-
-    /* Basic tests in the child process */
-    EXPECT_SUCCESS(pipe(pipes));
-    proc_id = fork();
-    if (proc_id == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(pipes[0]));
-        EXPECT_OK(s2n_basic_pattern_tests(s2n_get_random_data_cb));
-        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-    }
-    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
-
     return S2N_RESULT_OK;
-}
-
-#if S2N_CLONE_SUPPORTED
-static int s2n_clone_tests_child_process(void *ipc)
-{
-    struct random_communication *ipc_ptr = (struct random_communication *) ipc;
-
-    /* This is the child process, close the read end of the pipe */
-    EXPECT_SUCCESS(close((int) ipc_ptr->pipes[0]));
-    EXPECT_NOT_NULL(ipc_ptr->s2n_get_random_data_cb_2);
-    s2n_fork_test_generate_randomness((int) ipc_ptr->pipes[1], ipc_ptr->s2n_get_random_data_cb_2);
-
-    /* s2n_fork_test_generate_randomness() will exit. But we need a return
-     * statement because we are in a non-void return type function. */
-    return EXIT_SUCCESS;
-}
-#endif
-
-#define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
-static S2N_RESULT s2n_clone_tests(
-        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
-        S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
-{
-#if S2N_CLONE_SUPPORTED
-
-    int proc_id = 0;
-    int pipes[2];
-
-    EXPECT_SUCCESS(pipe(pipes));
-
-    /* Use stack memory for this... We don't exit unit_test_clone() before this
-     * memory has served its purpose.
-     * Why? Using dynamically allocated memory causes Valgrind to squat on the
-     * allocated memory when the child process exists.
-     */
-    char process_child_stack[PROCESS_CHILD_STACK_SIZE];
-    EXPECT_NOT_NULL(process_child_stack);
-
-    struct random_communication ipc = {
-        .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
-        .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
-        .pipes = (int *) pipes
-    };
-
-    proc_id = clone(s2n_clone_tests_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &ipc);
-    EXPECT_NOT_EQUAL(proc_id, -1);
-    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, ipc.s2n_get_random_data_cb_1));
-#endif
-
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_execute_clone_tests(void)
-{
-    EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_public_random_data));
-    EXPECT_OK(s2n_clone_tests(s2n_get_private_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_clone_tests(s2n_get_private_random_data, s2n_get_public_random_data));
-
-    return S2N_RESULT_OK;
-}
-
-/* Very basic test generating random data a few times and checking that the
- * output is different
- */
-static S2N_RESULT s2n_basic_generate_tests(void)
-{
-    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
-    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob1 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
-    struct s2n_blob blob2 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
-
-    /* Generate two random data blobs and confirm that they are unique */
-    blob1.size = RANDOM_GENERATE_DATA_SIZE;
-    blob2.size = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_get_public_random_data(&blob1));
-    EXPECT_OK(s2n_get_public_random_data(&blob2));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-    EXPECT_OK(s2n_get_private_random_data(&blob1));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-    EXPECT_OK(s2n_get_private_random_data(&blob2));
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_random_implementation_test(void)
-{
-    uint8_t random_data[RANDOM_GENERATE_DATA_SIZE] = { 0 };
-    struct s2n_blob blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob, random_data, sizeof(random_data)));
-
-    uint64_t previous_public_bytes_used = 0;
-    EXPECT_OK(s2n_get_public_random_bytes_used(&previous_public_bytes_used));
-    uint64_t previous_private_bytes_used = 0;
-    EXPECT_OK(s2n_get_private_random_bytes_used(&previous_private_bytes_used));
-
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-    EXPECT_OK(s2n_get_private_random_data(&blob));
-
-    uint64_t public_bytes_used = 0;
-    EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
-    uint64_t private_bytes_used = 0;
-    EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
-
-    if (s2n_use_libcrypto_rand()) {
-        /* When the libcrypto random implementation is used, the amount of random bytes did not change 
-         * because s2n_get_public/private_random_data did not trigger our custom DRBG implementation.
-         */
-        EXPECT_EQUAL(public_bytes_used, previous_public_bytes_used);
-        EXPECT_EQUAL(private_bytes_used, previous_private_bytes_used);
-    } else {
-        EXPECT_TRUE(public_bytes_used > previous_public_bytes_used);
-        EXPECT_TRUE(private_bytes_used > previous_private_bytes_used);
-    }
-
-    return S2N_RESULT_OK;
-}
-
-/* A collection of tests executed for each test dimension */
-static int s2n_common_tests(struct random_test_case *test_case)
-{
-    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
-    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob1 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
-    struct s2n_blob blob2 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
-    int64_t bound = 0;
-    uint64_t output = 0;
-
-    /* Get one byte of data, to make sure the pool is (almost) full */
-    blob1.size = 1;
-    blob2.size = 1;
-    EXPECT_OK(s2n_get_public_random_data(&blob1));
-    EXPECT_OK(s2n_get_private_random_data(&blob2));
-
-    /* Verify we generate unique data over threads */
-    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_public_random_data));
-    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_public_random_data));
-
-    /* Verify we generate unique data over forks */
-    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_public_random_data));
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_public_random_data));
-
-    /* Some fork detection mechanisms can also detect forks through clone().
-     * s2n_is_X_supported() only determines whether the system runtime
-     * environment supports fork detection method X. The function is not aware
-     * of the test case which is running. So, we need the CLONE_* tags to
-     * determine whether the clone test should run or not since some test cases
-     * disables the fork detection methods that can detect forks through clone()
-     */
-    if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
-        EXPECT_EQUAL(s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported(), true);
-        EXPECT_OK(s2n_execute_clone_tests());
-    } else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
-        if (s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported()) {
-            EXPECT_OK(s2n_execute_clone_tests());
-        }
-    }
-
-    /* Basic tests generating randomness */
-    EXPECT_OK(s2n_basic_generate_tests());
-
-    /* Test that the correct random implementation is used */
-    EXPECT_OK(s2n_random_implementation_test());
-
-    /* Verify that there are no trivially observable patterns in the output */
-    EXPECT_OK(s2n_basic_pattern_tests(s2n_get_public_random_data));
-    EXPECT_OK(s2n_basic_pattern_tests(s2n_get_private_random_data));
-
-    /* Special range function tests */
-    EXPECT_OK(s2n_tests_get_range());
-
-    /* Try to cleanup in the current thread and gather random data again for
-     * each of the public functions. We did not call s2n_rand_cleanup(), so this
-     * should still work properly.
-     */
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    blob1.size = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_get_public_random_data(&blob1));
-    EXPECT_OK(s2n_basic_generate_tests());
-
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    blob2.size = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_get_private_random_data(&blob2));
-    EXPECT_OK(s2n_basic_generate_tests());
-
-    bound = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    EXPECT_OK(s2n_public_random(bound, &output));
-    EXPECT_TRUE(output < bound);
-
-    /* Just a sanity check */
-    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
-
-    /* Verify that fork detection also works if we fork before initializing
-     * the drbgs
-     */
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_private_random_data));
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_public_random_data));
-
-    /* Verify that threading before initializing doesn't cause any issues */
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_public_random_data));
-    EXPECT_OK(s2n_rand_cleanup_thread());
-    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_private_random_data));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
-{
-    EXPECT_SUCCESS(s2n_init());
-
-    /* Verify that randomness callbacks can't be set to NULL */
-    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, s2n_cleanup_cb, s2n_entropy_cb, s2n_entropy_cb));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, NULL, s2n_entropy_cb, s2n_entropy_cb));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, s2n_cleanup_cb, NULL, s2n_entropy_cb));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, s2n_cleanup_cb, s2n_entropy_cb, NULL));
-
-    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
-
-    EXPECT_SUCCESS(s2n_cleanup());
-
-    return EXIT_SUCCESS;
-}
-
-/* Test case that turns off prediction resistance */
-static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case)
-{
-    EXPECT_SUCCESS(s2n_init());
-
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
-    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
-
-    EXPECT_SUCCESS(s2n_cleanup());
-
-    return EXIT_SUCCESS;
-}
-
-/* Test case that turns off prediction resistance and all fork detection
- * mechanisms except pthread_at_fork()
- */
-static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_case *test_case)
-{
-    if (s2n_is_pthread_atfork_supported() == false) {
-        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
-
-    EXPECT_SUCCESS(s2n_init());
-
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
-    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
-
-    EXPECT_SUCCESS(s2n_cleanup());
-
-    return EXIT_SUCCESS;
-}
-
-static int s2n_random_test_case_without_pr_madv_wipeonfork_cb(struct random_test_case *test_case)
-{
-    if (s2n_is_madv_wipeonfork_supported() == false) {
-        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
-
-    EXPECT_SUCCESS(s2n_init());
-
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
-    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
-
-    EXPECT_SUCCESS(s2n_cleanup());
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_random_test_case_without_pr_map_inherit_zero_cb(struct random_test_case *test_case)
-{
-    if (s2n_is_map_inherit_zero_supported() == false) {
-        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
-
-    EXPECT_SUCCESS(s2n_init());
-
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
-    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
-    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
-
-    EXPECT_SUCCESS(s2n_cleanup());
-
-    return S2N_SUCCESS;
 }
 
 static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
@@ -797,62 +352,27 @@ static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_
     return S2N_SUCCESS;
 }
 
-static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
-{
-    /* s2n_libcrypto_is_fips() is used since we are testing `s2n_init()` */
-    if (s2n_supports_custom_rand() && !s2n_libcrypto_is_fips()) {
-        /* Calling RAND_bytes will set a global random method */
-        unsigned char rndbytes[16] = { 0 };
-        EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
-        const RAND_METHOD *rand_method = RAND_get_rand_method();
-        EXPECT_NOT_NULL(rand_method);
-        EXPECT_NOT_EQUAL((void (*)(void)) rand_method->bytes, (void (*)(void)) s2n_openssl_compat_rand);
-
-        EXPECT_SUCCESS(s2n_init());
-
-        /* The global random method is overridden after calling s2n_init() */
-        const RAND_METHOD *custom_rand_method = RAND_get_rand_method();
-        EXPECT_NOT_NULL(custom_rand_method);
-        EXPECT_EQUAL((void (*)(void)) custom_rand_method->bytes, (void (*)(void)) s2n_openssl_compat_rand);
-
-        /* RAND_bytes is still successful */
-        EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
-    }
-    return S2N_SUCCESS;
-}
-
 static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
 {
     struct s2n_rand_device *dev_urandom = NULL;
     EXPECT_OK(s2n_rand_get_urandom_for_test(&dev_urandom));
     EXPECT_NOT_NULL(dev_urandom);
 
-    for (size_t test = 0; test <= 1; test++) {
-        EXPECT_EQUAL(dev_urandom->fd, -1);
+    EXPECT_EQUAL(dev_urandom->fd, -1);
 
-        /* Validation should fail before initialization. */
-        EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
+    /* Validation should fail before initialization. */
+    EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
 
-        EXPECT_SUCCESS(s2n_init());
+    EXPECT_SUCCESS(s2n_init());
 
+    if (!s2n_use_libcrypto_rand()) {
         /* Validation should succeed after initialization. */
         EXPECT_OK(s2n_rand_device_validate(dev_urandom));
 
-        /* Override the mix callback with urandom, in case support for rdrand is detected and enabled. */
-        EXPECT_OK(s2n_rand_set_urandom_for_test());
-
         EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
-        if (test == 0) {
-            /* Test 0 tests for closed dev_urandom fd */
-            EXPECT_EQUAL(close(dev_urandom->fd), 0);
-        } else {
-            /* Test 1 tests for invalid value for dev_urandom.
-             * Needs to close the previously set dev_urandom fd
-             * before making it invalid. */
-            EXPECT_EQUAL(close(dev_urandom->fd), 0);
-            /* Make the file descriptor invalid by pointing it to STDERR. */
-            dev_urandom->fd = STDERR_FILENO;
-        }
+
+        /* Test for closed dev_urandom fd */
+        EXPECT_EQUAL(close(dev_urandom->fd), 0);
 
         /* Validation should fail when the file descriptor is invalid. */
         EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
@@ -860,32 +380,73 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
         s2n_stack_blob(rand_data, 16, 16);
         EXPECT_OK(s2n_get_public_random_data(&rand_data));
 
-        uint64_t public_bytes_used = 0;
-        EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
-
-        if (s2n_use_libcrypto_rand()) {
-            /* The urandom implementation should not be in use when s2n-tls uses the libcrypto random. */
-            EXPECT_EQUAL(public_bytes_used, 0);
-        } else {
-            /* When the urandom implementation is used, the file descriptor is re-opened and
-             * validation should succeed.
-             */
-            EXPECT_OK(s2n_rand_device_validate(dev_urandom));
-            EXPECT_TRUE(public_bytes_used > 0);
-        }
-
-        EXPECT_SUCCESS(s2n_cleanup_final());
+        /* When the urandom implementation is used, the file descriptor is re-opened and
+         * validation should succeed.
+         */
+        EXPECT_OK(s2n_rand_device_validate(dev_urandom));
     }
+
+    EXPECT_SUCCESS(s2n_cleanup_final());
 
     return S2N_SUCCESS;
 }
 
+/* Very basic test generating random data a few times and checking that the
+ * output is different
+ */
+static S2N_RESULT s2n_basic_generate_tests(void)
+{
+    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
+    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob1 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
+    struct s2n_blob blob2 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
+
+    /* Generate two random data blobs and confirm that they are unique */
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    blob2.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_get_public_random_data(&blob2));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+
+    return S2N_RESULT_OK;
+}
+
+/* Runs the basic set of randomness tests that exercise still-existing APIs:
+ * basic generate, thread uniqueness, fork uniqueness, and range tests.
+ */
+static int s2n_random_common_tests_cb(struct random_test_case *test_case)
+{
+    EXPECT_SUCCESS(s2n_init());
+
+    /* Basic tests generating randomness */
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    /* Verify we generate unique data over threads */
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_public_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_public_random_data));
+
+    /* Verify we generate unique data over forks */
+    EXPECT_OK(s2n_simple_fork_test(s2n_get_public_random_data));
+    EXPECT_OK(s2n_simple_fork_test(s2n_get_private_random_data));
+
+    /* Special range function tests */
+    EXPECT_OK(s2n_tests_get_range());
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return EXIT_SUCCESS;
+}
+
 struct random_test_case random_test_cases[] = {
-    { "Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
-    { "Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
-    { "Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS },
-    { "Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES, EXIT_SUCCESS },
-    { "Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES, EXIT_SUCCESS },
+    { "Random API: basic generate, thread, fork, and range tests.", s2n_random_common_tests_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Test destructor without s2n_init", s2n_random_noop_destructor_test_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
      * to use 1 below and in s2n_random_test_case_failure_cb().
@@ -893,7 +454,6 @@ struct random_test_case random_test_cases[] = {
     { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
     { "Test libcrypto's RAND engine is reset correctly after manual s2n_cleanup()", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Test getting entropy with an invalid file descriptor", s2n_random_invalid_urandom_fd_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
-    { "Test libcrypto's global RAND is unset after calling s2n_init()", s2n_random_rand_bytes_before_init, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
 };
 
 int main(int argc, char **argv)
@@ -921,28 +481,18 @@ int main(int argc, char **argv)
      * https://github.com/aws/s2n-tls/issues/4900
      */
 
-    /* s2n_supports_custom_rand */
+    /* s2n_use_libcrypto_rand */
     {
-        if (s2n_supports_custom_rand()) {
-            EXPECT_TRUE(s2n_libcrypto_is_openssl());
-            EXPECT_FALSE(s2n_is_in_fips_mode());
-        }
-
-        /* Ensure that disabling the S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE CMake option disables the
-         * custom rand override feature. When the S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED
-         * environment variable is set, this CMake option is expected to be disabled.
-         */
-        if (getenv("S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED")) {
-            EXPECT_FALSE(s2n_supports_custom_rand());
-        }
+#if defined(S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND) || defined(S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND) \
+        || defined(OPENSSL_IS_AWSLC)
+        bool expected = true;
+#else
+        bool expected = false;
+#endif
+        EXPECT_EQUAL(s2n_use_libcrypto_rand(), expected);
     };
 
-    /* For each test case, creates a child process that runs the test case.
-     *
-     * Fork detection is lazily initialised on first invocation of
-     * s2n_get_fork_generation_number(). Hence, it is important that children
-     * are created before calling into the fork detection code.
-     */
+    /* For each test case, creates a child process that runs the test case. */
     for (size_t i = 0; i < s2n_array_len(random_test_cases); i++) {
         pid_t proc_id = 0;
 

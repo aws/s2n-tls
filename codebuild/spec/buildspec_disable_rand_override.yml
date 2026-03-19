@@ -16,7 +16,9 @@ version: 0.2
 env:
   shell: bash
   variables:
-    # Select a libcrypto where s2n-tls will override the RAND engine by default.
+    # Select a libcrypto to test the backwards-compatible RAND engine override flag.
+    # The flag is now a no-op (the custom RAND engine was removed), but we verify
+    # that builds with the flag set to 0 still pass all tests.
     S2N_LIBCRYPTO: "openssl-1.0.2"
     CTEST_OUTPUT_ON_FAILURE: 1
 
@@ -46,14 +48,10 @@ phases:
     commands:
       # CTEST_PARALLEL_LEVEL is set outside of env/variables to ensure that `nproc` is evaluated.
       - export CTEST_PARALLEL_LEVEL=$(nproc)
-      # Run the s2n-tls tests with the assumption that the RAND engine override feature will be
-      # disabled. This will enable tests that ensure it's disabled.
-      - export S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED=1
+      # Verify that s2n-tls tests pass with the RAND engine override disabled.
+      # The S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE flag is kept for backwards
+      # compatibility, but the custom RAND engine was removed as part of the
+      # DRBG removal. The flag is now a no-op.
       - make -C rand_override_disabled test
-      # If the RAND engine override is not actually disabled, tests that expect it to be should fail.
-      - echo "The following is a negative test, and is expected to fail."
-      - | 
-        ! make -C rand_override_enabled test -- ARGS="-R 's2n_random_test'"
-      # The tests should succeed without this assumption.
-      - unset S2N_DISABLE_RAND_ENGINE_OVERRIDE_EXPECTED
+      # Verify that s2n-tls tests also pass with the default (override enabled) build.
       - make -C rand_override_enabled test -- ARGS="-R 's2n_random_test'"
