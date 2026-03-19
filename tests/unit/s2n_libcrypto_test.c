@@ -54,17 +54,33 @@ int main(int argc, char** argv)
         FAIL_MSG("Testing with an unexpected libcrypto.");
     }
 
-    /* Ensure that custom rand is not enabled for OpenSSL 1.0.2 Fips to match
-     * historical behavior 
-     */
-    if (strcmp("openssl-1.0.2-fips", env_libcrypto) == 0) {
-        EXPECT_FALSE(s2n_supports_custom_rand());
-    }
-
     /* We expect openssl-3.0 to support providers */
     if (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3")) {
         EXPECT_TRUE(s2n_libcrypto_supports_providers());
     }
+
+    /* Verify randomness delegation assumptions.
+     *
+     * s2n delegates to libcrypto for AWS-LC or when it supports RAND_priv_bytes/
+     * RAND_public_bytes, and falls back to /dev/urandom otherwise.
+     */
+    {
+        /* These libcryptos support libcrypto randomness delegation */
+        if (strstr(env_libcrypto, "awslc") != NULL
+                || (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "1.1.1"))
+                || (strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "3"))) {
+            EXPECT_TRUE(s2n_use_libcrypto_rand());
+        }
+
+        /* These libcryptos lack RAND_priv_bytes and RAND_public_bytes,
+         * so s2n falls back to system random (/dev/urandom).
+         */
+        if ((strstr(env_libcrypto, "openssl") && strstr(env_libcrypto, "1.0.2"))
+                || strcmp(env_libcrypto, "boringssl") == 0
+                || strcmp(env_libcrypto, "libressl") == 0) {
+            EXPECT_FALSE(s2n_use_libcrypto_rand());
+        }
+    };
 
     END_TEST();
 }
