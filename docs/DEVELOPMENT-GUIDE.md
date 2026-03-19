@@ -157,7 +157,7 @@ As discussed below, s2n-tls rarely allocates resources, and so has nothing to cl
 `DEFER_CLEANUP(_thealloc, _thecleanup)` is a failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
 ### Lifecycle of s2n memory
-By default, an atexit handler is registered during `s2n_init()` that performs this cleanup automatically at process exit. If the atexit handler is disabled via `s2n_disable_atexit()`, the caller must invoke `s2n_cleanup_final()` explicitly.
+The atexit handler is disabled by default and only used internally for test cleanup. No automatic cleanup runs unless callers opt in via `s2n_enable_atexit()` before `s2n_init()`. For explicit cleanup, call `s2n_cleanup_final()` before process exit.
 
 `s2n_cleanup()` is a legacy API that previously cleaned up per-thread random state. Since s2n-tls no longer maintains thread-local random state, `s2n_cleanup()` is now a no-op. Use `s2n_cleanup_final()` for full library cleanup.
 
