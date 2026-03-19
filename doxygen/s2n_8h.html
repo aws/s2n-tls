@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-5dc71b6c</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-c5d80a05</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -6290,7 +6290,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Deserializes the provided buffer into the <code>s2n_connection</code> parameter.</p>
-<dl class="section warning"><dt>Warning</dt><dd>s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized connection before sending it off-box and deserializing it.</dd>
+<dl class="section warning"><dt>Warning</dt><dd>s2n-tls does not check the integrity of the provided buffer. The serialized blob does not include a MAC or signature, so a modified buffer will be deserialized and used as-is. A corrupted buffer will cause a connection failure when attempting to resume sending or receiving encrypted data. To avoid this, callers MUST MAC and encrypt the serialized connection before storing or sending it off-box. Encrypt-then-MAC using a key not stored alongside the blob is the recommended approach.</dd>
 <dd>
 Only a minimal amount of information about the original TLS connection is serialized. Therefore, after deserialization, the connection will behave like a new <code>s2n_connection</code> from the <code><a class="el" href="s2n_8h.html#a58005ebdc3e4caf6b6f40321bbc5b1e5">s2n_connection_new()</a></code> call, except that it can read/write encrypted data from a peer. Any desired config-level or connection-level configuration will need to be re-applied to the deserialized connection. For this same reason none of the connection getters will return useful information about the original connection after deserialization. Any information about the original connection needs to be retrieved before serialization.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -8153,7 +8153,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Serializes the s2n_connection into the provided buffer.</p>
 <p >This API takes an established s2n-tls connection object and "serializes" it into a transferable object to be sent off-box or to another process. This transferable object can then be "deserialized" using the <code>s2n_connection_deserialize</code> method to instantiate an s2n-tls connection object that can talk to the original peer with the same encryption keys.</p>
-<dl class="section warning"><dt>Warning</dt><dd>This feature is dangerous because it provides cryptographic material from a TLS session in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box without encryption.</dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>This feature is dangerous because it provides cryptographic material from a TLS session in plaintext. The serialized blob also does not include a MAC or signature, so a modified blob will be deserialized and used as-is. Users MUST both encrypt and MAC the serialized connection to provide secrecy and integrity before storing or sending it off-box.</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>You MUST have used <code><a class="el" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831">s2n_config_set_serialization_version()</a></code> to set a version on the s2n_config object associated with this connection before this connection began its TLS handshake. </dd>
 <dd>
 Call <code>s2n_connection_serialization_length</code> to retrieve the amount of memory needed for the buffer parameter. </dd>
