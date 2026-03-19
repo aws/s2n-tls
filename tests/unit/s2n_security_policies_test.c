@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 
         if (has_tls_13_cipher) {
             bool has_tls_13_sig_alg = false;
+            bool has_tls_12_rsa = false;
             bool has_rsa_pss = false;
 
             for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
@@ -186,13 +187,22 @@ int main(int argc, char **argv)
                     has_tls_13_sig_alg = true;
                 }
 
+                if (sig_alg == S2N_SIGNATURE_RSA) {
+                    has_tls_12_rsa = true;
+                }
+
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
             }
 
             EXPECT_TRUE(has_tls_13_sig_alg);
-            EXPECT_TRUE(has_rsa_pss);
+            /* RSA signature algorithm IDs are different between TLS 1.2 and TLS 1.3. If RSA signatures
+             * are supported in TLS 1.2, and there are TLS 1.3 ciphers, RSA_PSS should be required for
+             * forwards compatibility with TLS 1.3 (since RSA in TLS 1.3 only allows RSA_PSS). */
+            if (has_tls_12_rsa) {
+                EXPECT_TRUE(has_rsa_pss);
+            }
         }
     }
 

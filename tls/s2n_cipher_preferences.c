@@ -2099,4 +2099,19 @@ const struct s2n_cipher_preferences cipher_preferences_20251117 = {
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_20260220[] = {
+    /* TLS1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+
+    /* TLS1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20260220 = {
+    .count = s2n_array_len(cipher_suites_20260220),
+    .suites = cipher_suites_20260220,
+    .allow_chacha20_boosting = false,
+};
+
 /* clang-format on */
