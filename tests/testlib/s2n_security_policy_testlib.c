@@ -33,10 +33,21 @@ const struct s2n_ecc_preferences ecc_preferences_for_retry = {
     .ecc_curves = ecc_pref_list_for_retry,
 };
 
+/* Supports only ECC, however client's first ECC Curve is s2n_unsupported_curve, which will always force a HRR */
 const struct s2n_security_policy security_policy_test_tls13_retry = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
     .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
+    .ecc_preferences = &ecc_preferences_for_retry,
+};
+
+/* Supports both PQ and ECC, however client's first ECC Curve is s2n_unsupported_curve, which will always force a HRR */
+const struct s2n_security_policy security_policy_test_tls13_retry_with_pq = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20190801,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &ecc_preferences_for_retry,

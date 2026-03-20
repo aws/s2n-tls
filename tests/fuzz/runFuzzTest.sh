@@ -115,8 +115,15 @@ then
 else
     cat ${TEST_NAME}_output.txt
     printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
-    # Store generated output files in the S3 bucket for debugging.
-    aws s3 cp ./tests/fuzz/${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%T).txt
-    aws s3 cp ./tests/fuzz/${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%T).txt
+    # Upload failure log.
+    FAILURE_TIMESTAMP=$(date +%Y-%m-%d-%T)
+    aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_${FAILURE_TIMESTAMP}.txt
+    # Upload libfuzzer failure artifacts (the exact inputs that triggered the failure).
+    # To reproduce locally, download the artifact from S3 and run:
+    #   ./build/bin/<TEST_NAME> <artifact>
+    # e.g. ./build/bin/s2n_example_test leak-abcdef1234567890
+    for artifact in crash-* timeout-* leak-* oom-*; do
+        [ -e "$artifact" ] && aws s3 cp "./$artifact" ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${artifact}_${FAILURE_TIMESTAMP}
+    done
     exit -1
 fi

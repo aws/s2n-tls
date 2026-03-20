@@ -195,7 +195,6 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-            TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -777,7 +776,7 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             uint8_t invalid_cipher_pref[] = {
-                TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
+                TLS_NULL_WITH_NULL_NULL
             };
 
             const uint8_t invalid_cipher_count = sizeof(invalid_cipher_pref) / S2N_TLS_CIPHER_SUITE_LEN;

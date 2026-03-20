@@ -445,14 +445,6 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
-    const struct s2n_security_policy ecc_retry_policy = {
-        .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
-        .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
-        .kem_preferences = security_policy_pq_tls_1_0_2020_12.kem_preferences,
-        .signature_preferences = security_policy_pq_tls_1_0_2020_12.signature_preferences,
-        .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
-    };
-
     const struct s2n_ecc_named_curve *default_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
@@ -527,7 +519,7 @@ int main()
         /* Server does not support PQ; client sends a PQ key share and an EC key share;
          * server should negotiate EC without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
@@ -538,7 +530,7 @@ int main()
         /* Server does not support PQ; client sends a PQ key share, but no EC shares;
          * server should negotiate EC and send HRR. */
         {
-                .client_policy = &ecc_retry_policy,
+                .client_policy = &security_policy_test_tls13_retry_with_pq,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
@@ -550,7 +542,7 @@ int main()
          * EC should be negotiated without HRR */
         {
                 .client_policy = &security_policy_test_all_tls13,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = false,
@@ -558,10 +550,10 @@ int main()
         },
 
         /* Server supports PQ, but client does not. Client did not send any EC shares,
-         * EC should be negotiated after exchanging HRR */
+        * EC should be negotiated after exchanging HRR */
         {
                 .client_policy = &security_policy_test_tls13_retry,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = true,

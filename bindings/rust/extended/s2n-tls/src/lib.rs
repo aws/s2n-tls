@@ -31,6 +31,7 @@ pub mod psk;
 #[cfg(feature = "unstable-renegotiate")]
 pub mod renegotiate;
 pub mod security;
+pub(crate) mod utilities;
 
 pub use s2n_tls_sys as ffi;
 

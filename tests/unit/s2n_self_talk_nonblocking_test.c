@@ -230,7 +230,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
             struct s2n_blob blob_local = { 0 };
             iov[i].iov_base = blob_local.data = malloc(iov_payload_size);
             iov[i].iov_len = blob_local.size = iov_payload_size;
-            EXPECT_OK(s2n_get_public_random_data(&blob));
+            EXPECT_NOT_NULL(blob_local.data);
+            EXPECT_OK(s2n_get_public_random_data(&blob_local));
             data_size += iov_payload_size;
         }
     }

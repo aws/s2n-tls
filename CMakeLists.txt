@@ -32,8 +32,8 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
-option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "Allow s2n-tls to override the libcrypto random implementation with the custom
-s2n-tls implementation, when appropriate. Disabling this flag is not recommended. See docs/BUILD.md for details." ON)
+option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "No-op, retained for backwards compatibility. The custom RAND engine was removed
+as part of the DRBG deprecation." ON)
 option(S2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE "Assert that the feature probes are able to link to the libcrypto and
 properly probe for feature support. If the feature probes are unable to properly probe for support, the build will
 fail. This option ensures that s2n-tls doesn't silently build without properly probing for the support of important
@@ -181,7 +181,7 @@ if(S2N_LTO)
     endif()
 endif()
 
-if(NOT APPLE)
+if(NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "AIX")
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
 endif()
 
@@ -250,8 +250,10 @@ if (COVERAGE)
 endif()
 
 if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
-    message(STATUS "Disabling libcrypto RAND engine override")
-    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE=1)
+    # No-op: the custom RAND engine was removed as part of the DRBG
+    # deprecation. This option is retained so that existing builds
+    # setting S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=0 continue to succeed.
+    message(STATUS "S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=OFF (no-op, custom RAND engine was removed)")
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs

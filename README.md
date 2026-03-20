@@ -38,7 +38,7 @@ cmake --install build
 See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.
 
 ## Have a Question?
-If you think you might have found a security impacting issue, please follow our [Security Notification Process.](#security-issue-notifications)
+If you think you might have found a security impacting issue, please follow our [Security Notification Process](#security-issue-notifications). See our [Security Reporting Policy](./SECURITY.md) for additional guidance on issues considered in-scope for our threat model.
 
 If you have any questions about submitting PRs, s2n-tls API usage, or something similar, please open an issue.
 
@@ -170,6 +170,8 @@ If you discover a potential security issue in s2n-tls we ask that you notify
 AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 If you package or distribute s2n-tls, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact s2n-pre-notification@amazon.com.
+
+See our [Security Reporting Policy](./SECURITY.md) for additional guidance on issues considered in-scope for our threat model.
 
 ## Contributing to s2n-tls
 If you are interested in contributing to s2n-tls, please see our [development guide](https://github.com/aws/s2n-tls/blob/main/docs/DEVELOPMENT-GUIDE.md).

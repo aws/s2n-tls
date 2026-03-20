@@ -13,7 +13,7 @@ publish = false
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3.13"
 libc = "0.2.174"
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
 openssl = { version = "0.10.73", features = ["vendored"] }

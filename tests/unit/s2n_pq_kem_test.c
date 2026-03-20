@@ -26,9 +26,6 @@
 static const struct s2n_kem *test_vectors[] = {
     &s2n_mlkem_768,
     &s2n_mlkem_1024,
-    &s2n_kyber_512_r3,
-    &s2n_kyber_768_r3,
-    &s2n_kyber_1024_r3,
 };
 
 /* EXPECT_SUCCESS checks explicitly function_call != -1; the PQ KEM functions may return
@@ -41,7 +38,7 @@ int main()
     BEGIN_TEST();
 
 #if defined(OPENSSL_IS_AWSLC) && defined(AWSLC_API_VERSION)
-    /* If using non-FIPS AWS-LC >= v1.6 (API vers. 21), expect Kyber512 KEM from AWS-LC */
+    /* If using non-FIPS AWS-LC >= v1.6 (API vers. 21), expect EVP_KEM from AWS-LC */
     if (!s2n_is_in_fips_mode() && AWSLC_API_VERSION >= 21) {
         EXPECT_TRUE(s2n_libcrypto_supports_evp_kem());
     }

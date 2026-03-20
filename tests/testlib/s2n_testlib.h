@@ -24,6 +24,7 @@
 
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
+extern const struct s2n_security_policy security_policy_test_tls13_retry_with_pq;
 
 /* Hex methods for testing */
 S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *stuffer, const char *str);
@@ -115,6 +116,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_CA_CERT   "../pems/rsa_pss_2048_sha256_CA_cert.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+
+#define S2N_MLDSA44_KEY  "../pems/mldsa/ML-DSA-44-seed.priv"
+#define S2N_MLDSA44_CERT "../pems/mldsa/ML-DSA-44.crt"
 
 #define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
 #define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"

@@ -3,9 +3,10 @@
 
 use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use errno::{errno, Errno};
-use libc::c_char;
 use s2n_tls_sys::*;
-use std::{convert::TryFrom, ffi::CStr};
+use std::convert::TryFrom;
+
+use crate::utilities::cstr_to_str;
 
 /// Corresponds to [s2n_error_type].
 #[non_exhaustive]
@@ -13,12 +14,19 @@ use std::{convert::TryFrom, ffi::CStr};
 pub enum ErrorType {
     UnknownErrorType,
     NoError,
+    /// The underlying I/O operation failed, check the system errno
     IOError,
+    /// EoF
     ConnectionClosed,
+    /// The underlying I/O operation would block
     Blocked,
+    /// Incoming Alert
     Alert,
+    /// Failure in some part of the TLS protocol. E.g. CBC verification failure
     ProtocolError,
+    /// Error internal to s2n-tls. Feel free to open an issue if you see this: https://github.com/aws/s2n-tls/issues/new/choose
     InternalError,
+    /// User input error. E.g. Providing an invalid security policy version string
     UsageError,
     Application,
 }
@@ -300,16 +308,6 @@ impl Error {
             }
         }
     }
-}
-
-/// # Safety
-///
-/// The caller must ensure the char pointer must contain a valid
-/// UTF-8 string from a trusted source
-unsafe fn cstr_to_str(v: *const c_char) -> &'static str {
-    let slice = CStr::from_ptr(v);
-    let bytes = slice.to_bytes();
-    core::str::from_utf8_unchecked(bytes)
 }
 
 impl TryFrom<std::io::Error> for Error {

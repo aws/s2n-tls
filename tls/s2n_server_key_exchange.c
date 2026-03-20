@@ -56,6 +56,10 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
         POSIX_ENSURE_REF(active_sig_scheme);
 
+        struct s2n_pkey *pkey = &conn->handshake_params.server_public_key;
+
+        POSIX_ENSURE(s2n_result_is_ok(s2n_signature_scheme_params_match(conn, pkey, active_sig_scheme)), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+
         POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
         POSIX_GUARD(s2n_hash_update(signature_hash, conn->client_hello.random, S2N_TLS_RANDOM_DATA_LEN));
         POSIX_GUARD(s2n_hash_update(signature_hash, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));

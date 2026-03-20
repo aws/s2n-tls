@@ -25,6 +25,8 @@ const s2n_hash_algorithm fips_hash_algs[] = {
     S2N_HASH_SHA256,
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
+    /* ML-DSA is FIPS-validated: https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.202.pdf */
+    S2N_HASH_SHAKE256_64,
 };
 S2N_RESULT s2n_fips_validate_hash_algorithm(s2n_hash_algorithm hash_alg, bool *valid)
 {
@@ -150,7 +152,8 @@ S2N_RESULT s2n_fips_validate_hybrid_group(const struct s2n_kem_group *hybrid_gro
      *
      * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr2.pdf
      */
-    if (hybrid_group->send_kem_first) {
+
+    if (hybrid_group->send_kem_first || hybrid_group->curve == &s2n_ecc_curve_none) {
         RESULT_GUARD(s2n_fips_validate_kem(hybrid_group->kem, valid));
     } else {
         RESULT_GUARD(s2n_fips_validate_curve(hybrid_group->curve, valid));

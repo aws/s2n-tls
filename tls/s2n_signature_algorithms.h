@@ -38,3 +38,5 @@ S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *c
         struct s2n_stuffer *out);
 
 S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg, s2n_pkey_type *pkey_type);
+
+S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const struct s2n_pkey *pub_key, const struct s2n_signature_scheme *wire_scheme);

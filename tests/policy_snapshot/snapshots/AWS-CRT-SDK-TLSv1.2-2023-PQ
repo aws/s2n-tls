@@ -52,9 +52,3 @@ pq:
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768
--- SecP256r1Kyber768Draft00
--- X25519Kyber768Draft00
--- secp384r1_kyber-768-r3
--- secp521r1_kyber-1024-r3
--- secp256r1_kyber-512-r3
--- x25519_kyber-512-r3
