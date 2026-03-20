@@ -472,20 +472,23 @@ int main(int argc, char** argv)
                     EC_POINT_free_pointer);
             EXPECT_NOT_NULL(invalid_public_key);
             EXPECT_EQUAL(EC_POINT_set_to_infinity(group, invalid_public_key), 1);
-            EXPECT_EQUAL(EC_KEY_set_public_key(ec_key, invalid_public_key), 1);
+            int ec_key_was_overwritten = EC_KEY_set_public_key(ec_key, invalid_public_key);
             EXPECT_EQUAL(EVP_PKEY_set1_EC_KEY(client_params.evp_pkey, ec_key), 1);
-
             /* Compute the server's shared secret. */
             int ret = s2n_ecc_evp_compute_shared_secret_from_params(&server_params,
                     &client_params, &shared_key);
 
-            /* If s2n-tls is in FIPS mode and the libcrypto supports the EC_KEY_check_fips API,
-             * ensure that this API is called by checking for the correct error.
-             */
-            if (s2n_is_in_fips_mode() && s2n_ecc_evp_supports_fips_check()) {
-                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
+            if (ec_key_was_overwritten) {
+                /* If s2n-tls is in FIPS mode and the libcrypto supports the EC_KEY_check_fips API,
+                 * ensure that this API is called by checking for the correct error.
+                 */
+                if (s2n_is_in_fips_mode() && s2n_ecc_evp_supports_fips_check()) {
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
+                } else {
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+                }
             } else {
-                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+                EXPECT_SUCCESS(ret);
             }
         }
     }
