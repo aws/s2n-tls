@@ -59,11 +59,11 @@ FIPS2_RELEASE_URL="https://api.github.com/repos/aws/aws-lc/releases/tags/AWS-LC-
 # building main with FIPS enabled is the next candidate FIPS branch.
 case $VERSION in
   "2022")
-    AWSLC_BRANCH=$(curl $FIPS2_RELEASE_URL \
+    AWSLC_BRANCH=$(curl --silent $FIPS2_RELEASE_URL \
       |grep -Po '"tag_name": "\KAWS-LC-FIPS-2.*?(?=")' |head -1)
     ;;
   "2024")
-    AWSLC_BRANCH=$(curl $GH_RELEASE_URL \
+    AWSLC_BRANCH=$(curl --silent $GH_RELEASE_URL \
       |grep -Po '"tag_name": "\KAWS-LC-FIPS-3.*?(?=")' |head -1)
     ;;
   "next")
