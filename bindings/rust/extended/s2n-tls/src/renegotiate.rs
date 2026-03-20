@@ -118,7 +118,7 @@ use std::task::Poll::{self, Pending, Ready};
 
 /// How to handle a renegotiation request.
 ///
-/// Corresponds to [s2n_renegotiate_response].
+/// Corresponds to [`s2n_renegotiate_response`].
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum RenegotiateResponse {
     Ignore,
@@ -151,7 +151,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// Returning "None" will result in the C callback returning an error,
     /// canceling the connection.
     ///
-    /// See [s2n_renegotiate_request_cb].
+    /// See [`s2n_renegotiate_request_cb`].
     //
     // This method returns Option instead of Result because the callback has no mechanism
     // for surfacing errors to the application, so Result would be somewhat deceptive.
@@ -195,7 +195,7 @@ impl Connection {
 
     /// Reset the connection so that it can be renegotiated.
     ///
-    /// Corresponds to [s2n_renegotiate_wipe].
+    /// Corresponds to [`s2n_renegotiate_wipe`].
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
     ///  - Methods to set the file descriptors: not currently supported by rust bindings
     ///  - Methods to set the send callback:
@@ -289,7 +289,7 @@ impl Connection {
     /// of bytes received is returned as the second element of the returned pair,
     /// and the data is written to `buf`.
     ///
-    /// Corresponds to [s2n_renegotiate].
+    /// Corresponds to [`s2n_renegotiate`].
     pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
@@ -301,7 +301,7 @@ impl Connection {
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
     ///
-    /// Corresponds to [s2n_send].
+    /// Corresponds to [`s2n_send`].
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         if self.is_renegotiating() {
             return Ready(Err(Error::bindings(
@@ -376,7 +376,7 @@ impl Connection {
 impl config::Builder {
     /// Sets a method to be called when the client receives a request to renegotiate.
     ///
-    /// Corresponds to [s2n_config_set_renegotiate_request_cb].
+    /// Corresponds to [`s2n_config_set_renegotiate_request_cb`].
     pub fn set_renegotiate_callback<T: 'static + RenegotiateCallback>(
         &mut self,
         handler: T,
