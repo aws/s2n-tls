@@ -120,6 +120,8 @@ html {
     /* code block colors */
     --code-background: #f5f5f5;
     --code-foreground: var(--page-foreground-color);
+    --section-code-background: rgba(0, 0, 0, 0.06);
+    --section-code-border: rgba(0, 0, 0, 0.16);
 
     /* fragment colors */
     --fragment-background: #F8F9FA;
@@ -189,6 +191,8 @@ html {
         --side-nav-background: #252628;
 
         --code-background: #2a2c2f;
+        --section-code-background: rgba(255, 255, 255, 0.08);
+        --section-code-border: rgba(255, 255, 255, 0.18);
 
         --tablehead-background: #2a2c2f;
     
@@ -250,6 +254,8 @@ html.dark-mode {
     --side-nav-background: #252628;
 
     --code-background: #2a2c2f;
+    --section-code-background: rgba(255, 255, 255, 0.08);
+    --section-code-border: rgba(255, 255, 255, 0.18);
 
     --tablehead-background: #2a2c2f;
 
@@ -1345,7 +1351,7 @@ div.toc li a.aboveActive {
 }
 
 #page-nav ul.page-outline {
-    margin: 0;
+    margin: 0 0 30px 0;
     padding: 0;
 }
 
@@ -1649,6 +1655,34 @@ dl.invariant, dl.pre, dl.post {
 
 dl.invariant dt, dl.pre dt, dl.post dt {
     color: var(--invariant-color-dark);
+}
+
+dl.warning code, dl.warning span.tt,
+dl.attention code, dl.attention span.tt,
+dl.note code, dl.note span.tt,
+dl.remark code, dl.remark span.tt,
+dl.todo code, dl.todo span.tt,
+dl.bug code, dl.bug span.tt,
+dl.deprecated code, dl.deprecated span.tt,
+dl.invariant code, dl.invariant span.tt,
+dl.pre code, dl.pre span.tt,
+dl.post code, dl.post span.tt {
+    background: var(--section-code-background);
+    border: 1px solid var(--section-code-border);
+}
+
+dl.warning div.fragment, dl.warning pre.fragment,
+dl.attention div.fragment, dl.attention pre.fragment,
+dl.note div.fragment, dl.note pre.fragment,
+dl.remark div.fragment, dl.remark pre.fragment,
+dl.todo div.fragment, dl.todo pre.fragment,
+dl.bug div.fragment, dl.bug pre.fragment,
+dl.deprecated div.fragment, dl.deprecated pre.fragment,
+dl.invariant div.fragment, dl.invariant pre.fragment,
+dl.pre div.fragment, dl.pre pre.fragment,
+dl.post div.fragment, dl.post pre.fragment {
+    background: var(--section-code-background);
+    border: 1px solid var(--section-code-border);
 }
 
 /*
