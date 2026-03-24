@@ -28,7 +28,7 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
 }
 
 fn no_link_enabled() -> bool {
-    option_env("CARGO_FEATURE_NO_LINK").is_some()
+    option_env("CARGO_FEATURE_LINK").is_none()
 }
 
 struct FeatureDetector<'a> {

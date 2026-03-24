@@ -52,15 +52,15 @@ jobs:
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
 
-      # Verify that the no-link feature suppresses link instructions.
+      # Verify that disabling the default link feature suppresses link instructions.
       # Run before other builds so the build script output is not cached.
-      - name: Test no-link feature
+      - name: Test link suppression
         working-directory: ${{env.ROOT_PATH}}
         run: |
-          echo "The no-link feature should suppress cargo:rustc-link-lib directives from the"
-          echo "build script. Ensure that cargo:rustc-link-lib=static=s2n-tls is NOT emitted"
-          echo "when the no-link feature is enabled."
-          cargo build -p s2n-tls-sys --features no-link -vv 2>&1 | tee /tmp/no-link-build.log
+          echo "Disabling the default link feature should suppress cargo:rustc-link-lib"
+          echo "directives from the build script. Ensure that cargo:rustc-link-lib=static=s2n-tls"
+          echo "is NOT emitted when default-features are disabled."
+          cargo build -p s2n-tls-sys --no-default-features -vv 2>&1 | tee /tmp/no-link-build.log
           ! grep -q "cargo:rustc-link-lib=static=s2n-tls" /tmp/no-link-build.log
 
       # Ensure that all tests pass with the default feature set
