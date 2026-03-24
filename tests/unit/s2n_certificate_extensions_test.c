@@ -95,16 +95,12 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-    struct s2n_config *config = NULL;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-
     EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
 
     /* Initialize cert chain */
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Initialize cert extension data */
     uint8_t data[] = "extension data";
@@ -344,7 +340,48 @@ int main(int argc, char **argv)
     };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    EXPECT_SUCCESS(s2n_config_free(config));
+
+    /* RFC 6125: A cert with CN=127.0.0.1 and no SAN extension should NOT be accepted
+     * when the client connects to IP literal "127.0.0.1". */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Cert with CN=127.0.0.1, no subjectAltName (SAN) extension */
+        const char *cert_path = "../pems/ip_cn_no_san_rsa_cert.pem";
+        const char *key_path = "../pems/ip_cn_no_san_rsa_key.pem";
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key, cert_path, key_path));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, cert_path, NULL));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls13"));
+
+        /* The caller targets an IP literal. */
+        EXPECT_SUCCESS(s2n_set_server_name(client, "127.0.0.1"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls13"));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        /* The CN fallback in s2n_verify_host_information_common_name rejects CN values that parse as IP addresses,
+         * since per RFC 6125 section 6.4.4 the CN fallback only applies to fully qualified DNS domain names,
+         * and IP reference identities must match iPAddress SAN entries (section 6.2.1). */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client), S2N_ERR_CERT_UNTRUSTED);
+    };
 
     END_TEST();
 
