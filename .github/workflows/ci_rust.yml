@@ -57,6 +57,17 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
+      - name: Test no-link feature
+        working-directory: ${{env.ROOT_PATH}}
+        run: |
+          echo "The no-link feature should suppress cargo:rustc-link-lib directives from the"
+          echo "build script. Ensure that cargo:rustc-link-lib=static=s2n-tls is NOT emitted"
+          echo "when the no-link feature is enabled."
+          cargo clean -p s2n-tls-sys
+          output=$(cargo build -p s2n-tls-sys --features no-link -vv 2>&1)
+          echo "${output}"
+          ! echo "${output}" | grep -q "cargo:rustc-link-lib=static=s2n-tls"
+
       # Test the standard workspace
       - name: Standard Workspace Tests
         working-directory: ${{env.STANDARD_PATH}}
