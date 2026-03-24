@@ -34,6 +34,7 @@ stacktrace = []
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
 # e.g. something like
 # unstable-foo = []
+no-link = []
 
 [dependencies]
 # aws-lc-rs 1.6.4 adds DEP_AWS_LC environment variables which are required to build s2n-tls-sys:
