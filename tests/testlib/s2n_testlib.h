@@ -117,6 +117,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
 
+#define S2N_MLDSA44_KEY  "../pems/mldsa/ML-DSA-44-seed.priv"
+#define S2N_MLDSA44_CERT "../pems/mldsa/ML-DSA-44.crt"
+
 #define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
 #define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"
 

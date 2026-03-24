@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
     LazyLock,
+    mpsc::{self, Receiver, Sender},
 };
 
 use s2n_tls::{
-    security::{Policy, DEFAULT_TLS13},
-    testing::{build_config, config_builder, TestPair},
+    security::{DEFAULT_TLS13, Policy},
+    testing::{TestPair, build_config, config_builder},
 };
 
-use crate::{emf_emitter::EmfEmitter, record::MetricRecord, AggregatedMetricsSubscriber};
+use crate::{AggregatedMetricsSubscriber, emf_emitter::EmfEmitter, record::MetricRecord};
 
 // arbitrary numbered policies that won't change. We use two different policies
 // to get a variety of metrics.

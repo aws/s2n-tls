@@ -7,7 +7,7 @@ use std::{
 };
 
 use metrique::writer::Entry;
-use metrique_writer::{format::Format, FormatExt, IoStreamError};
+use metrique_writer::{FormatExt, IoStreamError, format::Format};
 use metrique_writer_format_emf::Emf;
 
 use crate::record::MetricRecord;
@@ -122,7 +122,7 @@ impl EmfDimension {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{TestEndpoint, ARBITRARY_POLICY_1, ARBITRARY_POLICY_2};
+    use crate::test_utils::{ARBITRARY_POLICY_1, ARBITRARY_POLICY_2, TestEndpoint};
 
     /// Sanity check, non-empty records are emitted
     #[test]

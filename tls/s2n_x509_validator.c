@@ -226,7 +226,7 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
         int name_len = ASN1_STRING_length(current_name->d.ia5);
         RESULT_ENSURE_GT(name_len, 0);
 
-        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
 
         return S2N_RESULT_OK;
     }
@@ -255,7 +255,7 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
         const char *name = (const char *) address.data;
         size_t name_len = strlen(name);
 
-        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
 
         return S2N_RESULT_OK;
     }
@@ -337,7 +337,7 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     uint32_t len = (uint32_t) cn_len;
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
     RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
-    RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
 
     return S2N_RESULT_OK;
 }
@@ -382,7 +382,7 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
     size_t name_len = 0;
 
     /* at this point, we don't have anything to identify the certificate with so pass an empty string to the callback */
-    RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
 
     return S2N_RESULT_OK;
 }
@@ -453,9 +453,9 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
     }
 
     if (!info.self_signed) {
-        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &info, S2N_ERR_CERT_UNTRUSTED));
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &info, S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
     }
-    RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &info, S2N_ERR_CERT_UNTRUSTED));
+    RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &info, S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
 
     return S2N_RESULT_OK;
 }

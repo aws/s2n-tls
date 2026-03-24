@@ -427,7 +427,7 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
     RESULT_ENSURE_REF(pub_key);
     RESULT_ENSURE_REF(wire_scheme);
 
-    s2n_pkey_type pkey_type = { 0 };
+    s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
     EVP_PKEY *evp_key = pub_key->pkey;
     RESULT_ENSURE_REF(evp_key);
 
@@ -469,7 +469,7 @@ S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const 
 #else
         RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 #endif
-    } else if ((pkey_type == S2N_PKEY_TYPE_RSA) | (pkey_type == S2N_PKEY_TYPE_RSA_PSS)) {
+    } else if ((pkey_type == S2N_PKEY_TYPE_RSA) || (pkey_type == S2N_PKEY_TYPE_RSA_PSS)) {
         return S2N_RESULT_OK;
     } else {
         RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);

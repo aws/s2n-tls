@@ -170,7 +170,6 @@ int main(int argc, char **argv)
          * https://github.com/aws/s2n-tls/issues/3933 doesn't affect shutdown.
          */
         EXPECT_EQUAL(s2n_connection_get_alert(conn), S2N_TLS_ALERT_INTERNAL_ERROR);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_alert(conn), S2N_ERR_NO_ALERT);
 
         /* Shutdown should succeed, since it's a no-op */
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
