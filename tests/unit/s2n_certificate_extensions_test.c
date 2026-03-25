@@ -341,8 +341,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
-    /* RFC 6125: A cert with CN=127.0.0.1 and no SAN extension should NOT be accepted
-     * when the client connects to IP literal "127.0.0.1". */
+    /* RFC 6125: A cert with an IP literal CN and no SAN extension should NOT be accepted
+     * when the client connects to the IP address. */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         /* Cert with CN=127.0.0.1, no subjectAltName (SAN) extension */
         const char *cert_path = "../pems/ip_cn_no_san_rsa_cert.pem";
         const char *key_path = "../pems/ip_cn_no_san_rsa_key.pem";
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = s2n_cert_chain_and_key_new(),
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
 
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key, cert_path, key_path));
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls12"));
 
         /* The caller targets an IP literal. */
         EXPECT_SUCCESS(s2n_set_server_name(client, "127.0.0.1"));
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls12"));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
         EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));

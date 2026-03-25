@@ -338,8 +338,10 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
     RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
 
-    /*
-     * According to https://www.rfc-editor.org/rfc/rfc6125#section-6.4.4,
+    /* 16 bytes is sufficient for both IPv4 (4 bytes) and IPv6 (16 bytes) */
+    unsigned char ip_buf[16] = { 0 };
+
+    /* According to https://www.rfc-editor.org/rfc/rfc6125#section-6.4.4,
      * the CN fallback only applies to fully qualified DNS domain names.
      *
      * An IP address is not a fully qualified DNS domain name. Per RFC 6125
@@ -347,7 +349,6 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
      * iPAddress SAN entries, never against CN values. Reject the CN if it
      * parses as an IPv4 or IPv6 address.
      */
-    unsigned char ip_buf[sizeof(struct in6_addr)] = { 0 };
     if (inet_pton(AF_INET, peer_cn, ip_buf) == 1 || inet_pton(AF_INET6, peer_cn, ip_buf) == 1) {
         RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
     }
