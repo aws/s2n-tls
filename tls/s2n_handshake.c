@@ -154,7 +154,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 
         /* In TLS1.2 the transcript hash used in the client's certificate verify message
          * is determined by the signature algorithm used to sign the certificate verify message.
-        /* Therefore all hashes are needed until we're past CLIENT_CERT_VERIFY if client auth is possible. */
+         * Therefore all hashes are needed until we're past CLIENT_CERT_VERIFY if client auth is possible. */
         if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
             POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
             return S2N_SUCCESS;
