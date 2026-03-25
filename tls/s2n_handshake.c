@@ -160,7 +160,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
             return S2N_SUCCESS;
         }
     }
-    
+
     /* We don't need all of the hashes. Set the hash alg(s) required for the PRF */
     switch (conn->actual_protocol_version) {
         case S2N_SSLv3:
