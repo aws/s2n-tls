@@ -97,7 +97,13 @@ impl<E: Send + Sync + 'static> EventSubscriber for AggregatedMetricsSubscriber<E
         event: &s2n_tls::events::HandshakeEvent,
     ) {
         let current_record = self.inner.current_record.load_full();
-        current_record.update(connection, event);
+        let res = current_record.update(connection, event);
+        // we never expect this to fail, but if it fails in production there is
+        // no meaningful way to handle the failure
+        debug_assert!(res.is_ok());
+        if let Err(e) = res {
+            tracing::error!("failed to update handshake record: {e}");
+        }
     }
 }
 
