@@ -157,14 +157,9 @@ As discussed below, s2n-tls rarely allocates resources, and so has nothing to cl
 `DEFER_CLEANUP(_thealloc, _thecleanup)` is a failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
 ### Lifecycle of s2n memory
-s2n states publicly that every `s2n_init()` call should be paired with an `s2n_cleanup()` call, but we also attempt to do some auto-cleanup behind the scenes because we know not every s2n-user can actually follow those steps. Unfortunately, that auto-cleanup has also caused issues because it’s not very well documented and is not guaranteed to work. Here is our general philosophy behind the auto-clean behavior.
+`s2n_init()` resources have to be explicitly cleaned up by users by calling `s2n_cleanup_final()`. Previously we had an atexit handler that cleaned up s2n resources automatically, but it was disabled in our library. The only place it is still on is our unit tests.
 
-For every thread that s2n functions are called in, a small amount of thread-local memory also gets initialized. This is to ensure that our random number generator will output different numbers in different threads. This memory needs to be cleaned up per thread and users can do this themselves if they call `s2n_cleanup()` per thread. But if they forget, we utilize a pthread key that calls a destructor function that cleans up our thread-local memory when the thread closes.
-
-An important thing to note is that a call to `s2n_cleanup()` usually does not fully clean up s2n. It only cleans up the thread-local memory. This is because we have an atexit handler that does fully clean up s2n at process-exit.
-The behavior is different if the atexit handler is disabled by calling `s2n_disable_atexit()`. Then s2n is actually fully cleaned up if `s2n_cleanup()` is called on the thread that called `s2n_init()`. `s2n_cleanup()` attempts to track the thread that had originally called `s2n_init()` and only performs the full cleanup when that "main" thread exits. If this behavior does not work for your use case (for example, if the "main" thread does not outlive child threads using s2n), you can instead call `s2n_cleanup_thread()` on each thread exit.
-
-> Note: `s2n_cleanup_thread()` is currently considered unstable, meaning the API is subject to change in a future release. To access this API, include `api/unstable/cleanup.h`.
+`s2n_cleanup()` is a legacy API that previously cleaned up per-thread random state. Since s2n-tls no longer maintains thread-local random state, `s2n_cleanup()` is now a no-op. Use `s2n_cleanup_final()` for full library cleanup.
 
 ### Control flow and the state machine
 
