@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::atomic::{AtomicU64, Ordering},
     time::SystemTime,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
+    attribution::Attribution,
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
     static_lists::{
@@ -29,32 +29,25 @@ const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 /// interfaces.
 // This currently just holds a single struct. In the future we will
 // likely rely on an enum to handle different record types, e.g. SessionResumptionFailure.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricRecord {
+    pub(crate) attribution: Attribution,
     handshake: FrozenHandshakeRecord,
-    resource_name: Option<Arc<str>>,
 }
 
 impl MetricRecord {
-    pub(crate) fn new(handshake: FrozenHandshakeRecord, resource_name: Option<Arc<str>>) -> Self {
+    pub(crate) fn new(handshake: FrozenHandshakeRecord, attribution: Attribution) -> Self {
         Self {
+            attribution,
             handshake,
-            resource_name,
         }
-    }
-
-    /// Returns the optional resource label attached to this record.
-    /// This is emitted as a regular EMF field named `resource`.
-    pub fn resource_name(&self) -> Option<&str> {
-        self.resource_name.as_deref()
     }
 }
 
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
-        if let Some(name) = &self.resource_name {
-            writer.value("resource", name.as_ref());
-        }
+        writer.value("platform", &*self.attribution.platform);
+        writer.value("resource", &*self.attribution.resource);
         self.handshake.write(writer)
     }
 }
@@ -261,19 +254,72 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// Serde helper to serialize/deserialize `SystemTime` as epoch milliseconds (u64).
+mod epoch_millis {
+    use serde::{self, Deserialize, Deserializer, Serializer};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    pub fn serialize<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let millis = time
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or(Duration::ZERO)
+            .as_millis() as u64;
+        serializer.serialize_u64(millis)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let millis = u64::deserialize(deserializer)?;
+        Ok(UNIX_EPOCH + Duration::from_millis(millis))
+    }
+}
+
+/// Serde helper for const-generic `[u64; N]` arrays that exceed serde's built-in
+/// limit of 32 elements. Serializes as a sequence.
+mod big_array {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
+
+    pub fn serialize<S, const N: usize>(array: &[u64; N], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        array.as_slice().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D, const N: usize>(deserializer: D) -> Result<[u64; N], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vec = Vec::<u64>::deserialize(deserializer)?;
+        vec.try_into()
+            .map_err(|v: Vec<u64>| D::Error::custom(format!("expected array of length {N}, got {}", v.len())))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct FrozenHandshakeRecord {
+    #[serde(
+        serialize_with = "epoch_millis::serialize",
+        deserialize_with = "epoch_millis::deserialize"
+    )]
     freeze_time: SystemTime,
 
     handshake_count: u64,
 
     negotiated_protocols: [u64; PROTOCOL_COUNT],
+    #[serde(with = "big_array")]
     negotiated_ciphers: [u64; CIPHER_COUNT],
     negotiated_groups: [u64; GROUP_COUNT],
     negotiated_signatures: [u64; SIGNATURE_COUNT],
 
     sslv2_client_hello: u64,
     supported_protocols: [u64; PROTOCOL_COUNT],
+    #[serde(with = "big_array")]
     supported_ciphers: [u64; CIPHER_COUNT],
     supported_groups: [u64; GROUP_COUNT],
     supported_signatures: [u64; SIGNATURE_COUNT],
@@ -387,7 +433,8 @@ mod tests {
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
+        let records = endpoint.sink.records.lock().unwrap();
+        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 1);
@@ -466,7 +513,8 @@ mod tests {
 
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
+        let records = endpoint.sink.records.lock().unwrap();
+        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
         let record = record.handshake;
 
         let expected_version: Vec<usize> = EXPECTED_VERSIONS
@@ -538,7 +586,8 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
+        let records = endpoint.sink.records.lock().unwrap();
+        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 3);
@@ -554,7 +603,9 @@ mod tests {
         let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
-        let mut record = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let mut record = record.handshake;
 
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
@@ -571,13 +622,18 @@ mod tests {
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let single_handshake = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let single_handshake: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let single_handshake = single_handshake.handshake;
+        drop(records);
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let multiple_handshakes = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let multiple_handshakes: MetricRecord = serde_json::from_slice(&records[1]).unwrap();
+        let multiple_handshakes = multiple_handshakes.handshake;
 
         assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
         assert!(

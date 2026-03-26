@@ -1,17 +1,19 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-mod emf_emitter;
-mod emf_sink;
+pub mod attribution;
+pub mod format;
 mod label;
 mod parsing;
-mod record;
+pub(crate) mod record;
+pub mod sink;
 mod static_lists;
-mod subscriber;
+pub mod subscriber;
 #[cfg(test)]
 mod test_utils;
 
-pub use emf_emitter::EmfEmitter;
-pub use emf_sink::{EmfSink, StdoutSink, WriterSink};
+pub use attribution::Attribution;
+pub use format::SerializationFormat;
 pub use record::MetricRecord;
-pub use subscriber::{AggregatedMetricsSubscriber, Exporter, PeriodicExportHandle};
+pub use sink::Sink;
+pub use subscriber::{AggregatedMetricsSubscriber, PeriodicExportHandle};

@@ -1,30 +1,59 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Shows how to tag metrics by resource name and export them as EMF JSON.
+//! Shows how to tag metrics by resource name and export them using the `Sink` trait.
 //!
-//! Two subscribers share a single write destination (via Arc) but use different
-//! resource names, so their metrics are distinguishable in the output.
+//! Two subscribers use different `Attribution` values and serialization formats,
+//! so their metrics are distinguishable in the output.
 
-use std::{sync::Arc, time::Duration};
+use std::io::{self, Write};
+use std::sync::Arc;
+use std::time::Duration;
 
 use s2n_tls::{
     security::DEFAULT_TLS13,
     testing::{TestPair, build_config, config_builder},
 };
 
-use s2n_tls_metrics_subscriber::{AggregatedMetricsSubscriber, EmfEmitter, StdoutSink, WriterSink};
+use s2n_tls_metrics_subscriber::{
+    AggregatedMetricsSubscriber, Attribution, SerializationFormat, Sink,
+};
+
+/// A simple Sink that writes each record to stdout followed by a newline.
+struct StdoutSink;
+
+impl Sink for StdoutSink {
+    fn write_record(&self, record: &[u8]) -> io::Result<()> {
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
+        handle.write_all(record)?;
+        handle.write_all(b"\n")?;
+        handle.flush()
+    }
+}
 
 fn main() {
-    // Both emitters write to the same buffer through a shared sink.
-    let shared_sink = Arc::new(WriterSink::new(Vec::<u8>::new()));
+    // Subscriber A: Querylog format, resource "api-gateway"
+    let attribution_a = Attribution {
+        platform: "my-service".into(),
+        resource: "api-gateway".into(),
+    };
+    let subscriber_a = AggregatedMetricsSubscriber::new(
+        StdoutSink,
+        SerializationFormat::Querylog,
+        attribution_a,
+    );
 
-    // Set up two subscribers with different resource names.
-    let emitter_a = EmfEmitter::new("my-service".to_owned(), Arc::clone(&shared_sink));
-    let subscriber_a = AggregatedMetricsSubscriber::with_resource_name(emitter_a, "resource-a");
-
-    let emitter_b = EmfEmitter::new("my-service".to_owned(), Arc::clone(&shared_sink));
-    let subscriber_b = AggregatedMetricsSubscriber::with_resource_name(emitter_b, "resource-b");
+    // Subscriber B: CBOR format, resource "internal-proxy"
+    let attribution_b = Attribution {
+        platform: "my-service".into(),
+        resource: "internal-proxy".into(),
+    };
+    let subscriber_b = AggregatedMetricsSubscriber::new(
+        Arc::new(StdoutSink),
+        SerializationFormat::Cbor,
+        attribution_b,
+    );
 
     // Wire subscriber_a into a server config so handshake events flow into it.
     let server_config = {
@@ -41,17 +70,13 @@ fn main() {
     }
 
     // Manual export: flushes the aggregated record immediately.
+    // Because subscriber_a uses Querylog format, this prints JSON to stdout.
     subscriber_a.finish_record();
 
-    // subscriber_b is only used to demonstrate periodic export setup here.
-    // Since it is not attached to a config, it will not receive handshake
-    // events in this example.
+    // Periodic export demo: subscriber_b will flush every 60 seconds.
+    // Since it uses CBOR format, the output will be binary.
+    // The handle must be kept alive for periodic export to continue.
     let _handle = subscriber_b.start_periodic_export(Duration::from_secs(60));
-
-    // You can also configure an emitter to write EMF records to stdout,
-    // for example in container environments where EMF is collected from logs.
-    // This emitter is not wired into a subscriber in this example.
-    let _stdout_emitter = EmfEmitter::new("my-service".to_owned(), StdoutSink);
 
     println!("done");
 }
