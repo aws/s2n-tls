@@ -341,21 +341,39 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
+    /* clang-format off */
+    struct {
+        const char *cert_path;
+        const char *key_path;
+        const char *server_name;
+    } test_cases[] = {
+        /* IPv4 Cert with CN=127.0.0.1 and no SAN extension */
+        {
+            .cert_path = "../pems/ip_cn_no_san_rsa_cert.pem",
+            .key_path = "../pems/ip_cn_no_san_rsa_key.pem",
+            .server_name = "127.0.0.1",
+        },
+        /* IPv6 Cert with CN=::1 and no SAN extension */
+        {
+            .cert_path = "../pems/ipv6_cn_no_san_rsa_cert.pem",
+            .key_path = "../pems/ipv6_cn_no_san_rsa_key.pem",
+            .server_name = "::1",
+        },
+    };
+    /* clang-format on */
+
     /* RFC 6125: A cert with an IP literal CN and no SAN extension should NOT be accepted
      * when the client connects to the IP address. */
-    {
+    for (int i = 0; i < s2n_array_len(test_cases); i++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        /* Cert with CN=127.0.0.1, no subjectAltName (SAN) extension */
-        const char *cert_path = "../pems/ip_cn_no_san_rsa_cert.pem";
-        const char *key_path = "../pems/ip_cn_no_san_rsa_key.pem";
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key, cert_path, key_path));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
+                test_cases[i].cert_path, test_cases[i].key_path));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, cert_path, NULL));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_path, NULL));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -364,7 +382,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls12"));
 
         /* The caller targets an IP literal. */
-        EXPECT_SUCCESS(s2n_set_server_name(client, "127.0.0.1"));
+        EXPECT_SUCCESS(s2n_set_server_name(client, test_cases[i].server_name));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
