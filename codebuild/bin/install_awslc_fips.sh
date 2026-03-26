@@ -49,14 +49,17 @@ check_dep go
 BUILD_DIR=$1
 INSTALL_DIR=$2
 VERSION=$3
+# This url only returns the latest 30 releases (configurable via `per_page`). AWS-LC-FIPS-3.x is the current major version.
 GH_RELEASE_URL="https://api.github.com/repos/aws/aws-lc/releases"
+# Latest release of AWS-LC-FIPS-2.x
+FIPS2_RELEASE_URL="https://api.github.com/repos/aws/aws-lc/releases/tags/AWS-LC-FIPS-2.0.17"
 
 # Map version to the latest release of the certificate year.
 # Note: since the next FIPS validation will be split off from main
 # building main with FIPS enabled is the next candidate FIPS branch.
 case $VERSION in
   "2022")
-    AWSLC_BRANCH=$(curl --silent $GH_RELEASE_URL \
+    AWSLC_BRANCH=$(curl --silent $FIPS2_RELEASE_URL \
       |grep -Po '"tag_name": "\KAWS-LC-FIPS-2.*?(?=")' |head -1)
     ;;
   "2024")
