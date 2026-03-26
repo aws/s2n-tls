@@ -35,8 +35,8 @@ stacktrace = []
 # e.g. something like
 # unstable-foo = []
 # Emit cargo:rustc-link-lib and cargo:rustc-link-search directives.
-# Disable with default-features = false when the host application
-# already provides libs2n at link time.
+# Consumers can suppress linking with default-features = false.
+# Note: this disables *all* defaults, so re-enable any others you need.
 link = []
 
 [dependencies]

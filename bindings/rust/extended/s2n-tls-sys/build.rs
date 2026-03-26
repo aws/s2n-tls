@@ -27,8 +27,8 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     std::env::var(name).ok()
 }
 
-fn no_link_enabled() -> bool {
-    option_env("CARGO_FEATURE_LINK").is_none()
+fn link_enabled() -> bool {
+    option_env("CARGO_FEATURE_LINK").is_some()
 }
 
 struct FeatureDetector<'a> {
@@ -152,7 +152,7 @@ fn build_vendored() {
     // to do anything with it
     build.warnings(false);
 
-    if no_link_enabled() {
+    if !link_enabled() {
         build.cargo_metadata(false);
     }
 
@@ -270,7 +270,7 @@ impl External {
         // `DEP_S2N_TLS_EXTERNAL_BUILD=true`.
         println!("cargo:external_build=true");
 
-        if !no_link_enabled() {
+        if link_enabled() {
             println!(
                 "cargo:rustc-link-search={}",
                 self.lib_dir.as_ref().unwrap().display()
