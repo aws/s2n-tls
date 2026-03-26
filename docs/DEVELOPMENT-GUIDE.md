@@ -157,10 +157,11 @@ As discussed below, s2n-tls rarely allocates resources, and so has nothing to cl
 `DEFER_CLEANUP(_thealloc, _thecleanup)` is a failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
 ### Lifecycle of s2n memory
-The atexit handler is disabled by default and only used internally for test cleanup. No automatic cleanup runs unless callers opt in via `s2n_enable_atexit()` before `s2n_init()`. For explicit cleanup, call `s2n_cleanup_final()` before process exit.
+`s2n_init()` resources have to be explicitly cleaned up by users by calling `s2n_cleanup_final()`. Previously we had an atexit handler that cleaned up s2n resources automatically, but it was disabled in our library. The only place it is still on is our unit tests.
 
 `s2n_cleanup()` is a legacy API that previously cleaned up per-thread random state. Since s2n-tls no longer maintains thread-local random state, `s2n_cleanup()` is now a no-op. Use `s2n_cleanup_final()` for full library cleanup.
 
+### Control flow and the state machine
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while also remembering that there is another path to be explored. When branches are nested, they can often lead to impossible to grasp combinatorial explosions. s2n-tls tries to systematically reduce the number of branches used in the code in several ways.
 
