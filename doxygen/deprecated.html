@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-b1a8bfff</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-4eb821a8</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -76,14 +76,26 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><dl class="reflist">
+<dt>Global <a class="el" href="s2n_8h.html#a6bec40a852f3766f4e419684036e7550">s2n_cleanup</a>  (void)</dt>
+<dd><a class="anchor" id="_deprecated000001"></a>This function is a no-op. It previously cleaned up thread-local DRBG state, but the custom DRBG has been removed. Retained for API compatibility. Use s2n_cleanup_final() for full library cleanup. </dd>
 <dt>Global <a class="el" href="s2n_8h.html#a5f2c5705a56cdb5f9ca4932a24f838e1">s2n_config_add_cert_chain_and_key</a>  (struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)</dt>
-<dd><a class="anchor" id="_deprecated000001"></a>Use s2n_config_add_cert_chain_and_key_to_store instead. </dd>
+<dd><a class="anchor" id="_deprecated000007"></a>Use s2n_config_add_cert_chain_and_key_to_store instead. </dd>
 <dt>Global <a class="el" href="s2n_8h.html#a2250c2b461d0814c4e5dd969d0f372f1">s2n_config_set_extension_data</a>  (struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)</dt>
-<dd><a class="anchor" id="_deprecated000002"></a>Use s2n_cert_chain_and_key_set_ocsp_data and s2n_cert_chain_and_key_set_sct_list instead. </dd>
+<dd><a class="anchor" id="_deprecated000008"></a>Use s2n_cert_chain_and_key_set_ocsp_data and s2n_cert_chain_and_key_set_sct_list instead. </dd>
 <dt>Global <a class="el" href="s2n_8h.html#af64cc57ff39c25444877136f6e3558c1">s2n_connection_get_curve</a>  (struct s2n_connection *conn)</dt>
-<dd><a class="anchor" id="_deprecated000003"></a>Use <code>s2n_connection_get_key_exchange_group</code> instead </dd>
+<dd><a class="anchor" id="_deprecated000009"></a>Use <code>s2n_connection_get_key_exchange_group</code> instead </dd>
 <dt>Global <a class="el" href="s2n_8h.html#a5c26b7b10e7ed39a6cd3aeaab0f4066a">s2n_connection_get_kem_name</a>  (struct s2n_connection *conn)</dt>
-<dd><a class="anchor" id="_deprecated000004"></a>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name.</dd>
+<dd><a class="anchor" id="_deprecated000010"></a>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name. </dd>
+<dt>Global <a class="el" href="s2n_8h.html#a700f181dd144cbb4161765333a190d01">s2n_rand_cleanup_callback</a>  )(void)</dt>
+<dd><a class="anchor" id="_deprecated000003"></a>No longer used. See <code>s2n_rand_set_callbacks</code>.  </dd>
+<dt>Global <a class="el" href="s2n_8h.html#ada646d7bfa47772c96b4e4c9dca18dd1">s2n_rand_init_callback</a>  )(void)</dt>
+<dd><a class="anchor" id="_deprecated000002"></a>No longer used. See <code>s2n_rand_set_callbacks</code>.  </dd>
+<dt>Global <a class="el" href="s2n_8h.html#a4b6891b58a1c9a957d299177497e7896">s2n_rand_mix_callback</a>  )(void *data, uint32_t size)</dt>
+<dd><a class="anchor" id="_deprecated000005"></a>No longer used. See <code>s2n_rand_set_callbacks</code>.  </dd>
+<dt>Global <a class="el" href="s2n_8h.html#ae7cf68edcc9173e3ac5383d1fb879d31">s2n_rand_seed_callback</a>  )(void *data, uint32_t size)</dt>
+<dd><a class="anchor" id="_deprecated000004"></a>No longer used. See <code>s2n_rand_set_callbacks</code>.  </dd>
+<dt>Global <a class="el" href="s2n_8h.html#af3f23014a1e26a8849f9b35208c7fdcc">s2n_rand_set_callbacks</a>  (s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback, s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback)</dt>
+<dd><a class="anchor" id="_deprecated000006"></a>Custom random callbacks are no longer supported. Randomness is now delegated directly to libcrypto or /dev/urandom. This function is a no-op kept for backwards compatibility.</dd>
 </dl>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-b1a8bfff</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.0-4eb821a8</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -1355,7 +1355,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A callback function that will be called when <code>s2n_cleanup</code> is executed. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>No longer used. See <code>s2n_rand_set_callbacks</code>. </dd></dl>
 
 </div>
 </div>
@@ -1370,7 +1370,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A callback function that will be called when s2n-tls is initialized. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>No longer used. See <code>s2n_rand_set_callbacks</code>. </dd></dl>
 
 </div>
 </div>
@@ -1385,7 +1385,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A callback function that will be used to mix in entropy every time the RNG is invoked. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000005">Deprecated:</a></b></dt><dd>No longer used. See <code>s2n_rand_set_callbacks</code>. </dd></dl>
 
 </div>
 </div>
@@ -1400,7 +1400,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A callback function that will be used to provide entropy to the s2n-tls random number generators. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>No longer used. See <code>s2n_rand_set_callbacks</code>. </dd></dl>
 
 </div>
 </div>
@@ -2859,7 +2859,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Cleans up thread-local resources used by s2n-tls. Does not perform a full library cleanup. To fully clean up the library use s2n_cleanup_final().</p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>This function is a no-op. It previously cleaned up thread-local DRBG state, but the custom DRBG has been removed. Retained for API compatibility. Use s2n_cleanup_final() for full library cleanup.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
@@ -3806,7 +3806,7 @@ s2n-tls has never supported compression methods in any TLS version and therefore
       </table>
 </div><div class="memdoc">
 <p >Associates a certificate chain and private key with an <code>s2n_config</code> object. Using this API, only one cert chain of each type (like ECDSA or RSA) may be associated with a config. <code>cert_chain_pem</code> should be a PEM encoded certificate chain, with the first certificate in the chain being your server's certificate. <code>private_key_pem</code> should be a PEM encoded private key corresponding to the server certificate.</p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use s2n_config_add_cert_chain_and_key_to_store instead.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000007">Deprecated:</a></b></dt><dd>Use s2n_config_add_cert_chain_and_key_to_store instead.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -5140,7 +5140,7 @@ s2n-tls has never supported compression methods in any TLS version and therefore
       </table>
 </div><div class="memdoc">
 <p >Sets the extension data in the <code>s2n_config</code> object for the specified extension. This method will clear any existing data that is set. If the data and length parameters are set to NULL, no new data is set in the <code>s2n_config</code> object, effectively clearing existing data.</p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>Use s2n_cert_chain_and_key_set_ocsp_data and s2n_cert_chain_and_key_set_sct_list instead.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000008">Deprecated:</a></b></dt><dd>Use s2n_cert_chain_and_key_set_ocsp_data and s2n_cert_chain_and_key_set_sct_list instead.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -6728,7 +6728,7 @@ Only a minimal amount of information about the original TLS connection is serial
       </table>
 </div><div class="memdoc">
 <p >Function to get the human readable elliptic curve name for the connection.</p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>Use <code>s2n_connection_get_key_exchange_group</code> instead</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000009">Deprecated:</a></b></dt><dd>Use <code>s2n_connection_get_key_exchange_group</code> instead</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
@@ -6871,7 +6871,7 @@ Only a minimal amount of information about the original TLS connection is serial
       </table>
 </div><div class="memdoc">
 <p >Function to get the human readable KEM name for the connection.</p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000010">Deprecated:</a></b></dt><dd>This function was previously used to retrieve the negotiated PQ group in TLS 1.2. PQ key exchange in TLS1.2 was experimental and is now deprecated. Use <a class="el" href="s2n_8h.html#a1c116afc860c9273c32126617881f4b5">s2n_connection_get_kem_group_name()</a> to retrieve the PQ TLS 1.3 Group name.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
@@ -9248,7 +9248,7 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
 </div><div class="memdoc">
 <p >Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a re-entrant shared library</p>
 <dl class="section warning"><dt>Warning</dt><dd>This function must be called BEFORE <a class="el" href="s2n_8h.html#a41b65ad20272f232f12c8ae36578d372">s2n_init()</a> to have any effect. It will return an error if s2n is already initialized.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>This will cause <code>s2n_cleanup</code> to do complete cleanup of s2n-tls when called from the main thread (the thread <code>s2n_init</code> was called from).</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>When the atexit handler is disabled, callers are responsible for calling s2n_cleanup_final() to perform full library cleanup before process exit.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
@@ -10351,8 +10351,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Allows the caller to override s2n-tls's entropy functions.</p>
-<dl class="section warning"><dt>Warning</dt><dd>This function must be called before <a class="el" href="s2n_8h.html#a41b65ad20272f232f12c8ae36578d372">s2n_init()</a>.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000006">Deprecated:</a></b></dt><dd>Custom random callbacks are no longer supported. Randomness is now delegated directly to libcrypto or /dev/urandom. This function is a no-op kept for backwards compatibility.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">rand_init_callback</td><td>The s2n_rand_init_callback </td></tr>
