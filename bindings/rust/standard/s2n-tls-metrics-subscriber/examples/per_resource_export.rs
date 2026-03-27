@@ -33,10 +33,10 @@ impl Sink for StdoutSink {
 }
 
 fn main() {
-    // Subscriber A: Querylog format, resource "api-gateway"
+    // Subscriber A: Querylog format
     let attribution_a = Attribution {
         platform: "my-service".into(),
-        resource: "api-gateway".into(),
+        resource: "test-resource".into(),
     };
     let subscriber_a = AggregatedMetricsSubscriber::new(
         StdoutSink,

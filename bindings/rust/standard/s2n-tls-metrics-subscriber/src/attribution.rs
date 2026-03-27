@@ -9,6 +9,6 @@ use std::sync::Arc;
 pub struct Attribution {
     /// The service or application name (e.g. "my-tls-service")
     pub platform: Arc<str>,
-    /// The individual resource or listener name (e.g. "api-gateway-listener")
+    /// The individual resource or listener name (e.g. "test-resource-listener")
     pub resource: Arc<str>,
 }
