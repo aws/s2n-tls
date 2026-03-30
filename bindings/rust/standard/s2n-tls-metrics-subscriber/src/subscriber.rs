@@ -188,7 +188,6 @@ impl<S: Sink> Drop for PeriodicExportHandle<S> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};

@@ -9,18 +9,11 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber,
-    attribution::Attribution,
-    format::SerializationFormat,
-    sink::Sink,
+    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat, sink::Sink,
 };
 
-// arbitrary numbered policies that won't change. We use two different policies
-// to get a variety of metrics.
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
     LazyLock::new(|| Policy::from_version("20240503").unwrap());
-pub(crate) static ARBITRARY_POLICY_2: LazyLock<Policy> =
-    LazyLock::new(|| Policy::from_version("20190214").unwrap());
 
 /// A test helper that implements [`Sink`] by collecting serialized bytes into a Vec.
 #[derive(Debug, Clone)]

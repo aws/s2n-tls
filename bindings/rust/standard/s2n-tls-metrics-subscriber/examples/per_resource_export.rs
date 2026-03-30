@@ -38,11 +38,8 @@ fn main() {
         platform: "my-service".into(),
         resource: "test-resource".into(),
     };
-    let subscriber_a = AggregatedMetricsSubscriber::new(
-        StdoutSink,
-        SerializationFormat::Querylog,
-        attribution_a,
-    );
+    let subscriber_a =
+        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Querylog, attribution_a);
 
     // Subscriber B: CBOR format, resource "internal-proxy"
     let attribution_b = Attribution {

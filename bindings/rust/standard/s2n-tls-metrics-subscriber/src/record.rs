@@ -296,8 +296,9 @@ mod big_array {
         D: Deserializer<'de>,
     {
         let vec = Vec::<u64>::deserialize(deserializer)?;
-        vec.try_into()
-            .map_err(|v: Vec<u64>| D::Error::custom(format!("expected array of length {N}, got {}", v.len())))
+        vec.try_into().map_err(|v: Vec<u64>| {
+            D::Error::custom(format!("expected array of length {N}, got {}", v.len()))
+        })
     }
 }
 
