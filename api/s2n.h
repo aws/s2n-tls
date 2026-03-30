@@ -203,8 +203,8 @@ S2N_API extern int s2n_crypto_disable_init(void);
  * @warning This function must be called BEFORE s2n_init() to have any effect. It will return an error
  * if s2n is already initialized.
  *
- * @note This will cause `s2n_cleanup` to do complete cleanup of s2n-tls when called from the main
- * thread (the thread `s2n_init` was called from).
+ * @note When the atexit handler is disabled, callers are responsible for calling
+ * s2n_cleanup_final() to perform full library cleanup before process exit.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -229,8 +229,9 @@ S2N_API extern unsigned long s2n_get_openssl_version(void);
 S2N_API extern int s2n_init(void);
 
 /**
- * Cleans up thread-local resources used by s2n-tls. Does not perform a full library cleanup. To fully
- * clean up the library use s2n_cleanup_final().
+ * @deprecated This function is a no-op. It previously cleaned up thread-local
+ * DRBG state, but the custom DRBG has been removed. Retained for API
+ * compatibility. Use s2n_cleanup_final() for full library cleanup.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -563,34 +564,32 @@ S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 
 /**
- * A callback function that will be called when s2n-tls is initialized.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_init_callback)(void);
 
 /**
- * A callback function that will be called when `s2n_cleanup` is executed.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_cleanup_callback)(void);
 
 /**
- * A callback function that will be used to provide entropy to the s2n-tls
- * random number generators.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
 
 /**
- * A callback function that will be used to mix in entropy every time the RNG
- * is invoked.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
 
 /**
  * Allows the caller to override s2n-tls's entropy functions.
  * 
- * @warning This function must be called before s2n_init().
+ * @deprecated Custom random callbacks are no longer supported. Randomness is
+ * now delegated directly to libcrypto or /dev/urandom. This function is a
+ * no-op kept for backwards compatibility.
  *
- * @note The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.
- * 
  * @param rand_init_callback The s2n_rand_init_callback
  * @param rand_cleanup_callback The s2n_rand_cleanup_callback
  * @param rand_seed_callback The s2n_rand_seed_callback
@@ -3947,9 +3946,9 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * connection object that can talk to the original peer with the same encryption keys.
  *
  * @warning This feature is dangerous because it provides cryptographic material from a TLS session
- * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
- * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
- * without encryption.
+ * in plaintext. The serialized blob also does not include a MAC or signature, so a modified blob
+ * will be deserialized and used as-is. Users MUST both encrypt and MAC the serialized connection to
+ * provide secrecy and integrity before storing or sending it off-box.
  *
  * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
  * s2n_config object associated with this connection before this connection began its TLS handshake.
@@ -3970,10 +3969,12 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
 /**
  * Deserializes the provided buffer into the `s2n_connection` parameter.
  *
- * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
- * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
- * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
- * connection before sending it off-box and deserializing it.
+ * @warning s2n-tls does not check the integrity of the provided buffer. The serialized blob does
+ * not include a MAC or signature, so a modified buffer will be deserialized and used as-is. A
+ * corrupted buffer will cause a connection failure when attempting to resume sending or receiving
+ * encrypted data. To avoid this, callers MUST MAC and encrypt the serialized connection before
+ * storing or sending it off-box. Encrypt-then-MAC using a key not stored alongside the blob is
+ * the recommended approach.
  *
  * @warning Only a minimal amount of information about the original TLS connection is serialized.
  * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 

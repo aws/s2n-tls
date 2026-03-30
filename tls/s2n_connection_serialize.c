@@ -345,6 +345,11 @@ int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uin
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(buffer);
 
+    /* The serialized blob does not include a MAC or signature. All values from the buffer
+     * are trusted after basic format validation. Callers must verify the integrity of the
+     * buffer before calling this function. See the s2n_connection_deserialize API docs.
+     */
+
     /* Read parsed values into a temporary struct so that the connection is unaltered if parsing fails */
     struct s2n_connection_deserialize parsed_values = { 0 };
     POSIX_ENSURE(s2n_result_is_ok(s2n_connection_deserialize_parse(buffer, buffer_length, &parsed_values)),
