@@ -1,18 +1,22 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::attribution::Attribution;
-use crate::format::SerializationFormat;
-use crate::record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord};
-use crate::sink::Sink;
+use crate::{
+    attribution::Attribution,
+    format::SerializationFormat,
+    record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord},
+    sink::Sink,
+};
 use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
-use std::sync::{
-    Arc, Condvar, Mutex,
-    mpsc::{self, Receiver, Sender},
+use std::{
+    sync::{
+        Arc, Condvar, Mutex,
+        mpsc::{self, Receiver, Sender},
+    },
+    thread::JoinHandle,
+    time::Duration,
 };
-use std::thread::JoinHandle;
-use std::time::Duration;
 
 #[derive(Debug)]
 struct ExportPipeline<S: Sink> {

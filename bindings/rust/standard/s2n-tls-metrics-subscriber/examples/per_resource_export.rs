@@ -6,9 +6,11 @@
 //! Two subscribers use different `Attribution` values and serialization formats,
 //! so their metrics are distinguishable in the output.
 
-use std::io::{self, Write};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    io::{self, Write},
+    sync::Arc,
+    time::Duration,
+};
 
 use s2n_tls::{
     security::DEFAULT_TLS13,
