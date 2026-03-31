@@ -85,7 +85,7 @@ impl ClientHelloCallback for FailingCHHandler {
         &self,
         _connection: &mut crate::connection::Connection,
     ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
-        let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+        let io_error = io::Error::other(CustomError);
         Err(crate::error::Error::application(Box::new(io_error)))
     }
 }
@@ -120,7 +120,7 @@ impl ConnectionFuture for FailingCHFuture {
             return Poll::Pending;
         }
 
-        let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+        let io_error = io::Error::other(CustomError);
         let ret = Err(crate::error::Error::application(Box::new(io_error)));
         Poll::Ready(ret)
     }
