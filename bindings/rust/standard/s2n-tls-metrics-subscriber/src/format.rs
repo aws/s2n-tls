@@ -22,7 +22,7 @@ impl SerializationFormat {
             }
             SerializationFormat::Cbor => {
                 let mut buf = Vec::new();
-                ciborium::into_writer(record, &mut buf).map_err(SerializationError::Cbor)?;
+                ciborium::ser::into_writer(record, &mut buf).map_err(SerializationError::Cbor)?;
                 Ok(buf)
             }
         }
