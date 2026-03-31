@@ -70,9 +70,11 @@ impl std::error::Error for SerializationError {
 
 #[cfg(test)]
 mod tests {
-    use crate::format::SerializationFormat;
-    use crate::record::MetricRecord;
-    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+    use crate::{
+        format::SerializationFormat,
+        record::MetricRecord,
+        test_utils::{ARBITRARY_POLICY_1, ARBITRARY_POLICY_2, TestEndpoint},
+    };
 
     /// Verify the querylog JSON wire format contains named metric keys
     /// produced by the metrique_writer Entry implementation.
@@ -114,6 +116,88 @@ mod tests {
         let has_negotiated_version = metrics.keys().any(|k| k.starts_with("version.negotiated."));
         assert!(has_negotiated_cipher, "missing cipher.negotiated.* key");
         assert!(has_negotiated_version, "missing version.negotiated.* key");
+    }
+
+    /// Strip dynamic fields (timestamp, timers) from a querylog JSON value
+    /// so that snapshot comparisons are deterministic.
+    fn strip_dynamic_querylog(val: &mut serde_json::Value) {
+        let obj = val.as_object_mut().unwrap();
+        obj.remove("timestamp");
+        if let Some(metrics) = obj.get_mut("metrics").and_then(|m| m.as_object_mut()) {
+            metrics.remove("handshake_duration_us");
+            metrics.remove("handshake_compute_us");
+        }
+    }
+
+    /// Strip dynamic fields from a CBOR-deserialized JSON value.
+    fn strip_dynamic_cbor(val: &mut serde_json::Value) {
+        let obj = val.as_object_mut().unwrap();
+        if let Some(hs) = obj.get_mut("handshake").and_then(|h| h.as_object_mut()) {
+            hs.remove("freeze_time");
+            hs.remove("handshake_duration_us");
+            hs.remove("handshake_compute_us");
+        }
+    }
+
+    /// Compare the querylog output against a checked-in snapshot to catch
+    /// accidental changes to the wire format.
+    #[test]
+    fn querylog_snapshot() {
+        let snapshot = include_str!("../resources/querylog_sample.json");
+
+        let endpoint = TestEndpoint::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_2);
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let output = String::from_utf8(records[0].clone()).unwrap();
+
+        // Uncomment to update snapshot:
+        // {
+        //     let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+        //     let pretty = serde_json::to_string_pretty(&json).unwrap();
+        //     std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/querylog_sample.json"), pretty).unwrap();
+        // }
+
+        let mut result: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let mut expected: serde_json::Value = serde_json::from_str(snapshot).unwrap();
+
+        strip_dynamic_querylog(&mut result);
+        strip_dynamic_querylog(&mut expected);
+
+        assert_eq!(result, expected);
+    }
+
+    /// Compare the CBOR output against a checked-in snapshot to catch
+    /// accidental changes to the wire format.
+    #[test]
+    fn cbor_snapshot() {
+        let snapshot_bytes = include_bytes!("../resources/cbor_sample.bin");
+
+        let endpoint = TestEndpoint::with_format(SerializationFormat::Cbor);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_2);
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+
+        // Uncomment to update snapshot:
+        // {
+        //     std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/cbor_sample.bin"), &records[0]).unwrap();
+        // }
+
+        // Deserialize both and compare as JSON with dynamic fields stripped
+        let result_record: MetricRecord = ciborium::from_reader(&records[0][..]).unwrap();
+        let snapshot_record: MetricRecord = ciborium::from_reader(&snapshot_bytes[..]).unwrap();
+
+        let mut result_json = serde_json::to_value(&result_record).unwrap();
+        let mut snapshot_json = serde_json::to_value(&snapshot_record).unwrap();
+
+        strip_dynamic_cbor(&mut result_json);
+        strip_dynamic_cbor(&mut snapshot_json);
+
+        assert_eq!(result_json, snapshot_json);
     }
 
     /// CBOR roundtrip: serialize to CBOR via serde, deserialize back,

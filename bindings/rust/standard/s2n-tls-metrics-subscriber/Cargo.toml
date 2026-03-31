@@ -16,11 +16,12 @@ tracing = "0.1.43"
 metrique = "0.1.6"
 metrique-writer-format-emf = "0.1.6"
 metrique-writer-format-json = "0.1.1"
-metrique-writer = "0.1.7"
+metrique-writer = "0.1.19"
 
 arc-swap = "1.8.0"
 serde = { version = "1.0.203", features = ["derive", "rc"] }
 serde_json = "1.0.141"
+serde-big-array = "0.5"
 ciborium = "0.2"
 # we at least need 0.3.33, because that is when the event APIs were introduced
 s2n-tls = { version = "0.3.33", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }

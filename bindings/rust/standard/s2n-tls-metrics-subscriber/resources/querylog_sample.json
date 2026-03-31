@@ -1,0 +1,198 @@
+{
+  "metrics": {
+    "cipher.negotiated.TLS_AES_128_GCM_SHA256": {
+      "value": 1
+    },
+    "cipher.negotiated.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_AES_128_GCM_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_AES_256_GCM_SHA384": {
+      "value": 1
+    },
+    "cipher.supported.TLS_CHACHA20_POLY1305_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384": {
+      "value": 2
+    },
+    "cipher.supported.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_3DES_EDE_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_128_GCM_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA256": {
+      "value": 1
+    },
+    "cipher.supported.TLS_RSA_WITH_AES_256_GCM_SHA384": {
+      "value": 1
+    },
+    "group.negotiated.secp256r1": {
+      "value": 2
+    },
+    "group.supported.secp256r1": {
+      "value": 2
+    },
+    "group.supported.secp384r1": {
+      "value": 2
+    },
+    "group.supported.secp521r1": {
+      "value": 1
+    },
+    "group.supported.x25519": {
+      "value": 1
+    },
+    "handshake_compute_us": {
+      "value": 4482
+    },
+    "handshake_count": {
+      "value": 2
+    },
+    "handshake_duration_us": {
+      "value": 5258
+    },
+    "signature_scheme.negotiated.rsa_pkcs1_sha256": {
+      "value": 1
+    },
+    "signature_scheme.negotiated.rsa_pss_rsae_sha256": {
+      "value": 1
+    },
+    "signature_scheme.supported.ecdsa_sha1": {
+      "value": 1
+    },
+    "signature_scheme.supported.ecdsa_sha256": {
+      "value": 2
+    },
+    "signature_scheme.supported.ecdsa_sha384": {
+      "value": 2
+    },
+    "signature_scheme.supported.ecdsa_sha512": {
+      "value": 2
+    },
+    "signature_scheme.supported.legacy_ecdsa_sha224": {
+      "value": 1
+    },
+    "signature_scheme.supported.legacy_rsa_sha224": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pkcs1_sha1": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pkcs1_sha256": {
+      "value": 2
+    },
+    "signature_scheme.supported.rsa_pkcs1_sha384": {
+      "value": 2
+    },
+    "signature_scheme.supported.rsa_pkcs1_sha512": {
+      "value": 2
+    },
+    "signature_scheme.supported.rsa_pss_pss_sha256": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pss_pss_sha384": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pss_pss_sha512": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pss_rsae_sha256": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pss_rsae_sha384": {
+      "value": 1
+    },
+    "signature_scheme.supported.rsa_pss_rsae_sha512": {
+      "value": 1
+    },
+    "sslv2_client_hello": {
+      "value": 0
+    },
+    "version.negotiated.TLSv1_2": {
+      "value": 1
+    },
+    "version.negotiated.TLSv1_3": {
+      "value": 1
+    },
+    "version.supported.TLSv1_2": {
+      "value": 2
+    },
+    "version.supported.TLSv1_3": {
+      "value": 1
+    }
+  },
+  "properties": {
+    "platform": "test_server",
+    "resource": "test_resource"
+  },
+  "timestamp": 1774999524619
+}
