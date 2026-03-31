@@ -1653,6 +1653,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
         struct s2n_stuffer *server_in = &server_conn->handshake.io;
+        /* s2n_client_psk_recv checks that extensions.count > 0 and that PSK is the last
+         * extension. Set to 1 because we bypass normal ClientHello parsing. */
         server_conn->client_hello.extensions.count = 1;
 
         server_conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
@@ -1669,10 +1671,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_identity(shared_psk, large_test_identity, sizeof(large_test_identity)));
         EXPECT_SUCCESS(s2n_psk_set_secret(shared_psk, large_test_secret, sizeof(large_test_secret)));
 
-        /* Write a large ClientHello prefix (> UINT16_MAX) to trigger the truncation bug */
+        /* Write a large ClientHello prefix (> UINT16_MAX) to trigger the truncation bug. */
         uint32_t large_prefix_size = UINT16_MAX + 100;
         uint8_t *large_prefix = NULL;
         EXPECT_NOT_NULL(large_prefix = malloc(large_prefix_size));
+        /* The fill value has no special significance -- any value works. */
         memset(large_prefix, 0x42, large_prefix_size);
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(client_out, large_prefix, large_prefix_size));
         free(large_prefix);
