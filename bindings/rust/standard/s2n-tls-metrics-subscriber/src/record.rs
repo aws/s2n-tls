@@ -254,73 +254,248 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-/// Serde helper to serialize/deserialize `SystemTime` as epoch milliseconds (u64).
-mod epoch_millis {
-    use serde::{self, Deserialize, Deserializer, Serializer};
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+/// Custom serde for FrozenHandshakeRecord that serializes index-based arrays
+/// as named maps (only including non-zero entries) and deserializes them back.
+mod handshake_serde {
+    use super::*;
+    use crate::label::{State, metric_label};
+    use serde::ser::SerializeMap;
 
-    pub fn serialize<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+    /// Serialize a `[u64; N]` array as a map of `{ "label": count }` entries,
+    /// only including non-zero values.
+    fn serialize_named_array<S: serde::Serializer>(
+        array: &[u64],
+        param: TlsParam,
+        state: State,
+        map: &mut S::SerializeMap,
+    ) -> Result<(), S::Error> {
+        for (index, &count) in array.iter().enumerate() {
+            if count > 0 {
+                if let Some(name) = param.index_to_description(index) {
+                    let label = metric_label(name, param, state);
+                    map.serialize_entry(label, &count)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn serialize<S>(record: &FrozenHandshakeRecord, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
-        let millis = time
+        use std::time::{Duration, UNIX_EPOCH};
+
+        // Count how many non-zero entries we'll emit, plus the fixed fields
+        let mut len = 5; // freeze_time, handshake_count, sslv2_client_hello, duration, compute
+        for array in [
+            record.negotiated_protocols.as_slice(),
+            record.negotiated_ciphers.as_slice(),
+            record.negotiated_groups.as_slice(),
+            record.negotiated_signatures.as_slice(),
+            record.supported_protocols.as_slice(),
+            record.supported_ciphers.as_slice(),
+            record.supported_groups.as_slice(),
+            record.supported_signatures.as_slice(),
+        ] {
+            len += array.iter().filter(|&&c| c > 0).count();
+        }
+
+        let mut map = serializer.serialize_map(Some(len))?;
+
+        let millis = record
+            .freeze_time
             .duration_since(UNIX_EPOCH)
             .unwrap_or(Duration::ZERO)
             .as_millis() as u64;
-        serializer.serialize_u64(millis)
+        map.serialize_entry("freeze_time", &millis)?;
+        map.serialize_entry("handshake_count", &record.handshake_count)?;
+
+        for (array, param, state) in [
+            (
+                record.negotiated_protocols.as_slice(),
+                TlsParam::Version,
+                State::Negotiated,
+            ),
+            (
+                record.negotiated_ciphers.as_slice(),
+                TlsParam::Cipher,
+                State::Negotiated,
+            ),
+            (
+                record.negotiated_groups.as_slice(),
+                TlsParam::Group,
+                State::Negotiated,
+            ),
+            (
+                record.negotiated_signatures.as_slice(),
+                TlsParam::SignatureScheme,
+                State::Negotiated,
+            ),
+            (
+                record.supported_protocols.as_slice(),
+                TlsParam::Version,
+                State::Supported,
+            ),
+            (
+                record.supported_ciphers.as_slice(),
+                TlsParam::Cipher,
+                State::Supported,
+            ),
+            (
+                record.supported_groups.as_slice(),
+                TlsParam::Group,
+                State::Supported,
+            ),
+            (
+                record.supported_signatures.as_slice(),
+                TlsParam::SignatureScheme,
+                State::Supported,
+            ),
+        ] {
+            serialize_named_array::<S>(array, param, state, &mut map)?;
+        }
+
+        map.serialize_entry("sslv2_client_hello", &record.sslv2_client_hello)?;
+        map.serialize_entry("handshake_duration_us", &record.handshake_duration_us)?;
+        map.serialize_entry("handshake_compute_us", &record.handshake_compute_us)?;
+
+        map.end()
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<FrozenHandshakeRecord, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let millis = u64::deserialize(deserializer)?;
-        Ok(UNIX_EPOCH + Duration::from_millis(millis))
+        use serde::de::{MapAccess, Visitor};
+        use std::time::{Duration, UNIX_EPOCH};
+
+        struct HandshakeVisitor;
+
+        impl<'de> Visitor<'de> for HandshakeVisitor {
+            type Value = FrozenHandshakeRecord;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a map of handshake metrics")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<FrozenHandshakeRecord, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut record = FrozenHandshakeRecord {
+                    freeze_time: UNIX_EPOCH,
+                    handshake_count: 0,
+                    negotiated_protocols: [0; PROTOCOL_COUNT],
+                    negotiated_ciphers: [0; CIPHER_COUNT],
+                    negotiated_groups: [0; GROUP_COUNT],
+                    negotiated_signatures: [0; SIGNATURE_COUNT],
+                    sslv2_client_hello: 0,
+                    supported_protocols: [0; PROTOCOL_COUNT],
+                    supported_ciphers: [0; CIPHER_COUNT],
+                    supported_groups: [0; GROUP_COUNT],
+                    supported_signatures: [0; SIGNATURE_COUNT],
+                    handshake_duration_us: 0,
+                    handshake_compute_us: 0,
+                };
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "freeze_time" => {
+                            let millis: u64 = map.next_value()?;
+                            record.freeze_time = UNIX_EPOCH + Duration::from_millis(millis);
+                        }
+                        "handshake_count" => record.handshake_count = map.next_value()?,
+                        "sslv2_client_hello" => record.sslv2_client_hello = map.next_value()?,
+                        "handshake_duration_us" => {
+                            record.handshake_duration_us = map.next_value()?
+                        }
+                        "handshake_compute_us" => record.handshake_compute_us = map.next_value()?,
+                        label => {
+                            let count: u64 = map.next_value()?;
+                            // Parse labels like "cipher.negotiated.TLS_AES_128_GCM_SHA256"
+                            if let Some((param, state, name)) = parse_metric_label(label) {
+                                if let Some(index) = param.description_to_index(name) {
+                                    let array = match (param, state) {
+                                        (TlsParam::Version, State::Negotiated) => {
+                                            record.negotiated_protocols.as_mut_slice()
+                                        }
+                                        (TlsParam::Cipher, State::Negotiated) => {
+                                            record.negotiated_ciphers.as_mut_slice()
+                                        }
+                                        (TlsParam::Group, State::Negotiated) => {
+                                            record.negotiated_groups.as_mut_slice()
+                                        }
+                                        (TlsParam::SignatureScheme, State::Negotiated) => {
+                                            record.negotiated_signatures.as_mut_slice()
+                                        }
+                                        (TlsParam::Version, State::Supported) => {
+                                            record.supported_protocols.as_mut_slice()
+                                        }
+                                        (TlsParam::Cipher, State::Supported) => {
+                                            record.supported_ciphers.as_mut_slice()
+                                        }
+                                        (TlsParam::Group, State::Supported) => {
+                                            record.supported_groups.as_mut_slice()
+                                        }
+                                        (TlsParam::SignatureScheme, State::Supported) => {
+                                            record.supported_signatures.as_mut_slice()
+                                        }
+                                    };
+                                    if let Some(slot) = array.get_mut(index) {
+                                        *slot = count;
+                                    }
+                                }
+                            }
+                            // Unknown keys are silently ignored for forward compatibility
+                        }
+                    }
+                }
+
+                Ok(record)
+            }
+        }
+
+        deserializer.deserialize_map(HandshakeVisitor)
+    }
+
+    /// Parse a metric label like "cipher.negotiated.TLS_AES_128_GCM_SHA256"
+    /// into (TlsParam, State, item_name).
+    fn parse_metric_label(label: &str) -> Option<(TlsParam, State, &str)> {
+        let (param_str, rest) = label.split_once('.')?;
+        let (state_str, name) = rest.split_once('.')?;
+
+        let param = match param_str {
+            "version" => TlsParam::Version,
+            "cipher" => TlsParam::Cipher,
+            "group" => TlsParam::Group,
+            "signature_scheme" => TlsParam::SignatureScheme,
+            _ => return None,
+        };
+
+        let state = match state_str {
+            "negotiated" => State::Negotiated,
+            "supported" => State::Supported,
+            _ => return None,
+        };
+
+        Some((param, state, name))
     }
 }
 
-/// Serde helper for const-generic `[u64; N]` arrays that exceed serde's built-in
-/// limit of 32 elements. Serializes as a sequence.
-mod big_array {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
-
-    pub fn serialize<S, const N: usize>(array: &[u64; N], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        array.as_slice().serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D, const N: usize>(deserializer: D) -> Result<[u64; N], D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let vec = Vec::<u64>::deserialize(deserializer)?;
-        vec.try_into().map_err(|v: Vec<u64>| {
-            D::Error::custom(format!("expected array of length {N}, got {}", v.len()))
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FrozenHandshakeRecord {
-    #[serde(
-        serialize_with = "epoch_millis::serialize",
-        deserialize_with = "epoch_millis::deserialize"
-    )]
     freeze_time: SystemTime,
 
     handshake_count: u64,
 
     negotiated_protocols: [u64; PROTOCOL_COUNT],
-    #[serde(with = "big_array")]
     negotiated_ciphers: [u64; CIPHER_COUNT],
     negotiated_groups: [u64; GROUP_COUNT],
     negotiated_signatures: [u64; SIGNATURE_COUNT],
 
     sslv2_client_hello: u64,
     supported_protocols: [u64; PROTOCOL_COUNT],
-    #[serde(with = "big_array")]
     supported_ciphers: [u64; CIPHER_COUNT],
     supported_groups: [u64; GROUP_COUNT],
     supported_signatures: [u64; SIGNATURE_COUNT],
@@ -329,8 +504,24 @@ pub(crate) struct FrozenHandshakeRecord {
     handshake_compute_us: u64,
 }
 
-// This is just cfg(test) because we only use it in tests to assert on cases of
-// all-zero records
+impl Serialize for FrozenHandshakeRecord {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        handshake_serde::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for FrozenHandshakeRecord {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        handshake_serde::deserialize(deserializer)
+    }
+}
+
 #[cfg(test)]
 impl Default for FrozenHandshakeRecord {
     fn default() -> Self {
@@ -426,16 +617,27 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::format::SerializationFormat;
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+
+    /// Helper: create a test endpoint using CBOR so we can deserialize
+    /// back into MetricRecord for structural assertions.
+    fn cbor_endpoint() -> TestEndpoint<crate::test_utils::VecSink> {
+        TestEndpoint::with_format(SerializationFormat::Cbor)
+    }
+
+    fn deserialize_cbor(bytes: &[u8]) -> MetricRecord {
+        ciborium::from_reader(bytes).unwrap()
+    }
 
     #[test]
     fn record_contents_negotiated_parameters() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = cbor_endpoint();
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let record: MetricRecord = deserialize_cbor(&records[0]);
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 1);
@@ -510,12 +712,12 @@ mod tests {
             "rsa_pss_pss_sha512",
         ];
 
-        let endpoint = TestEndpoint::new();
+        let endpoint = cbor_endpoint();
 
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let record: MetricRecord = deserialize_cbor(&records[0]);
         let record = record.handshake;
 
         let expected_version: Vec<usize> = EXPECTED_VERSIONS
@@ -580,7 +782,7 @@ mod tests {
 
     #[test]
     fn multiple_records() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = cbor_endpoint();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -588,7 +790,7 @@ mod tests {
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let record: MetricRecord = deserialize_cbor(&records[0]);
         let record = record.handshake;
 
         assert_eq!(record.handshake_count, 3);
@@ -601,11 +803,11 @@ mod tests {
     /// A record with no handshakes should be entirely empty/default.
     #[test]
     fn empty_record() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = cbor_endpoint();
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let record: MetricRecord = deserialize_cbor(&records[0]);
         let mut record = record.handshake;
 
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
@@ -619,12 +821,12 @@ mod tests {
     /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
-        let endpoint = TestEndpoint::new();
+        let endpoint = cbor_endpoint();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let single_handshake: MetricRecord = serde_json::from_slice(&records[0]).unwrap();
+        let single_handshake: MetricRecord = deserialize_cbor(&records[0]);
         let single_handshake = single_handshake.handshake;
         drop(records);
 
@@ -633,7 +835,7 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let multiple_handshakes: MetricRecord = serde_json::from_slice(&records[1]).unwrap();
+        let multiple_handshakes: MetricRecord = deserialize_cbor(&records[1]);
         let multiple_handshakes = multiple_handshakes.handshake;
 
         assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);

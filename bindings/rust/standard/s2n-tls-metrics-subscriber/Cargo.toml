@@ -15,11 +15,11 @@ tracing = "0.1.43"
 
 metrique = "0.1.6"
 metrique-writer-format-emf = "0.1.6"
+metrique-writer-format-json = "0.1.1"
 metrique-writer = "0.1.7"
 
 arc-swap = "1.8.0"
 serde = { version = "1.0.203", features = ["derive", "rc"] }
-# metrique-writer-format-emf requires serde_json >= 1.0.141
 serde_json = "1.0.141"
 ciborium = "0.2"
 # we at least need 0.3.33, because that is when the event APIs were introduced

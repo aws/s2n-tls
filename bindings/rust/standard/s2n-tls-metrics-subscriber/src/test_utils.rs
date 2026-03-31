@@ -53,14 +53,52 @@ impl<S: Sink> TestEndpoint<S> {
 
 impl TestEndpoint<VecSink> {
     pub fn new() -> Self {
+        Self::with_format(SerializationFormat::Querylog)
+    }
+
+    pub fn with_format(format: SerializationFormat) -> Self {
         let sink = VecSink::new();
+        let attribution = Attribution {
+            platform: "test_server".into(),
+            resource: "test_resource".into(),
+        };
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), format, attribution);
+        let server_config = {
+            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.build().unwrap()
+        };
+        Self {
+            server_config,
+            subscriber,
+            sink,
+        }
+    }
+}
+
+/// A sink that always fails, for testing error paths.
+#[derive(Debug, Clone)]
+pub(crate) struct FailingSink;
+
+impl Sink for FailingSink {
+    fn write_record(&self, _record: &[u8]) -> std::io::Result<()> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::BrokenPipe,
+            "simulated sink failure",
+        ))
+    }
+}
+
+impl TestEndpoint<FailingSink> {
+    pub fn with_failing_sink() -> Self {
+        let sink = FailingSink;
         let attribution = Attribution {
             platform: "test_server".into(),
             resource: "test_resource".into(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(
             sink.clone(),
-            SerializationFormat::Json,
+            SerializationFormat::Querylog,
             attribution,
         );
         let server_config = {

@@ -194,7 +194,7 @@ impl<S: Sink> Drop for PeriodicExportHandle<S> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+    use crate::test_utils::{ARBITRARY_POLICY_1, FailingSink, TestEndpoint};
 
     /// Verify that after a handshake and finish_record, the sink contains a record.
     #[test]
@@ -239,5 +239,61 @@ mod tests {
 
         let records = endpoint.sink.records.lock().unwrap();
         assert_eq!(records.len(), 1);
+    }
+
+    /// Multiple finish_record() calls should each produce a separate record
+    /// in the sink, and records should accumulate in order.
+    #[test]
+    fn multiple_finish_record_buffering() {
+        let endpoint = TestEndpoint::new();
+
+        // First batch: 2 handshakes
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+
+        // Second batch: 1 handshake
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+
+        // Third: empty record (no handshakes)
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        assert_eq!(
+            records.len(),
+            3,
+            "expected 3 records from 3 finish_record calls"
+        );
+
+        // All records should be non-empty (even the empty-handshake one has structure)
+        for (i, record) in records.iter().enumerate() {
+            assert!(!record.is_empty(), "record {i} should not be empty");
+        }
+
+        // Verify handshake counts via JSON deserialization
+        let r0: serde_json::Value = serde_json::from_slice(&records[0]).unwrap();
+        let r1: serde_json::Value = serde_json::from_slice(&records[1]).unwrap();
+        let r2: serde_json::Value = serde_json::from_slice(&records[2]).unwrap();
+
+        assert_eq!(r0["metrics"]["handshake_count"]["value"], 2);
+        assert_eq!(r1["metrics"]["handshake_count"]["value"], 1);
+        assert_eq!(r2["metrics"]["handshake_count"]["value"], 0);
+    }
+
+    /// When the sink returns an error, finish_record should not panic.
+    /// The error is logged via tracing but the subscriber remains usable.
+    #[test]
+    fn sink_write_failure_does_not_panic() {
+        let endpoint = TestEndpoint::<FailingSink>::with_failing_sink();
+
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+        // This should not panic even though the sink always fails
+        endpoint.subscriber.finish_record();
+
+        // The subscriber should still be functional after a sink failure
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
     }
 }

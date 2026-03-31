@@ -1,16 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Shows how to tag metrics by resource name and export them using the `Sink` trait.
+//! Demonstrates how to wire an `AggregatedMetricsSubscriber` into an s2n-tls
+//! config, perform handshakes, and export the aggregated metrics as JSON.
 //!
-//! Two subscribers use different `Attribution` values and serialization formats,
-//! so their metrics are distinguishable in the output.
+//! The subscriber is tagged with an `Attribution` so that the exported record
+//! identifies which service and resource produced the metrics.
 
-use std::{
-    io::{self, Write},
-    sync::Arc,
-    time::Duration,
-};
+use std::io::{self, Write};
 
 use s2n_tls::{
     security::DEFAULT_TLS13,
@@ -21,7 +18,7 @@ use s2n_tls_metrics_subscriber::{
     AggregatedMetricsSubscriber, Attribution, SerializationFormat, Sink,
 };
 
-/// A simple Sink that writes each record to stdout followed by a newline.
+/// A simple Sink that writes each JSON record to stdout followed by a newline.
 struct StdoutSink;
 
 impl Sink for StdoutSink {
@@ -35,47 +32,29 @@ impl Sink for StdoutSink {
 }
 
 fn main() {
-    // Subscriber A: JSON format
-    let attribution_a = Attribution {
+    let attribution = Attribution {
         platform: "my-service".into(),
         resource: "test-resource".into(),
     };
-    let subscriber_a =
-        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Json, attribution_a);
+    let subscriber =
+        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Querylog, attribution);
 
-    // Subscriber B: CBOR format, resource "internal-proxy"
-    let attribution_b = Attribution {
-        platform: "my-service".into(),
-        resource: "internal-proxy".into(),
-    };
-    let subscriber_b = AggregatedMetricsSubscriber::new(
-        Arc::new(StdoutSink),
-        SerializationFormat::Cbor,
-        attribution_b,
-    );
-
-    // Wire subscriber_a into a server config so handshake events flow into it.
+    // Wire the subscriber into a server config so handshake events flow into it.
     let server_config = {
         let mut builder = config_builder(&DEFAULT_TLS13).unwrap();
-        builder.set_event_subscriber(subscriber_a.clone()).unwrap();
+        builder.set_event_subscriber(subscriber.clone()).unwrap();
         builder.build().unwrap()
     };
     let client_config = build_config(&DEFAULT_TLS13).unwrap();
 
-    // Do a few handshakes so there's real data to export.
+    // Perform a few handshakes so there is real data to export.
     for _ in 0..3 {
         let mut pair = TestPair::from_configs(&client_config, &server_config);
         pair.handshake().unwrap();
     }
 
-    // Manual export: flushes the aggregated record immediately.
-    // Because subscriber_a uses JSON format, this prints JSON to stdout.
-    subscriber_a.finish_record();
-
-    // Periodic export demo: subscriber_b will flush every 60 seconds.
-    // Since it uses CBOR format, the output will be binary.
-    // The handle must be kept alive for periodic export to continue.
-    let _handle = subscriber_b.start_periodic_export(Duration::from_secs(60));
-
-    println!("done");
+    // Flush the aggregated record. This prints one JSON line to stdout
+    // containing attribution metadata and handshake metrics from the
+    // three handshakes above.
+    subscriber.finish_record();
 }
