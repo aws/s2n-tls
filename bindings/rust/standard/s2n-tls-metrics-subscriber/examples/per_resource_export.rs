@@ -35,13 +35,13 @@ impl Sink for StdoutSink {
 }
 
 fn main() {
-    // Subscriber A: Querylog format
+    // Subscriber A: JSON format
     let attribution_a = Attribution {
         platform: "my-service".into(),
         resource: "test-resource".into(),
     };
     let subscriber_a =
-        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Querylog, attribution_a);
+        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Json, attribution_a);
 
     // Subscriber B: CBOR format, resource "internal-proxy"
     let attribution_b = Attribution {
@@ -69,7 +69,7 @@ fn main() {
     }
 
     // Manual export: flushes the aggregated record immediately.
-    // Because subscriber_a uses Querylog format, this prints JSON to stdout.
+    // Because subscriber_a uses JSON format, this prints JSON to stdout.
     subscriber_a.finish_record();
 
     // Periodic export demo: subscriber_b will flush every 60 seconds.

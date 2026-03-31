@@ -28,4 +28,3 @@ s2n-tls-sys = { version = "0.3.33", path = "../../extended/s2n-tls-sys"}
 
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
-proptest = "1.0"

@@ -60,7 +60,7 @@ impl TestEndpoint<VecSink> {
         };
         let subscriber = AggregatedMetricsSubscriber::new(
             sink.clone(),
-            SerializationFormat::Querylog,
+            SerializationFormat::Json,
             attribution,
         );
         let server_config = {

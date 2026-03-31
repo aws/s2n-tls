@@ -7,8 +7,8 @@ use std::fmt;
 /// Determines how a [`MetricRecord`] is serialized before being written to a Sink.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SerializationFormat {
-    /// Querylog JSON format (via `serde_json`)
-    Querylog,
+    /// JSON format (via `serde_json`)
+    Json,
     /// CBOR binary format (via `ciborium`)
     Cbor,
 }
@@ -17,7 +17,7 @@ impl SerializationFormat {
     /// Serialize a `MetricRecord` into bytes using this format.
     pub(crate) fn serialize(&self, record: &MetricRecord) -> Result<Vec<u8>, SerializationError> {
         match self {
-            SerializationFormat::Querylog => {
+            SerializationFormat::Json => {
                 serde_json::to_vec(record).map_err(SerializationError::Json)
             }
             SerializationFormat::Cbor => {
