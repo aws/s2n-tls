@@ -8,12 +8,12 @@ use std::{io, sync::Arc};
 /// Implementations receive raw bytes (a complete serialized `MetricRecord`
 /// in the format configured on the subscriber) and write them to a
 /// destination such as stdout, a file, or a network socket.
-pub trait Sink: Send + Sync + 'static {
+pub trait TelemetrySink: Send + Sync + 'static {
     /// Write a single serialized metric record.
     fn write_record(&self, record: &[u8]) -> io::Result<()>;
 }
 
-impl<T: Sink> Sink for Arc<T> {
+impl<T: TelemetrySink> TelemetrySink for Arc<T> {
     fn write_record(&self, record: &[u8]) -> io::Result<()> {
         (**self).write_record(record)
     }

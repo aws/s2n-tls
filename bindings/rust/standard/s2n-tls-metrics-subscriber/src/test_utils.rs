@@ -9,7 +9,7 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat, sink::Sink,
+    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat, telemetry_sink::TelemetrySink,
 };
 
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
@@ -17,7 +17,7 @@ pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
 pub(crate) static ARBITRARY_POLICY_2: LazyLock<Policy> =
     LazyLock::new(|| Policy::from_version("20190214").unwrap());
 
-/// A test helper that implements [`Sink`] by collecting serialized bytes into a Vec.
+/// A test helper that implements [`TelemetrySink`] by collecting serialized bytes into a Vec.
 #[derive(Debug, Clone)]
 pub(crate) struct VecSink {
     pub(crate) records: Arc<Mutex<Vec<Vec<u8>>>>,
@@ -31,20 +31,20 @@ impl VecSink {
     }
 }
 
-impl Sink for VecSink {
+impl TelemetrySink for VecSink {
     fn write_record(&self, record: &[u8]) -> std::io::Result<()> {
         self.records.lock().unwrap().push(record.to_vec());
         Ok(())
     }
 }
 
-pub(crate) struct TestEndpoint<S: Sink> {
+pub(crate) struct TestEndpoint<S: TelemetrySink> {
     pub server_config: s2n_tls::config::Config,
     pub subscriber: AggregatedMetricsSubscriber<S>,
     pub sink: S,
 }
 
-impl<S: Sink> TestEndpoint<S> {
+impl<S: TelemetrySink> TestEndpoint<S> {
     pub fn client_handshake(&self, client_policy: &Policy) -> TestPair {
         let client_config = build_config(client_policy).unwrap();
         let mut pair = TestPair::from_configs(&client_config, &self.server_config);
@@ -55,14 +55,14 @@ impl<S: Sink> TestEndpoint<S> {
 
 impl TestEndpoint<VecSink> {
     pub fn new() -> Self {
-        Self::with_format(SerializationFormat::Querylog)
+        Self::with_format(SerializationFormat::Json)
     }
 
     pub fn with_format(format: SerializationFormat) -> Self {
         let sink = VecSink::new();
         let attribution = Attribution {
-            platform: "test_server".into(),
-            resource: "test_resource".into(),
+            service: "test_server".to_owned(),
+            resource: "test_resource".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), format, attribution);
         let server_config = {
@@ -82,7 +82,7 @@ impl TestEndpoint<VecSink> {
 #[derive(Debug, Clone)]
 pub(crate) struct FailingSink;
 
-impl Sink for FailingSink {
+impl TelemetrySink for FailingSink {
     fn write_record(&self, _record: &[u8]) -> std::io::Result<()> {
         Err(std::io::Error::new(
             std::io::ErrorKind::BrokenPipe,
@@ -95,12 +95,12 @@ impl TestEndpoint<FailingSink> {
     pub fn with_failing_sink() -> Self {
         let sink = FailingSink;
         let attribution = Attribution {
-            platform: "test_server".into(),
-            resource: "test_resource".into(),
+            service: "test_server".to_owned(),
+            resource: "test_resource".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(
             sink.clone(),
-            SerializationFormat::Querylog,
+            SerializationFormat::Json,
             attribution,
         );
         let server_config = {

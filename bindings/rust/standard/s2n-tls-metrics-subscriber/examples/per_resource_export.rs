@@ -15,13 +15,13 @@ use s2n_tls::{
 };
 
 use s2n_tls_metrics_subscriber::{
-    AggregatedMetricsSubscriber, Attribution, SerializationFormat, Sink,
+    AggregatedMetricsSubscriber, Attribution, SerializationFormat, TelemetrySink,
 };
 
-/// A simple Sink that writes each JSON record to stdout followed by a newline.
+/// A simple TelemetrySink that writes each JSON record to stdout followed by a newline.
 struct StdoutSink;
 
-impl Sink for StdoutSink {
+impl TelemetrySink for StdoutSink {
     fn write_record(&self, record: &[u8]) -> io::Result<()> {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
@@ -33,11 +33,11 @@ impl Sink for StdoutSink {
 
 fn main() {
     let attribution = Attribution {
-        platform: "my-service".into(),
-        resource: "test-resource".into(),
+        service: "my-service".to_owned(),
+        resource: "test-resource".to_owned(),
     };
     let subscriber =
-        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Querylog, attribution);
+        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Json, attribution);
 
     // Wire the subscriber into a server config so handshake events flow into it.
     let server_config = {

@@ -5,7 +5,7 @@ use crate::{
     attribution::Attribution,
     format::SerializationFormat,
     record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord},
-    sink::Sink,
+    telemetry_sink::TelemetrySink,
 };
 use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
@@ -19,20 +19,20 @@ use std::{
 };
 
 #[derive(Debug)]
-struct ExportPipeline<S: Sink> {
+struct ExportPipeline<S: TelemetrySink> {
     metric_receiver: Receiver<FrozenHandshakeRecord>,
     sink: S,
     format: SerializationFormat,
 }
 
 /// The AggregatedMetricSubscriber can be used to aggregate events over some period
-/// of time, and then export them using a [`Sink`].
+/// of time, and then export them using a [`TelemetrySink`].
 #[derive(Debug)]
-pub struct AggregatedMetricsSubscriber<S: Sink> {
+pub struct AggregatedMetricsSubscriber<S: TelemetrySink> {
     inner: Arc<MetricSubscriberInner<S>>,
 }
 
-impl<S: Sink> Clone for AggregatedMetricsSubscriber<S> {
+impl<S: TelemetrySink> Clone for AggregatedMetricsSubscriber<S> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -52,7 +52,7 @@ impl<S: Sink> Clone for AggregatedMetricsSubscriber<S> {
 /// it) then its `drop` implementation will write it to the channel, where it can
 /// then be read by the export pipeline.
 #[derive(Debug)]
-struct MetricSubscriberInner<S: Sink> {
+struct MetricSubscriberInner<S: TelemetrySink> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
     /// This handle is not directly used, but is used when constructing new
     /// HandshakeRecordInProgress items.
@@ -63,7 +63,7 @@ struct MetricSubscriberInner<S: Sink> {
     attribution: Attribution,
 }
 
-impl<S: Sink> AggregatedMetricsSubscriber<S> {
+impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
     pub fn new(sink: S, format: SerializationFormat, attribution: Attribution) -> Self {
         let (tx, rx) = mpsc::channel();
 
@@ -118,7 +118,7 @@ impl<S: Sink> AggregatedMetricsSubscriber<S> {
     }
 }
 
-impl<S: Sink> EventSubscriber for AggregatedMetricsSubscriber<S> {
+impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
     fn on_handshake_event(
         &self,
         connection: &s2n_tls::connection::Connection,
@@ -140,13 +140,13 @@ impl<S: Sink> EventSubscriber for AggregatedMetricsSubscriber<S> {
 ///
 /// When dropped, the handle signals the background thread to stop, joins it,
 /// and performs a final `finish_record()` call to flush any accumulated metrics.
-pub struct PeriodicExportHandle<S: Sink> {
+pub struct PeriodicExportHandle<S: TelemetrySink> {
     subscriber: AggregatedMetricsSubscriber<S>,
     stop: Arc<(Mutex<bool>, Condvar)>,
     handle: Option<JoinHandle<()>>,
 }
 
-impl<S: Sink> AggregatedMetricsSubscriber<S> {
+impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
     /// Start a background thread that calls `finish_record()` at the given interval.
     ///
     /// The returned handle must be kept alive for the periodic export to continue.
@@ -180,7 +180,7 @@ impl<S: Sink> AggregatedMetricsSubscriber<S> {
     }
 }
 
-impl<S: Sink> Drop for PeriodicExportHandle<S> {
+impl<S: TelemetrySink> Drop for PeriodicExportHandle<S> {
     fn drop(&mut self) {
         let (lock, cvar) = &*self.stop;
         *lock.lock().unwrap() = true;

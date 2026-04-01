@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// Identifies the source of a metric record by service and resource.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Attribution {
     /// The service or application name (e.g. "my-tls-service")
-    pub platform: Arc<str>,
-    /// The individual resource or listener name (e.g. "test-resource-listener")
-    pub resource: Arc<str>,
+    pub service: String,
+    /// The resource producing metrics (e.g. an ARN or listener name)
+    pub resource: String,
 }

@@ -8,11 +8,11 @@ use std::fmt;
 /// Determines how a [`MetricRecord`] is serialized before being written to a Sink.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SerializationFormat {
-    /// Querylog JSON format via `metrique_writer::Entry` and the JSON formatter.
+    /// JSON format via `metrique_writer::Entry` and the JSON formatter.
     ///
     /// Produces human-readable JSON with named metric keys like
     /// `"cipher.negotiated.TLS_AES_128_GCM_SHA256": 3`.
-    Querylog,
+    Json,
     /// CBOR binary format (via `ciborium` / serde `Serialize`).
     Cbor,
 }
@@ -21,7 +21,7 @@ impl SerializationFormat {
     /// Serialize a `MetricRecord` into bytes using this format.
     pub(crate) fn serialize(&self, record: &MetricRecord) -> Result<Vec<u8>, SerializationError> {
         match self {
-            SerializationFormat::Querylog => {
+            SerializationFormat::Json => {
                 let mut json_fmt = metrique_writer_format_json::Json::new();
                 let mut buf = Vec::new();
                 json_fmt.format(record, &mut buf).map_err(|e| match e {
@@ -44,7 +44,7 @@ impl SerializationFormat {
 /// Errors that can occur during metric record serialization.
 #[derive(Debug)]
 pub enum SerializationError {
-    /// IO or querylog formatting error
+    /// IO or JSON formatting error
     Io(std::io::Error),
     /// CBOR serialization error
     Cbor(ciborium::ser::Error<std::io::Error>),
@@ -76,10 +76,10 @@ mod tests {
         test_utils::{ARBITRARY_POLICY_1, ARBITRARY_POLICY_2, TestEndpoint},
     };
 
-    /// Verify the querylog JSON wire format contains named metric keys
+    /// Verify the JSON wire format contains named metric keys
     /// produced by the metrique_writer Entry implementation.
     #[test]
-    fn querylog_wire_format_shape() {
+    fn json_wire_format_shape() {
         let endpoint = TestEndpoint::new();
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
@@ -98,7 +98,7 @@ mod tests {
         let properties = obj["properties"].as_object().unwrap();
 
         // Attribution goes into properties
-        assert_eq!(properties["platform"], "test_server");
+        assert_eq!(properties["service"], "test_server");
         assert_eq!(properties["resource"], "test_resource");
 
         // Fixed metric fields
@@ -118,9 +118,9 @@ mod tests {
         assert!(has_negotiated_version, "missing version.negotiated.* key");
     }
 
-    /// Strip dynamic fields (timestamp, timers) from a querylog JSON value
+    /// Strip dynamic fields (timestamp, timers) from a JSON value
     /// so that snapshot comparisons are deterministic.
-    fn strip_dynamic_querylog(val: &mut serde_json::Value) {
+    fn strip_dynamic_json(val: &mut serde_json::Value) {
         let obj = val.as_object_mut().unwrap();
         obj.remove("timestamp");
         if let Some(metrics) = obj.get_mut("metrics").and_then(|m| m.as_object_mut()) {
@@ -139,11 +139,11 @@ mod tests {
         }
     }
 
-    /// Compare the querylog output against a checked-in snapshot to catch
+    /// Compare the JSON output against a checked-in snapshot to catch
     /// accidental changes to the wire format.
     #[test]
-    fn querylog_snapshot() {
-        let snapshot = include_str!("../resources/querylog_sample.json");
+    fn json_snapshot() {
+        let snapshot = include_str!("../resources/json_sample.json");
 
         let endpoint = TestEndpoint::new();
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -157,14 +157,14 @@ mod tests {
         // {
         //     let json: serde_json::Value = serde_json::from_str(&output).unwrap();
         //     let pretty = serde_json::to_string_pretty(&json).unwrap();
-        //     std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/querylog_sample.json"), pretty).unwrap();
+        //     std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/json_sample.json"), pretty).unwrap();
         // }
 
         let mut result: serde_json::Value = serde_json::from_str(&output).unwrap();
         let mut expected: serde_json::Value = serde_json::from_str(snapshot).unwrap();
 
-        strip_dynamic_querylog(&mut result);
-        strip_dynamic_querylog(&mut expected);
+        strip_dynamic_json(&mut result);
+        strip_dynamic_json(&mut expected);
 
         assert_eq!(result, expected);
     }

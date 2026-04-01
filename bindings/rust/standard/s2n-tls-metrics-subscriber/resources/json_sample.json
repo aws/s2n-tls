@@ -112,13 +112,13 @@
       "value": 1
     },
     "handshake_compute_us": {
-      "value": 4482
+      "value": 8531
     },
     "handshake_count": {
       "value": 2
     },
     "handshake_duration_us": {
-      "value": 5258
+      "value": 9773
     },
     "signature_scheme.negotiated.rsa_pkcs1_sha256": {
       "value": 1
@@ -191,8 +191,8 @@
     }
   },
   "properties": {
-    "platform": "test_server",
-    "resource": "test_resource"
+    "resource": "test_resource",
+    "service": "test_server"
   },
-  "timestamp": 1774999524619
+  "timestamp": 1775064085173
 }
