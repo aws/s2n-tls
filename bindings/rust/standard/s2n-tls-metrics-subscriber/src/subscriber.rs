@@ -29,7 +29,7 @@ struct ExportPipeline<S: Sink> {
 /// of time, and then export them using a [`Sink`].
 #[derive(Debug)]
 pub struct AggregatedMetricsSubscriber<S: Sink> {
-    pub(crate) inner: Arc<MetricSubscriberInner<S>>,
+    inner: Arc<MetricSubscriberInner<S>>,
 }
 
 impl<S: Sink> Clone for AggregatedMetricsSubscriber<S> {
@@ -52,8 +52,8 @@ impl<S: Sink> Clone for AggregatedMetricsSubscriber<S> {
 /// it) then its `drop` implementation will write it to the channel, where it can
 /// then be read by the export pipeline.
 #[derive(Debug)]
-pub(crate) struct MetricSubscriberInner<S: Sink> {
-    pub(crate) current_record: ArcSwap<HandshakeRecordInProgress>,
+struct MetricSubscriberInner<S: Sink> {
+    current_record: ArcSwap<HandshakeRecordInProgress>,
     /// This handle is not directly used, but is used when constructing new
     /// HandshakeRecordInProgress items.
     tx_handle: Sender<FrozenHandshakeRecord>,
