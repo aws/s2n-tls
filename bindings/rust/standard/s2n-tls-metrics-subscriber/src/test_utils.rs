@@ -9,7 +9,8 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat, telemetry_sink::TelemetrySink,
+    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat,
+    telemetry_sink::TelemetrySink,
 };
 
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
@@ -98,11 +99,8 @@ impl TestEndpoint<FailingSink> {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
         };
-        let subscriber = AggregatedMetricsSubscriber::new(
-            sink.clone(),
-            SerializationFormat::Json,
-            attribution,
-        );
+        let subscriber =
+            AggregatedMetricsSubscriber::new(sink.clone(), SerializationFormat::Json, attribution);
         let server_config = {
             let mut config = config_builder(&DEFAULT_TLS13).unwrap();
             config.set_event_subscriber(subscriber.clone()).unwrap();

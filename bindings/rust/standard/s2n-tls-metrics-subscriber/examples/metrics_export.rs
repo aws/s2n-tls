@@ -18,7 +18,9 @@ use s2n_tls_metrics_subscriber::{
     AggregatedMetricsSubscriber, Attribution, SerializationFormat, TelemetrySink,
 };
 
-/// A simple TelemetrySink that writes each JSON record to stdout followed by a newline.
+/// Example TelemetrySink that writes each record to stdout.
+/// Applications can implement TelemetrySink to route records to any
+/// destination: a file, network socket, S3, Kinesis, etc.
 struct StdoutSink;
 
 impl TelemetrySink for StdoutSink {
