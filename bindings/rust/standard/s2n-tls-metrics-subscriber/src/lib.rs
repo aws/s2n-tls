@@ -5,7 +5,7 @@ pub mod attribution;
 pub mod format;
 mod label;
 mod parsing;
-pub(crate) mod record;
+mod record;
 mod static_lists;
 pub mod subscriber;
 pub mod telemetry_sink;

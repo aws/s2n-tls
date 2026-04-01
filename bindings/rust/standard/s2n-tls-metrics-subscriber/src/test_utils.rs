@@ -9,8 +9,8 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber, attribution::Attribution, format::SerializationFormat,
-    telemetry_sink::TelemetrySink,
+    AggregatedMetricsSubscriber, MetricRecord, attribution::Attribution,
+    format::SerializationFormat, telemetry_sink::TelemetrySink,
 };
 
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
@@ -112,4 +112,14 @@ impl TestEndpoint<FailingSink> {
             sink,
         }
     }
+}
+
+/// Create a test endpoint using CBOR format for structural deserialization tests.
+pub(crate) fn cbor_endpoint() -> TestEndpoint<VecSink> {
+    TestEndpoint::with_format(SerializationFormat::Cbor)
+}
+
+/// Deserialize a MetricRecord from CBOR bytes.
+pub(crate) fn deserialize_cbor(bytes: &[u8]) -> MetricRecord {
+    ciborium::from_reader(bytes).unwrap()
 }

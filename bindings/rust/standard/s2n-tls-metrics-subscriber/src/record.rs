@@ -279,6 +279,8 @@ pub(crate) struct FrozenHandshakeRecord {
     handshake_compute_us: u64,
 }
 
+// This is just cfg(test) because we only use it in tests to assert on cases of
+// all-zero records
 #[cfg(test)]
 impl Default for FrozenHandshakeRecord {
     fn default() -> Self {
@@ -374,20 +376,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        format::SerializationFormat,
-        test_utils::{ARBITRARY_POLICY_1, TestEndpoint},
-    };
-
-    /// Helper: create a test endpoint using CBOR so we can deserialize
-    /// back into MetricRecord for structural assertions.
-    fn cbor_endpoint() -> TestEndpoint<crate::test_utils::VecSink> {
-        TestEndpoint::with_format(SerializationFormat::Cbor)
-    }
-
-    fn deserialize_cbor(bytes: &[u8]) -> MetricRecord {
-        ciborium::from_reader(bytes).unwrap()
-    }
+    use crate::test_utils::{ARBITRARY_POLICY_1, cbor_endpoint, deserialize_cbor};
 
     #[test]
     fn record_contents_negotiated_parameters() {
