@@ -528,22 +528,29 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
 
-    POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
-
+    /* Perform all fallible checks BEFORE inserting into the domain name map.
+     * If we insert into the map first and then fail, the caller's DEFER_CLEANUP
+     * will free cert_key_pair while the map still holds pointers to it,
+     * resulting in dangling pointers and a use-after-free during SNI lookup.
+     */
     if (!config->default_certs_are_explicit) {
         POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
-         * default, etc. */
-        if (config->default_certs_by_type.certs[cert_type] == NULL) {
-            config->default_certs_by_type.certs[cert_type] = cert_key_pair;
-        } else {
+        if (config->default_certs_by_type.certs[cert_type] != NULL) {
             /* Because library-owned certificates are tracked and cleaned up via the
              * default_certs_by_type mapping, library-owned chains MUST be set as the default
              * to avoid a memory leak. If they're not the default, they're not freed.
              */
             POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED,
                     S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
+        }
+    }
+
+    POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
+
+    if (!config->default_certs_are_explicit) {
+        if (config->default_certs_by_type.certs[cert_type] == NULL) {
+            config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
     }
 
@@ -611,7 +618,12 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE(config->cert_ownership != S2N_APP_OWNED, S2N_ERR_CERT_OWNERSHIP);
+    /* Only allow this deprecated API to be called once. Library-owned certs are
+     * tracked via default_certs_by_type, so adding a second cert that can't be
+     * stored there would leak or, worse, leave dangling pointers in the domain
+     * name map when DEFER_CLEANUP fires on failure.
+     */
+    POSIX_ENSURE(config->cert_ownership == S2N_NOT_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
             s2n_cert_chain_and_key_ptr_free);
@@ -629,7 +641,8 @@ int s2n_config_add_cert_chain(struct s2n_config *config,
         uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE(config->cert_ownership != S2N_APP_OWNED, S2N_ERR_CERT_OWNERSHIP);
+    /* Only allow this deprecated API to be called once. */
+    POSIX_ENSURE(config->cert_ownership == S2N_NOT_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
             s2n_cert_chain_and_key_ptr_free);
