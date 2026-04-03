@@ -333,7 +333,7 @@ int s2n_free_without_wipe(struct s2n_blob *b)
     if (b->data) {
         void *data = b->data;
         uint32_t allocated = b->allocated;
-        /* Zero the blob first to prevent potential double-free on s2n_mem_free_cb error path */
+        /* Set data point to NULL first to prevent potential double-free on s2n_mem_free_cb error path */
         *b = (struct s2n_blob){ 0 };
         POSIX_ENSURE(s2n_mem_free_cb(data, allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
