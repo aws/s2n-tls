@@ -481,7 +481,7 @@ mod tests {
 
         // make sure nested errors work
         {
-            let io_error = std::io::Error::new(std::io::ErrorKind::Other, CustomError);
+            let io_error = std::io::Error::other(CustomError);
             let error = Error::application(Box::new(io_error));
 
             let app_error = error.application_error().unwrap();
