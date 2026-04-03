@@ -342,5 +342,35 @@ int main(int argc, char **argv)
         }
     }
 
+    /* test wipe_n */
+    {
+        struct s2n_stuffer test = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
+        uint8_t data[10];
+
+        memset(data, 0xAB, sizeof(data));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+
+        EXPECT_EQUAL(test.write_cursor, 0);
+        EXPECT_EQUAL(test.read_cursor, 0);
+        EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+
+        for (size_t i = 0; i < sizeof(data); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xAB);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 0));
+        EXPECT_EQUAL(test.high_water_mark, 0);
+        EXPECT_EQUAL(test.write_cursor, 0);
+
+        for (size_t i = 0; i < sizeof(data); i++) {
+            EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&test));
+    }
+
     END_TEST();
 }
