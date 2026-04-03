@@ -91,10 +91,25 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
 static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *pub_key = s2n_get_Ys_dh_param(dh_params);
-
     POSIX_ENSURE_REF(pub_key);
 
+    /* RFC 2631 §2.1.5: DH public key must be in the range [2, p-2] */
     S2N_ERROR_IF(BN_is_zero(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+    S2N_ERROR_IF(BN_is_one(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+
+    const BIGNUM *p = s2n_get_p_dh_param(dh_params);
+    POSIX_ENSURE_REF(p);
+
+    /* Reject if pub_key > p-2 */
+    BIGNUM *p_minus_two = BN_dup(p);
+    POSIX_ENSURE_REF(p_minus_two);
+    if (!BN_sub_word(p_minus_two, 2)) {
+        BN_free(p_minus_two);
+        POSIX_BAIL(S2N_ERR_DH_PARAMS_CREATE);
+    }
+    int cmp = BN_cmp(pub_key, p_minus_two);
+    BN_free(p_minus_two);
+    S2N_ERROR_IF(cmp > 0, S2N_ERR_DH_PARAMS_CREATE);
 
     return S2N_SUCCESS;
 }
