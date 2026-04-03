@@ -86,6 +86,7 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
 
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
+        POSIX_ENSURE_REF(store->trust_store);
     }
 
     DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = { 0 }, s2n_stuffer_free);
