@@ -161,21 +161,33 @@ int main(int argc, char **argv)
 
         /* Skip if DH param validation fails (libcrypto-dependent) */
         if (s2n_pkcs3_to_dh_params(&base_params, &dhparams_blob) == S2N_SUCCESS) {
-            const BIGNUM *bn_p = NULL;
-            const BIGNUM *bn_g = NULL;
-            DH_get0_pqg(base_params.dh, &bn_p, NULL, &bn_g);
-            EXPECT_NOT_NULL(bn_p);
-            EXPECT_NOT_NULL(bn_g);
+            /* Use s2n_dh_params_to_p_g_Ys to extract p and g without
+             * version-specific OpenSSL calls (DH_get0_pqg is 1.1.0+). */
+            EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&base_params));
 
-            uint8_t p_buf[256] = { 0 };
-            uint8_t g_buf[256] = { 0 };
-            int p_len = BN_bn2bin(bn_p, p_buf);
-            int g_len = BN_bn2bin(bn_g, g_buf);
+            struct s2n_stuffer pgy_out = { 0 };
+            struct s2n_blob pgy_blob = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&pgy_out, 1024));
+            EXPECT_SUCCESS(s2n_dh_params_to_p_g_Ys(&base_params, &pgy_out, &pgy_blob));
+
+            /* Parse serialized format: [uint16 p_len][p][uint16 g_len][g][uint16 Ys_len][Ys] */
+            uint16_t p_len = 0;
+            uint16_t g_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&pgy_out, &p_len));
+            uint8_t *p_data = s2n_stuffer_raw_read(&pgy_out, p_len);
+            EXPECT_NOT_NULL(p_data);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&pgy_out, &g_len));
+            uint8_t *g_data = s2n_stuffer_raw_read(&pgy_out, g_len);
+            EXPECT_NOT_NULL(g_data);
 
             struct s2n_blob p_blob = { 0 };
             struct s2n_blob g_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&p_blob, p_buf, p_len));
-            EXPECT_SUCCESS(s2n_blob_init(&g_blob, g_buf, g_len));
+            EXPECT_SUCCESS(s2n_blob_init(&p_blob, p_data, p_len));
+            EXPECT_SUCCESS(s2n_blob_init(&g_blob, g_data, g_len));
+
+            /* Get p as a BIGNUM for constructing boundary test values */
+            BIGNUM *bn_p = BN_bin2bn(p_data, p_len, NULL);
+            EXPECT_NOT_NULL(bn_p);
 
             /* Table-driven test: each entry is {Ys value, expected result} */
             struct {
@@ -219,6 +231,8 @@ int main(int argc, char **argv)
                 BN_free(test_cases[i].ys);
             }
 
+            BN_free(bn_p);
+            EXPECT_SUCCESS(s2n_stuffer_free(&pgy_out));
             EXPECT_SUCCESS(s2n_dh_params_free(&base_params));
         }
 
