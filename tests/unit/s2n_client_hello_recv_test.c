@@ -549,6 +549,137 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_client_hello_version(server), S2N_SSLv2);
     };
 
+    /* Test: s2n_config_set_sslv2_client_hello_enabled */
+    {
+        /* SSLv2 client hello is accepted by default (backward compatibility) */
+        {
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            server_conn->client_hello.sslv2 = true;
+            server_conn->client_hello.legacy_version = S2N_TLS12;
+
+            uint8_t sslv2_client_hello[] = {
+                SSLv2_CLIENT_HELLO_PREFIX,
+                SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+                SSLv2_CLIENT_HELLO_CHALLENGE,
+            };
+
+            struct s2n_blob client_hello_blob = {
+                .data = sslv2_client_hello,
+                .size = sizeof(sslv2_client_hello),
+                .allocated = 0,
+                .growable = 0
+            };
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello_blob));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_TRUE(server_conn->client_hello.sslv2);
+
+            s2n_connection_free(server_conn);
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        };
+
+        /* SSLv2 client hello is rejected when disabled */
+        {
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+            struct s2n_config *disabled_config = s2n_config_new();
+            EXPECT_NOT_NULL(disabled_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(disabled_config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(disabled_config, tls13_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_sslv2_client_hello_enabled(disabled_config, false));
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, disabled_config));
+
+            server_conn->client_hello.sslv2 = true;
+            server_conn->client_hello.legacy_version = S2N_TLS12;
+
+            uint8_t sslv2_client_hello[] = {
+                SSLv2_CLIENT_HELLO_PREFIX,
+                SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+                SSLv2_CLIENT_HELLO_CHALLENGE,
+            };
+
+            struct s2n_blob client_hello_blob = {
+                .data = sslv2_client_hello,
+                .size = sizeof(sslv2_client_hello),
+                .allocated = 0,
+                .growable = 0
+            };
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello_blob));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_SSLV2_CLIENT_HELLO_DISABLED);
+
+            s2n_connection_free(server_conn);
+            s2n_config_free(disabled_config);
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        };
+
+        /* SSLv2 client hello is accepted when explicitly enabled */
+        {
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+            struct s2n_config *enabled_config = s2n_config_new();
+            EXPECT_NOT_NULL(enabled_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(enabled_config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(enabled_config, tls13_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_sslv2_client_hello_enabled(enabled_config, true));
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, enabled_config));
+
+            server_conn->client_hello.sslv2 = true;
+            server_conn->client_hello.legacy_version = S2N_TLS12;
+
+            uint8_t sslv2_client_hello[] = {
+                SSLv2_CLIENT_HELLO_PREFIX,
+                SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+                SSLv2_CLIENT_HELLO_CHALLENGE,
+            };
+
+            struct s2n_blob client_hello_blob = {
+                .data = sslv2_client_hello,
+                .size = sizeof(sslv2_client_hello),
+                .allocated = 0,
+                .growable = 0
+            };
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello_blob));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_TRUE(server_conn->client_hello.sslv2);
+
+            s2n_connection_free(server_conn);
+            s2n_config_free(enabled_config);
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        };
+
+        /* Non-SSLv2 client hello succeeds even when SSLv2 is disabled */
+        {
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+            struct s2n_config *disabled_config = s2n_config_new();
+            EXPECT_NOT_NULL(disabled_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(disabled_config, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(disabled_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_sslv2_client_hello_enabled(disabled_config, false));
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, disabled_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, disabled_config));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_FALSE(server_conn->client_hello.sslv2);
+
+            s2n_connection_free(server_conn);
+            s2n_connection_free(client_conn);
+            s2n_config_free(disabled_config);
+        };
+    };
+
     s2n_config_free(tls12_config);
     s2n_config_free(tls13_config);
     s2n_cert_chain_and_key_free(chain_and_key);

@@ -979,6 +979,24 @@ S2N_API extern int s2n_config_set_send_buffer_size(struct s2n_config *config, ui
 S2N_API extern int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled);
 
 /**
+ * Toggles support for SSLv2 formatted ClientHello messages.
+ *
+ * SSLv2 ClientHellos are enabled by default for backward compatibility. Disabling them
+ * is recommended per RFC 8446 Appendix D.5, which states that implementations are NOT
+ * RECOMMENDED to accept SSLv2 compatible CLIENT-HELLOs.
+ *
+ * When disabled, any incoming SSLv2 formatted ClientHello will cause the handshake to
+ * fail with an error.
+ *
+ * @note This setting only affects server-side connections.
+ *
+ * @param config The configuration object being updated
+ * @param enabled Set to `true` to accept SSLv2 formatted ClientHellos; `false` to reject them.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_sslv2_client_hello_enabled(struct s2n_config *config, bool enabled);
+
+/**
  * A callback function invoked (usually multiple times) during X.509 validation for each
  * name encountered in the leaf certificate.
  *

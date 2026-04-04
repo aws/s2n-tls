@@ -461,6 +461,15 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_collect_client_hello(&conn->client_hello, &conn->handshake.io));
 
     if (conn->client_hello.sslv2) {
+        /**
+         *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.5
+         *# Implementations are NOT RECOMMENDED to accept an SSL version 2.0
+         *# compatible CLIENT-HELLO in order to negotiate older versions of TLS.
+         */
+        if (conn->config && conn->config->sslv2_client_hello_disabled) {
+            POSIX_GUARD(s2n_queue_reader_handshake_failure_alert(conn));
+            POSIX_BAIL(S2N_ERR_SSLV2_CLIENT_HELLO_DISABLED);
+        }
         POSIX_GUARD(s2n_sslv2_client_hello_parse(conn));
         return S2N_SUCCESS;
     }

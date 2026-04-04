@@ -1327,3 +1327,12 @@ int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_hands
     config->on_handshake_event = callback;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_sslv2_client_hello_enabled(struct s2n_config *config, bool enabled)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->sslv2_client_hello_disabled = !enabled;
+
+    return S2N_SUCCESS;
+}

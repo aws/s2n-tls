@@ -123,6 +123,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_BAD_KEY_SHARE, "Bad key share received") \
     ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED, "Protocol downgrade detected by client") \
+    ERR_ENTRY(S2N_ERR_SSLV2_CLIENT_HELLO_DISABLED, "Received an SSLv2 formatted ClientHello, but SSLv2 ClientHello support is disabled") \
     ERR_ENTRY(S2N_ERR_MADVISE, "error calling madvise") \
     ERR_ENTRY(S2N_ERR_ALLOC, "error allocating memory") \
     ERR_ENTRY(S2N_ERR_MLOCK, "error calling mlock (Did you run prlimit?)") \

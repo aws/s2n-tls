@@ -111,6 +111,15 @@ struct s2n_config {
 
     unsigned ticket_forward_secrecy : 1;
 
+    /* Whether SSLv2 formatted client hellos should be rejected.
+     * When set, SSLv2 client hellos will be rejected with an error.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.5
+     *# Implementations are NOT RECOMMENDED to accept an SSL version 2.0
+     *# compatible CLIENT-HELLO in order to negotiate older versions of TLS.
+     */
+    unsigned sslv2_client_hello_disabled : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
