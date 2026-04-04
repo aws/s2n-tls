@@ -213,6 +213,8 @@ int main(int argc, char **argv)
                     EXPECT_FAILURE_WITH_ERRNO(
                             s2n_dh_p_g_Ys_to_dh_params(&test_params, &p_blob, &g_blob, &ys_blob),
                             S2N_ERR_DH_PARAMS_CREATE);
+                    /* Clean up partially-initialized params from failed call */
+                    EXPECT_SUCCESS(s2n_dh_params_free(&test_params));
                 }
                 BN_free(test_cases[i].ys);
             }
