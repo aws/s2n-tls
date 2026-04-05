@@ -1673,12 +1673,7 @@ int main(int argc, char **argv)
 
         /* Write a large ClientHello prefix (> UINT16_MAX) to trigger the truncation bug. */
         uint32_t large_prefix_size = UINT16_MAX + 100;
-        uint8_t *large_prefix = NULL;
-        EXPECT_NOT_NULL(large_prefix = malloc(large_prefix_size));
-        /* The fill value has no special significance -- any value works. */
-        memset(large_prefix, 0x42, large_prefix_size);
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(client_out, large_prefix, large_prefix_size));
-        free(large_prefix);
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(client_out, large_prefix_size));
 
         EXPECT_SUCCESS(s2n_client_psk_extension.send(client_conn, client_out));
         EXPECT_OK(s2n_finish_psk_extension(client_conn));
