@@ -14,8 +14,11 @@ static S2N_INIT: Once = Once::new();
 ///
 /// This function should only be called once
 unsafe fn global_init() -> Result<(), Error> {
-    mem::init()?;
-    s2n_init().into_result()?;
+    #[cfg(not(feature = "no-init"))]
+    {
+        mem::init()?;
+        s2n_init().into_result()?;
+    }
     Ok(())
 }
 
@@ -62,6 +65,7 @@ pub fn fips_mode() -> Result<FipsMode, Error> {
     fips_mode.try_into()
 }
 
+#[cfg(not(feature = "no-init"))]
 mod mem {
     use super::*;
     use alloc::alloc::{alloc, dealloc, Layout};
