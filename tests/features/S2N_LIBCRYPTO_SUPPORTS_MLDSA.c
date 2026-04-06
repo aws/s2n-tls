@@ -21,5 +21,7 @@ int main()
     int nids[] = { NID_MLDSA44, NID_MLDSA65, NID_MLDSA87 };
     /* Required to calculate the mu hash for ML-DSA */
     EVP_PKEY_get_raw_public_key(NULL, NULL, NULL);
+    /* Required to check ML-DSA key type */
+    EVP_PKEY_pqdsa_get_type(NULL);
     return 0;
 }
