@@ -203,31 +203,24 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
                 uint8_t ys_buf[256] = { 0 };
                 int ys_len = BN_bn2bin(test_cases[i].ys, ys_buf);
-                if (ys_len == 0) {
-                    ys_len = 1; /* BN_bn2bin returns 0 for value 0 */
-                }
                 struct s2n_blob ys_blob = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&ys_blob, ys_buf, ys_len));
 
                 struct s2n_dh_params test_params = { 0 };
                 if (test_cases[i].expect_success) {
                     EXPECT_SUCCESS(s2n_dh_p_g_Ys_to_dh_params(&test_params, &p_blob, &g_blob, &ys_blob));
-                    EXPECT_SUCCESS(s2n_dh_params_free(&test_params));
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(
                             s2n_dh_p_g_Ys_to_dh_params(&test_params, &p_blob, &g_blob, &ys_blob),
                             S2N_ERR_DH_PARAMS_CREATE);
-                    /* Clean up partially-initialized params from failed call */
-                    EXPECT_SUCCESS(s2n_dh_params_free(&test_params));
                 }
+                EXPECT_SUCCESS(s2n_dh_params_free(&test_params));
                 BN_free(test_cases[i].ys);
             }
-
             BN_free(bn_p);
             EXPECT_SUCCESS(s2n_stuffer_free(&pgy_out));
-            EXPECT_SUCCESS(s2n_dh_params_free(&base_params));
         }
-
+        EXPECT_SUCCESS(s2n_dh_params_free(&base_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
     };
