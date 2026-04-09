@@ -39,9 +39,8 @@ cd "$BUILD_DIR"
 # Pin to commit before "Mqtt test refactor" PR which broke WS test skip logic
 # in CI environments without IoT credentials. See: https://github.com/awslabs/aws-crt-cpp
 # TODO: Unpin once aws-crt-cpp fixes the skip logic for WS tests
-git clone --shallow-submodules --recurse-submodules https://github.com/awslabs/aws-crt-cpp.git
+git clone --recurse-submodules https://github.com/awslabs/aws-crt-cpp.git
 cd aws-crt-cpp
-git fetch --depth=50 origin main
 git checkout 7cb4eaa18cfbcabcc24f8ef3b9e4c2f18c77348c
 git submodule update --init --recursive
 cd ..
