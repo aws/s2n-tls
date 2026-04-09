@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::{
+    compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
     static_lists::{
@@ -67,6 +68,11 @@ pub(crate) struct HandshakeRecordInProgress {
     supported_groups: [AtomicU64; GROUP_COUNT],
     supported_signatures: [AtomicU64; SIGNATURE_COUNT],
 
+    compatibility_general20251201: AtomicU64,
+    compatibility_fips20251201: AtomicU64,
+    compatibility_cnsa1: AtomicU64,
+    compatibility_cnsa2: AtomicU64,
+
     /// sum of handshake duration, including network latency and waiting
     ///
     /// To get the average, divide this by handshake_count.
@@ -101,6 +107,11 @@ impl HandshakeRecordInProgress {
             supported_ciphers,
             supported_protocols: Default::default(),
             supported_signatures: Default::default(),
+
+            compatibility_general20251201: AtomicU64::default(),
+            compatibility_fips20251201: AtomicU64::default(),
+            compatibility_cnsa1: AtomicU64::default(),
+            compatibility_cnsa2: AtomicU64::default(),
 
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
@@ -172,6 +183,21 @@ impl HandshakeRecordInProgress {
                         counter.fetch_add(1, Ordering::Relaxed);
                     });
             }
+
+            if General20251201::supported(&supported_parameter) {
+                self.compatibility_general20251201
+                    .fetch_add(1, Ordering::Relaxed);
+            }
+            if Fips20251201::supported(&supported_parameter) {
+                self.compatibility_fips20251201
+                    .fetch_add(1, Ordering::Relaxed);
+            }
+            if Cnsa1::supported(&supported_parameter) {
+                self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+            }
+            if Cnsa2::supported(&supported_parameter) {
+                self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+            }
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -231,6 +257,13 @@ impl HandshakeRecordInProgress {
             supported_groups: relaxed_freeze(&self.supported_groups),
             supported_signatures: relaxed_freeze(&self.supported_signatures),
 
+            compatibility_general20251201: self
+                .compatibility_general20251201
+                .load(Ordering::Relaxed),
+            compatibility_fips20251201: self.compatibility_fips20251201.load(Ordering::Relaxed),
+            compatibility_cnsa1: self.compatibility_cnsa1.load(Ordering::Relaxed),
+            compatibility_cnsa2: self.compatibility_cnsa2.load(Ordering::Relaxed),
+
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
         }
@@ -262,6 +295,11 @@ pub(crate) struct FrozenHandshakeRecord {
     supported_groups: [u64; GROUP_COUNT],
     supported_signatures: [u64; SIGNATURE_COUNT],
 
+    compatibility_general20251201: u64,
+    compatibility_fips20251201: u64,
+    compatibility_cnsa1: u64,
+    compatibility_cnsa2: u64,
+
     handshake_duration_us: u64,
     handshake_compute_us: u64,
 }
@@ -283,6 +321,10 @@ impl Default for FrozenHandshakeRecord {
             supported_ciphers: [0; CIPHER_COUNT],
             supported_groups: [0; GROUP_COUNT],
             supported_signatures: [0; SIGNATURE_COUNT],
+            compatibility_general20251201: 0,
+            compatibility_fips20251201: 0,
+            compatibility_cnsa1: 0,
+            compatibility_cnsa2: 0,
             handshake_duration_us: 0,
             handshake_compute_us: 0,
         }
@@ -545,6 +587,23 @@ mod tests {
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
         assert_eq!(record, FrozenHandshakeRecord::default());
+    }
+
+    /// ARBITRARY_POLICY_1 (20240503 / default_tls13) should be compatible with
+    /// General, Fips, and Cnsa1 profiles, but not CNSA2 (which requires MLKEM1024
+    /// and mldsa87).
+    #[test]
+    fn record_contents_compatibility_metrics() {
+        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+        let record = endpoint.exporter.recv().unwrap().handshake;
+
+        assert_eq!(record.compatibility_general20251201, 1);
+        assert_eq!(record.compatibility_fips20251201, 1);
+        assert_eq!(record.compatibility_cnsa1, 1);
+        assert_eq!(record.compatibility_cnsa2, 0);
     }
 
     /// Make sure that the compute time is less than the overall handshake time.
