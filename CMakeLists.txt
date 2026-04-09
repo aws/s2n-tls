@@ -32,8 +32,12 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
-option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "Allow s2n-tls to override the libcrypto random implementation with the custom
-s2n-tls implementation, when appropriate. Disabling this flag is not recommended. See docs/BUILD.md for details." ON)
+option(S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE "No-op, retained for backwards compatibility. The custom RAND engine was removed
+as part of the DRBG deprecation." ON)
+option(S2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE "Assert that the feature probes are able to link to the libcrypto and
+properly probe for feature support. If the feature probes are unable to properly probe for support, the build will
+fail. This option ensures that s2n-tls doesn't silently build without properly probing for the support of important
+features, such as TLS 1.3 support." OFF)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(BUILD_TESTING "Build tests for s2n-tls. By default only unit tests are built." ON)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
@@ -246,8 +250,10 @@ if (COVERAGE)
 endif()
 
 if (NOT S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE)
-    message(STATUS "Disabling libcrypto RAND engine override")
-    add_definitions(-DS2N_DISABLE_RAND_ENGINE_OVERRIDE=1)
+    # No-op: the custom RAND engine was removed as part of the DRBG
+    # deprecation. This option is retained so that existing builds
+    # setting S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=0 continue to succeed.
+    message(STATUS "S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE=OFF (no-op, custom RAND engine was removed)")
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs
@@ -348,6 +354,8 @@ function(feature_probe PROBE_NAME)
 
     # Set the flags that we used for the probe
     set(${PROBE_NAME}_FLAGS ${PROBE_FLAGS} PARENT_SCOPE)
+
+    set(${PROBE_NAME}_OUTPUT "${TRY_COMPILE_OUTPUT}" PARENT_SCOPE)
 endfunction()
 
 # Iterate over all of the features and try to compile them
@@ -357,6 +365,13 @@ foreach(file ${FEATURE_SRCS})
     get_filename_component(feature_name ${file} NAME_WE)
     feature_probe(${feature_name})
 endforeach()
+
+# Ensure that the feature probes were able to properly link to the libcrypto.
+if(S2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE AND NOT S2N_LIBCRYPTO_SANITY_PROBE)
+    message(FATAL_ERROR "A sanity-check libcrypto feature probe failed, which indicates that other
+    feature probes were likely unable to probe the libcrypto for its supported features:
+    ${S2N_LIBCRYPTO_SANITY_PROBE_OUTPUT}")
+endif()
 
 # FreeBSD might need to link to execinfo explicitly
 if(NOT S2N_EXECINFO_AVAILABLE AND CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

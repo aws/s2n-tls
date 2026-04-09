@@ -29,14 +29,17 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* The AWSLC API version was bumped to 32 when ML-DSA support was added.
-     * See https://github.com/aws/aws-lc/commit/404fe0f8a79ca0f28118990a06e921b63035991c
-     */
-    if (s2n_libcrypto_awslc_api_version() >= 32) {
+    /* The EVP_PKEY_pqdsa_get_type() API was added to AWSLC when AWSLC_API_VERSION == 35.
+     * See https://github.com/aws/aws-lc/commit/c74fef589e82aec138f598bdb43b988e29364d96 */
+    if (s2n_libcrypto_awslc_api_version() >= 36) {
         EXPECT_TRUE(s2n_mldsa_is_supported());
     }
 
     if (!s2n_mldsa_is_supported()) {
+        /* If ML-DSA is not supported by the libcrypto, loading ML-DSA certs will trigger an error. */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_FAILURE(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
         END_TEST();
     }
 

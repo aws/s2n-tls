@@ -30,6 +30,165 @@
             "Name": "signature_scheme.negotiated.rsa_pss_rsae_sha256"
           },
           {
+            "Name": "version.supported.TLSv1_2"
+          },
+          {
+            "Name": "version.supported.TLSv1_3"
+          },
+          {
+            "Name": "cipher.supported.TLS_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_AES_256_GCM_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_CHACHA20_POLY1305_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+          },
+          {
+            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_128_GCM_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA256"
+          },
+          {
+            "Name": "cipher.supported.TLS_RSA_WITH_AES_256_GCM_SHA384"
+          },
+          {
+            "Name": "group.supported.secp256r1"
+          },
+          {
+            "Name": "group.supported.secp384r1"
+          },
+          {
+            "Name": "group.supported.secp521r1"
+          },
+          {
+            "Name": "group.supported.x25519"
+          },
+          {
+            "Name": "signature_scheme.supported.ecdsa_sha1"
+          },
+          {
+            "Name": "signature_scheme.supported.ecdsa_sha256"
+          },
+          {
+            "Name": "signature_scheme.supported.ecdsa_sha384"
+          },
+          {
+            "Name": "signature_scheme.supported.ecdsa_sha512"
+          },
+          {
+            "Name": "signature_scheme.supported.legacy_ecdsa_sha224"
+          },
+          {
+            "Name": "signature_scheme.supported.legacy_rsa_sha224"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pkcs1_sha1"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pkcs1_sha256"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pkcs1_sha384"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pkcs1_sha512"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_pss_sha256"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_pss_sha384"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_pss_sha512"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_rsae_sha256"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_rsae_sha384"
+          },
+          {
+            "Name": "signature_scheme.supported.rsa_pss_rsae_sha512"
+          },
+          {
+            "Name": "sslv2_client_hello"
+          },
+          {
             "Name": "handshake_count"
           },
           {
@@ -42,18 +201,71 @@
         "Namespace": "tls/s2n-tls"
       }
     ],
-    "Timestamp": 1770836420055
+    "Timestamp": 1773180205683
   },
   "cipher.negotiated.TLS_AES_128_GCM_SHA256": 1,
   "cipher.negotiated.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_AES_256_GCM_SHA384": 1,
+  "cipher.supported.TLS_CHACHA20_POLY1305_SHA256": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256": 1,
+  "cipher.supported.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384": 1,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA": 1,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": 2,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": 2,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA": 1,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384": 2,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": 2,
+  "cipher.supported.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": 1,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA": 1,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256": 2,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 2,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA": 1,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384": 2,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384": 2,
+  "cipher.supported.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256": 1,
+  "cipher.supported.TLS_RSA_WITH_3DES_EDE_CBC_SHA": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_128_CBC_SHA256": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_128_GCM_SHA256": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA256": 1,
+  "cipher.supported.TLS_RSA_WITH_AES_256_GCM_SHA384": 1,
   "group.negotiated.secp256r1": 2,
-  "handshake_compute_us": 12428,
+  "group.supported.secp256r1": 2,
+  "group.supported.secp384r1": 2,
+  "group.supported.secp521r1": 1,
+  "group.supported.x25519": 1,
+  "handshake_compute_us": 12416,
   "handshake_count": 2,
-  "handshake_duration_us": 13512,
+  "handshake_duration_us": 13524,
   "resource": "cute-kitten",
   "service_name": "test_server",
   "signature_scheme.negotiated.rsa_pkcs1_sha256": 1,
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 1,
+  "signature_scheme.supported.ecdsa_sha1": 1,
+  "signature_scheme.supported.ecdsa_sha256": 2,
+  "signature_scheme.supported.ecdsa_sha384": 2,
+  "signature_scheme.supported.ecdsa_sha512": 2,
+  "signature_scheme.supported.legacy_ecdsa_sha224": 1,
+  "signature_scheme.supported.legacy_rsa_sha224": 1,
+  "signature_scheme.supported.rsa_pkcs1_sha1": 1,
+  "signature_scheme.supported.rsa_pkcs1_sha256": 2,
+  "signature_scheme.supported.rsa_pkcs1_sha384": 2,
+  "signature_scheme.supported.rsa_pkcs1_sha512": 2,
+  "signature_scheme.supported.rsa_pss_pss_sha256": 1,
+  "signature_scheme.supported.rsa_pss_pss_sha384": 1,
+  "signature_scheme.supported.rsa_pss_pss_sha512": 1,
+  "signature_scheme.supported.rsa_pss_rsae_sha256": 1,
+  "signature_scheme.supported.rsa_pss_rsae_sha384": 1,
+  "signature_scheme.supported.rsa_pss_rsae_sha512": 1,
+  "sslv2_client_hello": 0,
   "version.negotiated.TLSv1_2": 1,
-  "version.negotiated.TLSv1_3": 1
+  "version.negotiated.TLSv1_3": 1,
+  "version.supported.TLSv1_2": 2,
+  "version.supported.TLSv1_3": 1
 }

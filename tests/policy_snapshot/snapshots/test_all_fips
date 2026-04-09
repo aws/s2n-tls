@@ -38,6 +38,9 @@ signature schemes:
 - ecdsa_sha384
 - ecdsa_sha512
 - legacy_ecdsa_sha224
+- mldsa44
+- mldsa65
+- mldsa87
 curves:
 - secp256r1
 - secp384r1
