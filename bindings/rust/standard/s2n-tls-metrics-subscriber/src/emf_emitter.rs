@@ -218,6 +218,7 @@ mod tests {
         assert!(record.contains("version.negotiated.TLSv1_3"));
         assert!(record.contains("cipher.negotiated.TLS_AES_128_GCM_SHA256"));
         assert!(record.contains("signature_scheme.negotiated.rsa_pss_rsae_sha256"));
+        assert!(record.contains("compatibility.general20251201"));
     }
 
     /// if finish_record is called multiple times without writing, the finished

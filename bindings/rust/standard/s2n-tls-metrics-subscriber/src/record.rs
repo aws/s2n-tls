@@ -395,6 +395,11 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
                 });
         }
 
+        writer.value("compatibility.general20251201", &self.compatibility_general20251201);
+        writer.value("compatibility.fips20251201", &self.compatibility_fips20251201);
+        writer.value("compatibility.cnsa1", &self.compatibility_cnsa1);
+        writer.value("compatibility.cnsa2", &self.compatibility_cnsa2);
+
         writer.value("sslv2_client_hello", &self.sslv2_client_hello);
         writer.value("handshake_count", &self.handshake_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
