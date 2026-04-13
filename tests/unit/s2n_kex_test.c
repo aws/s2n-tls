@@ -15,6 +15,10 @@
 
 #include "tls/s2n_kex.h"
 
+#include <openssl/bn.h>
+#include <openssl/dh.h>
+
+#include "crypto/s2n_dhe.h"
 #include "tests/s2n_test.h"
 
 /* Test DH parameters (2048-bit prime from RFC 3526) */
@@ -135,6 +139,88 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_dh_params_free(&server_dh_params));
         }
 
+        EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
+    };
+
+    /* DHE Test: DH public key range validation per RFC 2631 §2.1.5
+     * Valid range is [2, p-1]; values outside must be rejected. */
+    {
+        struct s2n_stuffer dhparams_in = { 0 };
+        struct s2n_stuffer dhparams_out = { 0 };
+        struct s2n_dh_params base_params = { 0 };
+
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&dhparams_in, (uint8_t *) dhparams_pem, sizeof(dhparams_pem)));
+        EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
+
+        uint32_t available_size = s2n_stuffer_data_available(&dhparams_out);
+        struct s2n_blob dhparams_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&dhparams_blob, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
+
+        /* Skip if DH param validation fails (libcrypto-dependent) */
+        if (s2n_pkcs3_to_dh_params(&base_params, &dhparams_blob) == S2N_SUCCESS) {
+            EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&base_params));
+
+            struct s2n_stuffer pgy_out = { 0 };
+            struct s2n_blob pgy_blob = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&pgy_out, 1024));
+            EXPECT_SUCCESS(s2n_dh_params_to_p_g_Ys(&base_params, &pgy_out, &pgy_blob));
+
+            /* Parse serialized format: [uint16 p_len][p][uint16 g_len][g][uint16 Ys_len][Ys] */
+            uint16_t p_len = 0;
+            uint16_t g_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&pgy_out, &p_len));
+            uint8_t *p_data = s2n_stuffer_raw_read(&pgy_out, p_len);
+            EXPECT_NOT_NULL(p_data);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&pgy_out, &g_len));
+            uint8_t *g_data = s2n_stuffer_raw_read(&pgy_out, g_len);
+            EXPECT_NOT_NULL(g_data);
+
+            struct s2n_blob p_blob = { 0 };
+            struct s2n_blob g_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&p_blob, p_data, p_len));
+            EXPECT_SUCCESS(s2n_blob_init(&g_blob, g_data, g_len));
+
+            /* Get p as a BIGNUM for constructing boundary test values */
+            BIGNUM *bn_p = BN_bin2bn(p_data, p_len, NULL);
+            EXPECT_NOT_NULL(bn_p);
+            struct {
+                BIGNUM *ys;
+                bool expect_success;
+            } test_cases[] = {
+                { .ys = BN_new(), .expect_success = false },     /* Ys = 1 (below valid range) */
+                { .ys = BN_new(), .expect_success = true },      /* Ys = 2 (min valid) */
+                { .ys = BN_dup(bn_p), .expect_success = true },  /* Ys = p-1 (max valid) */
+                { .ys = BN_dup(bn_p), .expect_success = false }, /* Ys = p (above valid range) */
+            };
+            BN_set_word(test_cases[0].ys, 1);
+            BN_set_word(test_cases[1].ys, 2);
+            BN_sub_word(test_cases[2].ys, 1);
+            /* test_cases[3].ys is already p */
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                uint8_t ys_buf[256] = { 0 };
+                int ys_len = BN_bn2bin(test_cases[i].ys, ys_buf);
+                struct s2n_blob ys_blob = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&ys_blob, ys_buf, ys_len));
+
+                struct s2n_dh_params test_params = { 0 };
+                if (test_cases[i].expect_success) {
+                    EXPECT_SUCCESS(s2n_dh_p_g_Ys_to_dh_params(&test_params, &p_blob, &g_blob, &ys_blob));
+                } else {
+                    EXPECT_FAILURE_WITH_ERRNO(
+                            s2n_dh_p_g_Ys_to_dh_params(&test_params, &p_blob, &g_blob, &ys_blob),
+                            S2N_ERR_DH_PARAMS_CREATE);
+                }
+                EXPECT_SUCCESS(s2n_dh_params_free(&test_params));
+                BN_free(test_cases[i].ys);
+            }
+            BN_free(bn_p);
+            EXPECT_SUCCESS(s2n_stuffer_free(&pgy_out));
+        }
+        EXPECT_SUCCESS(s2n_dh_params_free(&base_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
     };
