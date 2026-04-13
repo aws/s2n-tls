@@ -291,7 +291,7 @@ impl Builder {
     /// This functionality will weaken the security of the connections. As such, it should only
     /// be used in development environments where obtaining a valid certificate would not be possible.
     ///
-    /// Corresponds to [s2n_config_disable_x509_verification].
+    /// Corresponds to [`s2n_config_disable_x509_verification`].
     pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
         s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()?;
         Ok(self)
@@ -303,7 +303,7 @@ impl Builder {
     /// This API disables the x509 intent verification functionality. It should only
     /// be used when updating an incompatible certificate would not be possible.
     ///
-    /// Corresponds to [s2n_config_disable_x509_intent_verification].
+    /// Corresponds to [`s2n_config_disable_x509_intent_verification`].
     pub fn disable_x509_intent_verification(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_disable_x509_intent_verification(self.as_mut_ptr()).into_result() }?;
         Ok(self)
@@ -618,7 +618,7 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [s2n_config_add_custom_x509_extension].
+    /// Corresponds to [`s2n_config_add_custom_x509_extension`].
     #[cfg(feature = "unstable-custom_x509_extensions")]
     pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
         let extension_oid_len: u32 = extension_oid
