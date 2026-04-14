@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod attribution;
+mod compatibility;
 mod label;
 mod parsing;
 mod record;
