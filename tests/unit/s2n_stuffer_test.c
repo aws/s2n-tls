@@ -342,7 +342,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* test wipe_n */
+    /* test wipe_n: write_cursor and size are both 0 */
     {
         struct s2n_stuffer test = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
@@ -366,6 +366,43 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(test.write_cursor, 0);
 
         for (size_t i = 0; i < sizeof(data); i++) {
+            EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&test));
+    }
+
+    /* test wipe_n: high_water_mark > write_cursor > 0; */
+    {
+        struct s2n_stuffer test = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
+        uint8_t bytes_20[20];
+        uint8_t bytes_5[5];
+
+        memset(bytes_20, 0xCD, sizeof(bytes_20));
+        memset(bytes_5, 0xEF, sizeof(bytes_5));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, bytes_20, sizeof(bytes_20)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(bytes_20));
+
+        EXPECT_EQUAL(test.high_water_mark, sizeof(bytes_20));
+
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, bytes_5, sizeof(bytes_5)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(bytes_5));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(bytes_20));
+
+        for (size_t i = 0; i < sizeof(bytes_5); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xEF);
+        }
+
+        for (size_t i = sizeof(bytes_5); i < sizeof(bytes_20); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xCD);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, sizeof(bytes_5)));
+        EXPECT_EQUAL(test.high_water_mark, 0);
+        EXPECT_EQUAL(test.write_cursor, 0);
+        for (size_t i = 0; i < sizeof(bytes_20); i++) {
             EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
         }
 

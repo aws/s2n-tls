@@ -220,8 +220,16 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     uint32_t wipe_size = MIN(size, stuffer->write_cursor);
 
-    stuffer->write_cursor = stuffer->write_cursor - wipe_size;
+    stuffer->write_cursor -= wipe_size;
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
+
+    /*
+     * Wipe from the new write_cursor up to high_water_mark.
+     * This ensures that any stale data between write_cursor and
+     * high_water_mark is cleared.
+     * Note: this makes the operation O(high_water_mark - write_cursor), rather than
+     * O(size).
+     */
 
     uint32_t wipe_span = stuffer->high_water_mark - stuffer->write_cursor;
     if (wipe_span > 0) {
