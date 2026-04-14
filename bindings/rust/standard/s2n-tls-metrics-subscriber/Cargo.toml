@@ -13,15 +13,16 @@ static_assertions = "1.1.0"
 zerocopy = "0.8.33"
 tracing = "0.1.43"
 
-metrique = "0.1.6"
-metrique-writer-format-emf = "0.1.6"
-metrique-writer = "0.1.7"
+metrique-writer = "0.1.19"
 
 arc-swap = "1.8.0"
+# minimum versions set for workspace-wide cargo minimal-versions compatibility
+serde = { version = "1.0.203", features = ["derive"] }
+serde-big-array = "0.5"
 # we at least need 0.3.33, because that is when the event APIs were introduced
 s2n-tls = { version = "0.3.33", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
 s2n-tls-sys = { version = "0.3.33", path = "../../extended/s2n-tls-sys"}
 
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
-serde_json = "1.0"
+serde_json = "1.0.141"

@@ -1,16 +1,18 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod attribution;
 mod compatibility;
-mod emf_emitter;
 mod label;
 mod parsing;
 mod record;
 mod static_lists;
-mod subscriber;
+pub mod subscriber;
+pub mod telemetry_sink;
 #[cfg(test)]
 mod test_utils;
 
-pub use emf_emitter::EmfEmitter;
+pub use attribution::Attribution;
 pub use record::MetricRecord;
 pub use subscriber::AggregatedMetricsSubscriber;
+pub use telemetry_sink::TelemetrySink;

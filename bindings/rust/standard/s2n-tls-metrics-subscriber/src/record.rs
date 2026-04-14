@@ -6,7 +6,10 @@ use std::{
     time::SystemTime,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
+    attribution::Attribution,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
@@ -27,19 +30,25 @@ const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 /// interfaces.
 // This currently just holds a single struct. In the future we will
 // likely rely on an enum to handle different record types, e.g. SessionResumptionFailure.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricRecord {
-    handshake: FrozenHandshakeRecord,
+    pub(crate) attribution: Attribution,
+    pub(crate) handshake: FrozenHandshakeRecord,
 }
 
 impl MetricRecord {
-    pub(crate) fn new(handshake: FrozenHandshakeRecord) -> Self {
-        Self { handshake }
+    pub(crate) fn new(handshake: FrozenHandshakeRecord, attribution: Attribution) -> Self {
+        Self {
+            attribution,
+            handshake,
+        }
     }
 }
 
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        writer.value("service", &self.attribution.service);
+        writer.value("resource", &self.attribution.resource);
         self.handshake.write(writer)
     }
 }
@@ -278,19 +287,23 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+use serde_big_array::BigArray;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct FrozenHandshakeRecord {
     freeze_time: SystemTime,
 
-    handshake_count: u64,
+    pub(crate) handshake_count: u64,
 
     negotiated_protocols: [u64; PROTOCOL_COUNT],
+    #[serde(with = "BigArray")]
     negotiated_ciphers: [u64; CIPHER_COUNT],
     negotiated_groups: [u64; GROUP_COUNT],
     negotiated_signatures: [u64; SIGNATURE_COUNT],
 
     sslv2_client_hello: u64,
     supported_protocols: [u64; PROTOCOL_COUNT],
+    #[serde(with = "BigArray")]
     supported_ciphers: [u64; CIPHER_COUNT],
     supported_groups: [u64; GROUP_COUNT],
     supported_signatures: [u64; SIGNATURE_COUNT],
@@ -415,19 +428,17 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::mpsc::Receiver;
-
     use super::*;
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_contents_negotiated_parameters() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
-        let record = record.handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 1);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 1);
@@ -501,12 +512,12 @@ mod tests {
             "rsa_pss_pss_sha512",
         ];
 
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
-        let record = record.handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].handshake;
 
         let expected_version: Vec<usize> = EXPECTED_VERSIONS
             .iter()
@@ -570,15 +581,15 @@ mod tests {
 
     #[test]
     fn multiple_records() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
 
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap();
-        let record = record.handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 3);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 3);
@@ -590,10 +601,11 @@ mod tests {
     /// A record with no handshakes should be entirely empty/default.
     #[test]
     fn empty_record() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
-        let mut record = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let mut record = records[0].handshake.clone();
 
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
@@ -605,11 +617,12 @@ mod tests {
     /// and mldsa87).
     #[test]
     fn record_contents_compatibility_metrics() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let record = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].handshake;
 
         assert_eq!(record.compatibility_general20251201, 1);
         assert_eq!(record.compatibility_fips20251201, 1);
@@ -623,19 +636,24 @@ mod tests {
     /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
-        let endpoint = TestEndpoint::<Receiver<MetricRecord>>::new();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
-        let single_handshake = endpoint.exporter.recv().unwrap().handshake;
-
-        endpoint.client_handshake(&ARBITRARY_POLICY_1);
-        endpoint.client_handshake(&ARBITRARY_POLICY_1);
-        endpoint.client_handshake(&ARBITRARY_POLICY_1);
-        endpoint.subscriber.finish_record();
-        let multiple_handshakes = endpoint.exporter.recv().unwrap().handshake;
+        let records = endpoint.sink.records.lock().unwrap();
+        let single_handshake = &records[0].handshake;
 
         assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
+        drop(records);
+
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+        let records = endpoint.sink.records.lock().unwrap();
+        let single_handshake = &records[0].handshake;
+        let multiple_handshakes = &records[1].handshake;
+
         assert!(
             multiple_handshakes.handshake_compute_us <= multiple_handshakes.handshake_duration_us
         );
