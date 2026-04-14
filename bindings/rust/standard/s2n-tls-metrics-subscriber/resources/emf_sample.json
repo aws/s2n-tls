@@ -186,6 +186,18 @@
             "Name": "signature_scheme.supported.rsa_pss_rsae_sha512"
           },
           {
+            "Name": "compatibility.general20251201"
+          },
+          {
+            "Name": "compatibility.fips20251201"
+          },
+          {
+            "Name": "compatibility.cnsa1"
+          },
+          {
+            "Name": "compatibility.cnsa2"
+          },
+          {
             "Name": "sslv2_client_hello"
           },
           {
@@ -201,7 +213,7 @@
         "Namespace": "tls/s2n-tls"
       }
     ],
-    "Timestamp": 1773180205683
+    "Timestamp": 1775868366418
   },
   "cipher.negotiated.TLS_AES_128_GCM_SHA256": 1,
   "cipher.negotiated.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
@@ -235,14 +247,18 @@
   "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA": 1,
   "cipher.supported.TLS_RSA_WITH_AES_256_CBC_SHA256": 1,
   "cipher.supported.TLS_RSA_WITH_AES_256_GCM_SHA384": 1,
+  "compatibility.cnsa1": 2,
+  "compatibility.cnsa2": 0,
+  "compatibility.fips20251201": 2,
+  "compatibility.general20251201": 2,
   "group.negotiated.secp256r1": 2,
   "group.supported.secp256r1": 2,
   "group.supported.secp384r1": 2,
   "group.supported.secp521r1": 1,
   "group.supported.x25519": 1,
-  "handshake_compute_us": 12416,
+  "handshake_compute_us": 12432,
   "handshake_count": 2,
-  "handshake_duration_us": 13524,
+  "handshake_duration_us": 13515,
   "resource": "cute-kitten",
   "service_name": "test_server",
   "signature_scheme.negotiated.rsa_pkcs1_sha256": 1,
