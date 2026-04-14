@@ -376,33 +376,33 @@ int main(int argc, char **argv)
     {
         struct s2n_stuffer test = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
-        uint8_t bytes_20[20];
-        uint8_t bytes_5[5];
+        uint8_t first_write_bytes[20];
+        uint8_t second_write_bytes[5];
 
-        memset(bytes_20, 0xCD, sizeof(bytes_20));
-        memset(bytes_5, 0xEF, sizeof(bytes_5));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, bytes_20, sizeof(bytes_20)));
-        EXPECT_EQUAL(test.write_cursor, sizeof(bytes_20));
+        memset(first_write_bytes, 0xCD, sizeof(first_write_bytes));
+        memset(second_write_bytes, 0xEF, sizeof(second_write_bytes));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, first_write_bytes, sizeof(first_write_bytes)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(first_write_bytes));
 
-        EXPECT_EQUAL(test.high_water_mark, sizeof(bytes_20));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(first_write_bytes));
 
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, bytes_5, sizeof(bytes_5)));
-        EXPECT_EQUAL(test.write_cursor, sizeof(bytes_5));
-        EXPECT_EQUAL(test.high_water_mark, sizeof(bytes_20));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, second_write_bytes, sizeof(second_write_bytes)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(second_write_bytes));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(first_write_bytes));
 
-        for (size_t i = 0; i < sizeof(bytes_5); i++) {
+        for (size_t i = 0; i < sizeof(second_write_bytes); i++) {
             EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xEF);
         }
 
-        for (size_t i = sizeof(bytes_5); i < sizeof(bytes_20); i++) {
+        for (size_t i = sizeof(second_write_bytes); i < sizeof(first_write_bytes); i++) {
             EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xCD);
         }
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, sizeof(bytes_5)));
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, sizeof(second_write_bytes)));
         EXPECT_EQUAL(test.high_water_mark, 0);
         EXPECT_EQUAL(test.write_cursor, 0);
-        for (size_t i = 0; i < sizeof(bytes_20); i++) {
+        for (size_t i = 0; i < sizeof(first_write_bytes); i++) {
             EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
         }
 
