@@ -32,7 +32,7 @@ const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricRecord {
     pub(crate) attribution: Attribution,
-    handshake: FrozenHandshakeRecord,
+    pub(crate) handshake: FrozenHandshakeRecord,
 }
 
 impl MetricRecord {
@@ -260,7 +260,7 @@ use serde_big_array::BigArray;
 pub(crate) struct FrozenHandshakeRecord {
     freeze_time: SystemTime,
 
-    handshake_count: u64,
+    pub(crate) handshake_count: u64,
 
     negotiated_protocols: [u64; PROTOCOL_COUNT],
     #[serde(with = "BigArray")]
@@ -376,17 +376,16 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{ARBITRARY_POLICY_1, cbor_endpoint, deserialize_cbor};
+    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     #[test]
     fn record_contents_negotiated_parameters() {
-        let endpoint = cbor_endpoint();
+        let endpoint = TestEndpoint::new();
 
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = deserialize_cbor(&records[0]);
-        let record = record.handshake;
+        let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 1);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 1);
@@ -460,13 +459,12 @@ mod tests {
             "rsa_pss_pss_sha512",
         ];
 
-        let endpoint = cbor_endpoint();
+        let endpoint = TestEndpoint::new();
 
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = deserialize_cbor(&records[0]);
-        let record = record.handshake;
+        let record = &records[0].handshake;
 
         let expected_version: Vec<usize> = EXPECTED_VERSIONS
             .iter()
@@ -530,7 +528,7 @@ mod tests {
 
     #[test]
     fn multiple_records() {
-        let endpoint = cbor_endpoint();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -538,8 +536,7 @@ mod tests {
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = deserialize_cbor(&records[0]);
-        let record = record.handshake;
+        let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 3);
         assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 3);
@@ -551,12 +548,11 @@ mod tests {
     /// A record with no handshakes should be entirely empty/default.
     #[test]
     fn empty_record() {
-        let endpoint = cbor_endpoint();
+        let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record: MetricRecord = deserialize_cbor(&records[0]);
-        let mut record = record.handshake;
+        let mut record = records[0].handshake.clone();
 
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
@@ -569,13 +565,14 @@ mod tests {
     /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
-        let endpoint = cbor_endpoint();
+        let endpoint = TestEndpoint::new();
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let single_handshake: MetricRecord = deserialize_cbor(&records[0]);
-        let single_handshake = single_handshake.handshake;
+        let single_handshake = &records[0].handshake;
+
+        assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
         drop(records);
 
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
@@ -583,10 +580,9 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let multiple_handshakes: MetricRecord = deserialize_cbor(&records[1]);
-        let multiple_handshakes = multiple_handshakes.handshake;
+        let single_handshake = &records[0].handshake;
+        let multiple_handshakes = &records[1].handshake;
 
-        assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
         assert!(
             multiple_handshakes.handshake_compute_us <= multiple_handshakes.handshake_duration_us
         );

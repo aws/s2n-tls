@@ -6,8 +6,14 @@
 //!
 //! The subscriber is tagged with an `Attribution` so that the exported record
 //! identifies which service and resource produced the metrics.
+//!
+//! The `TelemetrySink` receives a `MetricRecord` which implements
+//! `serde::Serialize`, so the sink decides the serialization format.
 
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    time::Duration,
+};
 
 use s2n_tls::{
     security::DEFAULT_TLS13,
@@ -15,21 +21,26 @@ use s2n_tls::{
 };
 
 use s2n_tls_metrics_subscriber::{
-    AggregatedMetricsSubscriber, Attribution, SerializationFormat, TelemetrySink,
+    AggregatedMetricsSubscriber, Attribution, MetricRecord, TelemetrySink,
 };
 
-/// Example TelemetrySink that writes each record to stdout.
-/// Applications can implement TelemetrySink to route records to any
-/// destination: a file, network socket, S3, Kinesis, etc.
-struct StdoutSink;
+/// Example TelemetrySink that serializes each record as JSON and writes it
+/// to stdout. Applications can implement TelemetrySink to route records to
+/// any destination and serialize in any format (JSON, CBOR, etc.).
+#[derive(Clone)]
+struct StdoutJsonSink;
 
-impl TelemetrySink for StdoutSink {
-    fn write_record(&self, record: &[u8]) -> io::Result<()> {
+impl TelemetrySink for StdoutJsonSink {
+    fn export_record(&self, record: &MetricRecord) {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
-        handle.write_all(record)?;
-        handle.write_all(b"\n")?;
-        handle.flush()
+        // MetricRecord implements serde::Serialize, so we can use serde_json
+        if let Err(e) = serde_json::to_writer(&mut handle, record) {
+            eprintln!("failed to serialize metric record: {e}");
+            return;
+        }
+        let _ = handle.write_all(b"\n");
+        let _ = handle.flush();
     }
 }
 
@@ -38,8 +49,15 @@ fn main() {
         service: "my-service".to_owned(),
         resource: "test-resource".to_owned(),
     };
-    let subscriber =
-        AggregatedMetricsSubscriber::new(StdoutSink, SerializationFormat::Json, attribution);
+
+    // Passive periodic export: the subscriber will automatically export
+    // the aggregated record during handshake processing once 60 seconds
+    // have elapsed since the last export. No background thread needed.
+    let subscriber = AggregatedMetricsSubscriber::with_periodic_export(
+        StdoutJsonSink,
+        attribution,
+        Duration::from_secs(60),
+    );
 
     // Wire the subscriber into a server config so handshake events flow into it.
     let server_config = {
@@ -55,8 +73,6 @@ fn main() {
         pair.handshake().unwrap();
     }
 
-    // Flush the aggregated record. This prints one JSON line to stdout
-    // containing attribution metadata and handshake metrics from the
-    // three handshakes above.
+    // Final flush — export any remaining accumulated metrics.
     subscriber.finish_record();
 }

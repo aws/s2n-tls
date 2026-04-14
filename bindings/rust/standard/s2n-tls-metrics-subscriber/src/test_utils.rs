@@ -10,18 +10,16 @@ use s2n_tls::{
 
 use crate::{
     AggregatedMetricsSubscriber, MetricRecord, attribution::Attribution,
-    format::SerializationFormat, telemetry_sink::TelemetrySink,
+    telemetry_sink::TelemetrySink,
 };
 
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
     LazyLock::new(|| Policy::from_version("20240503").unwrap());
-pub(crate) static ARBITRARY_POLICY_2: LazyLock<Policy> =
-    LazyLock::new(|| Policy::from_version("20190214").unwrap());
 
-/// A test helper that implements [`TelemetrySink`] by collecting serialized bytes into a Vec.
+/// A test helper that implements [`TelemetrySink`] by collecting records into a Vec.
 #[derive(Debug, Clone)]
 pub(crate) struct VecSink {
-    pub(crate) records: Arc<Mutex<Vec<Vec<u8>>>>,
+    pub(crate) records: Arc<Mutex<Vec<MetricRecord>>>,
 }
 
 impl VecSink {
@@ -33,9 +31,8 @@ impl VecSink {
 }
 
 impl TelemetrySink for VecSink {
-    fn write_record(&self, record: &[u8]) -> std::io::Result<()> {
-        self.records.lock().unwrap().push(record.to_vec());
-        Ok(())
+    fn export_record(&self, record: &MetricRecord) {
+        self.records.lock().unwrap().push(record.clone());
     }
 }
 
@@ -56,16 +53,12 @@ impl<S: TelemetrySink> TestEndpoint<S> {
 
 impl TestEndpoint<VecSink> {
     pub fn new() -> Self {
-        Self::with_format(SerializationFormat::Json)
-    }
-
-    pub fn with_format(format: SerializationFormat) -> Self {
         let sink = VecSink::new();
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
         };
-        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), format, attribution);
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
         let server_config = {
             let mut config = config_builder(&DEFAULT_TLS13).unwrap();
             config.set_event_subscriber(subscriber.clone()).unwrap();
@@ -77,49 +70,4 @@ impl TestEndpoint<VecSink> {
             sink,
         }
     }
-}
-
-/// A sink that always fails, for testing error paths.
-#[derive(Debug, Clone)]
-pub(crate) struct FailingSink;
-
-impl TelemetrySink for FailingSink {
-    fn write_record(&self, _record: &[u8]) -> std::io::Result<()> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::BrokenPipe,
-            "simulated sink failure",
-        ))
-    }
-}
-
-impl TestEndpoint<FailingSink> {
-    pub fn with_failing_sink() -> Self {
-        let sink = FailingSink;
-        let attribution = Attribution {
-            service: "test_server".to_owned(),
-            resource: "test_resource".to_owned(),
-        };
-        let subscriber =
-            AggregatedMetricsSubscriber::new(sink.clone(), SerializationFormat::Json, attribution);
-        let server_config = {
-            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
-            config.set_event_subscriber(subscriber.clone()).unwrap();
-            config.build().unwrap()
-        };
-        Self {
-            server_config,
-            subscriber,
-            sink,
-        }
-    }
-}
-
-/// Create a test endpoint using CBOR format for structural deserialization tests.
-pub(crate) fn cbor_endpoint() -> TestEndpoint<VecSink> {
-    TestEndpoint::with_format(SerializationFormat::Cbor)
-}
-
-/// Deserialize a MetricRecord from CBOR bytes.
-pub(crate) fn deserialize_cbor(bytes: &[u8]) -> MetricRecord {
-    ciborium::from_reader(bytes).unwrap()
 }

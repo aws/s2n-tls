@@ -3,7 +3,6 @@
 
 use crate::{
     attribution::Attribution,
-    format::SerializationFormat,
     record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord},
     telemetry_sink::TelemetrySink,
 };
@@ -11,33 +10,24 @@ use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
 use std::{
     sync::{
-        Arc, Condvar, Mutex,
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
         mpsc::{self, Receiver, Sender},
     },
-    thread::JoinHandle,
-    time::Duration,
+    time::{Duration, SystemTime},
 };
 
 #[derive(Debug)]
 struct ExportPipeline<S: TelemetrySink> {
     metric_receiver: Receiver<FrozenHandshakeRecord>,
     sink: S,
-    format: SerializationFormat,
 }
 
 /// The AggregatedMetricSubscriber can be used to aggregate events over some period
 /// of time, and then export them using a [`TelemetrySink`].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AggregatedMetricsSubscriber<S: TelemetrySink> {
     inner: Arc<MetricSubscriberInner<S>>,
-}
-
-impl<S: TelemetrySink> Clone for AggregatedMetricsSubscriber<S> {
-    fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-        }
-    }
 }
 
 /// The [`s2n_tls::events::EventSubscriber`] may be invoked concurrently, which
@@ -61,10 +51,42 @@ struct MetricSubscriberInner<S: TelemetrySink> {
     // the mutex is necessary because s2n-tls callbacks must be Send + Sync
     export_pipeline: Mutex<ExportPipeline<S>>,
     attribution: Attribution,
+
+    /// If set, the subscriber will passively export the record when at least
+    /// this much time has elapsed since the last export. The check happens
+    /// inside `on_handshake_event`, so export is piggy-backed on handshake
+    /// traffic rather than requiring a background thread.
+    export_interval: Option<Duration>,
+    /// Epoch millis of the last successful export (or construction time).
+    /// Using an AtomicU64 so the fast-path check in `on_handshake_event`
+    /// doesn't need to acquire the export_pipeline mutex.
+    last_export_epoch_ms: AtomicU64,
+}
+
+fn epoch_ms_now() -> u64 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
-    pub fn new(sink: S, format: SerializationFormat, attribution: Attribution) -> Self {
+    pub fn new(sink: S, attribution: Attribution) -> Self {
+        Self::build(sink, attribution, None)
+    }
+
+    /// Create a subscriber that passively exports the aggregated record
+    /// whenever at least `interval` has elapsed since the last export.
+    ///
+    /// The check is performed inside `on_handshake_event`, so no background
+    /// thread is needed — export is driven by handshake traffic. If there
+    /// are no handshakes for a long period, no export will occur until the
+    /// next handshake (or an explicit `finish_record()` call).
+    pub fn with_periodic_export(sink: S, attribution: Attribution, interval: Duration) -> Self {
+        Self::build(sink, attribution, Some(interval))
+    }
+
+    fn build(sink: S, attribution: Attribution, export_interval: Option<Duration>) -> Self {
         let (tx, rx) = mpsc::channel();
 
         let record = HandshakeRecordInProgress::new(tx.clone());
@@ -72,13 +94,14 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
         let export_pipe = ExportPipeline {
             metric_receiver: rx,
             sink,
-            format,
         };
         let inner = MetricSubscriberInner {
             current_record: ArcSwap::new(Arc::new(record)),
             tx_handle: tx,
             export_pipeline: Mutex::new(export_pipe),
             attribution,
+            export_interval,
+            last_export_epoch_ms: AtomicU64::new(epoch_ms_now()),
         };
         Self {
             inner: Arc::new(inner),
@@ -94,6 +117,12 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
     /// instead.
     pub fn finish_record(&self) {
         let export_pipeline = self.inner.export_pipeline.lock().unwrap();
+        self.finish_record_with_pipeline(&export_pipeline);
+    }
+
+    /// Shared export logic used by both `finish_record` and the passive export
+    /// path. The caller must already hold the pipeline lock.
+    fn finish_record_with_pipeline(&self, export_pipeline: &ExportPipeline<S>) {
         let new_record = Arc::new(HandshakeRecordInProgress::new(self.inner.tx_handle.clone()));
 
         let old_record = self.inner.current_record.swap(new_record);
@@ -105,14 +134,35 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
         // This will block the thread until the record is received.
         let handshake = export_pipeline.metric_receiver.recv().unwrap();
         let record = MetricRecord::new(handshake, self.inner.attribution.clone());
-        match export_pipeline.format.serialize(&record) {
-            Ok(bytes) => {
-                if let Err(e) = export_pipeline.sink.write_record(&bytes) {
-                    tracing::error!("failed to write metric to sink: {e}");
-                }
-            }
-            Err(e) => {
-                tracing::error!("failed to serialize metric record: {e}");
+        export_pipeline.sink.export_record(&record);
+        self.inner
+            .last_export_epoch_ms
+            .store(epoch_ms_now(), Ordering::Relaxed);
+    }
+
+    /// Check whether the export interval has elapsed and, if so, try to export.
+    ///
+    /// Uses `try_lock` so that the handshake thread is never blocked waiting
+    /// for an export that is already in progress on another thread.
+    fn try_periodic_export(&self) {
+        let interval = match self.inner.export_interval {
+            Some(d) => d,
+            None => return,
+        };
+
+        let last = self.inner.last_export_epoch_ms.load(Ordering::Relaxed);
+        let now = epoch_ms_now();
+        if now.saturating_sub(last) < interval.as_millis() as u64 {
+            return;
+        }
+
+        // try_lock: if another thread is already exporting, skip this attempt
+        if let Ok(pipeline) = self.inner.export_pipeline.try_lock() {
+            // Re-check after acquiring the lock — another thread may have
+            // exported between our check and the lock acquisition.
+            let last = self.inner.last_export_epoch_ms.load(Ordering::Relaxed);
+            if epoch_ms_now().saturating_sub(last) >= interval.as_millis() as u64 {
+                self.finish_record_with_pipeline(&pipeline);
             }
         }
     }
@@ -132,69 +182,17 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
         if let Err(e) = res {
             tracing::error!("failed to update handshake record: {e}");
         }
-    }
-}
+        // Drop the Arc before attempting export so that finish_record can
+        // observe the final reference count drop.
+        drop(current_record);
 
-/// A handle to a background thread that periodically calls `finish_record()`
-/// on the associated subscriber.
-///
-/// When dropped, the handle signals the background thread to stop, joins it,
-/// and performs a final `finish_record()` call to flush any accumulated metrics.
-pub struct PeriodicExportHandle<S: TelemetrySink> {
-    subscriber: AggregatedMetricsSubscriber<S>,
-    stop: Arc<(Mutex<bool>, Condvar)>,
-    handle: Option<JoinHandle<()>>,
-}
-
-impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
-    /// Start a background thread that calls `finish_record()` at the given interval.
-    ///
-    /// The returned handle must be kept alive for the periodic export to continue.
-    /// Dropping the handle stops the background thread and performs a final flush.
-    pub fn start_periodic_export(&self, interval: Duration) -> PeriodicExportHandle<S> {
-        let stop = Arc::new((Mutex::new(false), Condvar::new()));
-        let stop_clone = stop.clone();
-        let subscriber = self.clone();
-        let handle = std::thread::spawn(move || {
-            let (lock, cvar) = &*stop_clone;
-            loop {
-                let guard = lock.lock().unwrap();
-                let result = cvar.wait_timeout(guard, interval).unwrap();
-                if *result.0 {
-                    break;
-                }
-                drop(result);
-                subscriber.finish_record();
-            }
-        });
-        PeriodicExportHandle {
-            subscriber: self.clone(),
-            stop,
-            handle: Some(handle),
-        }
-    }
-
-    /// Start periodic export with the default interval of one hour.
-    pub fn start_periodic_export_default(&self) -> PeriodicExportHandle<S> {
-        self.start_periodic_export(Duration::from_secs(3600))
-    }
-}
-
-impl<S: TelemetrySink> Drop for PeriodicExportHandle<S> {
-    fn drop(&mut self) {
-        let (lock, cvar) = &*self.stop;
-        *lock.lock().unwrap() = true;
-        cvar.notify_one();
-        if let Some(handle) = self.handle.take() {
-            handle.join().ok();
-        }
-        self.subscriber.finish_record();
+        self.try_periodic_export();
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{ARBITRARY_POLICY_1, FailingSink, TestEndpoint};
+    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
 
     /// Verify that after a handshake and finish_record, the sink contains a record.
     #[test]
@@ -206,7 +204,6 @@ mod tests {
 
         let records = endpoint.sink.records.lock().unwrap();
         assert_eq!(records.len(), 1);
-        assert!(!records[0].is_empty());
     }
 
     /// Verify that finish_record blocks while another thread holds a reference
@@ -266,34 +263,50 @@ mod tests {
             "expected 3 records from 3 finish_record calls"
         );
 
-        // All records should be non-empty (even the empty-handshake one has structure)
-        for (i, record) in records.iter().enumerate() {
-            assert!(!record.is_empty(), "record {i} should not be empty");
-        }
-
-        // Verify handshake counts via JSON deserialization
-        let r0: serde_json::Value = serde_json::from_slice(&records[0]).unwrap();
-        let r1: serde_json::Value = serde_json::from_slice(&records[1]).unwrap();
-        let r2: serde_json::Value = serde_json::from_slice(&records[2]).unwrap();
-
-        assert_eq!(r0["metrics"]["handshake_count"]["value"], 2);
-        assert_eq!(r1["metrics"]["handshake_count"]["value"], 1);
-        assert_eq!(r2["metrics"]["handshake_count"]["value"], 0);
+        // Verify handshake counts
+        assert_eq!(records[0].handshake.handshake_count, 2);
+        assert_eq!(records[1].handshake.handshake_count, 1);
+        assert_eq!(records[2].handshake.handshake_count, 0);
     }
 
-    /// When the sink returns an error, finish_record should not panic.
-    /// The error is logged via tracing but the subscriber remains usable.
+    /// Passive export: when the interval has elapsed, the next handshake
+    /// triggers an automatic export without an explicit finish_record call.
     #[test]
-    fn sink_write_failure_does_not_panic() {
-        let endpoint = TestEndpoint::<FailingSink>::with_failing_sink();
+    fn passive_export_triggers_on_handshake() {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            security::DEFAULT_TLS13,
+            testing::{build_config, config_builder},
+        };
+        use std::time::Duration;
 
-        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        let sink = VecSink::new();
+        let attribution = Attribution {
+            service: "test_server".to_owned(),
+            resource: "test_resource".to_owned(),
+        };
+        // Use a zero-duration interval so every handshake triggers an export
+        let subscriber = AggregatedMetricsSubscriber::with_periodic_export(
+            sink.clone(),
+            attribution,
+            Duration::ZERO,
+        );
+        let server_config = {
+            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.build().unwrap()
+        };
 
-        // This should not panic even though the sink always fails
-        endpoint.subscriber.finish_record();
+        let client_config = build_config(&ARBITRARY_POLICY_1).unwrap();
+        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
 
-        // The subscriber should still be functional after a sink failure
-        endpoint.client_handshake(&ARBITRARY_POLICY_1);
-        endpoint.subscriber.finish_record();
+        // The handshake itself should have triggered a passive export
+        let records = sink.records.lock().unwrap();
+        assert_eq!(
+            records.len(),
+            1,
+            "passive export should have produced a record"
+        );
     }
 }
