@@ -510,6 +510,8 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     POSIX_ENSURE_REF(session);
 
     DEFER_CLEANUP(struct s2n_blob session_data = { 0 }, s2n_free);
+    /* size_t is 64-bit integer on 64-bit system, while s2n_alloc's length parameter is a 32-bit integer */
+    POSIX_ENSURE(length <= UINT32_MAX, S2N_ERR_INVALID_ARGUMENT);
     POSIX_GUARD(s2n_alloc(&session_data, length));
     POSIX_CHECKED_MEMCPY(session_data.data, session, length);
 

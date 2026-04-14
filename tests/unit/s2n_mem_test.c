@@ -25,6 +25,15 @@ int s2n_strict_mem_free_cb(void *ptr, uint32_t size)
     return S2N_SUCCESS;
 }
 
+static bool s2n_failing_free_cb_called = false;
+
+int s2n_failing_mem_free_cb(void *ptr, uint32_t size)
+{
+    free(ptr);
+    s2n_failing_free_cb_called = true;
+    return S2N_FAILURE;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -86,6 +95,50 @@ int main(int argc, char **argv)
             /* Restore real free callback */
             EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
         };
+    };
+
+    /* Test: no double-free when s2n_mem_free_cb fails
+     *
+     * If a custom free callback frees the memory but then returns failure,
+     * s2n_free_without_wipe must zero the blob BEFORE invoking the callback.
+     * This ensures that a subsequent free (e.g. during cleanup via
+     * s2n_connection_free) sees data==NULL and skips the callback,
+     * avoiding a double-free.
+     */
+    {
+        /* Save real callbacks */
+        s2n_mem_init_callback mem_init_cb = NULL;
+        s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+        s2n_mem_malloc_callback mem_malloc_cb = NULL;
+        s2n_mem_free_callback mem_free_cb = NULL;
+        EXPECT_OK(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+
+        /* Override with a free callback that frees the memory but returns failure */
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, s2n_failing_mem_free_cb));
+
+        struct s2n_blob blob = { 0 };
+        EXPECT_SUCCESS(s2n_alloc(&blob, 100));
+        EXPECT_NOT_NULL(blob.data);
+
+        /* First free: callback frees the memory but returns failure.
+         * s2n_free_without_wipe should still zero the blob before calling the callback.
+         */
+        s2n_failing_free_cb_called = false;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_free_without_wipe(&blob), S2N_ERR_CANCELLED);
+        EXPECT_TRUE(s2n_failing_free_cb_called);
+
+        /* The blob must be zeroed despite the callback failure */
+        EXPECT_NULL(blob.data);
+        EXPECT_EQUAL(blob.size, 0);
+        EXPECT_EQUAL(blob.allocated, 0);
+
+        /* Second free: must be a safe no-op, not a double-free */
+        s2n_failing_free_cb_called = false;
+        EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
+        EXPECT_FALSE(s2n_failing_free_cb_called);
+
+        /* Restore real callbacks */
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
     };
 
     END_TEST();

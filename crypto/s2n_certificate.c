@@ -715,6 +715,7 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
 
     int len = ASN1_STRING_length(asn1_str);
+    POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
         /* ASN1_STRING_data() returns an internal pointer to the data.
