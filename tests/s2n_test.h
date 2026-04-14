@@ -21,10 +21,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#if defined(S2N_EXECINFO_AVAILABLE)
-    #include <execinfo.h>
-#endif
-
 #include "error/s2n_errno.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
@@ -36,29 +32,16 @@ int test_count;
 
 bool s2n_use_color_in_output = true;
 
-/* Helper function to print assertion backtrace */
-#if defined(S2N_EXECINFO_AVAILABLE)
-    #define MAX_BACKTRACE_DEPTH 20
-static inline void s2n_test_print_assertion_backtrace(void)
-{
-    int old_errno = errno;
-    void *array[MAX_BACKTRACE_DEPTH];
-    int trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
-    char **trace_symbols = backtrace_symbols(array, trace_size);
-    if (trace_symbols != NULL) {
-        fprintf(stderr, "\nAssertion backtrace:\n");
-        for (int i = 0; i < trace_size; ++i) {
-            fprintf(stderr, "%s\n", trace_symbols[i]);
-        }
-        free(trace_symbols);
-    }
-    errno = old_errno;
-}
+#if defined(S2N_STACKTRACE)
+    #define S2N_TEST_PRINT_STACKTRACE()          \
+        do {                                     \
+            (void) s2n_calculate_stacktrace();   \
+            (void) s2n_print_stacktrace(stderr); \
+        } while (0)
 #else
-static inline void s2n_test_print_assertion_backtrace(void)
-{
-    /* execinfo not available on this platform */
-}
+    #define S2N_TEST_PRINT_STACKTRACE() \
+        do {                            \
+        } while (0)
 #endif
 
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
@@ -137,11 +120,7 @@ static inline void s2n_test_print_assertion_backtrace(void)
 
 #define FAIL_MSG_PRINT(msg)                                                                                                                                                                                                                                                        \
     do {                                                                                                                                                                                                                                                                           \
-        /* isatty and s2n_print_stacktrace will overwrite errno on failure */                                                                                                                                                                                                      \
         int real_errno = errno;                                                                                                                                                                                                                                                    \
-        s2n_print_stacktrace(stderr);                                                                                                                                                                                                                                              \
-        /* Print assertion backtrace to help identify which test failed */                                                                                                                                                                                                         \
-        s2n_test_print_assertion_backtrace();                                                                                                                                                                                                                                      \
         if (s2n_use_color_in_output && isatty(fileno(stderr))) {                                                                                                                                                                                                                   \
             errno = real_errno;                                                                                                                                                                                                                                                    \
             fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
@@ -149,6 +128,7 @@ static inline void s2n_test_print_assertion_backtrace(void)
             errno = real_errno;                                                                                                                                                                                                                                                    \
             fprintf(stderr, "FAILED test %d\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno);                  \
         }                                                                                                                                                                                                                                                                          \
+        S2N_TEST_PRINT_STACKTRACE();                                                                                                                                                                                                                                               \
     } while (0)
 
 #define RESET_ERRNO()           \
