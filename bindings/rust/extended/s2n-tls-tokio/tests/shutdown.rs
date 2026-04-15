@@ -249,7 +249,7 @@ async fn shutdown_with_tcp_error() -> Result<(), Box<dyn std::error::Error>> {
 
     // The underlying stream should return a unique error on shutdown
     overrides.next_shutdown(Some(Box::new(|_, _| {
-        Ready(Err(io::Error::new(io::ErrorKind::Other, common::TEST_STR)))
+        Ready(Err(io::Error::other(common::TEST_STR)))
     })));
 
     // Shutdown should complete with the correct error from the underlying stream
@@ -277,7 +277,7 @@ async fn shutdown_with_tls_error_and_tcp_error() -> Result<(), Box<dyn std::erro
         Ready(Err(io::Error::from(io::ErrorKind::Other)))
     })));
     overrides.next_shutdown(Some(Box::new(|_, _| {
-        Ready(Err(io::Error::new(io::ErrorKind::Other, common::TEST_STR)))
+        Ready(Err(io::Error::other(common::TEST_STR)))
     })));
 
     // Shutdown should complete with the correct error from s2n_shutdown_send
