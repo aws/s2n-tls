@@ -1,6 +1,6 @@
 [package]
 name = "s2n-tls-metrics-subscriber"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 description = "Telemetry provider for s2n-tls"
 authors = ["AWS s2n"]
@@ -8,20 +8,21 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [dependencies]
-s2n-codec = {git = "https://github.com/aws/s2n-quic"}
+s2n-codec = "0.77"
 static_assertions = "1.1.0"
 zerocopy = "0.8.33"
 tracing = "0.1.43"
 
-metrique = "0.1.6"
-metrique-writer-format-emf = "0.1.6"
-metrique-writer = "0.1.7"
+metrique-writer = "0.1.19"
 
 arc-swap = "1.8.0"
-# we at least need 0.3.33, because that is when the event APIs were introduced
-s2n-tls = { version = "0.3.33", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
-s2n-tls-sys = { version = "0.3.33", path = "../../extended/s2n-tls-sys"}
+# minimum versions set for workspace-wide cargo minimal-versions compatibility
+serde = { version = "1.0.203", features = ["derive"] }
+serde-big-array = "0.5"
+# we at least need 0.3.36, because that is when the CNSA security policies were introduced
+s2n-tls = { version = "0.3.36", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
+s2n-tls-sys = { version = "0.3.36", path = "../../extended/s2n-tls-sys"}
 
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
-serde_json = "1.0"
+serde_json = "1.0.141"
