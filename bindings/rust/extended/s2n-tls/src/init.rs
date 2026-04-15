@@ -39,7 +39,10 @@ impl Drop for Thread {
     fn drop(&mut self) {
         // https://doc.rust-lang.org/std/thread/struct.LocalKey.html#platform-specific-behavior
         // Note that a "best effort" is made to ensure that destructors for types stored in thread local storage are run, but not all platforms can guarantee that destructors will be run for all types in thread local storage.
-        let _ = unsafe { s2n_cleanup().into_result() };
+        #[cfg(not(feature = "no-init"))]
+        {
+            let _ = unsafe { s2n_cleanup().into_result() };
+        }
     }
 }
 
