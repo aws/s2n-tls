@@ -43,7 +43,15 @@ impl Drop for Thread {
     }
 }
 
+/// Ensures s2n-tls is initialized for the current thread.
+///
 /// Corresponds to [s2n_init].
+///
+/// When the `no-init` feature is enabled, this function skips calling
+/// `s2n_init()` and `s2n_mem_set_callbacks()`. This is intended for FFI
+/// consumers whose host application already calls `s2n_init()` from C
+/// before using the Rust bindings (e.g. a C service that links its own
+/// libs2n and also pulls in the metrics-subscriber crate).
 pub fn init() {
     S2N_THREAD.with(|_| ());
 }
