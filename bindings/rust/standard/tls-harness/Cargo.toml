@@ -23,7 +23,7 @@ foreign-types-shared = "0.1.1"
 boring = { git = "https://github.com/kaukabrizvi/boring.git", features = ["prefix-symbols"], optional = true }
 
 brass-aphid-wire-decryption = "0.0.2"
-brass-aphid-wire-messages = "0.0.2"
+brass-aphid-wire-messages = "0.0.3"
 tracing = "0.1.43"
 
 # NOTE: BoringSSL is disabled on macOS to avoid symbol collisions with
