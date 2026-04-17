@@ -998,7 +998,7 @@ typedef uint8_t (*s2n_verify_host_fn)(const char *host_name, size_t host_name_le
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
  * The default behavior is to require that the hostname match the server name set with s2n_set_server_name().
- * This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using
+ * This will likely lead to all client certificates being rejected, so the callback will need to be overridden when using
  *  client authentication.
  *
  * This change will be inherited by s2n_connections using this config. If a separate callback for different connections
@@ -2009,7 +2009,7 @@ S2N_API extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connec
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
  * The default behavior is to require that the hostname match the server name set with s2n_set_server_name(). This will
- * likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.
+ * likely lead to all client certificates being rejected, so the callback will need to be overridden when using client authentication.
  *
  * If a single callback for different connections using the same config is desired, see s2n_config_set_verify_host_callback().
  *

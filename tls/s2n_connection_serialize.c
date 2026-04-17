@@ -250,7 +250,7 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
  * Therefore the provided nonce cannot be considered to be the implicit IV because n ^ iv != iv.
  * This inability to get the correct implicit IV causes issues with encryption later on.
  *
- * To resolve this we preform one throwaway encryption call with a zero sequence number after
+ * To resolve this we perform one throwaway encryption call with a zero sequence number after
  * deserialization. This allows the libcrypto to recover the implicit IV correctly.
  */
 static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct s2n_connection_deserialize *parsed_values)
