@@ -12,7 +12,7 @@ s2n-tls supports both hybrid and pure PQ key exchange.
 
 - Pure PQ key exchange involves only post-quantum key exchange, without classic ECC components. It is a simpler long-term architecture compared to hybrid PQ algorithms. However, Pure PQ key exchange might lead to potential incompatibility with older devices as it takes no dependence on traditional ECC algorithms.
 
-Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rational behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.
+Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rationale behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.
 
 ## Authentication: ML-DSA
 
