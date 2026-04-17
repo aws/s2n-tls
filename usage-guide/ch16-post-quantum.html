@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-521ee904.js";
+            window.path_to_searchindex_js = "searchindex-f120b2e8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6a963795.js"></script>
@@ -187,7 +187,7 @@
 <p>Pure PQ key exchange involves only post-quantum key exchange, without classic ECC components. It is a simpler long-term architecture compared to hybrid PQ algorithms. However, Pure PQ key exchange might lead to potential incompatibility with older devices as it takes no dependence on traditional ECC algorithms.</p>
 </li>
 </ul>
-<p>Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rational behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.</p>
+<p>Careful: An s2n-tls server that enables post-quantum cryptography will mandate post-quantum key exchange with any client advertising post-quantum algorithms. This can result in a retry and an extra round trip if the client does not initially send a post-quantum key share. The rationale behind this behavior is that post-quantum users prioritize security over the potential cost of an extra round trip.</p>
 <h2 id="authentication-ml-dsa"><a class="header" href="#authentication-ml-dsa">Authentication: ML-DSA</a></h2>
 <p>Currently, only <a href="https://csrc.nist.gov/pubs/fips/204/final">ML-DSA</a> is supported for post-quantum authentication.</p>
 <p>In order to use ML-DSA, you must configure s2n-tls to use an ML-DSA certificate, just as you would configure an RSA or ECDSA certificate. See <a href="./ch09-certificates.html">certificates</a>.</p>
