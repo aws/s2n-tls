@@ -9,11 +9,13 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [features]
-default = []
-# Skip calling s2n_init() and s2n_mem_set_callbacks() from the Rust bindings.
-# Use this when the host application already calls s2n_init() from C before
-# using the Rust bindings (e.g. FFI applications that link their own libs2n).
-no-init = []
+default = ["init"]
+# Controls whether the Rust bindings call s2n_init() and s2n_mem_set_callbacks().
+# Enabled by default. To skip initialization (e.g. FFI applications whose host
+# already calls s2n_init() from C), disable default features with
+# `default-features = false` in your Cargo.toml dependency.
+# Using `--all-features` is safe because `init` will be enabled.
+init = []
 unstable-fingerprint = ["s2n-tls-sys/unstable-fingerprint"]
 unstable-ktls = ["s2n-tls-sys/unstable-ktls"]
 unstable-renegotiate = ["s2n-tls-sys/unstable-renegotiate"]
