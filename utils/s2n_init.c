@@ -79,7 +79,6 @@ int s2n_init(void)
     POSIX_GUARD_RESULT(s2n_hash_algorithms_init());
     POSIX_GUARD(s2n_cipher_suites_init());
     POSIX_GUARD(s2n_security_policies_init());
-    POSIX_GUARD(s2n_config_defaults_init());
     POSIX_GUARD(s2n_extension_type_init());
     POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
     POSIX_GUARD_RESULT(s2n_atomic_init());

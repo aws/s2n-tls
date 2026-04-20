@@ -63,11 +63,17 @@
 static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
         const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
 
+/* Allocates and initializes memory for a new connection with default config. */
+struct s2n_connection *s2n_connection_new(s2n_mode mode)
+{
+    return s2n_connection_new_with_config(s2n_fetch_default_config(), mode);
+}
+
 /* Allocates and initializes memory for a new connection.
  *
  * Since customers can reuse a connection, ensure that values on the connection are
  * initialized in `s2n_connection_wipe` where possible. */
-struct s2n_connection *s2n_connection_new(s2n_mode mode)
+struct s2n_connection *s2n_connection_new_with_config(struct s2n_config *config, s2n_mode mode)
 {
     struct s2n_blob blob = { 0 };
     PTR_GUARD_POSIX(s2n_alloc(&blob, sizeof(struct s2n_connection)));
@@ -77,8 +83,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * which is ok, as blob.data is always aligned.
      */
     struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data;
-
-    PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
+    PTR_GUARD_POSIX(s2n_connection_set_config(conn, config));
 
     /* `mode` is initialized here since it's passed in as a parameter. */
     conn->mode = mode;
