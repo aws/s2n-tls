@@ -27,13 +27,13 @@ impl CertValidationInfo<'_> {
         self.info.as_ptr()
     }
 
-    /// Corresponds to [s2n_cert_validation_accept].
+    /// Corresponds to [`s2n_cert_validation_accept`].
     pub(crate) fn accept(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.as_ptr()).into_result() }?;
         Ok(())
     }
 
-    /// Corresponds to [s2n_cert_validation_reject].
+    /// Corresponds to [`s2n_cert_validation_reject`].
     pub(crate) fn reject(&mut self) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.as_ptr()).into_result() }?;
         Ok(())
