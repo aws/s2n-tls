@@ -416,8 +416,6 @@ pub fn parse(der: &[u8]) -> Result<ParsedCert, DecoderError> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use super::*;
     use s2n_tls::testing::{CertKeyPair, TestPair};
 
