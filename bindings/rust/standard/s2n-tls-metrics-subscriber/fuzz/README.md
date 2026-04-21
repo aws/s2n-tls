@@ -14,6 +14,9 @@ cargo +nightly fuzz run fuzz_cert_parse
 
 # Run for a fixed duration
 cargo +nightly fuzz run fuzz_cert_parse -- -max_total_time=60
+
+# Run with multiple parallel jobs
+cargo +nightly fuzz run fuzz_cert_parse --jobs 31
 ```
 
 ## List targets

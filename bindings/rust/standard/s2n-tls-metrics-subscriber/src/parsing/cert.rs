@@ -208,7 +208,12 @@ mod der_codec {
                         let (len_bytes, buffer) = buffer.decode_slice(length_encoding_size)?;
                         let raw = len_bytes.into_less_safe_slice();
                         let mut buf = [0u8; size_of::<usize>()];
-                        buf[size_of::<usize>() - raw.len()..].copy_from_slice(raw);
+                        let start = size_of::<usize>()
+                            .checked_sub(raw.len())
+                            .ok_or(DecoderError::LengthCapacityExceeded)?;
+                        buf.get_mut(start..)
+                            .ok_or(DecoderError::LengthCapacityExceeded)?
+                            .copy_from_slice(raw);
                         (usize::from_be_bytes(buf), buffer)
                     };
                     Ok((DerLength(length), buffer))
@@ -269,7 +274,12 @@ mod der_codec {
             if bits_tlv.tag != TAG_BIT_STRING {
                 return Err(DecoderError::InvariantViolation("expected BIT STRING tag"));
             }
-            let key_content = &bits_tlv.content[1..]; // skip unused-bits byte
+            let key_content = bits_tlv
+                .content
+                .get(1..)
+                .ok_or(DecoderError::InvariantViolation(
+                    "BIT STRING content too short",
+                ))?;
             // outer SEQUENCE
             let (seq_tlv, _) = DecoderBuffer::new(key_content).decode::<Tlv<'_>>()?;
             if seq_tlv.tag != TAG_SEQUENCE {
@@ -282,7 +292,7 @@ mod der_codec {
             let modulus = modulus_tlv.content;
             // strip leading 0x00 sign padding
             let modulus = if modulus.first() == Some(&0x00) {
-                &modulus[1..]
+                modulus.get(1..).unwrap_or(modulus)
             } else {
                 modulus
             };

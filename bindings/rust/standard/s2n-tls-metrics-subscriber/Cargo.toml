@@ -24,6 +24,9 @@ s2n-tls = { version = "0.3.36", path = "../../extended/s2n-tls", features = ["un
 s2n-tls-sys = { version = "0.3.36", path = "../../extended/s2n-tls-sys"}
 const-oid = "0.10.2"
 
+[features]
+fuzzing = []
+
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
 serde_json = "1.0.141"

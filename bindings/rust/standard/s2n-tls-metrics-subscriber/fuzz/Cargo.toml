@@ -16,6 +16,7 @@ s2n-codec = { git = "https://github.com/aws/s2n-quic" }
 
 [dependencies.s2n-tls-metrics-subscriber]
 path = ".."
+features = ["fuzzing"]
 
 [[bin]]
 name = "fuzz_cert_parse"
