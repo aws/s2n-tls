@@ -593,13 +593,15 @@ mod tests {
             let requested = unsafe { SSL_renegotiate_pending(openssl_ptr) };
             assert_eq!(requested, 1, "Renegotiation should be pending");
 
-            // SSL_renegotiate doesn't actually send the message.
-            // Like s2n-tls, a call to send / write is required.
+            // SSL_renegotiate only schedules the HelloRequest internally.
+            // A subsequent SSL_write flushes it. Some OpenSSL versions
+            // ignore a zero-length write, so we send a single byte of
+            // application data to reliably trigger the flush.
             assert_eq!(
                 self.server
-                    .write(&[0; 0])
+                    .write(&[0])
                     .expect("Failed to write hello request"),
-                0
+                1
             );
 
             Ok(())
@@ -629,42 +631,20 @@ mod tests {
         // application data written by the server after the new handshake.
         fn assert_renegotiate(&mut self) -> Result<(), Box<dyn Error>> {
             const APP_DATA: &[u8] = b"Renegotiation complete";
+
+            // Complete the renegotiation handshake first.
+            self.finish_renegotiate();
+
+            // Now send and receive application data to confirm the
+            // renegotiated connection works.
+            self.server
+                .write_all(APP_DATA)
+                .expect("server app data after renegotiation");
+
             let mut buffer = [0; APP_DATA.len()];
-
-            for _ in 0..20 {
-                let client_read_poll = self.client.poll_recv(&mut buffer);
-                match client_read_poll {
-                    Pending => {
-                        assert!(self.client.is_renegotiating(), "s2n-tls not renegotiating");
-                    }
-                    Ready(Ok(bytes_read)) => {
-                        assert_eq!(bytes_read, APP_DATA.len());
-                        assert_eq!(&buffer, APP_DATA);
-                        break;
-                    }
-                    Ready(err) => err.map(|_| ())?,
-                };
-
-                // Openssl needs to read the new ClientHello in order to know
-                // that s2n-tls is actually renegotiating.
-                // But after the initial read, writes can progress the handshake.
-                if !self.openssl_is_handshaking() {
-                    let _ = self.server.read(&mut [0; 0]);
-                } else {
-                    let server_write_result = self.server.write(APP_DATA);
-                    println!(
-                        "openssl result: {:?}, state: {:?}",
-                        server_write_result,
-                        self.server.ssl().state_string_long()
-                    );
-                    match server_write_result {
-                        Ok(bytes_written) => assert_eq!(bytes_written, APP_DATA.len()),
-                        Err(_) => {
-                            assert!(self.openssl_is_handshaking(), "openssl not renegotiating");
-                        }
-                    }
-                }
-            }
+            let bytes_read = unwrap_poll(self.client.poll_recv(&mut buffer))?;
+            assert_eq!(bytes_read, APP_DATA.len());
+            assert_eq!(&buffer, APP_DATA);
 
             assert!(
                 !self.client.is_renegotiating(),
@@ -675,6 +655,21 @@ mod tests {
                 "openssl renegotiation not complete"
             );
             Ok(())
+        }
+
+        // Drive both sides until the renegotiation handshake completes,
+        // without sending or expecting application data.
+        fn finish_renegotiate(&mut self) {
+            for _ in 0..20 {
+                let _ = self.client.poll_recv(&mut [0; 1]);
+                // Use a non-zero-length buffer so SSL_read actually
+                // processes incoming handshake messages from the client.
+                let _ = self.server.read(&mut [0; 1]);
+                if !self.client.is_renegotiating() && !self.openssl_is_handshaking() {
+                    return;
+                }
+            }
+            panic!("renegotiation did not complete");
         }
     }
 
@@ -812,6 +807,9 @@ mod tests {
             .write_all(server_data)
             .expect("server app data after hello request");
 
+        // Drain the flush byte from send_renegotiate_request
+        unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
+
         // First poll reads both the hello request and the app data
         let mut buffer = [0; 100];
         let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
@@ -835,6 +833,9 @@ mod tests {
         // Server sends hello request, but initially no app data
         pair.send_renegotiate_request()
             .expect("server hello request");
+
+        // Drain the flush byte from send_renegotiate_request
+        unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
 
         // Client can read the hello request
         let mut buffer = [0; 100];
@@ -872,16 +873,11 @@ mod tests {
         pair.send_renegotiate_request()
             .expect("server hello request");
 
+        // Drain the flush byte from send_renegotiate_request
+        unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
+
         // Client and server renegotiate while never reading app data
-        assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
-        assert!(pair.client.is_renegotiating());
-        loop {
-            let _ = pair.server.read(&mut [0; 0]);
-            assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
-            if !pair.client.is_renegotiating() {
-                break;
-            }
-        }
+        pair.finish_renegotiate();
 
         // Send and receive application data after renegotiation
         pair.send_and_receive()
@@ -905,6 +901,12 @@ mod tests {
             pair.server.write(server_data).expect("server app data"),
             server_data.len()
         );
+
+        // send_renegotiate_request writes a 1-byte app data payload to
+        // flush the HelloRequest. Drain it before reading server_data.
+        let read = unwrap_poll(pair.client.poll_recv(&mut [0; 1]))
+            .expect("Drain flush byte");
+        assert_eq!(read, 1);
 
         // Read only the first byte of the server data
         let mut buffer = [0; 100];
@@ -951,6 +953,8 @@ mod tests {
         // The client fails to start renegotiation due to pending send.
         pair.send_renegotiate_request()
             .expect("Server sends request");
+        // Drain the flush byte from send_renegotiate_request
+        unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
         let error = unwrap_poll(pair.client.poll_recv(&mut [0; 1])).unwrap_err();
         assert_eq!(error.kind(), ErrorType::UsageError);
         assert!(error.message().contains(RENEG_ERR_MARKER));
@@ -971,6 +975,8 @@ mod tests {
         // Read the hello request and start renegotiation
         pair.send_renegotiate_request()
             .expect("server HELLO_REQUEST");
+        // Drain the flush byte from send_renegotiate_request
+        unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
         assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
         assert!(pair.client.is_renegotiating());
 
