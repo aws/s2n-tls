@@ -904,8 +904,7 @@ mod tests {
 
         // send_renegotiate_request writes a 1-byte app data payload to
         // flush the HelloRequest. Drain it before reading server_data.
-        let read = unwrap_poll(pair.client.poll_recv(&mut [0; 1]))
-            .expect("Drain flush byte");
+        let read = unwrap_poll(pair.client.poll_recv(&mut [0; 1])).expect("Drain flush byte");
         assert_eq!(read, 1);
 
         // Read only the first byte of the server data
