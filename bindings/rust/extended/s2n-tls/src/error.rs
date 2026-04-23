@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 
 use crate::utilities::cstr_to_str;
 
-/// Corresponds to [s2n_error_type].
+/// Corresponds to [`s2n_error_type`].
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ErrorType {
@@ -207,7 +207,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror_name] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror_name`] for ErrorSource::Library errors.
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, name, _) => name,
@@ -219,7 +219,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror`] for ErrorSource::Library errors.
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, _, msg) => msg,
@@ -231,7 +231,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror_debug] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror_debug`] for ErrorSource::Library errors.
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
@@ -252,7 +252,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_error_get_type] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_error_get_type`] for ErrorSource::Library errors.
     pub fn kind(&self) -> ErrorType {
         match self.0 {
             Context::Bindings(error_type, _, _) => error_type,
@@ -294,7 +294,7 @@ impl Error {
     ///
     /// This API is currently incomplete and should not be relied upon.
     ///
-    /// Corresponds to [s2n_error_get_alert] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_error_get_alert`] for ErrorSource::Library errors.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,

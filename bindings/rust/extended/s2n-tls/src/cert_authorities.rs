@@ -43,7 +43,7 @@ impl CertificateRequest<'_> {
     /// This returns a reference to the internal state of the CertificateRequest: the iterator is
     /// not reset on each call to this method.
     ///
-    /// Corresponds to [s2n_certificate_request_get_ca_list].
+    /// Corresponds to [`s2n_certificate_request_get_ca_list`].
     pub fn certificate_authorities(&mut self) -> CertificateAuthorities<'_> {
         // SAFETY: Accessor function, with returned object bound to the appropraite lifetime.
         unsafe {
@@ -59,7 +59,7 @@ impl CertificateRequest<'_> {
 
     /// Set the certificate chain to reply with to this request.
     ///
-    /// Corresponds to [s2n_certificate_request_set_certificate].
+    /// Corresponds to [`s2n_certificate_request_set_certificate`].
     pub fn set_certificate(
         &mut self,
         cert_chain: crate::cert_chain::CertificateChain<'static>,
@@ -84,7 +84,7 @@ impl CertificateRequest<'_> {
 impl<'a> CertificateAuthorities<'a> {
     /// Reset the iterator to the start.
     ///
-    /// Corresponds to [s2n_certificate_authority_list_reread].
+    /// Corresponds to [`s2n_certificate_authority_list_reread`].
     pub fn reset(&mut self) -> Result<(), Error> {
         if let Some(this) = self.0.as_ref().map(|v| v.as_ptr()) {
             // SAFETY: Calling with non-null, valid pointer to a list.
@@ -110,8 +110,8 @@ impl<'a> Iterator for CertificateAuthorities<'a> {
     type Item = Result<CertificateAuthority<'a>, Error>;
 
     /// Corresponds to:
-    /// - [s2n_certificate_authority_list_has_next]
-    /// - [s2n_certificate_authority_list_next]
+    /// - [`s2n_certificate_authority_list_has_next`]
+    /// - [`s2n_certificate_authority_list_next`]
     fn next(&mut self) -> Option<Self::Item> {
         let mut ptr = std::ptr::null_mut::<u8>();
         let mut length: u16 = 0;
@@ -166,7 +166,7 @@ pub trait CertificateRequestCallback: 'static + Send + Sync {
 impl config::Builder {
     /// Sets a method to be called when the client receives CertificateRequest message.
     ///
-    /// Corresponds to [s2n_config_set_cert_request_callback].
+    /// Corresponds to [`s2n_config_set_cert_request_callback`].
     pub fn set_certificate_request_callback<T: 'static + CertificateRequestCallback>(
         &mut self,
         handler: T,

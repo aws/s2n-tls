@@ -1920,7 +1920,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
     POSIX_ENSURE_REF(security_policy);
 
-    /* make sure we dont use a tls version lower than that configured by the version */
+    /* make sure we don't use a tls version lower than that configured by the version */
     if (s2n_connection_get_actual_protocol_version(conn) < security_policy->minimum_protocol_version) {
         return 0;
     }

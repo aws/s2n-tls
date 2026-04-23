@@ -91,10 +91,35 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
 static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *pub_key = s2n_get_Ys_dh_param(dh_params);
-
     POSIX_ENSURE_REF(pub_key);
 
+    /*
+     * https://www.rfc-editor.org/rfc/rfc2631#section-2.1.5
+     *
+     * The following algorithm MAY be used to validate a received public
+     * key y.
+     *
+     * 1. Verify that y lies within the interval [2,p-1].
+     *    If it does not, the key is invalid.
+     *
+     * This check is optional per the RFC, but applied here as
+     * defense-in-depth to reject degenerate public key values.
+     */
     S2N_ERROR_IF(BN_is_zero(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+    S2N_ERROR_IF(BN_is_one(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+
+    const BIGNUM *p = s2n_get_p_dh_param(dh_params);
+    POSIX_ENSURE_REF(p);
+
+    BIGNUM *p_minus_one = BN_dup(p);
+    POSIX_ENSURE_REF(p_minus_one);
+    if (!BN_sub_word(p_minus_one, 1)) {
+        BN_free(p_minus_one);
+        POSIX_BAIL(S2N_ERR_DH_PARAMS_CREATE);
+    }
+    int cmp = BN_cmp(pub_key, p_minus_one);
+    BN_free(p_minus_one);
+    S2N_ERROR_IF(cmp > 0, S2N_ERR_DH_PARAMS_CREATE);
 
     return S2N_SUCCESS;
 }
