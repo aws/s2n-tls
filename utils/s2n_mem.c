@@ -45,6 +45,28 @@ static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
 static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
 static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 
+/* Select the appropriate malloc/free callbacks based on the current
+ * environment. Called by both init and cleanup so that the callbacks
+ * are always consistent with the runtime configuration.
+ *
+ * The original s2n_mem_cleanup (2016) reset to mlock-enabled defaults.
+ * The 2020 callback refactor accidentally changed cleanup to always
+ * select no-mlock, while init only conditionally overwrote, creating
+ * an asymmetry that caused mlock hardening to be permanently lost
+ * after a cleanup/init cycle. This helper restores a single source
+ * of truth for both paths.
+ */
+static void s2n_mem_set_default_callbacks(void)
+{
+    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
+        s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
+        s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+    } else {
+        s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
+        s2n_mem_free_cb = s2n_mem_free_mlock_impl;
+    }
+}
+
 static int s2n_mem_init_impl(void)
 {
     long sysconf_rc = sysconf(_SC_PAGESIZE);
@@ -57,18 +79,14 @@ static int s2n_mem_init_impl(void)
     POSIX_ENSURE_LTE(sysconf_rc, max_page_size);
     page_size = (uint32_t) sysconf_rc;
 
-    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
-        s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
-        s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
-    }
+    s2n_mem_set_default_callbacks();
     return S2N_SUCCESS;
 }
 
 static int s2n_mem_cleanup_impl(void)
 {
     page_size = 4096;
-    s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
-    s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+    s2n_mem_set_default_callbacks();
     return S2N_SUCCESS;
 }
 
@@ -174,10 +192,10 @@ S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_m
 
 /**
  * Allocate a new blob on the heap.
- * 
+ *
  * The blob will be _growable_.
- * 
- * This blob owns the underlying memory, which will be freed when `s2n_free` is 
+ *
+ * This blob owns the underlying memory, which will be freed when `s2n_free` is
  * called on `b`.
  */
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
@@ -198,7 +216,7 @@ bool s2n_blob_is_growable(const struct s2n_blob *b)
 
 /**
  * Resize a blob to `size`. The blob must be allocated or empty.
- * 
+ *
  * This will allocate more memory if necessary, or reuse the existing allocation
  * if the requested size is smaller than the current size.
  *
