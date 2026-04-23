@@ -1157,7 +1157,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 
     const char **handshake_labels = tls13_handshake_type_names;
     size_t handshake_labels_len = s2n_array_len(tls13_handshake_type_names);
-    char (*names)[MAX_HANDSHAKE_TYPE_LEN] = handshake_type_str_tls13;
+    char(*names)[MAX_HANDSHAKE_TYPE_LEN] = handshake_type_str_tls13;
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         handshake_labels = tls12_handshake_type_names;
         handshake_labels_len = s2n_array_len(tls12_handshake_type_names);

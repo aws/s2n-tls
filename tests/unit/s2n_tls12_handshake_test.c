@@ -525,7 +525,7 @@ int main(int argc, char **argv)
      */
     {
         /* sanity check: these flags are the same bit */
-        EXPECT_EQUAL(TLS12_PERFECT_FORWARD_SECRECY, HELLO_RETRY_REQUEST);
+        EXPECT_EQUAL((int) TLS12_PERFECT_FORWARD_SECRECY, (int) HELLO_RETRY_REQUEST);
 
         uint32_t tls12_type = NEGOTIATED | FULL_HANDSHAKE | TLS12_PERFECT_FORWARD_SECRECY;
         uint32_t tls13_type = NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST;
