@@ -309,12 +309,24 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         POSIX_BAIL(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
 
-    s2n_x509_validator_wipe(&conn->x509_validator);
+    /* Build the new validator into a local so that the connection's existing
+     * validator is not destroyed until the new one is fully initialized.
+     * Without this staging, a failure mid-init (e.g. X509_STORE_CTX_new
+     * returning NULL under OOM) would leave conn->x509_validator wiped
+     * while conn->config still references the old config.
+     */
+    struct s2n_x509_validator new_validator = { 0 };
 
     if (config->disable_x509_validation) {
-        POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
+        POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&new_validator));
     } else {
-        POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
+        int ret = s2n_x509_validator_init(&new_validator, &config->trust_store, config->check_ocsp);
+        if (ret != S2N_SUCCESS) {
+            /* init may have partially populated new_validator before failing */
+            s2n_x509_validator_wipe(&new_validator);
+            POSIX_GUARD(ret);
+        }
+
         if (!conn->verify_host_fn_overridden) {
             if (config->verify_host_fn != NULL) {
                 conn->verify_host_fn = config->verify_host_fn;
@@ -326,9 +338,18 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
 
         if (config->max_verify_cert_chain_depth_set) {
-            POSIX_GUARD(s2n_x509_validator_set_max_chain_depth(&conn->x509_validator, config->max_verify_cert_chain_depth));
+            ret = s2n_x509_validator_set_max_chain_depth(&new_validator, config->max_verify_cert_chain_depth);
+            if (ret != S2N_SUCCESS) {
+                s2n_x509_validator_wipe(&new_validator);
+                POSIX_GUARD(ret);
+            }
         }
     }
+
+    /* New validator is fully initialized. Swap it in. */
+    s2n_x509_validator_wipe(&conn->x509_validator);
+    conn->x509_validator = new_validator;
+
     conn->tickets_to_send = config->initial_tickets_to_send;
 
     if (conn->psk_params.psk_list.len == 0 && !conn->psk_mode_overridden) {
@@ -369,7 +390,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
-     * 
+     *
      * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
@@ -1020,7 +1041,7 @@ int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const cha
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(group_name);
 
-    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if 
+    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if
        the negotiated group was a hybrid PQ key exchange also containing a KEM. Therefore,
        we use the result of s2n_connection_get_kem_group_name if the connection supports PQ. */
     if (s2n_tls13_pq_hybrid_supported(conn)) {
@@ -1256,11 +1277,11 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 
 /* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
  * for possible timing sidechannels.
- * 
+ *
  * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
  * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
- * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
- * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and
  * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
