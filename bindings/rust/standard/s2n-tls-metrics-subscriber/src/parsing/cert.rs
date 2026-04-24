@@ -46,7 +46,7 @@ use s2n_codec::decoder::DecoderError;
 
 /// Parsed cert fields from the TBSCertificate.
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParsedCert {
+pub struct ParsedCertContent {
     /// The serial of the certificate, allowing it to be uniquely identified
     pub serial: Vec<u8>,
     /// The issuer (CA) of the certificate, e.g. `Amazon Root CA 1`
@@ -91,26 +91,8 @@ pub enum SignatureAlgorithm {
 
 impl SignatureAlgorithm {
     fn from_oid(oid: &[u8]) -> Self {
-        use der_codec::*;
-        if oid == OID_RSA_PKCS_SHA1.as_bytes() {
-            Self::RsaPkcsSha1
-        } else if oid == OID_RSA_PKCS_SHA256.as_bytes() {
-            Self::RsaPkcsSha256
-        } else if oid == OID_RSA_PKCS_SHA384.as_bytes() {
-            Self::RsaPkcsSha384
-        } else if oid == OID_RSA_PKCS_SHA512.as_bytes() {
-            Self::RsaPkcsSha512
-        } else if oid == OID_RSA_PSS.as_bytes() {
-            Self::RsaPss
-        } else if oid == OID_ECDSA_SHA256.as_bytes() {
-            Self::EcdsaSha256
-        } else if oid == OID_ECDSA_SHA384.as_bytes() {
-            Self::EcdsaSha384
-        } else if oid == OID_ECDSA_SHA512.as_bytes() {
-            Self::EcdsaSha512
-        } else {
-            Self::Unknown
-        }
+        // implemented inside der_codec where OID constants are in scope
+        der_codec::signature_from_oid(oid)
     }
 }
 
@@ -120,41 +102,97 @@ mod der_codec {
 
     use const_oid::ObjectIdentifier;
 
-    // DER tag constants
-    const TAG_SEQUENCE: u8 = 0x30;
-    const TAG_OID: u8 = 0x06;
-    const TAG_BIT_STRING: u8 = 0x03;
-    const TAG_CONTEXT_0: u8 = 0xa0; // [0] EXPLICIT (certificate version)
+    /// DER tag byte.
+    ///
+    /// Multi-byte tags (where the low 5 bits of the first byte are all 1s)
+    /// are rejected on decode. X.509 certificates only use single-byte tags.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub(super) enum Tag {
+        Sequence,
+        Set,
+        Integer,
+        Oid,
+        BitString,
+        /// [0] EXPLICIT (certificate version)
+        Context0,
+        // X.520 DirectoryString types (RFC 5280 §4.1.2.4)
+        /// Full Unicode via UTF-8. The modern default for new certificates.
+        Utf8String,
+        /// Restricted to A-Z, a-z, 0-9, space, and ' ( ) + , - . / : = ?
+        PrintableString,
+        /// ASCII (0x00-0x7F). Used for email addresses and domain names.
+        Ia5String,
+        /// Any other valid single-byte tag
+        Other(u8),
+    }
+
+    impl Tag {
+        const MULTI_BYTE_MASK: u8 = 0x1F;
+        /// Raw byte value for [0] EXPLICIT, used for peek_byte checks.
+        const CONTEXT_0_BYTE: u8 = 0xa0;
+    }
+
+    impl<'a> DecoderValue<'a> for Tag {
+        fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
+            let (byte, buffer) = buffer.decode::<u8>()?;
+            if byte & Self::MULTI_BYTE_MASK == Self::MULTI_BYTE_MASK {
+                return Err(DecoderError::InvariantViolation(
+                    "multi-byte tags not supported",
+                ));
+            }
+            let tag = match byte {
+                0x30 => Tag::Sequence,
+                0x31 => Tag::Set,
+                0x02 => Tag::Integer,
+                0x06 => Tag::Oid,
+                0x03 => Tag::BitString,
+                0x0c => Tag::Utf8String,
+                0x13 => Tag::PrintableString,
+                0x16 => Tag::Ia5String,
+                0xa0 => Tag::Context0,
+                other => Tag::Other(other),
+            };
+            Ok((tag, buffer))
+        }
+    }
 
     // Signature algorithm OIDs
-    pub const OID_RSA_PKCS_SHA1: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.5");
-    pub const OID_RSA_PKCS_SHA256: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11");
-    pub const OID_RSA_PKCS_SHA384: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.12");
-    pub const OID_RSA_PKCS_SHA512: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.13");
-    pub const OID_RSA_PSS: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.10");
-    pub const OID_ECDSA_SHA256: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2");
-    pub const OID_ECDSA_SHA384: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.3");
-    pub const OID_ECDSA_SHA512: ObjectIdentifier =
-        ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.4");
+    const OID_RSA_PKCS_SHA1: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.5").as_bytes();
+    const OID_RSA_PKCS_SHA256: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11").as_bytes();
+    const OID_RSA_PKCS_SHA384: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.12").as_bytes();
+    const OID_RSA_PKCS_SHA512: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.13").as_bytes();
+    const OID_RSA_PSS: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.10").as_bytes();
+    const OID_ECDSA_SHA256: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2").as_bytes();
+    const OID_ECDSA_SHA384: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.3").as_bytes();
+    const OID_ECDSA_SHA512: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.4").as_bytes();
 
     // Key algorithm OIDs
-    const OID_RSA_KEY: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.1");
-    const OID_RSA_PSS_KEY: ObjectIdentifier = OID_RSA_PSS;
-    const OID_EC_PUBLIC_KEY: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
+    const OID_RSA_KEY: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.1").as_bytes();
+    const OID_RSA_PSS_KEY: &[u8] = OID_RSA_PSS;
+    const OID_EC_PUBLIC_KEY: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1").as_bytes();
 
     // EC named curve OIDs
-    const OID_SECP256R1: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
-    const OID_SECP384R1: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.34");
-    const OID_SECP521R1: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.35");
+    const OID_SECP256R1: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7").as_bytes();
+    const OID_SECP384R1: &[u8] = ObjectIdentifier::new_unwrap("1.3.132.0.34").as_bytes();
+    const OID_SECP521R1: &[u8] = ObjectIdentifier::new_unwrap("1.3.132.0.35").as_bytes();
 
     // Common Name OID
-    const OID_CN: ObjectIdentifier = ObjectIdentifier::new_unwrap("2.5.4.3");
+    const OID_CN: &[u8] = ObjectIdentifier::new_unwrap("2.5.4.3").as_bytes();
+
+    pub fn signature_from_oid(oid: &[u8]) -> super::SignatureAlgorithm {
+        use super::SignatureAlgorithm;
+        match oid {
+            OID_RSA_PKCS_SHA1 => SignatureAlgorithm::RsaPkcsSha1,
+            OID_RSA_PKCS_SHA256 => SignatureAlgorithm::RsaPkcsSha256,
+            OID_RSA_PKCS_SHA384 => SignatureAlgorithm::RsaPkcsSha384,
+            OID_RSA_PKCS_SHA512 => SignatureAlgorithm::RsaPkcsSha512,
+            OID_RSA_PSS => SignatureAlgorithm::RsaPss,
+            OID_ECDSA_SHA256 => SignatureAlgorithm::EcdsaSha256,
+            OID_ECDSA_SHA384 => SignatureAlgorithm::EcdsaSha384,
+            OID_ECDSA_SHA512 => SignatureAlgorithm::EcdsaSha512,
+            _ => SignatureAlgorithm::Unknown,
+        }
+    }
 
     /// A DER-encoded length field.
     ///
@@ -216,6 +254,13 @@ mod der_codec {
                             .copy_from_slice(raw);
                         (usize::from_be_bytes(buf), buffer)
                     };
+                    // X.690 §10.1: DER requires minimal length encoding.
+                    // Values < 0x80 must use the short (single-byte) form.
+                    if length < DerLengthEncoding::SENTINEL_VALUE as usize {
+                        return Err(DecoderError::InvariantViolation(
+                            "non-minimal length encoding",
+                        ));
+                    }
                     Ok((DerLength(length), buffer))
                 }
                 DerLengthEncoding::Indefinite => {
@@ -232,14 +277,14 @@ mod der_codec {
     }
 
     /// A DER tag-length-value: (tag, content bytes).
-    pub struct Tlv<'a> {
-        pub tag: u8,
-        pub content: &'a [u8],
+    struct Tlv<'a> {
+        tag: Tag,
+        content: &'a [u8],
     }
 
     impl<'a> DecoderValue<'a> for Tlv<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
-            let (tag, buffer) = buffer.decode::<u8>()?;
+            let (tag, buffer) = buffer.decode::<Tag>()?;
             let (DerLength(len), buffer) = buffer.decode::<DerLength>()?;
             let (content, buffer) = buffer.decode_slice(len)?;
             Ok((
@@ -252,13 +297,61 @@ mod der_codec {
         }
     }
 
-    /// Helper: decode an OID TLV and return the raw content bytes.
-    fn decode_oid_tlv<'a>(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, &'a [u8]> {
-        let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
-        if tlv.tag != TAG_OID {
-            return Err(DecoderError::InvariantViolation("expected OID tag"));
+    /// Macro to define a typed DER element that decodes a TLV and asserts the
+    /// expected tag. Each generated struct contains only the content bytes.
+    macro_rules! der_element {
+        ($name:ident, $tag:expr, $doc:expr) => {
+            #[doc = $doc]
+            pub struct $name<'a> {
+                pub content: &'a [u8],
+            }
+
+            impl<'a> DecoderValue<'a> for $name<'a> {
+                fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
+                    let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+                    if tlv.tag != $tag {
+                        return Err(DecoderError::InvariantViolation(
+                            concat!("expected ", stringify!($name)),
+                        ));
+                    }
+                    Ok(($name { content: tlv.content }, buffer))
+                }
+            }
+        };
+    }
+
+    der_element!(DerSequence, Tag::Sequence, "A DER SEQUENCE element.");
+    der_element!(DerSet, Tag::Set, "A DER SET element.");
+    der_element!(DerInteger, Tag::Integer, "A DER INTEGER element.");
+    der_element!(DerOid, Tag::Oid, "A DER OID element.");
+    der_element!(DerBitString, Tag::BitString, "A DER BIT STRING element.");
+    der_element!(DerContext0, Tag::Context0, "A DER [0] EXPLICIT element.");
+
+    /// A DER string element that must contain valid UTF-8.
+    ///
+    /// Accepts UTF8String (0x0c), PrintableString (0x13), and IA5String (0x16).
+    pub struct DerUtf8String<'a> {
+        pub content: &'a str,
+    }
+
+    impl<'a> DecoderValue<'a> for DerUtf8String<'a> {
+        fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
+            let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+            match tlv.tag {
+                // printable string and Ia5String are all subsets of UTF8
+                Tag::Utf8String | Tag::PrintableString | Tag::Ia5String => {}
+                _ => return Err(DecoderError::InvariantViolation("expected UTF-8 string tag")),
+            }
+            let content = core::str::from_utf8(tlv.content)
+                .map_err(|_| DecoderError::InvariantViolation("invalid utf8"))?;
+            Ok((DerUtf8String { content }, buffer))
         }
-        Ok((tlv.content, buffer))
+    }
+
+    /// Helper: decode an OID and return the raw content bytes.
+    fn decode_oid<'a>(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, &'a [u8]> {
+        let (oid, buffer) = buffer.decode::<DerOid<'a>>()?;
+        Ok((oid.content, buffer))
     }
 
     /// The RSA public key decoded from a BIT STRING containing
@@ -270,26 +363,18 @@ mod der_codec {
     impl<'a> DecoderValue<'a> for RsaPublicKey<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             // BIT STRING wrapper
-            let (bits_tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
-            if bits_tlv.tag != TAG_BIT_STRING {
-                return Err(DecoderError::InvariantViolation("expected BIT STRING tag"));
-            }
-            let key_content = bits_tlv
+            let (bits, buffer) = buffer.decode::<DerBitString<'a>>()?;
+            let key_content = bits
                 .content
                 .get(1..)
                 .ok_or(DecoderError::InvariantViolation(
                     "BIT STRING content too short",
                 ))?;
             // outer SEQUENCE
-            let (seq_tlv, _) = DecoderBuffer::new(key_content).decode::<Tlv<'_>>()?;
-            if seq_tlv.tag != TAG_SEQUENCE {
-                return Err(DecoderError::InvariantViolation(
-                    "expected SEQUENCE in RSA key",
-                ));
-            }
+            let (seq, _) = DecoderBuffer::new(key_content).decode::<DerSequence<'_>>()?;
             // first INTEGER is the modulus
-            let (modulus_tlv, _) = DecoderBuffer::new(seq_tlv.content).decode::<Tlv<'_>>()?;
-            let modulus = modulus_tlv.content;
+            let (modulus_int, _) = DecoderBuffer::new(seq.content).decode::<DerInteger<'_>>()?;
+            let modulus = modulus_int.content;
             // strip leading 0x00 sign padding
             let modulus = if modulus.first() == Some(&0x00) {
                 modulus.get(1..).unwrap_or(modulus)
@@ -306,38 +391,37 @@ mod der_codec {
             use super::KeyType;
 
             // AlgorithmIdentifier SEQUENCE
-            let (key_alg_tlv, rest) = buffer.decode::<Tlv<'a>>()?;
-            let (key_oid, key_alg_rest) = decode_oid_tlv(DecoderBuffer::new(key_alg_tlv.content))?;
+            let (key_alg, rest) = buffer.decode::<DerSequence<'a>>()?;
+            let (key_oid, key_alg_rest) = decode_oid(DecoderBuffer::new(key_alg.content))?;
 
-            if key_oid == OID_EC_PUBLIC_KEY.as_bytes() {
-                let (curve_oid, _) = decode_oid_tlv(key_alg_rest)?;
-                let key_type = if curve_oid == OID_SECP256R1.as_bytes() {
-                    KeyType::Secp256r1
-                } else if curve_oid == OID_SECP384R1.as_bytes() {
-                    KeyType::Secp384r1
-                } else if curve_oid == OID_SECP521R1.as_bytes() {
-                    KeyType::Secp521r1
-                } else {
-                    KeyType::Unknown
-                };
-                Ok((key_type, rest))
-            } else if key_oid == OID_RSA_KEY.as_bytes() || key_oid == OID_RSA_PSS_KEY.as_bytes() {
-                let (rsa_key, buffer) = rest.decode::<RsaPublicKey<'_>>()?;
-                let is_pss = key_oid == OID_RSA_PSS_KEY.as_bytes();
+            match key_oid {
+                OID_EC_PUBLIC_KEY => {
+                    let (curve_oid, _) = decode_oid(key_alg_rest)?;
+                    let key_type = match curve_oid {
+                        OID_SECP256R1 => KeyType::Secp256r1,
+                        OID_SECP384R1 => KeyType::Secp384r1,
+                        OID_SECP521R1 => KeyType::Secp521r1,
+                        _ => KeyType::Unknown,
+                    };
+                    Ok((key_type, rest))
+                }
+                OID_RSA_KEY | OID_RSA_PSS_KEY => {
+                    let (rsa_key, buffer) = rest.decode::<RsaPublicKey<'_>>()?;
+                    let is_pss = key_oid == OID_RSA_PSS_KEY;
 
-                let key_type = match (is_pss, rsa_key.modulus.len() * 8) {
-                    (false, 1024) => KeyType::Rsa1024,
-                    (false, 2048) => KeyType::Rsa2048,
-                    (false, 3072) => KeyType::Rsa3072,
-                    (false, 4096) => KeyType::Rsa4096,
-                    (true, 2048) => KeyType::RsaPss2048,
-                    (true, 3072) => KeyType::RsaPss3072,
-                    (true, 4096) => KeyType::RsaPss4096,
-                    _ => KeyType::Unknown,
-                };
-                Ok((key_type, buffer))
-            } else {
-                Ok((KeyType::Unknown, buffer))
+                    let key_type = match (is_pss, rsa_key.modulus.len() * 8) {
+                        (false, 1024) => KeyType::Rsa1024,
+                        (false, 2048) => KeyType::Rsa2048,
+                        (false, 3072) => KeyType::Rsa3072,
+                        (false, 4096) => KeyType::Rsa4096,
+                        (true, 2048) => KeyType::RsaPss2048,
+                        (true, 3072) => KeyType::RsaPss3072,
+                        (true, 4096) => KeyType::RsaPss4096,
+                        _ => KeyType::Unknown,
+                    };
+                    Ok((key_type, buffer))
+                }
+                _ => Ok((KeyType::Unknown, rest)),
             }
         }
     }
@@ -350,16 +434,14 @@ mod der_codec {
     fn decode_common_name(content: &[u8]) -> Result<String, DecoderError> {
         let mut buffer = DecoderBuffer::new(content);
         while !buffer.is_empty() {
-            let (set_tlv, rest) = buffer.decode::<Tlv<'_>>()?;
-            let mut set_buf = DecoderBuffer::new(set_tlv.content);
+            let (set, rest) = buffer.decode::<DerSet<'_>>()?;
+            let mut set_buf = DecoderBuffer::new(set.content);
             while !set_buf.is_empty() {
-                let (attr_tlv, set_rest) = set_buf.decode::<Tlv<'_>>()?;
-                let (oid_tlv, val_buf) =
-                    DecoderBuffer::new(attr_tlv.content).decode::<Tlv<'_>>()?;
-                let (val_tlv, _) = val_buf.decode::<Tlv<'_>>()?;
-                if oid_tlv.tag == TAG_OID && oid_tlv.content == OID_CN.as_bytes() {
-                    let cn = core::str::from_utf8(val_tlv.content).unwrap_or("invalid utf8");
-                    return Ok(cn.to_string());
+                let (attr, set_rest) = set_buf.decode::<DerSequence<'_>>()?;
+                let (oid, val_buf) = DecoderBuffer::new(attr.content).decode::<DerOid<'_>>()?;
+                if oid.content == OID_CN {
+                    let (cn, _) = val_buf.decode::<DerUtf8String<'_>>()?;
+                    return Ok(cn.content.to_string());
                 }
                 set_buf = set_rest;
             }
@@ -368,46 +450,46 @@ mod der_codec {
         Ok(String::new())
     }
 
-    impl<'a> DecoderValue<'a> for super::ParsedCert {
+    impl<'a> DecoderValue<'a> for super::ParsedCertContent {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             // Certificate ::= SEQUENCE { tbs, sigAlg, sig }
-            let (cert_seq, _buffer) = buffer.decode::<Tlv<'a>>()?;
+            let (cert_seq, _buffer) = buffer.decode::<DerSequence<'a>>()?;
 
             // TBSCertificate ::= SEQUENCE { ... }
-            let (tbs_tlv, _) = DecoderBuffer::new(cert_seq.content).decode::<Tlv<'a>>()?;
-            let mut buffer = DecoderBuffer::new(tbs_tlv.content);
+            let (tbs, _) = DecoderBuffer::new(cert_seq.content).decode::<DerSequence<'a>>()?;
+            let mut buffer = DecoderBuffer::new(tbs.content);
 
             // [0] EXPLICIT version (optional, tag 0xa0)
-            if buffer.peek_byte(0)? == TAG_CONTEXT_0 {
-                let (_, b) = buffer.decode::<Tlv<'a>>()?;
+            if buffer.peek_byte(0)? == Tag::CONTEXT_0_BYTE {
+                let (_, b) = buffer.decode::<DerContext0<'a>>()?;
                 buffer = b;
             }
 
             // serial
-            let (serial_tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+            let (serial, buffer) = buffer.decode::<DerInteger<'a>>()?;
 
             // signature AlgorithmIdentifier
-            let (sig_alg_tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
-            let (sig_oid, _) = decode_oid_tlv(DecoderBuffer::new(sig_alg_tlv.content))?;
+            let (sig_alg, buffer) = buffer.decode::<DerSequence<'a>>()?;
+            let (sig_oid, _) = decode_oid(DecoderBuffer::new(sig_alg.content))?;
 
             // issuer
-            let (issuer_tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+            let (issuer, buffer) = buffer.decode::<DerSequence<'a>>()?;
 
             // validity (skip)
-            let (_, buffer) = buffer.decode::<Tlv<'a>>()?;
+            let (_, buffer) = buffer.decode::<DerSequence<'a>>()?;
 
             // subject
-            let (subject_tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+            let (subject, buffer) = buffer.decode::<DerSequence<'a>>()?;
 
             // subjectPublicKeyInfo
-            let (spki_tlv, _) = buffer.decode::<Tlv<'a>>()?;
-            let (key_type, _) = DecoderBuffer::new(spki_tlv.content).decode::<super::KeyType>()?;
+            let (spki, _) = buffer.decode::<DerSequence<'a>>()?;
+            let (key_type, _) = DecoderBuffer::new(spki.content).decode::<super::KeyType>()?;
 
             Ok((
-                super::ParsedCert {
-                    serial: serial_tlv.content.to_vec(),
-                    issuer: decode_common_name(issuer_tlv.content)?,
-                    common_name: decode_common_name(subject_tlv.content)?,
+                super::ParsedCertContent {
+                    serial: serial.content.to_vec(),
+                    issuer: decode_common_name(issuer.content)?,
+                    common_name: decode_common_name(subject.content)?,
                     key_type,
                     signature: super::SignatureAlgorithm::from_oid(sig_oid),
                 },
@@ -418,9 +500,9 @@ mod der_codec {
 }
 
 /// Parse a DER-encoded certificate into its component fields.
-pub fn parse(der: &[u8]) -> Result<ParsedCert, DecoderError> {
+pub fn parse(der: &[u8]) -> Result<ParsedCertContent, DecoderError> {
     let buf = s2n_codec::DecoderBuffer::new(der);
-    let (parsed, _) = buf.decode::<ParsedCert>()?;
+    let (parsed, _) = buf.decode::<ParsedCertContent>()?;
     Ok(parsed)
 }
 
@@ -511,7 +593,7 @@ mod tests {
 
         for (prefix, serial, key_type, signature) in cases {
             let der = handshake_leaf_der(prefix);
-            let expected = ParsedCert {
+            let expected = ParsedCertContent {
                 serial: serial.to_vec(),
                 issuer: S2N_LOCALHOST.into(),
                 common_name: S2N_LOCALHOST.into(),
@@ -541,7 +623,7 @@ mod tests {
 
         assert_eq!(
             parse(SQS_LEAF).unwrap(),
-            ParsedCert {
+            ParsedCertContent {
                 serial: vec![
                     0x06, 0xb1, 0xde, 0xc6, 0x59, 0x3a, 0x5f, 0x5d, 0x52, 0xcc, 0xce, 0x05, 0x13,
                     0x23, 0x8d, 0x1c,
@@ -555,7 +637,7 @@ mod tests {
 
         assert_eq!(
             parse(SQS_INTERMEDIATE).unwrap(),
-            ParsedCert {
+            ParsedCertContent {
                 serial: vec![
                     0x07, 0x73, 0x12, 0x4f, 0x2a, 0x95, 0x2e, 0x3e, 0xd1, 0x8a, 0x58, 0xbd, 0xb8,
                     0x5d, 0x1b, 0xc0, 0xce, 0x5f, 0x27,
@@ -569,7 +651,7 @@ mod tests {
 
         assert_eq!(
             parse(SQS_ROOT).unwrap(),
-            ParsedCert {
+            ParsedCertContent {
                 serial: vec![
                     0x06, 0x7f, 0x94, 0x4a, 0x2a, 0x27, 0xcd, 0xf3, 0xfa, 0xc2, 0xae, 0x2b, 0x01,
                     0xf9, 0x08, 0xee, 0xb9, 0xc4, 0xc6,
@@ -595,7 +677,7 @@ mod tests {
                 "/resources/test_certs/ed25519_cert.der"
             )))
             .unwrap(),
-            ParsedCert {
+            ParsedCertContent {
                 serial: vec![
                     0x5b, 0x9d, 0xf7, 0x74, 0x5d, 0x46, 0x4e, 0xaf, 0x5f, 0x71, 0x9a, 0xb9, 0xa1,
                     0xb9, 0x55, 0xf9, 0xfe, 0x8b, 0x71, 0x59,
@@ -619,5 +701,26 @@ mod tests {
         // truncated data
         let der = handshake_leaf_der("rsa_2048_sha256_client_");
         assert!(parse(&der[..der.len() / 2]).is_err());
+    }
+
+    #[test]
+    fn benchmark() {
+        use std::time::Instant;
+
+        let der = handshake_leaf_der("rsa_4096_sha512_client_");
+
+        const N: u32 = 10_000;
+        let start = Instant::now();
+        for _ in 0..N {
+            let _ = parse(&der).unwrap();
+        }
+        let dur = start.elapsed();
+
+        eprintln!(
+            "\n--- s2n-codec cert parse ({N} iterations) ---\n\
+             parse: {:?} ({:?}/cert)",
+            dur,
+            dur / N,
+        );
     }
 }
