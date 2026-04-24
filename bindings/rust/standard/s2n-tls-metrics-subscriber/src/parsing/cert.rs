@@ -102,65 +102,30 @@ mod der_codec {
 
     use const_oid::ObjectIdentifier;
 
-    /// DER tag byte.
-    ///
-    /// Multi-byte tags (where the low 5 bits of the first byte are all 1s)
-    /// are rejected on decode. X.509 certificates only use single-byte tags.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub(super) enum Tag {
-        Sequence,
-        Set,
-        Integer,
-        Oid,
-        BitString,
-        /// [0] EXPLICIT (certificate version)
-        Context0,
-        // X.520 DirectoryString types (RFC 5280 §4.1.2.4)
-        /// Full Unicode via UTF-8. The modern default for new certificates.
-        Utf8String,
-        /// Restricted to A-Z, a-z, 0-9, space, and ' ( ) + , - . / : = ?
-        PrintableString,
-        /// ASCII (0x00-0x7F). Used for email addresses and domain names.
-        Ia5String,
-        /// Any other valid single-byte tag
-        Other(u8),
-    }
-
-    impl Tag {
-        const MULTI_BYTE_MASK: u8 = 0x1F;
-        /// Raw byte value for [0] EXPLICIT, used for peek_byte checks.
-        const CONTEXT_0_BYTE: u8 = 0xa0;
-    }
-
-    impl<'a> DecoderValue<'a> for Tag {
-        fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
-            let (byte, buffer) = buffer.decode::<u8>()?;
-            if byte & Self::MULTI_BYTE_MASK == Self::MULTI_BYTE_MASK {
-                return Err(DecoderError::InvariantViolation(
-                    "multi-byte tags not supported",
-                ));
-            }
-            let tag = match byte {
-                0x30 => Tag::Sequence,
-                0x31 => Tag::Set,
-                0x02 => Tag::Integer,
-                0x06 => Tag::Oid,
-                0x03 => Tag::BitString,
-                0x0c => Tag::Utf8String,
-                0x13 => Tag::PrintableString,
-                0x16 => Tag::Ia5String,
-                0xa0 => Tag::Context0,
-                other => Tag::Other(other),
-            };
-            Ok((tag, buffer))
-        }
-    }
+    // DER tag constants
+    const TAG_SEQUENCE: u8 = 0x30;
+    const TAG_SET: u8 = 0x31;
+    const TAG_INTEGER: u8 = 0x02;
+    const TAG_OID: u8 = 0x06;
+    const TAG_BIT_STRING: u8 = 0x03;
+    const TAG_CONTEXT_0: u8 = 0xa0; // [0] EXPLICIT (certificate version)
+    // X.520 DirectoryString types (RFC 5280 §4.1.2.4)
+    /// Full Unicode via UTF-8. The modern default for new certificates.
+    const TAG_UTF8_STRING: u8 = 0x0c;
+    /// Restricted to A-Z, a-z, 0-9, space, and ' ( ) + , - . / : = ?
+    const TAG_PRINTABLE_STRING: u8 = 0x13;
+    /// ASCII (0x00-0x7F). Used for email addresses and domain names.
+    const TAG_IA5_STRING: u8 = 0x16;
 
     // Signature algorithm OIDs
-    const OID_RSA_PKCS_SHA1: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.5").as_bytes();
-    const OID_RSA_PKCS_SHA256: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11").as_bytes();
-    const OID_RSA_PKCS_SHA384: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.12").as_bytes();
-    const OID_RSA_PKCS_SHA512: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.13").as_bytes();
+    const OID_RSA_PKCS_SHA1: &[u8] =
+        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.5").as_bytes();
+    const OID_RSA_PKCS_SHA256: &[u8] =
+        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11").as_bytes();
+    const OID_RSA_PKCS_SHA384: &[u8] =
+        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.12").as_bytes();
+    const OID_RSA_PKCS_SHA512: &[u8] =
+        ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.13").as_bytes();
     const OID_RSA_PSS: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.10").as_bytes();
     const OID_ECDSA_SHA256: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2").as_bytes();
     const OID_ECDSA_SHA384: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.3").as_bytes();
@@ -277,14 +242,27 @@ mod der_codec {
     }
 
     /// A DER tag-length-value: (tag, content bytes).
+    ///
+    /// Prefer to use strongly typed containers like [`DerSequence`], [`DerSet`],
+    /// etc for decoding ease.
+    ///
+    /// Developer note: I previously tried to parse tag into an enum, but the 10-ish
+    /// way match statement nearly doubled the cost of cert parsing.
     struct Tlv<'a> {
-        tag: Tag,
+        tag: u8,
         content: &'a [u8],
     }
 
     impl<'a> DecoderValue<'a> for Tlv<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
-            let (tag, buffer) = buffer.decode::<Tag>()?;
+            let (tag, buffer) = buffer.decode::<u8>()?;
+            // X.509 certificates only use single-byte tags. Multi-byte tags
+            // (low 5 bits all set) would cause us to misparse subsequent bytes.
+            if tag & 0x1F == 0x1F {
+                return Err(DecoderError::InvariantViolation(
+                    "multi-byte tags not supported",
+                ));
+            }
             let (DerLength(len), buffer) = buffer.decode::<DerLength>()?;
             let (content, buffer) = buffer.decode_slice(len)?;
             Ok((
@@ -310,41 +288,81 @@ mod der_codec {
                 fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
                     let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
                     if tlv.tag != $tag {
-                        return Err(DecoderError::InvariantViolation(
-                            concat!("expected ", stringify!($name)),
-                        ));
+                        return Err(DecoderError::InvariantViolation(concat!(
+                            "expected ",
+                            stringify!($name)
+                        )));
                     }
-                    Ok(($name { content: tlv.content }, buffer))
+                    Ok((
+                        $name {
+                            content: tlv.content,
+                        },
+                        buffer,
+                    ))
                 }
             }
         };
     }
 
-    der_element!(DerSequence, Tag::Sequence, "A DER SEQUENCE element.");
-    der_element!(DerSet, Tag::Set, "A DER SET element.");
-    der_element!(DerInteger, Tag::Integer, "A DER INTEGER element.");
-    der_element!(DerOid, Tag::Oid, "A DER OID element.");
-    der_element!(DerBitString, Tag::BitString, "A DER BIT STRING element.");
-    der_element!(DerContext0, Tag::Context0, "A DER [0] EXPLICIT element.");
+    der_element!(DerSequence, TAG_SEQUENCE, "A DER SEQUENCE element.");
+    der_element!(DerSet, TAG_SET, "A DER SET element.");
+    der_element!(DerInteger, TAG_INTEGER, "A DER INTEGER element.");
+    der_element!(DerOid, TAG_OID, "A DER OID element.");
+    der_element!(DerContext0, TAG_CONTEXT_0, "A DER [0] EXPLICIT element.");
+
+    /// A DER BIT STRING element.
+    ///
+    /// The first content byte is the unused bits count (0–7), indicating how
+    /// many trailing bits in the last byte are padding.
+    pub struct DerBitString<'a> {
+        pub unused_bits: u8,
+        pub content: &'a [u8],
+    }
+
+    impl<'a> DecoderValue<'a> for DerBitString<'a> {
+        fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
+            let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
+            if tlv.tag != TAG_BIT_STRING {
+                return Err(DecoderError::InvariantViolation("expected DerBitString"));
+            }
+            let (&unused_bits, content) =
+                tlv.content
+                    .split_first()
+                    .ok_or(DecoderError::InvariantViolation(
+                        "BIT STRING content too short",
+                    ))?;
+            Ok((
+                DerBitString {
+                    unused_bits,
+                    content,
+                },
+                buffer,
+            ))
+        }
+    }
 
     /// A DER string element that must contain valid UTF-8.
     ///
     /// Accepts UTF8String (0x0c), PrintableString (0x13), and IA5String (0x16).
-    pub struct DerUtf8String<'a> {
+    pub struct DerUtf8ishString<'a> {
         pub content: &'a str,
     }
 
-    impl<'a> DecoderValue<'a> for DerUtf8String<'a> {
+    impl<'a> DecoderValue<'a> for DerUtf8ishString<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             let (tlv, buffer) = buffer.decode::<Tlv<'a>>()?;
             match tlv.tag {
-                // printable string and Ia5String are all subsets of UTF8
-                Tag::Utf8String | Tag::PrintableString | Tag::Ia5String => {}
-                _ => return Err(DecoderError::InvariantViolation("expected UTF-8 string tag")),
+                // PrintableString and IA5String are subsets of UTF-8
+                TAG_UTF8_STRING | TAG_PRINTABLE_STRING | TAG_IA5_STRING => {}
+                _ => {
+                    return Err(DecoderError::InvariantViolation(
+                        "expected UTF-8 string tag",
+                    ));
+                }
             }
             let content = core::str::from_utf8(tlv.content)
                 .map_err(|_| DecoderError::InvariantViolation("invalid utf8"))?;
-            Ok((DerUtf8String { content }, buffer))
+            Ok((DerUtf8ishString { content }, buffer))
         }
     }
 
@@ -364,14 +382,13 @@ mod der_codec {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             // BIT STRING wrapper
             let (bits, buffer) = buffer.decode::<DerBitString<'a>>()?;
-            let key_content = bits
-                .content
-                .get(1..)
-                .ok_or(DecoderError::InvariantViolation(
-                    "BIT STRING content too short",
-                ))?;
+            if bits.unused_bits != 0 {
+                return Err(DecoderError::InvariantViolation(
+                    "BIT STRING has non-zero unused bits",
+                ));
+            }
             // outer SEQUENCE
-            let (seq, _) = DecoderBuffer::new(key_content).decode::<DerSequence<'_>>()?;
+            let (seq, _) = DecoderBuffer::new(bits.content).decode::<DerSequence<'_>>()?;
             // first INTEGER is the modulus
             let (modulus_int, _) = DecoderBuffer::new(seq.content).decode::<DerInteger<'_>>()?;
             let modulus = modulus_int.content;
@@ -440,7 +457,7 @@ mod der_codec {
                 let (attr, set_rest) = set_buf.decode::<DerSequence<'_>>()?;
                 let (oid, val_buf) = DecoderBuffer::new(attr.content).decode::<DerOid<'_>>()?;
                 if oid.content == OID_CN {
-                    let (cn, _) = val_buf.decode::<DerUtf8String<'_>>()?;
+                    let (cn, _) = val_buf.decode::<DerUtf8ishString<'_>>()?;
                     return Ok(cn.content.to_string());
                 }
                 set_buf = set_rest;
@@ -460,7 +477,7 @@ mod der_codec {
             let mut buffer = DecoderBuffer::new(tbs.content);
 
             // [0] EXPLICIT version (optional, tag 0xa0)
-            if buffer.peek_byte(0)? == Tag::CONTEXT_0_BYTE {
+            if buffer.peek_byte(0)? == TAG_CONTEXT_0 {
                 let (_, b) = buffer.decode::<DerContext0<'a>>()?;
                 buffer = b;
             }
