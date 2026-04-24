@@ -99,7 +99,6 @@ impl SignatureAlgorithm {
 mod der_codec {
     use core::mem::size_of;
     use s2n_codec::{DecoderBuffer, DecoderBufferResult, DecoderError, DecoderValue};
-    use std::ops::BitOr;
 
     use const_oid::ObjectIdentifier;
 
@@ -720,26 +719,5 @@ mod tests {
         // truncated data
         let der = handshake_leaf_der("rsa_2048_sha256_client_");
         assert!(parse(&der[..der.len() / 2]).is_err());
-    }
-
-    #[test]
-    fn benchmark() {
-        use std::time::Instant;
-
-        let der = handshake_leaf_der("rsa_4096_sha512_client_");
-
-        const N: u32 = 10_000;
-        let start = Instant::now();
-        for _ in 0..N {
-            let _ = parse(&der).unwrap();
-        }
-        let dur = start.elapsed();
-
-        eprintln!(
-            "\n--- s2n-codec cert parse ({N} iterations) ---\n\
-             parse: {:?} ({:?}/cert)",
-            dur,
-            dur / N,
-        );
     }
 }
