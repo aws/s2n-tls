@@ -67,7 +67,7 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
     return S2N_SUCCESS;
 }
 
-/* A malloc callback that always fails. Used by the S2N-010 regression test
+/* A malloc callback that always fails. Used by the regression test
  * to force s2n_map_add to fail during cert map construction.
  */
 static int s2n_test_failing_malloc_cb(void **ptr, uint32_t requested, uint32_t *allocated)
