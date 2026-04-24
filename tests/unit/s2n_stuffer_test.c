@@ -346,7 +346,7 @@ int main(int argc, char **argv)
     {
         struct s2n_stuffer test = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
-        uint8_t data[10];
+        uint8_t data[10] = { 0 };
 
         memset(data, 0xAB, sizeof(data));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
@@ -376,8 +376,8 @@ int main(int argc, char **argv)
     {
         struct s2n_stuffer test = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
-        uint8_t first_write_bytes[20];
-        uint8_t second_write_bytes[5];
+        uint8_t first_write_bytes[20] = { 0 };
+        uint8_t second_write_bytes[5] = { 0 };
 
         memset(first_write_bytes, 0xCD, sizeof(first_write_bytes));
         memset(second_write_bytes, 0xEF, sizeof(second_write_bytes));
