@@ -8,7 +8,7 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [dependencies]
-s2n-codec = "0.77"
+s2n-codec = "0.78"
 static_assertions = "1.1.0"
 zerocopy = "0.8.33"
 tracing = "0.1.43"

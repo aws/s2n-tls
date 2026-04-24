@@ -309,7 +309,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     kem_params->public_key.size = kem->public_key_length;
 
     /* Saves the private key in kem_params */
-    POSIX_GUARD_RESULT(s2n_kem_generate_keypair(kem_params));
+    s2n_result keypair_result = s2n_kem_generate_keypair(kem_params);
 
     /* After using s2n_stuffer_raw_write() above to write the public
      * key to the stuffer, we want to ensure that kem_params->public_key.data
@@ -317,6 +317,9 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
      * overwrite part of the stuffer when s2n_kem_free() is called. */
     kem_params->public_key.data = NULL;
     kem_params->public_key.size = 0;
+
+    /* only error after we have cleaned up public_key to no longer reference *out */
+    POSIX_GUARD_RESULT(keypair_result);
 
     return S2N_SUCCESS;
 }
