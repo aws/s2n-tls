@@ -99,6 +99,7 @@ impl SignatureAlgorithm {
 mod der_codec {
     use core::mem::size_of;
     use s2n_codec::{DecoderBuffer, DecoderBufferResult, DecoderError, DecoderValue};
+    use std::ops::BitOr;
 
     use const_oid::ObjectIdentifier;
 
@@ -256,9 +257,10 @@ mod der_codec {
     impl<'a> DecoderValue<'a> for Tlv<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             let (tag, buffer) = buffer.decode::<u8>()?;
+            const MULTI_BYTE_TAG_MASK: u8 = 0x1F;
             // X.509 certificates only use single-byte tags. Multi-byte tags
             // (low 5 bits all set) would cause us to misparse subsequent bytes.
-            if tag & 0x1F == 0x1F {
+            if tag & MULTI_BYTE_TAG_MASK == MULTI_BYTE_TAG_MASK {
                 return Err(DecoderError::InvariantViolation(
                     "multi-byte tags not supported",
                 ));
