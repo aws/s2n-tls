@@ -73,7 +73,47 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
-    for (size_t i = 0; i <= max_fragment + 1; i++) {
+    /* Sample fragment sizes that cover interesting boundaries (AES block size,
+     * powers of two, the fragment length limit) rather than iterating over
+     * every possible size.
+     * See https://github.com/aws/s2n-tls/issues/5704 */
+    const size_t fragment_sizes[] = {
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        15,
+        16,
+        17,
+        31,
+        32,
+        33,
+        63,
+        64,
+        65,
+        127,
+        128,
+        129,
+        255,
+        256,
+        257,
+        511,
+        512,
+        513,
+        1023,
+        1024,
+        1025,
+        (size_t) max_fragment - 1,
+        (size_t) max_fragment,
+        (size_t) max_fragment + 1,
+    };
+    for (size_t s = 0; s < s2n_array_len(fragment_sizes); s++) {
+        size_t i = fragment_sizes[s];
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
@@ -271,7 +311,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
     conn->actual_protocol_version = S2N_TLS12;
 
-    for (size_t i = 0; i <= max_fragment + 1; i++) {
+    for (size_t s = 0; s < s2n_array_len(fragment_sizes); s++) {
+        size_t i = fragment_sizes[s];
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written = 0;
