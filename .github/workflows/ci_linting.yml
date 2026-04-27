@@ -117,6 +117,24 @@ jobs:
         with:
           clang-format-version: '18'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
+  
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Install clang-tidy
+        run: sudo apt update && sudo apt install -y clang-tidy clang-tools-extra cmake ninja-build
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Run clang-tidy
+        run: run-clang-tidy -p build
+
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
