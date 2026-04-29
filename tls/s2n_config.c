@@ -167,8 +167,17 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         s2n_map_value.size = sizeof(struct certs_by_type);
 
         POSIX_GUARD_RESULT(s2n_map_unlock(domain_name_to_cert_map));
-        POSIX_GUARD_RESULT(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
+
+        int add_result = s2n_result_is_ok(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value)) ? S2N_SUCCESS : S2N_FAILURE;
+
+        /* The map must always be re-completed (made immutable) after an unlock,
+         * even if the add failed. Otherwise s2n_map_lookup, called on every
+         * ClientHello for SNI matching, will fail its RESULT_ENSURE(map->immutable)
+         * check, silently disabling SNI-based certificate selection for the
+         * lifetime of this config.
+         */
         POSIX_GUARD_RESULT(s2n_map_complete(domain_name_to_cert_map));
+        POSIX_GUARD(add_result);
     } else {
         struct certs_by_type *value = (void *) s2n_map_value.data;
         if (value->certs[cert_type] == NULL) {
@@ -1211,7 +1220,7 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
 
 /*
  * Get the indicated time from the monotonic clock.
- * 
+ *
  * This callback ensures that the correct errno is set in the case of failure.
  */
 S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *output)
