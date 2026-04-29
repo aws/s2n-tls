@@ -147,8 +147,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_blocked_status blocked;
     int result = 0;
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair is valid from fork; the kernel buffers writes until the
+     * parent reads, so no pre-negotiate sleep is needed. */
 
     /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
@@ -208,8 +208,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     s2n_connection_free(conn);
 
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
+    /* SIGPIPE is inherited as SIG_IGN across fork via s2n_io_pair_init, so
+     * no pre-cleanup sleep is needed. */
 
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
@@ -241,8 +241,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     s2n_connection_free(conn);
 
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
+    /* SIGPIPE is inherited as SIG_IGN across fork via s2n_io_pair_init, so
+     * no pre-cleanup sleep is needed. */
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
@@ -282,8 +282,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
+    /* SIGPIPE is inherited as SIG_IGN across fork via s2n_io_pair_init, so
+     * no pre-cleanup sleep is needed. */
 
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
     exit(result);
