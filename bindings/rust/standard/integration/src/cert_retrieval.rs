@@ -3,9 +3,6 @@
 
 //! Tests that a TLS endpoint can retrieve its peer's certificate chain and its
 //! own (selected) certificate chain after both successful and failed handshakes.
-//!
-//! The "failed" cases use a sync cert-validation callback that rejects the peer
-//! certificate, causing an authentication failure.
 
 use s2n_tls::{
     callbacks::VerifyHostNameCallback, config::Builder, enums::ClientAuthType,
