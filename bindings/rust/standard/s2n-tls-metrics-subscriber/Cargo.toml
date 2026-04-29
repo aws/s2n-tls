@@ -22,6 +22,10 @@ serde-big-array = "0.5"
 # we at least need 0.3.36, because that is when the CNSA security policies were introduced
 s2n-tls = { version = "0.3.36", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
 s2n-tls-sys = { version = "0.3.36", path = "../../extended/s2n-tls-sys"}
+const-oid = "0.10.2"
+
+[features]
+fuzzing = []
 
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
