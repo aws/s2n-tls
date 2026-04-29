@@ -43,7 +43,9 @@ use zerocopy::{BigEndian, ByteOrder, FromBytes, Immutable, Order, Unaligned};
 impl TlsParam {
     pub fn index_to_description(&self, index: usize) -> Option<&'static str> {
         match self {
-            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N.get(index).copied(),
+            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
+                .get(index)
+                .map(|info| info.description),
             TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
                 .get(index)
                 .map(|name| name.iana_description),
@@ -60,7 +62,7 @@ impl TlsParam {
         match self {
             TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
                 .iter()
-                .position(|version| *version == name),
+                .position(|info| info.description == name),
             TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
                 .iter()
                 .position(|cipher| cipher.iana_description == name),
@@ -110,10 +112,78 @@ impl ToStaticString for s2n_tls::enums::Version {
     }
 }
 
-/// This list should match the negotiable TLS versions in s2n-tls, and determines
-/// how many "counter" slots the negotiated version metrics have.
-pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
-    &["SSLv3", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"];
+/// Slot in `VERSIONS_AVAILABLE_IN_S2N` → TLS `ProtocolVersion` IANA id.
+pub(crate) const fn version_iana_id(slot: usize) -> Option<u16> {
+    if slot >= VERSIONS_AVAILABLE_IN_S2N.len() {
+        return None;
+    }
+    Some(VERSIONS_AVAILABLE_IN_S2N[slot].iana_value)
+}
+
+/// Inverse of [`version_iana_id`].
+pub(crate) const fn version_slot_for_iana_id(id: u16) -> Option<usize> {
+    let mut slot = 0;
+    while slot < VERSIONS_AVAILABLE_IN_S2N.len() {
+        if VERSIONS_AVAILABLE_IN_S2N[slot].iana_value == id {
+            return Some(slot);
+        }
+        slot += 1;
+    }
+    None
+}
+
+/// Slot in `CIPHERS_AVAILABLE_IN_S2N` → IANA cipher suite id. The stored
+/// `[u8; 2]` is the on-wire pair in big-endian order.
+pub(crate) const fn cipher_iana_id(slot: usize) -> Option<u16> {
+    if slot >= CIPHERS_AVAILABLE_IN_S2N.len() {
+        return None;
+    }
+    let [hi, lo] = CIPHERS_AVAILABLE_IN_S2N[slot].cipher.0;
+    Some(((hi as u16) << 8) | (lo as u16))
+}
+
+/// Inverse of [`cipher_iana_id`].
+pub(crate) const fn cipher_slot_for_iana_id(id: u16) -> Option<usize> {
+    let hi = (id >> 8) as u8;
+    let lo = (id & 0xFF) as u8;
+    let mut slot = 0;
+    while slot < CIPHERS_AVAILABLE_IN_S2N.len() {
+        let bytes = CIPHERS_AVAILABLE_IN_S2N[slot].cipher.0;
+        if bytes[0] == hi && bytes[1] == lo {
+            return Some(slot);
+        }
+        slot += 1;
+    }
+    None
+}
+
+/// Slot in `GROUPS_AVAILABLE_IN_S2N` → IANA named-group id.
+pub(crate) fn group_iana_id(slot: usize) -> Option<u16> {
+    GROUPS_AVAILABLE_IN_S2N
+        .get(slot)
+        .map(|info| info.group.0.get())
+}
+
+/// Inverse of [`group_iana_id`].
+pub(crate) fn group_slot_for_iana_id(id: u16) -> Option<usize> {
+    GROUPS_AVAILABLE_IN_S2N
+        .iter()
+        .position(|info| info.group.0.get() == id)
+}
+
+/// Slot in `SIGNATURE_SCHEMES_AVAILABLE_IN_S2N` → IANA signature-scheme id.
+pub(crate) fn signature_iana_id(slot: usize) -> Option<u16> {
+    SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+        .get(slot)
+        .map(|info| info.signature.0.get())
+}
+
+/// Inverse of [`signature_iana_id`].
+pub(crate) fn signature_slot_for_iana_id(id: u16) -> Option<usize> {
+    SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+        .iter()
+        .position(|info| info.signature.0.get() == id)
+}
 
 /// Convert a pointer to null terminated bytes into a static string
 ///
@@ -243,6 +313,21 @@ impl Group {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct VersionInformation {
+    description: &'static str,
+    iana_value: u16,
+}
+
+impl VersionInformation {
+    const fn new(description: &'static str, iana_value: u16) -> Self {
+        Self {
+            description,
+            iana_value,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct CipherInformation {
     cipher: Cipher,
@@ -343,6 +428,16 @@ impl SignatureSchemeInformation {
         }
     }
 }
+
+/// This list should match the negotiable TLS versions in s2n-tls, and determines
+/// how many "counter" slots the negotiated version metrics have.
+pub(crate) const VERSIONS_AVAILABLE_IN_S2N: &[VersionInformation] = &[
+    VersionInformation::new("SSLv3", 0x0300),
+    VersionInformation::new("TLSv1_0", 0x0301),
+    VersionInformation::new("TLSv1_1", 0x0302),
+    VersionInformation::new("TLSv1_2", 0x0303),
+    VersionInformation::new("TLSv1_3", 0x0304),
+];
 
 /// We are required to track OpenSSL naming because that is what the s2n-tls 
 /// connection API's return.
@@ -582,6 +677,17 @@ mod tests {
 
     #[test]
     fn index_and_name_lookup() {
+        for (index, item) in VERSIONS_AVAILABLE_IN_S2N.iter().enumerate() {
+            let returned_index = TlsParam::Version
+                .description_to_index(item.description)
+                .unwrap();
+            let returned_description = TlsParam::Version
+                .index_to_description(returned_index)
+                .unwrap();
+            assert_eq!(returned_description, item.description);
+            assert_eq!(returned_index, index);
+        }
+
         for (index, item) in CIPHERS_AVAILABLE_IN_S2N.iter().enumerate() {
             let returned_index = TlsParam::Cipher
                 .description_to_index(item.iana_description)

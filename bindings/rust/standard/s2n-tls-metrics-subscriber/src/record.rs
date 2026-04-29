@@ -11,18 +11,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     attribution::Attribution,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
+    counter::{CipherKind, Counter, FrozenCounter, GroupKind, SignatureKind, VersionKind},
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
-    static_lists::{
-        self, CIPHERS_AVAILABLE_IN_S2N, GROUPS_AVAILABLE_IN_S2N,
-        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N, TlsParam, ToStaticString, VERSIONS_AVAILABLE_IN_S2N,
-    },
+    static_lists::{self, TlsParam, ToStaticString},
 };
-
-const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
-const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
-const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
-const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 
 /// Metric Record is an opaque type which implements [`metrique_writer::Entry`].
 ///
@@ -64,18 +57,18 @@ pub(crate) struct HandshakeRecordInProgress {
     /// the total number of handshakes that this record represents.
     handshake_count: AtomicU64,
 
-    negotiated_protocols: [AtomicU64; PROTOCOL_COUNT],
-    negotiated_ciphers: [AtomicU64; CIPHER_COUNT],
-    negotiated_groups: [AtomicU64; GROUP_COUNT],
-    negotiated_signatures: [AtomicU64; SIGNATURE_COUNT],
+    negotiated_protocols: Counter<VersionKind>,
+    negotiated_ciphers: Counter<CipherKind>,
+    negotiated_groups: Counter<GroupKind>,
+    negotiated_signatures: Counter<SignatureKind>,
 
     // we do not attempt to detect supported parameters for SSLv2 formatted client
     // hellos
     sslv2_client_hello: AtomicU64,
-    supported_protocols: [AtomicU64; PROTOCOL_COUNT],
-    supported_ciphers: [AtomicU64; CIPHER_COUNT],
-    supported_groups: [AtomicU64; GROUP_COUNT],
-    supported_signatures: [AtomicU64; SIGNATURE_COUNT],
+    supported_protocols: Counter<VersionKind>,
+    supported_ciphers: Counter<CipherKind>,
+    supported_groups: Counter<GroupKind>,
+    supported_signatures: Counter<SignatureKind>,
 
     compatibility_general20251201: AtomicU64,
     compatibility_fips20251201: AtomicU64,
@@ -92,30 +85,21 @@ pub(crate) struct HandshakeRecordInProgress {
     handshake_compute_us: AtomicU64,
 }
 
-fn relaxed_freeze<const T: usize>(array: &[AtomicU64; T]) -> [u64; T] {
-    array
-        .each_ref()
-        .map(|counter| counter.load(Ordering::Relaxed))
-}
-
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
-        // default is not implemented for arrays this large
-        let negotiated_ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
-        let supported_ciphers = [0; CIPHER_COUNT].map(|_| AtomicU64::default());
         Self {
             handshake_count: Default::default(),
 
-            negotiated_groups: Default::default(),
-            negotiated_ciphers,
-            negotiated_protocols: Default::default(),
-            negotiated_signatures: Default::default(),
+            negotiated_groups: Counter::new(),
+            negotiated_ciphers: Counter::new(),
+            negotiated_protocols: Counter::new(),
+            negotiated_signatures: Counter::new(),
 
             sslv2_client_hello: Default::default(),
-            supported_groups: Default::default(),
-            supported_ciphers,
-            supported_protocols: Default::default(),
-            supported_signatures: Default::default(),
+            supported_groups: Counter::new(),
+            supported_ciphers: Counter::new(),
+            supported_protocols: Counter::new(),
+            supported_signatures: Counter::new(),
 
             compatibility_general20251201: AtomicU64::default(),
             compatibility_fips20251201: AtomicU64::default(),
@@ -141,8 +125,7 @@ impl HandshakeRecordInProgress {
 
         conn.signature_scheme()
             .and_then(|name| TlsParam::SignatureScheme.description_to_index(name))
-            .and_then(|index| self.negotiated_signatures.get(index))
-            .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
+            .map(|index| self.negotiated_signatures.increment(index));
 
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
@@ -154,30 +137,21 @@ impl HandshakeRecordInProgress {
                 .iter()
                 .filter_map(|version| version.known_description())
                 .filter_map(|description| TlsParam::Version.description_to_index(description))
-                .filter_map(|index| self.supported_protocols.get(index))
-                .for_each(|counter| {
-                    counter.fetch_add(1, Ordering::Relaxed);
-                });
+                .for_each(|index| self.supported_protocols.increment(index));
 
             supported_parameter
                 .supported_ciphers()?
                 .iter()
                 .filter_map(|cipher| cipher.known_description())
                 .filter_map(|description| TlsParam::Cipher.description_to_index(description))
-                .filter_map(|index| self.supported_ciphers.get(index))
-                .for_each(|counter| {
-                    counter.fetch_add(1, Ordering::Relaxed);
-                });
+                .for_each(|index| self.supported_ciphers.increment(index));
 
             if let Some(supported_groups) = supported_parameter.supported_groups()? {
                 supported_groups
                     .iter()
                     .filter_map(|group| group.known_description())
                     .filter_map(|description| TlsParam::Group.description_to_index(description))
-                    .filter_map(|index| self.supported_groups.get(index))
-                    .for_each(|counter| {
-                        counter.fetch_add(1, Ordering::Relaxed);
-                    });
+                    .for_each(|index| self.supported_groups.increment(index));
             }
 
             if let Some(supported_sigs) = supported_parameter.supported_signatures()? {
@@ -187,10 +161,7 @@ impl HandshakeRecordInProgress {
                     .filter_map(|description| {
                         TlsParam::SignatureScheme.description_to_index(description)
                     })
-                    .filter_map(|index| self.supported_signatures.get(index))
-                    .for_each(|counter| {
-                        counter.fetch_add(1, Ordering::Relaxed);
-                    });
+                    .for_each(|index| self.supported_signatures.increment(index));
             }
 
             if General20251201::supported(&supported_parameter) {
@@ -215,18 +186,15 @@ impl HandshakeRecordInProgress {
 
         TlsParam::Version
             .description_to_index(event.protocol_version().to_static_string())
-            .and_then(|index| self.negotiated_protocols.get(index))
-            .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
+            .map(|index| self.negotiated_protocols.increment(index));
 
         static_lists::cipher_ossl_name_to_index(event.cipher())
-            .and_then(|index| self.negotiated_ciphers.get(index))
-            .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
+            .map(|index| self.negotiated_ciphers.increment(index));
 
         event
             .group()
             .and_then(|name| TlsParam::Group.description_to_index(name))
-            .and_then(|index| self.negotiated_groups.get(index))
-            .map(|counter| counter.fetch_add(1, Ordering::Relaxed));
+            .map(|index| self.negotiated_groups.increment(index));
 
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
@@ -255,16 +223,16 @@ impl HandshakeRecordInProgress {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
             handshake_count: self.handshake_count.load(Ordering::Relaxed),
-            negotiated_protocols: relaxed_freeze(&self.negotiated_protocols),
-            negotiated_ciphers: relaxed_freeze(&self.negotiated_ciphers),
-            negotiated_groups: relaxed_freeze(&self.negotiated_groups),
-            negotiated_signatures: relaxed_freeze(&self.negotiated_signatures),
+            negotiated_protocols: self.negotiated_protocols.freeze(),
+            negotiated_ciphers: self.negotiated_ciphers.freeze(),
+            negotiated_groups: self.negotiated_groups.freeze(),
+            negotiated_signatures: self.negotiated_signatures.freeze(),
 
             sslv2_client_hello: self.sslv2_client_hello.load(Ordering::Relaxed),
-            supported_protocols: relaxed_freeze(&self.supported_protocols),
-            supported_ciphers: relaxed_freeze(&self.supported_ciphers),
-            supported_groups: relaxed_freeze(&self.supported_groups),
-            supported_signatures: relaxed_freeze(&self.supported_signatures),
+            supported_protocols: self.supported_protocols.freeze(),
+            supported_ciphers: self.supported_ciphers.freeze(),
+            supported_groups: self.supported_groups.freeze(),
+            supported_signatures: self.supported_signatures.freeze(),
 
             compatibility_general20251201: self
                 .compatibility_general20251201
@@ -287,33 +255,53 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-use serde_big_array::BigArray;
+/// `SystemTime` has no meaningful `Default` impl for serde's purposes, so we
+/// pick `UNIX_EPOCH` explicitly as the `#[serde(default = ...)]` target for
+/// `freeze_time`.
+fn system_time_epoch() -> SystemTime {
+    SystemTime::UNIX_EPOCH
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct FrozenHandshakeRecord {
+    #[serde(default = "system_time_epoch")]
     freeze_time: SystemTime,
 
+    #[serde(default)]
     pub(crate) handshake_count: u64,
 
-    negotiated_protocols: [u64; PROTOCOL_COUNT],
-    #[serde(with = "BigArray")]
-    negotiated_ciphers: [u64; CIPHER_COUNT],
-    negotiated_groups: [u64; GROUP_COUNT],
-    negotiated_signatures: [u64; SIGNATURE_COUNT],
+    #[serde(default)]
+    negotiated_protocols: FrozenCounter<VersionKind>,
+    #[serde(default)]
+    negotiated_ciphers: FrozenCounter<CipherKind>,
+    #[serde(default)]
+    negotiated_groups: FrozenCounter<GroupKind>,
+    #[serde(default)]
+    negotiated_signatures: FrozenCounter<SignatureKind>,
 
+    #[serde(default)]
     sslv2_client_hello: u64,
-    supported_protocols: [u64; PROTOCOL_COUNT],
-    #[serde(with = "BigArray")]
-    supported_ciphers: [u64; CIPHER_COUNT],
-    supported_groups: [u64; GROUP_COUNT],
-    supported_signatures: [u64; SIGNATURE_COUNT],
+    #[serde(default)]
+    supported_protocols: FrozenCounter<VersionKind>,
+    #[serde(default)]
+    supported_ciphers: FrozenCounter<CipherKind>,
+    #[serde(default)]
+    supported_groups: FrozenCounter<GroupKind>,
+    #[serde(default)]
+    supported_signatures: FrozenCounter<SignatureKind>,
 
+    #[serde(default)]
     compatibility_general20251201: u64,
+    #[serde(default)]
     compatibility_fips20251201: u64,
+    #[serde(default)]
     compatibility_cnsa1: u64,
+    #[serde(default)]
     compatibility_cnsa2: u64,
 
+    #[serde(default)]
     handshake_duration_us: u64,
+    #[serde(default)]
     handshake_compute_us: u64,
 }
 
@@ -325,15 +313,15 @@ impl Default for FrozenHandshakeRecord {
         Self {
             freeze_time: SystemTime::UNIX_EPOCH,
             handshake_count: 0,
-            negotiated_protocols: [0; PROTOCOL_COUNT],
-            negotiated_ciphers: [0; CIPHER_COUNT],
-            negotiated_groups: [0; GROUP_COUNT],
-            negotiated_signatures: [0; SIGNATURE_COUNT],
+            negotiated_protocols: FrozenCounter::default(),
+            negotiated_ciphers: FrozenCounter::default(),
+            negotiated_groups: FrozenCounter::default(),
+            negotiated_signatures: FrozenCounter::default(),
             sslv2_client_hello: 0,
-            supported_protocols: [0; PROTOCOL_COUNT],
-            supported_ciphers: [0; CIPHER_COUNT],
-            supported_groups: [0; GROUP_COUNT],
-            supported_signatures: [0; SIGNATURE_COUNT],
+            supported_protocols: FrozenCounter::default(),
+            supported_ciphers: FrozenCounter::default(),
+            supported_groups: FrozenCounter::default(),
+            supported_signatures: FrozenCounter::default(),
             compatibility_general20251201: 0,
             compatibility_fips20251201: 0,
             compatibility_cnsa1: 0,
@@ -348,65 +336,72 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         writer.timestamp(self.freeze_time);
 
-        for (list, parameter, state) in [
-            (
-                self.negotiated_protocols.as_slice(),
-                TlsParam::Version,
-                State::Negotiated,
-            ),
-            (
-                self.negotiated_ciphers.as_slice(),
-                TlsParam::Cipher,
-                State::Negotiated,
-            ),
-            (
-                self.negotiated_groups.as_slice(),
-                TlsParam::Group,
-                State::Negotiated,
-            ),
-            (
-                self.negotiated_signatures.as_slice(),
-                TlsParam::SignatureScheme,
-                State::Negotiated,
-            ),
-            (
-                self.supported_protocols.as_slice(),
-                TlsParam::Version,
-                State::Supported,
-            ),
-            (
-                self.supported_ciphers.as_slice(),
-                TlsParam::Cipher,
-                State::Supported,
-            ),
-            (
-                self.supported_groups.as_slice(),
-                TlsParam::Group,
-                State::Supported,
-            ),
-            (
-                self.supported_signatures.as_slice(),
-                TlsParam::SignatureScheme,
-                State::Supported,
-            ),
-        ] {
-            list.iter()
-                .enumerate()
-                .filter(|(_index, count)| **count > 0)
-                .filter_map(
-                    |(index, count)| match parameter.index_to_description(index) {
-                        Some(name) => Some((name, count)),
-                        None => {
-                            debug_assert!(false, "failed to get name for {index} of {parameter:?}");
-                            None
-                        }
-                    },
-                )
-                .for_each(|(name, count)| {
-                    let label = metric_label(name, parameter, state);
-                    writer.value(label, count);
-                });
+        // Emit one label per non-zero slot for each (kind, state) cell, using
+        // the description the slot maps to in this reader's static list.
+        // Zero-valued slots are skipped by `iter_non_zero`.
+        fn write_counter<'a, K, W>(
+            counter: &'a FrozenCounter<K>,
+            parameter: TlsParam,
+            state: State,
+            writer: &mut W,
+        ) where
+            K: crate::counter::ParameterKind,
+            W: metrique_writer::EntryWriter<'a>,
+        {
+            for (name, count) in counter.iter_non_zero() {
+                let label = metric_label(name, parameter, state);
+                writer.value(label, &count);
+            }
         }
+
+        write_counter(
+            &self.negotiated_protocols,
+            TlsParam::Version,
+            State::Negotiated,
+            writer,
+        );
+        write_counter(
+            &self.negotiated_ciphers,
+            TlsParam::Cipher,
+            State::Negotiated,
+            writer,
+        );
+        write_counter(
+            &self.negotiated_groups,
+            TlsParam::Group,
+            State::Negotiated,
+            writer,
+        );
+        write_counter(
+            &self.negotiated_signatures,
+            TlsParam::SignatureScheme,
+            State::Negotiated,
+            writer,
+        );
+        write_counter(
+            &self.supported_protocols,
+            TlsParam::Version,
+            State::Supported,
+            writer,
+        );
+        write_counter(
+            &self.supported_ciphers,
+            TlsParam::Cipher,
+            State::Supported,
+            writer,
+        );
+        write_counter(
+            &self.supported_groups,
+            TlsParam::Group,
+            State::Supported,
+            writer,
+        );
+        write_counter(
+            &self.supported_signatures,
+            TlsParam::SignatureScheme,
+            State::Supported,
+            writer,
+        );
 
         writer.value(
             "compatibility.general20251201",
@@ -441,41 +436,48 @@ mod tests {
         let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 1);
-        assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 1);
-        assert_eq!(record.negotiated_groups.iter().sum::<u64>(), 1);
-        assert_eq!(record.negotiated_signatures.iter().sum::<u64>(), 1);
-        assert_eq!(record.negotiated_protocols.iter().sum::<u64>(), 1);
+        assert_eq!(record.negotiated_ciphers.total(), 1);
+        assert_eq!(record.negotiated_groups.total(), 1);
+        assert_eq!(record.negotiated_signatures.total(), 1);
+        assert_eq!(record.negotiated_protocols.total(), 1);
 
         let expected_version = result
             .client
             .actual_protocol_version()
             .unwrap()
             .to_static_string();
-        let expected_index = TlsParam::Version
-            .description_to_index(expected_version)
-            .unwrap();
-        assert_eq!(record.negotiated_protocols[expected_index], 1);
+        assert_eq!(record.negotiated_protocols.count_for(expected_version), 1);
 
         let expected_cipher = result.client.cipher_suite().unwrap().to_owned();
-        let expected_index =
-            static_lists::cipher_ossl_name_to_index(expected_cipher.as_str()).unwrap();
-        assert_eq!(record.negotiated_ciphers[expected_index], 1);
+        let expected_cipher_description = TlsParam::Cipher
+            .index_to_description(
+                static_lists::cipher_ossl_name_to_index(expected_cipher.as_str()).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            record
+                .negotiated_ciphers
+                .count_for(expected_cipher_description),
+            1
+        );
 
         let expected_group = result
             .client
             .selected_key_exchange_group()
             .unwrap()
             .to_owned();
-        let expected_index = TlsParam::Group
-            .description_to_index(expected_group.as_str())
-            .unwrap();
-        assert_eq!(record.negotiated_groups[expected_index], 1);
+        assert_eq!(
+            record.negotiated_groups.count_for(expected_group.as_str()),
+            1
+        );
 
         let expected_sig = result.client.signature_scheme().unwrap().to_owned();
-        let expected_index = TlsParam::SignatureScheme
-            .description_to_index(expected_sig.as_str())
-            .unwrap();
-        assert_eq!(record.negotiated_signatures[expected_index], 1);
+        assert_eq!(
+            record
+                .negotiated_signatures
+                .count_for(expected_sig.as_str()),
+            1
+        );
     }
 
     #[test]
@@ -540,7 +542,12 @@ mod tests {
             })
             .collect();
 
-        for (index, count) in record.supported_protocols.iter().enumerate() {
+        for (index, count) in record
+            .supported_protocols
+            .slots_for_test()
+            .iter()
+            .enumerate()
+        {
             let param = TlsParam::Version.index_to_description(index).unwrap();
             if expected_version.contains(&index) {
                 assert_eq!(*count, 1, "{param} count is {count}, not one");
@@ -549,7 +556,7 @@ mod tests {
             }
         }
 
-        for (index, count) in record.supported_ciphers.iter().enumerate() {
+        for (index, count) in record.supported_ciphers.slots_for_test().iter().enumerate() {
             let param = TlsParam::Cipher.index_to_description(index).unwrap();
             if expected_ciphers.contains(&index) {
                 assert_eq!(*count, 1, "{param} count is {count}, not one");
@@ -558,7 +565,7 @@ mod tests {
             }
         }
 
-        for (index, count) in record.supported_groups.iter().enumerate() {
+        for (index, count) in record.supported_groups.slots_for_test().iter().enumerate() {
             let param = TlsParam::Group.index_to_description(index).unwrap();
             if expected_groups.contains(&index) {
                 assert_eq!(*count, 1, "{param} count is {count}, not one");
@@ -567,7 +574,12 @@ mod tests {
             }
         }
 
-        for (index, count) in record.supported_signatures.iter().enumerate() {
+        for (index, count) in record
+            .supported_signatures
+            .slots_for_test()
+            .iter()
+            .enumerate()
+        {
             let param = TlsParam::SignatureScheme
                 .index_to_description(index)
                 .unwrap();
@@ -592,10 +604,10 @@ mod tests {
         let record = &records[0].handshake;
 
         assert_eq!(record.handshake_count, 3);
-        assert_eq!(record.negotiated_ciphers.iter().sum::<u64>(), 3);
-        assert_eq!(record.negotiated_groups.iter().sum::<u64>(), 3);
-        assert_eq!(record.negotiated_signatures.iter().sum::<u64>(), 3);
-        assert_eq!(record.negotiated_protocols.iter().sum::<u64>(), 3);
+        assert_eq!(record.negotiated_ciphers.total(), 3);
+        assert_eq!(record.negotiated_groups.total(), 3);
+        assert_eq!(record.negotiated_signatures.total(), 3);
+        assert_eq!(record.negotiated_protocols.total(), 3);
     }
 
     /// A record with no handshakes should be entirely empty/default.
@@ -660,5 +672,91 @@ mod tests {
 
         assert!(single_handshake.handshake_compute_us < multiple_handshakes.handshake_compute_us);
         assert!(single_handshake.handshake_duration_us < multiple_handshakes.handshake_duration_us);
+    }
+
+    /// A JSON payload that only includes `handshake_count`
+    /// must deserialize successfully: `#[serde(default)]` on each non-array
+    /// field fills the missing slots with their documented defaults
+    /// (0 for integer counters, `SystemTime::UNIX_EPOCH` for `freeze_time`,
+    /// and a zero-filled `FrozenCounter` for per-kind fields).
+    #[test]
+    fn deserialize_missing_non_array_fields_uses_defaults() {
+        let json = r#"{"handshake_count": 10}"#;
+        let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
+
+        assert_eq!(record.handshake_count, 10);
+        assert_eq!(record.freeze_time, SystemTime::UNIX_EPOCH);
+
+        // Per-kind counters default to a zero-filled slab of the right length.
+        assert_eq!(record.negotiated_protocols, FrozenCounter::default());
+        assert_eq!(record.negotiated_ciphers, FrozenCounter::default());
+        assert_eq!(record.negotiated_groups, FrozenCounter::default());
+        assert_eq!(record.negotiated_signatures, FrozenCounter::default());
+        assert_eq!(record.supported_protocols, FrozenCounter::default());
+        assert_eq!(record.supported_ciphers, FrozenCounter::default());
+        assert_eq!(record.supported_groups, FrozenCounter::default());
+        assert_eq!(record.supported_signatures, FrozenCounter::default());
+
+        // Scalar integer fields default to zero.
+        assert_eq!(record.sslv2_client_hello, 0);
+        assert_eq!(record.compatibility_general20251201, 0);
+        assert_eq!(record.compatibility_fips20251201, 0);
+        assert_eq!(record.compatibility_cnsa1, 0);
+        assert_eq!(record.compatibility_cnsa2, 0);
+        assert_eq!(record.handshake_duration_us, 0);
+        assert_eq!(record.handshake_compute_us, 0);
+    }
+}
+
+/// Wire-format tests covering cross-version tolerance: unknown IANA ids
+/// dropped on decode, and counters emitted as maps keyed by IANA id.
+#[cfg(test)]
+mod wire_format {
+    use super::FrozenHandshakeRecord;
+    use crate::counter::{CipherKind, Counter};
+
+    /// A future writer's payload may include IANA ids the current reader
+    /// does not recognize; the reader must drop them and decode the rest.
+    #[test]
+    fn unknown_iana_id_is_dropped_on_decode() {
+        // 4865 is TLS_AES_128_GCM_SHA256 (slot 0); 0xEEEE is not assigned.
+        let json = r#"{
+            "handshake_count": 42,
+            "negotiated_ciphers": {"4865": 7, "61166": 3735928559}
+        }"#;
+
+        let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
+
+        assert_eq!(record.handshake_count, 42);
+        assert_eq!(
+            record
+                .negotiated_ciphers
+                .count_for("TLS_AES_128_GCM_SHA256"),
+            7,
+        );
+        let total: u64 = record.negotiated_ciphers.slots_for_test().iter().sum();
+        assert_eq!(total, 7, "unknown id must be dropped, not relocated");
+    }
+
+    /// Counters are emitted as maps keyed by IANA id, with zero slots omitted
+    /// and only ids the writer knows about appearing in the output.
+    #[test]
+    fn writer_emits_iana_keyed_map() {
+        let mut ciphers = Counter::<CipherKind>::new();
+        for _ in 0..7 {
+            ciphers.increment(0);
+        }
+        let mut record = FrozenHandshakeRecord::default();
+        record.negotiated_ciphers = ciphers.freeze();
+
+        let value = serde_json::to_value(&record).unwrap();
+        let ciphers_map = value["negotiated_ciphers"].as_object().unwrap();
+
+        assert_eq!(ciphers_map.len(), 1, "zero slots must be omitted");
+        assert_eq!(
+            ciphers_map.get("4865").and_then(|v| v.as_u64()),
+            Some(7),
+            "slot 0 (TLS_AES_128_GCM_SHA256, 0x1301) must serialize as IANA id 4865",
+        );
     }
 }

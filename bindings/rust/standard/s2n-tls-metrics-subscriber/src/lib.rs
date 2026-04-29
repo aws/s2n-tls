@@ -3,6 +3,7 @@
 
 pub mod attribution;
 mod compatibility;
+pub(crate) mod counter;
 mod label;
 mod parsing;
 mod record;
