@@ -4,6 +4,14 @@
 //! This module holds the parsing logic that we need to pull interesting bits out
 //! of the client hello
 
+// These deny lints are used out of an abundance of caution in our parsing code
+// which is accepting untrusted input.
+#![cfg_attr(not(test), deny(clippy::indexing_slicing))]
+#![cfg_attr(not(test), deny(clippy::unwrap_used))]
+#![cfg_attr(not(test), deny(clippy::expect_used))]
+#![cfg_attr(not(test), deny(clippy::string_slice))]
+#![cfg_attr(not(test), deny(clippy::panic))]
+
 use std::ffi::c_uint;
 
 use s2n_codec::DecoderBuffer;
@@ -17,11 +25,12 @@ use crate::{
     static_lists::{Cipher, Group, Signature, Version},
 };
 
+pub mod cert;
 mod messages;
 
 /// This struct provides utility methods to access the supported parameters from
 /// a client hello
-pub struct ClientHelloSupportedParameters<'a> {
+pub(crate) struct ClientHelloSupportedParameters<'a> {
     client_hello: &'a S2NClientHello,
 }
 
