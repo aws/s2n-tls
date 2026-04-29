@@ -114,11 +114,11 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
   - FIPS mode is supported with versions of AWS-LC [that support
     FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
-- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
+- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.x)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
-  - FIPS mode is supported with FIPS-validated versions of Openssl-3.0, with caveats: see [details](#openssl-fips).
+  - FIPS mode is supported with Openssl 3.x when a CMVP-validated FIPS provider is loaded at runtime, with caveats: see [details](#openssl-fips).
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
   - FIPS mode is not supported with BoringSSL.
@@ -142,9 +142,13 @@ s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. S
 
 You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). You can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls if AWS-LC symbols would conflict with Openssl symbols in your environment.
 
-But if you must use Openssl instead of AWS-LC, then s2n-tls does support FIPS mode when built with a FIPS-validated version of Openssl. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build a FIPS-validated version of Openssl.
+But if you must use Openssl, s2n-tls supports FIPS mode on Openssl 3.x with a FIPS provider loaded at runtime. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build and configure one.
 
-Note that currently s2n-tls only supports the Openssl-3.0 version of FIPS-validated Openssl. Openssl-3.0 has a FIPS 140-2 certificate, NOT a FIPS 140-3 certificate. If you require FIPS 140-3, consider using AWS-LC instead. Once Openssl releases a FIPS 140-3 validated version (currently planned for Openssl-3.5), then the s2n-tls integration can be updated. Because of the significant changes made in FIPS 140-3, simply building s2n-tls with a FIPS 140-3 validated version of Openssl will not meet all FIPS 140-3 requirements.
+At `s2n_init()`, s2n-tls calls `EVP_default_properties_is_fips_enabled(NULL)`. If `fips=yes` is set, FIPS mode is enabled and s2n-tls restricts itself to FIPS-approved algorithms for the active security policy. This check does not depend on libcrypto version: in Openssl 3.x the CMVP certificate belongs to the FIPS provider, which is loaded at runtime.
+
+`s2n_is_in_fips_mode() == true` is not a compliance attestation. Selecting a CMVP-validated provider and operating within its security policy is the deployer's responsibility; s2n-tls only restricts protocol behavior to FIPS-approved algorithms.
+
+s2n-tls's 140-3 integration work has only been done against the AWS-LC FIPS path. On Openssl, s2n-tls will run in FIPS mode against a 140-3 provider but will not exercise those 140-3-specific integration points. If you require 140-3, use AWS-LC.
 
 When running in FIPS mode with Openssl, s2n-tls does not support RSA 1024 certificates (https://github.com/aws/s2n-tls/issues/5200) or ChaChaPoly (https://github.com/aws/s2n-tls/issues/5199), even if allowed by the configured security policy. As with non-FIPS Openssl, RC4 is also not supported.
 
