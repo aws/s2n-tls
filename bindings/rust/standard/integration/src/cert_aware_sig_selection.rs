@@ -37,7 +37,7 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
         let mut configs =
-            TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+            TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
         // Setup OpenSSL client
         configs.client.set_ca_file(&cert_materials.ca_path).unwrap();
 

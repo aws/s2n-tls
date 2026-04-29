@@ -445,6 +445,62 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: a failed second call to s2n_config_add_cert_chain_and_key does not
+     * leave dangling pointers in the domain_name_to_cert_map.
+     */
+    {
+        /* The second call is rejected before any state is mutated */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            /* First call succeeds and populates the map */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert, key));
+            EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
+
+            uint32_t map_size_after_first = 0;
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_first));
+
+            /* Second call with the same cert type fails at the ownership guard */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert, key),
+                    S2N_ERR_CERT_OWNERSHIP);
+
+            /* The map must be unchanged — no new entries were inserted */
+            uint32_t map_size_after_second = 0;
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_second));
+            EXPECT_EQUAL(map_size_after_first, map_size_after_second);
+
+            /* The original default cert is still valid and reachable */
+            EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
+        };
+
+        /* s2n_config_add_cert_chain_and_key still allows adding two certs of the
+         * same type. The map entry is updated in-place (no new entries).
+         */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_a = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_a,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_b = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_b,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_a));
+
+            uint32_t map_size_after_first = 0;
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_first));
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_b));
+
+            uint32_t map_size_after_second = 0;
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_second));
+            EXPECT_EQUAL(map_size_after_first, map_size_after_second);
+        };
+    };
+
     /* Test s2n_config_set_cert_chain_and_key_defaults */
     {
         /* Succeeds if chains owned by app */
