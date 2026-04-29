@@ -163,10 +163,9 @@ fn successful_client_auth() {
 fn failed_server_auth() {
     let sig = SigType::Rsa2048;
 
-    // Server presents a valid cert.
     let server_cfg: S2NConfig = server_config(sig, false, true).build().unwrap().into();
 
-    // Client has a cert-validation callback that rejects the server's cert.
+    // Client does not trust server cert
     let client_cfg: S2NConfig = client_config(sig, false, false).build().unwrap().into();
 
     let mut pair =
@@ -193,10 +192,8 @@ fn failed_server_auth() {
 fn failed_client_auth() {
     let sig = SigType::Rsa2048;
 
-    // Server requires client auth but rejects the client's cert via callback.
+    // Server does not trust client cert.
     let server_cfg: S2NConfig = server_config(sig, true, false).build().unwrap().into();
-
-    // Client presents a valid client cert.
     let client_cfg: S2NConfig = client_config(sig, true, true).build().unwrap().into();
 
     let mut pair =
