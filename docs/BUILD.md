@@ -114,7 +114,7 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
   - FIPS mode is supported with versions of AWS-LC [that support
     FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
-- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 and 3.x)
+- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.x)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
