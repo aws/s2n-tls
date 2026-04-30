@@ -28,7 +28,9 @@ impl VerifyHostNameCallback for AcceptAllHostNames {
 
 /// Build an s2n-tls config suitable for a server that presents a certificate
 /// and optionally requires client auth.
-fn server_config(sig: SigType, client_auth: bool, trust_peer: bool) -> Builder {
+fn server_config(client_auth: bool, trust_peer: bool) -> Builder {
+    let sig = SigType::Rsa2048;
+
     let mut builder = Builder::new();
     builder.with_system_certs(false).unwrap();
     builder
@@ -56,7 +58,9 @@ fn server_config(sig: SigType, client_auth: bool, trust_peer: bool) -> Builder {
 
 /// Build an s2n-tls config suitable for a client that trusts the test CA and
 /// optionally presents a client certificate.
-fn client_config(sig: SigType, present_client_cert: bool, trust_peer: bool) -> Builder {
+fn client_config(present_client_cert: bool, trust_peer: bool) -> Builder {
+    let sig = SigType::Rsa2048;
+
     let mut builder = Builder::new();
     builder.with_system_certs(false).unwrap();
     if trust_peer {
@@ -95,10 +99,8 @@ fn assert_chain_valid(chain: &s2n_tls::cert_chain::CertificateChain) {
 
 #[test]
 fn successful_server_auth() {
-    let sig = SigType::Rsa2048;
-
-    let server_cfg: S2NConfig = server_config(sig, false, true).build().unwrap().into();
-    let client_cfg: S2NConfig = client_config(sig, false, true).build().unwrap().into();
+    let server_cfg: S2NConfig = server_config(false, true).build().unwrap().into();
+    let client_cfg: S2NConfig = client_config(false, true).build().unwrap().into();
 
     let mut pair =
         TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
@@ -117,10 +119,7 @@ fn successful_server_auth() {
     let client_peer_der = client_peer_cert.der().unwrap();
     let server_own_cert = server_own.iter().next().unwrap().unwrap();
     let server_own_der = server_own_cert.der().unwrap();
-    assert_eq!(
-        client_peer_der, server_own_der,
-        "client's peer cert should match server's selected cert"
-    );
+    assert_eq!(client_peer_der, server_own_der,);
 }
 
 // ============================================================================
@@ -129,10 +128,8 @@ fn successful_server_auth() {
 
 #[test]
 fn successful_client_auth() {
-    let sig = SigType::Rsa2048;
-
-    let server_cfg: S2NConfig = server_config(sig, true, true).build().unwrap().into();
-    let client_cfg: S2NConfig = client_config(sig, true, true).build().unwrap().into();
+    let server_cfg: S2NConfig = server_config(true, true).build().unwrap().into();
+    let client_cfg: S2NConfig = client_config(true, true).build().unwrap().into();
 
     let mut pair =
         TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
@@ -149,10 +146,7 @@ fn successful_client_auth() {
     let server_peer_der = server_peer_cert.der().unwrap();
     let client_own_cert = client_own.iter().next().unwrap().unwrap();
     let client_own_der = client_own_cert.der().unwrap();
-    assert_eq!(
-        server_peer_der, client_own_der,
-        "server's peer cert should match client's selected cert"
-    );
+    assert_eq!(server_peer_der, client_own_der);
 }
 
 // ============================================================================
@@ -161,12 +155,10 @@ fn successful_client_auth() {
 
 #[test]
 fn failed_server_auth() {
-    let sig = SigType::Rsa2048;
-
-    let server_cfg: S2NConfig = server_config(sig, false, true).build().unwrap().into();
+    let server_cfg: S2NConfig = server_config(false, true).build().unwrap().into();
 
     // Client does not trust server cert
-    let client_cfg: S2NConfig = client_config(sig, false, false).build().unwrap().into();
+    let client_cfg: S2NConfig = client_config(false, false).build().unwrap().into();
 
     let mut pair =
         TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
@@ -190,11 +182,9 @@ fn failed_server_auth() {
 
 #[test]
 fn failed_client_auth() {
-    let sig = SigType::Rsa2048;
-
     // Server does not trust client cert.
-    let server_cfg: S2NConfig = server_config(sig, true, false).build().unwrap().into();
-    let client_cfg: S2NConfig = client_config(sig, true, true).build().unwrap().into();
+    let server_cfg: S2NConfig = server_config(true, false).build().unwrap().into();
+    let client_cfg: S2NConfig = client_config(true, true).build().unwrap().into();
 
     let mut pair =
         TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
@@ -205,10 +195,7 @@ fn failed_client_auth() {
 
     // After a failed handshake the client still selected its own cert to send.
     let client_own = pair.client.connection().selected_cert();
-    assert!(
-        client_own.is_some(),
-        "client should still have its selected cert after a failed handshake"
-    );
+    assert!(client_own.is_some());
     assert_chain_valid(&client_own.unwrap());
 
     // Server cannot retrieve peer's unvalidated cert.
