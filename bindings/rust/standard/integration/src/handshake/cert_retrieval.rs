@@ -85,7 +85,7 @@ fn client_config(present_client_cert: bool, trust_peer: bool) -> Builder {
 /// Assert that a certificate chain is non-empty and every certificate has
 /// non-empty DER data.
 fn assert_chain_valid(chain: &s2n_tls::cert_chain::CertificateChain) {
-    assert!(chain.len() > 0, "certificate chain should not be empty");
+    assert!(!chain.is_empty(), "certificate chain should not be empty");
     for cert in chain.iter() {
         let cert = cert.expect("cert iteration should succeed");
         let der = cert.der().expect("DER encoding should succeed");
