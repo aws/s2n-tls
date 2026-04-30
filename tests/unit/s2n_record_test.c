@@ -438,6 +438,42 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->client_hello.legacy_record_version, S2N_TLS10);
     }
 
+    /* Test: CBC record with oversized padding byte is safely rejected.
+     * See: https://github.com/aws/s2n-tls/issues/5795
+     */
+    {
+        uint8_t test_versions[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
+        for (size_t v = 0; v < s2n_array_len(test_versions); v++) {
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server = conn->initial;
+            conn->client = conn->initial;
+            conn->actual_protocol_version = test_versions[v];
+            conn->initial->cipher_suite = &mock_block_cipher_suite;
+            EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+            EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+
+            uint8_t test_data[] = "hello";
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, test_data, sizeof(test_data)));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+            EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+
+            EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+
+            /* Corrupt the padding byte to exceed the payload length */
+            conn->in.blob.data[conn->in.write_cursor - 1] = 0xFF;
+
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_INTEGER_OVERFLOW);
+        }
+    }
+
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
