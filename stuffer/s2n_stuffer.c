@@ -222,7 +222,21 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 
     stuffer->write_cursor -= wipe_size;
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
-    POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, wipe_size);
+
+    /*
+     * Wipe from the new write_cursor up to high_water_mark.
+     * This ensures that any stale data between write_cursor and
+     * high_water_mark is cleared.
+     * Note: this makes the operation O(high_water_mark - write_cursor), rather than
+     * O(size).
+     */
+
+    uint32_t wipe_span = stuffer->high_water_mark - stuffer->write_cursor;
+    if (wipe_span > 0) {
+        POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, wipe_span);
+    }
+
+    stuffer->high_water_mark = stuffer->write_cursor;
 
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
