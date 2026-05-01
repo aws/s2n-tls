@@ -4,10 +4,7 @@
 //! Tests that a TLS endpoint can retrieve its peer's certificate chain and its
 //! own (selected) certificate chain after both successful and failed handshakes.
 
-use s2n_tls::{
-    callbacks::VerifyHostNameCallback, config::Builder, enums::ClientAuthType,
-    error::Error as S2NError,
-};
+use s2n_tls::{config::Builder, enums::ClientAuthType, error::Error as S2NError};
 use tls_harness::{
     cohort::{s2n_tls::HostNameHandler, S2NConfig, S2NConnection},
     harness::read_to_bytes,
@@ -17,14 +14,6 @@ use tls_harness::{
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-#[derive(Default)]
-struct AcceptAllHostNames;
-impl VerifyHostNameCallback for AcceptAllHostNames {
-    fn verify_host_name(&self, _host_name: &str) -> bool {
-        true
-    }
-}
 
 /// Build an s2n-tls config suitable for a server that presents a certificate
 /// and optionally requires client auth.
