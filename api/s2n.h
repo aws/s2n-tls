@@ -3513,6 +3513,9 @@ S2N_API extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_c
  * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
  * * Safe to call from inside s2n_async_pkey_fn
  * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ * * MUST NOT be called concurrently with `s2n_negotiate`, `s2n_send`, or `s2n_recv` on the
+ *   same `conn`. `s2n_async_pkey_op_apply` mutates connection state that those methods also
+ *   access, and s2n-tls does not synchronize access to a single `s2n_connection`.
  *
  * @param op An opaque object representing the private key operation
  * @param conn The connection associated with the operation that should be unblocked
