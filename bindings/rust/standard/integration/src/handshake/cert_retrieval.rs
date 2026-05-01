@@ -9,7 +9,7 @@ use s2n_tls::{
     error::Error as S2NError,
 };
 use tls_harness::{
-    cohort::{S2NConfig, S2NConnection},
+    cohort::{s2n_tls::HostNameHandler, S2NConfig, S2NConnection},
     harness::read_to_bytes,
     PemType, SigType, TlsConnPair,
 };
@@ -51,7 +51,7 @@ fn server_config(client_auth: bool, trust_peer: bool) -> Builder {
         }
     }
     builder
-        .set_verify_host_callback(AcceptAllHostNames)
+        .set_verify_host_callback(HostNameHandler::new("localhost"))
         .unwrap();
     builder
 }
@@ -77,7 +77,7 @@ fn client_config(present_client_cert: bool, trust_peer: bool) -> Builder {
             .unwrap();
     }
     builder
-        .set_verify_host_callback(AcceptAllHostNames)
+        .set_verify_host_callback(HostNameHandler::new("localhost"))
         .unwrap();
     builder
 }
@@ -119,7 +119,7 @@ fn successful_server_auth() {
     let client_peer_der = client_peer_cert.der().unwrap();
     let server_own_cert = server_own.iter().next().unwrap().unwrap();
     let server_own_der = server_own_cert.der().unwrap();
-    assert_eq!(client_peer_der, server_own_der,);
+    assert_eq!(client_peer_der, server_own_der);
 }
 
 // ============================================================================
