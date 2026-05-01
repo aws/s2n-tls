@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f120b2e8.js";
+            window.path_to_searchindex_js = "searchindex-3781d209.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6a963795.js"></script>
@@ -746,7 +746,7 @@ but it could make handshake failures and authentication errors more difficult to
 <h2 id="certificate-revocation"><a class="header" href="#certificate-revocation">Certificate Revocation</a></h2>
 <p>Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate’s owner can no longer be trusted.</p>
 <p>s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.</p>
-<p>Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you’re sure your peer supports OCSP stapling. CRLs should be used if this assumption can’t be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you’re able to obtain CRLs in advance for all certificates you expect to encounter.</p>
+<p>Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you’re sure your peer supports OCSP stapling. CRLs should be used if this assumption can’t be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you’re able to obtain CRLs in advance for all certificates you expect to encounter. Additionally, s2n-tls CRL checking applies to the TLS certificate chain only and does not extend to OCSP delegated responder certificates. This is consistent with OpenSSL behavior, and callers who need revocation checking on OCSP responder certs would need to implement it out-of-band.</p>
 <h3 id="ocsp-stapling"><a class="header" href="#ocsp-stapling">OCSP Stapling</a></h3>
 <p>Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.</p>
 <p>OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
