@@ -920,7 +920,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06 = {
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_07_25_pq = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .kem_preferences = &kem_preferences_all,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
@@ -929,7 +929,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10_07_25_pq = {
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_07_25_pq = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .kem_preferences = &kem_preferences_all,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
@@ -938,7 +938,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_07_25_pq = {
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_07_25_pq = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_tls_13,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .kem_preferences = &kem_preferences_all,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
@@ -947,7 +947,7 @@ const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13_07_25_pq = {
 const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_aws_crt_sdk_default,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
+    .kem_preferences = &kem_preferences_all,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20230623,
 };

@@ -5,6 +5,9 @@ pub mod attribution;
 mod compatibility;
 pub(crate) mod counter;
 mod label;
+#[cfg(feature = "fuzzing")]
+pub mod parsing;
+#[cfg(not(feature = "fuzzing"))]
 mod parsing;
 mod record;
 mod static_lists;

@@ -393,9 +393,9 @@ int main(int argc, char **argv)
                 .expected_group = "secp384r1",
                 .expected_sig_scheme = "mldsa87",
             },
-            /* `test_pq_only` does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
+            /* Default CRT policy does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
             {
-                .client_policy = "test_pq_only",
+                .client_policy = "AWS-CRT-SDK-TLSv1.0-2025-PQ",
                 .server_policy = "cnsa_1_2_interop",
                 .server_name = "localhost",
                 .expected_error = S2N_ERR_OK,
