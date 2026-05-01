@@ -209,6 +209,12 @@ S2N_RESULT s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob
      * If d2i_AutoPrivateKey fails, try once more with the type we parsed from the PEM.
      */
     if (evp_private_key == NULL) {
+        /* libcrypto implementations leave key_to_parse unchanged on failure,
+         * but OpenSSL only documents the successful-advance behavior.
+         * Reset key_to_parse defensively so the retry always starts from the
+         * beginning of the buffer, regardless of underlying libcrypto behavior.
+         */
+        key_to_parse = asn1der->data;
         evp_private_key = d2i_PrivateKey(type_hint, NULL, &key_to_parse, asn1der->size);
     }
     RESULT_ENSURE(evp_private_key, S2N_ERR_DECODE_PRIVATE_KEY);
