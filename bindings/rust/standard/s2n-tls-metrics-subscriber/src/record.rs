@@ -123,9 +123,12 @@ impl HandshakeRecordInProgress {
         /////////////////////   fields from connection   ///////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        conn.signature_scheme()
+        if let Some(index) = conn
+            .signature_scheme()
             .and_then(|name| TlsParam::SignatureScheme.description_to_index(name))
-            .map(|index| self.negotiated_signatures.increment(index));
+        {
+            self.negotiated_signatures.increment(index);
+        }
 
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
@@ -184,17 +187,22 @@ impl HandshakeRecordInProgress {
         //////////////////////   fields from event   ///////////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        TlsParam::Version
-            .description_to_index(event.protocol_version().to_static_string())
-            .map(|index| self.negotiated_protocols.increment(index));
+        if let Some(index) =
+            TlsParam::Version.description_to_index(event.protocol_version().to_static_string())
+        {
+            self.negotiated_protocols.increment(index);
+        }
 
-        static_lists::cipher_ossl_name_to_index(event.cipher())
-            .map(|index| self.negotiated_ciphers.increment(index));
+        if let Some(index) = static_lists::cipher_ossl_name_to_index(event.cipher()) {
+            self.negotiated_ciphers.increment(index);
+        }
 
-        event
+        if let Some(index) = event
             .group()
             .and_then(|name| TlsParam::Group.description_to_index(name))
-            .map(|index| self.negotiated_groups.increment(index));
+        {
+            self.negotiated_groups.increment(index);
+        }
 
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
@@ -746,8 +754,10 @@ mod wire_format {
         for _ in 0..7 {
             ciphers.increment(0);
         }
-        let mut record = FrozenHandshakeRecord::default();
-        record.negotiated_ciphers = ciphers.freeze();
+        let record = FrozenHandshakeRecord {
+            negotiated_ciphers: ciphers.freeze(),
+            ..Default::default()
+        };
 
         let value = serde_json::to_value(&record).unwrap();
         let ciphers_map = value["negotiated_ciphers"].as_object().unwrap();

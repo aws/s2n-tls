@@ -6,8 +6,7 @@
 //! `ParameterKind` ties a TLS parameter kind (version, cipher, group,
 //! signature) to its slot count, wire key, and description.
 
-use std::marker::PhantomData;
-use std::sync::atomic::AtomicU64;
+use std::{marker::PhantomData, sync::atomic::AtomicU64};
 
 use crate::static_lists::{
     CIPHER_COUNT, GROUP_COUNT, PROTOCOL_COUNT, SIGNATURE_COUNT, TlsParam, cipher_iana_id,
