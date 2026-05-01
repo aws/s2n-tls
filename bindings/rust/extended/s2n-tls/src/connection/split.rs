@@ -1,0 +1,119 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+//! The s2n-tls C library is designed to allow calling s2n_send and s2n_recv on separate threads
+//! safely. This module extends that behavior into our Rust bindings by splitting apart the
+//! Connection into a read half and a write half. This enables users to send and recv on
+//! separate tasks without having to wrap the Connection in a mutex.
+
+use crate::{connection::Connection, error::Error};
+use std::{sync::Arc, task::Poll};
+
+impl Connection {
+    pub fn split(self) -> (ReadHalf, WriteHalf) {
+        let conn = Arc::new(self);
+        (
+            ReadHalf { conn: conn.clone() },
+            WriteHalf { conn: conn.clone() },
+        )
+    }
+}
+
+pub struct ReadHalf {
+    conn: Arc<Connection>,
+}
+
+impl ReadHalf {
+    pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        unsafe { self.conn.immutable_poll_recv(buf) }
+    }
+}
+pub struct WriteHalf {
+    conn: Arc<Connection>,
+}
+
+impl WriteHalf {
+    pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        unsafe { self.conn.immutable_poll_send(buf) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        error::Error,
+        security,
+        testing::{build_config, TestPair},
+    };
+    use openssl::rand::rand_bytes;
+    use std::{
+        task::Poll,
+        thread::{self},
+    };
+
+    /* Contains tedious recv logic to receive multiple records; in s2n-tls poll_recv only returns
+     * one record at a time. */
+    #[track_caller]
+    fn receive<F>(mut poll_recv: F, mut recv_buffer: Vec<u8>, expected_output: Vec<u8>)
+    where
+        F: FnMut(&mut [u8]) -> Poll<Result<usize, Error>>,
+    {
+        let mut total_data_recv = 0;
+        while total_data_recv != expected_output.len() {
+            let recv_len = match poll_recv(&mut recv_buffer[total_data_recv..]) {
+                Poll::Ready(res) => res.unwrap_or_default(),
+                Poll::Pending => 0,
+            };
+            assert_ne!(recv_len, 0);
+            total_data_recv += recv_len;
+        }
+        assert_eq!(recv_buffer, expected_output);
+    }
+
+    pub fn send_and_recv(test_data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        /* Initial handshake */
+        let config = build_config(&security::DEFAULT).unwrap();
+        let mut test_pair = TestPair::from_config(&config);
+        assert!(test_pair.handshake().is_ok());
+
+        /* Instantiate buffers */
+        let client_recv_buffer = vec![0; test_data.len()];
+        let server_recv_buffer = vec![0; test_data.len()];
+        let client_data = test_data.to_vec();
+        let server_data = test_data.to_vec();
+
+        /* Split the client */
+        let (mut read, mut write) = test_pair.client.split();
+
+        assert!(test_pair.server.poll_send(&server_data).is_ready());
+
+        // Test parallel reads/writes by sending the client halves to separate threads
+        let recv = thread::spawn(move || {
+            receive(|buf| read.poll_recv(buf), client_recv_buffer, server_data);
+        });
+        let send = thread::spawn(move || {
+            assert!(write.poll_send(&client_data).is_ready());
+        });
+        assert!(send.join().is_ok());
+        assert!(recv.join().is_ok());
+
+        receive(
+            |buf| test_pair.server.poll_recv(buf),
+            server_recv_buffer,
+            test_data.to_vec(),
+        );
+        Ok(())
+    }
+
+    #[test]
+    pub fn send_and_recv_small() -> Result<(), Box<dyn std::error::Error>> {
+        send_and_recv(b"hello")
+    }
+
+    #[test]
+    pub fn send_and_recv_large_random() -> Result<(), Box<dyn std::error::Error>> {
+        let mut buf = [0; 1024 * 1024];
+        rand_bytes(&mut buf).unwrap();
+        send_and_recv(&buf)
+    }
+}
