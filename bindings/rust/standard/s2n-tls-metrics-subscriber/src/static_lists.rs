@@ -5,16 +5,9 @@
 //! s2n-tls "getter" APIs. These static lists are important because they allow us
 //! to maintain an array of atomic counters instead of having to resort to a hashmap
 
-// allowing unused lints while crate is under development, many of these structs
-// won't be used until the subscriber is actually implemented
-#![allow(unused)]
-
-use std::{
-    collections::HashMap,
-    ffi::c_char,
-    fmt::Display,
-    sync::{LazyLock, Mutex},
-};
+#[cfg(test)]
+use std::ffi::c_char;
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TlsParam {
@@ -38,43 +31,7 @@ use s2n_codec::{DecoderValue, zerocopy::U16};
 use s2n_tls_sys_internal::{
     s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
 };
-use zerocopy::{BigEndian, ByteOrder, FromBytes, Immutable, Order, Unaligned};
-
-impl TlsParam {
-    pub fn index_to_description(&self, index: usize) -> Option<&'static str> {
-        match self {
-            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|info| info.description),
-            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.iana_description),
-            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.iana_description),
-            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.description),
-        }
-    }
-
-    pub fn description_to_index(&self, name: &str) -> Option<usize> {
-        match self {
-            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|info| info.description == name),
-            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|cipher| cipher.iana_description == name),
-            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|group| group.iana_description == name),
-            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-                .iter()
-                .position(|sig| sig.description == name),
-        }
-    }
-}
+use zerocopy::{FromBytes, Immutable, Unaligned};
 
 impl Display for TlsParam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -85,14 +42,6 @@ impl Display for TlsParam {
             TlsParam::SignatureScheme => write!(f, "signature_scheme"),
         }
     }
-}
-
-/// get the counter index from the openssl name. We prefer to work with IANA id's
-/// but s2n-tls returns the OpenSSL cipher name.
-pub fn cipher_ossl_name_to_index(name: &str) -> Option<usize> {
-    CIPHERS_AVAILABLE_IN_S2N
-        .iter()
-        .position(|current_cipher| *current_cipher.openssl_name == *name)
 }
 
 pub trait ToStaticString {
@@ -112,77 +61,148 @@ impl ToStaticString for s2n_tls::enums::Version {
     }
 }
 
-/// Slot in `VERSIONS_AVAILABLE_IN_S2N` → TLS `ProtocolVersion` IANA id.
-pub(crate) const fn version_iana_id(slot: usize) -> Option<u16> {
-    if slot >= VERSIONS_AVAILABLE_IN_S2N.len() {
-        return None;
+/// A TLS parameter type whose values can be enumerated at compile time,
+/// giving each value a stable slot index in `[0, N)` for the counter
+/// abstraction to use. Each implementor also defines conversion to/from
+/// its IANA wire id.
+pub(crate) trait FiniteCounter<const N: usize>: Sized + Copy + PartialEq {
+    /// All values of `Self` that the counter recognizes. Every element is
+    /// assigned a stable slot index equal to its position in this array.
+    const ELEMENTS: [Self; N];
+
+    /// IANA numeric id on the wire for this element.
+    fn iana_id(&self) -> u16;
+
+    /// Lookup by IANA description. `None` if not in [`Self::ELEMENTS`].
+    fn from_description(description: &str) -> Option<Self>;
+
+    /// Human-readable description for this element, typically the IANA name.
+    /// `None` only if `self` was constructed outside [`Self::ELEMENTS`].
+    fn description(&self) -> Option<&'static str>;
+
+    /// Inverse of [`Self::iana_id`]. Returns `None` if `id` is not recognized.
+    fn from_iana_id(id: u16) -> Option<Self> {
+        Self::ELEMENTS.iter().find(|e| e.iana_id() == id).copied()
     }
-    Some(VERSIONS_AVAILABLE_IN_S2N[slot].iana_value)
+
+    /// Slot index for this element, or `None` if not in [`Self::ELEMENTS`].
+    fn slot_from_key(&self) -> Option<usize> {
+        Self::ELEMENTS.iter().position(|e| e == self)
+    }
+
+    /// Element at `slot`, or `None` if out of range.
+    fn key_from_slot(slot: usize) -> Option<Self> {
+        Self::ELEMENTS.get(slot).copied()
+    }
 }
 
-/// Inverse of [`version_iana_id`].
-pub(crate) const fn version_slot_for_iana_id(id: u16) -> Option<usize> {
-    let mut slot = 0;
-    while slot < VERSIONS_AVAILABLE_IN_S2N.len() {
-        if VERSIONS_AVAILABLE_IN_S2N[slot].iana_value == id {
-            return Some(slot);
+impl FiniteCounter<CIPHER_COUNT> for Cipher {
+    const ELEMENTS: [Cipher; CIPHER_COUNT] = {
+        let mut out = [Cipher([0, 0]); CIPHER_COUNT];
+        let mut i = 0;
+        while i < CIPHER_COUNT {
+            out[i] = CIPHERS_AVAILABLE_IN_S2N[i].cipher;
+            i += 1;
         }
-        slot += 1;
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        let [hi, lo] = self.0;
+        ((hi as u16) << 8) | (lo as u16)
     }
-    None
+
+    fn from_description(description: &str) -> Option<Self> {
+        CIPHERS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == description)
+            .map(|info| info.cipher)
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        self.known_description()
+    }
 }
 
-/// Slot in `CIPHERS_AVAILABLE_IN_S2N` → IANA cipher suite id. The stored
-/// `[u8; 2]` is the on-wire pair in big-endian order.
-pub(crate) const fn cipher_iana_id(slot: usize) -> Option<u16> {
-    if slot >= CIPHERS_AVAILABLE_IN_S2N.len() {
-        return None;
-    }
-    let [hi, lo] = CIPHERS_AVAILABLE_IN_S2N[slot].cipher.0;
-    Some(((hi as u16) << 8) | (lo as u16))
-}
-
-/// Inverse of [`cipher_iana_id`].
-pub(crate) const fn cipher_slot_for_iana_id(id: u16) -> Option<usize> {
-    let hi = (id >> 8) as u8;
-    let lo = (id & 0xFF) as u8;
-    let mut slot = 0;
-    while slot < CIPHERS_AVAILABLE_IN_S2N.len() {
-        let bytes = CIPHERS_AVAILABLE_IN_S2N[slot].cipher.0;
-        if bytes[0] == hi && bytes[1] == lo {
-            return Some(slot);
+impl FiniteCounter<PROTOCOL_COUNT> for Version {
+    const ELEMENTS: [Version; PROTOCOL_COUNT] = {
+        let mut out = [Version(U16::new(0)); PROTOCOL_COUNT];
+        let mut i = 0;
+        while i < PROTOCOL_COUNT {
+            out[i] = Version(U16::new(VERSIONS_AVAILABLE_IN_S2N[i].iana_value));
+            i += 1;
         }
-        slot += 1;
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        self.0.get()
     }
-    None
+
+    fn from_description(description: &str) -> Option<Self> {
+        VERSIONS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.description == description)
+            .map(|info| Version(U16::new(info.iana_value)))
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        self.known_description()
+    }
 }
 
-/// Slot in `GROUPS_AVAILABLE_IN_S2N` → IANA named-group id.
-pub(crate) fn group_iana_id(slot: usize) -> Option<u16> {
-    GROUPS_AVAILABLE_IN_S2N
-        .get(slot)
-        .map(|info| info.group.0.get())
+impl FiniteCounter<GROUP_COUNT> for Group {
+    const ELEMENTS: [Group; GROUP_COUNT] = {
+        let mut out = [Group(U16::new(0)); GROUP_COUNT];
+        let mut i = 0;
+        while i < GROUP_COUNT {
+            out[i] = GROUPS_AVAILABLE_IN_S2N[i].group;
+            i += 1;
+        }
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        self.0.get()
+    }
+
+    fn from_description(description: &str) -> Option<Self> {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == description)
+            .map(|info| info.group)
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        self.known_description()
+    }
 }
 
-/// Inverse of [`group_iana_id`].
-pub(crate) fn group_slot_for_iana_id(id: u16) -> Option<usize> {
-    GROUPS_AVAILABLE_IN_S2N
-        .iter()
-        .position(|info| info.group.0.get() == id)
-}
+impl FiniteCounter<SIGNATURE_COUNT> for Signature {
+    const ELEMENTS: [Signature; SIGNATURE_COUNT] = {
+        let mut out = [Signature(U16::new(0)); SIGNATURE_COUNT];
+        let mut i = 0;
+        while i < SIGNATURE_COUNT {
+            out[i] = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[i].signature;
+            i += 1;
+        }
+        out
+    };
 
-/// Slot in `SIGNATURE_SCHEMES_AVAILABLE_IN_S2N` → IANA signature-scheme id.
-pub(crate) fn signature_iana_id(slot: usize) -> Option<u16> {
-    SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-        .get(slot)
-        .map(|info| info.signature.0.get())
-}
+    fn iana_id(&self) -> u16 {
+        self.0.get()
+    }
 
-/// Inverse of [`signature_iana_id`].
-pub(crate) fn signature_slot_for_iana_id(id: u16) -> Option<usize> {
-    SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-        .iter()
-        .position(|info| info.signature.0.get() == id)
+    fn from_description(description: &str) -> Option<Self> {
+        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.description == description)
+            .map(|info| info.signature)
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        self.known_description()
+    }
 }
 
 /// Convert a pointer to null terminated bytes into a static string
@@ -232,6 +252,7 @@ impl<'a> DecoderValue<'a> for Version {
 pub(crate) struct Cipher(pub(crate) [u8; 2]);
 
 impl Cipher {
+    #[allow(dead_code)] // kept as part of the typed cipher roster
     pub(crate) const TLS_EMPTY_RENEGOTIATION_INFO_SCSV: Self = Cipher([0, 255]);
 
     pub(crate) const TLS_AES_128_GCM_SHA256: Self = Cipher([0x13, 0x01]);
@@ -250,6 +271,15 @@ impl Cipher {
             .iter()
             .find(|info| info.cipher == *self)
             .map(|info| info.iana_description)
+    }
+
+    /// Lookup a cipher by the OpenSSL name returned from the s2n-tls
+    /// connection API (e.g. `ECDHE-RSA-AES256-GCM-SHA384`).
+    pub fn from_openssl_name(name: &str) -> Option<Self> {
+        CIPHERS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.openssl_name == name)
+            .map(|info| info.cipher)
     }
 }
 
@@ -272,7 +302,9 @@ impl Signature {
     pub(crate) const ecdsa_secp384r1_sha384: Self = Signature(U16::new(0x0503));
     pub(crate) const ecdsa_secp521r1_sha512: Self = Signature(U16::new(0x0603));
 
+    #[allow(dead_code)] // kept as part of the typed signature roster
     pub(crate) const mldsa44: Self = Signature(U16::new(0x0904));
+    #[allow(dead_code)] // kept as part of the typed signature roster
     pub(crate) const mldsa65: Self = Signature(U16::new(0x0905));
     pub(crate) const mldsa87: Self = Signature(U16::new(0x0906));
 
@@ -414,10 +446,6 @@ impl SignatureSchemeInformation {
         }
     }
 
-    pub fn description(&self) -> &'static str {
-        self.description
-    }
-
     #[cfg(test)]
     fn from_s2n_signature_scheme(scheme: &s2n_signature_scheme) -> Self {
         unsafe {
@@ -431,7 +459,7 @@ impl SignatureSchemeInformation {
 
 /// This list should match the negotiable TLS versions in s2n-tls, and determines
 /// how many "counter" slots the negotiated version metrics have.
-pub(crate) const VERSIONS_AVAILABLE_IN_S2N: &[VersionInformation] = &[
+pub(crate) const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("SSLv3", 0x0300),
     VersionInformation::new("TLSv1_0", 0x0301),
     VersionInformation::new("TLSv1_1", 0x0302),
@@ -442,7 +470,7 @@ pub(crate) const VERSIONS_AVAILABLE_IN_S2N: &[VersionInformation] = &[
 /// We are required to track OpenSSL naming because that is what the s2n-tls 
 /// connection API's return.
 #[rustfmt::skip]
-pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[CipherInformation] = &[
+pub(crate) const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
     CipherInformation::new("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256" ),
     CipherInformation::new("TLS_AES_256_GCM_SHA384", [19, 2], "TLS_AES_256_GCM_SHA384" ),
     CipherInformation::new("TLS_CHACHA20_POLY1305_SHA256", [19, 3], "TLS_CHACHA20_POLY1305_SHA256" ),
@@ -482,7 +510,7 @@ pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[CipherInformation] = &[
     CipherInformation::new("TLS_RSA_WITH_RC4_128_SHA", [0, 5], "RC4-SHA"),
 ];
 
-pub(crate) const GROUPS_AVAILABLE_IN_S2N: &[GroupInformation] = &[
+pub(crate) const GROUPS_AVAILABLE_IN_S2N: [GroupInformation; 8] = [
     GroupInformation::new("MLKEM1024", 514),
     GroupInformation::new("SecP256r1MLKEM768", 4587),
     GroupInformation::new("SecP384r1MLKEM1024", 4589),
@@ -493,7 +521,7 @@ pub(crate) const GROUPS_AVAILABLE_IN_S2N: &[GroupInformation] = &[
     GroupInformation::new("x25519", 29),
 ];
 
-pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureSchemeInformation] = &[
+pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] = [
     SignatureSchemeInformation::new("ecdsa_sha1", 515),
     SignatureSchemeInformation::new("ecdsa_sha256", 1027),
     SignatureSchemeInformation::new("ecdsa_sha384", 1283),
@@ -519,10 +547,7 @@ pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureSchemeInformatio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        collections::HashSet,
-        ffi::{CStr, c_char, c_int, c_void},
-    };
+    use std::collections::HashSet;
 
     /// return all of the ciphers defined in any s2n-tls security policy
     fn all_available_ciphers() -> Vec<CipherInformation> {
@@ -586,19 +611,19 @@ mod tests {
     #[test]
     fn all_ciphers_in_static_list() {
         let ciphers = all_available_ciphers();
-        assert_eq!(&ciphers, CIPHERS_AVAILABLE_IN_S2N);
+        assert_eq!(ciphers.as_slice(), &CIPHERS_AVAILABLE_IN_S2N[..]);
     }
 
     #[test]
     fn all_groups_in_static_list() {
         let groups = all_available_groups();
-        assert_eq!(&groups, GROUPS_AVAILABLE_IN_S2N);
+        assert_eq!(groups.as_slice(), &GROUPS_AVAILABLE_IN_S2N[..]);
     }
 
     #[test]
     fn all_signature_schemes_in_static_list() {
         let schemes = all_available_signatures();
-        assert_eq!(&schemes, SIGNATURE_SCHEMES_AVAILABLE_IN_S2N);
+        assert_eq!(schemes.as_slice(), &SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[..]);
     }
 
     /// Verify that the named Cipher constants have IANA values matching s2n-tls.
@@ -672,53 +697,6 @@ mod tests {
         ];
         for (constant, expected_name) in cases {
             assert_eq!(constant.known_description().unwrap(), *expected_name);
-        }
-    }
-
-    #[test]
-    fn index_and_name_lookup() {
-        for (index, item) in VERSIONS_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::Version
-                .description_to_index(item.description)
-                .unwrap();
-            let returned_description = TlsParam::Version
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.description);
-            assert_eq!(returned_index, index);
-        }
-
-        for (index, item) in CIPHERS_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::Cipher
-                .description_to_index(item.iana_description)
-                .unwrap();
-            let returned_description = TlsParam::Cipher
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.iana_description);
-            assert_eq!(returned_index, index);
-        }
-
-        for (index, item) in GROUPS_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::Group
-                .description_to_index(item.iana_description)
-                .unwrap();
-            let returned_description = TlsParam::Group
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.iana_description);
-            assert_eq!(returned_index, index);
-        }
-
-        for (index, item) in SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::SignatureScheme
-                .description_to_index(item.description)
-                .unwrap();
-            let returned_description = TlsParam::SignatureScheme
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.description);
-            assert_eq!(returned_index, index);
         }
     }
 }

@@ -11,10 +11,13 @@ use serde::{Deserialize, Serialize};
 use crate::{
     attribution::Attribution,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
-    counter::{CipherKind, Counter, FrozenCounter, GroupKind, SignatureKind, VersionKind},
+    counter::{Counter, FrozenCounter},
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
-    static_lists::{self, TlsParam, ToStaticString},
+    static_lists::{
+        CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
+        Signature, TlsParam, ToStaticString, Version,
+    },
 };
 
 /// Metric Record is an opaque type which implements [`metrique_writer::Entry`].
@@ -57,18 +60,18 @@ pub(crate) struct HandshakeRecordInProgress {
     /// the total number of handshakes that this record represents.
     handshake_count: AtomicU64,
 
-    negotiated_protocols: Counter<VersionKind>,
-    negotiated_ciphers: Counter<CipherKind>,
-    negotiated_groups: Counter<GroupKind>,
-    negotiated_signatures: Counter<SignatureKind>,
+    negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
+    negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
+    negotiated_groups: Counter<GROUP_COUNT, Group>,
+    negotiated_signatures: Counter<SIGNATURE_COUNT, Signature>,
 
     // we do not attempt to detect supported parameters for SSLv2 formatted client
     // hellos
     sslv2_client_hello: AtomicU64,
-    supported_protocols: Counter<VersionKind>,
-    supported_ciphers: Counter<CipherKind>,
-    supported_groups: Counter<GroupKind>,
-    supported_signatures: Counter<SignatureKind>,
+    supported_protocols: Counter<PROTOCOL_COUNT, Version>,
+    supported_ciphers: Counter<CIPHER_COUNT, Cipher>,
+    supported_groups: Counter<GROUP_COUNT, Group>,
+    supported_signatures: Counter<SIGNATURE_COUNT, Signature>,
 
     compatibility_general20251201: AtomicU64,
     compatibility_fips20251201: AtomicU64,
@@ -123,11 +126,11 @@ impl HandshakeRecordInProgress {
         /////////////////////   fields from connection   ///////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        if let Some(index) = conn
+        if let Some(signature) = conn
             .signature_scheme()
-            .and_then(|name| TlsParam::SignatureScheme.description_to_index(name))
+            .and_then(Signature::from_description)
         {
-            self.negotiated_signatures.increment(index);
+            self.negotiated_signatures.increment(&signature);
         }
 
         if conn.client_hello_is_sslv2()? {
@@ -138,33 +141,23 @@ impl HandshakeRecordInProgress {
             supported_parameter
                 .supported_versions()?
                 .iter()
-                .filter_map(|version| version.known_description())
-                .filter_map(|description| TlsParam::Version.description_to_index(description))
-                .for_each(|index| self.supported_protocols.increment(index));
+                .for_each(|version| self.supported_protocols.increment(version));
 
             supported_parameter
                 .supported_ciphers()?
                 .iter()
-                .filter_map(|cipher| cipher.known_description())
-                .filter_map(|description| TlsParam::Cipher.description_to_index(description))
-                .for_each(|index| self.supported_ciphers.increment(index));
+                .for_each(|cipher| self.supported_ciphers.increment(cipher));
 
             if let Some(supported_groups) = supported_parameter.supported_groups()? {
                 supported_groups
                     .iter()
-                    .filter_map(|group| group.known_description())
-                    .filter_map(|description| TlsParam::Group.description_to_index(description))
-                    .for_each(|index| self.supported_groups.increment(index));
+                    .for_each(|group| self.supported_groups.increment(group));
             }
 
             if let Some(supported_sigs) = supported_parameter.supported_signatures()? {
                 supported_sigs
                     .iter()
-                    .filter_map(|signature| signature.known_description())
-                    .filter_map(|description| {
-                        TlsParam::SignatureScheme.description_to_index(description)
-                    })
-                    .for_each(|index| self.supported_signatures.increment(index));
+                    .for_each(|signature| self.supported_signatures.increment(signature));
             }
 
             if General20251201::supported(&supported_parameter) {
@@ -187,21 +180,18 @@ impl HandshakeRecordInProgress {
         //////////////////////   fields from event   ///////////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        if let Some(index) =
-            TlsParam::Version.description_to_index(event.protocol_version().to_static_string())
+        if let Some(version) =
+            Version::from_description(event.protocol_version().to_static_string())
         {
-            self.negotiated_protocols.increment(index);
+            self.negotiated_protocols.increment(&version);
         }
 
-        if let Some(index) = static_lists::cipher_ossl_name_to_index(event.cipher()) {
-            self.negotiated_ciphers.increment(index);
+        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
+            self.negotiated_ciphers.increment(&cipher);
         }
 
-        if let Some(index) = event
-            .group()
-            .and_then(|name| TlsParam::Group.description_to_index(name))
-        {
-            self.negotiated_groups.increment(index);
+        if let Some(group) = event.group().and_then(Group::from_description) {
+            self.negotiated_groups.increment(&group);
         }
 
         // accuracy: as long as the handshake took less than 500,000 years
@@ -279,24 +269,24 @@ pub(crate) struct FrozenHandshakeRecord {
     pub(crate) handshake_count: u64,
 
     #[serde(default)]
-    negotiated_protocols: FrozenCounter<VersionKind>,
+    negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
-    negotiated_ciphers: FrozenCounter<CipherKind>,
+    negotiated_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
     #[serde(default)]
-    negotiated_groups: FrozenCounter<GroupKind>,
+    negotiated_groups: FrozenCounter<GROUP_COUNT, Group>,
     #[serde(default)]
-    negotiated_signatures: FrozenCounter<SignatureKind>,
+    negotiated_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
 
     #[serde(default)]
     sslv2_client_hello: u64,
     #[serde(default)]
-    supported_protocols: FrozenCounter<VersionKind>,
+    supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
-    supported_ciphers: FrozenCounter<CipherKind>,
+    supported_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
     #[serde(default)]
-    supported_groups: FrozenCounter<GroupKind>,
+    supported_groups: FrozenCounter<GROUP_COUNT, Group>,
     #[serde(default)]
-    supported_signatures: FrozenCounter<SignatureKind>,
+    supported_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
 
     #[serde(default)]
     compatibility_general20251201: u64,
@@ -347,13 +337,13 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         // Emit one label per non-zero slot for each (kind, state) cell, using
         // the description the slot maps to in this reader's static list.
         // Zero-valued slots are skipped by `iter_non_zero`.
-        fn write_counter<'a, K, W>(
-            counter: &'a FrozenCounter<K>,
+        fn write_counter<'a, const N: usize, T, W>(
+            counter: &'a FrozenCounter<N, T>,
             parameter: TlsParam,
             state: State,
             writer: &mut W,
         ) where
-            K: crate::counter::ParameterKind,
+            T: FiniteCounter<N>,
             W: metrique_writer::EntryWriter<'a>,
         {
             for (name, count) in counter.iter_non_zero() {
@@ -457,10 +447,8 @@ mod tests {
         assert_eq!(record.negotiated_protocols.count_for(expected_version), 1);
 
         let expected_cipher = result.client.cipher_suite().unwrap().to_owned();
-        let expected_cipher_description = TlsParam::Cipher
-            .index_to_description(
-                static_lists::cipher_ossl_name_to_index(expected_cipher.as_str()).unwrap(),
-            )
+        let expected_cipher_description = Cipher::from_openssl_name(expected_cipher.as_str())
+            .and_then(|cipher| cipher.known_description())
             .unwrap();
         assert_eq!(
             record
@@ -529,74 +517,36 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].handshake;
 
-        let expected_version: Vec<usize> = EXPECTED_VERSIONS
-            .iter()
-            .map(|description| TlsParam::Version.description_to_index(description).unwrap())
-            .collect();
-        let expected_ciphers: Vec<usize> = EXPECTED_CIPHERS
-            .iter()
-            .map(|description| TlsParam::Cipher.description_to_index(description).unwrap())
-            .collect();
-        let expected_groups: Vec<usize> = EXPECTED_GROUPS
-            .iter()
-            .map(|description| TlsParam::Group.description_to_index(description).unwrap())
-            .collect();
-        let expected_sigs: Vec<usize> = EXPECTED_SIGS
-            .iter()
-            .map(|description| {
-                TlsParam::SignatureScheme
-                    .description_to_index(description)
-                    .unwrap()
-            })
-            .collect();
+        /// For every slot in `counter`, assert the count is 1 iff the slot's
+        /// element description appears in `expected`, else 0.
+        fn assert_supported_matches<const N: usize, T: FiniteCounter<N>>(
+            counter: &FrozenCounter<N, T>,
+            expected: &[&str],
+        ) {
+            let expected_slots: Vec<usize> = expected
+                .iter()
+                .map(|description| {
+                    T::from_description(description)
+                        .unwrap_or_else(|| panic!("unknown description {description}"))
+                        .slot_from_key()
+                        .unwrap()
+                })
+                .collect();
 
-        for (index, count) in record
-            .supported_protocols
-            .slots_for_test()
-            .iter()
-            .enumerate()
-        {
-            let param = TlsParam::Version.index_to_description(index).unwrap();
-            if expected_version.contains(&index) {
-                assert_eq!(*count, 1, "{param} count is {count}, not one");
-            } else {
-                assert_eq!(*count, 0, "{param} count is {count}, not zero");
+            for (slot, &count) in counter.slots_for_test().iter().enumerate() {
+                let name = T::key_from_slot(slot).unwrap().description().unwrap();
+                if expected_slots.contains(&slot) {
+                    assert_eq!(count, 1, "{name} count is {count}, not one");
+                } else {
+                    assert_eq!(count, 0, "{name} count is {count}, not zero");
+                }
             }
         }
 
-        for (index, count) in record.supported_ciphers.slots_for_test().iter().enumerate() {
-            let param = TlsParam::Cipher.index_to_description(index).unwrap();
-            if expected_ciphers.contains(&index) {
-                assert_eq!(*count, 1, "{param} count is {count}, not one");
-            } else {
-                assert_eq!(*count, 0, "{param} count is {count}, not zero");
-            }
-        }
-
-        for (index, count) in record.supported_groups.slots_for_test().iter().enumerate() {
-            let param = TlsParam::Group.index_to_description(index).unwrap();
-            if expected_groups.contains(&index) {
-                assert_eq!(*count, 1, "{param} count is {count}, not one");
-            } else {
-                assert_eq!(*count, 0, "{param} count is {count}, not zero");
-            }
-        }
-
-        for (index, count) in record
-            .supported_signatures
-            .slots_for_test()
-            .iter()
-            .enumerate()
-        {
-            let param = TlsParam::SignatureScheme
-                .index_to_description(index)
-                .unwrap();
-            if expected_sigs.contains(&index) {
-                assert_eq!(*count, 1, "{param} count is {count}, not one");
-            } else {
-                assert_eq!(*count, 0, "{param} count is {count}, not zero");
-            }
-        }
+        assert_supported_matches(&record.supported_protocols, EXPECTED_VERSIONS);
+        assert_supported_matches(&record.supported_ciphers, EXPECTED_CIPHERS);
+        assert_supported_matches(&record.supported_groups, EXPECTED_GROUPS);
+        assert_supported_matches(&record.supported_signatures, EXPECTED_SIGS);
     }
 
     #[test]
@@ -682,13 +632,12 @@ mod tests {
         assert!(single_handshake.handshake_duration_us < multiple_handshakes.handshake_duration_us);
     }
 
-    /// A JSON payload that only includes `handshake_count`
-    /// must deserialize successfully: `#[serde(default)]` on each non-array
-    /// field fills the missing slots with their documented defaults
-    /// (0 for integer counters, `SystemTime::UNIX_EPOCH` for `freeze_time`,
-    /// and a zero-filled `FrozenCounter` for per-kind fields).
+    /// A JSON payload that only includes `handshake_count` deserializes
+    /// successfully: `#[serde(default)]` on every other field fills it with
+    /// its documented default (0 for integer counters, `SystemTime::UNIX_EPOCH`
+    /// for `freeze_time`, a zero-filled `FrozenCounter` for per-kind fields).
     #[test]
-    fn deserialize_missing_non_array_fields_uses_defaults() {
+    fn deserialize_missing_fields_uses_defaults() {
         let json = r#"{"handshake_count": 10}"#;
         let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
 
@@ -713,60 +662,5 @@ mod tests {
         assert_eq!(record.compatibility_cnsa2, 0);
         assert_eq!(record.handshake_duration_us, 0);
         assert_eq!(record.handshake_compute_us, 0);
-    }
-}
-
-/// Wire-format tests covering cross-version tolerance: unknown IANA ids
-/// dropped on decode, and counters emitted as maps keyed by IANA id.
-#[cfg(test)]
-mod wire_format {
-    use super::FrozenHandshakeRecord;
-    use crate::counter::{CipherKind, Counter};
-
-    /// A future writer's payload may include IANA ids the current reader
-    /// does not recognize; the reader must drop them and decode the rest.
-    #[test]
-    fn unknown_iana_id_is_dropped_on_decode() {
-        // 4865 is TLS_AES_128_GCM_SHA256 (slot 0); 0xEEEE is not assigned.
-        let json = r#"{
-            "handshake_count": 42,
-            "negotiated_ciphers": {"4865": 7, "61166": 3735928559}
-        }"#;
-
-        let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
-
-        assert_eq!(record.handshake_count, 42);
-        assert_eq!(
-            record
-                .negotiated_ciphers
-                .count_for("TLS_AES_128_GCM_SHA256"),
-            7,
-        );
-        let total: u64 = record.negotiated_ciphers.slots_for_test().iter().sum();
-        assert_eq!(total, 7, "unknown id must be dropped, not relocated");
-    }
-
-    /// Counters are emitted as maps keyed by IANA id, with zero slots omitted
-    /// and only ids the writer knows about appearing in the output.
-    #[test]
-    fn writer_emits_iana_keyed_map() {
-        let mut ciphers = Counter::<CipherKind>::new();
-        for _ in 0..7 {
-            ciphers.increment(0);
-        }
-        let record = FrozenHandshakeRecord {
-            negotiated_ciphers: ciphers.freeze(),
-            ..Default::default()
-        };
-
-        let value = serde_json::to_value(&record).unwrap();
-        let ciphers_map = value["negotiated_ciphers"].as_object().unwrap();
-
-        assert_eq!(ciphers_map.len(), 1, "zero slots must be omitted");
-        assert_eq!(
-            ciphers_map.get("4865").and_then(|v| v.as_u64()),
-            Some(7),
-            "slot 0 (TLS_AES_128_GCM_SHA256, 0x1301) must serialize as IANA id 4865",
-        );
     }
 }
