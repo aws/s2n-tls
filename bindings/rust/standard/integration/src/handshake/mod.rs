@@ -9,4 +9,5 @@ mod handshake_failure_errors;
 #[cfg(feature = "pq")]
 mod pq;
 mod renegotiate;
+mod serialization;
 mod session_resumption;
