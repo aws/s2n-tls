@@ -130,8 +130,9 @@ fn tls13_serialization() {
 fn serialization() {
     for case in TEST_CASES.iter().filter(|c| !c.is_tls13()) {
         let result = run_serialization_test(case);
-        // TODO: TLS 1.0 serialization is not currently supported. Remove this
-        // special case once it is fixed.
+        // TODO: TLS 1.0 serialization is not currently supported.
+        // https://github.com/aws/s2n-tls/issues/5538
+        // Remove this special case once it is fixed.
         if case.version == SslVersion::TLS1 {
             assert!(result.is_err());
         } else {
