@@ -111,7 +111,7 @@ fn run_serialization_test(case: &TestCase) -> Result<(), Box<dyn std::error::Err
 }
 
 #[test]
-fn serialization() {
+fn serialization_parameters() {
     for case in TEST_CASES {
         let capabilities = case.required_capabilities();
         required_capability(&capabilities, || {

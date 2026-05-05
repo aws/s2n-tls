@@ -3,3 +3,4 @@
 mod dynamic_record_sizing;
 mod prefer_low_latency;
 mod record_padding;
+mod serialization;
