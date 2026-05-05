@@ -24,6 +24,17 @@ impl TestCase {
     fn is_tls13(&self) -> bool {
         self.version == SslVersion::TLS1_3
     }
+
+    fn required_capabilities(&self) -> Vec<Capability> {
+        let mut capabilities = Vec::new();
+        if self.is_tls13() {
+            capabilities.push(Capability::Tls13);
+        }
+        if self.cipher.contains("CHACHA") {
+            capabilities.push(Capability::Chachapoly);
+        }
+        capabilities
+    }
 }
 
 /// Serialized connections have to rehydrate traffic secrets for use in the
@@ -100,25 +111,19 @@ fn run_serialization_test(case: &TestCase) -> Result<(), Box<dyn std::error::Err
 }
 
 #[test]
-fn tls13_serialization() {
-    required_capability(&[Capability::Tls13], || {
-        for case in TEST_CASES.iter().filter(|c| c.is_tls13()) {
-            run_serialization_test(case).unwrap();
-        }
-    });
-}
-
-#[test]
 fn serialization() {
-    for case in TEST_CASES.iter().filter(|c| !c.is_tls13()) {
-        let result = run_serialization_test(case);
-        // TODO: TLS 1.0 serialization is not currently supported.
-        // https://github.com/aws/s2n-tls/issues/5538
-        // Remove this special case once it is fixed.
-        if case.version == SslVersion::TLS1 {
-            assert!(result.is_err());
-        } else {
-            assert!(result.is_ok(), "{case:?} failed");
-        }
+    for case in TEST_CASES {
+        let capabilities = case.required_capabilities();
+        required_capability(&capabilities, || {
+            let result = run_serialization_test(case);
+            // TODO: TLS 1.0 serialization is not currently supported.
+            // https://github.com/aws/s2n-tls/issues/5538
+            // Remove this special case once it is fixed.
+            if case.version == SslVersion::TLS1 {
+                assert!(result.is_err());
+            } else {
+                assert!(result.is_ok(), "{case:?} failed");
+            }
+        });
     }
 }
