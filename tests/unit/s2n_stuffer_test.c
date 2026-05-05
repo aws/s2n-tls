@@ -342,5 +342,72 @@ int main(int argc, char **argv)
         }
     }
 
+    /* test wipe_n: write_cursor and size are both 0 */
+    {
+        struct s2n_stuffer test = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
+        uint8_t data[10] = { 0 };
+
+        memset(data, 0xAB, sizeof(data));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+
+        EXPECT_EQUAL(test.write_cursor, 0);
+        EXPECT_EQUAL(test.read_cursor, 0);
+        EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+
+        for (size_t i = 0; i < sizeof(data); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xAB);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 0));
+        EXPECT_EQUAL(test.high_water_mark, 0);
+        EXPECT_EQUAL(test.write_cursor, 0);
+
+        for (size_t i = 0; i < sizeof(data); i++) {
+            EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&test));
+    }
+
+    /* test wipe_n: high_water_mark > write_cursor > 0; */
+    {
+        struct s2n_stuffer test = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
+        uint8_t first_write_bytes[20] = { 0 };
+        uint8_t second_write_bytes[5] = { 0 };
+
+        memset(first_write_bytes, 0xCD, sizeof(first_write_bytes));
+        memset(second_write_bytes, 0xEF, sizeof(second_write_bytes));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, first_write_bytes, sizeof(first_write_bytes)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(first_write_bytes));
+
+        EXPECT_EQUAL(test.high_water_mark, sizeof(first_write_bytes));
+
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, second_write_bytes, sizeof(second_write_bytes)));
+        EXPECT_EQUAL(test.write_cursor, sizeof(second_write_bytes));
+        EXPECT_EQUAL(test.high_water_mark, sizeof(first_write_bytes));
+
+        for (size_t i = 0; i < sizeof(second_write_bytes); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xEF);
+        }
+
+        for (size_t i = sizeof(second_write_bytes); i < sizeof(first_write_bytes); i++) {
+            EXPECT_EQUAL(test.blob.data[i], (uint8_t) 0xCD);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, sizeof(second_write_bytes)));
+        EXPECT_EQUAL(test.high_water_mark, 0);
+        EXPECT_EQUAL(test.write_cursor, 0);
+        for (size_t i = 0; i < sizeof(first_write_bytes); i++) {
+            EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&test));
+    }
+
     END_TEST();
 }
