@@ -70,10 +70,7 @@ impl Capability {
 ///
 /// If all the required capabilities are present then the test must pass. Otherwise
 /// we expect the test to panic/fail.
-pub fn required_capability(
-    required_capabilities: &[Capability],
-    test: impl FnOnce() + UnwindSafe,
-) {
+pub fn required_capability(required_capabilities: &[Capability], test: impl FnOnce() + UnwindSafe) {
     let result = std::panic::catch_unwind(test);
     if required_capabilities.iter().all(|c| c.supported()) {
         result.unwrap();
