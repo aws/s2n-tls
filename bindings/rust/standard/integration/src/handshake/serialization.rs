@@ -17,50 +17,32 @@ struct TestCase {
 }
 
 impl TestCase {
+    const fn new(version: SslVersion, cipher: &'static str) -> Self {
+        Self { version, cipher }
+    }
+
     fn is_tls13(&self) -> bool {
         self.version == SslVersion::TLS1_3
     }
 }
 
-/// Test Cases are designed to cover
-/// 1. protocol versions
-/// 2. different kinds of ciphers
-///
-/// Internally, serialized connections have to rehydrate traffic secrets for use
-/// in the record protocol. The record protocol depends on protocol version and
-/// cipher, which is why our test cases are focused on those.
+/// Serialized connections have to rehydrate traffic secrets for use in the
+/// record protocol. The record protocol depends on protocol version and cipher,
+/// which is why our test cases are focused on those.
 /// - CBC ciphers: block cipher with MAC
 /// - AES-GCM: AEAD block cipher
 /// - CHACHAPOLY: AEAD stream cipher
 const TEST_CASES: &[TestCase] = &[
-    TestCase {
-        version: SslVersion::TLS1,
-        cipher: "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-    },
-    TestCase {
-        version: SslVersion::TLS1_1,
-        cipher: "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-    },
-    TestCase {
-        version: SslVersion::TLS1_2,
-        cipher: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-    },
-    TestCase {
-        version: SslVersion::TLS1_2,
-        cipher: "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-    },
-    TestCase {
-        version: SslVersion::TLS1_2,
-        cipher: "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-    },
-    TestCase {
-        version: SslVersion::TLS1_3,
-        cipher: "TLS_AES_128_GCM_SHA256",
-    },
-    TestCase {
-        version: SslVersion::TLS1_3,
-        cipher: "TLS_CHACHA20_POLY1305_SHA256",
-    },
+    TestCase::new(SslVersion::TLS1, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"),
+    TestCase::new(SslVersion::TLS1_1, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"),
+    TestCase::new(SslVersion::TLS1_2, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"),
+    TestCase::new(SslVersion::TLS1_2, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"),
+    TestCase::new(
+        SslVersion::TLS1_2,
+        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+    ),
+    TestCase::new(SslVersion::TLS1_3, "TLS_AES_128_GCM_SHA256"),
+    TestCase::new(SslVersion::TLS1_3, "TLS_CHACHA20_POLY1305_SHA256"),
 ];
 
 fn build_openssl_client_config(case: &TestCase) -> openssl::ssl::SslContext {
@@ -68,6 +50,7 @@ fn build_openssl_client_config(case: &TestCase) -> openssl::ssl::SslContext {
     builder.set_trust(SigType::Rsa2048);
     builder.set_min_proto_version(Some(case.version)).unwrap();
     builder.set_max_proto_version(Some(case.version)).unwrap();
+    // openssl has a different API for setting TLS 1.3 ciphers
     if case.is_tls13() {
         builder.set_ciphersuites(case.cipher).unwrap();
     } else {
