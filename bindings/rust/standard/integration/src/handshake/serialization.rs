@@ -26,13 +26,12 @@ impl TestCase {
 /// 1. protocol versions
 /// 2. different kinds of ciphers
 ///
-/// Internally, serialized connections have to rehydrate the secrets and record
-/// protocol, so we want test coverage over the different ways that secrets and
-/// the record protocol may need hydration. To that end we have coverage over
+/// Internally, serialized connections have to rehydrate traffic secrets for use
+/// in the record protocol. The record protocol depends on protocol version and
+/// cipher, which is why our test cases are focused on those.
 /// - CBC ciphers: block cipher with MAC
-/// - GCM ciphers: block cipher with AAD
-/// - CHACHA ciphers: stream cipher
-/// As well as the different protocol versions.
+/// - AES-GCM: AEAD block cipher
+/// - CHACHAPOLY: AEAD stream cipher
 const TEST_CASES: &[TestCase] = &[
     TestCase {
         version: SslVersion::TLS1,
