@@ -12,9 +12,13 @@ use std::task::Poll;
 /// The TLS record header is 5 bytes: 1 (content type) + 2 (protocol version) + 2 (length)
 const TLS_RECORD_HEADER_LEN: usize = 5;
 
+/// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a 
+/// convenience to avoid the TLS 1.3 required capability logic.
+const TEST_POLICY: &str = "20240501";
+
 fn build_serializable_config() -> s2n_tls::config::Config {
     let mut builder =
-        testing::config_builder(&Policy::from_version("default_tls13").unwrap()).unwrap();
+        testing::config_builder(&Policy::from_version(TEST_POLICY).unwrap()).unwrap();
     builder
         .set_serialization_version(SerializationVersion::V1)
         .unwrap();
@@ -38,6 +42,9 @@ fn try_serialize(conn: &s2n_tls::connection::Connection) -> Result<(), s2n_tls::
     conn.serialize(&mut buf)
 }
 
+/// This test servers as documentation/confirmation of some sharp edges around
+/// serialization failure. Specifically, there is no detecting whether a record
+/// fragment has been ingested. https://github.com/aws/s2n-tls/issues/5863
 #[test]
 fn serialization_io_edge_cases() {
     let config = build_serializable_config();
@@ -53,13 +60,13 @@ fn serialization_io_edge_cases() {
         assert!(pair.client.poll_send(&[0; 100]).is_ready());
 
         // Truncate the buffer to only 2 bytes (incomplete 5-byte header)
-        let stream = &pair.io.client_tx_stream;
-        let total = stream.borrow().len();
-        assert!(total > TLS_RECORD_HEADER_LEN);
-        stream.borrow_mut().truncate(2);
+        pair.io.client_tx_stream.borrow_mut().truncate(2);
 
         // Server attempts to read but only gets a partial header
-        assert!(matches!(pair.server.poll_recv(&mut [0; 100]), Poll::Pending));
+        assert!(matches!(
+            pair.server.poll_recv(&mut [0; 100]),
+            Poll::Pending
+        ));
         // This is "invisible" data, not yet decrypted
         assert_eq!(pair.server.peek_len(), 0);
 
@@ -76,14 +83,16 @@ fn serialization_io_edge_cases() {
         assert!(pair.client.poll_send(&[0; 100]).is_ready());
 
         // Truncate the buffer to header + 1 byte of body (partial record)
-        let stream = &pair.io.client_tx_stream;
-        let total = stream.borrow().len();
-        let keep = TLS_RECORD_HEADER_LEN + 1;
-        assert!(total > keep);
-        stream.borrow_mut().truncate(keep);
+        pair.io
+            .client_tx_stream
+            .borrow_mut()
+            .truncate(TLS_RECORD_HEADER_LEN + 1);
 
         // Server attempts to read but only gets a partial record
-        assert!(matches!(pair.server.poll_recv(&mut [0; 100]), Poll::Pending));
+        assert!(matches!(
+            pair.server.poll_recv(&mut [0; 100]),
+            Poll::Pending
+        ));
         // This is "invisible" data, not yet decrypted
         assert_eq!(pair.server.peek_len(), 0);
 
@@ -101,14 +110,17 @@ fn serialization_io_edge_cases() {
 
         // Server reads with a 1-byte buffer: decrypts the full record but only
         // returns 1 byte to the application, leaving the rest buffered internally
-        assert!(matches!(pair.server.poll_recv(&mut [0; 1]), Poll::Ready(Ok(1))));
+        assert!(matches!(
+            pair.server.poll_recv(&mut [0; 1]),
+            Poll::Ready(Ok(1))
+        ));
         assert_eq!(pair.server.peek_len(), 99);
 
         // Serialization must fail because conn->in has pending decrypted data
         assert_invalid_state_error(try_serialize(&pair.server).unwrap_err());
 
         // read the rest of the data, serialization then succeeds
-        assert!(pair.server.poll_recv(&mut[0;100]).is_ready());
+        assert!(pair.server.poll_recv(&mut [0; 100]).is_ready());
         assert!(pair.server.serialize(&mut [0; 1_024]).is_ok());
     }
 }

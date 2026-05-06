@@ -736,6 +736,49 @@ impl Connection {
         unsafe { s2n_peek(self.connection.as_ptr()) as usize }
     }
 
+    /// Gets the number of additional ciphertext bytes available to be read.
+    ///
+    /// <div class="warning">
+    ///
+    /// This API is _not_ intuitive, and probably doesn't do what you think
+    /// it does. You should rigorously test your assumptions about its behavior.
+    ///
+    /// </div>
+    ///
+    /// The API will return 0 in the "standard" IO mode, and is only useful when
+    /// [Connection::set_receive_buffering] is enabled.
+    ///
+    /// When receive buffering is enabled, it is useful to imagine that an s2n-tls
+    /// connection behaves as if it has two buffers, one for the "current record",
+    /// and one for additional data.
+    /// ```text
+    /// c -> ciphertext
+    /// p -> plaintext
+    ///
+    ///          |-----current record-----|-------additional------------|
+    /// case 1 - |ccccccccccccc
+    /// case 2 - |pppppppppppppppppppppppp|
+    /// case 3 - |pppppppppppppppppppppppp|ccccccccccccccccccc
+    /// ```
+    /// In case 1, we received a record fragment. Records can only be decrypted
+    /// once the full record is available. So current-record just stores the record
+    /// fragment (ciphertext). There are currently no APIs to determine if there
+    /// is a record fragment stored. https://github.com/aws/s2n-tls/issues/5863
+    ///
+    /// In case 2, we received a full record, which is decrypted and stored in current
+    /// record. [`Connection::peek_len`] will return the count of plaintext bytes
+    /// yet to be read from "current record".
+    ///
+    /// In case 3, additional bytes (another record, complete or incomplete) were
+    /// also been read off the wire. In  this case [`Connection::peek_buffered_len`]
+    /// will return the length of ciphertext bytes buffered in "additional". This is
+    /// the only case in which `peek_buffered_len` will return a non-zero result.
+    ///
+    /// Corresponds to [`s2n_peek_buffered`].
+    pub fn peek_buffered_len(&self) -> usize {
+        unsafe { s2n_peek_buffered(self.connection.as_ptr()) as usize }
+    }
+
     /// Attempts a graceful shutdown of the TLS connection.
     ///
     /// The shutdown is not complete until the necessary shutdown messages
