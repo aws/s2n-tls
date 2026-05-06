@@ -41,7 +41,7 @@ fn try_serialize(conn: &s2n_tls::connection::Connection) -> Result<(), s2n_tls::
     conn.serialize(&mut buf)
 }
 
-/// This test server as documentation/confirmation of some sharp edges around
+/// This test serves as documentation/confirmation of some sharp edges around
 /// serialization failure. Specifically, there is no way to detect whether a record
 /// fragment has been ingested. https://github.com/aws/s2n-tls/issues/5863
 #[test]
