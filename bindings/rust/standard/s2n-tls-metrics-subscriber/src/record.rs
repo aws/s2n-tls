@@ -126,12 +126,8 @@ impl HandshakeRecordInProgress {
         /////////////////////   fields from connection   ///////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        if let Some(signature) = conn
-            .signature_scheme()
-            .and_then(Signature::from_description)
-        {
-            self.negotiated_signatures.increment(&signature);
-        }
+        self.negotiated_signatures
+            .increment_if_some(conn.signature_scheme().and_then(|s| s.parse().ok()));
 
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
@@ -148,17 +144,17 @@ impl HandshakeRecordInProgress {
                 .iter()
                 .for_each(|cipher| self.supported_ciphers.increment(cipher));
 
-            if let Some(supported_groups) = supported_parameter.supported_groups()? {
-                supported_groups
-                    .iter()
-                    .for_each(|group| self.supported_groups.increment(group));
-            }
+            supported_parameter
+                .supported_groups()?
+                .iter()
+                .flatten()
+                .for_each(|group| self.supported_groups.increment(group));
 
-            if let Some(supported_sigs) = supported_parameter.supported_signatures()? {
-                supported_sigs
-                    .iter()
-                    .for_each(|signature| self.supported_signatures.increment(signature));
-            }
+            supported_parameter
+                .supported_signatures()?
+                .iter()
+                .flatten()
+                .for_each(|signature| self.supported_signatures.increment(signature));
 
             if General20251201::supported(&supported_parameter) {
                 self.compatibility_general20251201
@@ -180,19 +176,14 @@ impl HandshakeRecordInProgress {
         //////////////////////   fields from event   ///////////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        if let Some(version) =
-            Version::from_description(event.protocol_version().to_static_string())
-        {
-            self.negotiated_protocols.increment(&version);
-        }
+        self.negotiated_protocols
+            .increment_if_some(event.protocol_version().to_static_string().parse().ok());
 
-        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
-            self.negotiated_ciphers.increment(&cipher);
-        }
+        self.negotiated_ciphers
+            .increment_if_some(Cipher::from_openssl_name(event.cipher()));
 
-        if let Some(group) = event.group().and_then(Group::from_description) {
-            self.negotiated_groups.increment(&group);
-        }
+        self.negotiated_groups
+            .increment_if_some(event.group().and_then(|g| g.parse().ok()));
 
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
@@ -334,9 +325,8 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         writer.timestamp(self.freeze_time);
 
-        // Emit one label per non-zero slot for each (kind, state) cell, using
-        // the description the slot maps to in this reader's static list.
-        // Zero-valued slots are skipped by `iter_non_zero`.
+        // Emit one label per non-zero slot for each (kind, state) cell.
+        // The label uses the element's `Display` impl.
         fn write_counter<'a, const N: usize, T, W>(
             counter: &'a FrozenCounter<N, T>,
             parameter: TlsParam,
@@ -346,8 +336,8 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             T: FiniteCounter<N>,
             W: metrique_writer::EntryWriter<'a>,
         {
-            for (name, count) in counter.iter_non_zero() {
-                let label = metric_label(name, parameter, state);
+            for (element, count) in counter.iter_non_zero() {
+                let label = metric_label(element, parameter, state);
                 writer.value(label, &count);
             }
         }
@@ -526,15 +516,16 @@ mod tests {
             let expected_slots: Vec<usize> = expected
                 .iter()
                 .map(|description| {
-                    T::from_description(description)
-                        .unwrap_or_else(|| panic!("unknown description {description}"))
+                    description
+                        .parse::<T>()
+                        .unwrap_or_else(|()| panic!("unknown description {description}"))
                         .slot_from_key()
                         .unwrap()
                 })
                 .collect();
 
             for (slot, &count) in counter.slots_for_test().iter().enumerate() {
-                let name = T::key_from_slot(slot).unwrap().description().unwrap();
+                let name = T::key_from_slot(slot).unwrap();
                 if expected_slots.contains(&slot) {
                     assert_eq!(count, 1, "{name} count is {count}, not one");
                 } else {

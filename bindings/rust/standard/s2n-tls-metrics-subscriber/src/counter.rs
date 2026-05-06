@@ -39,23 +39,27 @@ impl<const N: usize, T: FiniteCounter<N>> Counter<N, T> {
     /// [`FiniteCounter::ELEMENTS`] — wire types decoded from client-hello
     /// bytes may not match any known value.
     pub(crate) fn increment(&self, element: &T) {
-        if let Some(slot) = element.slot_from_key()
-            && let Some(counter) = self.slots.get(slot)
+        if let Some(counter) = element
+            .slot_from_key()
+            .and_then(|slot| self.slots.get(slot))
         {
             counter.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    /// Convenience for fallible lookups: no-op on `None`, otherwise
+    /// [`Self::increment`].
+    pub(crate) fn increment_if_some(&self, element: Option<T>) {
+        if let Some(element) = element {
+            self.increment(&element);
         }
     }
 
     /// Snapshot current values. `&mut self` guarantees no concurrent writer,
     /// so relaxed loads are sufficient.
     pub(crate) fn freeze(&mut self) -> FrozenCounter<N, T> {
-        let snapshot: Box<[u64]> = self
-            .slots
-            .iter()
-            .map(|a| a.load(Ordering::Relaxed))
-            .collect();
         FrozenCounter {
-            slots: snapshot,
+            slots: std::array::from_fn(|i| self.slots[i].load(Ordering::Relaxed)),
             element: PhantomData,
         }
     }
@@ -77,7 +81,7 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for Counter<N, T> {
 
 /// Exportable, immutable snapshot of a [`Counter<N, T>`].
 pub(crate) struct FrozenCounter<const N: usize, T: FiniteCounter<N>> {
-    pub(super) slots: Box<[u64]>,
+    pub(super) slots: [u64; N],
     pub(super) element: PhantomData<T>,
 }
 
@@ -98,20 +102,13 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for FrozenCounter<N, T
 }
 
 impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
-    /// `(description, count)` pairs for non-zero slots, in slot order.
-    /// Every element in [`Self::ELEMENTS`] has a description, enforced by
-    /// the `every_slot_has_description` test for each concrete impl; the
-    /// `filter_map` is defensive.
-    pub(crate) fn iter_non_zero(&self) -> impl Iterator<Item = (&'static str, u64)> + '_ {
+    /// `(element, count)` pairs for non-zero slots, in slot order.
+    pub(crate) fn iter_non_zero(&self) -> impl Iterator<Item = (T, u64)> + '_ {
         self.slots
             .iter()
             .enumerate()
             .filter(|&(_, &c)| c > 0)
-            .filter_map(|(slot, &c)| {
-                T::key_from_slot(slot)
-                    .and_then(|key| key.description())
-                    .map(|name| (name, c))
-            })
+            .filter_map(|(slot, &c)| T::key_from_slot(slot).map(|key| (key, c)))
     }
 
     #[cfg(test)]
@@ -127,7 +124,9 @@ impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
     /// Count for `description`, or `0` if unknown to this reader's kind.
     #[cfg(test)]
     pub(crate) fn count_for(&self, description: &str) -> u64 {
-        T::from_description(description)
+        description
+            .parse::<T>()
+            .ok()
             .and_then(|element| element.slot_from_key())
             .and_then(|slot| self.slots.get(slot).copied())
             .unwrap_or(0)
@@ -137,7 +136,7 @@ impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
 impl<const N: usize, T: FiniteCounter<N>> Clone for FrozenCounter<N, T> {
     fn clone(&self) -> Self {
         Self {
-            slots: self.slots.clone(),
+            slots: self.slots,
             element: PhantomData,
         }
     }
@@ -152,35 +151,33 @@ impl<const N: usize, T: FiniteCounter<N>> PartialEq for FrozenCounter<N, T> {
 impl<const N: usize, T: FiniteCounter<N>> Default for FrozenCounter<N, T> {
     fn default() -> Self {
         Self {
-            slots: vec![0u64; N].into_boxed_slice(),
+            slots: [0u64; N],
             element: PhantomData,
         }
     }
 }
 
 impl<const N: usize, T: FiniteCounter<N>> serde::Serialize for FrozenCounter<N, T> {
-    /// Emit non-zero slots as a map keyed by IANA wire id. Pre-counting
+    /// Emit non-zero slots as a `T -> u64` map. Each `T` serializes itself,
+    /// so the on-wire key form is owned by the element type. Pre-counting
     /// gives length-prefixed formats (CBOR, postcard) the exact pair count.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         let non_zero_count = self.slots.iter().filter(|&&c| c > 0).count();
         let mut map = serializer.serialize_map(Some(non_zero_count))?;
-        for (slot, &value) in self.slots.iter().enumerate() {
-            if value > 0 {
-                let key = T::key_from_slot(slot)
-                    .expect("slot < N, so key_from_slot is Some")
-                    .iana_id();
-                map.serialize_entry(&key, &value)?;
-            }
+        for (element, count) in self.iter_non_zero() {
+            map.serialize_entry(&element, &count)?;
         }
         map.end()
     }
 }
 
 impl<'de, const N: usize, T: FiniteCounter<N>> serde::Deserialize<'de> for FrozenCounter<N, T> {
-    /// Decode a map of `(iana_id: u16, u64)` pairs. Missing slots default
-    /// to 0; unknown keys are dropped and logged at `debug!`. Duplicate
-    /// keys follow serde's last-wins policy.
+    /// Decode a `T -> u64` map. Each `T` parses itself; the counter then
+    /// filters by [`FiniteCounter::slot_from_key`], so values whose wire
+    /// form is well-formed but unknown to this build's `ELEMENTS` are
+    /// dropped (and logged at `debug!`). Missing slots default to 0;
+    /// duplicate keys follow serde's last-wins policy.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct MapVisitor<const N: usize, T: FiniteCounter<N>>(PhantomData<T>);
 
@@ -188,30 +185,32 @@ impl<'de, const N: usize, T: FiniteCounter<N>> serde::Deserialize<'de> for Froze
             type Value = FrozenCounter<N, T>;
 
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "a map of (IANA wire id, u64) pairs")
+                write!(f, "a map of ({}, u64) pairs", std::any::type_name::<T>())
             }
 
             fn visit_map<A: serde::de::MapAccess<'de>>(
                 self,
                 mut access: A,
             ) -> Result<Self::Value, A::Error> {
-                let mut slots: Box<[u64]> = vec![0u64; N].into_boxed_slice();
-                let mut unknown: Vec<u16> = Vec::new();
-                while let Some((key, value)) = access.next_entry::<u16, u64>()? {
-                    match T::from_iana_id(key).and_then(|e| e.slot_from_key()) {
+                let mut slots: [u64; N] = [0u64; N];
+                let mut unknown: Vec<T> = Vec::new();
+                while let Some((element, value)) = access.next_entry::<T, u64>()? {
+                    match element.slot_from_key() {
                         Some(slot) => slots[slot] = value,
-                        None => unknown.push(key),
+                        None => unknown.push(element),
                     }
                 }
                 if !unknown.is_empty() {
-                    // Dropping unknown keys is the designed cross-version
+                    // Dropping unknown elements is the designed cross-version
                     // behavior. Debug level keeps it discoverable without
                     // generating sustained volume during normal operation.
+                    let unknown_display: Vec<String> =
+                        unknown.iter().map(|e| e.to_string()).collect();
                     tracing::debug!(
                         kind = std::any::type_name::<T>(),
                         unknown_count = unknown.len(),
-                        unknown = ?unknown,
-                        "FrozenCounter deserialize dropped unknown IANA ids",
+                        unknown = ?unknown_display,
+                        "FrozenCounter deserialize dropped unknown elements",
                     );
                 }
                 Ok(FrozenCounter {
@@ -233,8 +232,7 @@ mod tests {
         Version,
     };
 
-    /// Assert `from_iana_id(element.iana_id()) == Some(element)` and
-    /// `slot_from_key` is a bijection for every slot of `T`.
+    /// `slot ↔ T ↔ JSON` round-trips for every slot of `T`.
     fn roundtrip<const N: usize, T: FiniteCounter<N>>() {
         for slot in 0..N {
             let element = T::key_from_slot(slot).expect("slot < N");
@@ -243,12 +241,12 @@ mod tests {
                 Some(slot),
                 "slot_from_key round-trip failed at slot {slot}",
             );
-            let wire = element.iana_id();
-            let recovered = T::from_iana_id(wire).expect("iana id must round-trip");
+            let json = serde_json::to_string(&element).expect("serialize");
+            let recovered: T = serde_json::from_str(&json).expect("deserialize");
             assert_eq!(
                 recovered.slot_from_key(),
                 Some(slot),
-                "iana id round-trip landed on wrong slot at {slot}",
+                "serde round-trip landed on wrong slot at {slot}",
             );
         }
     }
@@ -271,40 +269,6 @@ mod tests {
     #[test]
     fn signature_roundtrip() {
         roundtrip::<SIGNATURE_COUNT, Signature>();
-    }
-
-    /// `iter_non_zero` drops slots whose element has no `description()`.
-    /// Assert every element in `ELEMENTS` has one so a missing description
-    /// becomes a test failure rather than silently lost metrics.
-    fn every_slot_has_description<const N: usize, T: FiniteCounter<N>>() {
-        for slot in 0..N {
-            let element = T::key_from_slot(slot).expect("slot < N");
-            assert!(
-                element.description().is_some(),
-                "slot {slot} of {} has no description",
-                std::any::type_name::<T>(),
-            );
-        }
-    }
-
-    #[test]
-    fn version_every_slot_has_description() {
-        every_slot_has_description::<PROTOCOL_COUNT, Version>();
-    }
-
-    #[test]
-    fn cipher_every_slot_has_description() {
-        every_slot_has_description::<CIPHER_COUNT, Cipher>();
-    }
-
-    #[test]
-    fn group_every_slot_has_description() {
-        every_slot_has_description::<GROUP_COUNT, Group>();
-    }
-
-    #[test]
-    fn signature_every_slot_has_description() {
-        every_slot_has_description::<SIGNATURE_COUNT, Signature>();
     }
 
     #[test]
@@ -345,12 +309,9 @@ mod tests {
         }
         let frozen = counter.freeze();
 
-        let pairs: Vec<(&'static str, u64)> = frozen.iter_non_zero().collect();
+        let pairs: Vec<(Cipher, u64)> = frozen.iter_non_zero().collect();
 
-        let expected_slot_2 = slot_2_cipher.description().unwrap();
-        let expected_slot_7 = slot_7_cipher.description().unwrap();
-
-        assert_eq!(pairs, vec![(expected_slot_2, 3), (expected_slot_7, 5)]);
+        assert_eq!(pairs, vec![(slot_2_cipher, 3), (slot_7_cipher, 5)]);
     }
 
     #[test]
@@ -375,8 +336,6 @@ mod tests {
     fn frozen_counter_deserialize_unknown_key_dropped() {
         // 4865 is TLS_AES_128_GCM_SHA256 (slot 0); 65535 is not in the
         // cipher registry, so it must be dropped on decode.
-        assert!(Cipher::from_iana_id(65535).is_none());
-
         let json = r#"{"4865": 3, "65535": 7}"#;
         let decoded: FrozenCounter<CIPHER_COUNT, Cipher> = serde_json::from_str(json).unwrap();
 

@@ -7,7 +7,7 @@
 
 #[cfg(test)]
 use std::ffi::c_char;
-use std::fmt::Display;
+use std::{fmt::Display, hash::Hash, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TlsParam {
@@ -63,27 +63,32 @@ impl ToStaticString for s2n_tls::enums::Version {
 
 /// A TLS parameter type whose values can be enumerated at compile time,
 /// giving each value a stable slot index in `[0, N)` for the counter
-/// abstraction to use. Each implementor also defines conversion to/from
-/// its IANA wire id.
-pub(crate) trait FiniteCounter<const N: usize>: Sized + Copy + PartialEq {
+/// abstraction to use. Each implementor:
+/// - renders via [`Display`] as its IANA description (or
+///   `unknown_<kind>_0xXXXX` for values constructed outside `ELEMENTS`).
+/// - parses from its IANA description via [`FromStr`] (errors with `()`
+///   if the description is not in this build's registry).
+/// - owns its serde wire format — the counter delegates serialization
+///   to it. The wire format permits unknown ids; the counter filters
+///   them via [`Self::slot_from_key`] on decode.
+pub(crate) trait FiniteCounter<const N: usize>:
+    Sized
+    + Copy
+    + PartialEq
+    + Eq
+    + Hash
+    + Display
+    + FromStr<Err = ()>
+    + serde::Serialize
+    + serde::de::DeserializeOwned
+{
     /// All values of `Self` that the counter recognizes. Every element is
     /// assigned a stable slot index equal to its position in this array.
     const ELEMENTS: [Self; N];
 
-    /// IANA numeric id on the wire for this element.
+    /// IANA numeric id on the wire. Used by [`crate::label`] as a cache
+    /// discriminator; serialization goes through [`serde::Serialize`].
     fn iana_id(&self) -> u16;
-
-    /// Lookup by IANA description. `None` if not in [`Self::ELEMENTS`].
-    fn from_description(description: &str) -> Option<Self>;
-
-    /// Human-readable description for this element, typically the IANA name.
-    /// `None` only if `self` was constructed outside [`Self::ELEMENTS`].
-    fn description(&self) -> Option<&'static str>;
-
-    /// Inverse of [`Self::iana_id`]. Returns `None` if `id` is not recognized.
-    fn from_iana_id(id: u16) -> Option<Self> {
-        Self::ELEMENTS.iter().find(|e| e.iana_id() == id).copied()
-    }
 
     /// Slot index for this element, or `None` if not in [`Self::ELEMENTS`].
     fn slot_from_key(&self) -> Option<usize> {
@@ -111,16 +116,16 @@ impl FiniteCounter<CIPHER_COUNT> for Cipher {
         let [hi, lo] = self.0;
         ((hi as u16) << 8) | (lo as u16)
     }
+}
 
-    fn from_description(description: &str) -> Option<Self> {
+impl FromStr for Cipher {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         CIPHERS_AVAILABLE_IN_S2N
             .iter()
-            .find(|info| info.iana_description == description)
+            .find(|info| info.iana_description == s)
             .map(|info| info.cipher)
-    }
-
-    fn description(&self) -> Option<&'static str> {
-        self.known_description()
+            .ok_or(())
     }
 }
 
@@ -138,16 +143,16 @@ impl FiniteCounter<PROTOCOL_COUNT> for Version {
     fn iana_id(&self) -> u16 {
         self.0.get()
     }
+}
 
-    fn from_description(description: &str) -> Option<Self> {
+impl FromStr for Version {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         VERSIONS_AVAILABLE_IN_S2N
             .iter()
-            .find(|info| info.description == description)
+            .find(|info| info.description == s)
             .map(|info| Version(U16::new(info.iana_value)))
-    }
-
-    fn description(&self) -> Option<&'static str> {
-        self.known_description()
+            .ok_or(())
     }
 }
 
@@ -165,16 +170,16 @@ impl FiniteCounter<GROUP_COUNT> for Group {
     fn iana_id(&self) -> u16 {
         self.0.get()
     }
+}
 
-    fn from_description(description: &str) -> Option<Self> {
+impl FromStr for Group {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         GROUPS_AVAILABLE_IN_S2N
             .iter()
-            .find(|info| info.iana_description == description)
+            .find(|info| info.iana_description == s)
             .map(|info| info.group)
-    }
-
-    fn description(&self) -> Option<&'static str> {
-        self.known_description()
+            .ok_or(())
     }
 }
 
@@ -192,16 +197,16 @@ impl FiniteCounter<SIGNATURE_COUNT> for Signature {
     fn iana_id(&self) -> u16 {
         self.0.get()
     }
+}
 
-    fn from_description(description: &str) -> Option<Self> {
+impl FromStr for Signature {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
             .iter()
-            .find(|info| info.description == description)
+            .find(|info| info.description == s)
             .map(|info| info.signature)
-    }
-
-    fn description(&self) -> Option<&'static str> {
-        self.known_description()
+            .ok_or(())
     }
 }
 
@@ -237,6 +242,27 @@ impl Version {
             Self::TLS_1_3 => Some("TLSv1_3"),
             _ => None,
         }
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_version_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Version {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Version {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Version(U16::new(id)))
     }
 }
 
@@ -283,6 +309,32 @@ impl Cipher {
     }
 }
 
+impl Display for Cipher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => {
+                let [hi, lo] = self.0;
+                let id = ((hi as u16) << 8) | (lo as u16);
+                write!(f, "unknown_cipher_0x{id:04x}")
+            }
+        }
+    }
+}
+
+impl serde::Serialize for Cipher {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let [hi, lo] = self.0;
+        serializer.serialize_u16(((hi as u16) << 8) | (lo as u16))
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Cipher {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Cipher([(id >> 8) as u8, id as u8]))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
 #[repr(C)]
 pub(crate) struct Signature(pub(crate) s2n_codec::zerocopy::U16);
@@ -316,6 +368,27 @@ impl Signature {
     }
 }
 
+impl Display for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_signature_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Signature {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Signature {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Signature(U16::new(id)))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
 #[repr(C)]
 pub(crate) struct Group(pub(crate) s2n_codec::zerocopy::U16);
@@ -342,6 +415,27 @@ impl Group {
             .iter()
             .find(|info| info.group == *self)
             .map(|info| info.iana_description)
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_group_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Group {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Group {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Group(U16::new(id)))
     }
 }
 
@@ -676,6 +770,23 @@ mod tests {
         for (constant, expected_name) in cases {
             assert_eq!(constant.known_description().unwrap(), *expected_name);
         }
+    }
+
+    /// `Display` falls back to `unknown_<kind>_0xXXXX` for elements
+    /// constructed outside `ELEMENTS` (e.g. wire bytes from a future
+    /// registry entry).
+    #[test]
+    fn display_fallback_for_unknown_elements() {
+        assert_eq!(Cipher([0xFF, 0xFF]).to_string(), "unknown_cipher_0xffff");
+        assert_eq!(
+            Version(U16::new(0x9999)).to_string(),
+            "unknown_version_0x9999"
+        );
+        assert_eq!(Group(U16::new(0x9999)).to_string(), "unknown_group_0x9999");
+        assert_eq!(
+            Signature(U16::new(0x9999)).to_string(),
+            "unknown_signature_0x9999"
+        );
     }
 
     /// Verify that the named Signature constants have IANA values matching s2n-tls.
