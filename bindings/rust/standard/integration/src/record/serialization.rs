@@ -12,13 +12,12 @@ use std::task::Poll;
 /// The TLS record header is 5 bytes: 1 (content type) + 2 (protocol version) + 2 (length)
 const TLS_RECORD_HEADER_LEN: usize = 5;
 
-/// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a 
+/// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a
 /// convenience to avoid the TLS 1.3 required capability logic.
 const TEST_POLICY: &str = "20240501";
 
 fn build_serializable_config() -> s2n_tls::config::Config {
-    let mut builder =
-        testing::config_builder(&Policy::from_version(TEST_POLICY).unwrap()).unwrap();
+    let mut builder = testing::config_builder(&Policy::from_version(TEST_POLICY).unwrap()).unwrap();
     builder
         .set_serialization_version(SerializationVersion::V1)
         .unwrap();

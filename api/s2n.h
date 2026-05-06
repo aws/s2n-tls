@@ -3957,7 +3957,14 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @note This API will error if the handshake is not yet complete. Additionally it will error if there
  * is still application data in the IO buffers given that this data does not get serialized by s2n-tls.
  * You can use `s2n_send` to drain the send buffer and `s2n_peek` + `s2n_recv` to drain the read buffer.
- * @note Serialization is unsupported for SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
+ * Note that s2n-tls will buffer record fragments until the complete record is available. `s2n_peek` 
+ * will _not_ report buffered record fragments. To avoid buffered record fragments, applications should
+ * continue to call s2n_recv until a non-blocked status is returned, after which point s2n_peek and s2n_recv
+ * can be used to drain the read buffer.
+ * @warning Due to the above read/buffering interaction, this API must not be used
+ * with recv_buffering (s2n_connection_set_recv_buffering), because there is no
+ * way to ensure that an s2n-tls connection hasn't buffered any record fragments.
+ * @note Serialization is unsupported for TLS 1.0 & SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.

@@ -10,7 +10,7 @@ use std::task::Poll;
 /// The TLS record header is 5 bytes
 const TLS_RECORD_HEADER_LEN: usize = 5;
 
-/// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a 
+/// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a
 /// convenience to avoid the TLS 1.3 required capability logic.
 const TEST_POLICY: &str = "20240501";
 
