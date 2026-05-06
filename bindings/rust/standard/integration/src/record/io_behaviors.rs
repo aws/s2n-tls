@@ -7,12 +7,15 @@ use s2n_tls::{
 };
 use std::task::Poll;
 
-/// The TLS record header is 5 bytes
-const TLS_RECORD_HEADER_LEN: usize = 5;
-
 /// Policy arbitrarily selected to negotiate TLS 1.2. We negotiate TLS 1.2 as a
 /// convenience to avoid the TLS 1.3 required capability logic.
 const TEST_POLICY: &str = "20240501";
+
+/// An arbitrarily chosen record payload, far less than the max record payload
+const PAYLOAD: &[u8; PAYLOAD_SIZE] = &[1; PAYLOAD_SIZE];
+const PAYLOAD_SIZE: usize = 256;
+/// The final size of a TLS 1.2 record containing [`PAYLOAD_SIZE`]
+const ENCAPSULATED_SIZE: usize = 285;
 
 fn new_pair() -> TestPair {
     let config = testing::build_config(&Policy::from_version(TEST_POLICY).unwrap()).unwrap();
@@ -29,177 +32,192 @@ fn new_buffered_recv_pair() -> TestPair {
     pair
 }
 
-#[test]
-fn read_behaviors_with_standard_io() {
-    // read incomplete header
-    {
+struct IOScenario {
+    /// used to setup the scenario, e.g. "load" records or fragments onto the wire
+    pair_setup: fn(&mut TestPair),
+    /// called with a server that does not have receive buffering enabled
+    default_io_assertions: fn(&mut TestPair),
+    /// called with a server that has receive buffering enabled
+    buffered_io_assertions: fn(&mut TestPair),
+}
+
+impl IOScenario {
+    fn execute(self) {
+        println!("checking standard IO");
         let mut pair = new_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
+        (self.pair_setup)(&mut pair);
+        (self.default_io_assertions)(&mut pair);
 
-        // Leave only 2 bytes available (incomplete 5-byte header)
-        pair.io.client_tx_stream.borrow_mut().truncate(2);
-
-        let result = pair.server.poll_recv(&mut [0; 100]);
-        assert!(pair.io.client_tx_stream.borrow().is_empty());
-        assert!(matches!(result, Poll::Pending));
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
+        println!("checking buffered recv IO");
+        let mut pair = new_buffered_recv_pair();
+        (self.pair_setup)(&mut pair);
+        (self.buffered_io_assertions)(&mut pair);
     }
 
-    // read incomplete record
-    {
-        let mut pair = new_pair();
-        assert!(pair.client.poll_send(&[2; 100]).is_ready());
-
-        // Leave header + 1 byte of body (incomplete record)
-        pair.io
-            .client_tx_stream
-            .borrow_mut()
-            .truncate(TLS_RECORD_HEADER_LEN + 1);
-
-        let result = pair.server.poll_recv(&mut [0; 100]);
-        assert!(matches!(result, Poll::Pending));
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
-
-    // read complete record
-    {
-        let mut pair = new_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
-
-        let mut buf = [0u8; 200];
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[1; 100]);
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
-
-    // read complete record off wire, application buffer too small for full record
-    {
-        let mut pair = new_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
-
-        // Read with a buffer smaller than the record payload
-        let mut buf = [0u8; 10];
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(10))));
-        assert_eq!(&buf, &[1; 10]);
-        // Remaining decrypted data is available via peek
-        assert_eq!(pair.server.peek_len(), 90);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
-
-    // read complete record off wire, pending record in wire buffer, application
-    // buffer large enough for more data
-    {
-        let mut pair = new_pair();
-        // Send two separate records
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
-        assert!(pair.client.poll_send(&[2; 100]).is_ready());
-
-        // Application buffer is large enough for both records, but only one record
-        // is read. The other remains on the wire.
-        let mut buf = [0u8; 200];
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[1; 100]);
-        // 129 -> 100 byte record + header/auth overhead
-        assert_eq!(pair.io.client_tx_stream.borrow().len(), 129);
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-
-        // A second poll_recv is needed to read the next record
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[2; 100]);
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
+    /// use this to construct an IO scenario where the buffered and default cases
+    /// should have the same behavior.
+    fn same_behavior(pair_setup: fn(&mut TestPair), io_assertions: fn(&mut TestPair)) -> Self {
+        Self {
+            pair_setup,
+            default_io_assertions: io_assertions,
+            buffered_io_assertions: io_assertions,
+        }
     }
 }
 
+/// s2n-tls has a separate buffer for record headers, so we test the behavior as
+/// a different mode than a plain "incomplete record"
 #[test]
-fn read_behaviors_with_buffered_io() {
-    // read incomplete header
-    {
-        let mut pair = new_buffered_recv_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
+fn read_incomplete_header() {
+    let io = IOScenario::same_behavior(
+        |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
 
-        // Leave only 2 bytes available (incomplete 5-byte header)
-        let stream = &pair.io.client_tx_stream;
-        stream.borrow_mut().truncate(2);
+            // Leave only 2 bytes available (incomplete 5-byte header)
+            let stream = &pair.io.client_tx_stream;
+            stream.borrow_mut().truncate(2);
+        },
+        |pair| {
+            let result = pair.server.poll_recv(&mut [0; PAYLOAD_SIZE]);
+            assert!(matches!(result, Poll::Pending));
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+        },
+    );
+    io.execute();
+}
 
-        let result = pair.server.poll_recv(&mut [0; 100]);
-        assert!(matches!(result, Poll::Pending));
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
+#[test]
+fn read_incomplete_record() {
+    let io = IOScenario::same_behavior(
+        |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
 
-    // read incomplete record
-    {
-        let mut pair = new_buffered_recv_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
+            // remove the last byte (incomplete record)
+            pair.io.client_tx_stream.borrow_mut().pop_back().unwrap();
+        },
+        |pair| {
+            let result = pair.server.poll_recv(&mut [0; PAYLOAD_SIZE]);
+            assert!(matches!(result, Poll::Pending));
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+        },
+    );
+    io.execute();
+}
 
-        // Leave header + 1 byte of body (incomplete record)
-        let stream = &pair.io.client_tx_stream;
-        stream.borrow_mut().truncate(TLS_RECORD_HEADER_LEN + 1);
+#[test]
+fn read_complete_record() {
+    let io = IOScenario::same_behavior(
+        |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+        },
+        |pair| {
+            let mut buf = [0u8; PAYLOAD_SIZE];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(PAYLOAD_SIZE))));
+            assert_eq!(&buf[..PAYLOAD_SIZE], PAYLOAD);
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+        },
+    );
+    io.execute();
+}
 
-        let result = pair.server.poll_recv(&mut [0; 100]);
-        assert!(matches!(result, Poll::Pending));
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
+/// When a small application buffer is used, poll_recv will return the size of
+/// the buffer, and peek_len will return the remaining data to be read.
+#[test]
+fn read_complete_record_with_small_application_buffer() {
+    /// one quarter of the size of the payload
+    const SMALL_BUFFER_SIZE: usize = PAYLOAD_SIZE.div_ceil(4);
 
-    // read complete record
-    {
-        let mut pair = new_buffered_recv_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
+    let io = IOScenario::same_behavior(
+        |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+        },
+        |pair| {
+            let mut buf = [0u8; SMALL_BUFFER_SIZE];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(SMALL_BUFFER_SIZE))));
+            assert_eq!(pair.server.peek_len(), PAYLOAD_SIZE - SMALL_BUFFER_SIZE);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+        },
+    );
+    io.execute();
+}
 
-        let mut buf = [0u8; 200];
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[1; 100]);
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
+/// When there are multiple records available on the wire, IO depends on the configured
+/// IO behavior.
+///
+/// In all cases, poll_recv will only ever decapsulate one record at a time. However
+/// if recv_buffering is enabled than all of the bytes will be read off the wire
+#[test]
+fn read_two_complete_records() {
+    let io = IOScenario {
+        pair_setup: |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+        },
+        default_io_assertions: |pair| {
+            let mut buf = [0u8; PAYLOAD_SIZE * 2];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(PAYLOAD_SIZE))));
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+            // the second record is still on the wire
+            assert_eq!(pair.io.client_tx_stream.borrow().len(), ENCAPSULATED_SIZE);
+        },
+        buffered_io_assertions: |pair| {
+            let mut buf = [0u8; PAYLOAD_SIZE * 2];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(PAYLOAD_SIZE))));
+            assert_eq!(pair.server.peek_len(), 0);
+            // the second record is in the connection buffer
+            assert_eq!(pair.server.peek_buffered_len(), ENCAPSULATED_SIZE);
+            assert!(pair.io.client_tx_stream.borrow().is_empty());
+        },
+    };
+    io.execute();
+}
 
-    // read complete record off wire, application buffer too small for full record
-    {
-        let mut pair = new_buffered_recv_pair();
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
+/// This test demonstrates an unfortunate behavior of `peek_buffered`, where data
+/// appears to disappear if it's a record fragment.
+#[test]
+fn read_complete_record_and_fragment() {
+    let io = IOScenario {
+        pair_setup: |pair| {
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+            assert!(pair.client.poll_send(PAYLOAD).is_ready());
+            // drop the last byte, so the second record is a fragment
+            pair.io.client_tx_stream.borrow_mut().pop_back().unwrap();
+        },
+        default_io_assertions: |pair| {
+            let mut buf = [0u8; PAYLOAD_SIZE * 2];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(PAYLOAD_SIZE))));
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+            // the record fragment is on the wire
+            assert_eq!(
+                pair.io.client_tx_stream.borrow().len(),
+                ENCAPSULATED_SIZE - 1
+            );
+        },
+        buffered_io_assertions: |pair| {
+            let mut buf = [0u8; PAYLOAD_SIZE * 2];
+            let result = pair.server.poll_recv(&mut buf);
+            assert!(matches!(result, Poll::Ready(Ok(PAYLOAD_SIZE))));
+            assert_eq!(pair.server.peek_len(), 0);
+            // we report that there is buffered data
+            assert_eq!(pair.server.peek_buffered_len(), ENCAPSULATED_SIZE - 1);
+            assert!(pair.io.client_tx_stream.borrow().is_empty());
 
-        // Read with a buffer smaller than the record payload
-        let mut buf = [0u8; 10];
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(10))));
-        assert_eq!(&buf, &[1; 10]);
-        // Remaining decrypted data is available via peek
-        assert_eq!(pair.server.peek_len(), 90);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
-
-    // read complete record off wire, pending record in wire buffer, application
-    // buffer large enough for more data
-    {
-        let mut pair = new_buffered_recv_pair();
-        // Send two separate records
-        assert!(pair.client.poll_send(&[1; 100]).is_ready());
-        assert!(pair.client.poll_send(&[2; 100]).is_ready());
-
-        let mut buf = [0u8; 200];
-        let result = pair.server.poll_recv(&mut buf);
-        // both records were read off the wire, only one was decrypted
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[1; 100]);
-        assert_eq!(pair.server.peek_len(), 0);
-        // the second record is internally buffered, but not decrypted
-        assert_eq!(pair.server.peek_buffered_len(), 129);
-
-        let result = pair.server.poll_recv(&mut buf);
-        assert!(matches!(result, Poll::Ready(Ok(100))));
-        assert_eq!(&buf[..100], &[2; 100]);
-        assert_eq!(pair.server.peek_len(), 0);
-        assert_eq!(pair.server.peek_buffered_len(), 0);
-    }
+            // but after the next call to poll recv it is effectively hidden because
+            // we don't surface any apis to inspect buffered record fragments
+            assert!(pair.server.poll_recv(&mut [0]).is_pending());
+            assert_eq!(pair.server.peek_len(), 0);
+            assert_eq!(pair.server.peek_buffered_len(), 0);
+        },
+    };
+    io.execute();
 }

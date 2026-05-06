@@ -1956,18 +1956,44 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
 
 /**
- * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
- * enabled by `s2n_connection_set_recv_buffering`.
+ * Reports how many bytes of unprocessed TLS records are buffered after the current
+ * record.
+ * 
+ * This is only useful when `s2n_connection_set_recv_buffering` is enabled, and 
+ * will return 0 otherwise.
+ * 
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`. While `s2n_peek` reports
+ * application data that is ready for the application to read with no additional
+ * processing, `s2n_peek_buffered` reports raw TLS records that still need to be
+ * parsed and likely decrypted. Those records may contain application data, but
+ * they may also only contain TLS control messages.
+ * 
+ * When receive buffering is enabled, it is useful to imagine that an s2n-tls
+ * connection behaves as if it has two buffers, one for the "current record",
+ * and one for "additional data".
+ * ```text
+ * c -> ciphertext
+ * p -> plaintext
  *
- * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
- * While `s2n_peek` reports application data that is ready for the application
- * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
- * records that still need to be parsed and likely decrypted. Those records may
- * contain application data, but they may also only contain TLS control messages.
+ *          |-----current record-----|-------additional------------|
+ * case 1 - |ccccccccccccc
+ * case 2 - |pppppppppppppppppppppppp|
+ * case 3 - |pppppppppppppppppppppppp|ccccccccccccccccccc
+ * ```
+ * In case 1, we received a record fragment. Records can only be decrypted
+ * once the full record is available. So "current record" just stores the record
+ * fragment (ciphertext). There are currently no APIs to determine if there
+ * is a record fragment stored. https://github.com/aws/s2n-tls/issues/5863. `s2n_peek_buffered`
+ * and `s2n_peek` will both return 0 in this case.
  *
- * If an application needs to determine whether there is any data left to handle
- * (for example, before calling `poll` to wait on the read file descriptor) then
- * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ * In case 2, we received a full record, which is decrypted and stored in current
+ * record. `s2n_peek` will return the count of plaintext bytes
+ * yet to be read from "current record", and `s2n_peek_buffered` will return 0
+ *
+ * In case 3, additional bytes (another record, complete or incomplete) were
+ * also read off the wire. In this case `s2n_peek_buffered` will return the length
+ * of ciphertext bytes buffered in "additional". This is the only case in which
+ * `peek_buffered_len` will return a non-zero result.
  *
  * @param conn A pointer to the s2n_connection object
  * @returns The number of buffered encrypted bytes
