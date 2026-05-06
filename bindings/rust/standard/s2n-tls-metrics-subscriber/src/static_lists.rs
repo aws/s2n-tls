@@ -5,16 +5,9 @@
 //! s2n-tls "getter" APIs. These static lists are important because they allow us
 //! to maintain an array of atomic counters instead of having to resort to a hashmap
 
-// allowing unused lints while crate is under development, many of these structs
-// won't be used until the subscriber is actually implemented
-#![allow(unused)]
-
-use std::{
-    collections::HashMap,
-    ffi::c_char,
-    fmt::Display,
-    sync::{LazyLock, Mutex},
-};
+#[cfg(test)]
+use std::ffi::c_char;
+use std::{fmt::Display, hash::Hash, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TlsParam {
@@ -38,41 +31,7 @@ use s2n_codec::{DecoderValue, zerocopy::U16};
 use s2n_tls_sys_internal::{
     s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
 };
-use zerocopy::{BigEndian, ByteOrder, FromBytes, Immutable, Order, Unaligned};
-
-impl TlsParam {
-    pub fn index_to_description(&self, index: usize) -> Option<&'static str> {
-        match self {
-            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N.get(index).copied(),
-            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.iana_description),
-            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.iana_description),
-            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-                .get(index)
-                .map(|name| name.description),
-        }
-    }
-
-    pub fn description_to_index(&self, name: &str) -> Option<usize> {
-        match self {
-            TlsParam::Version => VERSIONS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|version| *version == name),
-            TlsParam::Cipher => CIPHERS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|cipher| cipher.iana_description == name),
-            TlsParam::Group => GROUPS_AVAILABLE_IN_S2N
-                .iter()
-                .position(|group| group.iana_description == name),
-            TlsParam::SignatureScheme => SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-                .iter()
-                .position(|sig| sig.description == name),
-        }
-    }
-}
+use zerocopy::{FromBytes, Immutable, Unaligned};
 
 impl Display for TlsParam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -83,14 +42,6 @@ impl Display for TlsParam {
             TlsParam::SignatureScheme => write!(f, "signature_scheme"),
         }
     }
-}
-
-/// get the counter index from the openssl name. We prefer to work with IANA id's
-/// but s2n-tls returns the OpenSSL cipher name.
-pub fn cipher_ossl_name_to_index(name: &str) -> Option<usize> {
-    CIPHERS_AVAILABLE_IN_S2N
-        .iter()
-        .position(|current_cipher| *current_cipher.openssl_name == *name)
 }
 
 pub trait ToStaticString {
@@ -110,10 +61,154 @@ impl ToStaticString for s2n_tls::enums::Version {
     }
 }
 
-/// This list should match the negotiable TLS versions in s2n-tls, and determines
-/// how many "counter" slots the negotiated version metrics have.
-pub const VERSIONS_AVAILABLE_IN_S2N: &[&str] =
-    &["SSLv3", "TLSv1_0", "TLSv1_1", "TLSv1_2", "TLSv1_3"];
+/// A TLS parameter type whose values can be enumerated at compile time,
+/// giving each value a stable slot index in `[0, N)` for the counter
+/// abstraction to use. Each implementor:
+/// - renders via [`Display`] as its IANA description (or
+///   `unknown_<kind>_0xXXXX` for values constructed outside `ELEMENTS`).
+/// - parses from its IANA description via [`FromStr`] (errors with `()`
+///   if the description is not in this build's registry).
+/// - owns its serde wire format — the counter delegates serialization
+///   to it. The wire format permits unknown ids; the counter filters
+///   them via [`Self::slot_from_key`] on decode.
+pub(crate) trait FiniteCounter<const N: usize>:
+    Sized
+    + Copy
+    + PartialEq
+    + Eq
+    + Hash
+    + Display
+    + FromStr<Err = ()>
+    + serde::Serialize
+    + serde::de::DeserializeOwned
+{
+    /// All values of `Self` that the counter recognizes. Every element is
+    /// assigned a stable slot index equal to its position in this array.
+    const ELEMENTS: [Self; N];
+
+    /// IANA numeric id on the wire. Used by [`crate::label`] as a cache
+    /// discriminator; serialization goes through [`serde::Serialize`].
+    fn iana_id(&self) -> u16;
+
+    /// Slot index for this element, or `None` if not in [`Self::ELEMENTS`].
+    fn slot_from_key(&self) -> Option<usize> {
+        Self::ELEMENTS.iter().position(|e| e == self)
+    }
+
+    /// Element at `slot`, or `None` if out of range.
+    fn key_from_slot(slot: usize) -> Option<Self> {
+        Self::ELEMENTS.get(slot).copied()
+    }
+}
+
+impl FiniteCounter<CIPHER_COUNT> for Cipher {
+    const ELEMENTS: [Cipher; CIPHER_COUNT] = {
+        let mut out = [Cipher([0, 0]); CIPHER_COUNT];
+        let mut i = 0;
+        while i < CIPHER_COUNT {
+            out[i] = CIPHERS_AVAILABLE_IN_S2N[i].cipher;
+            i += 1;
+        }
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        let [hi, lo] = self.0;
+        ((hi as u16) << 8) | (lo as u16)
+    }
+}
+
+impl FromStr for Cipher {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        CIPHERS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == s)
+            .map(|info| info.cipher)
+            .ok_or(())
+    }
+}
+
+impl FiniteCounter<PROTOCOL_COUNT> for Version {
+    const ELEMENTS: [Version; PROTOCOL_COUNT] = {
+        let mut out = [Version(U16::new(0)); PROTOCOL_COUNT];
+        let mut i = 0;
+        while i < PROTOCOL_COUNT {
+            out[i] = Version(U16::new(VERSIONS_AVAILABLE_IN_S2N[i].iana_value));
+            i += 1;
+        }
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        self.0.get()
+    }
+}
+
+impl FromStr for Version {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        VERSIONS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.description == s)
+            .map(|info| Version(U16::new(info.iana_value)))
+            .ok_or(())
+    }
+}
+
+impl FiniteCounter<GROUP_COUNT> for Group {
+    const ELEMENTS: [Group; GROUP_COUNT] = {
+        let mut out = [Group(U16::new(0)); GROUP_COUNT];
+        let mut i = 0;
+        while i < GROUP_COUNT {
+            out[i] = GROUPS_AVAILABLE_IN_S2N[i].group;
+            i += 1;
+        }
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        self.0.get()
+    }
+}
+
+impl FromStr for Group {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == s)
+            .map(|info| info.group)
+            .ok_or(())
+    }
+}
+
+impl FiniteCounter<SIGNATURE_COUNT> for Signature {
+    const ELEMENTS: [Signature; SIGNATURE_COUNT] = {
+        let mut out = [Signature(U16::new(0)); SIGNATURE_COUNT];
+        let mut i = 0;
+        while i < SIGNATURE_COUNT {
+            out[i] = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[i].signature;
+            i += 1;
+        }
+        out
+    };
+
+    fn iana_id(&self) -> u16 {
+        self.0.get()
+    }
+}
+
+impl FromStr for Signature {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.description == s)
+            .map(|info| info.signature)
+            .ok_or(())
+    }
+}
 
 /// Convert a pointer to null terminated bytes into a static string
 ///
@@ -150,6 +245,27 @@ impl Version {
     }
 }
 
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_version_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Version {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Version {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Version(U16::new(id)))
+    }
+}
+
 impl<'a> DecoderValue<'a> for Version {
     fn decode(bytes: s2n_codec::DecoderBuffer<'a>) -> s2n_codec::DecoderBufferResult<'a, Self> {
         let (value, bytes) = bytes.decode()?;
@@ -162,6 +278,7 @@ impl<'a> DecoderValue<'a> for Version {
 pub(crate) struct Cipher(pub(crate) [u8; 2]);
 
 impl Cipher {
+    #[allow(dead_code)] // kept as part of the typed cipher roster
     pub(crate) const TLS_EMPTY_RENEGOTIATION_INFO_SCSV: Self = Cipher([0, 255]);
 
     pub(crate) const TLS_AES_128_GCM_SHA256: Self = Cipher([0x13, 0x01]);
@@ -180,6 +297,41 @@ impl Cipher {
             .iter()
             .find(|info| info.cipher == *self)
             .map(|info| info.iana_description)
+    }
+
+    /// Lookup a cipher by the OpenSSL name returned from the s2n-tls
+    /// connection API (e.g. `ECDHE-RSA-AES256-GCM-SHA384`).
+    pub fn from_openssl_name(name: &str) -> Option<Self> {
+        CIPHERS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.openssl_name == name)
+            .map(|info| info.cipher)
+    }
+}
+
+impl Display for Cipher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => {
+                let [hi, lo] = self.0;
+                let id = ((hi as u16) << 8) | (lo as u16);
+                write!(f, "unknown_cipher_0x{id:04x}")
+            }
+        }
+    }
+}
+
+impl serde::Serialize for Cipher {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let [hi, lo] = self.0;
+        serializer.serialize_u16(((hi as u16) << 8) | (lo as u16))
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Cipher {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Cipher([(id >> 8) as u8, id as u8]))
     }
 }
 
@@ -202,7 +354,9 @@ impl Signature {
     pub(crate) const ecdsa_secp384r1_sha384: Self = Signature(U16::new(0x0503));
     pub(crate) const ecdsa_secp521r1_sha512: Self = Signature(U16::new(0x0603));
 
+    #[allow(dead_code)] // kept as part of the typed signature roster
     pub(crate) const mldsa44: Self = Signature(U16::new(0x0904));
+    #[allow(dead_code)] // kept as part of the typed signature roster
     pub(crate) const mldsa65: Self = Signature(U16::new(0x0905));
     pub(crate) const mldsa87: Self = Signature(U16::new(0x0906));
 
@@ -211,6 +365,27 @@ impl Signature {
             .iter()
             .find(|info| info.signature == *self)
             .map(|info| info.description)
+    }
+}
+
+impl Display for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_signature_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Signature {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Signature {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Signature(U16::new(id)))
     }
 }
 
@@ -240,6 +415,42 @@ impl Group {
             .iter()
             .find(|info| info.group == *self)
             .map(|info| info.iana_description)
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.known_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_group_0x{:04x}", self.0.get()),
+        }
+    }
+}
+
+impl serde::Serialize for Group {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(self.0.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Group {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        u16::deserialize(deserializer).map(|id| Group(U16::new(id)))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct VersionInformation {
+    description: &'static str,
+    iana_value: u16,
+}
+
+impl VersionInformation {
+    const fn new(description: &'static str, iana_value: u16) -> Self {
+        Self {
+            description,
+            iana_value,
+        }
     }
 }
 
@@ -329,10 +540,6 @@ impl SignatureSchemeInformation {
         }
     }
 
-    pub fn description(&self) -> &'static str {
-        self.description
-    }
-
     #[cfg(test)]
     fn from_s2n_signature_scheme(scheme: &s2n_signature_scheme) -> Self {
         unsafe {
@@ -344,10 +551,20 @@ impl SignatureSchemeInformation {
     }
 }
 
+/// This list should match the negotiable TLS versions in s2n-tls, and determines
+/// how many "counter" slots the negotiated version metrics have.
+pub(crate) const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
+    VersionInformation::new("SSLv3", 0x0300),
+    VersionInformation::new("TLSv1_0", 0x0301),
+    VersionInformation::new("TLSv1_1", 0x0302),
+    VersionInformation::new("TLSv1_2", 0x0303),
+    VersionInformation::new("TLSv1_3", 0x0304),
+];
+
 /// We are required to track OpenSSL naming because that is what the s2n-tls 
 /// connection API's return.
 #[rustfmt::skip]
-pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[CipherInformation] = &[
+pub(crate) const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
     CipherInformation::new("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256" ),
     CipherInformation::new("TLS_AES_256_GCM_SHA384", [19, 2], "TLS_AES_256_GCM_SHA384" ),
     CipherInformation::new("TLS_CHACHA20_POLY1305_SHA256", [19, 3], "TLS_CHACHA20_POLY1305_SHA256" ),
@@ -387,7 +604,7 @@ pub(crate) const CIPHERS_AVAILABLE_IN_S2N: &[CipherInformation] = &[
     CipherInformation::new("TLS_RSA_WITH_RC4_128_SHA", [0, 5], "RC4-SHA"),
 ];
 
-pub(crate) const GROUPS_AVAILABLE_IN_S2N: &[GroupInformation] = &[
+pub(crate) const GROUPS_AVAILABLE_IN_S2N: [GroupInformation; 8] = [
     GroupInformation::new("MLKEM1024", 514),
     GroupInformation::new("SecP256r1MLKEM768", 4587),
     GroupInformation::new("SecP384r1MLKEM1024", 4589),
@@ -398,7 +615,7 @@ pub(crate) const GROUPS_AVAILABLE_IN_S2N: &[GroupInformation] = &[
     GroupInformation::new("x25519", 29),
 ];
 
-pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureSchemeInformation] = &[
+pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] = [
     SignatureSchemeInformation::new("ecdsa_sha1", 515),
     SignatureSchemeInformation::new("ecdsa_sha256", 1027),
     SignatureSchemeInformation::new("ecdsa_sha384", 1283),
@@ -424,10 +641,7 @@ pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: &[SignatureSchemeInformatio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        collections::HashSet,
-        ffi::{CStr, c_char, c_int, c_void},
-    };
+    use std::collections::HashSet;
 
     /// return all of the ciphers defined in any s2n-tls security policy
     fn all_available_ciphers() -> Vec<CipherInformation> {
@@ -491,19 +705,19 @@ mod tests {
     #[test]
     fn all_ciphers_in_static_list() {
         let ciphers = all_available_ciphers();
-        assert_eq!(&ciphers, CIPHERS_AVAILABLE_IN_S2N);
+        assert_eq!(ciphers.as_slice(), &CIPHERS_AVAILABLE_IN_S2N[..]);
     }
 
     #[test]
     fn all_groups_in_static_list() {
         let groups = all_available_groups();
-        assert_eq!(&groups, GROUPS_AVAILABLE_IN_S2N);
+        assert_eq!(groups.as_slice(), &GROUPS_AVAILABLE_IN_S2N[..]);
     }
 
     #[test]
     fn all_signature_schemes_in_static_list() {
         let schemes = all_available_signatures();
-        assert_eq!(&schemes, SIGNATURE_SCHEMES_AVAILABLE_IN_S2N);
+        assert_eq!(schemes.as_slice(), &SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[..]);
     }
 
     /// Verify that the named Cipher constants have IANA values matching s2n-tls.
@@ -558,6 +772,23 @@ mod tests {
         }
     }
 
+    /// `Display` falls back to `unknown_<kind>_0xXXXX` for elements
+    /// constructed outside `ELEMENTS` (e.g. wire bytes from a future
+    /// registry entry).
+    #[test]
+    fn display_fallback_for_unknown_elements() {
+        assert_eq!(Cipher([0xFF, 0xFF]).to_string(), "unknown_cipher_0xffff");
+        assert_eq!(
+            Version(U16::new(0x9999)).to_string(),
+            "unknown_version_0x9999"
+        );
+        assert_eq!(Group(U16::new(0x9999)).to_string(), "unknown_group_0x9999");
+        assert_eq!(
+            Signature(U16::new(0x9999)).to_string(),
+            "unknown_signature_0x9999"
+        );
+    }
+
     /// Verify that the named Signature constants have IANA values matching s2n-tls.
     #[test]
     fn signature_constants_match_s2n() {
@@ -577,42 +808,6 @@ mod tests {
         ];
         for (constant, expected_name) in cases {
             assert_eq!(constant.known_description().unwrap(), *expected_name);
-        }
-    }
-
-    #[test]
-    fn index_and_name_lookup() {
-        for (index, item) in CIPHERS_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::Cipher
-                .description_to_index(item.iana_description)
-                .unwrap();
-            let returned_description = TlsParam::Cipher
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.iana_description);
-            assert_eq!(returned_index, index);
-        }
-
-        for (index, item) in GROUPS_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::Group
-                .description_to_index(item.iana_description)
-                .unwrap();
-            let returned_description = TlsParam::Group
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.iana_description);
-            assert_eq!(returned_index, index);
-        }
-
-        for (index, item) in SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.iter().enumerate() {
-            let returned_index = TlsParam::SignatureScheme
-                .description_to_index(item.description)
-                .unwrap();
-            let returned_description = TlsParam::SignatureScheme
-                .index_to_description(returned_index)
-                .unwrap();
-            assert_eq!(returned_description, item.description);
-            assert_eq!(returned_index, index);
         }
     }
 }

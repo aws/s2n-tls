@@ -3,6 +3,7 @@
 
 pub mod attribution;
 mod compatibility;
+pub(crate) mod counter;
 mod label;
 #[cfg(feature = "fuzzing")]
 pub mod parsing;
