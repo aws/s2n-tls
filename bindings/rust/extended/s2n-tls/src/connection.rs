@@ -770,7 +770,7 @@ impl Connection {
     /// yet to be read from "current record".
     ///
     /// In case 3, additional bytes (another record, complete or incomplete) were
-    /// also been read off the wire. In  this case [`Connection::peek_buffered_len`]
+    /// also read off the wire. In this case [`Connection::peek_buffered_len`]
     /// will return the length of ciphertext bytes buffered in "additional". This is
     /// the only case in which `peek_buffered_len` will return a non-zero result.
     ///
