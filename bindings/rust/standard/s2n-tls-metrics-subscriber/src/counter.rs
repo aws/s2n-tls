@@ -47,14 +47,6 @@ impl<const N: usize, T: FiniteCounter<N>> Counter<N, T> {
         }
     }
 
-    /// Convenience for fallible lookups: no-op on `None`, otherwise
-    /// [`Self::increment`].
-    pub(crate) fn increment_if_some(&self, element: Option<T>) {
-        if let Some(element) = element {
-            self.increment(&element);
-        }
-    }
-
     /// Snapshot current values. `&mut self` guarantees no concurrent writer,
     /// so relaxed loads are sufficient.
     pub(crate) fn freeze(&mut self) -> FrozenCounter<N, T> {
@@ -80,6 +72,7 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for Counter<N, T> {
 }
 
 /// Exportable, immutable snapshot of a [`Counter<N, T>`].
+#[derive(Clone, PartialEq)]
 pub(crate) struct FrozenCounter<const N: usize, T: FiniteCounter<N>> {
     pub(super) slots: [u64; N],
     pub(super) element: PhantomData<T>,
@@ -102,13 +95,13 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for FrozenCounter<N, T
 }
 
 impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
-    /// `(element, count)` pairs for non-zero slots, in slot order.
-    pub(crate) fn iter_non_zero(&self) -> impl Iterator<Item = (T, u64)> + '_ {
+    /// `(slot, element, count)` triples for non-zero slots, in slot order.
+    pub(crate) fn iter_non_zero(&self) -> impl Iterator<Item = (usize, T, u64)> + '_ {
         self.slots
             .iter()
             .enumerate()
             .filter(|&(_, &c)| c > 0)
-            .filter_map(|(slot, &c)| T::key_from_slot(slot).map(|key| (key, c)))
+            .filter_map(|(slot, &c)| T::key_from_slot(slot).map(|key| (slot, key, c)))
     }
 
     #[cfg(test)]
@@ -123,28 +116,16 @@ impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
 
     /// Count for `description`, or `0` if unknown to this reader's kind.
     #[cfg(test)]
-    pub(crate) fn count_for(&self, description: &str) -> u64 {
+    pub(crate) fn count_for(&self, description: &str) -> u64
+    where
+        T: std::str::FromStr<Err = ()>,
+    {
         description
             .parse::<T>()
             .ok()
             .and_then(|element| element.slot_from_key())
             .and_then(|slot| self.slots.get(slot).copied())
             .unwrap_or(0)
-    }
-}
-
-impl<const N: usize, T: FiniteCounter<N>> Clone for FrozenCounter<N, T> {
-    fn clone(&self) -> Self {
-        Self {
-            slots: self.slots,
-            element: PhantomData,
-        }
-    }
-}
-
-impl<const N: usize, T: FiniteCounter<N>> PartialEq for FrozenCounter<N, T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.slots == other.slots
     }
 }
 
@@ -157,7 +138,10 @@ impl<const N: usize, T: FiniteCounter<N>> Default for FrozenCounter<N, T> {
     }
 }
 
-impl<const N: usize, T: FiniteCounter<N>> serde::Serialize for FrozenCounter<N, T> {
+impl<const N: usize, T> serde::Serialize for FrozenCounter<N, T>
+where
+    T: FiniteCounter<N> + serde::Serialize,
+{
     /// Emit non-zero slots as a `T -> u64` map. Each `T` serializes itself,
     /// so the on-wire key form is owned by the element type. Pre-counting
     /// gives length-prefixed formats (CBOR, postcard) the exact pair count.
@@ -165,14 +149,17 @@ impl<const N: usize, T: FiniteCounter<N>> serde::Serialize for FrozenCounter<N, 
         use serde::ser::SerializeMap;
         let non_zero_count = self.slots.iter().filter(|&&c| c > 0).count();
         let mut map = serializer.serialize_map(Some(non_zero_count))?;
-        for (element, count) in self.iter_non_zero() {
+        for (_slot, element, count) in self.iter_non_zero() {
             map.serialize_entry(&element, &count)?;
         }
         map.end()
     }
 }
 
-impl<'de, const N: usize, T: FiniteCounter<N>> serde::Deserialize<'de> for FrozenCounter<N, T> {
+impl<'de, const N: usize, T> serde::Deserialize<'de> for FrozenCounter<N, T>
+where
+    T: FiniteCounter<N> + serde::de::DeserializeOwned + std::fmt::Display,
+{
     /// Decode a `T -> u64` map. Each `T` parses itself; the counter then
     /// filters by [`FiniteCounter::slot_from_key`], so values whose wire
     /// form is well-formed but unknown to this build's `ELEMENTS` are
@@ -181,7 +168,10 @@ impl<'de, const N: usize, T: FiniteCounter<N>> serde::Deserialize<'de> for Froze
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct MapVisitor<const N: usize, T: FiniteCounter<N>>(PhantomData<T>);
 
-        impl<'de, const N: usize, T: FiniteCounter<N>> serde::de::Visitor<'de> for MapVisitor<N, T> {
+        impl<'de, const N: usize, T> serde::de::Visitor<'de> for MapVisitor<N, T>
+        where
+            T: FiniteCounter<N> + serde::de::DeserializeOwned + std::fmt::Display,
+        {
             type Value = FrozenCounter<N, T>;
 
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -233,7 +223,10 @@ mod tests {
     };
 
     /// `slot ↔ T ↔ JSON` round-trips for every slot of `T`.
-    fn roundtrip<const N: usize, T: FiniteCounter<N>>() {
+    fn roundtrip<const N: usize, T>()
+    where
+        T: FiniteCounter<N> + serde::Serialize + serde::de::DeserializeOwned,
+    {
         for slot in 0..N {
             let element = T::key_from_slot(slot).expect("slot < N");
             assert_eq!(
@@ -309,9 +302,9 @@ mod tests {
         }
         let frozen = counter.freeze();
 
-        let pairs: Vec<(Cipher, u64)> = frozen.iter_non_zero().collect();
+        let pairs: Vec<(usize, Cipher, u64)> = frozen.iter_non_zero().collect();
 
-        assert_eq!(pairs, vec![(slot_2_cipher, 3), (slot_7_cipher, 5)]);
+        assert_eq!(pairs, vec![(2, slot_2_cipher, 3), (7, slot_7_cipher, 5)]);
     }
 
     #[test]

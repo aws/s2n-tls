@@ -126,8 +126,9 @@ impl HandshakeRecordInProgress {
         /////////////////////   fields from connection   ///////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        self.negotiated_signatures
-            .increment_if_some(conn.signature_scheme().and_then(|s| s.parse().ok()));
+        if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
+            self.negotiated_signatures.increment(&sig);
+        }
 
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
@@ -176,14 +177,17 @@ impl HandshakeRecordInProgress {
         //////////////////////   fields from event   ///////////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        self.negotiated_protocols
-            .increment_if_some(event.protocol_version().to_static_string().parse().ok());
+        if let Ok(version) = event.protocol_version().to_static_string().parse() {
+            self.negotiated_protocols.increment(&version);
+        }
 
-        self.negotiated_ciphers
-            .increment_if_some(Cipher::from_openssl_name(event.cipher()));
+        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
+            self.negotiated_ciphers.increment(&cipher);
+        }
 
-        self.negotiated_groups
-            .increment_if_some(event.group().and_then(|g| g.parse().ok()));
+        if let Some(group) = event.group().and_then(|g| g.parse().ok()) {
+            self.negotiated_groups.increment(&group);
+        }
 
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
@@ -333,11 +337,11 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             state: State,
             writer: &mut W,
         ) where
-            T: FiniteCounter<N>,
+            T: FiniteCounter<N> + std::fmt::Display,
             W: metrique_writer::EntryWriter<'a>,
         {
-            for (element, count) in counter.iter_non_zero() {
-                let label = metric_label(element, parameter, state);
+            for (slot, element, count) in counter.iter_non_zero() {
+                let label = metric_label(slot, element, parameter, state);
                 writer.value(label, &count);
             }
         }
@@ -509,10 +513,12 @@ mod tests {
 
         /// For every slot in `counter`, assert the count is 1 iff the slot's
         /// element description appears in `expected`, else 0.
-        fn assert_supported_matches<const N: usize, T: FiniteCounter<N>>(
+        fn assert_supported_matches<const N: usize, T>(
             counter: &FrozenCounter<N, T>,
             expected: &[&str],
-        ) {
+        ) where
+            T: FiniteCounter<N> + std::fmt::Display + std::str::FromStr<Err = ()>,
+        {
             let expected_slots: Vec<usize> = expected
                 .iter()
                 .map(|description| {

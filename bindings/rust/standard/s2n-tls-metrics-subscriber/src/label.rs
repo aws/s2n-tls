@@ -7,7 +7,7 @@ use std::{
     sync::{LazyLock, RwLock},
 };
 
-use crate::static_lists::{FiniteCounter, TlsParam};
+use crate::static_lists::TlsParam;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum State {
@@ -24,11 +24,13 @@ impl Display for State {
     }
 }
 
-/// Cache key keyed by IANA wire id so the cache type stays non-generic.
+/// Cache key keyed by slot index so the cache type stays non-generic.
+/// `(parameter, slot)` is unique across the four TLS parameter kinds because
+/// `TlsParam` already discriminates between them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct MetricLabel {
     parameter: TlsParam,
-    iana_id: u16,
+    slot: usize,
     state: State,
 }
 
@@ -58,16 +60,20 @@ impl MetricLabeller {
 }
 
 /// lookup from metric to the prefixed string, e.g. "group.negotiated.secp256r1"
-pub(crate) fn metric_label<const N: usize, T: FiniteCounter<N>>(
+pub(crate) fn metric_label<T>(
+    slot: usize,
     item: T,
     parameter: TlsParam,
     state: State,
-) -> &'static str {
+) -> &'static str
+where
+    T: Display,
+{
     static PREFIXER: LazyLock<MetricLabeller> = LazyLock::new(MetricLabeller::default);
 
     let key = MetricLabel {
         parameter,
-        iana_id: item.iana_id(),
+        slot,
         state,
     };
 
@@ -86,6 +92,7 @@ mod tests {
     fn label_output() {
         assert_eq!(
             metric_label(
+                0,
                 Cipher::TLS_AES_256_GCM_SHA384,
                 TlsParam::Cipher,
                 State::Negotiated,

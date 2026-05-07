@@ -7,7 +7,7 @@
 
 #[cfg(test)]
 use std::ffi::c_char;
-use std::{fmt::Display, hash::Hash, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TlsParam {
@@ -63,32 +63,13 @@ impl ToStaticString for s2n_tls::enums::Version {
 
 /// A TLS parameter type whose values can be enumerated at compile time,
 /// giving each value a stable slot index in `[0, N)` for the counter
-/// abstraction to use. Each implementor:
-/// - renders via [`Display`] as its IANA description (or
-///   `unknown_<kind>_0xXXXX` for values constructed outside `ELEMENTS`).
-/// - parses from its IANA description via [`FromStr`] (errors with `()`
-///   if the description is not in this build's registry).
-/// - owns its serde wire format — the counter delegates serialization
-///   to it. The wire format permits unknown ids; the counter filters
-///   them via [`Self::slot_from_key`] on decode.
-pub(crate) trait FiniteCounter<const N: usize>:
-    Sized
-    + Copy
-    + PartialEq
-    + Eq
-    + Hash
-    + Display
-    + FromStr<Err = ()>
-    + serde::Serialize
-    + serde::de::DeserializeOwned
-{
+/// abstraction to use. The trait only constrains the slot bijection;
+/// separate concerns (`Display`, serde, `FromStr`) are required at the
+/// impl sites that use them.
+pub(crate) trait FiniteCounter<const N: usize>: Copy + PartialEq {
     /// All values of `Self` that the counter recognizes. Every element is
     /// assigned a stable slot index equal to its position in this array.
     const ELEMENTS: [Self; N];
-
-    /// IANA numeric id on the wire. Used by [`crate::label`] as a cache
-    /// discriminator; serialization goes through [`serde::Serialize`].
-    fn iana_id(&self) -> u16;
 
     /// Slot index for this element, or `None` if not in [`Self::ELEMENTS`].
     fn slot_from_key(&self) -> Option<usize> {
@@ -111,11 +92,6 @@ impl FiniteCounter<CIPHER_COUNT> for Cipher {
         }
         out
     };
-
-    fn iana_id(&self) -> u16 {
-        let [hi, lo] = self.0;
-        ((hi as u16) << 8) | (lo as u16)
-    }
 }
 
 impl FromStr for Cipher {
@@ -139,10 +115,6 @@ impl FiniteCounter<PROTOCOL_COUNT> for Version {
         }
         out
     };
-
-    fn iana_id(&self) -> u16 {
-        self.0.get()
-    }
 }
 
 impl FromStr for Version {
@@ -166,10 +138,6 @@ impl FiniteCounter<GROUP_COUNT> for Group {
         }
         out
     };
-
-    fn iana_id(&self) -> u16 {
-        self.0.get()
-    }
 }
 
 impl FromStr for Group {
@@ -193,10 +161,6 @@ impl FiniteCounter<SIGNATURE_COUNT> for Signature {
         }
         out
     };
-
-    fn iana_id(&self) -> u16 {
-        self.0.get()
-    }
 }
 
 impl FromStr for Signature {
