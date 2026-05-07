@@ -5,14 +5,11 @@
 mod utilities;
 #[cfg(test)]
 use utilities::capability_check;
-
 #[cfg(test)]
-mod cert_aware_sig_selection;
-#[cfg(test)]
-mod features;
-#[cfg(test)]
-mod handshake_failure_errors;
+mod handshake;
 #[cfg(test)]
 mod mtls;
 #[cfg(all(not(feature = "no-sensitive-tests"), test))]
 mod network;
+#[cfg(test)]
+mod record;
