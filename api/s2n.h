@@ -1956,18 +1956,44 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
 
 /**
- * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
- * enabled by `s2n_connection_set_recv_buffering`.
+ * Reports how many bytes of unprocessed TLS records are buffered after the current
+ * record.
+ * 
+ * This is only useful when `s2n_connection_set_recv_buffering` is enabled, and 
+ * will return 0 otherwise.
+ * 
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`. While `s2n_peek` reports
+ * application data that is ready for the application to read with no additional
+ * processing, `s2n_peek_buffered` reports raw TLS records that still need to be
+ * parsed and likely decrypted. Those records may contain application data, but
+ * they may also only contain TLS control messages.
+ * 
+ * When receive buffering is enabled, it is useful to imagine that an s2n-tls
+ * connection behaves as if it has two buffers, one for the "current record",
+ * and one for "additional data".
+ * ```text
+ * c -> ciphertext
+ * p -> plaintext
  *
- * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
- * While `s2n_peek` reports application data that is ready for the application
- * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
- * records that still need to be parsed and likely decrypted. Those records may
- * contain application data, but they may also only contain TLS control messages.
+ *          |-----current record-----|-------additional------------|
+ * case 1 - |ccccccccccccc
+ * case 2 - |pppppppppppppppppppppppp|
+ * case 3 - |pppppppppppppppppppppppp|ccccccccccccccccccc
+ * ```
+ * In case 1, we received a record fragment. Records can only be decrypted
+ * once the full record is available. So "current record" just stores the record
+ * fragment (ciphertext). There are currently no APIs to determine if there
+ * is a record fragment stored. https://github.com/aws/s2n-tls/issues/5863. `s2n_peek_buffered`
+ * and `s2n_peek` will both return 0 in this case.
  *
- * If an application needs to determine whether there is any data left to handle
- * (for example, before calling `poll` to wait on the read file descriptor) then
- * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ * In case 2, we received a full record, which is decrypted and stored in current
+ * record. `s2n_peek` will return the count of plaintext bytes
+ * yet to be read from "current record", and `s2n_peek_buffered` will return 0
+ *
+ * In case 3, additional bytes (another record, complete or incomplete) were
+ * also read off the wire. In this case `s2n_peek_buffered` will return the length
+ * of ciphertext bytes buffered in "additional". This is the only case in which
+ * `s2n_peek_buffered` will return a non-zero result.
  *
  * @param conn A pointer to the s2n_connection object
  * @returns The number of buffered encrypted bytes
@@ -3957,7 +3983,14 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @note This API will error if the handshake is not yet complete. Additionally it will error if there
  * is still application data in the IO buffers given that this data does not get serialized by s2n-tls.
  * You can use `s2n_send` to drain the send buffer and `s2n_peek` + `s2n_recv` to drain the read buffer.
- * @note Serialization is unsupported for SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
+ * Note that s2n-tls will buffer record fragments until the complete record is available. `s2n_peek` 
+ * will _not_ report buffered record fragments. To avoid buffered record fragments, applications should
+ * continue to call s2n_recv until a non-blocked status is returned, after which point s2n_peek and s2n_recv
+ * can be used to drain the read buffer.
+ * @warning Due to the above read/buffering interaction, this API must not be used
+ * with recv_buffering (s2n_connection_set_recv_buffering), because there is no
+ * way to ensure that an s2n-tls connection hasn't buffered any record fragments.
+ * @note Serialization is unsupported for TLS 1.0 & SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
