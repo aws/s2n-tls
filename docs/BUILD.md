@@ -114,11 +114,11 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
   - FIPS mode is supported with versions of AWS-LC [that support
     FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
-- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.x)
+- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
-  - FIPS mode is supported with Openssl 3.x when a CMVP-validated FIPS provider is loaded at runtime, with caveats: see [details](#openssl-fips).
+  - FIPS mode is supported with Openssl-3.0 when a CMVP-validated FIPS provider is loaded at runtime, with caveats: see [details](#openssl-fips).
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
   - FIPS mode is not supported with BoringSSL.
@@ -142,9 +142,9 @@ s2n-tls supports FIPS mode when built with a FIPS validated version of aws-lc. S
 
 You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recommended libcrypto: see [Why AWS-LC?](https://github.com/aws/aws-lc/blob/main/README.md#why-aws-lc). You can use the `S2N_INTERN_LIBCRYPTO` CMake option to "intern" AWS-LC and keep it isolated to s2n-tls if AWS-LC symbols would conflict with Openssl symbols in your environment.
 
-But if you must use Openssl, s2n-tls supports FIPS mode on Openssl 3.x with a FIPS provider loaded at runtime. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build and configure one.
+But if you must use Openssl, s2n-tls supports FIPS mode on Openssl-3.0 with a FIPS provider loaded at runtime. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build and configure one.
 
-At `s2n_init()`, s2n-tls calls `EVP_default_properties_is_fips_enabled(NULL)`. If `fips=yes` is set, FIPS mode is enabled and s2n-tls restricts itself to FIPS-approved algorithms for the active security policy. This check does not depend on libcrypto version: in Openssl 3.x the CMVP certificate belongs to the FIPS provider, which is loaded at runtime.
+At `s2n_init()`, s2n-tls calls `EVP_default_properties_is_fips_enabled(NULL)`. If `fips=yes` is set, FIPS mode is enabled and s2n-tls restricts itself to FIPS-approved algorithms for the active security policy. Starting in Openssl-3.0, the CMVP certificate belongs to the FIPS provider, which is loaded at runtime, rather than to libcrypto itself.
 
 `s2n_is_in_fips_mode() == true` is not a compliance attestation. Selecting a CMVP-validated provider and operating within its security policy is the deployer's responsibility; s2n-tls only restricts protocol behavior to FIPS-approved algorithms.
 
