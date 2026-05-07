@@ -15,7 +15,6 @@
 
 #include <pthread.h>
 
-#include "api/unstable/cleanup.h"
 #include "s2n_test.h"
 
 bool s2n_is_initialized(void);
@@ -33,14 +32,6 @@ static void *s2n_init_success_cb(void *_unused_arg)
     (void) _unused_arg;
 
     EXPECT_SUCCESS(s2n_init());
-    return NULL;
-}
-
-static void *s2n_cleanup_thread_cb(void *_unused_arg)
-{
-    (void) _unused_arg;
-
-    EXPECT_SUCCESS(s2n_cleanup_thread());
     return NULL;
 }
 
@@ -68,7 +59,6 @@ int main(int argc, char **argv)
     if (pid == 0) {
         /* Child process */
         EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
-        EXPECT_SUCCESS(s2n_cleanup());
         return 0;
     }
     EXPECT_SUCCESS(s2n_cleanup_final());
@@ -80,43 +70,11 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup_final());
 
-    /* Calling s2n_init/s2n_cleanup_final in a different thread than s2n_cleanup_thread is called cleans up properly */
-    {
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_TRUE(s2n_is_initialized());
-        pthread_t s2n_cleanup_th = { 0 };
-        EXPECT_EQUAL(pthread_create(&s2n_cleanup_th, NULL, s2n_cleanup_thread_cb, NULL), 0);
-        EXPECT_EQUAL(pthread_join(s2n_cleanup_th, NULL), 0);
-        EXPECT_TRUE(s2n_is_initialized());
-        /* Calling s2n_cleanup_thread in the main thread leaves s2n initialized. */
-        EXPECT_SUCCESS(s2n_cleanup_thread());
-        EXPECT_TRUE(s2n_is_initialized());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-        EXPECT_FALSE(s2n_is_initialized());
-        /* Second call to s2n_cleanup_final will fail, since the full cleanup is not idempotent. */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup_final(), S2N_ERR_NOT_INITIALIZED);
-    }
-
-    /* s2n_cleanup_final */
-    {
-        /* s2n_cleanup_final fully de-initializes the library */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_TRUE(s2n_is_initialized());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-        EXPECT_FALSE(s2n_is_initialized());
-
-        /* s2n_cleanup only cleans up thread-local storage.
-         * Therefore, calling s2n_cleanup_final after s2n_cleanup will succeed */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_SUCCESS(s2n_cleanup());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-
-        /* s2n_cleanup_thread only cleans up thread-local storage.
-         * Therefore calling s2n_cleanup_final after s2n_cleanup_thread will succeed  */
-        EXPECT_SUCCESS(s2n_init());
-        EXPECT_SUCCESS(s2n_cleanup_thread());
-        EXPECT_SUCCESS(s2n_cleanup_final());
-    }
+    /* s2n_cleanup_final fully de-initializes the library */
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_TRUE(s2n_is_initialized());
+    EXPECT_SUCCESS(s2n_cleanup_final());
+    EXPECT_FALSE(s2n_is_initialized());
 
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());

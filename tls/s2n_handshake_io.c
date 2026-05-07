@@ -798,7 +798,11 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 /* clang-format on */
 
 #define MAX_HANDSHAKE_TYPE_LEN 142
-static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
+/* The handshake type labels used for TLS 1.0 - TLS 1.2, e.g. `NEGOTIATED|WITH_SESSION_TICKET` */
+static char handshake_type_str_tls12ish[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
+
+/* The handshake type labels used for TLS 1.3, e.g. `NEGOTIATED|HELLO_RETRY_REQUEST` */
+static char handshake_type_str_tls13[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
 
 static const char *tls12_handshake_type_names[] = {
     "NEGOTIATED|",
@@ -1151,44 +1155,46 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
         return "INITIAL";
     }
 
-    const char **handshake_type_names = tls13_handshake_type_names;
-    size_t handshake_type_names_len = s2n_array_len(tls13_handshake_type_names);
+    const char **handshake_labels = tls13_handshake_type_names;
+    size_t handshake_labels_len = s2n_array_len(tls13_handshake_type_names);
+    char(*names)[MAX_HANDSHAKE_TYPE_LEN] = handshake_type_str_tls13;
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        handshake_type_names = tls12_handshake_type_names;
-        handshake_type_names_len = s2n_array_len(tls12_handshake_type_names);
+        handshake_labels = tls12_handshake_type_names;
+        handshake_labels_len = s2n_array_len(tls12_handshake_type_names);
+        names = handshake_type_str_tls12ish;
     }
 
     /* Not all handshake strings will be created already. If the handshake string
      * is not null, we can just return the handshake. Otherwise we have to compute
      * it down below. */
-    if (handshake_type_str[handshake_type][0] != '\0') {
-        return handshake_type_str[handshake_type];
+    if (names[handshake_type][0] != '\0') {
+        return names[handshake_type];
     }
 
-    /* Compute handshake_type_str[handshake_type] by concatenating
-     * each applicable handshake_type.
+    /* Compute the cached string by concatenating each applicable handshake_type.
      *
-     * Unit tests enforce that the elements of handshake_type_str are always
+     * Unit tests enforce that the elements of the cache are always
      * long enough to contain the longest possible valid handshake_type, but
      * for safety we still handle the case where we need to truncate.
      */
-    char *p = handshake_type_str[handshake_type];
-    size_t remaining = sizeof(handshake_type_str[0]);
-    for (size_t i = 0; i < handshake_type_names_len; i++) {
-        if (handshake_type & (1 << i)) {
-            size_t bytes_to_copy = MIN(remaining, strlen(handshake_type_names[i]));
-            PTR_CHECKED_MEMCPY(p, handshake_type_names[i], bytes_to_copy);
+    char *p = names[handshake_type];
+    size_t remaining = MAX_HANDSHAKE_TYPE_LEN;
+    for (size_t i = 0; i < handshake_labels_len; i++) {
+        bool label_applies = handshake_type & (1 << i);
+        if (label_applies) {
+            size_t bytes_to_copy = MIN(remaining, strlen(handshake_labels[i]));
+            PTR_CHECKED_MEMCPY(p, handshake_labels[i], bytes_to_copy);
             p[bytes_to_copy] = '\0';
             p += bytes_to_copy;
             remaining -= bytes_to_copy;
         }
     }
 
-    if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
+    if (p != names[handshake_type] && '|' == *(p - 1)) {
         *(p - 1) = '\0';
     }
 
-    return handshake_type_str[handshake_type];
+    return names[handshake_type];
 }
 
 S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t content_type, s2n_blocked_status *blocked)

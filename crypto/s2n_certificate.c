@@ -715,6 +715,7 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
 
     int len = ASN1_STRING_length(asn1_str);
+    POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
         /* ASN1_STRING_data() returns an internal pointer to the data.
@@ -816,6 +817,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
              * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_data.html.
              */
             asn1_str = X509_EXTENSION_get_data(x509_ext);
+            POSIX_ENSURE_REF(asn1_str);
             /* ASN1_STRING_length() returns the length of the content of `asn1_str`.
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */

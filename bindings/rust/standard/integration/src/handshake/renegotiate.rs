@@ -49,11 +49,13 @@ fn renegotiate_pair(
         assert_eq!(&buffer[0..data.len()], data);
     }
 
-    // client sends key material + finished
-    let _ = pair.client.connection_mut().poll_recv(&mut [0]);
-
-    // server sends finished
-    let _ = pair.server.connection.read(&mut [0]);
+    // Drive both sides in a loop until the renegotiation handshake completes.
+    // The number of IO calls needed to finish the handshake can vary across
+    // OpenSSL versions, so we avoid assuming a fixed number of round-trips.
+    while pair.server.connection.ssl().renegotiate_pending() {
+        let _ = pair.client.connection_mut().poll_recv(&mut [0]);
+        let _ = pair.server.connection.read(&mut [0]);
+    }
 
     // client reads finished
     let _ = pair.client.connection_mut().poll_recv(&mut [0]);

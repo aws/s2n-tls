@@ -54,7 +54,7 @@ S2N_API extern int s2n_config_set_subscriber(struct s2n_config *config, void *su
  * Set a callback to receive a handshake event.
  * 
  * The `struct s2n_event_handshake *event` is only valid over the lifetime of the 
- * callbacks, and must not be reference after the callback returned.
+ * callbacks, and must not be referenced after the callback returned.
  * 
  * An event is not emitted if the handshake fails.
  */

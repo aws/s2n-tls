@@ -347,7 +347,7 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
     const struct s2n_stuffer *client_hello = &conn->handshake.io;
     uint32_t binders_size = binder_list_blob.size + SIZE_OF_BINDER_LIST_SIZE;
     RESULT_ENSURE_GTE(client_hello->write_cursor, binders_size);
-    uint16_t partial_client_hello_size = client_hello->write_cursor - binders_size;
+    uint32_t partial_client_hello_size = client_hello->write_cursor - binders_size;
     RESULT_GUARD_POSIX(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
 
     return s2n_client_psk_recv_binder_list(conn, &partial_client_hello, &binder_list);

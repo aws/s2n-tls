@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_mldsa.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -192,6 +193,53 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_verify_recv(server), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
         };
     };
+
+    /* ML-DSA signature test: ML-DSA is supported only by TLS 1.3 */
+    if (s2n_is_tls13_fully_supported() && s2n_mldsa_is_supported()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, mldsa_chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all"));
+
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "cnsa_2"));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_CERT_VERIFY));
+
+        /* Set the ML-DSA-87 signature scheme. */
+        server->handshake_params.server_cert_sig_scheme = &s2n_mldsa87;
+
+        /* Send cert verify */
+        EXPECT_SUCCESS(s2n_tls13_cert_verify_send(server));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server->handshake.io, &client->handshake.io,
+                s2n_stuffer_data_available(&server->handshake.io)));
+
+        /* Sanity check that we actually did write the intended iana id */
+        uint16_t iana_id = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&client->handshake.io, &iana_id));
+        EXPECT_EQUAL(iana_id, TLS_SIGNATURE_SCHEME_MLDSA87);
+        EXPECT_SUCCESS(s2n_stuffer_reread(&client->handshake.io));
+
+        /* Handshake fail due to ML-DSA key type does not match. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(client), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
 
     END_TEST();
 }

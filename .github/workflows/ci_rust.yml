@@ -528,3 +528,30 @@ jobs:
           from s2n-tls-sys/templates/Cargo.template has been found. Please ensure that the committed \
           Cargo.toml is up-to-date by regenerating it with ${{env.ROOT_PATH}}/generate.sh"
           exit 1
+
+  metrics-subscriber-fuzz:
+    name: metrics-subscriber fuzz tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust nightly
+        run: |
+          rustup toolchain install nightly
+          rustup override set nightly
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '>=1.18'
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ${{env.ROOT_PATH}}/generate.sh
+
+      - run: cargo install cargo-fuzz
+
+      - name: fuzz cert parser
+        working-directory: ${{env.STANDARD_PATH}}/s2n-tls-metrics-subscriber
+        run: cargo +nightly fuzz run fuzz_cert_parse --jobs $(nproc) -- -max_total_time=60

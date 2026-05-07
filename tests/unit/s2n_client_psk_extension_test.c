@@ -1635,5 +1635,60 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
     }
 
+    /* Receive a valid extension with a large ClientHello (> UINT16_MAX) */
+    {
+        s2n_extension_type_id key_share_id = 0;
+        s2n_extension_type_id psk_ke_mode_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_id));
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_id));
+
+        uint8_t large_test_identity[] = "test identity";
+        uint8_t large_test_secret[] = "test secret";
+
+        struct s2n_connection *client_conn = NULL;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        struct s2n_stuffer *client_out = &client_conn->handshake.io;
+
+        struct s2n_connection *server_conn = NULL;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
+        struct s2n_stuffer *server_in = &server_conn->handshake.io;
+        /* s2n_client_psk_recv checks that extensions.count > 0 and that PSK is the last
+         * extension. Set to 1 because we bypass normal ClientHello parsing. */
+        server_conn->client_hello.extensions.count = 1;
+
+        server_conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
+        S2N_CBIT_SET(server_conn->extension_requests_received, psk_ke_mode_id);
+        S2N_CBIT_SET(server_conn->extension_requests_received, key_share_id);
+
+        struct s2n_psk *shared_psk = NULL;
+        EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void **) &shared_psk));
+        EXPECT_OK(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+        EXPECT_SUCCESS(s2n_psk_set_identity(shared_psk, large_test_identity, sizeof(large_test_identity)));
+        EXPECT_SUCCESS(s2n_psk_set_secret(shared_psk, large_test_secret, sizeof(large_test_secret)));
+        EXPECT_OK(s2n_array_pushback(&server_conn->psk_params.psk_list, (void **) &shared_psk));
+        EXPECT_OK(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+        EXPECT_SUCCESS(s2n_psk_set_identity(shared_psk, large_test_identity, sizeof(large_test_identity)));
+        EXPECT_SUCCESS(s2n_psk_set_secret(shared_psk, large_test_secret, sizeof(large_test_secret)));
+
+        /* Write a large ClientHello prefix (> UINT16_MAX) to trigger the truncation bug. */
+        uint32_t large_prefix_size = UINT16_MAX + 100;
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(client_out, large_prefix_size));
+
+        EXPECT_SUCCESS(s2n_client_psk_extension.send(client_conn, client_out));
+        EXPECT_OK(s2n_finish_psk_extension(client_conn));
+
+        /* Copy the ClientHello to the server, skipping the large prefix */
+        EXPECT_SUCCESS(s2n_stuffer_copy(client_out, server_in,
+                s2n_stuffer_data_available(client_out)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(server_in, large_prefix_size));
+
+        EXPECT_SUCCESS(s2n_client_psk_recv(server_conn, server_in));
+        EXPECT_EQUAL(server_conn->psk_params.chosen_psk, shared_psk);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+    };
+
     END_TEST();
 }

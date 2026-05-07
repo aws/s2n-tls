@@ -1830,6 +1830,18 @@ int main(int argc, char **argv)
             uint8_t *ticket_bytes = s2n_stuffer_raw_read(&ticket_stuffer, ticket_size);
             EXPECT_NOT_NULL(ticket_bytes);
 
+            /* If session buffer length is larger than UINT32_MAX, s2n_connection_set_session should error.
+             * This check is only meaningful on 64-bit systems where size_t > uint32_t.
+             */
+            {
+                if (sizeof(size_t) > sizeof(uint32_t)) {
+                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                            s2n_connection_ptr_free);
+                    size_t length = (size_t) UINT32_MAX + 1;
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, length), S2N_ERR_INVALID_ARGUMENT);
+                }
+            }
+
             /* Test that deserialize modifies the connection in limited ways.
              *
              * No mechanism exists to do more than a shallow comparison of two connections.

@@ -349,7 +349,7 @@ S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
      * By default, s2n-tls sends a generic close_notify alert, even in
      * response to fatal errors. This is done to avoid potential
      * side-channel attacks since specific alerts could reveal information
-     * about why the error occured.
+     * about why the error occurred.
      */
     uint8_t code = S2N_TLS_ALERT_CLOSE_NOTIFY;
     uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;

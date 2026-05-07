@@ -296,6 +296,14 @@ where
     C: TlsConfigBuilder,
     S: TlsConfigBuilder,
 {
+    // Creates a new `TlsConfigBuilderPair` without loading any default certificate.
+    pub fn default_without_certs() -> Self {
+        Self {
+            client: C::new_test_config(Mode::Client),
+            server: S::new_test_config(Mode::Server),
+        }
+    }
+
     pub fn set_cert(&mut self, cert: SigType) {
         self.client.set_trust(cert);
         self.server.set_chain(cert);

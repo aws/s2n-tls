@@ -3,9 +3,9 @@
 Connection Serialization allows TLS connection state to be serialized into a byte string. This allows the connection to be transported to a different host or stored to disk.
 
 <div class="warning">
-This feature is dangerous. It provides cryptographic material from a TLS session in plaintext. An attacker with access to the serialized connection can decrypt any past and future communications from the connection. Users MUST both encrypt and MAC the contents of the serialized connection to provide secrecy and integrity. 
+This feature is dangerous. The serialized connection contains cryptographic secrets, sequence numbers, the cipher suite, and the protocol version in plaintext. An attacker with access to this data can decrypt any past and future communications from the connection. Additionally, s2n-tls does not include a MAC or signature over the serialized data, so a modified blob will be deserialized and used as-is.
 
-The simplest way to provide secrecy and integrity is to transport the serialized connection using a protocol like TLS which protects the secrecy and integrity of all transported data.
+Users MUST both encrypt and MAC the serialized connection to provide secrecy and integrity. The simplest way to do this is to transport the serialized connection using a protocol like TLS. If the blob is stored in a database, shared cache, or sent over a network, it must be protected before storage or transmission.
 </div>
 
 ## Use Case

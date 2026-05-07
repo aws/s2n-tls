@@ -29,6 +29,10 @@ const struct s2n_kem_group *pq_kem_groups_ietf_2025_07[] = {
     &s2n_secp384r1_mlkem_1024,
 };
 
+const struct s2n_kem_group *pq_kem_groups_cnsa2_2026_02[] = {
+    &s2n_pure_mlkem_1024,
+};
+
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2024_10 = {
     .kem_count = 0,
     .kems = NULL,
@@ -42,6 +46,14 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_07 = {
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_ietf_2025_07),
     .tls13_kem_groups = pq_kem_groups_ietf_2025_07,
+    .tls13_pq_hybrid_draft_revision = 5
+};
+
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_cnsa2_2026_02 = {
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_cnsa2_2026_02),
+    .tls13_kem_groups = pq_kem_groups_cnsa2_2026_02,
     .tls13_pq_hybrid_draft_revision = 5
 };
 

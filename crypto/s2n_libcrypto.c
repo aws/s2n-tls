@@ -184,7 +184,7 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
     /* If we know the expected version name, we can validate it. */
     if (s2n_libcrypto_is_awslc()) {
         const char *expected_awslc_name_prefix = NULL;
-        /* For backwards compatability, also check the AWS-LC API version see
+        /* For backwards compatibility, also check the AWS-LC API version see
          * https://github.com/awslabs/aws-lc/pull/467. When we are confident we
          * don't meet anymore "old" AWS-LC libcrypto's, this API version check
          * can be removed.

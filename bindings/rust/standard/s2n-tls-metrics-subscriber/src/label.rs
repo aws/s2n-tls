@@ -12,13 +12,14 @@ use crate::static_lists::TlsParam;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum State {
     Negotiated,
-    // Supported, - not implemented yet :)
+    Supported,
 }
 
 impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             State::Negotiated => write!(f, "negotiated"),
+            State::Supported => write!(f, "supported"),
         }
     }
 }

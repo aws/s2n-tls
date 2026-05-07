@@ -146,15 +146,19 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     /* Clear all of the required hashes */
     memset(conn->handshake.required_hash_algs, 0, sizeof(conn->handshake.required_hash_algs));
 
-    message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
-    const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;
-    s2n_cert_auth_type client_cert_auth_type;
-    POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
+        const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;
+        s2n_cert_auth_type client_cert_auth_type;
+        POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
-    /* If client authentication is possible, all hashes are needed until we're past CLIENT_CERT_VERIFY. */
-    if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
-        POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
-        return S2N_SUCCESS;
+        /* In TLS1.2 the transcript hash used in the client's certificate verify message
+         * is determined by the signature algorithm used to sign the certificate verify message.
+         * Therefore all hashes are needed until we're past CLIENT_CERT_VERIFY if client auth is possible. */
+        if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
+            POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
+            return S2N_SUCCESS;
+        }
     }
 
     /* We don't need all of the hashes. Set the hash alg(s) required for the PRF */

@@ -171,21 +171,23 @@ fn s2n_mlkem_server() {
     });
 }
 
-// Client-side test only exercises MLKEM key exchange; trusting the leaf cert avoids ML-DSA verification.
 #[test]
 fn s2n_pure_mlkem_client() {
-    required_capability(&[Capability::MLKem], || {
+    required_capability(&[Capability::MLKem, Capability::MLDsa], || {
         let mldsa87 = &certs::ML_DSA_87;
 
         let mut pair: TlsConnPair<S2NConnection, OpenSslConnection> = {
             let mut configs =
                 TlsConfigBuilderPair::<s2n_tls::config::Builder, SslContextBuilder>::default();
 
-            // Setup s2n-tls client with test_all
-            let test_all_policy = Policy::from_version("test_all").unwrap();
+            // Setup s2n-tls client with CNSA 2.0 policy
+            let cnsa2_policy = Policy::from_version("cnsa_2").unwrap();
+            configs.client.set_security_policy(&cnsa2_policy).unwrap();
+            configs.client.set_max_blinding_delay(0).unwrap();
+            // This test uses the RFC ML-DSA certificate with the hostname "LAMPS WG".
             configs
                 .client
-                .set_security_policy(&test_all_policy)
+                .set_verify_host_callback(HostNameHandler::new("LAMPS WG"))
                 .unwrap();
             configs.client.set_max_blinding_delay(0).unwrap();
             configs.client.trust_pem(&mldsa87.ca()).unwrap();
@@ -209,10 +211,10 @@ fn s2n_pure_mlkem_client() {
         let conn = pair.client.connection();
         let kem_group = conn.kem_group_name().unwrap();
         assert_eq!(kem_group, "MLKEM1024");
+        assert_eq!(conn.signature_scheme(), Some("mldsa87"));
     });
 }
 
-// Server-side test exercises MLKEM plus ML-DSA, since the server must sign CertificateVerify with an ML-DSA key.
 #[test]
 fn s2n_pure_mlkem_server() {
     required_capability(&[Capability::MLKem, Capability::MLDsa], || {
@@ -220,18 +222,15 @@ fn s2n_pure_mlkem_server() {
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
-                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
 
             // Setup OpenSSL client restricted to MLKEM1024
             configs.client.set_ca_file(&mldsa87.ca_path).unwrap();
             configs.client.set_groups_list("MLKEM1024").unwrap();
 
-            // Setup s2n-tls server with test_all
-            let test_all_policy = Policy::from_version("test_all").unwrap();
-            configs
-                .server
-                .set_security_policy(&test_all_policy)
-                .unwrap();
+            // Setup s2n-tls server with CNSA 2.0 policy
+            let cnsa2_policy = Policy::from_version("cnsa_2").unwrap();
+            configs.server.set_security_policy(&cnsa2_policy).unwrap();
             configs.server.set_max_blinding_delay(0).unwrap();
             configs
                 .server
@@ -246,5 +245,6 @@ fn s2n_pure_mlkem_server() {
         let conn = pair.server.connection();
         let kem_group = conn.kem_group_name().unwrap();
         assert_eq!(kem_group, "MLKEM1024");
+        assert_eq!(conn.signature_scheme(), Some("mldsa87"));
     });
 }
