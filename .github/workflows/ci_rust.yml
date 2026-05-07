@@ -216,7 +216,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/openssl-102/install
-          key: ${{ runner.os }}-openssl-102
+          # The sha256 suffix pins the cache to a specific source tarball.
+          # Bumping the tarball (or version) busts the cache automatically,
+          # which also prevents a stale cache entry from masking a broken
+          # download step.
+          key: ${{ runner.os }}-openssl-1.0.2u-ecd0c6ff
 
       - if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }}
         name: Install OpenSSL 1.0.2
@@ -227,7 +231,16 @@ jobs:
           mkdir install
           install_dir="$(pwd)"/install
 
-          wget https://www.openssl.org/source/old/1.0.2/openssl-1.0.2u.tar.gz
+          # OpenSSL moved release hosting to GitHub in 2024. The openssl.org
+          # redirect for the 1.0.2 series points at a non-existent asset
+          # (openssl/openssl under the tag `openssl-1.0.2u`), so fetch directly
+          # from the tag that actually exists (`OpenSSL_1_0_2u`).
+          tarball_url="https://github.com/openssl/openssl/releases/download/OpenSSL_1_0_2u/openssl-1.0.2u.tar.gz"
+          expected_sha256="ecd0c6ffb493dd06707d38b14bb4d8c2288bb7033735606569d8f90f89669d16"
+
+          curl --fail --location --silent --show-error \
+               --output openssl-1.0.2u.tar.gz "${tarball_url}"
+          echo "${expected_sha256}  openssl-1.0.2u.tar.gz" | sha256sum --check --strict
           tar -xzvf openssl-1.0.2u.tar.gz
 
           pushd openssl-1.0.2u
