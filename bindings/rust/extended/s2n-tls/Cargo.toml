@@ -4,7 +4,7 @@ description = "A C99 implementation of the TLS/SSL protocols"
 version = "0.3.36"
 authors = ["AWS s2n"]
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.84"
 repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
@@ -36,4 +36,4 @@ openssl = "0.10"
 openssl-sys = "0.9"
 foreign-types = "0.3" # newer versions require updated ForeignTypeRef, see https://github.com/sfackler/rust-openssl/issues/2298
 temp-env = "0.3"
-checkers = "0.6"
+checkers = "0.7"
