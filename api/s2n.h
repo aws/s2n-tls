@@ -1993,7 +1993,7 @@ S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn
  * In case 3, additional bytes (another record, complete or incomplete) were
  * also read off the wire. In this case `s2n_peek_buffered` will return the length
  * of ciphertext bytes buffered in "additional". This is the only case in which
- * `peek_buffered_len` will return a non-zero result.
+ * `s2n_peek_buffered` will return a non-zero result.
  *
  * @param conn A pointer to the s2n_connection object
  * @returns The number of buffered encrypted bytes
