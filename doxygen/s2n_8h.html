@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.3-c9348948</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.3-edc4656f</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -8158,9 +8158,9 @@ Safety</h1>
 <dd>
 Call <code>s2n_connection_serialization_length</code> to retrieve the amount of memory needed for the buffer parameter. </dd>
 <dd>
-This API will error if the handshake is not yet complete. Additionally it will error if there is still application data in the IO buffers given that this data does not get serialized by s2n-tls. You can use <code>s2n_send</code> to drain the send buffer and <code>s2n_peek</code> + <code>s2n_recv</code> to drain the read buffer. </dd>
-<dd>
-Serialization is unsupported for SSLv3 connections. See: <a href="https://github.com/aws/s2n-tls/issues/5538">https://github.com/aws/s2n-tls/issues/5538</a>.</dd></dl>
+This API will error if the handshake is not yet complete. Additionally it will error if there is still application data in the IO buffers given that this data does not get serialized by s2n-tls. You can use <code>s2n_send</code> to drain the send buffer and <code>s2n_peek</code> + <code>s2n_recv</code> to drain the read buffer. Note that s2n-tls will buffer record fragments until the complete record is available. <code>s2n_peek</code> will <em>not</em> report buffered record fragments. To avoid buffered record fragments, applications should continue to call s2n_recv until a non-blocked status is returned, after which point s2n_peek and s2n_recv can be used to drain the read buffer. </dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>Due to the above read/buffering interaction, this API must not be used with recv_buffering (s2n_connection_set_recv_buffering), because there is no way to ensure that an s2n-tls connection hasn't buffered any record fragments. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Serialization is unsupported for TLS 1.0 &amp; SSLv3 connections. See: <a href="https://github.com/aws/s2n-tls/issues/5538">https://github.com/aws/s2n-tls/issues/5538</a>.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
@@ -9975,9 +9975,19 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Reports how many bytes of unprocessed TLS records are buffered due to the optimization enabled by <code>s2n_connection_set_recv_buffering</code>.</p>
+<p >Reports how many bytes of unprocessed TLS records are buffered after the current record.</p>
+<p >This is only useful when <code>s2n_connection_set_recv_buffering</code> is enabled, and will return 0 otherwise.</p>
 <p ><code>s2n_peek_buffered</code> is not a replacement for <code>s2n_peek</code>. While <code>s2n_peek</code> reports application data that is ready for the application to read with no additional processing, <code>s2n_peek_buffered</code> reports raw TLS records that still need to be parsed and likely decrypted. Those records may contain application data, but they may also only contain TLS control messages.</p>
-<p >If an application needs to determine whether there is any data left to handle (for example, before calling <code>poll</code> to wait on the read file descriptor) then that application must check both <code>s2n_peek</code> and <code>s2n_peek_buffered</code>.</p>
+<p >When receive buffering is enabled, it is useful to imagine that an s2n-tls connection behaves as if it has two buffers, one for the "current record", and one for "additional data". </p><div class="fragment"><div class="line">c -&gt; ciphertext</div>
+<div class="line">p -&gt; plaintext</div>
+<div class="line"> </div>
+<div class="line">         |-----current record-----|-------additional------------|</div>
+<div class="line">case 1 - |ccccccccccccc</div>
+<div class="line">case 2 - |pppppppppppppppppppppppp|</div>
+<div class="line">case 3 - |pppppppppppppppppppppppp|ccccccccccccccccccc</div>
+</div><!-- fragment --><p> In case 1, we received a record fragment. Records can only be decrypted once the full record is available. So "current record" just stores the record fragment (ciphertext). There are currently no APIs to determine if there is a record fragment stored. <a href="https://github.com/aws/s2n-tls/issues/5863">https://github.com/aws/s2n-tls/issues/5863</a>. <code>s2n_peek_buffered</code> and <code>s2n_peek</code> will both return 0 in this case.</p>
+<p >In case 2, we received a full record, which is decrypted and stored in current record. <code>s2n_peek</code> will return the count of plaintext bytes yet to be read from "current record", and <code>s2n_peek_buffered</code> will return 0</p>
+<p >In case 3, additional bytes (another record, complete or incomplete) were also read off the wire. In this case <code>s2n_peek_buffered</code> will return the length of ciphertext bytes buffered in "additional". This is the only case in which <code>s2n_peek_buffered</code> will return a non-zero result.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
