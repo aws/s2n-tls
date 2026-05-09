@@ -31,6 +31,7 @@ use s2n_codec::{DecoderValue, zerocopy::U16};
 use s2n_tls_sys_internal::{
     s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
 };
+use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use zerocopy::{FromBytes, Immutable, Unaligned};
 
 impl Display for TlsParam {
@@ -58,6 +59,46 @@ impl ToStaticString for s2n_tls::enums::Version {
             s2n_tls::enums::Version::TLS13 => "TLSv1_3",
             _ => "unknown",
         }
+    }
+}
+
+/// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
+/// Shared by `Version`, `Group`, and `Signature`, whose wire form is the
+/// host-order numeric id returned by `.get()`.
+pub(crate) struct ZerocopyU16;
+
+impl SerializeAs<U16> for ZerocopyU16 {
+    fn serialize_as<S: serde::Serializer>(value: &U16, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u16(value.get())
+    }
+}
+
+impl<'de> DeserializeAs<'de, U16> for ZerocopyU16 {
+    fn deserialize_as<D: serde::Deserializer<'de>>(deserializer: D) -> Result<U16, D::Error> {
+        <u16 as serde::Deserialize>::deserialize(deserializer).map(U16::new)
+    }
+}
+
+/// `serde_as` helper: encode a two-byte wire field as a big-endian `u16`.
+/// Used by `Cipher`, whose inner type is `[u8; 2]` to match the RFC 8446
+/// `opaque CipherSuite[2]` definition; this keeps that wire form on the
+/// type while serde emits the fused numeric IANA id as a map key.
+pub(crate) struct BigEndianU16;
+
+impl SerializeAs<[u8; 2]> for BigEndianU16 {
+    fn serialize_as<S: serde::Serializer>(
+        value: &[u8; 2],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        let [hi, lo] = *value;
+        serializer.serialize_u16(((hi as u16) << 8) | lo as u16)
+    }
+}
+
+impl<'de> DeserializeAs<'de, [u8; 2]> for BigEndianU16 {
+    fn deserialize_as<D: serde::Deserializer<'de>>(deserializer: D) -> Result<[u8; 2], D::Error> {
+        let id = <u16 as serde::Deserialize>::deserialize(deserializer)?;
+        Ok([(id >> 8) as u8, id as u8])
     }
 }
 
@@ -186,9 +227,22 @@ unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
+#[serde_as]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    FromBytes,
+    Immutable,
+    Unaligned,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[repr(C)]
-pub(crate) struct Version(pub(crate) s2n_codec::zerocopy::U16);
+pub(crate) struct Version(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
 
 impl Version {
     pub const SSL_V3: Version = Version(U16::new(0x0300));
@@ -218,18 +272,6 @@ impl Display for Version {
     }
 }
 
-impl serde::Serialize for Version {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u16(self.0.get())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Version {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        u16::deserialize(deserializer).map(|id| Version(U16::new(id)))
-    }
-}
-
 impl<'a> DecoderValue<'a> for Version {
     fn decode(bytes: s2n_codec::DecoderBuffer<'a>) -> s2n_codec::DecoderBufferResult<'a, Self> {
         let (value, bytes) = bytes.decode()?;
@@ -237,9 +279,22 @@ impl<'a> DecoderValue<'a> for Version {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
+#[serde_as]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    FromBytes,
+    Immutable,
+    Unaligned,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[repr(C)]
-pub(crate) struct Cipher(pub(crate) [u8; 2]);
+pub(crate) struct Cipher(#[serde_as(as = "BigEndianU16")] pub(crate) [u8; 2]);
 
 impl Cipher {
     #[allow(dead_code)] // kept as part of the typed cipher roster
@@ -286,22 +341,22 @@ impl Display for Cipher {
     }
 }
 
-impl serde::Serialize for Cipher {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let [hi, lo] = self.0;
-        serializer.serialize_u16(((hi as u16) << 8) | (lo as u16))
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Cipher {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        u16::deserialize(deserializer).map(|id| Cipher([(id >> 8) as u8, id as u8]))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
+#[serde_as]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    FromBytes,
+    Immutable,
+    Unaligned,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[repr(C)]
-pub(crate) struct Signature(pub(crate) s2n_codec::zerocopy::U16);
+pub(crate) struct Signature(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
 
 // we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
@@ -341,21 +396,22 @@ impl Display for Signature {
     }
 }
 
-impl serde::Serialize for Signature {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u16(self.0.get())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Signature {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        u16::deserialize(deserializer).map(|id| Signature(U16::new(id)))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromBytes, Immutable, Unaligned)]
+#[serde_as]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    FromBytes,
+    Immutable,
+    Unaligned,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[repr(C)]
-pub(crate) struct Group(pub(crate) s2n_codec::zerocopy::U16);
+pub(crate) struct Group(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
 
 // we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
@@ -388,18 +444,6 @@ impl Display for Group {
             Some(name) => f.write_str(name),
             None => write!(f, "unknown_group_0x{:04x}", self.0.get()),
         }
-    }
-}
-
-impl serde::Serialize for Group {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u16(self.0.get())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Group {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        u16::deserialize(deserializer).map(|id| Group(U16::new(id)))
     }
 }
 
