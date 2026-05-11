@@ -467,6 +467,7 @@ int s2n_calculate_stacktrace(void)
 
 int s2n_get_stacktrace(struct s2n_stacktrace *trace)
 {
+    POSIX_ENSURE_MUT(trace);
     *trace = tl_stacktrace;
     return S2N_SUCCESS;
 }
