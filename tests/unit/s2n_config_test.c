@@ -32,6 +32,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_x509_validator.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
 
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         if (default_config->security_policy != config->security_policy) {
-            /* one possible cause for this is attempting to includes s2n_config.c 
+            /* one possible cause for this is attempting to includes s2n_config.c
              * for access to internal `static` functions. This causes two copies
              * of the default config to be created. The default_config in *this*
              * unit of translation doesn't get properly initialized. */
@@ -1107,7 +1108,7 @@ int main(int argc, char **argv)
         struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
-        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
+        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures,
          * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
 
         /* valid certs are accepted */
@@ -1134,8 +1135,8 @@ int main(int argc, char **argv)
 
         /* certs in default_certs_by_type are validated */
         {
-            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type 
-             * but doesn't populate domain_name_to_cert_map 
+            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type
+             * but doesn't populate domain_name_to_cert_map
              */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(config, &invalid_cert, 1));
@@ -1294,6 +1295,53 @@ int main(int argc, char **argv)
         /* Safety */
         uint64_t fake_callback = 0;
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (s2n_event_on_handshake_cb) &fake_callback), S2N_ERR_NULL);
+    };
+
+    /* Test: s2n_connection_set_config preserves the old validator on failure
+     *
+     * Regression test: s2n_connection_set_config wipes the connection's
+     * x509_validator before initializing a new one from the incoming config.
+     * If the new validator's initialization fails (e.g. set_max_chain_depth
+     * with an invalid depth), the connection was left with a wiped validator
+     * while conn->config still referenced the old config. The fix stages
+     * the new validator into a local and only swaps on full success.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_old);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+        EXPECT_EQUAL(conn->config, config_old);
+
+        /* The validator should be in the INIT state after a successful set_config. */
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
+
+        /* Create a second config that will cause set_config to fail during
+         * validator initialization. Setting max_verify_cert_chain_depth to 0
+         * (invalid) with the flag enabled triggers the failure inside
+         * s2n_x509_validator_set_max_chain_depth.
+         */
+        DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_bad);
+        config_bad->max_verify_cert_chain_depth = 0;
+        config_bad->max_verify_cert_chain_depth_set = 1;
+
+        /* set_config should fail because of the invalid chain depth. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                S2N_ERR_INVALID_ARGUMENT);
+
+        /* The connection must still reference the old config. */
+        EXPECT_EQUAL(conn->config, config_old);
+
+        /* The validator must still be functional (INIT state, not UNINIT).
+         * Before the fix, the validator was wiped to UNINIT before the
+         * failed init attempt, leaving the connection in an inconsistent
+         * state.
+         */
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
     };
 
     END_TEST();
