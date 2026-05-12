@@ -142,17 +142,19 @@ impl<const N: usize, T> serde::Serialize for FrozenCounter<N, T>
 where
     T: FiniteCounter<N> + serde::Serialize,
 {
-    /// Emit non-zero slots as a `T -> u64` map. Each `T` serializes itself,
-    /// so the on-wire key form is owned by the element type. Pre-counting
-    /// gives length-prefixed formats (CBOR, postcard) the exact pair count.
+    /// Emit non-zero slots as a sequence of `(T, u64)` pairs. Each `T`
+    /// serializes itself in value position, so element types whose native
+    /// form isn't a primitive (e.g. `Cipher`'s `[u8; 2]`) round-trip via
+    /// plain `#[derive]`. Pre-counting gives length-prefixed formats
+    /// (CBOR, postcard) the exact pair count.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::SerializeMap;
+        use serde::ser::SerializeSeq;
         let non_zero_count = self.slots.iter().filter(|&&c| c > 0).count();
-        let mut map = serializer.serialize_map(Some(non_zero_count))?;
+        let mut seq = serializer.serialize_seq(Some(non_zero_count))?;
         for (_slot, element, count) in self.iter_non_zero() {
-            map.serialize_entry(&element, &count)?;
+            seq.serialize_element(&(element, count))?;
         }
-        map.end()
+        seq.end()
     }
 }
 
@@ -160,31 +162,34 @@ impl<'de, const N: usize, T> serde::Deserialize<'de> for FrozenCounter<N, T>
 where
     T: FiniteCounter<N> + serde::de::DeserializeOwned + std::fmt::Display,
 {
-    /// Decode a `T -> u64` map. Each `T` parses itself; the counter then
-    /// filters by [`FiniteCounter::slot_from_key`], so values whose wire
-    /// form is well-formed but unknown to this build's `ELEMENTS` are
-    /// dropped (and logged at `debug!`). Missing slots default to 0;
-    /// duplicate keys follow serde's last-wins policy.
+    /// Decode a sequence of `(T, u64)` pairs. Each `T` parses itself; the
+    /// counter then filters by [`FiniteCounter::slot_from_key`], so values
+    /// whose wire form is well-formed but unknown to this build's `ELEMENTS`
+    /// are dropped (and logged at `debug!`). Missing slots default to 0.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct MapVisitor<const N: usize, T: FiniteCounter<N>>(PhantomData<T>);
+        struct SeqVisitor<const N: usize, T: FiniteCounter<N>>(PhantomData<T>);
 
-        impl<'de, const N: usize, T> serde::de::Visitor<'de> for MapVisitor<N, T>
+        impl<'de, const N: usize, T> serde::de::Visitor<'de> for SeqVisitor<N, T>
         where
             T: FiniteCounter<N> + serde::de::DeserializeOwned + std::fmt::Display,
         {
             type Value = FrozenCounter<N, T>;
 
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "a map of ({}, u64) pairs", std::any::type_name::<T>())
+                write!(
+                    f,
+                    "a sequence of ({}, u64) pairs",
+                    std::any::type_name::<T>()
+                )
             }
 
-            fn visit_map<A: serde::de::MapAccess<'de>>(
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
                 self,
                 mut access: A,
             ) -> Result<Self::Value, A::Error> {
                 let mut slots: [u64; N] = [0u64; N];
                 let mut unknown: Vec<T> = Vec::new();
-                while let Some((element, value)) = access.next_entry::<T, u64>()? {
+                while let Some((element, value)) = access.next_element::<(T, u64)>()? {
                     match element.slot_from_key() {
                         Some(slot) => slots[slot] = value,
                         None => unknown.push(element),
@@ -210,7 +215,7 @@ where
             }
         }
 
-        deserializer.deserialize_map(MapVisitor::<N, T>(PhantomData))
+        deserializer.deserialize_seq(SeqVisitor::<N, T>(PhantomData))
     }
 }
 
@@ -308,9 +313,9 @@ mod tests {
     }
 
     #[test]
-    fn frozen_counter_serialize_json_emits_iana_keys() {
-        // Slot 0 of Cipher is TLS_AES_128_GCM_SHA256, IANA id 0x1301
-        // (= 4865 decimal).
+    fn frozen_counter_serialize_json_emits_iana_pairs() {
+        // Slot 0 of Cipher is TLS_AES_128_GCM_SHA256, on-wire id
+        // `[0x13, 0x01]` (= 4865 decimal).
         let mut counter = Counter::<CIPHER_COUNT, Cipher>::new();
         let slot_0_cipher = Cipher::key_from_slot(0).unwrap();
         for _ in 0..3 {
@@ -319,17 +324,14 @@ mod tests {
         let frozen = counter.freeze();
 
         let value = serde_json::to_value(&frozen).unwrap();
-        let map = value.as_object().unwrap();
-
-        assert_eq!(map.len(), 1);
-        assert_eq!(map.get("4865").and_then(|v| v.as_u64()), Some(3));
+        assert_eq!(value, serde_json::json!([[[0x13, 0x01], 3]]));
     }
 
     #[test]
-    fn frozen_counter_deserialize_unknown_key_dropped() {
-        // 4865 is TLS_AES_128_GCM_SHA256 (slot 0); 65535 is not in the
-        // cipher registry, so it must be dropped on decode.
-        let json = r#"{"4865": 3, "65535": 7}"#;
+    fn frozen_counter_deserialize_unknown_element_dropped() {
+        // `[0x13, 0x01]` is TLS_AES_128_GCM_SHA256 (slot 0); `[0xff, 0xff]`
+        // is not in the cipher registry, so it must be dropped on decode.
+        let json = r#"[[[19, 1], 3], [[255, 255], 7]]"#;
         let decoded: FrozenCounter<CIPHER_COUNT, Cipher> = serde_json::from_str(json).unwrap();
 
         let mut expected_counter = Counter::<CIPHER_COUNT, Cipher>::new();
@@ -344,7 +346,7 @@ mod tests {
 
     #[test]
     fn frozen_counter_deserialize_missing_slots_are_zero() {
-        let decoded: FrozenCounter<CIPHER_COUNT, Cipher> = serde_json::from_str("{}").unwrap();
+        let decoded: FrozenCounter<CIPHER_COUNT, Cipher> = serde_json::from_str("[]").unwrap();
 
         assert_eq!(decoded, FrozenCounter::<CIPHER_COUNT, Cipher>::default());
     }
@@ -359,14 +361,22 @@ mod malformed {
     use crate::static_lists::{CIPHER_COUNT, Cipher};
 
     #[test]
-    fn json_non_integer_key_returns_error() {
-        let json = r#"{"foo": 42}"#;
+    fn json_malformed_element_returns_error() {
+        // Element position expects a two-byte array; a string isn't decodable.
+        let json = r#"[["not a cipher", 42]]"#;
         serde_json::from_str::<FrozenCounter<CIPHER_COUNT, Cipher>>(json).unwrap_err();
     }
 
     #[test]
     fn json_non_integer_value_returns_error() {
-        let json = r#"{"4865": "not a number"}"#;
+        let json = r#"[[[19, 1], "not a number"]]"#;
+        serde_json::from_str::<FrozenCounter<CIPHER_COUNT, Cipher>>(json).unwrap_err();
+    }
+
+    #[test]
+    fn json_map_shape_returns_error() {
+        // Incorrect wire shape is not accepted.
+        let json = r#"{"4865": 3}"#;
         serde_json::from_str::<FrozenCounter<CIPHER_COUNT, Cipher>>(json).unwrap_err();
     }
 }
