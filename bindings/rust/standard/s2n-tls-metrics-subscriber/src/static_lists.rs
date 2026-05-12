@@ -79,29 +79,6 @@ impl<'de> DeserializeAs<'de, U16> for ZerocopyU16 {
     }
 }
 
-/// `serde_as` helper: encode a two-byte wire field as a big-endian `u16`.
-/// Used by `Cipher`, whose inner type is `[u8; 2]` to match the RFC 8446
-/// `opaque CipherSuite[2]` definition; this keeps that wire form on the
-/// type while serde emits the fused numeric IANA id as a map key.
-pub(crate) struct BigEndianU16;
-
-impl SerializeAs<[u8; 2]> for BigEndianU16 {
-    fn serialize_as<S: serde::Serializer>(
-        value: &[u8; 2],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        let [hi, lo] = *value;
-        serializer.serialize_u16(((hi as u16) << 8) | lo as u16)
-    }
-}
-
-impl<'de> DeserializeAs<'de, [u8; 2]> for BigEndianU16 {
-    fn deserialize_as<D: serde::Deserializer<'de>>(deserializer: D) -> Result<[u8; 2], D::Error> {
-        let id = <u16 as serde::Deserialize>::deserialize(deserializer)?;
-        Ok([(id >> 8) as u8, id as u8])
-    }
-}
-
 /// A TLS parameter type whose values can be enumerated at compile time,
 /// giving each value a stable slot index in `[0, N)` for the counter
 /// abstraction to use. The trait only constrains the slot bijection;
@@ -279,7 +256,6 @@ impl<'a> DecoderValue<'a> for Version {
     }
 }
 
-#[serde_as]
 #[derive(
     Debug,
     Clone,
@@ -294,7 +270,7 @@ impl<'a> DecoderValue<'a> for Version {
     serde::Deserialize,
 )]
 #[repr(C)]
-pub(crate) struct Cipher(#[serde_as(as = "BigEndianU16")] pub(crate) [u8; 2]);
+pub(crate) struct Cipher(pub(crate) [u8; 2]);
 
 impl Cipher {
     #[allow(dead_code)] // kept as part of the typed cipher roster
