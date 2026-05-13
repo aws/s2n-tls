@@ -1045,5 +1045,91 @@ int main(int argc, char **argv)
                 S2N_ERR_INVALID_STATE);
     };
 
+    /* Self-talk: V2 preserves the TLS1.0 CBC implicit IV across serialize/deserialize.
+     *
+     * TLS1.0 and SSLv3 CBC chain records: the last ciphertext block of record N
+     * becomes the IV of record N+1. V1 drops that state, so deserialized TLS1.0
+     * connections cannot continue sending or receiving records. V2 appends both
+     * peers' implicit_iv buffers to the blob.
+     */
+    {
+        /* Force a specific CBC cipher suite so the test always exercises the
+         * chaining path. Pattern borrowed from s2n_cbc_test.c. */
+        struct s2n_cipher_suite *test_ciphers[] = { &s2n_ecdhe_rsa_with_aes_128_cbc_sha };
+        struct s2n_cipher_preferences test_prefs = {
+            .count = s2n_array_len(test_ciphers),
+            .suites = test_ciphers,
+        };
+        struct s2n_security_policy test_policy = security_policy_test_all;
+        test_policy.cipher_preferences = &test_prefs;
+
+        DEFER_CLEANUP(struct s2n_config *tls10_v2_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls10_v2_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls10_v2_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls10_v2_config));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(tls10_v2_config, S2N_SERIALIZED_CONN_V2));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls10_v2_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls10_v2_config));
+        client_conn->security_policy_override = &test_policy;
+        server_conn->security_policy_override = &test_policy;
+        client_conn->client_protocol_version = S2N_TLS10;
+        server_conn->server_protocol_version = S2N_TLS10;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS10);
+
+        /* Exchange records on both directions to mutate the implicit IV */
+        for (size_t i = 0; i < 3; i++) {
+            EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+        }
+
+        uint8_t expected_client_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        uint8_t expected_server_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        EXPECT_MEMCPY_SUCCESS(expected_client_iv, server_conn->secure->client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+        EXPECT_MEMCPY_SUCCESS(expected_server_iv, server_conn->secure->server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+
+        uint32_t length = 0;
+        EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
+        EXPECT_EQUAL(length, S2N_SERIALIZED_CONN_V2_TLS10_SIZE);
+
+        uint8_t buffer[S2N_SERIALIZED_CONN_V2_TLS10_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+        DEFER_CLEANUP(struct s2n_connection *new_server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(new_server_conn);
+        EXPECT_SUCCESS(s2n_connection_deserialize(new_server_conn, buffer, sizeof(buffer)));
+
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->client_implicit_iv,
+                expected_client_iv, S2N_TLS_MAX_IV_LEN);
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->server_implicit_iv,
+                expected_server_iv, S2N_TLS_MAX_IV_LEN);
+
+        /* End-to-end: the deserialized server keeps talking to the still-live
+         * client. Without V2 IV preservation the first record here would fail. */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
+        for (size_t i = 0; i < 10; i++) {
+            EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+        }
+    };
+
     END_TEST();
 }

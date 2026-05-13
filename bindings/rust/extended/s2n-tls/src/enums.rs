@@ -293,6 +293,8 @@ impl From<PskHmac> for s2n_psk_hmac::Type {
 pub enum SerializationVersion {
     None,
     V1,
+    /// Extends V1 with TLS1.0 CBC implicit IV preservation.
+    V2,
 }
 
 impl From<SerializationVersion> for s2n_serialization_version::Type {
@@ -300,6 +302,7 @@ impl From<SerializationVersion> for s2n_serialization_version::Type {
         match input {
             SerializationVersion::None => s2n_serialization_version::SERIALIZED_CONN_NONE,
             SerializationVersion::V1 => s2n_serialization_version::SERIALIZED_CONN_V1,
+            SerializationVersion::V2 => s2n_serialization_version::SERIALIZED_CONN_V2,
         }
     }
 }

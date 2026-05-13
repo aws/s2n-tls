@@ -1297,8 +1297,9 @@ int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serializ
     /* This feature cannot be used with renegotiation currently */
     POSIX_ENSURE(config->renegotiate_request_cb == NULL, S2N_ERR_INVALID_STATE);
 
-    /* Currently there is only one format version supported */
-    POSIX_ENSURE_EQ(version, S2N_SERIALIZED_CONN_V1);
+    /* V1 and V2 are currently supported */
+    POSIX_ENSURE(version == S2N_SERIALIZED_CONN_V1 || version == S2N_SERIALIZED_CONN_V2,
+            S2N_ERR_INVALID_ARGUMENT);
     config->serialized_connection_version = version;
 
     return S2N_SUCCESS;

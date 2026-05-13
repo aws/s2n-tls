@@ -44,6 +44,9 @@ int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *l
         uint8_t secret_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
         *length = S2N_SERIALIZED_CONN_FIXED_SIZE + (secret_size * 3);
+    } else if (conn->config->serialized_connection_version == S2N_SERIALIZED_CONN_V2
+            && conn->actual_protocol_version < S2N_TLS11) {
+        *length = S2N_SERIALIZED_CONN_V2_TLS10_SIZE;
     } else {
         *length = S2N_SERIALIZED_CONN_TLS12_SIZE;
     }
@@ -72,6 +75,8 @@ static S2N_RESULT s2n_connection_serialize_tls13_secrets(struct s2n_connection *
 static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_REF(conn->secure);
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secrets.version.tls12.master_secret,
             S2N_TLS_SECRET_LEN));
@@ -79,6 +84,17 @@ static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, 
             S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->handshake_params.server_random,
             S2N_TLS_RANDOM_DATA_LEN));
+
+    /* In TLS1.0 and SSLv3, CBC chains the implicit IV across records, so the
+     * IV state must be preserved across serialization. V1 doesn't capture it.
+     */
+    if (conn->config->serialized_connection_version == S2N_SERIALIZED_CONN_V2
+            && conn->actual_protocol_version < S2N_TLS11) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secure->client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secure->server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+    }
     return S2N_RESULT_OK;
 }
 
@@ -118,7 +134,7 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     struct s2n_stuffer output = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&output, &context_blob));
 
-    POSIX_GUARD(s2n_stuffer_write_uint64(&output, S2N_SERIALIZED_CONN_V1));
+    POSIX_GUARD(s2n_stuffer_write_uint64(&output, conn->config->serialized_connection_version));
 
     POSIX_GUARD(s2n_stuffer_write_uint8(&output, conn->actual_protocol_version / 10));
     POSIX_GUARD(s2n_stuffer_write_uint8(&output, conn->actual_protocol_version % 10));
@@ -160,6 +176,10 @@ struct s2n_connection_deserialize {
             uint8_t master_secret[S2N_TLS_SECRET_LEN];
             uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
             uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
+            /* Only set for V2 blobs with protocol_version < S2N_TLS11 */
+            bool has_implicit_iv;
+            uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
+            uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
         } tls12;
         struct {
             uint8_t secret_size;
@@ -189,6 +209,7 @@ static S2N_RESULT s2n_connection_deserialize_tls13_secrets(struct s2n_stuffer *i
 }
 
 static S2N_RESULT s2n_connection_deserialize_secrets(struct s2n_stuffer *input,
+        uint64_t serialized_version,
         struct s2n_connection_deserialize *parsed_values)
 {
     RESULT_ENSURE_REF(input);
@@ -197,6 +218,18 @@ static S2N_RESULT s2n_connection_deserialize_secrets(struct s2n_stuffer *input,
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.master_secret, S2N_TLS_SECRET_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.client_random, S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    /* See s2n_connection_serialize_secrets for why V2 + TLS1.0/SSLv3 trails the
+     * implicit IVs. V1 blobs and V2 blobs for TLS1.1+ end at the server_random.
+     */
+    if (serialized_version == S2N_SERIALIZED_CONN_V2
+            && parsed_values->protocol_version < S2N_TLS11) {
+        RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+        RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+        parsed_values->version.tls12.has_implicit_iv = true;
+    }
 
     return S2N_RESULT_OK;
 }
@@ -213,8 +246,9 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
 
     uint64_t serialized_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(&input, &serialized_version));
-    /* No other version is supported currently */
-    RESULT_ENSURE_EQ(serialized_version, S2N_SERIALIZED_CONN_V1);
+    RESULT_ENSURE(serialized_version == S2N_SERIALIZED_CONN_V1
+                    || serialized_version == S2N_SERIALIZED_CONN_V2,
+            S2N_ERR_INVALID_SERIALIZED_CONNECTION);
 
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -235,7 +269,7 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
     if (parsed_values->protocol_version >= S2N_TLS13) {
         RESULT_GUARD(s2n_connection_deserialize_tls13_secrets(&input, parsed_values));
     } else {
-        RESULT_GUARD(s2n_connection_deserialize_secrets(&input, parsed_values));
+        RESULT_GUARD(s2n_connection_deserialize_secrets(&input, serialized_version, parsed_values));
     }
 
     return S2N_RESULT_OK;
@@ -327,6 +361,7 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
+    RESULT_ENSURE_REF(conn->secure);
 
     RESULT_CHECKED_MEMCPY(conn->secrets.version.tls12.master_secret, parsed_values->version.tls12.master_secret,
             S2N_TLS_SECRET_LEN);
@@ -335,6 +370,17 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
     RESULT_CHECKED_MEMCPY(conn->handshake_params.server_random, parsed_values->version.tls12.server_random,
             S2N_TLS_RANDOM_DATA_LEN);
     RESULT_GUARD_POSIX(s2n_prf_key_expansion(conn));
+
+    /* PRF key expansion seeds the implicit IVs from the master secret, which is
+     * only correct at record 0. V2 blobs ship the current IV state so TLS1.0 and
+     * SSLv3 CBC connections can continue where they left off.
+     */
+    if (parsed_values->version.tls12.has_implicit_iv) {
+        RESULT_CHECKED_MEMCPY(conn->secure->client_implicit_iv,
+                parsed_values->version.tls12.client_implicit_iv, S2N_TLS_MAX_IV_LEN);
+        RESULT_CHECKED_MEMCPY(conn->secure->server_implicit_iv,
+                parsed_values->version.tls12.server_implicit_iv, S2N_TLS_MAX_IV_LEN);
+    }
 
     return S2N_RESULT_OK;
 }
