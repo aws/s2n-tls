@@ -20,8 +20,8 @@ pub use attribution::Attribution;
 pub use counter::FrozenCounter;
 pub use record::{FrozenHandshakeRecord, MetricRecord};
 pub use static_lists::{
-    Cipher, FiniteCounter, Group, Signature, Version, CIPHER_COUNT, GROUP_COUNT, PROTOCOL_COUNT,
-    SIGNATURE_COUNT,
+    CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
+    Signature, Version,
 };
 pub use subscriber::AggregatedMetricsSubscriber;
 pub use telemetry_sink::TelemetrySink;

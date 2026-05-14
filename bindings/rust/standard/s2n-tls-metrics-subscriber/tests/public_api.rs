@@ -9,8 +9,8 @@
 use std::time::SystemTime;
 
 use s2n_tls_metrics_subscriber::{
-    Cipher, FiniteCounter, Group, MetricRecord, Signature, Version, CIPHER_COUNT, GROUP_COUNT,
-    PROTOCOL_COUNT, SIGNATURE_COUNT,
+    CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, MetricRecord, PROTOCOL_COUNT,
+    SIGNATURE_COUNT, Signature, Version,
 };
 
 fn sample_record_json() -> serde_json::Value {
@@ -212,54 +212,70 @@ fn empty_record_has_zero_slots() {
     });
     let record: MetricRecord = serde_json::from_value(json).unwrap();
 
-    assert!(record
-        .handshake
-        .negotiated_protocols
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .negotiated_ciphers
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .negotiated_groups
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .negotiated_signatures
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .supported_protocols
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .supported_ciphers
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .supported_groups
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
-    assert!(record
-        .handshake
-        .supported_signatures
-        .slots()
-        .iter()
-        .all(|&c| c == 0));
+    assert!(
+        record
+            .handshake
+            .negotiated_protocols
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .negotiated_ciphers
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .negotiated_groups
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .negotiated_signatures
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .supported_protocols
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .supported_ciphers
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .supported_groups
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
+    assert!(
+        record
+            .handshake
+            .supported_signatures
+            .slots()
+            .iter()
+            .all(|&c| c == 0)
+    );
 
     assert_eq!(
         record
