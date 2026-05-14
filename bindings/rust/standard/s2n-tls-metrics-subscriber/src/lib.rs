@@ -3,20 +3,25 @@
 
 pub mod attribution;
 mod compatibility;
-pub(crate) mod counter;
+pub mod counter;
 mod label;
 #[cfg(feature = "fuzzing")]
 pub mod parsing;
 #[cfg(not(feature = "fuzzing"))]
 mod parsing;
 mod record;
-mod static_lists;
+pub mod static_lists;
 pub mod subscriber;
 pub mod telemetry_sink;
 #[cfg(test)]
 mod test_utils;
 
 pub use attribution::Attribution;
-pub use record::MetricRecord;
+pub use counter::FrozenCounter;
+pub use record::{FrozenHandshakeRecord, MetricRecord};
+pub use static_lists::{
+    Cipher, FiniteCounter, Group, Signature, Version, CIPHER_COUNT, GROUP_COUNT, PROTOCOL_COUNT,
+    SIGNATURE_COUNT,
+};
 pub use subscriber::AggregatedMetricsSubscriber;
 pub use telemetry_sink::TelemetrySink;

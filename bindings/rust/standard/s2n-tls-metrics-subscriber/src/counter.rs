@@ -73,7 +73,7 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for Counter<N, T> {
 
 /// Exportable, immutable snapshot of a [`Counter<N, T>`].
 #[derive(Clone, PartialEq)]
-pub(crate) struct FrozenCounter<const N: usize, T: FiniteCounter<N>> {
+pub struct FrozenCounter<const N: usize, T: FiniteCounter<N>> {
     pub(super) slots: [u64; N],
     pub(super) element: PhantomData<T>,
 }
@@ -95,8 +95,13 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for FrozenCounter<N, T
 }
 
 impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
+    /// The underlying slot array in element order.
+    pub fn slots(&self) -> &[u64; N] {
+        &self.slots
+    }
+
     /// `(slot, element, count)` triples for non-zero slots, in slot order.
-    pub(crate) fn iter_non_zero(&self) -> impl Iterator<Item = (usize, T, u64)> + '_ {
+    pub fn iter_non_zero(&self) -> impl Iterator<Item = (usize, T, u64)> + '_ {
         self.slots
             .iter()
             .enumerate()

@@ -21,10 +21,10 @@ pub enum TlsParam {
     SignatureScheme,
 }
 
-pub(crate) const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
-pub(crate) const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
-pub(crate) const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
-pub(crate) const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
+pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
+pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
+pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
+pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 
 use s2n_codec::{DecoderValue, zerocopy::U16};
 #[cfg(test)]
@@ -84,7 +84,7 @@ impl<'de> DeserializeAs<'de, U16> for ZerocopyU16 {
 /// abstraction to use. The trait only constrains the slot bijection;
 /// separate concerns (`Display`, serde, `FromStr`) are required at the
 /// impl sites that use them.
-pub(crate) trait FiniteCounter<const N: usize>: Copy + PartialEq {
+pub trait FiniteCounter<const N: usize>: Copy + PartialEq {
     /// All values of `Self` that the counter recognizes. Every element is
     /// assigned a stable slot index equal to its position in this array.
     const ELEMENTS: [Self; N];
@@ -219,7 +219,7 @@ unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
     serde::Deserialize,
 )]
 #[repr(C)]
-pub(crate) struct Version(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
+pub struct Version(#[serde_as(as = "ZerocopyU16")] pub s2n_codec::zerocopy::U16);
 
 impl Version {
     pub const SSL_V3: Version = Version(U16::new(0x0300));
@@ -270,7 +270,7 @@ impl<'a> DecoderValue<'a> for Version {
     serde::Deserialize,
 )]
 #[repr(C)]
-pub(crate) struct Cipher(pub(crate) [u8; 2]);
+pub struct Cipher(pub [u8; 2]);
 
 impl Cipher {
     #[allow(dead_code)] // kept as part of the typed cipher roster
@@ -332,7 +332,7 @@ impl Display for Cipher {
     serde::Deserialize,
 )]
 #[repr(C)]
-pub(crate) struct Signature(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
+pub struct Signature(#[serde_as(as = "ZerocopyU16")] pub s2n_codec::zerocopy::U16);
 
 // we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
@@ -387,7 +387,7 @@ impl Display for Signature {
     serde::Deserialize,
 )]
 #[repr(C)]
-pub(crate) struct Group(#[serde_as(as = "ZerocopyU16")] pub(crate) s2n_codec::zerocopy::U16);
+pub struct Group(#[serde_as(as = "ZerocopyU16")] pub s2n_codec::zerocopy::U16);
 
 // we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
