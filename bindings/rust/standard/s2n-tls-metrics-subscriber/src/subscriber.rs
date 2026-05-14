@@ -3,6 +3,7 @@
 
 use crate::{
     attribution::Attribution,
+    detector::SyntheticTrafficDetector,
     record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord},
     telemetry_sink::TelemetrySink,
 };
@@ -10,7 +11,7 @@ use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
 use std::{
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, OnceLock,
         atomic::{AtomicU64, Ordering},
         mpsc::{self, Receiver, Sender},
     },
@@ -41,7 +42,6 @@ pub struct AggregatedMetricsSubscriber<S: TelemetrySink> {
 /// are no references to the HandshakeRecordInProgress (e.g. no threads updating
 /// it) then its `drop` implementation will write it to the channel, where it can
 /// then be read by the export pipeline.
-#[derive(Debug)]
 struct MetricSubscriberInner<S: TelemetrySink> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
     /// This handle is not directly used, but is used when constructing new
@@ -61,6 +61,27 @@ struct MetricSubscriberInner<S: TelemetrySink> {
     /// Using an AtomicU64 so the fast-path check in `on_handshake_event`
     /// doesn't need to acquire the export_pipeline mutex.
     last_export_epoch_ms: AtomicU64,
+
+    /// Optional plug-in for marking handshakes as synthetic traffic.
+    /// Installed once via `with_synthetic_traffic_detector`; the hot path
+    /// reads it lock-free.
+    synthetic_detector: OnceLock<Box<dyn SyntheticTrafficDetector>>,
+}
+
+impl<S: TelemetrySink + std::fmt::Debug> std::fmt::Debug for MetricSubscriberInner<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MetricSubscriberInner")
+            .field("current_record", &self.current_record)
+            .field("export_pipeline", &self.export_pipeline)
+            .field("attribution", &self.attribution)
+            .field("export_interval", &self.export_interval)
+            .field("last_export_epoch_ms", &self.last_export_epoch_ms)
+            .field(
+                "synthetic_detector_installed",
+                &self.synthetic_detector.get().is_some(),
+            )
+            .finish()
+    }
 }
 
 fn epoch_ms_now() -> u64 {
@@ -102,10 +123,27 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             attribution,
             export_interval,
             last_export_epoch_ms: AtomicU64::new(epoch_ms_now()),
+            synthetic_detector: OnceLock::new(),
         };
         Self {
             inner: Arc::new(inner),
         }
+    }
+
+    /// Install a detector that flags certain handshakes as synthetic traffic
+    /// (e.g. scanners, health-checks, load tests). When it returns `true`,
+    /// the subscriber bumps `synthetic_traffic_count` on the record. All
+    /// other counters are unaffected, so consumers can subtract this from
+    /// `handshake_count` to recover real traffic.
+    ///
+    /// Must be called before any handshake traffic begins. Subsequent calls
+    /// are silently ignored.
+    pub fn with_synthetic_traffic_detector(
+        self,
+        detector: Box<dyn SyntheticTrafficDetector>,
+    ) -> Self {
+        let _ = self.inner.synthetic_detector.set(detector);
+        self
     }
 
     /// Finish aggregation of the record and export it.
@@ -175,7 +213,12 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
         event: &s2n_tls::events::HandshakeEvent,
     ) {
         let current_record = self.inner.current_record.load_full();
-        let res = current_record.update(connection, event);
+        let detector = self
+            .inner
+            .synthetic_detector
+            .get()
+            .map(|boxed| boxed.as_ref());
+        let res = current_record.update(connection, event, detector);
         // we never expect this to fail, but if it fails in production there is
         // no meaningful way to handle the failure
         debug_assert!(res.is_ok());
@@ -308,5 +351,85 @@ mod tests {
             1,
             "passive export should have produced a record"
         );
+    }
+
+    /// When a synthetic-traffic detector is configured and matches, the
+    /// `synthetic_traffic_count` field is bumped. Other counters
+    /// (`handshake_count`, etc.) still reflect every handshake — the record
+    /// is lossless and the consumer is responsible for subtracting.
+    #[test]
+    fn synthetic_traffic_detector_increments_count() {
+        use crate::{
+            AggregatedMetricsSubscriber, Attribution, SyntheticTrafficDetector, test_utils::VecSink,
+        };
+        use s2n_tls::{
+            client_hello::ClientHello,
+            security::DEFAULT_TLS13,
+            testing::{TestPair, build_config, config_builder},
+        };
+        use std::sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        };
+
+        // Toggleable detector: returns whatever its inner flag is set to.
+        // Lets us drive "synthetic" vs "real" handshakes from the test body.
+        struct ToggleDetector(Arc<AtomicBool>);
+        impl SyntheticTrafficDetector for ToggleDetector {
+            fn is_synthetic(&self, _ch: &ClientHello) -> bool {
+                self.0.load(Ordering::Relaxed)
+            }
+        }
+
+        let toggle = Arc::new(AtomicBool::new(false));
+        let sink = VecSink::new();
+        let attribution = Attribution {
+            service: "test_server".to_owned(),
+            resource: "test_resource".to_owned(),
+        };
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution)
+            .with_synthetic_traffic_detector(Box::new(ToggleDetector(toggle.clone())));
+        let server_config = {
+            let mut cfg = config_builder(&DEFAULT_TLS13).unwrap();
+            cfg.set_event_subscriber(subscriber.clone()).unwrap();
+            cfg.build().unwrap()
+        };
+        let client_config = build_config(&ARBITRARY_POLICY_1).unwrap();
+
+        // 2 "real" handshakes, then 3 "synthetic" ones.
+        for _ in 0..2 {
+            TestPair::from_configs(&client_config, &server_config)
+                .handshake()
+                .unwrap();
+        }
+        toggle.store(true, Ordering::Relaxed);
+        for _ in 0..3 {
+            TestPair::from_configs(&client_config, &server_config)
+                .handshake()
+                .unwrap();
+        }
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        assert_eq!(records.len(), 1);
+        let record = &records[0].handshake;
+
+        // 5 total handshakes; 3 of them flagged synthetic.
+        assert_eq!(record.handshake_count, 5);
+        assert_eq!(record.synthetic_traffic_count, 3);
+    }
+
+    /// With no detector installed, `synthetic_traffic_count` stays at zero
+    /// regardless of handshake volume.
+    #[test]
+    fn synthetic_traffic_count_zero_when_no_detector() {
+        let endpoint = TestEndpoint::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        assert_eq!(records[0].handshake.handshake_count, 2);
+        assert_eq!(records[0].handshake.synthetic_traffic_count, 0);
     }
 }
