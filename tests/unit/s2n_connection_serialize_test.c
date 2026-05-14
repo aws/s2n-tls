@@ -69,6 +69,36 @@ static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
     return S2N_SUCCESS;
 }
 
+/* TLS 1.0 BEAST mitigation splits the first byte of each CBC payload into its
+ * own record (see s2n_send.c). A single s2n_recv call only consumes one record,
+ * so we loop until the expected number of bytes have been read.
+ */
+static S2N_RESULT s2n_test_send_and_recv_loop(struct s2n_connection *send_conn,
+        struct s2n_connection *recv_conn)
+{
+    RESULT_ENSURE_REF(send_conn);
+    RESULT_ENSURE_REF(recv_conn);
+
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    const uint8_t send_data[] = "hello world";
+    ssize_t send_size = s2n_send(send_conn, send_data, sizeof(send_data), &blocked);
+    RESULT_GUARD_POSIX(send_size);
+    RESULT_ENSURE_EQ(send_size, sizeof(send_data));
+
+    uint8_t recv_data[sizeof(send_data)] = { 0 };
+    size_t bytes_recvd = 0;
+    while (bytes_recvd < sizeof(send_data)) {
+        ssize_t r = s2n_recv(recv_conn, recv_data + bytes_recvd,
+                sizeof(send_data) - bytes_recvd, &blocked);
+        RESULT_GUARD_POSIX(r);
+        RESULT_ENSURE_GT(r, 0);
+        bytes_recvd += r;
+    }
+    RESULT_ENSURE_EQ(memcmp(recv_data, send_data, send_size), 0);
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_test_deserialize_with_version(const uint8_t *serialized_data,
         uint8_t version,
         bool should_succeed)
@@ -1092,8 +1122,8 @@ int main(int argc, char **argv)
 
         /* Exchange records on both directions to mutate the implicit IV */
         for (size_t i = 0; i < 3; i++) {
-            EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
-            EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, server_conn));
         }
 
         uint8_t expected_client_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
@@ -1126,8 +1156,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
         for (size_t i = 0; i < 10; i++) {
-            EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
-            EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(new_server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, new_server_conn));
         }
     };
 
