@@ -28,8 +28,8 @@ use crate::{
 // likely rely on an enum to handle different record types, e.g. SessionResumptionFailure.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricRecord {
-    pub(crate) attribution: Attribution,
-    pub(crate) handshake: FrozenHandshakeRecord,
+    pub attribution: Attribution,
+    pub handshake: FrozenHandshakeRecord,
 }
 
 impl MetricRecord {
@@ -256,46 +256,46 @@ fn system_time_epoch() -> SystemTime {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct FrozenHandshakeRecord {
+pub struct FrozenHandshakeRecord {
     #[serde(default = "system_time_epoch")]
-    freeze_time: SystemTime,
+    pub freeze_time: SystemTime,
 
     #[serde(default)]
-    pub(crate) handshake_count: u64,
+    pub handshake_count: u64,
 
     #[serde(default)]
-    negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
+    pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
-    negotiated_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
+    pub negotiated_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
     #[serde(default)]
-    negotiated_groups: FrozenCounter<GROUP_COUNT, Group>,
+    pub negotiated_groups: FrozenCounter<GROUP_COUNT, Group>,
     #[serde(default)]
-    negotiated_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
+    pub negotiated_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
 
     #[serde(default)]
-    sslv2_client_hello: u64,
+    pub sslv2_client_hello: u64,
     #[serde(default)]
-    supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
+    pub supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
-    supported_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
+    pub supported_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
     #[serde(default)]
-    supported_groups: FrozenCounter<GROUP_COUNT, Group>,
+    pub supported_groups: FrozenCounter<GROUP_COUNT, Group>,
     #[serde(default)]
-    supported_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
+    pub supported_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
 
     #[serde(default)]
-    compatibility_general20251201: u64,
+    pub compatibility_general20251201: u64,
     #[serde(default)]
-    compatibility_fips20251201: u64,
+    pub compatibility_fips20251201: u64,
     #[serde(default)]
-    compatibility_cnsa1: u64,
+    pub compatibility_cnsa1: u64,
     #[serde(default)]
-    compatibility_cnsa2: u64,
+    pub compatibility_cnsa2: u64,
 
     #[serde(default)]
-    handshake_duration_us: u64,
+    pub handshake_duration_us: u64,
     #[serde(default)]
-    handshake_compute_us: u64,
+    pub handshake_compute_us: u64,
 }
 
 // This is just cfg(test) because we only use it in tests to assert on cases of
