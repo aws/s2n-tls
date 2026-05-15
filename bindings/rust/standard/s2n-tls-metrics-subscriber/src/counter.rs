@@ -95,6 +95,14 @@ impl<const N: usize, T: FiniteCounter<N>> std::fmt::Debug for FrozenCounter<N, T
 }
 
 impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
+    /// Creates a `FrozenCounter` from raw slot values.
+    pub fn from_slots(slots: [u64; N]) -> Self {
+        Self {
+            slots,
+            element: PhantomData,
+        }
+    }
+
     /// The underlying slot array in element order.
     pub fn slots(&self) -> &[u64; N] {
         &self.slots
