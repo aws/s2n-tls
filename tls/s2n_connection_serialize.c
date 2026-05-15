@@ -85,7 +85,7 @@ static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, 
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->handshake_params.server_random,
             S2N_TLS_RANDOM_DATA_LEN));
 
-    /* In TLS1.0 and SSLv3, CBC chains the implicit IV across records, so the
+    /* In TLS1.0, CBC chains the implicit IV across records, so the
      * IV state must be preserved across serialization. V1 doesn't capture it.
      */
     if (conn->config->serialized_connection_version == S2N_SERIALIZED_CONN_V2
@@ -219,7 +219,7 @@ static S2N_RESULT s2n_connection_deserialize_secrets(struct s2n_stuffer *input,
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.client_random, S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* See s2n_connection_serialize_secrets for why V2 + TLS1.0/SSLv3 trails the
+    /* See s2n_connection_serialize_secrets for why V2 + TLS1.0 trails the
      * implicit IVs. V1 blobs and V2 blobs for TLS1.1+ end at the server_random.
      */
     if (serialized_version == S2N_SERIALIZED_CONN_V2
@@ -372,8 +372,8 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
     RESULT_GUARD_POSIX(s2n_prf_key_expansion(conn));
 
     /* PRF key expansion seeds the implicit IVs from the master secret, which is
-     * only correct at record 0. V2 blobs ship the current IV state so TLS1.0 and
-     * SSLv3 CBC connections can continue where they left off.
+     * only correct at record 0. V2 blobs ship the current IV state so TLS1.0
+     * CBC connections can continue where they left off.
      */
     if (parsed_values->version.tls12.has_implicit_iv) {
         RESULT_CHECKED_MEMCPY(conn->secure->client_implicit_iv,

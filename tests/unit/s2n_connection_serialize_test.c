@@ -1077,8 +1077,8 @@ int main(int argc, char **argv)
 
     /* Self-talk: V2 preserves the TLS1.0 CBC implicit IV across serialize/deserialize.
      *
-     * TLS1.0 and SSLv3 CBC chain records: the last ciphertext block of record N
-     * becomes the IV of record N+1. V1 drops that state, so deserialized TLS1.0
+     * TLS1.0 CBC chains records: the last ciphertext block of record N becomes
+     * the IV of record N+1. V1 drops that state, so deserialized TLS1.0
      * connections cannot continue sending or receiving records. V2 appends both
      * peers' implicit_iv buffers to the blob.
      */
