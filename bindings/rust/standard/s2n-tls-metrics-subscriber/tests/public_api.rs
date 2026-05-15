@@ -47,14 +47,20 @@ fn cbor_stream_deserialization() {
 
     let mut stream = Vec::new();
     for _ in 0..3 {
-        stream.extend_from_slice(&serde_cbor::to_vec(&record).unwrap());
+        ciborium::into_writer(&record, &mut stream).unwrap();
     }
 
-    let records: Vec<MetricRecord> = serde_cbor::StreamDeserializer::new(
-        serde_cbor::de::IoRead::new(std::io::Cursor::new(&stream)),
-    )
-    .collect::<Result<Vec<_>, _>>()
-    .unwrap();
+    let mut cursor = std::io::Cursor::new(&stream);
+    let mut records: Vec<MetricRecord> = Vec::new();
+    loop {
+        match ciborium::from_reader(&mut cursor) {
+            Ok(record) => records.push(record),
+            Err(ciborium::de::Error::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            }
+            Err(e) => panic!("deserialization error: {e}"),
+        }
+    }
 
     assert_eq!(records.len(), 3);
     for r in &records {
@@ -195,8 +201,9 @@ fn slots_and_iter_non_zero_are_consistent() {
 #[test]
 fn cbor_round_trip_preserves_all_fields() {
     let original: MetricRecord = serde_json::from_value(sample_record_json()).unwrap();
-    let cbor_bytes = serde_cbor::to_vec(&original).unwrap();
-    let recovered: MetricRecord = serde_cbor::from_slice(&cbor_bytes).unwrap();
+    let mut cbor_bytes = Vec::new();
+    ciborium::into_writer(&original, &mut cbor_bytes).unwrap();
+    let recovered: MetricRecord = ciborium::from_reader(cbor_bytes.as_slice()).unwrap();
 
     assert_eq!(original, recovered);
 }
