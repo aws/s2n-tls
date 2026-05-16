@@ -8,7 +8,8 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [dependencies]
-s2n-codec = "0.80"
+s2n-tls-metrics-schema = { version = "0.0.1", path = "../s2n-tls-metrics-schema", features = ["metrique"] }
+s2n-codec.workspace = true
 static_assertions = "1.1.0"
 zerocopy = "0.8.33"
 tracing = "0.1.43"

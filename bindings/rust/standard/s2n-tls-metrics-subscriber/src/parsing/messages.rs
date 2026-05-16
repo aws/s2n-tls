@@ -6,7 +6,7 @@ use s2n_codec::{
     decoder::{PrefixedBlob, PrefixedList},
 };
 
-use crate::static_lists::{Cipher, Group, Signature, Version};
+use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
 /// Defined in https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
 #[allow(dead_code)]
