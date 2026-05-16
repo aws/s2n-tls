@@ -23,8 +23,8 @@
         + S2N_TLS_SEQUENCE_NUM_LEN + S2N_TLS_SEQUENCE_NUM_LEN + 2)
 #define S2N_SERIALIZED_CONN_TLS12_SIZE (S2N_SERIALIZED_CONN_FIXED_SIZE + S2N_TLS_SECRET_LEN \
         + S2N_TLS_RANDOM_DATA_LEN + S2N_TLS_RANDOM_DATA_LEN)
-/* V2-only. TLS1.0 CBC preserves the implicit IV across records, so the
- * serialized form appends both peers' IV buffers to the TLS1.2-shaped body.
+/* V2-only. TLS1.0 and SSLv3 CBC preserve the implicit IV across records, so
+ * the serialized form appends both peers' IV buffers to the TLS1.2-shaped body.
  */
-#define S2N_SERIALIZED_CONN_V2_TLS10_SIZE (S2N_SERIALIZED_CONN_TLS12_SIZE \
+#define S2N_SERIALIZED_CONN_V2_WITH_IV_SIZE (S2N_SERIALIZED_CONN_TLS12_SIZE \
         + S2N_TLS_MAX_IV_LEN + S2N_TLS_MAX_IV_LEN)

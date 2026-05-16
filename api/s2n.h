@@ -3932,7 +3932,7 @@ S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t 
  * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
  *
  * S2N_SERIALIZED_CONN_V2 expands the connection serialization feature by adding
- * support for CBC ciphers in TLS 1.0 connections.
+ * support for CBC ciphers in TLS 1.0 and SSLv3 connections.
  */
 typedef enum {
     S2N_SERIALIZED_CONN_NONE = 0,
@@ -3994,7 +3994,7 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @warning Due to the above read/buffering interaction, this API must not be used
  * with recv_buffering (s2n_connection_set_recv_buffering), because there is no
  * way to ensure that an s2n-tls connection hasn't buffered any record fragments.
- * @note TLS 1.0 serialization with CBC ciphers requires `S2N_SERIALIZED_CONN_V2`.
+ * @note TLS 1.0 and SSLv3 serialization with CBC ciphers requires `S2N_SERIALIZED_CONN_V2`.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
