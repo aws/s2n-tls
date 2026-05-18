@@ -204,7 +204,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     /* Increment the count.
      * Don't treat overflows as errors-- we only do best-effort reporting.
      */
-    *count = MIN(UINT8_MAX, *count + 1);
+    *count = S2NMIN(UINT8_MAX, *count + 1);
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and

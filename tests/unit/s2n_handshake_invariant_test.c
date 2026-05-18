@@ -57,7 +57,7 @@ static int amt_written = 0;
 int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uint32_t len)
 {
     int amt_left = sizeof(record) - amt_written;
-    int to_write = MIN(len, amt_left);
+    int to_write = S2NMIN(len, amt_left);
     POSIX_CHECKED_MEMCPY(buf, record + amt_written, to_write);
     amt_written += to_write;
     return to_write;

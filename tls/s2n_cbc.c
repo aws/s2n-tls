@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_hmac.h"
 #include "error/s2n_errno.h"
@@ -57,7 +56,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Determine what the padding length is */
     uint8_t padding_length = decrypted->data[decrypted->size - 1];
 
-    int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
+    int payload_length = S2NMAX(payload_and_padding_size - padding_length - 1, 0);
 
     /* Update the MAC */
     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
@@ -88,7 +87,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     }
 
     /* Check the maximum amount that could theoretically be padding */
-    uint32_t check = MIN(255, (payload_and_padding_size - 1));
+    uint32_t check = S2NMIN(255, (payload_and_padding_size - 1));
 
     POSIX_ENSURE_GTE(check, padding_length);
 

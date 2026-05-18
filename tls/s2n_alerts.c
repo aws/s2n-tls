@@ -16,7 +16,6 @@
 #include "tls/s2n_alerts.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
@@ -254,7 +253,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             bytes_required = 1;
         }
 
-        int bytes_to_read = MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
+        int bytes_to_read = S2NMIN(bytes_required, s2n_stuffer_data_available(&conn->in));
 
         POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 

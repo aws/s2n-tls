@@ -14,7 +14,6 @@
  */
 
 #include <errno.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_cipher.h"
@@ -60,7 +59,7 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
         /* When in doubt, flush */
         return true;
     }
-    max_payload_size = MIN(max_payload_size, remaining_payload_size);
+    max_payload_size = S2NMIN(max_payload_size, remaining_payload_size);
 
     uint16_t max_write_size = 0;
     if (!s2n_result_is_ok(s2n_record_max_write_size(conn, max_payload_size, &max_write_size))) {
@@ -119,7 +118,7 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
         size_t iov_len = bufs[i].iov_len;
         /* Account for any offset */
         if (offs > 0) {
-            size_t offs_consumed = MIN((size_t) offs, iov_len);
+            size_t offs_consumed = S2NMIN((size_t) offs, iov_len);
             iov_len -= offs_consumed;
             offs -= offs_consumed;
         }
@@ -189,7 +188,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     /* Now write the data we were asked to send this round */
     while (total_size - conn->current_user_data_consumed) {
-        ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
+        ssize_t to_write = S2NMIN(total_size - conn->current_user_data_consumed, max_payload_size);
 
         /* If dynamic record size is enabled,
          * use small TLS records that fit into a single TCP segment for the threshold bytes of data
@@ -197,7 +196,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
             uint16_t min_payload_size = 0;
             POSIX_GUARD_RESULT(s2n_record_min_write_payload_size(conn, &min_payload_size));
-            to_write = MIN(min_payload_size, to_write);
+            to_write = S2NMIN(min_payload_size, to_write);
         }
 
         /* Don't split messages in server mode for interoperability with naive clients.

@@ -7,6 +7,10 @@ sourcefile = $(word 2, $(subst @, ,$1))
 
 ctverif := $(mydir)../bin/ct-verif.rb
 
+# Include the s2n_prelude for macros like S2NMIN/S2NMAX
+s2n_root := $(realpath $(mydir)../../..)
+cflags_prelude := -include $(s2n_root)/utils/s2n_prelude.h
+
 goals   ?=
 unroll	?=
 looplim ?=
@@ -27,7 +31,7 @@ flags = $(strip \
 	$(if $(strip $(looplim)),--loop-limit $(looplim)) \
 	$(if $(strip $(time)),--time-limit $(time)) \
 	$(if $(strip $(timing)),--timing) \
-	$(if $(strip $(cflags)),--clang-options="$(cflags)") \
+	$(if $(strip $(cflags)),--clang-options="$(cflags_prelude) $(cflags)",--clang-options="$(cflags_prelude)") \
 	$(if $(strip $(pruneBefore)),--prune-before) \
 	$(if $(strip $(pruneAfter)),--prune-after) \
 	$(if $(strip $(shadowingArgs)),--shadowingArgs="$(strip $(shadowingArgs))") \

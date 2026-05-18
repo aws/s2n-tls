@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include <sys/param.h>
-
 #include "api/s2n.h"
 #include "api/unstable/async_offload.h"
 #include "api/unstable/cert_authorities.h"
@@ -32,6 +30,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_prelude.h"
 
 #define S2N_MAX_TICKET_KEYS 48
 
@@ -44,7 +43,7 @@
  * fragmentation logic simple and consistent across message types.
  * The send buffer must be able to hold an unfragmented KeyUpdate message.
  */
-#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
+#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE S2NMAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
 #define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
 struct s2n_cipher_preferences;

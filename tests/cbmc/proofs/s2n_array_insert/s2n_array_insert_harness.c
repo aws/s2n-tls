@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
@@ -54,7 +53,7 @@ void s2n_array_insert_harness()
         /* Verify the array capacity increases by the correct amount. */
         uint32_t old_capacity = old_array.mem.size / old_array.element_size;
         if (old_array.len >= old_capacity) {
-            uint32_t expected_new_capacity = MAX(S2N_INITIAL_ARRAY_SIZE, old_capacity * 2) * old_array.element_size;
+            uint32_t expected_new_capacity = S2NMAX(S2N_INITIAL_ARRAY_SIZE, old_capacity * 2) * old_array.element_size;
             uint32_t new_capacity = array->mem.size;
             assert(new_capacity == expected_new_capacity);
         }

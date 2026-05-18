@@ -15,7 +15,6 @@
 #include "tls/s2n_resume.h"
 
 #include <math.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -97,7 +96,7 @@ static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_conn
 
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
     if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        expiration_timestamp = MIN(chosen_psk->keying_material_expiration, expiration_timestamp);
+        expiration_timestamp = S2NMIN(chosen_psk->keying_material_expiration, expiration_timestamp);
     }
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, expiration_timestamp));

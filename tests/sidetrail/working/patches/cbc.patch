@@ -1,7 +1,6 @@
-diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 --- a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 +++ b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-@@ -23,6 +23,28 @@
+@@ -22,6 +22,28 @@
  #include "utils/s2n_mem.h"
  #include "utils/s2n_safety.h"
  
@@ -30,7 +29,7 @@ diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/wor
  /* A TLS CBC record looks like ..
   *
   * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
-@@ -45,23 +67,28 @@
+@@ -44,23 +66,28 @@
   */
  int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
  {
@@ -51,7 +50,7 @@ diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/wor
 +    __VERIFIER_assume(padding_length >= 0);
 +    __VERIFIER_assume(padding_length <  256);
  
-     int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
+     int payload_length = S2NMAX(payload_and_padding_size - padding_length - 1, 0);
  
      /* Update the MAC */
      POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
@@ -61,7 +60,7 @@ diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/wor
  
      /* Check the MAC */
      uint8_t check_digest[S2N_MAX_DIGEST_LEN];
-@@ -83,9 +110,9 @@
+@@ -82,9 +109,9 @@
       * recommended. If SSLv3 must be used, the blinding feature (enabled
       * by default) helps mitigates this issue as well.
       */
@@ -73,8 +72,8 @@ diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/wor
 +    //}
  
      /* Check the maximum amount that could theoretically be padding */
-     uint32_t check = MIN(255, (payload_and_padding_size - 1));
-@@ -93,10 +120,11 @@
+     uint32_t check = S2NMIN(255, (payload_and_padding_size - 1));
+@@ -92,10 +119,11 @@
      POSIX_ENSURE_GTE(check, padding_length);
  
      uint32_t cutoff = check - padding_length;

@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_supported_versions.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
@@ -102,7 +101,7 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
 
         uint16_t client_version = (client_version_parts[0] * 10) + client_version_parts[1];
 
-        client_protocol_version = MAX(client_version, client_protocol_version);
+        client_protocol_version = S2NMAX(client_version, client_protocol_version);
 
         if (client_version > highest_supported_version) {
             continue;
@@ -114,7 +113,7 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
 
         /* We ignore the client's preferred order and instead choose
          * the highest version that both client and server support. */
-        actual_protocol_version = MAX(client_version, actual_protocol_version);
+        actual_protocol_version = S2NMAX(client_version, actual_protocol_version);
     }
 
     *client_protocol_version_out = client_protocol_version;

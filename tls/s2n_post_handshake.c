@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
@@ -93,7 +91,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
      */
     if (s2n_stuffer_data_available(message) < TLS_HANDSHAKE_HEADER_LENGTH) {
         uint32_t remaining = TLS_HANDSHAKE_HEADER_LENGTH - s2n_stuffer_data_available(message);
-        uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
+        uint32_t to_read = S2NMIN(remaining, s2n_stuffer_data_available(in));
         RESULT_GUARD_POSIX(s2n_stuffer_copy(in, message, to_read));
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) >= TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_IO_BLOCKED);
@@ -147,7 +145,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
      */
     if (s2n_stuffer_data_available(message) < message_len) {
         uint32_t remaining = message_len - s2n_stuffer_data_available(message);
-        uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
+        uint32_t to_read = S2NMIN(remaining, s2n_stuffer_data_available(in));
         RESULT_GUARD_POSIX(s2n_stuffer_copy(in, message, to_read));
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) == message_len, S2N_ERR_IO_BLOCKED);

@@ -14,7 +14,6 @@
  */
 
 #include <errno.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
@@ -1182,7 +1181,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     for (size_t i = 0; i < handshake_labels_len; i++) {
         bool label_applies = handshake_type & (1 << i);
         if (label_applies) {
-            size_t bytes_to_copy = MIN(remaining, strlen(handshake_labels[i]));
+            size_t bytes_to_copy = S2NMIN(remaining, strlen(handshake_labels[i]));
             PTR_CHECKED_MEMCPY(p, handshake_labels[i], bytes_to_copy);
             p[bytes_to_copy] = '\0';
             p += bytes_to_copy;
@@ -1302,7 +1301,7 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
     S2N_ERROR_IF(handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
-    bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
+    bytes_to_take = S2NMIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
 
     /* If the record is handshake data, add it to the handshake buffer */
     POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, bytes_to_take));

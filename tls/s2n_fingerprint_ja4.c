@@ -149,7 +149,7 @@ static S2N_RESULT s2n_fingerprint_ja4_count(struct s2n_blob *output, uint16_t co
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
      *# Same as counting ciphers.
      */
-    count = MIN(count, 99);
+    count = S2NMIN(count, 99);
 
     RESULT_ENSURE_EQ(output->size, 2);
     output->data[0] = (count / 10) + '0';
@@ -187,7 +187,7 @@ static S2N_RESULT s2n_fingerprint_get_extension_version(struct s2n_client_hello 
          *# If extension 0x002b exists (supported_versions), then the version is
          *# the highest value in the extension.
          */
-        *client_version = MAX(*client_version, version);
+        *client_version = S2NMAX(*client_version, version);
     }
     return S2N_RESULT_OK;
 }

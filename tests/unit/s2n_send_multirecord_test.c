@@ -15,7 +15,6 @@
 
 #include <math.h>
 #include <pthread.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -57,7 +56,7 @@ static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
     POSIX_ENSURE_LT(context->calls, context->results_len);
     const struct s2n_send_result *result = &context->results[context->calls];
 
-    int retval = MIN((int) len, result->result);
+    int retval = S2NMIN((int) len, result->result);
     if (result->assert_result) {
         POSIX_ENSURE_EQ(retval, len);
     }

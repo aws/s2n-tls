@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -40,7 +39,7 @@ void s2n_stuffer_reserve_uint24_harness()
     /* Operation under verification. */
     if (s2n_stuffer_reserve_uint24(stuffer, reservation) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + SIZEOF_UINT24);
-        assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + SIZEOF_UINT24, old_stuffer.high_water_mark));
+        assert(stuffer->high_water_mark == S2NMAX(old_stuffer.write_cursor + SIZEOF_UINT24, old_stuffer.high_water_mark));
         assert(reservation->length == SIZEOF_UINT24);
         if (old_stuffer.blob.size > 0) {
             size_t idx;

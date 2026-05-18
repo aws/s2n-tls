@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include "crypto/s2n_tls13_keys.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_handshake.h"
@@ -282,7 +280,7 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
         RESULT_ENSURE_REF(psk);
         RESULT_ENSURE_REF(psk->identity.data);
         RESULT_ENSURE_REF(wire_identity->data);
-        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        uint32_t compare_size = S2NMIN(wire_identity->size, psk->identity.size);
         if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
                 & (psk->identity.size == wire_identity->size) & (!*match)) {
             *match = psk;

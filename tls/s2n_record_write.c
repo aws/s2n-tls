@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
@@ -80,7 +79,7 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     RESULT_ENSURE_MUT(max_fragment_size);
     RESULT_ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
-    *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+    *max_fragment_size = S2NMIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* If a custom send buffer is configured, ensure it will be large enough for the payload.
      * That may mean we need a smaller fragment size.
@@ -182,7 +181,7 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t recor
      **/
     if (conn->server_protocol_version == s2n_unknown_protocol_version
             && record_type == TLS_HANDSHAKE) {
-        record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
+        record_protocol_version = S2NMIN(record_protocol_version, S2N_TLS10);
     }
 
     /**
@@ -192,7 +191,7 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t recor
      *#    ClientHello (i.e., one not generated after a HelloRetryRequest),
      *#    where it MAY also be 0x0301 for compatibility purposes.
      **/
-    record_protocol_version = MIN(record_protocol_version, S2N_TLS12);
+    record_protocol_version = S2NMIN(record_protocol_version, S2N_TLS12);
 
     /* Never send an empty protocol version.
      * If the protocol version is unknown, default to TLS1.0 like we do for initial ClientHellos.
@@ -404,7 +403,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
      */
     uint16_t max_write_payload_size = 0;
     POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_write_payload_size));
-    const uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
+    const uint16_t data_bytes_to_take = S2NMIN(to_write, max_write_payload_size);
 
     uint16_t extra = 0;
     POSIX_GUARD_RESULT(s2n_tls_record_overhead(conn, &extra));
@@ -436,7 +435,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
 
-        uint32_t buffer_size = MAX(conn->config->send_buffer_size_override, max_wire_record_size);
+        uint32_t buffer_size = S2NMAX(conn->config->send_buffer_size_override, max_wire_record_size);
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
     }
 
