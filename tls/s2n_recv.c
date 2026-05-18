@@ -92,9 +92,11 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
 {
     *isSSLv2 = 0;
 
+#ifndef _WIN32
     if (conn->ktls_recv_enabled) {
         return s2n_ktls_read_full_record(conn, record_type);
     }
+#endif
 
     /* If the record has already been decrypted, then leave it alone */
     if (conn->in_status == PLAINTEXT) {

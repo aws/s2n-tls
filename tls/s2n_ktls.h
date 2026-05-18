@@ -15,17 +15,20 @@
 
 #pragma once
 
-#include <sys/socket.h>
+/* kTLS is not supported on Windows */
+#ifndef _WIN32
 
-#include "api/unstable/ktls.h"
-#include "tls/s2n_connection.h"
-/* Define headers needed to enable and use kTLS.
+    #include <sys/socket.h>
+
+    #include "api/unstable/ktls.h"
+    #include "tls/s2n_connection.h"
+    /* Define headers needed to enable and use kTLS.
  *
  * The inline header definitions are required to compile kTLS specific code.
  * kTLS has been tested on linux. For all other platforms, kTLS is marked as
  * unsupported, and will return an unsupported error.
  */
-#include "tls/s2n_ktls_parameters.h"
+    #include "tls/s2n_ktls_parameters.h"
 
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
@@ -73,3 +76,5 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
 int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,
         size_t *bytes_written, s2n_blocked_status *blocked);
+
+#endif

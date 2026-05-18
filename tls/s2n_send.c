@@ -149,9 +149,11 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     /* Flush any pending I/O */
     POSIX_GUARD(s2n_flush(conn, blocked));
 
+#ifndef _WIN32
     if (conn->ktls_send_enabled) {
         return s2n_ktls_sendv_with_offset(conn, bufs, count, offs, blocked);
     }
+#endif
 
     /* Acknowledge consumed and flushed user data as sent */
     user_data_sent = conn->current_user_data_consumed;

@@ -13,15 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_ktls.h"
+/*
+ * kTLS is not supported on Windows. The entire file is dated out, which
+ * produces an empty translation unit error at the end of the file.
+ * Suppress the resulting clang warning.
+ */
+#ifdef _WIN32
+    #pragma clang diagnostic ignored "-Wempty-translation-unit"
+#else
 
-#include "crypto/s2n_ktls_crypto.h"
-#include "crypto/s2n_sequence.h"
-#include "tls/s2n_key_update.h"
-#include "tls/s2n_prf.h"
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13_handshake.h"
-#include "tls/s2n_tls13_key_schedule.h"
+    #include "tls/s2n_ktls.h"
+
+    #include "crypto/s2n_ktls_crypto.h"
+    #include "crypto/s2n_sequence.h"
+    #include "tls/s2n_key_update.h"
+    #include "tls/s2n_prf.h"
+    #include "tls/s2n_tls.h"
+    #include "tls/s2n_tls13_handshake.h"
+    #include "tls/s2n_tls13_key_schedule.h"
 
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
@@ -35,11 +44,11 @@ S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb)
 
 bool s2n_ktls_is_supported_on_platform()
 {
-#if defined(S2N_KTLS_SUPPORTED)
+    #if defined(S2N_KTLS_SUPPORTED)
     return true;
-#else
+    #else
     return false;
-#endif
+    #endif
 }
 
 static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
@@ -445,3 +454,5 @@ S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+#endif

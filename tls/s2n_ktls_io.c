@@ -13,37 +13,46 @@
  * permissions and limitations under the License.
  */
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
-    /* https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
+/*
+ * kTLS is not supported on Windows. The entire file is dated out, which
+ * produces an empty translation unit error at the end of the file.
+ * Suppress the resulting clang warning.
+ */
+#ifdef _WIN32
+    #pragma clang diagnostic ignored "-Wempty-translation-unit"
+#else
+
+    #if defined(__FreeBSD__) || defined(__APPLE__)
+        /* https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
      * The POSIX standard does not define the CMSG_LEN and CMSG_SPACE macros. FreeBSD
      * and APPLE check and disable these macros if the _POSIX_C_SOURCE flag is set.
      *
      * Since s2n-tls already unsets the _POSIX_C_SOURCE in other files and is not
      * POSIX compliant, we continue the pattern here.
      */
-    #undef _POSIX_C_SOURCE
-#endif
-#include <sys/socket.h>
+        #undef _POSIX_C_SOURCE
+    #endif
+    #include <sys/socket.h>
 
-#ifdef S2N_LINUX_SENDFILE
-    #include <sys/sendfile.h>
-#endif
+    #ifdef S2N_LINUX_SENDFILE
+        #include <sys/sendfile.h>
+    #endif
 
-#include "crypto/s2n_sequence.h"
-#include "error/s2n_errno.h"
-#include "tls/s2n_ktls.h"
-#include "tls/s2n_tls.h"
-#include "utils/s2n_io.h"
-#include "utils/s2n_result.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+    #include "crypto/s2n_sequence.h"
+    #include "error/s2n_errno.h"
+    #include "tls/s2n_ktls.h"
+    #include "tls/s2n_tls.h"
+    #include "utils/s2n_io.h"
+    #include "utils/s2n_result.h"
+    #include "utils/s2n_safety.h"
+    #include "utils/s2n_socket.h"
 
-/* record_type is of type uint8_t */
-#define S2N_KTLS_RECORD_TYPE_SIZE    (sizeof(uint8_t))
-#define S2N_KTLS_CONTROL_BUFFER_SIZE (CMSG_SPACE(S2N_KTLS_RECORD_TYPE_SIZE))
+    /* record_type is of type uint8_t */
+    #define S2N_KTLS_RECORD_TYPE_SIZE    (sizeof(uint8_t))
+    #define S2N_KTLS_CONTROL_BUFFER_SIZE (CMSG_SPACE(S2N_KTLS_RECORD_TYPE_SIZE))
 
-#define S2N_MAX_STACK_IOVECS     16
-#define S2N_MAX_STACK_IOVECS_MEM (S2N_MAX_STACK_IOVECS * sizeof(struct iovec))
+    #define S2N_MAX_STACK_IOVECS     16
+    #define S2N_MAX_STACK_IOVECS_MEM (S2N_MAX_STACK_IOVECS * sizeof(struct iovec))
 
 /* Used to override sendmsg and recvmsg for testing. */
 static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg);
@@ -433,15 +442,15 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
     int out_fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &out_fd));
 
-#ifdef S2N_LINUX_SENDFILE
+    #ifdef S2N_LINUX_SENDFILE
     /* https://man7.org/linux/man-pages/man2/sendfile.2.html */
     ssize_t result = 0;
     S2N_IO_RETRY_EINTR(result, sendfile(out_fd, in_fd, &offset, count));
     POSIX_GUARD_RESULT(s2n_io_check_write_result(result));
     *bytes_written = result;
-#else
+    #else
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-#endif
+    #endif
 
     POSIX_GUARD_RESULT(s2n_ktls_set_estimated_sequence_number(conn, *bytes_written));
     *blocked = S2N_NOT_BLOCKED;
@@ -487,3 +496,5 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     POSIX_GUARD_RESULT(s2n_recv_in_init(conn, bytes_read, bytes_read));
     return S2N_SUCCESS;
 }
+
+#endif
