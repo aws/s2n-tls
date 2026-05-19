@@ -35,7 +35,9 @@
 #include "utils/s2n_events.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 
 /* clang-format off */
 struct s2n_handshake_action {
@@ -853,7 +855,9 @@ message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *co
 static int s2n_advance_message(struct s2n_connection *conn)
 {
     /* Get the mode: 'C'lient or 'S'erver */
+#ifndef _WIN32
     char previous_writer = ACTIVE_STATE(conn).writer;
+#endif
     char this_mode = CONNECTION_WRITER(conn);
 
     /* Actually advance the message number */
@@ -864,6 +868,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
         conn->handshake.message_number++;
     }
 
+#ifndef _WIN32
     /* Set TCP_QUICKACK to avoid artificial delay during the handshake */
     POSIX_GUARD(s2n_socket_quickack(conn));
 
@@ -894,6 +899,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     if (s2n_connection_is_managed_corked(conn)) {
         POSIX_GUARD(s2n_socket_write_uncork(conn));
     }
+#endif
 
     return S2N_SUCCESS;
 }
