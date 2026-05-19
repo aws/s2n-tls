@@ -200,7 +200,6 @@ struct s2n_connection_deserialize {
             uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
             uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
             /* Only set for blobs with protocol_version < S2N_TLS11 + CBC/composite cipher */
-            bool has_implicit_iv;
             uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
             uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
         } tls12;
@@ -252,7 +251,6 @@ static S2N_RESULT s2n_connection_deserialize_secrets(struct s2n_stuffer *input,
                 S2N_TLS_MAX_IV_LEN));
         RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_implicit_iv,
                 S2N_TLS_MAX_IV_LEN));
-        parsed_values->version.tls12.has_implicit_iv = true;
     }
 
     return S2N_RESULT_OK;
@@ -408,7 +406,8 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
      * only correct at record 0. For TLS1.0 and SSLv3 CBC the blob ships the
      * current IV state so the connection can continue where it left off.
      */
-    if (parsed_values->version.tls12.has_implicit_iv) {
+    if (s2n_serialization_includes_implicit_iv(parsed_values->protocol_version,
+                parsed_values->cipher_suite)) {
         RESULT_CHECKED_MEMCPY(conn->secure->client_implicit_iv,
                 parsed_values->version.tls12.client_implicit_iv, S2N_TLS_MAX_IV_LEN);
         RESULT_CHECKED_MEMCPY(conn->secure->server_implicit_iv,
