@@ -104,6 +104,10 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+      - name: metrics-subscriber memory test
+        working-directory: ${{env.STANDARD_PATH}}/s2n-tls-metrics-subscriber
+        run: cargo test --release --features memory-test --test subscriber_memory
+
   external-build-test:
     runs-on: ubuntu-latest
     steps:
