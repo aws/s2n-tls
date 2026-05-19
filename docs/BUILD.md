@@ -144,7 +144,7 @@ You should consider using AWS-LC if you require FIPS. AWS-LC is s2n-tls's recomm
 
 But if you must use Openssl, s2n-tls supports FIPS mode on Openssl-3.0 with a FIPS provider loaded at runtime. See the [Openssl FIPS documentation](https://github.com/openssl/openssl/blob/master/README-FIPS.md) for how to build and configure one.
 
-At `s2n_init()`, s2n-tls calls `EVP_default_properties_is_fips_enabled(NULL)`. If `fips=yes` is set, FIPS mode is enabled and s2n-tls restricts itself to FIPS-approved algorithms for the active security policy. Starting in Openssl-3.0, the CMVP certificate belongs to the FIPS provider, which is loaded at runtime, rather than to libcrypto itself.
+At `s2n_init()`, s2n-tls calls `EVP_default_properties_is_fips_enabled(NULL)`. If `fips=yes` is set, FIPS mode is enabled: s2n-tls switches the default security policy to `default_fips` and routes PRF, HKDF, and ECDHE key checks through the libcrypto FIPS path. The active security policy still determines which algorithms are negotiated. Starting in Openssl-3.0, the CMVP certificate belongs to the FIPS provider, which is loaded at runtime, rather than to libcrypto itself.
 
 `s2n_is_in_fips_mode() == true` is not a compliance attestation. Selecting a CMVP-validated provider and operating within its security policy is the deployer's responsibility; s2n-tls only restricts protocol behavior to FIPS-approved algorithms.
 
