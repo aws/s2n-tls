@@ -116,10 +116,7 @@ fn serialization() {
         let capabilities = case.required_capabilities();
         required_capability(&capabilities, || {
             let result = run_serialization_test(case);
-            assert!(
-                result.is_ok(),
-                "{case:?}: expected success, got {result:?}",
-            );
+            assert!(result.is_ok(), "{case:?}: expected success, got {result:?}",);
         });
     }
 }
