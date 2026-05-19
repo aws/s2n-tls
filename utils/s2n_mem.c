@@ -21,9 +21,12 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/param.h>
-#include <unistd.h>
+#ifndef _WIN32
+/* No Windows-specific headers needed; mlock is not supported. */
+    #include <sys/mman.h>
+    #include <sys/param.h>
+    #include <unistd.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
@@ -47,6 +50,14 @@ static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 
 static int s2n_mem_init_impl(void)
 {
+#ifdef _WIN32
+    /* On Windows, unconditionally use the no-mlock path.
+     * Reset page_size, s2n_mem_malloc_cb, and s2n_mem_free_cb to default values.
+     */
+    page_size = 4096;
+    s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
+    s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+#else
     long sysconf_rc = sysconf(_SC_PAGESIZE);
 
     /* sysconf must not error, and page_size cannot be 0 */
@@ -61,6 +72,7 @@ static int s2n_mem_init_impl(void)
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
+#endif
     return S2N_SUCCESS;
 }
 
@@ -74,9 +86,13 @@ static int s2n_mem_cleanup_impl(void)
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
+#ifdef _WIN32
+    free(ptr);
+#else
     /* Perform a best-effort `munlock`: ignore any errors during unlocking. */
     munlock(ptr, size);
     free(ptr);
+#endif
     return S2N_SUCCESS;
 }
 
@@ -89,6 +105,10 @@ static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size)
 
 static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated)
 {
+#ifdef _WIN32
+    /* mlock is not supported on Windows; this should never be called. */
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+#else
     POSIX_ENSURE_REF(ptr);
 
     /* Page aligned allocation required for mlock */
@@ -100,16 +120,16 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE(posix_memalign(ptr, page_size, allocate) == 0, S2N_ERR_ALLOC);
     *allocated = allocate;
 
-/*
+    /*
 ** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
 ** both need to be able to dump pages to function. It's how they map heap output.
 */
-#if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
+    #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         POSIX_BAIL(S2N_ERR_MADVISE);
     }
-#endif
+    #endif
 
     if (mlock(*ptr, *allocated) != 0) {
         /* When mlock fails, no memory will be locked, so we don't use munlock on free */
@@ -120,6 +140,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE(*ptr != NULL, S2N_ERR_ALLOC);
 
     return S2N_SUCCESS;
+#endif /* _WIN32 */
 }
 
 static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated)
