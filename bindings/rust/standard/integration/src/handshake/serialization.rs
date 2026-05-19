@@ -70,26 +70,22 @@ fn build_openssl_client_config(case: &TestCase) -> openssl::ssl::SslContext {
     builder.build()
 }
 
-fn build_s2n_server_config(version: SerializationVersion) -> s2n_tls::config::Config {
+fn build_s2n_server_config() -> s2n_tls::config::Config {
     let mut builder = s2n_tls::config::Builder::new_test_config(Mode::Server);
     builder.set_chain(SigType::Rsa2048);
     builder
         .set_security_policy(&Policy::from_version("test_all").unwrap())
         .unwrap()
-        .set_serialization_version(version)
+        .set_serialization_version(SerializationVersion::V1)
         .unwrap();
     builder.build().unwrap()
 }
 
 /// Performs the full serialize → deserialize → round-trip flow.
 /// Returns Ok(()) on success, Err on any failure.
-fn run_serialization_test(
-    case: &TestCase,
-    serialization_version: SerializationVersion,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn run_serialization_test(case: &TestCase) -> Result<(), Box<dyn std::error::Error>> {
     let client_config = build_openssl_client_config(case).into();
-    let server_config: tls_harness::cohort::s2n_tls::S2NConfig =
-        build_s2n_server_config(serialization_version).into();
+    let server_config: tls_harness::cohort::s2n_tls::S2NConfig = build_s2n_server_config().into();
 
     // Handshake and do a preliminary round trip
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
@@ -114,27 +110,16 @@ fn run_serialization_test(
     Ok(())
 }
 
-/// V1 drops the TLS1.0 CBC implicit IV state on serialize, so a round-trip on
-/// V1 + TLS1.0 fails. Every other (version, serialization_version) combination
-/// is expected to round-trip cleanly.
-fn expect_success(case: &TestCase, serialization_version: SerializationVersion) -> bool {
-    !(serialization_version == SerializationVersion::V1 && case.version == SslVersion::TLS1)
-}
-
 #[test]
 fn serialization() {
-    for serialization_version in [SerializationVersion::V1, SerializationVersion::V2] {
-        for case in TEST_CASES {
-            let capabilities = case.required_capabilities();
-            required_capability(&capabilities, || {
-                let result = run_serialization_test(case, serialization_version);
-                let expected = expect_success(case, serialization_version);
-                assert_eq!(
-                    result.is_ok(),
-                    expected,
-                    "{case:?} under {serialization_version:?}: expected success={expected}, got {result:?}",
-                );
-            });
-        }
+    for case in TEST_CASES {
+        let capabilities = case.required_capabilities();
+        required_capability(&capabilities, || {
+            let result = run_serialization_test(case);
+            assert!(
+                result.is_ok(),
+                "{case:?}: expected success, got {result:?}",
+            );
+        });
     }
 }
