@@ -43,7 +43,7 @@
  * fragmentation logic simple and consistent across message types.
  * The send buffer must be able to hold an unfragmented KeyUpdate message.
  */
-#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE S2NMAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
+#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE S2N_MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
 #define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
 struct s2n_cipher_preferences;

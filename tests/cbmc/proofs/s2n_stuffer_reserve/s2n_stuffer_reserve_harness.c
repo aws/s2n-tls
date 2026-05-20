@@ -44,7 +44,7 @@ void s2n_stuffer_reserve_harness()
     /* Operation under verification. */
     if (s2n_stuffer_reserve(stuffer, reservation, length) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + length);
-        assert(stuffer->high_water_mark == S2NMAX(old_stuffer.write_cursor + length, old_stuffer.high_water_mark));
+        assert(stuffer->high_water_mark == S2N_MAX(old_stuffer.write_cursor + length, old_stuffer.high_water_mark));
         assert(reservation->length == length);
         if (old_stuffer.blob.size > 0 && reservation->length > 0) {
             size_t idx;

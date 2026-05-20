@@ -7,7 +7,7 @@ sourcefile = $(word 2, $(subst @, ,$1))
 
 ctverif := $(mydir)../bin/ct-verif.rb
 
-# Include the s2n_prelude for macros like S2NMIN/S2NMAX
+# Include the s2n_prelude for macros like S2N_MIN/S2N_MAX
 s2n_root := $(realpath $(mydir)../../..)
 cflags_prelude := -include $(s2n_root)/utils/s2n_prelude.h
 

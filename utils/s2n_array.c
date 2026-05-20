@@ -131,7 +131,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
         /* Enlarge the array */
         uint32_t new_capacity = 0;
         RESULT_GUARD_POSIX(s2n_mul_overflow(current_capacity, 2, &new_capacity));
-        new_capacity = S2NMAX(new_capacity, S2N_INITIAL_ARRAY_SIZE);
+        new_capacity = S2N_MAX(new_capacity, S2N_INITIAL_ARRAY_SIZE);
         RESULT_GUARD(s2n_array_enlarge(array, new_capacity));
     }
 

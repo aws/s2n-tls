@@ -52,7 +52,7 @@ static int s2n_mem_init_impl(void)
     POSIX_ENSURE_GT(sysconf_rc, 0);
 
     /* page_size must be a valid uint32 */
-    long max_page_size = S2NMIN(UINT32_MAX, LONG_MAX);
+    long max_page_size = S2N_MIN(UINT32_MAX, LONG_MAX);
     POSIX_ENSURE_LTE(sysconf_rc, max_page_size);
     page_size = (uint32_t) sysconf_rc;
 

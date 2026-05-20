@@ -178,7 +178,7 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
         POSIX_GUARD(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
 
-        uint32_t bytes_to_copy = S2NMIN(outputlen, sizeof(md5_digest));
+        uint32_t bytes_to_copy = S2N_MIN(outputlen, sizeof(md5_digest));
 
         POSIX_CHECKED_MEMCPY(output, md5_digest, bytes_to_copy);
 
@@ -303,7 +303,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
         POSIX_GUARD(hmac->final(ws, ws->digest1, digest_size));
 
-        uint32_t bytes_to_xor = S2NMIN(outputlen, digest_size);
+        uint32_t bytes_to_xor = S2N_MIN(outputlen, digest_size);
 
         for (size_t i = 0; i < bytes_to_xor; i++) {
             *output ^= ws->digest1[i];

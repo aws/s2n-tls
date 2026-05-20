@@ -31,7 +31,7 @@ S2N_RESULT s2n_connection_get_minimum_supported_version(struct s2n_connection *c
 
     /* QUIC requires >= TLS1.3 */
     if (s2n_connection_is_quic_enabled(conn)) {
-        *min_version = S2NMAX(*min_version, S2N_TLS13);
+        *min_version = S2N_MAX(*min_version, S2N_TLS13);
     }
 
     return S2N_RESULT_OK;

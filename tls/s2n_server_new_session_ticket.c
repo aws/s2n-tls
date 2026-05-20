@@ -93,7 +93,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     uint32_t session_lifetime = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
 
     /* Min of remaining key lifetime and session */
-    uint32_t min_lifetime = S2NMIN(remaining_key_lifetime, session_lifetime);
+    uint32_t min_lifetime = S2N_MIN(remaining_key_lifetime, session_lifetime);
 
     /* In TLS1.3 we take into account keying material lifetime */
     if (conn->actual_protocol_version == S2N_TLS13) {
@@ -102,9 +102,9 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
         if (chosen_psk) {
             RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, now);
             uint32_t psk_key_material_lifetime = (chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS;
-            key_material_lifetime = S2NMIN(key_material_lifetime, psk_key_material_lifetime);
+            key_material_lifetime = S2N_MIN(key_material_lifetime, psk_key_material_lifetime);
         }
-        min_lifetime = S2NMIN(min_lifetime, key_material_lifetime);
+        min_lifetime = S2N_MIN(min_lifetime, key_material_lifetime);
     }
 
     /**
@@ -112,7 +112,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      **/
-    *ticket_lifetime = S2NMIN(min_lifetime, ONE_WEEK_IN_SEC);
+    *ticket_lifetime = S2N_MIN(min_lifetime, ONE_WEEK_IN_SEC);
 
     return S2N_RESULT_OK;
 }

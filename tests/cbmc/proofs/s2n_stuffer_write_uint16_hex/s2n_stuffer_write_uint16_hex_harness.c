@@ -44,7 +44,7 @@ void s2n_stuffer_write_uint16_hex_harness()
     if (s2n_result_is_ok(result)) {
         /* On success, the hex equivalent of the bytes is written to the stuffer */
         expected_hex_out.write_cursor += expected_written;
-        expected_hex_out.high_water_mark = S2NMAX(expected_hex_out.write_cursor,
+        expected_hex_out.high_water_mark = S2N_MAX(expected_hex_out.write_cursor,
                 old_hex_out.high_water_mark);
 
         /* New bytes written should match the expected hex pattern */

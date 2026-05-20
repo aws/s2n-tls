@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     /* 4 fds per connection: {client,server} {write,read} fd
      * and reserve 16 fds for libraries, stdin/stdout/stderr and so on */
     if (4 * connectionsToUse + 16 > file_limit.rlim_cur) {
-        connectionsToUse = S2NMAX(1, (file_limit.rlim_cur - 16) / 4);
+        connectionsToUse = S2N_MAX(1, (file_limit.rlim_cur - 16) / 4);
     }
 
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));

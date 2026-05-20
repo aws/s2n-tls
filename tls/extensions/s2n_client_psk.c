@@ -218,7 +218,7 @@ static S2N_RESULT s2n_select_external_psk(struct s2n_connection *conn, struct s2
         RESULT_GUARD_POSIX(s2n_offered_psk_list_reread(client_identity_list));
         while (s2n_offered_psk_list_has_next(client_identity_list)) {
             RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
-            uint16_t compare_size = S2NMIN(client_psk.identity.size, server_psk->identity.size);
+            uint16_t compare_size = S2N_MIN(client_psk.identity.size, server_psk->identity.size);
             if (s2n_constant_time_equals(client_psk.identity.data, server_psk->identity.data, compare_size)
                     & (client_psk.identity.size == server_psk->identity.size)
                     & (conn->psk_params.chosen_psk == NULL)) {

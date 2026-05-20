@@ -46,7 +46,7 @@ static void *s2n_send_random_data(void *arg)
     size_t bytes_to_send = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (bytes_to_send) {
-        int r = s2n_send(conn, buffer, S2NMIN(sizeof(buffer), bytes_to_send), &blocked);
+        int r = s2n_send(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_send), &blocked);
         if (r >= 0) {
             bytes_to_send -= r;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -66,7 +66,7 @@ static void *s2n_recv_random_data(void *arg)
     size_t bytes_to_read = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (bytes_to_read) {
-        int r = s2n_recv(conn, buffer, S2NMIN(sizeof(buffer), bytes_to_read), &blocked);
+        int r = s2n_recv(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_read), &blocked);
         if (r >= 0) {
             bytes_to_read -= r;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {

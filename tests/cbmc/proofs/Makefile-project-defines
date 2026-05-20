@@ -24,7 +24,7 @@ INCLUDES += -I$(SRCDIR)
 INCLUDES += -I$(SRCDIR)/api
 INCLUDES += -I$(SRCDIR)/crypto
 
-# Include the s2n_prelude for macros like S2NMIN/S2NMAX
+# Include the s2n_prelude for macros like S2N_MIN/S2N_MAX
 COMPILE_FLAGS += -include $(SRCDIR)/utils/s2n_prelude.h
 
 # OpenSSL Model Source

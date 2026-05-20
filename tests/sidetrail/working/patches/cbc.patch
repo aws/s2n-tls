@@ -50,7 +50,7 @@
 +    __VERIFIER_assume(padding_length >= 0);
 +    __VERIFIER_assume(padding_length <  256);
  
-     int payload_length = S2NMAX(payload_and_padding_size - padding_length - 1, 0);
+     int payload_length = S2N_MAX(payload_and_padding_size - padding_length - 1, 0);
  
      /* Update the MAC */
      POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
@@ -72,7 +72,7 @@
 +    //}
  
      /* Check the maximum amount that could theoretically be padding */
-     uint32_t check = S2NMIN(255, (payload_and_padding_size - 1));
+     uint32_t check = S2N_MIN(255, (payload_and_padding_size - 1));
 @@ -92,10 +119,11 @@
      POSIX_ENSURE_GTE(check, padding_length);
  

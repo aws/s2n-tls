@@ -56,7 +56,7 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint32_t remaining = 0;
     while ((remaining = s2n_stuffer_data_available(&messages)) > 0) {
-        record_data.size = S2NMIN(record_data.size, remaining);
+        record_data.size = S2N_MIN(record_data.size, remaining);
         RESULT_GUARD_POSIX(s2n_stuffer_read(&messages, &record_data));
         RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &record_data));
         RESULT_GUARD_POSIX(s2n_flush(conn, &blocked));

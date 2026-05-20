@@ -280,7 +280,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
              *    ...
              */
             if (errno != EINTR) {
-                backoff = S2NMIN(backoff * 10, ONE_S - 1);
+                backoff = S2N_MIN(backoff * 10, ONE_S - 1);
                 sleep_time.tv_nsec = backoff;
                 do {
                     r = nanosleep(&sleep_time, &sleep_time);

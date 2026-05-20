@@ -45,5 +45,5 @@
 #endif
 
 /* These replace the use of MIN/MAX from <sys/param.h>, which is not available on Windows. */
-#define S2NMIN(a, b) (((a) < (b)) ? (a) : (b))
-#define S2NMAX(a, b) (((a) > (b)) ? (a) : (b))
+#define S2N_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define S2N_MAX(a, b) (((a) > (b)) ? (a) : (b))

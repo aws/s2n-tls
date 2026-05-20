@@ -40,7 +40,7 @@ void s2n_stuffer_reserve_uint16_harness()
     if (s2n_stuffer_reserve_uint16(stuffer, reservation) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + sizeof(uint16_t));
         assert(stuffer->high_water_mark
-               == S2NMAX(old_stuffer.write_cursor + sizeof(uint16_t), old_stuffer.high_water_mark));
+               == S2N_MAX(old_stuffer.write_cursor + sizeof(uint16_t), old_stuffer.high_water_mark));
         assert(reservation->length == sizeof(uint16_t));
         if (old_stuffer.blob.size > 0) {
             size_t idx;

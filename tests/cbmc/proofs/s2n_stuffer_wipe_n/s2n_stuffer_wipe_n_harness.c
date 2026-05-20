@@ -32,7 +32,7 @@ void s2n_stuffer_wipe_n_harness()
     struct s2n_stuffer old_stuffer = *stuffer;
 
     /* Save byte from untouched portion to compare after the wipe */
-    uint32_t expect_wiped = S2NMIN(n, old_stuffer.write_cursor);
+    uint32_t expect_wiped = S2N_MIN(n, old_stuffer.write_cursor);
     uint32_t expected_write_cursor = old_stuffer.write_cursor - expect_wiped;
     struct store_byte_from_buffer old_byte;
     save_byte_from_array(old_stuffer.blob.data, expected_write_cursor, &old_byte);
@@ -51,7 +51,7 @@ void s2n_stuffer_wipe_n_harness()
     assert(S2N_IMPLIES(expect_wiped < n, stuffer->write_cursor == 0));
     assert(S2N_IMPLIES(expect_wiped < n, stuffer->read_cursor == 0));
     assert(stuffer->write_cursor == expected_write_cursor);
-    assert(stuffer->read_cursor == S2NMIN(old_stuffer.read_cursor, stuffer->write_cursor));
+    assert(stuffer->read_cursor == S2N_MIN(old_stuffer.read_cursor, stuffer->write_cursor));
 
     /* Any data before the new write cursor should NOT be updated */
     if (expected_write_cursor > 0) {

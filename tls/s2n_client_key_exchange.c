@@ -48,7 +48,7 @@ static S2N_RESULT s2n_client_key_exchange_get_rsa_client_version(struct s2n_conn
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(client_version);
-    uint8_t client_version_for_rsa = S2NMIN(conn->client_protocol_version, S2N_TLS12);
+    uint8_t client_version_for_rsa = S2N_MIN(conn->client_protocol_version, S2N_TLS12);
     client_version[0] = client_version_for_rsa / 10;
     client_version[1] = client_version_for_rsa % 10;
     return S2N_RESULT_OK;

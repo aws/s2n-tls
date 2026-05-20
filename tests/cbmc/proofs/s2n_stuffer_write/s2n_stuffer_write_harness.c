@@ -52,7 +52,7 @@ void s2n_stuffer_write_harness()
     if (s2n_stuffer_write(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + blob->size);
         assert(stuffer->blob.data[ idx ] == untouched_byte);
-        assert(stuffer->high_water_mark == S2NMAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
+        assert(stuffer->high_water_mark == S2N_MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

@@ -158,7 +158,7 @@ int main()
      * So for the self-talk tests, reduce the size of any large test cookies.
      */
     for (size_t i = 0; i < TEST_COOKIE_COUNT; i++) {
-        test_cookies[i].size = S2NMIN(test_cookies[i].size, UINT16_MAX / 2);
+        test_cookies[i].size = S2N_MIN(test_cookies[i].size, UINT16_MAX / 2);
     }
 
     /* Sanity check: server fails if client does not provide expected cookie */

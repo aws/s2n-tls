@@ -122,7 +122,7 @@ int s2n_record_header_parse(
      * match the negotiated version.
      */
 
-    S2N_ERROR_IF(conn->actual_protocol_version_established && S2NMIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
+    S2N_ERROR_IF(conn->actual_protocol_version_established && S2N_MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
                             != version,
             S2N_ERR_BAD_MESSAGE);
 
