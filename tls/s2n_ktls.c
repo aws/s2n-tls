@@ -14,19 +14,60 @@
  */
 
 /*
- * kTLS is not supported on Windows. The entire file is gated out, which
- * produces an empty translation unit error at the end of the file.
- * Suppress the resulting clang warning.
+ * kTLS is not supported on Windows. Stub implementations are provided so that
+ * callers (s2n_send.c, s2n_recv.c, etc.) compile and link without #ifdef guards.
+ * These stubs fail gracefully at runtime with S2N_ERR_KTLS_UNSUPPORTED_PLATFORM.
  */
 #ifdef _WIN32
-    #pragma clang diagnostic ignored "-Wempty-translation-unit"
-#else
 
-    #include "tls/s2n_ktls.h"
+    #include "error/s2n_errno.h"
+    #include "tls/s2n_connection.h"
+    #include "utils/s2n_result.h"
+    #include "utils/s2n_safety.h"
+
+bool s2n_ktls_is_supported_on_platform()
+{
+    return false;
+}
+
+int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
+        ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
+        const struct iovec *in, int in_count, size_t offs, size_t to_write)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+#else
 
     #include "crypto/s2n_ktls_crypto.h"
     #include "crypto/s2n_sequence.h"
     #include "tls/s2n_key_update.h"
+    #include "tls/s2n_ktls.h"
     #include "tls/s2n_prf.h"
     #include "tls/s2n_tls.h"
     #include "tls/s2n_tls13_handshake.h"

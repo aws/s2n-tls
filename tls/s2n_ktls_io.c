@@ -13,14 +13,8 @@
  * permissions and limitations under the License.
  */
 
-/*
- * kTLS is not supported on Windows. The entire file is gated out, which
- * produces an empty translation unit error at the end of the file.
- * Suppress the resulting clang warning.
- */
-#ifdef _WIN32
-    #pragma clang diagnostic ignored "-Wempty-translation-unit"
-#else
+/* kTLS I/O is not supported on Windows. */
+#ifndef _WIN32
 
     #if defined(__FreeBSD__) || defined(__APPLE__)
         /* https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
@@ -38,7 +32,6 @@
         #include <sys/sendfile.h>
     #endif
 
-    #include "crypto/s2n_sequence.h"
     #include "error/s2n_errno.h"
     #include "tls/s2n_ktls.h"
     #include "tls/s2n_tls.h"
@@ -498,3 +491,6 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
 }
 
 #endif
+
+/* Suppress empty translation unit warning when compiled on Windows. */
+#pragma clang diagnostic ignored "-Wempty-translation-unit"

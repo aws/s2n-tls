@@ -355,11 +355,9 @@ static S2N_RESULT s2n_record_write_mac(struct s2n_connection *conn, struct s2n_b
 
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
-#ifndef _WIN32
     if (conn->ktls_send_enabled) {
         return s2n_ktls_record_writev(conn, content_type, in, in_count, offs, to_write);
     }
-#endif
 
     struct s2n_blob iv = { 0 };
     uint8_t padding = 0;
