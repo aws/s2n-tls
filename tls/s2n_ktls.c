@@ -14,7 +14,7 @@
  */
 
 /*
- * kTLS is not supported on Windows. The entire file is dated out, which
+ * kTLS is not supported on Windows. The entire file is gated out, which
  * produces an empty translation unit error at the end of the file.
  * Suppress the resulting clang warning.
  */
