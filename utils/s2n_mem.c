@@ -21,8 +21,11 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <unistd.h>
+#ifndef _WIN32
+    #include <sys/mman.h>
+    #include <sys/param.h>
+    #include <unistd.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
@@ -34,18 +37,30 @@ static bool initialized = false;
 
 static int s2n_mem_init_impl(void);
 static int s2n_mem_cleanup_impl(void);
+
+#ifdef _WIN32
+static int s2n_windows_mem_free_impl(void *ptr, uint32_t size);
+static int s2n_windows_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+#else
 static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size);
-static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
 static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
 static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+#endif
 
 static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
 static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
+#ifdef _WIN32
+static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_windows_mem_malloc_impl;
+static s2n_mem_free_callback s2n_mem_free_cb = s2n_windows_mem_free_impl;
+#else
 static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
 static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
+#endif
 
 static int s2n_mem_init_impl(void)
 {
+#ifndef _WIN32
     long sysconf_rc = sysconf(_SC_PAGESIZE);
 
     /* sysconf must not error, and page_size cannot be 0 */
@@ -60,16 +75,42 @@ static int s2n_mem_init_impl(void)
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
+#endif
     return S2N_SUCCESS;
 }
 
 static int s2n_mem_cleanup_impl(void)
 {
     page_size = 4096;
+#ifdef _WIN32
+    s2n_mem_malloc_cb = s2n_windows_mem_malloc_impl;
+    s2n_mem_free_cb = s2n_windows_mem_free_impl;
+#else
     s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
     s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+#endif
     return S2N_SUCCESS;
 }
+
+#ifdef _WIN32
+/* mlock is not supported on Windows, so these use plain malloc/free without memory locking. */
+
+static int s2n_windows_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated)
+{
+    *ptr = malloc(requested);
+    POSIX_ENSURE(*ptr != NULL, S2N_ERR_ALLOC);
+    *allocated = requested;
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_windows_mem_free_impl(void *ptr, uint32_t size)
+{
+    free(ptr);
+    return S2N_SUCCESS;
+}
+
+#else
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
@@ -99,16 +140,16 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE(posix_memalign(ptr, page_size, allocate) == 0, S2N_ERR_ALLOC);
     *allocated = allocate;
 
-/*
-** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
-** both need to be able to dump pages to function. It's how they map heap output.
-*/
-#if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
+    /*
+    ** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
+    ** both need to be able to dump pages to function. It's how they map heap output.
+    */
+    #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         POSIX_BAIL(S2N_ERR_MADVISE);
     }
-#endif
+    #endif
 
     if (mlock(*ptr, *allocated) != 0) {
         /* When mlock fails, no memory will be locked, so we don't use munlock on free */
@@ -129,6 +170,8 @@ static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t
 
     return S2N_SUCCESS;
 }
+
+#endif
 
 int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
