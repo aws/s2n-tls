@@ -8,9 +8,9 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 
 ### Quickstart
 
-- `sudo bash -c “mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix”`
+- `sudo bash -c "mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix"`
 - Run the single-user command from `https://nixos.org/download.html#nix-install-linux`
-- Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix.conf`
+- Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf`
 - `cd s2n-tls`
 
 #### What is this doing?
@@ -28,33 +28,58 @@ To enter the development shell, run `nix develop` at the root of the project.
 
 There are some helper scripts in the environment to make building easier, but if you're familiar with Nix, note that these are 
 separate from the buildPhase, configurePhase and checkPhase.
+
+### Specific libcrypto
+
+By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
+
+### Rust development
+
+For Rust development, dedicated devshells are available that include the full Rust toolchain (rustc, cargo, clang, libclang) in addition to the standard development tools. These are accessible with the `rust_` prefix:
+
+```bash
+# Rust + OpenSSL variants
+nix develop .#rust_openssl102
+nix develop .#rust_openssl111  
+nix develop .#rust_openssl30
+
+# Rust + AWS-LC variants
+nix develop .#rust_awslc
+nix develop .#rust_awslcfips2024
+```
+
+These rust-enabled shells provide everything needed for Rust integration testing and development, including proper libclang discovery for bindgen. The shell prompt will indicate the rust environment with `[nix rust <crypto-lib>]`.
+
+**Note**: Rust shells use dedicated functions (`rust_configure`, `rust_build`, `rust_test`) instead of the standard ones, as they require different CMake configuration (e.g., `S2N_INTERN_LIBCRYPTO=ON`, `BUILD_TESTING=OFF`).
+
 ### Configure and build
 
 From inside the devShell: `configure; build`.
+
+For Rust development, use the dedicated rust functions from within a rust-enabled devshell: `rust_configure; rust_build`.
 
 The first time this is run, it might take a while to build everything.
 
 ### Unit tests
 
-From inside the devShell after configuring and build finish, run `unit <test name>`, or with no test name for all of the tests.
+From inside the devShell after `configure` finishes, run `unit <test name>`, or with no test name for all of the tests.
 For example, to run the stuffer_test use: `unit stuffer_test`, or `unit stuffer` to run all of tests with stuffer in the name.
 
-The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;unit" `.
-
-What is this doing?
-
+The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;unit" `. What this command is doing:
 1. max-jobs tells nix to use all the cores available to build
 2. ignore-environment strips out environment variables to get a clean environment
 3. source the shell functions needed to configure, build and run tests
+
 ### Integration tests
 
-From inside a devShell after running configure and build, use `integ <test name>` to run the integ tests matching the regex `<test name>`, or with no arguments to run all the integ tests.  Note that some of the tests are still broken under nix, so some failures are expected.
-For example: `integ happy_path`.
+From inside a devShell after running `configure` and `build`, use `uvinteg <test name>` to run the integration tests matching the regex `<test name>`, or with no arguments to run all the integration tests.  Note that some of the tests are still broken under nix, so some failures are expected.
+For example: `uvinteg happy_path`.
 
-The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
+The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
 
-Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ happy_path"`
+Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
 
+For Rust integration tests, use `rust_test` from within a rust-enabled devshell after running `rust_configure` and `rust_build`.
 
 ### S3 Binary Cache
 
@@ -66,10 +91,10 @@ In its simplest form, the `nix copy` command can be used to stash a specific pac
 
 By using inputDerivation, we can create a meta-package that contains all the packages in our devShell.
 
-As an exmample, this copy will stash the s2n-tls devShell:
+As an example, this copy will stash the s2n-tls devShell:
 
 ```
-nix copy --to 's3://my-nix-chache-bucket?region=us-west-2' .#devShell
+nix copy --to 's3://my-nix-cache-bucket?region=us-west-2' .#devShell
 ```
 
 To retrieve these:

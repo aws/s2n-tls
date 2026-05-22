@@ -39,16 +39,12 @@
     #define FALL_THROUGH ((void) 0)
 #endif
 
-/* Returns `true` if s2n is in unit test mode, `false` otherwise */
+int s2n_in_unit_test_set(bool is_unit);
+int s2n_in_integ_test_set(bool is_integ);
 bool s2n_in_unit_test();
+bool s2n_in_test();
 
-/* Sets whether s2n is in unit test mode */
-int s2n_in_unit_test_set(bool newval);
-
-#define S2N_IN_INTEG_TEST (getenv("S2N_INTEG_TEST") != NULL)
-#define S2N_IN_TEST       (s2n_in_unit_test() || S2N_IN_INTEG_TEST)
-
-/* Returns 1 if a and b are equal, in constant time */
+/* Returns true if a and b are equal, in constant time */
 bool s2n_constant_time_equals(const uint8_t* a, const uint8_t* b, const uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
@@ -101,7 +97,14 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection** c
     }                                           \
     struct __useless_struct_to_allow_trailing_semicolon__
 
-#define s2n_array_len(array) ((array != NULL) ? (sizeof(array) / sizeof(array[0])) : 0)
+/* This method works for ARRAYS, not for POINTERS.
+ * Calling sizeof on an array declared in the current function correctly returns
+ * the total size of the array. But once the array is passed to another function,
+ * it behaves like a pointer. Calling sizeof on a pointer only returns the size
+ * of the pointer address itself (so usually 8).
+ * Newer compilers (gcc >= 8.1, clang >= 8.0) will warn if the argument is a pointer.
+ */
+#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
@@ -113,3 +116,4 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
 int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
+#define S2N_ADD_IS_OVERFLOW_SAFE(a, b, max) (((max) >= (a)) && ((max) - (a) >= (b)))

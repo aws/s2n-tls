@@ -15,10 +15,59 @@
 FAILED=0
 
 #############################################
+# Grep for command line defines without values
+#############################################
+EMPTY_DEFINES=$(grep -Eon "\-D[^=]+=?" CMakeLists.txt | grep -v =)
+if [ ! -z "${EMPTY_DEFINES}" ]; then
+    FAILED=1
+    printf "\e[1;34mCommand line define is missing value:\e[0m "
+    printf "Compilers SHOULD set a default value of 1 when no default is given, "
+    printf "but that behavior is not required by any official spec. Set a value just in case. "
+    printf "For example: -DS2N_FOO=1 instead of -DS2N_FOO.\n"
+    printf "Found: \n"
+    echo "$EMPTY_DEFINES"
+fi
+
+#############################################
+# Grep for bindings methods without C documentation links.
+#############################################
+BINDINGS="bindings/rust/extended/s2n-tls/src"
+C_APIS=$(grep -rEo "S2N_API( extern)? [^ ]+ [^(]+\(" api | sed -E "s/^.*? \*?(.*?)\(/\1/")
+# Sanity checks
+echo $C_APIS | grep -q "s2n_error_get_type" || { echo "Not detecting APIs" ; exit 1; }
+echo $C_APIS | grep -q "s2n_connection_new" || { echo "Not detecting pointer APIs" ; exit 1; }
+echo $C_APIS | grep -q "s2n_config_set_npn" || { echo "Not detecting unstable APIs" ; exit 1; }
+KNOWN_MISSES=(
+    "s2n_errno_location"
+    "s2n_cert_chain_and_key_get_private_key"
+    "s2n_config_set_ctx"
+    "s2n_client_hello_has_extension"
+    "s2n_async_pkey_op_perform"
+    "s2n_config_get_client_auth_type"
+)
+C_DOCS_FAILED=0
+for api in $C_APIS; do
+    if [[ "${KNOWN_MISSES[*]}" =~ "$api" ]]; then continue; fi
+    CALLS=`grep -ro "$api(" $BINDINGS | wc -l`
+    if [ "$CALLS" == 0 ]; then continue; fi
+    DOCS=$(grep -ro "///.* \[\`$api\`\]" $BINDINGS | wc -l)
+    if [ "$DOCS" == 0 ]; then
+      if [ $C_DOCS_FAILED == 0 ]; then
+        C_DOCS_FAILED=1
+        FAILED=1
+        printf "\e[1;34mRust bindings are missing documentation links:\e[0m "
+        printf "Where possible, the Rust bindings should link to existing documentation. "
+        printf "Links can be written like \"[\`s2n_connection_new\`]\".\n"
+      fi
+      echo "- $api"
+    fi
+done
+
+#############################################
 # Grep for any instances of raw memcpy() function. s2n code should instead be
 # using one of the *_ENSURE_MEMCPY macros.
 #############################################
-S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*"  -not -path "*/pq-crypto/*")
+S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*")
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCPY; do
   RESULT_NUM_LINES=`grep 'memcpy(' $file | wc -l`
   if [ "${RESULT_NUM_LINES}" != 0 ]; then
@@ -36,19 +85,11 @@ done
 #############################################
 S2N_FILES_ASSERT_NOT_USING_MEMCMP=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*" -not -path "*/bindings/*")
 declare -A KNOWN_MEMCMP_USAGE
-KNOWN_MEMCMP_USAGE["$PWD/crypto/s2n_rsa.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_early_data.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_kem.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=3
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_server_hello.c"]=3
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_security_policies.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_resume.c"]=2
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_connection.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
   # NOTE: this matches on 'memcmp', which will also match comments. However, there
@@ -70,11 +111,12 @@ done
 # To indicate failure, functions should use the S2N_ERROR* macros defined
 # in s2n_errno.h.
 #############################################
-S2N_FILES_ASSERT_RETURN=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tests/*")
+S2N_FILES_ASSERT_RETURN=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tests/*" -not -path "*/docs/examples/*")
 for file in $S2N_FILES_ASSERT_RETURN; do
   RESULT_NEGATIVE_ONE=`grep -rn 'return -1;' $file`
   RESULT_S2N_ERR=`grep -rn 'return S2N_ERR*' $file`
   RESULT_S2N_FAIL=`grep -rn 'return S2N_FAIL*' $file`
+  RESULT_S2N_RESULT_ERR=`grep -rn 'return S2N_RESULT_ERR*' $file`
 
   if [ "${#RESULT_NEGATIVE_ONE}" != "0" ]; then
     FAILED=1
@@ -88,6 +130,10 @@ for file in $S2N_FILES_ASSERT_RETURN; do
     FAILED=1
     printf "\e[1;34mGrep for 'return S2N_FAIL*' check failed in $file:\e[0m\n$RESULT_S2N_FAIL\n\n"
   fi
+  if [ "${#RESULT_S2N_RESULT_ERR}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 'return S2N_RESULT_ERR*' check failed in $file:\e[0m\n$RESULT_S2N_RESULT_ERR\n\n"
+  fi
 done
 
 #############################################
@@ -95,11 +141,30 @@ done
 #############################################
 S2N_FILES_ARRAY_SIZING_RETURN=$(find "$PWD" -type f -name "s2n*.c" -path "*")
 for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
-  RESULT_ARR_DIV=`grep -Ern 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' $file`
-
+  RESULT_ARR_DIV=`grep -Ern 'sizeof\(.*?\) / sizeof\(' $file`
   if [ "${#RESULT_ARR_DIV}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(array[0])' check failed. Use s2n_array_len(array) instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(T)' check failed. Use s2n_array_len instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+  fi
+done
+
+#############################################
+# Detect any suspicious loops not using s2n_array_len().
+# This is not necessarily a problem, but it's been a common source of errors,
+# so we should just enforce stricter conventions.
+#############################################
+S2N_FILES_WITH_SIZEOF_LOOP=$(find "$PWD" -type f -name "s2n*.c" -path "*")
+for file in $S2N_FILES_WITH_SIZEOF_LOOP; do
+  WITH_QUESTIONABLE_SIZEOF_LOOP=`grep -Ern 'for \(.+; .+ <=? sizeof\(.+\); .+\)' $file | \
+    grep -vE '<=? sizeof\(.*bytes\);' |
+    grep -vE '<=? sizeof\(.*data\);' |
+    grep -vE '<=? sizeof\(.*u8\);'`
+  if [ "${#WITH_QUESTIONABLE_SIZEOF_LOOP}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mWarning: sizeof is only valid for arrays of chars or uint8_ts. "
+    printf "Use s2n_array_len for other types, "
+    printf "or append \"bytes\", \"data\", or \"u8\" to your variable name for clarity.\n"
+    printf "File: $file:\e[0m\n$WITH_QUESTIONABLE_SIZEOF_LOOP\n\n"
   fi
 done
 
@@ -161,10 +226,26 @@ for file in $S2N_FILES_ASSERT_DOUBLE_SEMICOLON; do
 done
 
 #############################################
+# Assert that we don't call malloc directly outside of utils/s2n_mem.c or tests.
+# All other allocations must use s2n_alloc or s2n_realloc.
+#############################################
+S2N_FILES_ASSERT_MALLOC=$(find "$PWD" -type f -name "s2n*.c" \
+    -not -path "*/utils/s2n_mem.c" \
+    -not -path "*/tests/*" \
+    -not -path "*/bin/*")
+for file in $S2N_FILES_ASSERT_MALLOC; do
+  RESULT_MALLOC=`grep -n "= malloc(" $file`
+  if [ "${#RESULT_MALLOC}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mFound malloc in $file:\e[0m\n$RESULT_MALLOC\n\n"
+  fi
+done
+
+#############################################
 ## Assert that there are no new uses of S2N_ERROR_IF
 # TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
 #############################################
-S2N_ERROR_IF_FREE="bin error pq-crypto scram stuffer utils tests"
+S2N_ERROR_IF_FREE="bin error scram stuffer utils tests"
 for dir in $S2N_ERROR_IF_FREE; do
   files=$(find "$dir" -type f -name "*.c" -path "*")
   for file in $files; do

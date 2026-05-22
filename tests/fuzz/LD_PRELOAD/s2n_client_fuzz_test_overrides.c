@@ -18,7 +18,6 @@
 #include <openssl/rsa.h>
 #include <time.h>
 
-#include "crypto/s2n_rsa.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"

@@ -86,7 +86,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_ENSURE_REF(extension_type->send);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not send response if request not received. */
@@ -114,6 +114,19 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     /* Write extension data */
     POSIX_GUARD(extension_type->send(conn, out));
 
+    /**
+     * Reset the tainted flag in the out stuffer (handshake.io stuffer).
+     * 
+     * Some extension send functions call s2n_stuffer_raw_write(), which
+     * makes the stuffer tainted, preventing further resizing of the handshake.io stuffer.
+     * We need to reset this flag after each extension is sent, because handshake.io
+     * might need to be resized to send subsequent extensions.
+     * 
+     * This is safe because the outstanding pointer from s2n_stuffer_raw_write() is scoped to
+     * the send function of each extension, and it is never stored in s2n_connection.
+     */
+    out->tainted = false;
+
     /* Record extension size */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));
 
@@ -131,23 +144,23 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_ENSURE_REF(extension_type->recv);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2
      *# Implementations MUST NOT send extension responses if the remote
      *# endpoint did not send the corresponding extension requests, with the
      *# exception of the "cookie" extension in the HelloRetryRequest.  Upon
      *# receiving such an extension, an endpoint MUST abort the handshake
      *# with an "unsupported_extension" alert.
      *
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
      *# If the original session did not use the "extended_master_secret"
      *# extension but the new ServerHello contains the extension, the
      *# client MUST abort the handshake.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
      *# extensions that were not first offered by the client in its
      *# ClientHello, with the exception of optionally the "cookie" (see
@@ -180,7 +193,7 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
     POSIX_ENSURE_REF(extension_type->if_missing);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */

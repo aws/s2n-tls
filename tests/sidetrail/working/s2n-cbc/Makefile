@@ -13,7 +13,6 @@ extras += crypto/s2n_hmac.c
 extras += error/s2n_errno.c
 extras += tls/s2n_cbc.c
 extras += utils/s2n_ensure.c
-extras += utils/s2n_result.c
 extras += utils/s2n_safety.c
 goals  += simple_cbc_wrapper@cbc.c
 full_self_comp += true

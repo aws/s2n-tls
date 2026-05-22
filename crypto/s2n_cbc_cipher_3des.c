@@ -21,9 +21,9 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_cbc_cipher_3des_available()
+static bool s2n_cbc_cipher_3des_available(void)
 {
-    return (EVP_des_ede3_cbc() ? 1 : 0);
+    return (EVP_des_ede3_cbc() ? true : false);
 }
 
 static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
@@ -54,38 +54,38 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
     return 0;
 }
 
-static int s2n_cbc_cipher_3des_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_cbc_cipher_3des_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 192 / 8);
+    RESULT_ENSURE_EQ(in->size, 192 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_cbc_cipher_3des_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_cbc_cipher_3des_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 192 / 8);
+    RESULT_ENSURE_EQ(in->size, 192 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_cipher s2n_3des = {

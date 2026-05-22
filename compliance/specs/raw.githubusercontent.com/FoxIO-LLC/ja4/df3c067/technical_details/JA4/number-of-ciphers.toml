@@ -1,0 +1,24 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers"
+
+# ### Number of Ciphers:
+#
+# 2 character number of cipher suites, so if there’s 6 cipher suites in the hello packet, then the value should be “06”. If there’s > 99, which there should never be, then output “99”. Remember, ignore GREASE values. They don’t count.
+# 
+
+[[spec]]
+level = "MUST"
+quote = '''
+2 character number of cipher suites, so if there’s 6 cipher suites in the hello packet, then the value should be “06”.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If there’s > 99, which there should never be, then output “99”.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Remember, ignore GREASE values. They don’t count.
+'''

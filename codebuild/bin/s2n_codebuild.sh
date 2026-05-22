@@ -43,29 +43,6 @@ make clean;
 echo "Using $JOBS jobs for make..";
 echo "running with libcrypto: ${S2N_LIBCRYPTO}, gcc_version: ${GCC_VERSION}"
 
-if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
-    # For linux make a build with debug symbols and run valgrind
-    # We have to output something every 9 minutes, as some test may run longer than 10 minutes
-    # and will not produce any output
-    while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
-
-    if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" || "$S2N_LIBCRYPTO" == "awslc" ]]; then
-        # https://github.com/aws/s2n-tls/issues/3758
-        # Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
-        echo "running task pedantic_valgrind"
-        S2N_DEBUG=true make -j $JOBS pedantic_valgrind
-    else
-        S2N_DEBUG=true make -j $JOBS valgrind
-    fi
-
-    kill %1
-fi
-
-CMAKE_PQ_OPTION="S2N_NO_PQ=False"
-if [[ -n "$S2N_NO_PQ" ]]; then
-    CMAKE_PQ_OPTION="S2N_NO_PQ=True"
-fi
-
 test_linked_libcrypto() {
     s2n_executable="$1"
     so_path="${LIBCRYPTO_ROOT}/lib/libcrypto.so"
@@ -93,8 +70,6 @@ run_integration_v2_tests() {
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -D${CMAKE_PQ_OPTION} \
-            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
             -DS2N_INTEG_TESTS=on \
             -DPython3_EXECUTABLE=$(which python3)
@@ -114,10 +89,8 @@ run_integration_v2_tests() {
 run_unit_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -D${CMAKE_PQ_OPTION} \
-            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
-            -DEXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS=on
+            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=1
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
     cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"
@@ -129,12 +102,11 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "lin
 # Run Individual tests
 if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then run_unit_tests; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "interning" ]]; then ./codebuild/bin/test_libcrypto_interning.sh; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "exec_leak" ]]; then ./codebuild/bin/test_exec_leak.sh; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then run_integration_v2_tests; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "crt" ]]; then ./codebuild/bin/build_aws_crt_cpp.sh $(mktemp -d) $(mktemp -d); fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sharedandstatic" ]]; then ./codebuild/bin/test_install_shared_and_static.sh $(mktemp -d); fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "benchmark" ]]; then (make clean && make benchmark) ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "dynamicload" ]]; then ./codebuild/bin/test_dynamic_load.sh $(mktemp -d); fi
 if [[ "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/verify_HMAC.log ; fi
 if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then make -C tests/saw tmp/verify_handshake.log ; fi

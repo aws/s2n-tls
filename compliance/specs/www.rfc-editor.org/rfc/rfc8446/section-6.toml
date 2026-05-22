@@ -1,0 +1,141 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-6"
+
+# 6.  Alert Protocol
+#
+# TLS provides an Alert content type to indicate closure information
+# and errors.  Like other messages, alert messages are encrypted as
+# specified by the current connection state.
+# 
+# Alert messages convey a description of the alert and a legacy field
+# that conveyed the severity level of the message in previous versions
+# of TLS.  Alerts are divided into two classes: closure alerts and
+# error alerts.  In TLS 1.3, the severity is implicit in the type of
+# alert being sent, and the "level" field can safely be ignored.  The
+# "close_notify" alert is used to indicate orderly closure of one
+# direction of the connection.  Upon receiving such an alert, the TLS
+# implementation SHOULD indicate end-of-data to the application.
+# 
+# Error alerts indicate abortive closure of the connection (see
+# Section 6.2).  Upon receiving an error alert, the TLS implementation
+# SHOULD indicate an error to the application and MUST NOT allow any
+# further data to be sent or received on the connection.  Servers and
+# clients MUST forget the secret values and keys established in failed
+# connections, with the exception of the PSKs associated with session
+# tickets, which SHOULD be discarded if possible.
+# 
+# All the alerts listed in Section 6.2 MUST be sent with
+# AlertLevel=fatal and MUST be treated as error alerts when received
+# regardless of the AlertLevel in the message.  Unknown Alert types
+# MUST be treated as error alerts.
+# 
+# Note: TLS defines two generic alerts (see Section 6) to use upon
+# failure to parse a message.  Peers which receive a message which
+# cannot be parsed according to the syntax (e.g., have a length
+# extending beyond the message boundary or contain an out-of-range
+# length) MUST terminate the connection with a "decode_error" alert.
+# Peers which receive a message which is syntactically correct but
+# semantically invalid (e.g., a DHE share of p - 1, or an invalid enum)
+# MUST terminate the connection with an "illegal_parameter" alert.
+# 
+#    enum { warning(1), fatal(2), (255) } AlertLevel;
+# 
+#    enum {
+#        close_notify(0),
+#        unexpected_message(10),
+#        bad_record_mac(20),
+#        record_overflow(22),
+#        handshake_failure(40),
+#        bad_certificate(42),
+#        unsupported_certificate(43),
+#        certificate_revoked(44),
+#        certificate_expired(45),
+#        certificate_unknown(46),
+#        illegal_parameter(47),
+#        unknown_ca(48),
+#        access_denied(49),
+#        decode_error(50),
+#        decrypt_error(51),
+#        protocol_version(70),
+#        insufficient_security(71),
+#        internal_error(80),
+#        inappropriate_fallback(86),
+#        user_canceled(90),
+#        missing_extension(109),
+#        unsupported_extension(110),
+#        unrecognized_name(112),
+#        bad_certificate_status_response(113),
+#        unknown_psk_identity(115),
+#        certificate_required(116),
+#        no_application_protocol(120),
+#        (255)
+#    } AlertDescription;
+# 
+#    struct {
+#        AlertLevel level;
+#        AlertDescription description;
+#    } Alert;
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Upon receiving such an alert, the TLS
+implementation SHOULD indicate end-of-data to the application.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Upon receiving an error alert, the TLS implementation
+SHOULD indicate an error to the application and MUST NOT allow any
+further data to be sent or received on the connection.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers and
+clients MUST forget the secret values and keys established in failed
+connections, with the exception of the PSKs associated with session
+tickets, which SHOULD be discarded if possible.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All the alerts listed in Section 6.2 MUST be sent with
+AlertLevel=fatal and MUST be treated as error alerts when received
+regardless of the AlertLevel in the message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All the alerts listed in Section 6.2 MUST be sent with
+AlertLevel=fatal and MUST be treated as error alerts when received
+regardless of the AlertLevel in the message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Unknown Alert types
+MUST be treated as error alerts.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Peers which receive a message which
+cannot be parsed according to the syntax (e.g., have a length
+extending beyond the message boundary or contain an out-of-range
+length) MUST terminate the connection with a "decode_error" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Peers which receive a message which is syntactically correct but
+semantically invalid (e.g., a DHE share of p - 1, or an invalid enum)
+MUST terminate the connection with an "illegal_parameter" alert.
+'''
+

@@ -39,11 +39,11 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
 
-        uint16_t extension_list_size;
+        uint16_t extension_list_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &extension_list_size));
         EXPECT_EQUAL(extension_list_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(extension_list_size, 0);
@@ -57,11 +57,11 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &stuffer));
 
-        uint16_t extension_list_size;
+        uint16_t extension_list_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &extension_list_size));
         EXPECT_EQUAL(extension_list_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_NOT_EQUAL(extension_list_size, 0);
@@ -75,14 +75,14 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* S2N_EXTENSION_LIST_CERTIFICATE only sends responses, and we haven't received any requests.
          * Therefore, it should write an empty extensions list. */
         EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
 
-        uint16_t extension_list_size;
+        uint16_t extension_list_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &extension_list_size));
         EXPECT_EQUAL(extension_list_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(extension_list_size, 0);
@@ -96,18 +96,18 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, client_conn, &stuffer));
 
         /* Skip list size - already tested */
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint16_t)));
 
-        uint16_t first_extension_type;
+        uint16_t first_extension_type = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &first_extension_type));
         EXPECT_EQUAL(first_extension_type, TLS_EXTENSION_SUPPORTED_VERSIONS);
 
-        uint16_t first_extension_size;
+        uint16_t first_extension_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &first_extension_size));
         EXPECT_NOT_EQUAL(first_extension_size, 0);
 
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extensions_stuffer, 0));
         EXPECT_SUCCESS(s2n_stuffer_copy(&stuffer, &extensions_stuffer, first_extension_size));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_extension_recv(&s2n_client_supported_versions_extension, server_conn, &extensions_stuffer));
 

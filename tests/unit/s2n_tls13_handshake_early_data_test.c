@@ -38,7 +38,7 @@ int main()
     /* Test early data encryption */
     {
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  generate resumption secret "tls13 resumption":
          *#
@@ -57,7 +57,7 @@ int main()
                   a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3");
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  construct a NewSessionTicket handshake message:
          *#
@@ -95,7 +95,7 @@ int main()
         const uint32_t max_early_data = 0x00000400;
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  send handshake record:
          *#
@@ -152,7 +152,7 @@ int main()
                   cb 00 21 20 3a dd 4f b2 d8 fd f8 22 a0 ca 3c f7 67 8e f5 e8 8d \
                   ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f 9d")
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (517 octets):  16 03 01 02 00 01 00 01 fc 03 03 1b
@@ -210,7 +210,7 @@ int main()
                   9d");
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  extract secret "early":
          *#
@@ -227,7 +227,7 @@ int main()
                   bb 41 91 50 00 f6 78 aa 83 9c bb 79 7c b7 d8 33 2c");
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  derive write traffic keys for early application data:
          *#
@@ -246,7 +246,7 @@ int main()
         S2N_BLOB_FROM_HEX(iv, "6d 47 5f 09 93 c8 e5 64 61 0d b2 b9");
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  send application_data record:
          *#
@@ -254,7 +254,7 @@ int main()
          */
         S2N_BLOB_FROM_HEX(payload, "41 42 43 44 45 46");
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (28 octets):  17 03 03 00 17 ab 1d f4 20 e7 5c 45

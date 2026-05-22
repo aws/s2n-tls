@@ -1,0 +1,126 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-4.7"
+
+# 4.7.  Cryptographic Attributes
+#
+# The five cryptographic operations -- digital signing, stream cipher
+# encryption, block cipher encryption, authenticated encryption with
+# additional data (AEAD) encryption, and public key encryption -- are
+# designated digitally-signed, stream-ciphered, block-ciphered, aead-
+# ciphered, and public-key-encrypted, respectively.  A field's
+# cryptographic processing is specified by prepending an appropriate
+# key word designation before the field's type specification.
+# Cryptographic keys are implied by the current session state (see
+# Section 6.1).
+# 
+# A digitally-signed element is encoded as a struct DigitallySigned:
+# 
+#    struct {
+#       SignatureAndHashAlgorithm algorithm;
+#       opaque signature<0..2^16-1>;
+#    } DigitallySigned;
+# 
+# The algorithm field specifies the algorithm used (see Section
+# 7.4.1.4.1 for the definition of this field).  Note that the
+# introduction of the algorithm field is a change from previous
+# versions.  The signature is a digital signature using those
+# algorithms over the contents of the element.  The contents themselves
+# do not appear on the wire but are simply calculated.  The length of
+# the signature is specified by the signing algorithm and key.
+# 
+# In RSA signing, the opaque vector contains the signature generated
+# using the RSASSA-PKCS1-v1_5 signature scheme defined in [PKCS1].  As
+# discussed in [PKCS1], the DigestInfo MUST be DER-encoded [X680]
+# [X690].  For hash algorithms without parameters (which includes
+# SHA-1), the DigestInfo.AlgorithmIdentifier.parameters field MUST be
+# NULL, but implementations MUST accept both without parameters and
+# with NULL parameters.  Note that earlier versions of TLS used a
+# different RSA signature scheme that did not include a DigestInfo
+# encoding.
+# 
+# In DSA, the 20 bytes of the SHA-1 hash are run directly through the
+# Digital Signing Algorithm with no additional hashing.  This produces
+# two values, r and s.  The DSA signature is an opaque vector, as
+# above, the contents of which are the DER encoding of:
+# 
+#    Dss-Sig-Value ::= SEQUENCE {
+#        r INTEGER,
+#        s INTEGER
+#    }
+# 
+# Note: In current terminology, DSA refers to the Digital Signature
+# Algorithm and DSS refers to the NIST standard.  In the original SSL
+# and TLS specs, "DSS" was used universally.  This document uses "DSA"
+# to refer to the algorithm, "DSS" to refer to the standard, and it
+# uses "DSS" in the code point definitions for historical continuity.
+# 
+# In stream cipher encryption, the plaintext is exclusive-ORed with an
+# identical amount of output generated from a cryptographically secure
+# keyed pseudorandom number generator.
+# 
+# In block cipher encryption, every block of plaintext encrypts to a
+# block of ciphertext.  All block cipher encryption is done in CBC
+# (Cipher Block Chaining) mode, and all items that are block-ciphered
+# will be an exact multiple of the cipher block length.
+# 
+# In AEAD encryption, the plaintext is simultaneously encrypted and
+# integrity protected.  The input may be of any length, and aead-
+# ciphered output is generally larger than the input in order to
+# accommodate the integrity check value.
+# 
+# In public key encryption, a public key algorithm is used to encrypt
+# data in such a way that it can be decrypted only with the matching
+# private key.  A public-key-encrypted element is encoded as an opaque
+# vector <0..2^16-1>, where the length is specified by the encryption
+# algorithm and key.
+# 
+# RSA encryption is done using the RSAES-PKCS1-v1_5 encryption scheme
+# defined in [PKCS1].
+# 
+# In the following example
+# 
+#    stream-ciphered struct {
+#        uint8 field1;
+#        uint8 field2;
+#        digitally-signed opaque {
+#          uint8 field3<0..255>;
+#          uint8 field4;
+#        };
+#    } UserType;
+# 
+# The contents of the inner struct (field3 and field4) are used as
+# input for the signature/hash algorithm, and then the entire structure
+# is encrypted with a stream cipher.  The length of this structure, in
+# bytes, would be equal to two bytes for field1 and field2, plus two
+# bytes for the signature and hash algorithm, plus two bytes for the
+# length of the signature, plus the length of the output of the signing
+# 
+# algorithm.  The length of the signature is known because the
+# algorithm and key used for the signing are known prior to encoding or
+# decoding this structure.
+
+[[spec]]
+level = "MUST"
+quote = '''
+As
+discussed in [PKCS1], the DigestInfo MUST be DER-encoded [X680]
+[X690].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For hash algorithms without parameters (which includes
+SHA-1), the DigestInfo.AlgorithmIdentifier.parameters field MUST be
+NULL, but implementations MUST accept both without parameters and
+with NULL parameters.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For hash algorithms without parameters (which includes
+SHA-1), the DigestInfo.AlgorithmIdentifier.parameters field MUST be
+NULL, but implementations MUST accept both without parameters and
+with NULL parameters.
+'''
+

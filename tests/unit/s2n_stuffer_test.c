@@ -23,10 +23,10 @@ int main(int argc, char **argv)
 {
     uint8_t entropy[2048] = { 0 };
     struct s2n_stuffer stuffer = { 0 };
-    uint8_t u8;
-    uint16_t u16;
-    uint32_t u32;
-    uint64_t u64;
+    uint8_t u8 = 0;
+    uint16_t u16 = 0;
+    uint32_t u32 = 0;
+    uint64_t u64 = 0;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -239,6 +239,108 @@ int main(int argc, char **argv)
                     S2N_ERR_STUFFER_IS_FULL);
         }
     };
+
+    /* Test s2n_stuffer_shift */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_shift(NULL), S2N_ERR_NULL);
+
+        const uint8_t test_data[] = "hello world";
+        const uint32_t test_data_size = sizeof(test_data);
+        const uint32_t test_offset = 10;
+
+        /* Uninitialized stuffer: no shift */
+        {
+            struct s2n_stuffer test = { 0 };
+
+            EXPECT_SUCCESS(s2n_stuffer_shift(&test));
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.write_cursor, 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), 0);
+        }
+
+        /* No data available: no shift */
+        {
+            uint8_t data[100] = { 0 };
+            struct s2n_stuffer test = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, test_data, sizeof(test_data)));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, sizeof(test_data)));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), 0);
+
+            EXPECT_SUCCESS(s2n_stuffer_shift(&test));
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.write_cursor, 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), 0);
+            EXPECT_BYTEARRAY_EQUAL(data, test_data, sizeof(test_data));
+        }
+
+        /* Data not offset: no shift */
+        {
+            uint8_t data[100] = { 0 };
+            struct s2n_stuffer test = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, test_data, test_data_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), test_data_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_shift(&test));
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.write_cursor, test_data_size);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), test_data_size);
+            EXPECT_BYTEARRAY_EQUAL(data, test_data, test_data_size);
+        }
+
+        /* Data at offset: shifted */
+        {
+            uint8_t data[100] = { 0 };
+            struct s2n_stuffer test = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&test, test_offset));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, test_offset));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), 0);
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, test_data, test_data_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), test_data_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_shift(&test));
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.write_cursor, test_data_size);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), test_data_size);
+            EXPECT_BYTEARRAY_EQUAL(data, test_data, test_data_size);
+        }
+
+        /* Data overlaps: shifted */
+        {
+            uint8_t data[100] = { 0 };
+            struct s2n_stuffer test = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&test.blob, data, sizeof(data)));
+
+            /* Allocate data large enough that it will overlap when shifted.
+             * Allocate the entire block to distinctive data, not just all one character.
+             */
+            uint8_t overlap_test_data[sizeof(data) - 1] = { 0 };
+            for (size_t i = 0; i < sizeof(overlap_test_data); i++) {
+                overlap_test_data[i] = i;
+            }
+            size_t overlap_test_data_size = sizeof(overlap_test_data);
+            EXPECT_TRUE(overlap_test_data_size > sizeof(data) / 2);
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&test, 1));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test,
+                    overlap_test_data, overlap_test_data_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), overlap_test_data_size);
+            EXPECT_EQUAL(s2n_stuffer_space_remaining(&test), 0);
+
+            EXPECT_SUCCESS(s2n_stuffer_shift(&test));
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.write_cursor, overlap_test_data_size);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&test), overlap_test_data_size);
+            EXPECT_BYTEARRAY_EQUAL(data, overlap_test_data, overlap_test_data_size);
+        }
+    }
 
     END_TEST();
 }

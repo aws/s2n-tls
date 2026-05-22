@@ -25,17 +25,16 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *client_config;
-    struct s2n_config *server_config;
-    const struct s2n_security_policy *default_security_policy;
-    const struct s2n_cipher_preferences *default_cipher_preferences;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *client_config = NULL;
+    struct s2n_config *server_config = NULL;
+    const struct s2n_security_policy *default_security_policy = NULL;
+    const struct s2n_cipher_preferences *default_cipher_preferences = NULL;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -43,6 +42,7 @@ int main(int argc, char **argv)
 
     /* Setup baseline server config and certs. */
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -65,6 +65,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
@@ -77,8 +78,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_security_policy->cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
@@ -141,8 +143,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -193,6 +195,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
@@ -204,8 +207,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -256,6 +259,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
@@ -268,8 +272,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -326,6 +330,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
@@ -337,8 +342,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -397,6 +402,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
@@ -404,6 +410,7 @@ int main(int argc, char **argv)
     /* Server requires optional client auth but will reject the client cert. We need to reset the config, to turn validation back on*/
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -414,8 +421,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -468,5 +475,4 @@ int main(int argc, char **argv)
     free(private_key_pem);
     free(dhparams_pem);
     END_TEST();
-    return 0;
 }

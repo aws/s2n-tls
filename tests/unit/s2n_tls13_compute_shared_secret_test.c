@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
-    struct s2n_connection *client_conn;
+    struct s2n_connection *client_conn = NULL;
 
     /* This test ensures that if the server did not send a keyshare extension in the server hello function,
      * a null pointer error is correctly thrown.

@@ -15,7 +15,7 @@
 set -e
 
 # merge profiling data
-llvm-profdata merge -sparse tests/unit/ut_*.profraw -o merged.profdata
+llvm-profdata merge -failure-mode=all -sparse tests/unit/ut_*.profraw -o merged.profdata
 
 # generate file-level summary
 llvm-cov report build/lib/libs2n.so \

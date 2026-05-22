@@ -47,7 +47,7 @@ static int ensure_explicit_iv_is_unique(uint8_t existing_explicit_ivs[S2N_DEFAUL
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     uint8_t mac_key_sha[20] = "server key shaserve";
     uint8_t mac_key_sha256[32] = "server key sha256server key sha";
@@ -93,19 +93,19 @@ int main(int argc, char **argv)
         for (size_t i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-            int bytes_written;
+            int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
 
-            int explicit_iv_len;
+            int explicit_iv_len = 0;
             if (conn->actual_protocol_version > S2N_TLS10) {
                 explicit_iv_len = 16;
             } else {
@@ -151,8 +151,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
-            uint8_t content_type;
-            uint16_t fragment_length;
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_SUCCESS(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -169,19 +169,19 @@ int main(int argc, char **argv)
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-            int bytes_written;
+            int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
 
-            int explicit_iv_len;
+            int explicit_iv_len = 0;
             if (conn->actual_protocol_version > S2N_TLS10) {
                 explicit_iv_len = 16;
             } else {
@@ -227,8 +227,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
-            uint8_t content_type;
-            uint16_t fragment_length;
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_SUCCESS(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -245,19 +245,19 @@ int main(int argc, char **argv)
         for (int i = 0; i < max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-            int bytes_written;
+            int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha256, sizeof(mac_key_sha256)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
 
-            int explicit_iv_len;
+            int explicit_iv_len = 0;
             if (conn->actual_protocol_version > S2N_TLS10) {
                 explicit_iv_len = 16;
             } else {
@@ -303,8 +303,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
-            uint8_t content_type;
-            uint16_t fragment_length;
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_SUCCESS(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -321,19 +321,19 @@ int main(int argc, char **argv)
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-            int bytes_written;
+            int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha256, sizeof(mac_key_sha256)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
 
-            int explicit_iv_len;
+            int explicit_iv_len = 0;
             if (conn->actual_protocol_version > S2N_TLS10) {
                 explicit_iv_len = 16;
             } else {
@@ -379,8 +379,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
-            uint8_t content_type;
-            uint16_t fragment_length;
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_SUCCESS(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);

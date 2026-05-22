@@ -32,8 +32,8 @@ static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_
 void mock_client(struct s2n_test_io_pair *io_pair)
 {
     char buffer[0xffff];
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
 
     /* Give the server a chance to listen */
@@ -41,6 +41,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
@@ -52,7 +53,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     uint16_t timeout = 1;
     s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
-    int i;
+    int i = 0;
     for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
@@ -69,7 +70,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
     struct timespec sleep_time = { .tv_sec = timeout, .tv_nsec = 50000000 };
-    int r;
+    int r = 0;
     do {
         r = nanosleep(&sleep_time, &sleep_time);
     } while (r != 0);
@@ -98,14 +99,13 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
+    int status = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Create a child process */
-        pid = fork();
+        pid_t pid = fork();
         if (pid == 0) {
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
@@ -136,6 +136,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -202,5 +203,4 @@ int main(int argc, char **argv)
     }
 
     END_TEST();
-    return 0;
 }

@@ -26,7 +26,7 @@ static bool s2n_server_early_data_indication_should_send(struct s2n_connection *
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# A server which receives an "early_data" extension MUST behave in one
  *# of three ways:
  *#
@@ -44,7 +44,7 @@ static int s2n_server_early_data_indication_is_missing(struct s2n_connection *co
 /**
  * The server version of this extension is empty, so we don't read/write any data.
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# The "extension_data" field of this extension contains an
  *# "EarlyDataIndication" value.
  *#
@@ -53,18 +53,18 @@ static int s2n_server_early_data_indication_is_missing(struct s2n_connection *co
  *#     struct {
  *#         select (Handshake.msg_type) {
  **
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *#             case encrypted_extensions: Empty;
  *#         };
  *#     } EarlyDataIndication;
  **/
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# A server which receives an "early_data" extension MUST behave in one
  *# of three ways:
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# -  Return its own "early_data" extension in EncryptedExtensions,
  *#    indicating that it intends to process the early data.
  **/
@@ -77,7 +77,7 @@ static int s2n_server_early_data_indication_send(struct s2n_connection *conn, st
 static int s2n_server_early_data_indication_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# If any of these checks fail, the server MUST NOT respond with the
      *# extension
      **/

@@ -1,0 +1,47 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-5.6"
+
+# 5.6.  Client Certificate
+#
+# When this message is sent:
+# 
+# This message is sent in response to a CertificateRequest when a
+# client has a suitable certificate and has decided to proceed with
+# client authentication.  (Note that if the server has used a Supported
+# Point Formats Extension, a certificate can only be considered
+# suitable for use with the ECDSA_sign authentication method if the
+# public key point specified in it is uncompressed, as that is the only
+# point format still supported.
+# 
+# Meaning of this message:
+# 
+# This message is used to authentically convey the client's static
+# public key to the server.  ECC public keys must be encoded in
+# certificates as described in Section 5.9.  The certificate MUST
+# contain an ECDSA- or EdDSA-capable public key.
+# 
+# NOTE: The client's Certificate message is capable of carrying a chain
+# of certificates.  The restrictions mentioned above apply only to the
+# client's certificate (first in the chain).
+# 
+# Structure of this message:
+# 
+# Identical to the TLS client Certificate format.
+# 
+# Actions of the sender:
+# 
+# The client constructs an appropriate certificate chain and conveys it
+# to the server in the Certificate message.
+# 
+# Actions of the receiver:
+# 
+# The TLS server validates the certificate chain, extracts the client's
+# public key, and checks that the key type is appropriate for the
+# client authentication method.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The certificate MUST
+contain an ECDSA- or EdDSA-capable public key.
+'''
+

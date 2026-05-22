@@ -15,21 +15,65 @@
 
 #pragma once
 
-#include "tls/s2n_config.h"
+#include "api/unstable/ktls.h"
+#include "tls/s2n_connection.h"
+/* Define headers needed to enable and use kTLS.
+ *
+ * The inline header definitions are required to compile kTLS specific code.
+ * kTLS has been tested on linux. For all other platforms, kTLS is marked as
+ * unsupported, and will return an unsupported error.
+ */
+#include "tls/s2n_ktls_parameters.h"
 
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
  */
 typedef enum {
-    /* Disable kTLS. */
-    S2N_KTLS_MODE_DISABLED,
     /* Enable kTLS for the send socket. */
     S2N_KTLS_MODE_SEND,
     /* Enable kTLS for the receive socket. */
     S2N_KTLS_MODE_RECV,
-    /* Enable kTLS for both receive and send sockets. */
-    S2N_KTLS_MODE_DUPLEX,
 } s2n_ktls_mode;
 
-int s2n_config_set_ktls_mode(struct s2n_config *config, s2n_ktls_mode ktls_mode);
 bool s2n_ktls_is_supported_on_platform();
+S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
+
+int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len);
+ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
+        ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
+int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
+        const struct iovec *in, int in_count, size_t offs, size_t to_write);
+int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type);
+S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_requested);
+S2N_RESULT s2n_ktls_key_update_process(struct s2n_connection *conn);
+S2N_RESULT s2n_ktls_set_estimated_sequence_number(struct s2n_connection *conn, size_t bytes_written);
+S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, size_t bytes_requested);
+
+int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
+int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
+
+#ifndef _WIN32
+
+    #include <sys/socket.h>
+
+/* These use POSIX socket types not available on Windows */
+S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct iovec *msg_iov,
+        size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written);
+S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf,
+        size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read);
+
+/* Testing */
+typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name, const void *option_value,
+        socklen_t option_len);
+S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb);
+typedef ssize_t (*s2n_ktls_sendmsg_fn)(void *io_context, const struct msghdr *msg);
+typedef ssize_t (*s2n_ktls_recvmsg_fn)(void *io_context, struct msghdr *msg);
+S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb,
+        void *send_ctx);
+S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb,
+        void *recv_ctx);
+void s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
+
+int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,
+        size_t *bytes_written, s2n_blocked_status *blocked);
+#endif /* _WIN32 */

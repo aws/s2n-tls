@@ -20,3 +20,4 @@
 #include "tls/s2n_connection.h"
 
 extern const s2n_extension_type s2n_client_server_name_extension;
+S2N_RESULT s2n_client_server_name_parse(struct s2n_stuffer *extension, struct s2n_blob *server_name);

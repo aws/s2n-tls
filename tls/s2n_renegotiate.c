@@ -36,6 +36,8 @@ S2N_RESULT s2n_renegotiate_validate(struct s2n_connection *conn)
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->handshake.renegotiation, S2N_ERR_INVALID_STATE);
+    RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_RENEG);
+    RESULT_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_RENEG);
     return S2N_RESULT_OK;
 }
 
@@ -69,6 +71,11 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
     POSIX_ENSURE(s2n_stuffer_data_available(&conn->header_in) == 0, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_INVALID_STATE);
+
+    /* buffer_in might contain data needed to read the next records. */
+    DEFER_CLEANUP(struct s2n_stuffer buffer_in = conn->buffer_in, s2n_stuffer_free);
+    conn->buffer_in = (struct s2n_stuffer){ 0 };
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->buffer_in, 0));
 
     /* Save the crypto parameters.
      * We need to continue encrypting / decrypting with the old secure parameters.
@@ -150,6 +157,8 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
     conn->recv = recv_fn;
     conn->recv_io_context = recv_ctx;
     conn->secure_renegotiation = secure_renegotiation;
+    conn->buffer_in = buffer_in;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(buffer_in);
 
     conn->handshake.renegotiation = true;
     return S2N_SUCCESS;

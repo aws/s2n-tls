@@ -1,0 +1,47 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-2.3"
+
+# 2.3.  ECDH_anon
+#
+# NOTE: Despite the name beginning with "ECDH_" (no E), the key used in
+# ECDH_anon is ephemeral just like the key in ECDHE_RSA and
+# ECDHE_ECDSA.  The naming follows the example of DH_anon, where the
+# key is also ephemeral but the name does not reflect it.
+# 
+# In ECDH_anon, the server's Certificate, the CertificateRequest, the
+# client's Certificate, and the CertificateVerify messages MUST NOT be
+# sent.
+# 
+# The server MUST send an ephemeral ECDH public key and a specification
+# of the corresponding curve in the ServerKeyExchange message.  These
+# parameters MUST NOT be signed.
+# 
+# The client generates an ECDH key pair on the same curve as the
+# server's ephemeral ECDH key and sends its public key in the
+# ClientKeyExchange message.
+# 
+# Both client and server perform an ECDH operation and use the
+# resultant shared secret as the premaster secret.  All ECDH
+# calculations are performed as specified in Section 5.10.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In ECDH_anon, the server's Certificate, the CertificateRequest, the
+client's Certificate, and the CertificateVerify messages MUST NOT be
+sent.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST send an ephemeral ECDH public key and a specification
+of the corresponding curve in the ServerKeyExchange message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+These
+parameters MUST NOT be signed.
+'''
+

@@ -1,0 +1,101 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-8"
+
+# 8.  0-RTT and Anti-Replay
+#
+# As noted in Section 2.3 and Appendix E.5, TLS does not provide
+# inherent replay protections for 0-RTT data.  There are two potential
+# threats to be concerned with:
+# 
+# -  Network attackers who mount a replay attack by simply duplicating
+#    a flight of 0-RTT data.
+# 
+# -  Network attackers who take advantage of client retry behavior to
+#    arrange for the server to receive multiple copies of an
+#    application message.  This threat already exists to some extent
+#    because clients that value robustness respond to network errors by
+#    attempting to retry requests.  However, 0-RTT adds an additional
+#    dimension for any server system which does not maintain globally
+#    consistent server state.  Specifically, if a server system has
+#    multiple zones where tickets from zone A will not be accepted in
+#    zone B, then an attacker can duplicate a ClientHello and early
+#    data intended for A to both A and B.  At A, the data will be
+#    accepted in 0-RTT, but at B the server will reject 0-RTT data and
+#    instead force a full handshake.  If the attacker blocks the
+#    ServerHello from A, then the client will complete the handshake
+#    with B and probably retry the request, leading to duplication on
+#    the server system as a whole.
+# 
+# The first class of attack can be prevented by sharing state to
+# guarantee that the 0-RTT data is accepted at most once.  Servers
+# SHOULD provide that level of replay safety by implementing one of the
+# methods described in this section or by equivalent means.  It is
+# understood, however, that due to operational concerns not all
+# deployments will maintain state at that level.  Therefore, in normal
+# operation, clients will not know which, if any, of these mechanisms
+# servers actually implement and hence MUST only send early data which
+# they deem safe to be replayed.
+# 
+# In addition to the direct effects of replays, there is a class of
+# attacks where even operations normally considered idempotent could be
+# exploited by a large number of replays (timing attacks, resource
+# limit exhaustion and others, as described in Appendix E.5).  Those
+# can be mitigated by ensuring that every 0-RTT payload can be replayed
+# only a limited number of times.  The server MUST ensure that any
+# instance of it (be it a machine, a thread, or any other entity within
+# the relevant serving infrastructure) would accept 0-RTT for the same
+# 0-RTT handshake at most once; this limits the number of replays to
+# the number of server instances in the deployment.  Such a guarantee
+# can be accomplished by locally recording data from recently received
+# ClientHellos and rejecting repeats, or by any other method that
+# 
+# provides the same or a stronger guarantee.  The "at most once per
+# server instance" guarantee is a minimum requirement; servers SHOULD
+# limit 0-RTT replays further when feasible.
+# 
+# The second class of attack cannot be prevented at the TLS layer and
+# MUST be dealt with by any application.  Note that any application
+# whose clients implement any kind of retry behavior already needs to
+# implement some sort of anti-replay defense.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers
+SHOULD provide that level of replay safety by implementing one of the
+methods described in this section or by equivalent means.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Therefore, in normal
+operation, clients will not know which, if any, of these mechanisms
+servers actually implement and hence MUST only send early data which
+they deem safe to be replayed.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST ensure that any
+instance of it (be it a machine, a thread, or any other entity within
+the relevant serving infrastructure) would accept 0-RTT for the same
+0-RTT handshake at most once; this limits the number of replays to
+the number of server instances in the deployment.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The "at most once per
+server instance" guarantee is a minimum requirement; servers SHOULD
+limit 0-RTT replays further when feasible.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The second class of attack cannot be prevented at the TLS layer and
+MUST be dealt with by any application.
+'''
+

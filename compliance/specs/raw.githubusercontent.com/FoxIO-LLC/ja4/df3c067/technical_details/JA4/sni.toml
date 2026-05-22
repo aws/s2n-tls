@@ -1,0 +1,18 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#sni"
+
+# ### SNI:
+#
+# If the SNI extension (0x0000) exists, then the destination of the connection is a domain, or “d” in the fingerprint. If the SNI does not exist, then the destination is an IP address, or “i”.
+# 
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the SNI extension (0x0000) exists, then the destination of the connection is a domain, or “d” in the fingerprint.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the SNI does not exist, then the destination is an IP address, or “i”.
+'''

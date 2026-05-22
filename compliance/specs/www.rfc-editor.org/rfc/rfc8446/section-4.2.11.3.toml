@@ -1,0 +1,22 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11.3"
+
+# 4.2.11.3.  Processing Order
+#
+# Clients are permitted to "stream" 0-RTT data until they receive the
+# server's Finished, only then sending the EndOfEarlyData message,
+# followed by the rest of the handshake.  In order to avoid deadlocks,
+# when accepting "early_data", servers MUST process the client's
+# ClientHello and then immediately send their flight of messages,
+# rather than waiting for the client's EndOfEarlyData message before
+# sending its ServerHello.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In order to avoid deadlocks,
+when accepting "early_data", servers MUST process the client's
+ClientHello and then immediately send their flight of messages,
+rather than waiting for the client's EndOfEarlyData message before
+sending its ServerHello.
+'''
+

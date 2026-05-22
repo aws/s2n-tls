@@ -34,11 +34,12 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
+    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Test receive - too much data */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -56,14 +57,14 @@ int main(int argc, char **argv)
 
     /* Test receive - value not 0
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *= type=test
      *# The server MUST then verify
      *# that the length of the "renegotiated_connection" field is zero,
      *# and if it is not, MUST abort the handshake.
      */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
 
     /* Test receive */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
 
     /* Test receive when using SSLv3
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *= type=test
      *# TLS servers that support secure renegotiation and support SSLv3 MUST accept SCSV or the
      *# "renegotiation_info" extension and respond as described in this
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
     };
 
     /*
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *= type=test
      *# o  The client MUST include either an empty "renegotiation_info"
      *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
@@ -131,10 +132,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
 
         /* Process the client hello on the server */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -162,7 +165,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *= type=test
      *# o  The server MUST check if the "renegotiation_info" extension is
      *# included in the ClientHello.
@@ -171,10 +174,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
 
         /* s2n-tls clients do not send the "renegotiation_info" extension.
          * Instead, they send the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite.
@@ -222,7 +227,7 @@ int main(int argc, char **argv)
 
     /* Test: should_send during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  The client MUST include the "renegotiation_info" extension in the
      *#    ClientHello
@@ -242,7 +247,7 @@ int main(int argc, char **argv)
 
     /* Test: send during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  The client MUST include the "renegotiation_info" extension in the
      *#    ClientHello, containing the saved client_verify_data.
@@ -288,7 +293,7 @@ int main(int argc, char **argv)
         };
 
         /*
-         *= https://tools.ietf.org/rfc/rfc5746#3.5
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.5
          *= type=test
          *# The SCSV MUST NOT be included.
          */
@@ -296,6 +301,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
+
             conn->secure_renegotiation = true;
             conn->handshake.renegotiation = true;
 
@@ -321,7 +328,7 @@ int main(int argc, char **argv)
 
     /* Test: recv during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  The server MUST verify that the value of the
      *#    "renegotiated_connection" field is equal to the saved
@@ -387,7 +394,7 @@ int main(int argc, char **argv)
 
     /* Test: if_missing during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  The server MUST verify that the "renegotiation_info" extension is
      *#    present; if it is not, the server MUST abort the handshake.
@@ -396,11 +403,13 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
         client_conn->handshake.renegotiation = false;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(server_conn));
         server_conn->handshake.renegotiation = true;
         server_conn->secure_renegotiation = true;
 
@@ -418,7 +427,7 @@ int main(int argc, char **argv)
 
     /* Test: receiving SCSV during renegotiation is an error
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  When a ClientHello is received, the server MUST verify that it
      *#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
@@ -428,6 +437,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
         client_conn->secure_renegotiation = true;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),

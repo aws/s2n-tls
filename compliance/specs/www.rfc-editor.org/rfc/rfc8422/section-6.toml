@@ -1,0 +1,66 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-6"
+
+# 6.  Cipher Suites
+#
+# The table below defines ECC cipher suites that use the key exchange
+# algorithms specified in Section 2.
+# 
+#     +-----------------------------------------+----------------+
+#     | CipherSuite                             | Identifier     |
+#     +-----------------------------------------+----------------+
+#     | TLS_ECDHE_ECDSA_WITH_NULL_SHA           | { 0xC0, 0x06 } |
+#     | TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA   | { 0xC0, 0x08 } |
+#     | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA    | { 0xC0, 0x09 } |
+#     | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA    | { 0xC0, 0x0A } |
+#     | TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 | { 0xC0, 0x2B } |
+#     | TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 | { 0xC0, 0x2C } |
+#     |                                         |                |
+#     | TLS_ECDHE_RSA_WITH_NULL_SHA             | { 0xC0, 0x10 } |
+#     | TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA     | { 0xC0, 0x12 } |
+#     | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA      | { 0xC0, 0x13 } |
+#     | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA      | { 0xC0, 0x14 } |
+#     | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   | { 0xC0, 0x2F } |
+#     | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   | { 0xC0, 0x30 } |
+#     |                                         |                |
+#     | TLS_ECDH_anon_WITH_NULL_SHA             | { 0xC0, 0x15 } |
+#     | TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA     | { 0xC0, 0x17 } |
+#     | TLS_ECDH_anon_WITH_AES_128_CBC_SHA      | { 0xC0, 0x18 } |
+#     | TLS_ECDH_anon_WITH_AES_256_CBC_SHA      | { 0xC0, 0x19 } |
+#     +-----------------------------------------+----------------+
+# 
+#                    Table 3: TLS ECC Cipher Suites
+# 
+# The key exchange method, cipher, and hash algorithm for each of these
+# cipher suites are easily determined by examining the name.  Ciphers
+# (other than AES ciphers) and hash algorithms are defined in [RFC2246]
+# and [RFC4346].  AES ciphers are defined in [RFC5246], and AES-GCM
+# ciphersuites are in [RFC5289].
+# 
+# Server implementations SHOULD support all of the following cipher
+# suites, and client implementations SHOULD support at least one of
+# them:
+# 
+# o  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+# 
+# o  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+# 
+# o  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+# 
+# o  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Server implementations SHOULD support all of the following cipher
+suites, and client implementations SHOULD support at least one of
+them:
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Server implementations SHOULD support all of the following cipher
+suites, and client implementations SHOULD support at least one of
+them:
+'''
+

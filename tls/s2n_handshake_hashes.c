@@ -67,20 +67,6 @@ static S2N_RESULT s2n_handshake_hashes_free_hashes(struct s2n_handshake_hashes *
 
 static S2N_RESULT s2n_handshake_hashes_init_hashes(struct s2n_handshake_hashes *hashes)
 {
-    /* Allow MD5 for hash states that are used by the PRF. This is required
-     * to comply with the TLS 1.0 and 1.1 RFCs and is approved as per
-     * NIST Special Publication 800-52 Revision 1.
-     */
-    if (s2n_is_in_fips_mode()) {
-        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->md5));
-
-        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
-         * SHA-1 for both fips and non-fips mode. This is required to perform the
-         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1.
-         * This is approved per Nist SP 800-52r1.*/
-        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->md5_sha1));
-    }
-
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->md5, S2N_HASH_MD5));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->sha1, S2N_HASH_SHA1));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->sha224, S2N_HASH_SHA224));

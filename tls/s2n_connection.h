@@ -23,6 +23,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_async_offload.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
@@ -39,6 +40,8 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
+#include "unstable/events.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_timer.h"
 
@@ -47,6 +50,9 @@
 #define S2N_PEER_MODE(our_mode) ((our_mode + 1) % 2)
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
+
+#define S2N_DEFAULT_BLINDING_MAX 30
+#define S2N_DEFAULT_BLINDING_MIN 10
 
 typedef enum {
     S2N_NO_TICKET = 0,
@@ -66,11 +72,7 @@ struct s2n_connection {
     /* Connection can be used by a QUIC implementation */
     unsigned quic_enabled : 1;
 
-    /* Determines if we're currently sending or receiving in s2n_shutdown */
-    unsigned close_notify_queued : 1;
-
-    /* s2n does not support renegotiation.
-     * RFC5746 Section 4.3 suggests servers implement a minimal version of the
+    /* RFC5746 Section 4.3 suggests servers implement a minimal version of the
      * renegotiation_info extension even if renegotiation is not supported.
      * Some clients may fail the handshake if a corresponding renegotiation_info
      * extension is not sent back by the server.
@@ -96,9 +98,6 @@ struct s2n_connection {
     unsigned managed_send_io : 1;
     unsigned managed_recv_io : 1;
 
-    /* Key update data */
-    unsigned key_update_pending : 1;
-
     /* Early data supported by caller.
      * If a caller does not use any APIs that support early data,
      * do not negotiate early data.
@@ -112,9 +111,6 @@ struct s2n_connection {
      * This means that the connection will keep the existing value of psk_params->type,
      * even when setting a new config. */
     unsigned psk_mode_overridden : 1;
-
-    /* Have we received a close notify alert from the peer. */
-    unsigned close_notify_received : 1;
 
     /* Connection negotiated an EMS */
     unsigned ems_negotiated : 1;
@@ -140,6 +136,18 @@ struct s2n_connection {
 
     /* Indicates whether the connection should request OCSP stapling from the peer */
     unsigned request_ocsp_status : 1;
+
+    /* Indicates that the connection was created from deserialization
+     * and therefore knowledge of the original handshake is limited. */
+    unsigned deserialized_conn : 1;
+
+    /* Indicates s2n_recv should reduce read calls by attempting to buffer more
+     * data than is required for a single record.
+     *
+     * This is more efficient, but will break applications that expect exact reads,
+     * for example any custom IO that behaves like MSG_WAITALL.
+     */
+    unsigned recv_buffering : 1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -197,7 +205,6 @@ struct s2n_connection {
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
      * speaking. */
-    uint8_t client_hello_version;
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
@@ -232,15 +239,15 @@ struct s2n_connection {
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space *prf_space;
 
-    /* Whether to use client_cert_auth_type stored in s2n_config or in this s2n_connection.
-     *
-     * By default the s2n_connection will defer to s2n_config->client_cert_auth_type on whether or not to use Client Auth.
-     * But users can override Client Auth at the connection level using s2n_connection_set_client_auth_type() without mutating
-     * s2n_config since s2n_config can be shared between multiple s2n_connections. */
+    /* Indicates whether the application has overridden the client auth behavior
+     * inherited from the config.
+     * This should be a bitflag, but that change is blocked on the SAW proofs.
+     */
     uint8_t client_cert_auth_type_overridden;
 
-    /* Whether or not the s2n_connection should require the Client to authenticate itself to the server. Only used if
-     * client_cert_auth_type_overridden is non-zero. */
+    /* Whether or not the client should authenticate itself to the server.
+     * Only used if client_cert_auth_type_overridden is true.
+     */
     s2n_cert_auth_type client_cert_auth_type;
 
     /* Our workhorse stuffers, used for buffering the plaintext
@@ -248,6 +255,7 @@ struct s2n_connection {
      */
     uint8_t header_in_data[S2N_TLS_RECORD_HEADER_LENGTH];
     struct s2n_stuffer header_in;
+    struct s2n_stuffer buffer_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
     enum {
@@ -267,18 +275,17 @@ struct s2n_connection {
     uint8_t alert_in_data[S2N_ALERT_LENGTH];
     struct s2n_stuffer alert_in;
 
-    /* An alert may be partially written in the outbound
-     * direction, so we keep this as a small 2 byte queue.
-     *
-     * We keep separate queues for alerts generated by
-     * readers (a response to an alert from a peer) and writers (an
-     * intentional shutdown) so that the s2n reader and writer
-     * can be separate duplex I/O threads.
+    /* Both readers and writers can trigger alerts.
+     * We prioritize writer alerts over reader alerts.
      */
-    uint8_t reader_alert_out_data[S2N_ALERT_LENGTH];
-    uint8_t writer_alert_out_data[S2N_ALERT_LENGTH];
-    struct s2n_stuffer reader_alert_out;
-    struct s2n_stuffer writer_alert_out;
+    uint8_t writer_alert_out;
+    uint8_t reader_alert_out;
+    uint8_t reader_warning_out;
+    bool alert_sent;
+
+    /* Receiving error or close_notify alerts changes the behavior of s2n_shutdown_send */
+    s2n_atomic_flag error_alert_received;
+    s2n_atomic_flag close_notify_received;
 
     /* Our handshake state machine */
     struct s2n_handshake handshake;
@@ -316,14 +323,11 @@ struct s2n_connection {
     uint64_t wire_bytes_out;
     uint64_t early_data_bytes;
 
-    /* Is the connection open or closed?
-     *
-     * We use C's only atomic type as an error requires shutting down both read
-     * and write, so both the reader and writer threads may access both fields.
+    /* Either the reader or the writer can trigger both sides of the connection
+     * to close in response to a fatal error.
      */
-    sig_atomic_t read_closed;
-    sig_atomic_t write_closing;
-    sig_atomic_t write_closed;
+    s2n_atomic_flag read_closed;
+    s2n_atomic_flag write_closed;
 
     /* TLS extension data */
     char server_name[S2N_MAX_SERVER_NAME + 1];
@@ -351,6 +355,8 @@ struct s2n_connection {
 
     struct s2n_x509_validator x509_validator;
 
+    struct s2n_async_offload_op async_offload_op;
+
     /* After a connection is created this is the verification function that should always be used. At init time,
      * the config should be checked for a verify callback and each connection should default to that. However,
      * from the user's perspective, it's sometimes simpler to manage state by attaching each validation function/data
@@ -375,6 +381,8 @@ struct s2n_connection {
     /* Cookie extension data */
     struct s2n_blob cookie;
 
+    struct s2n_blob cert_authorities;
+
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing callbacks.
      */
@@ -391,6 +399,16 @@ struct s2n_connection {
     uint32_t server_keying_material_lifetime;
 
     struct s2n_post_handshake post_handshake;
+    /* Both the reader and writer can set key_update_pending.
+     * The writer clears it after a KeyUpdate is sent.
+     */
+    s2n_atomic_flag key_update_pending;
+
+    /* Track KeyUpdates for metrics */
+    uint8_t send_key_updated;
+    uint8_t recv_key_updated;
+
+    struct s2n_event_handshake handshake_event;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
@@ -429,3 +447,6 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);
+S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const struct s2n_cipher **cipher);
+S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
+        s2n_mode mode, struct s2n_blob *seq_num);

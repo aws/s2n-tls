@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_session_key session_key = { 0 };
         EXPECT_SUCCESS(s2n_session_key_alloc(&session_key));
 
@@ -136,9 +136,9 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
 
         /* init record algorithm */
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&session_key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->init(&session_key));
         S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(&session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_decryption_key(&session_key, &key));
 
         /* write protected record to conn in for testing */
         S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite ENCRYPTION with TLS 1.3 test vectors */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
@@ -222,9 +222,9 @@ int main(int argc, char **argv)
         uint8_t *implicit_iv = conn->server->server_implicit_iv;
 
         /* init record algorithm */
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(session_key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->init(session_key));
         S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
 
         S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
 
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
 
     /* Test encrypt-decrypt roundtrip */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
@@ -279,10 +279,10 @@ int main(int argc, char **argv)
         uint8_t *implicit_iv = conn->server->server_implicit_iv;
 
         /* init record algorithm */
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(session_key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->init(session_key));
         S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_decryption_key(session_key, &key));
 
         S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
     {
         s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
         for (size_t m = 0; m < s2n_array_len(modes); m++) {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
             conn->actual_protocol_version = S2N_TLS13;
@@ -348,11 +348,11 @@ int main(int argc, char **argv)
             conn->client = conn->secure;
 
             /* init record algorithm */
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+            EXPECT_OK(cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+            EXPECT_OK(cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
             S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key));
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key));
+            EXPECT_OK(cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key));
+            EXPECT_OK(cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key));
 
             S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
             S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");

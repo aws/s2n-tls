@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
+    const struct s2n_security_policy *default_security_policy = NULL, *tls13_security_policy = NULL, *fips_security_policy = NULL;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
@@ -243,11 +243,17 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_connection_get_signature_preferences(conn, &signature_preferences));
         EXPECT_FAILURE(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_NOT_NULL(conn->config->security_policy);
         EXPECT_NULL(conn->security_policy_override);
 
-        conn->config->security_policy = NULL;
+        /* Invalidate the security policy and expect failure. */
+        config->security_policy = NULL;
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_cipher_preferences(conn, &cipher_preferences), S2N_ERR_INVALID_CIPHER_PREFERENCES);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_security_policy(conn, &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -268,18 +274,28 @@ int main(int argc, char **argv)
         /* No curve negotiated yet */
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         /* TLS1.3 always returns a curve */
         conn->actual_protocol_version = S2N_TLS13;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 returns a curve if ECDHE cipher negotiated */
         conn->actual_protocol_version = S2N_TLS12;
         conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_128_cbc_sha256;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        EXPECT_OK(s2n_handshake_type_set_flag(conn, FULL_HANDSHAKE));
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
+        curve_name = NULL;
+        s2n_connection_get_key_exchange_group(conn, &curve_name);
+        EXPECT_NOT_NULL(curve_name);
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, strlen(s2n_ecc_curve_secp256r1.name));
 
         /* TLS1.2 does not return a curve if ECDHE cipher was not negotiated */
@@ -288,6 +304,7 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_key_exchange_group(conn, &curve_name), S2N_ERR_INVALID_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };

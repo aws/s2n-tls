@@ -1,0 +1,22 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#appendix-C.2"
+
+# C.2.  Certificates and Authentication
+#
+# Implementations are responsible for verifying the integrity of
+# certificates and should generally support certificate revocation
+# messages.  Absent a specific indication from an application profile,
+# certificates should always be verified to ensure proper signing by a
+# trusted certificate authority (CA).  The selection and addition of
+# trust anchors should be done very carefully.  Users should be able to
+# view information about the certificate and trust anchor.
+# Applications SHOULD also enforce minimum and maximum key sizes.  For
+# example, certification paths containing keys or signatures weaker
+# than 2048-bit RSA or 224-bit ECDSA are not appropriate for secure
+# applications.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Applications SHOULD also enforce minimum and maximum key sizes.
+'''
+

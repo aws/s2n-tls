@@ -26,7 +26,7 @@
  * s2n-tls servers do NOT support renegotiation.
  *
  * We implement this extension to handle clients that require secure renegotiation support:
- *= https://tools.ietf.org/rfc/rfc5746#4.3
+ *= https://www.rfc-editor.org/rfc/rfc5746#4.3
  *# In order to enable clients to probe, even servers that do not support
  *# renegotiation MUST implement the minimal version of the extension
  *# described in this document for initial handshakes, thus signaling
@@ -46,7 +46,7 @@ const s2n_extension_type s2n_server_renegotiation_info_extension = {
     .if_missing = s2n_renegotiation_info_if_missing,
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *# Note that sending a "renegotiation_info" extension in response to a
      *# ClientHello containing only the SCSV is an explicit exception to the
      *# prohibition in RFC 5246, Section 7.4.1.4, on the server sending
@@ -62,7 +62,7 @@ const s2n_extension_type s2n_server_renegotiation_info_extension = {
 };
 
 /**
- *= https://tools.ietf.org/rfc/rfc5746#3.6
+ *= https://www.rfc-editor.org/rfc/rfc5746#3.6
  *# o  If the secure_renegotiation flag is set to TRUE, the server MUST
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
@@ -73,7 +73,7 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc5746#3.6
+ *= https://www.rfc-editor.org/rfc/rfc5746#3.6
  *# o  If the secure_renegotiation flag is set to TRUE, the server MUST
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
@@ -94,14 +94,14 @@ static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to TRUE (if it is set to FALSE, see Section 4.4).
      */
     POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *# o  The server MUST include a "renegotiation_info" extension
      *#    containing the saved client_verify_data and server_verify_data in
      *#    the ServerHello.
@@ -126,7 +126,7 @@ static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_s
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc5746#3.4
+ *= https://www.rfc-editor.org/rfc/rfc5746#3.4
  *# o  When a ServerHello is received, the client MUST check if it
  *#    includes the "renegotiation_info" extension:
  */
@@ -135,7 +135,7 @@ static int s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, stru
     POSIX_ENSURE_REF(conn);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *# *  The client MUST then verify that the length of the
      *#    "renegotiated_connection" field is zero, and if it is not, MUST
      *#    abort the handshake (by sending a fatal handshake_failure alert).
@@ -146,7 +146,7 @@ static int s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, stru
     POSIX_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *# *  If the extension is present, set the secure_renegotiation flag to TRUE.
      */
     conn->secure_renegotiation = 1;
@@ -160,14 +160,14 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
     POSIX_ENSURE_GT(verify_data_len, 0);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to TRUE (if it is set to FALSE, see Section 4.2).
      */
     POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *# o  The client MUST then verify that the first half of the
      *#    "renegotiated_connection" field is equal to the saved
      *#    client_verify_data value, and the second half is equal to the
@@ -194,7 +194,7 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
 
 /**
  * Note that this extension must also work for SSLv3:
- *= https://tools.ietf.org/rfc/rfc5746#4.5
+ *= https://www.rfc-editor.org/rfc/rfc5746#4.5
  *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
  *# "renegotiation_info") MUST accept the "renegotiation_info" extension
  *# from the server, even if the server version is {0x03, 0x00}, and
@@ -215,7 +215,7 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     if (s2n_handshake_is_renegotiation(conn)) {
         /**
-         *= https://tools.ietf.org/rfc/rfc5746#3.5
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.5
          *# o  When a ServerHello is received, the client MUST verify that the
          *#    "renegotiation_info" extension is present; if it is not, the
          *#    client MUST abort the handshake.
@@ -223,7 +223,7 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn)
         POSIX_BAIL(S2N_ERR_NO_RENEGOTIATION);
     } else {
         /**
-         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.4
          *# *  If the extension is not present, the server does not support
          *#    secure renegotiation; set secure_renegotiation flag to FALSE.
          *#    In this case, some clients may want to terminate the handshake
@@ -232,7 +232,7 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn)
         conn->secure_renegotiation = false;
 
         /**
-         *= https://tools.ietf.org/rfc/rfc5746#4.1
+         *= https://www.rfc-editor.org/rfc/rfc5746#4.1
          *= type=exception
          *= reason=Avoid interoperability problems
          *# If clients wish to ensure that such attacks are impossible, they need

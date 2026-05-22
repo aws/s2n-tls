@@ -1,0 +1,162 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-6.1"
+
+# 6.1.  Connection States
+#
+# A TLS connection state is the operating environment of the TLS Record
+# Protocol.  It specifies a compression algorithm, an encryption
+# algorithm, and a MAC algorithm.  In addition, the parameters for
+# these algorithms are known: the MAC key and the bulk encryption keys
+# for the connection in both the read and the write directions.
+# Logically, there are always four connection states outstanding: the
+# current read and write states, and the pending read and write states.
+# All records are processed under the current read and write states.
+# The security parameters for the pending states can be set by the TLS
+# Handshake Protocol, and the ChangeCipherSpec can selectively make
+# either of the pending states current, in which case the appropriate
+# current state is disposed of and replaced with the pending state; the
+# pending state is then reinitialized to an empty state.  It is illegal
+# to make a state that has not been initialized with security
+# parameters a current state.  The initial current state always
+# specifies that no encryption, compression, or MAC will be used.
+# 
+# The security parameters for a TLS Connection read and write state are
+# set by providing the following values:
+# 
+# connection end
+#    Whether this entity is considered the "client" or the "server" in
+#    this connection.
+# 
+# PRF algorithm
+#    An algorithm used to generate keys from the master secret (see
+#    Sections 5 and 6.3).
+# 
+# bulk encryption algorithm
+#    An algorithm to be used for bulk encryption.  This specification
+#    includes the key size of this algorithm, whether it is a block,
+#    stream, or AEAD cipher, the block size of the cipher (if
+#    appropriate), and the lengths of explicit and implicit
+#    initialization vectors (or nonces).
+# 
+# MAC algorithm
+#    An algorithm to be used for message authentication.  This
+#    specification includes the size of the value returned by the MAC
+#    algorithm.
+# 
+# compression algorithm
+#    An algorithm to be used for data compression.  This specification
+#    must include all information the algorithm requires to do
+#    compression.
+# 
+# master secret
+#    A 48-byte secret shared between the two peers in the connection.
+# 
+# client random
+#    A 32-byte value provided by the client.
+# 
+# server random
+#    A 32-byte value provided by the server.
+# 
+#    These parameters are defined in the presentation language as:
+# 
+#    enum { server, client } ConnectionEnd;
+# 
+#    enum { tls_prf_sha256 } PRFAlgorithm;
+# 
+#    enum { null, rc4, 3des, aes }
+#      BulkCipherAlgorithm;
+# 
+#    enum { stream, block, aead } CipherType;
+# 
+#    enum { null, hmac_md5, hmac_sha1, hmac_sha256,
+#         hmac_sha384, hmac_sha512} MACAlgorithm;
+# 
+#    enum { null(0), (255) } CompressionMethod;
+# 
+#    /* The algorithms specified in CompressionMethod, PRFAlgorithm,
+#       BulkCipherAlgorithm, and MACAlgorithm may be added to. */
+# 
+#    struct {
+#        ConnectionEnd          entity;
+#        PRFAlgorithm           prf_algorithm;
+#        BulkCipherAlgorithm    bulk_cipher_algorithm;
+#        CipherType             cipher_type;
+#        uint8                  enc_key_length;
+#        uint8                  block_length;
+#        uint8                  fixed_iv_length;
+#        uint8                  record_iv_length;
+#        MACAlgorithm           mac_algorithm;
+#        uint8                  mac_length;
+#        uint8                  mac_key_length;
+#        CompressionMethod      compression_algorithm;
+#        opaque                 master_secret[48];
+#        opaque                 client_random[32];
+#        opaque                 server_random[32];
+#    } SecurityParameters;
+# 
+# The record layer will use the security parameters to generate the
+# following six items (some of which are not required by all ciphers,
+# and are thus empty):
+# 
+#    client write MAC key
+#    server write MAC key
+#    client write encryption key
+#    server write encryption key
+#    client write IV
+#    server write IV
+# 
+# The client write parameters are used by the server when receiving and
+# processing records and vice versa.  The algorithm used for generating
+# these items from the security parameters is described in Section 6.3.
+# 
+# Once the security parameters have been set and the keys have been
+# generated, the connection states can be instantiated by making them
+# the current states.  These current states MUST be updated for each
+# record processed.  Each connection state includes the following
+# elements:
+# 
+# compression state
+#    The current state of the compression algorithm.
+# 
+# cipher state
+#    The current state of the encryption algorithm.  This will consist
+#    of the scheduled key for that connection.  For stream ciphers,
+#    this will also contain whatever state information is necessary to
+#    allow the stream to continue to encrypt or decrypt data.
+# 
+# MAC key
+#    The MAC key for this connection, as generated above.
+# 
+# sequence number
+#    Each connection state contains a sequence number, which is
+#    maintained separately for read and write states.  The sequence
+#    number MUST be set to zero whenever a connection state is made the
+#    active state.  Sequence numbers are of type uint64 and may not
+#    exceed 2^64-1.  Sequence numbers do not wrap.  If a TLS
+#    implementation would need to wrap a sequence number, it must
+#    renegotiate instead.  A sequence number is incremented after each
+#    record: specifically, the first record transmitted under a
+#    particular connection state MUST use sequence number 0.
+
+[[spec]]
+level = "MUST"
+quote = '''
+These current states MUST be updated for each
+record processed.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The sequence
+number MUST be set to zero whenever a connection state is made the
+active state.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A sequence number is incremented after each
+record: specifically, the first record transmitted under a
+particular connection state MUST use sequence number 0.
+'''
+

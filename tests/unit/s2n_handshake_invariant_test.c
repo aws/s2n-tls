@@ -57,7 +57,7 @@ static int amt_written = 0;
 int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uint32_t len)
 {
     int amt_left = sizeof(record) - amt_written;
-    int to_write = MIN(len, amt_left);
+    int to_write = S2N_MIN(len, amt_left);
     POSIX_CHECKED_MEMCPY(buf, record + amt_written, to_write);
     amt_written += to_write;
     return to_write;
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Initialize *some* handshake type. Not terribly relevant for this test. */
@@ -85,5 +85,4 @@ int main(int argc, char **argv)
 
     s2n_connection_free(conn);
     END_TEST();
-    return 0;
 }

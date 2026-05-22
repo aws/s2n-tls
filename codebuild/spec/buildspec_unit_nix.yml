@@ -1,0 +1,181 @@
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+version: 0.2
+env:
+  shell: bash
+  variables:
+    NIXDEV_ARGS: --max-jobs auto
+    S2N_NO_HEADBUILD: "1"
+
+batch:
+  build-graph:
+    # Cache job for x86
+    - identifier: nixCache_x86_64
+      comment: identifiers can not contain dashes
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        variables:
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # Cache job for aarch64
+    - identifier: nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        type: ARM_CONTAINER
+        variables:
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # Openssl30 x86
+    - identifier: UnitOpenssl30_x86_64
+      depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # Openssl30 aarch64
+    - identifier: UnitOpenssl30_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#default
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # Openssl111 aarch64
+    - identifier: UnitOpenssl111_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#openssl111
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # Openssl102 aarch64
+    - identifier: UnitOpenssl102_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#openssl102
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # libressl x86
+    - identifier: UnitLibressl_x86_64
+      depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_LIBCRYPTO: .#libressl
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # awslc x86
+    - identifier: UnitAwslc_x86_64
+      depend-on:
+        - nixCache_x86_64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild:latest
+        privileged-mode: true
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
+
+    # awslc aarch64
+    - identifier: UnitAwslc_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslc
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # awslcfips 2022 aarch64
+    - identifier: UnitAwslcFips2022_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslcfips2022
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+    # awslcfips 2024 aarch64
+    - identifier: UnitAwslcFips2024_aarch64
+      depend-on:
+        - nixCache_aarch64
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: public.ecr.aws/l1b2r3y5/nix-aws-codebuild-aarch64:next
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          NIXDEV_LIBCRYPTO: .#awslcfips2024
+          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
+
+phases:
+  install:
+    commands:
+      - |
+        if [[ "$CODEBUILD_BATCH_BUILD_IDENTIFIER" =~ .*"nixCache".* ]]; then
+          echo "Refreshing nix cache..."
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix build $NIXDEV_ARGS .#devShell
+          nix copy --to $NIX_CACHE_BUCKET .#devShell;
+        else
+          echo "Downloading cache"
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+        fi
+  pre_build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure";
+        fi
+  build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build";
+        fi
+  post_build:
+    commands:
+      - |
+        set -e
+        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
+          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; unit"
+        fi

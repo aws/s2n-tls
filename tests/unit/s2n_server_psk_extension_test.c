@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_server_psk_recv */
     {
-        s2n_extension_type_id key_share_ext_id;
+        s2n_extension_type_id key_share_ext_id = 0;
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
 
         /* Test s2n_server_psk_recv for invalid TLS versions <= TLS1.2 */
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));

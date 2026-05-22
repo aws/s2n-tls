@@ -16,18 +16,15 @@
 #include "tls/s2n_alerts.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
-
-#define S2N_TLS_ALERT_LEVEL_WARNING 1
-#define S2N_TLS_ALERT_LEVEL_FATAL   2
 
 #define S2N_ALERT_CASE(error, alert_code) \
     case (error):                         \
@@ -44,6 +41,8 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
 
     switch (error_code) {
         S2N_ALERT_CASE(S2N_ERR_MISSING_EXTENSION, S2N_TLS_ALERT_MISSING_EXTENSION);
+        S2N_ALERT_CASE(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+        S2N_ALERT_CASE(S2N_ERR_MISSING_CLIENT_CERT, S2N_TLS_ALERT_CERTIFICATE_REQUIRED);
 
         /* TODO: The ERR_BAD_MESSAGE -> ALERT_UNEXPECTED_MESSAGE mapping
          * isn't always correct. Sometimes s2n-tls uses ERR_BAD_MESSAGE
@@ -52,14 +51,66 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          * our errors should be equally or more specific than alerts, not less.
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+        S2N_ALERT_CASE(S2N_ERR_UNEXPECTED_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+        S2N_ALERT_CASE(S2N_ERR_MISSING_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
         /* For errors involving secure renegotiation:
-         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.4
          *# Note: later in Section 3, "abort the handshake" is used as
          *# shorthand for "send a fatal handshake_failure alert and
          *# terminate the connection".
          */
         S2N_ALERT_CASE(S2N_ERR_NO_RENEGOTIATION, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+
+        S2N_ALERT_CASE(S2N_ERR_KTLS_KEYUPDATE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+
+        /* For errors involving certificates */
+
+        /* This error is used in several ways so make it a general certificate issue
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_unknown:  Some other (unspecified) issue arose in
+         *#    processing the certificate, rendering it unacceptable.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_UNTRUSTED, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+        S2N_ALERT_CASE(S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+        S2N_ALERT_CASE(S2N_ERR_CERT_INVALID_HOSTNAME, S2N_TLS_ALERT_CERTIFICATE_UNKNOWN);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_revoked:  A certificate was revoked by its signer.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_REVOKED, S2N_TLS_ALERT_CERTIFICATE_REVOKED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# certificate_expired:  A certificate has expired or is not currently
+         *#    valid.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_NOT_YET_VALID, S2N_TLS_ALERT_CERTIFICATE_EXPIRED);
+        S2N_ALERT_CASE(S2N_ERR_CERT_EXPIRED, S2N_TLS_ALERT_CERTIFICATE_EXPIRED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# unsupported_certificate:  A certificate was of an unsupported type.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_TYPE_UNSUPPORTED, S2N_TLS_ALERT_UNSUPPORTED_CERTIFICATE);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# access_denied:  A valid certificate or PSK was received, but when
+         *#    access control was applied, the sender decided not to proceed with
+         *#    negotiation.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_REJECTED, S2N_TLS_ALERT_ACCESS_DENIED);
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+         *# bad_certificate:  A certificate was corrupt, contained signatures
+         *#    that did not verify correctly, etc.
+         */
+        S2N_ALERT_CASE(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, S2N_TLS_ALERT_BAD_CERTIFICATE);
+        S2N_ALERT_CASE(S2N_ERR_CERT_INVALID, S2N_TLS_ALERT_BAD_CERTIFICATE);
+        S2N_ALERT_CASE(S2N_ERR_DECODE_CERTIFICATE, S2N_TLS_ALERT_BAD_CERTIFICATE);
 
         /* TODO: Add mappings for other protocol errors.
          */
@@ -83,7 +134,6 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_HASH_WIPE_FAILED);
         S2N_NO_ALERT(S2N_ERR_HASH_NOT_READY);
         S2N_NO_ALERT(S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED);
-        S2N_NO_ALERT(S2N_ERR_DECODE_CERTIFICATE);
         S2N_NO_ALERT(S2N_ERR_DECODE_PRIVATE_KEY);
         S2N_NO_ALERT(S2N_ERR_INVALID_HELLO_RETRY);
         S2N_NO_ALERT(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
@@ -95,6 +145,8 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_ECDHE_GEN_KEY);
         S2N_NO_ALERT(S2N_ERR_ECDHE_SHARED_SECRET);
         S2N_NO_ALERT(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        S2N_NO_ALERT(S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+        S2N_NO_ALERT(S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
         S2N_NO_ALERT(S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
         S2N_NO_ALERT(S2N_ERR_ECDHE_SERIALIZING);
         S2N_NO_ALERT(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
@@ -102,12 +154,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_SHUTDOWN_CLOSED);
         S2N_NO_ALERT(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         S2N_NO_ALERT(S2N_ERR_RECORD_LIMIT);
-        S2N_NO_ALERT(S2N_ERR_CERT_UNTRUSTED);
-        S2N_NO_ALERT(S2N_ERR_CERT_REVOKED);
-        S2N_NO_ALERT(S2N_ERR_CERT_EXPIRED);
-        S2N_NO_ALERT(S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        S2N_NO_ALERT(S2N_ERR_CERT_INVALID);
-        S2N_NO_ALERT(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED);
+        S2N_NO_ALERT(S2N_ERR_CERT_INTENT_INVALID);
         S2N_NO_ALERT(S2N_ERR_CRL_LOOKUP_FAILED);
         S2N_NO_ALERT(S2N_ERR_CRL_SIGNATURE);
         S2N_NO_ALERT(S2N_ERR_CRL_ISSUER);
@@ -143,11 +190,18 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
     return !s2n_connection_is_quic_enabled(conn);
 }
 
+/* In TLS1.3 all Alerts
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-6
+ *# MUST be treated as error alerts when received
+ *# regardless of the AlertLevel in the message.
+ */
 static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
     /* Only TLS1.2 considers the alert level. The alert level field is
-     * considered deprecated in TLS1.3. */
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+     * considered deprecated in TLS1.3. If the protocol version has not
+     * been negotiated yet, we allow for warnings to avoid premature
+     * handshake failures before we know the protocol version. */
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13 || !conn->actual_protocol_version_established) {
         return level == S2N_TLS_ALERT_LEVEL_WARNING
                 && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
     }
@@ -156,20 +210,6 @@ static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, u
      * We need to treat it as a warning regardless of alert_behavior to avoid marking
      * correctly-closed connections as failed. */
     return type == S2N_TLS_ALERT_USER_CANCELED;
-}
-
-S2N_RESULT s2n_alerts_close_if_fatal(struct s2n_connection *conn, struct s2n_blob *alert)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(alert);
-    RESULT_ENSURE_EQ(alert->size, S2N_ALERT_LENGTH);
-    /* Only one alert should currently be treated as a warning */
-    if (alert->data[1] == S2N_TLS_ALERT_NO_RENEGOTIATION) {
-        RESULT_ENSURE_EQ(alert->data[0], S2N_TLS_ALERT_LEVEL_WARNING);
-        return S2N_RESULT_OK;
-    }
-    conn->write_closing = 1;
-    return S2N_RESULT_OK;
 }
 
 int s2n_error_get_alert(int error, uint8_t *alert)
@@ -213,15 +253,15 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             bytes_required = 1;
         }
 
-        int bytes_to_read = MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
+        int bytes_to_read = S2N_MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
 
         POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                conn->read_closed = 1;
-                conn->close_notify_received = true;
+                s2n_atomic_flag_set(&conn->read_closed);
+                s2n_atomic_flag_set(&conn->close_notify_received);
                 return 0;
             }
 
@@ -236,8 +276,13 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            /* All other alerts are treated as fatal errors */
+            /* All other alerts are treated as fatal errors.
+             *
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-6
+             *# Unknown Alert types MUST be treated as error alerts.
+             */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+            s2n_atomic_flag_set(&conn->error_alert_received);
             POSIX_BAIL(S2N_ERR_ALERT);
         }
     }
@@ -245,80 +290,103 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
+static S2N_RESULT s2n_queue_reader_alert(struct s2n_connection *conn, s2n_tls_alert_code code)
 {
-    POSIX_ENSURE_REF(conn);
-
-    uint8_t alert[2];
-    alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
-    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
-
-    struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
-
-    /* If there is an alert pending, do nothing */
-    if (s2n_stuffer_data_available(&conn->writer_alert_out)) {
-        return S2N_SUCCESS;
+    RESULT_ENSURE_REF(conn);
+    if (!conn->reader_alert_out) {
+        conn->reader_alert_out = code;
     }
-
-    if (!s2n_alerts_supported(conn)) {
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, uint8_t error_code)
-{
-    POSIX_ENSURE_REF(conn);
-
-    uint8_t alert[2];
-    alert[0] = level;
-    alert[1] = error_code;
-
-    struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
-
-    /* If there is an alert pending, do nothing */
-    if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
-        return S2N_SUCCESS;
-    }
-
-    if (!s2n_alerts_supported(conn)) {
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
-
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
 {
-    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_PROTOCOL_VERSION);
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_PROTOCOL_VERSION));
+    return S2N_SUCCESS;
 }
 
 int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 {
-    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+    return S2N_SUCCESS;
 }
 
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
 {
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *# SSLv3 does not define the "no_renegotiation" alert (and does
      *# not offer a way to indicate a refusal to renegotiate at a "warning"
      *# level).  SSLv3 clients that refuse renegotiation SHOULD use a fatal
      *# handshake_failure alert.
      **/
     if (s2n_connection_get_protocol_version(conn) == S2N_SSLv3) {
-        RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+        RESULT_GUARD_POSIX(s2n_queue_reader_handshake_failure_alert(conn));
+        RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
+    }
+
+    if (!conn->reader_warning_out) {
+        conn->reader_warning_out = S2N_TLS_ALERT_NO_RENEGOTIATION;
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
+{
+    if (!s2n_alerts_supported(conn)) {
         return S2N_RESULT_OK;
     }
 
-    RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_NO_RENEGOTIATION));
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
+     *= type=exception
+     *= reason=Specific alerts could expose a side-channel attack vector.
+     *# The phrases "terminate the connection with an X
+     *# alert" and "abort the handshake with an X alert" mean that the
+     *# implementation MUST send alert X if it sends any alert.
+     *
+     * By default, s2n-tls sends a generic close_notify alert, even in
+     * response to fatal errors. This is done to avoid potential
+     * side-channel attacks since specific alerts could reveal information
+     * about why the error occurred.
+     */
+    uint8_t code = S2N_TLS_ALERT_CLOSE_NOTIFY;
+    uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;
+
+    /* s2n-tls sends a very small subset of more specific error alerts.
+     * Since either the reader or the writer can produce one of these alerts,
+     * but only a single alert can be reported, we prioritize writer alerts.
+     */
+    if (conn->writer_alert_out) {
+        code = conn->writer_alert_out;
+        level = S2N_TLS_ALERT_LEVEL_FATAL;
+    } else if (conn->reader_alert_out) {
+        code = conn->reader_alert_out;
+        level = S2N_TLS_ALERT_LEVEL_FATAL;
+    }
+
+    struct s2n_blob alert = { 0 };
+    uint8_t alert_bytes[] = { level, code };
+    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+
+    RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+    conn->alert_sent = true;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_alerts_write_warning(struct s2n_connection *conn)
+{
+    if (!s2n_alerts_supported(conn)) {
+        return S2N_RESULT_OK;
+    }
+
+    uint8_t code = conn->reader_warning_out;
+    uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;
+
+    struct s2n_blob alert = { 0 };
+    uint8_t alert_bytes[] = { level, code };
+    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+
+    RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
     return S2N_RESULT_OK;
 }

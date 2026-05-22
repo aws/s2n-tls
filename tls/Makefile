@@ -25,22 +25,22 @@ BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
-	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder))
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder);)
 
 .PHONY : bc
 bc: $(BCS)
-	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) bc)
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) bc;)
 
 .PHONY : run-lcov
 run-lcov: lcov
-	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) lcov)
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) lcov;)
 	
 .PHONY : indent
 indent: indentsource
-	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) indentsource)
+	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) indentsource;)
 
 .PHONY : clean
 clean: decruft
-	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) decruft)
+	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) decruft;)
 
 include ../s2n.mk

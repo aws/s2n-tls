@@ -1,0 +1,34 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash"
+
+# ### Cipher hash:
+# A 12 character truncated sha256 hash of the list of ciphers sorted in hex order, first 12 characters. The list is created using the 4 character hex values of the ciphers, lower case, comma delimited, ignoring GREASE.  
+# Example:
+# ```
+# 1301,1302,1303,c02b,c02f,c02c,c030,cca9,cca8,c013,c014,009c,009d,002f,0035
+# ```
+# Is sorted to:
+# ```
+# 002f,0035,009c,009d,1301,1302,1303,c013,c014,c02b,c02c,c02f,c030,cca8,cca9 = 8daaf6152771
+# ```
+#
+# If there are no ciphers in the sorted cipher list, then the value of JA4_b is set to `000000000000`
+# We do this rather than running a sha256 hash of nothing as this makes it clear to the user when a field has no values.
+#
+
+[[spec]]
+level = "MUST"
+quote = '''
+A 12 character truncated sha256 hash of the list of ciphers sorted in hex order, first 12 characters.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The list is created using the 4 character hex values of the ciphers, lower case, comma delimited, ignoring GREASE.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If there are no ciphers in the sorted cipher list, then the value of JA4_b is set to `000000000000`
+'''

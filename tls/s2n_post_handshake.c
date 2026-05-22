@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
+S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -39,7 +37,7 @@ static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct
             /*
              * s2n-tls does not support post-handshake authentication.
              *
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.2
              *# A client that receives a CertificateRequest message without having
              *# sent the "post_handshake_auth" extension MUST send an
              *# "unexpected_message" fatal alert.
@@ -93,7 +91,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
      */
     if (s2n_stuffer_data_available(message) < TLS_HANDSHAKE_HEADER_LENGTH) {
         uint32_t remaining = TLS_HANDSHAKE_HEADER_LENGTH - s2n_stuffer_data_available(message);
-        uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
+        uint32_t to_read = S2N_MIN(remaining, s2n_stuffer_data_available(in));
         RESULT_GUARD_POSIX(s2n_stuffer_copy(in, message, to_read));
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) >= TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_IO_BLOCKED);
@@ -147,7 +145,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
      */
     if (s2n_stuffer_data_available(message) < message_len) {
         uint32_t remaining = message_len - s2n_stuffer_data_available(message);
-        uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
+        uint32_t to_read = S2N_MIN(remaining, s2n_stuffer_data_available(in));
         RESULT_GUARD_POSIX(s2n_stuffer_copy(in, message, to_read));
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) == message_len, S2N_ERR_IO_BLOCKED);
@@ -186,6 +184,11 @@ S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blo
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
+
+    /* Currently, we only support TLS1.3 post-handshake messages. */
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
 
     POSIX_GUARD_RESULT(s2n_post_handshake_write_records(conn, blocked));
 

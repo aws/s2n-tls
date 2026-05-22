@@ -106,7 +106,7 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
                     (octets[i] & 0x000F) };
 
                 /* Skip up to three leading zeroes */
-                int j;
+                int j = 0;
                 for (j = 0; j < 3; j++) {
                     if (nibbles[j]) {
                         break;

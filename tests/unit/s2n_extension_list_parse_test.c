@@ -75,7 +75,7 @@ int main()
     s2n_extension_type empty_test_extension = test_extension;
     empty_test_extension.send = s2n_extension_send_no_data;
 
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Safety checks */
@@ -408,7 +408,7 @@ int main()
 
         uint16_t expected_order[] = { test_extension.iana_value, test_extension_2.iana_value, test_extension_3.iana_value };
         for (size_t i = 0; i < s2n_array_len(expected_order); i++) {
-            s2n_extension_type_id id;
+            s2n_extension_type_id id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(expected_order[i], &id));
             EXPECT_EQUAL(parsed_extension_list.parsed_extensions[id].wire_index, i);
         }

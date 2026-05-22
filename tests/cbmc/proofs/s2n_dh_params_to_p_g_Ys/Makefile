@@ -35,13 +35,12 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_network_order.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_free
 REMOVE_FUNCTION_BODY += s2n_realloc
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 
-UNWINDSET += s2n_stuffer_write_network_order.4:9
+UNWINDSET += s2n_stuffer_write_network_order.10:9
 
 include ../Makefile.common

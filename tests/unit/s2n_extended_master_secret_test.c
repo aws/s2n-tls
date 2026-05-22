@@ -23,25 +23,12 @@ int main(int argc, char **argv)
 
     /* Test s2n_conn_set_handshake_type is processing EMS data correctly */
     {
-        struct s2n_config *config;
-        uint64_t current_time = 0;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
-
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-        EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-        uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-        /**
-         *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-         *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-         *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-         **/
-        S2N_BLOB_FROM_HEX(ticket_key,
-                "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-                ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *# If the original session used the "extended_master_secret"
          *# extension but the new ClientHello does not contain it, the server
@@ -62,8 +49,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket with EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -78,7 +68,7 @@ int main(int argc, char **argv)
         };
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *# If the original session did not use the "extended_master_secret"
          *# extension but the new ClientHello contains the extension, then the
@@ -101,8 +91,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket without EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -138,8 +131,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
+            struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+            EXPECT_NOT_NULL(key);
+
             /* Encrypt the ticket with EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -170,7 +166,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -221,7 +217,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -266,7 +262,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

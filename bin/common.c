@@ -314,6 +314,9 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
 
 int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path)
 {
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
+
     GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
@@ -345,8 +348,8 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
     if (conn_settings.session_ticket || conn_settings.session_cache) {
         /* Key initialization */
-        uint8_t *st_key;
-        uint32_t st_key_length;
+        uint8_t *st_key = NULL;
+        uint32_t st_key_length = 0;
 
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);
@@ -376,6 +379,10 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
 int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings)
 {
+    if (settings.deserialize_in) {
+        GUARD_RETURN(s2n_connection_deserialize_in(conn, settings.deserialize_in), "Failed to deserialize file");
+    }
+
     if (settings.self_service_blinding) {
         s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
     }
@@ -485,9 +492,15 @@ uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *da
         return (uint8_t) (strcasecmp(suffix, host_name + 1) == 0);
     }
 
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    /* If we're connecting to localhost, accept any values that represent localhost */
+    bool is_localhost = (strcasecmp(verify_data->trusted_host, "localhost") == 0);
+    is_localhost |= (strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    if (is_localhost) {
+        bool match = (strcasecmp(host_name, "localhost") == 0);
+        match |= (strcasecmp(host_name, "127.0.0.1") == 0);
+        /* Some of our older test certificates use odd common names */
+        match |= (strcasecmp(host_name, "s2nTestServer") == 0);
+        return (uint8_t) match;
     }
 
     return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
@@ -528,4 +541,31 @@ int wait_for_shutdown(struct s2n_connection *conn, int fd)
         }
     }
     return S2N_SUCCESS;
+}
+
+int s2n_connection_serialize_out(struct s2n_connection *conn, const char *file_path)
+{
+    uint32_t serialize_length = 0;
+    GUARD_RETURN(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
+    uint8_t *mem = malloc(serialize_length);
+    GUARD_RETURN_NULL(mem);
+    GUARD_RETURN(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
+    GUARD_RETURN(write_array_to_file(file_path, mem, serialize_length), "Failed to write serialized connection to file");
+    free(mem);
+
+    return 0;
+}
+
+int s2n_connection_deserialize_in(struct s2n_connection *conn, const char *file_path)
+{
+    size_t deserialize_length = 0;
+    GUARD_RETURN(get_file_size(file_path, &deserialize_length), "Failed to read deserialize-in file size");
+    ENSURE_RETURN(deserialize_length <= UINT32_MAX, "deserialize-in file size is too large");
+    uint8_t *mem = malloc(deserialize_length);
+    GUARD_RETURN_NULL(mem);
+    GUARD_RETURN(load_file_to_array(file_path, mem, deserialize_length), "Failed to read deserialize-in file");
+    GUARD_RETURN(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
+    free(mem);
+
+    return 0;
 }

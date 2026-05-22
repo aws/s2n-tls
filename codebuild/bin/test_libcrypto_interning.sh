@@ -147,8 +147,13 @@ done
 
 run_connection_test() {
     local TARGET="$1"
+    
     LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nd -c default_tls13 localhost 4433 &> /dev/null &
     local SERVER_PID=$!
+    
+    # Wait for the server to start up before connecting
+    sleep 5s
+    
     LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
     kill $SERVER_PID &> /dev/null || true
 
@@ -158,11 +163,14 @@ run_connection_test() {
 }
 
 # without interning, the connection should fail when linking the wrong version of libcrypto
-echo "running pair: TLS 1.3 failure expected"
+echo "Running test: attempt TLS1.3 handshake without interning"
 run_connection_test shared-default && fail "TLS 1.3 handshake was expected to fail"
+echo "TLS1.3 handshake failed as expected"
+echo ""
 
 # with interning, the connection should succeed even though we've linked the wrong version of libcrypto
-echo "running pair: TLS 1.3 success expected"
+echo "Running test: attempt TLS1.3 handshake with interning"
 run_connection_test shared-testing || fail "TLS 1.3 handshake was expected to succeed"
+echo "TLS1.3 handshake succeeded as expected"
 
 echo "SUCCESS!"

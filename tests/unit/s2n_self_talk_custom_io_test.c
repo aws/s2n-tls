@@ -31,14 +31,15 @@
 
 int mock_client(struct s2n_test_io_pair *io_pair)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
     conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
+    EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
     s2n_connection_set_config(conn, client_config);
 
     /* Unlike the server, the client just passes ownership of I/O to s2n */
@@ -69,11 +70,11 @@ int main(int argc, char **argv)
      */
     {
         s2n_blocked_status blocked;
-        int status;
-        pid_t pid;
-        char *cert_chain_pem;
-        char *private_key_pem;
-        char *dhparams_pem;
+        int status = 0;
+        pid_t pid = 0;
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        char *dhparams_pem = NULL;
 
         /* For convenience, this test will intentionally try to write to closed pipes during shutdown. Ignore the signal to
         * avoid exiting the process on SIGPIPE.
@@ -96,6 +97,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
+
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
@@ -131,7 +134,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         do {
-            int ret;
+            int ret = 0;
 
             ret = s2n_negotiate(conn, &blocked);
             EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
@@ -146,7 +149,7 @@ int main(int argc, char **argv)
         /* Shutdown after negotiating */
         uint8_t server_shutdown = 0;
         do {
-            int ret;
+            int ret = 0;
 
             ret = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));

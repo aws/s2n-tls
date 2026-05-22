@@ -1,0 +1,219 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-5.4"
+
+# 5.4.  Server Key Exchange
+#
+# When this message is sent:
+# 
+# This message is sent when using the ECDHE_ECDSA, ECDHE_RSA, and
+# ECDH_anon key exchange algorithms.
+# 
+# Meaning of this message:
+# 
+# This message is used to convey the server's ephemeral ECDH public key
+# (and the corresponding elliptic curve domain parameters) to the
+# client.
+# 
+# Structure of this message:
+# 
+#      enum { explicit_prime (1), explicit_char2 (2),
+#             named_curve (3), reserved(248..255) } ECCurveType;
+# 
+# explicit_prime:   Indicates the elliptic curve domain parameters are
+#    conveyed verbosely, and the underlying finite field is a prime
+#    field.
+# 
+# explicit_char2:   Indicates the elliptic curve domain parameters are
+#    conveyed verbosely, and the underlying finite field is a
+#    characteristic-2 field.
+# 
+# named_curve:   Indicates that a named curve is used.  This option
+#    SHOULD be used when applicable.
+# 
+# Values 248 through 255 are reserved for private use.
+# 
+# The ECCurveType name space is maintained by IANA.  See Section 8 for
+# information on how new value assignments are added.
+# 
+#      struct {
+#          opaque a <1..2^8-1>;
+#          opaque b <1..2^8-1>;
+#      } ECCurve;
+# 
+# a, b:   These parameters specify the coefficients of the elliptic
+#    curve.  Each value contains the byte string representation of a
+#    field element following the conversion routine in Section 4.3.3 of
+#    ANSI X9.62 [7].
+# 
+#      struct {
+#          opaque point <1..2^8-1>;
+#      } ECPoint;
+# 
+# point:   This is the byte string representation of an elliptic curve
+#    point following the conversion routine in Section 4.3.6 of ANSI
+#    X9.62 [7].  This byte string may represent an elliptic curve point
+#    in uncompressed or compressed format; it MUST conform to what the
+#    client has requested through a Supported Point Formats Extension
+#    if this extension was used.
+# 
+#      enum { ec_basis_trinomial, ec_basis_pentanomial } ECBasisType;
+# 
+# ec_basis_trinomial:   Indicates representation of a characteristic-2
+#    field using a trinomial basis.
+# 
+# ec_basis_pentanomial:   Indicates representation of a
+#    characteristic-2 field using a pentanomial basis.
+# 
+#      struct {
+#          ECCurveType    curve_type;
+#          select (curve_type) {
+#              case explicit_prime:
+#                  opaque      prime_p <1..2^8-1>;
+#                  ECCurve     curve;
+#                  ECPoint     base;
+#                  opaque      order <1..2^8-1>;
+#                  opaque      cofactor <1..2^8-1>;
+#              case explicit_char2:
+#                  uint16      m;
+#                  ECBasisType basis;
+#                  select (basis) {
+#                      case ec_trinomial:
+#                          opaque  k <1..2^8-1>;
+#                      case ec_pentanomial:
+#                          opaque  k1 <1..2^8-1>;
+#                          opaque  k2 <1..2^8-1>;
+#                          opaque  k3 <1..2^8-1>;
+#                  };
+#                  ECCurve     curve;
+#                  ECPoint     base;
+#                  opaque      order <1..2^8-1>;
+#                  opaque      cofactor <1..2^8-1>;
+# 
+#              case named_curve:
+#                  NamedCurve namedcurve;
+#          };
+#      } ECParameters;
+# 
+# curve_type:   This identifies the type of the elliptic curve domain
+#    parameters.
+# 
+# prime_p:   This is the odd prime defining the field Fp.
+# 
+# curve:   Specifies the coefficients a and b of the elliptic curve E.
+# 
+# base:   Specifies the base point G on the elliptic curve.
+# 
+# order:   Specifies the order n of the base point.
+# 
+# cofactor:   Specifies the cofactor h = #E(Fq)/n, where #E(Fq)
+#    represents the number of points on the elliptic curve E defined
+#    over the field Fq (either Fp or F2^m).
+# 
+# m:   This is the degree of the characteristic-2 field F2^m.
+# 
+# k:   The exponent k for the trinomial basis representation x^m + x^k
+#    +1.
+# 
+# k1, k2, k3:   The exponents for the pentanomial representation x^m +
+#    x^k3 + x^k2 + x^k1 + 1 (such that k3 > k2 > k1).
+# 
+# namedcurve:   Specifies a recommended set of elliptic curve domain
+#    parameters.  All those values of NamedCurve are allowed that refer
+#    to a specific curve.  Values of NamedCurve that indicate support
+#    for a class of explicitly defined curves are not allowed here
+#    (they are only permissible in the ClientHello extension); this
+#    applies to arbitrary_explicit_prime_curves(0xFF01) and
+#    arbitrary_explicit_char2_curves(0xFF02).
+# 
+#      struct {
+#          ECParameters    curve_params;
+#          ECPoint         public;
+#      } ServerECDHParams;
+# 
+# curve_params:   Specifies the elliptic curve domain parameters
+#    associated with the ECDH public key.
+# 
+# public:   The ephemeral ECDH public key.
+# 
+# The ServerKeyExchange message is extended as follows.
+# 
+#      enum { ec_diffie_hellman } KeyExchangeAlgorithm;
+# 
+# ec_diffie_hellman:   Indicates the ServerKeyExchange message contains
+#    an ECDH public key.
+# 
+#      select (KeyExchangeAlgorithm) {
+#          case ec_diffie_hellman:
+#              ServerECDHParams    params;
+#              Signature           signed_params;
+#      } ServerKeyExchange;
+# 
+# params:   Specifies the ECDH public key and associated domain
+#    parameters.
+# 
+# signed_params:   A hash of the params, with the signature appropriate
+#    to that hash applied.  The private key corresponding to the
+#    certified public key in the server's Certificate message is used
+#    for signing.
+# 
+#        enum { ecdsa } SignatureAlgorithm;
+# 
+#        select (SignatureAlgorithm) {
+#            case ecdsa:
+#                digitally-signed struct {
+#                    opaque sha_hash[sha_size];
+#                };
+#        } Signature;
+# 
+#      ServerKeyExchange.signed_params.sha_hash
+#          SHA(ClientHello.random + ServerHello.random +
+#                                            ServerKeyExchange.params);
+# 
+# NOTE: SignatureAlgorithm is "rsa" for the ECDHE_RSA key exchange
+# algorithm and "anonymous" for ECDH_anon.  These cases are defined in
+# TLS [2][3].  SignatureAlgorithm is "ecdsa" for ECDHE_ECDSA.  ECDSA
+# signatures are generated and verified as described in Section 5.10,
+# and SHA in the above template for sha_hash accordingly may denote a
+# hash algorithm other than SHA-1.  As per ANSI X9.62, an ECDSA
+# signature consists of a pair of integers, r and s.  The digitally-
+# signed element is encoded as an opaque vector <0..2^16-1>, the
+# contents of which are the DER encoding [9] corresponding to the
+# following ASN.1 notation [8].
+# 
+#         Ecdsa-Sig-Value ::= SEQUENCE {
+#             r       INTEGER,
+#             s       INTEGER
+#         }
+# 
+# Actions of the sender:
+# 
+# The server selects elliptic curve domain parameters and an ephemeral
+# ECDH public key corresponding to these parameters according to the
+# ECKAS-DH1 scheme from IEEE 1363 [6].  It conveys this information to
+# the client in the ServerKeyExchange message using the format defined
+# above.
+# 
+# Actions of the receiver:
+# 
+# The client verifies the signature (when present) and retrieves the
+# server's elliptic curve domain parameters and ephemeral ECDH public
+# key from the ServerKeyExchange message.  (A possible reason for a
+# fatal handshake failure is that the client's capabilities for
+# handling elliptic curves and point formats are exceeded;
+# cf. Section 5.1.)
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+This option
+SHOULD be used when applicable.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This byte string may represent an elliptic curve point
+in uncompressed or compressed format; it MUST conform to what the
+client has requested through a Supported Point Formats Extension
+if this extension was used.
+'''
+

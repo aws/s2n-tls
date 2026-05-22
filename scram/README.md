@@ -17,11 +17,11 @@ Application developers do not always appreciate that this authentication occurs
 only once the entire message has been received, and that it is not safe to
 process the data until then. 
 
-There are two variants of this mis-use:
+There are two variants of this misuse:
 
 1. Some applications do not perform the final 'authenticate this data'
 operation, or do not check the return status of this operation. Although
-encryption libraries such as Amazon s2n do include tests that simulate malicous
+encryption libraries such as Amazon s2n do include tests that simulate malicious
 attackers injecting corrupted traffic, this is not a common or easy kind of
 test for applications to include. An application with this error will appear to
 work correctly, and will handle correctly encrypted and authenticated data
@@ -38,7 +38,7 @@ However this is rarely done with a full appreciation for the information
 side-channels that are introduced by optimistic operations, or the inherent
 risk of denial of service attacks. 
 
-SCRAM adds mis-use resistance for both kinds of issues. 
+SCRAM adds misuse resistance for both kinds of issues. 
 
 When using SCRAM, a recipient simply must first (correctly) compute the message
 authentication code in order to subsequently decrypt it.  There is no
@@ -85,7 +85,7 @@ Applications using SCRAM don't have to use padding, it's not enforced, but
 adding padding to the AEAD layer acts as a noteworthy reminder to application
 developers and code-auditors that obfuscation of message sizes and timings is
 an important consideration for cryptographic systems. For example, it will
-be noticable during a code-review that padding has not been chosen.
+be noticeable during a code-review that padding has not been chosen.
 
 ## SCRAM algorithm
 

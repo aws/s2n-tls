@@ -17,10 +17,13 @@
 
 #include <stdint.h>
 
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_security_rules.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_supported_group_preferences.h"
 
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
@@ -69,7 +72,76 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    /* This field contains the list of supported group IANA identifiers that s2n's
+    * server negotiation logic will always be willing to perform a 2-RTT
+    * ClientHelloRetry in order to negotiate. Setting this preference list may
+    * cause performance impact and extra round trips when performing TLS
+    * handshakes.
+    */
+    const struct s2n_supported_group_preferences *strongly_preferred_groups;
+    /* This field determines what public keys are allowed for use. It restricts
+     * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
+     * the size of the key. Note that this field structure is likely to change
+     * until https://github.com/aws/s2n-tls/issues/4435 is closed.
+     */
+    const struct s2n_certificate_key_preferences *certificate_key_preferences;
+    /* This field controls whether the certificate_signature_preferences apply 
+     * to local certs loaded on configs.
+     */
+    bool certificate_preferences_apply_locally;
+    bool rules[S2N_SECURITY_RULES_COUNT];
 };
+
+/* Macros to help construct simple policies.
+ *
+ * One of the difficulties of security policies is that they are composed of
+ * multiple other structs. Changing that is currently somewhat complicated,
+ * but we can at least fake more concise "all in one" policies using macros.
+ *
+ * S2N_INLINE_SECURITY_POLICY_V1 makes several assumptions to simplify the definition:
+ * - "certificate_signature_preferences" match "signature_preferences"
+ * - no "certificate_key_preferences"
+ * - "tls13_pq_hybrid_draft_revision" is 5
+ * - "certificate_preferences_apply_locally" is false
+ * - "allow_chacha20_boosting" is false
+ */
+/* clang-format off */
+#define S2N_CIPHER_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_SIG_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_CURVE_PREF_LIST(...) { __VA_ARGS__ }
+#define S2N_KEM_PREF_LIST(...) { __VA_ARGS__ }
+/* clang-format on */
+#define S2N_INLINE_SECURITY_POLICY_V1(name, min_version, ciphers, signatures, curves, kems) \
+    struct s2n_cipher_suite *name##_cipher_list[] = ciphers;                                \
+    const struct s2n_cipher_preferences name##_cipher_prefs = {                             \
+        .count = s2n_array_len(name##_cipher_list),                                         \
+        .suites = name##_cipher_list,                                                       \
+        .allow_chacha20_boosting = false,                                                   \
+    };                                                                                      \
+    const struct s2n_signature_scheme *const name##_sig_list[] = signatures;                \
+    const struct s2n_signature_preferences name##_sig_prefs = {                             \
+        .count = s2n_array_len(name##_sig_list),                                            \
+        .signature_schemes = name##_sig_list,                                               \
+    };                                                                                      \
+    const struct s2n_ecc_named_curve *const name##_curve_list[] = curves;                   \
+    const struct s2n_ecc_preferences name##_ecc_prefs = {                                   \
+        .count = s2n_array_len(name##_curve_list),                                          \
+        .ecc_curves = name##_curve_list,                                                    \
+    };                                                                                      \
+    const struct s2n_kem_group *name##_kem_group_list[] = kems;                             \
+    const struct s2n_kem_preferences name##_kem_prefs = {                                   \
+        .tls13_kem_group_count = s2n_array_len(name##_kem_group_list),                      \
+        .tls13_kem_groups = name##_kem_group_list,                                          \
+        .tls13_pq_hybrid_draft_revision = 5,                                                \
+    };                                                                                      \
+    const struct s2n_security_policy name = {                                               \
+        .minimum_protocol_version = min_version,                                            \
+        .cipher_preferences = &name##_cipher_prefs,                                         \
+        .signature_preferences = &name##_sig_prefs,                                         \
+        .certificate_signature_preferences = &name##_sig_prefs,                             \
+        .ecc_preferences = &name##_ecc_prefs,                                               \
+        .kem_preferences = &name##_kem_prefs,                                               \
+    }
 
 struct s2n_security_policy_selection {
     const char *version;
@@ -80,7 +152,15 @@ struct s2n_security_policy_selection {
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
+extern const char *deprecated_security_policies[];
+extern const size_t deprecated_security_policies_len;
 
+/* Defaults as of 05/24 */
+extern const struct s2n_security_policy security_policy_20240501;
+extern const struct s2n_security_policy security_policy_20240502;
+extern const struct s2n_security_policy security_policy_20240503;
+
+extern const struct s2n_security_policy security_policy_20241106;
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
@@ -101,8 +181,28 @@ extern const struct s2n_security_policy security_policy_20190214_gcm;
 extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_20190802;
 extern const struct s2n_security_policy security_policy_20230317;
-extern const struct s2n_security_policy security_policy_default_tls13;
-extern const struct s2n_security_policy security_policy_default_fips;
+extern const struct s2n_security_policy security_policy_20240331;
+extern const struct s2n_security_policy security_policy_20240417;
+extern const struct s2n_security_policy security_policy_20240416;
+extern const struct s2n_security_policy security_policy_20240603;
+extern const struct s2n_security_policy security_policy_20241001;
+extern const struct s2n_security_policy security_policy_20241001_pq_mixed;
+extern const struct s2n_security_policy security_policy_20250211;
+extern const struct s2n_security_policy security_policy_20250414;
+extern const struct s2n_security_policy security_policy_20250512;
+extern const struct s2n_security_policy security_policy_20250721;
+extern const struct s2n_security_policy security_policy_20251014;
+extern const struct s2n_security_policy security_policy_20251015;
+extern const struct s2n_security_policy security_policy_20251113;
+extern const struct s2n_security_policy security_policy_20251114;
+extern const struct s2n_security_policy security_policy_20251115;
+extern const struct s2n_security_policy security_policy_20251116;
+extern const struct s2n_security_policy security_policy_20251117;
+
+extern const struct s2n_security_policy security_policy_20250429;
+extern const struct s2n_security_policy security_policy_20251013;
+extern const struct s2n_security_policy security_policy_20260219;
+extern const struct s2n_security_policy security_policy_20260220;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -127,45 +227,63 @@ extern const struct s2n_security_policy security_policy_aws_crt_sdk_ssl_v3;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_10;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_11;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12;
+extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23;
+extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_12_06_23_pq;
 extern const struct s2n_security_policy security_policy_aws_crt_sdk_tls_13;
 
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
-extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
-extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12;
-extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20;
-extern const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_25;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26;
-extern const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24;
-extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_07;
-extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_08;
-extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_09;
-extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_10;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_07;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08_gcm;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_09;
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls10;
+extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls11;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls12;
+/* CloudFront viewer facing */
 extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025;
+/* CloudFront non-pq viewer facing */
+extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_sha256_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2025_no_pq;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_3_2025_no_pq;
+/* CloudFront undocumented policies for testing */
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_pq_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_no_sha1_pq_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_beta;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted;
+/* CloudFront viewer facing legacy */
+extern const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018_legacy;
+extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019_legacy;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019;
 extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021;
-extern const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted;
 
 extern const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10;
+extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10;
+extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10;
 
 extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
@@ -182,3 +300,14 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
+S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
+        const char **version);
+/* Checks to see if a certificate has a signature algorithm that's in our 
+ * certificate_signature_preferences list 
+ */
+S2N_RESULT s2n_security_policy_validate_certificate_chain(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_chain_and_key *cert_key_pair);
+S2N_RESULT s2n_security_policy_validate_cert_signature(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
+S2N_RESULT s2n_security_policy_validate_cert_key(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);

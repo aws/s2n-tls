@@ -1,0 +1,143 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"
+
+# 7.1.  Key Schedule
+#
+# The key derivation process makes use of the HKDF-Extract and
+# HKDF-Expand functions as defined for HKDF [RFC5869], as well as the
+# functions defined below:
+# 
+#     HKDF-Expand-Label(Secret, Label, Context, Length) =
+#          HKDF-Expand(Secret, HkdfLabel, Length)
+# 
+#     Where HkdfLabel is specified as:
+# 
+#     struct {
+#         uint16 length = Length;
+#         opaque label<7..255> = "tls13 " + Label;
+#         opaque context<0..255> = Context;
+#     } HkdfLabel;
+# 
+#     Derive-Secret(Secret, Label, Messages) =
+#          HKDF-Expand-Label(Secret, Label,
+#                            Transcript-Hash(Messages), Hash.length)
+# 
+# The Hash function used by Transcript-Hash and HKDF is the cipher
+# suite hash algorithm.  Hash.length is its output length in bytes.
+# Messages is the concatenation of the indicated handshake messages,
+# including the handshake message type and length fields, but not
+# including record layer headers.  Note that in some cases a zero-
+# length Context (indicated by "") is passed to HKDF-Expand-Label.  The
+# labels specified in this document are all ASCII strings and do not
+# include a trailing NUL byte.
+# 
+# Note: With common hash functions, any label longer than 12 characters
+# requires an additional iteration of the hash function to compute.
+# The labels in this specification have all been chosen to fit within
+# this limit.
+# 
+# Keys are derived from two input secrets using the HKDF-Extract and
+# Derive-Secret functions.  The general pattern for adding a new secret
+# is to use HKDF-Extract with the Salt being the current secret state
+# and the Input Keying Material (IKM) being the new secret to be added.
+# In this version of TLS 1.3, the two input secrets are:
+# 
+# -  PSK (a pre-shared key established externally or derived from the
+#    resumption_master_secret value from a previous connection)
+# 
+# -  (EC)DHE shared secret (Section 7.4)
+# 
+# This produces a full key derivation schedule shown in the diagram
+# below.  In this diagram, the following formatting conventions apply:
+# 
+# -  HKDF-Extract is drawn as taking the Salt argument from the top and
+#    the IKM argument from the left, with its output to the bottom and
+#    the name of the output on the right.
+# 
+# -  Derive-Secret's Secret argument is indicated by the incoming
+#    arrow.  For instance, the Early Secret is the Secret for
+#    generating the client_early_traffic_secret.
+# 
+# -  "0" indicates a string of Hash.length bytes set to zero.
+# 
+#           0
+#           |
+#           v
+# PSK ->  HKDF-Extract = Early Secret
+#           |
+#           +-----> Derive-Secret(., "ext binder" | "res binder", "")
+#           |                     = binder_key
+#           |
+#           +-----> Derive-Secret(., "c e traffic", ClientHello)
+#           |                     = client_early_traffic_secret
+#           |
+#           +-----> Derive-Secret(., "e exp master", ClientHello)
+#           |                     = early_exporter_master_secret
+#           v
+#     Derive-Secret(., "derived", "")
+#           |
+#           v
+# (EC)DHE -> HKDF-Extract = Handshake Secret
+#           |
+#           +-----> Derive-Secret(., "c hs traffic",
+#           |                     ClientHello...ServerHello)
+#           |                     = client_handshake_traffic_secret
+#           |
+#           +-----> Derive-Secret(., "s hs traffic",
+#           |                     ClientHello...ServerHello)
+#           |                     = server_handshake_traffic_secret
+#           v
+#     Derive-Secret(., "derived", "")
+#           |
+#           v
+# 0 -> HKDF-Extract = Master Secret
+#           |
+#           +-----> Derive-Secret(., "c ap traffic",
+#           |                     ClientHello...server Finished)
+#           |                     = client_application_traffic_secret_0
+#           |
+#           +-----> Derive-Secret(., "s ap traffic",
+#           |                     ClientHello...server Finished)
+#           |                     = server_application_traffic_secret_0
+#           |
+#           +-----> Derive-Secret(., "exp master",
+#           |                     ClientHello...server Finished)
+#           |                     = exporter_master_secret
+#           |
+#           +-----> Derive-Secret(., "res master",
+#                                 ClientHello...client Finished)
+#                                 = resumption_master_secret
+# 
+# The general pattern here is that the secrets shown down the left side
+# of the diagram are just raw entropy without context, whereas the
+# secrets down the right side include Handshake Context and therefore
+# can be used to derive working keys without additional context.  Note
+# that the different calls to Derive-Secret may take different Messages
+# arguments, even with the same secret.  In a 0-RTT exchange,
+# Derive-Secret is called with four distinct transcripts; in a
+# 1-RTT-only exchange, it is called with three distinct transcripts.
+# 
+# If a given secret is not available, then the 0-value consisting of a
+# string of Hash.length bytes set to zeros is used.  Note that this
+# does not mean skipping rounds, so if PSK is not in use, Early Secret
+# will still be HKDF-Extract(0, 0).  For the computation of the
+# binder_key, the label is "ext binder" for external PSKs (those
+# provisioned outside of TLS) and "res binder" for resumption PSKs
+# (those provisioned as the resumption master secret of a previous
+# handshake).  The different labels prevent the substitution of one
+# type of PSK for the other.
+# 
+# There are multiple potential Early Secret values, depending on which
+# PSK the server ultimately selects.  The client will need to compute
+# one for each potential PSK; if no PSK is selected, it will then need
+# to compute the Early Secret corresponding to the zero PSK.
+# 
+# Once all the values which are to be derived from a given secret have
+# been computed, that secret SHOULD be erased.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Once all the values which are to be derived from a given secret have
+been computed, that secret SHOULD be erased.
+'''
+

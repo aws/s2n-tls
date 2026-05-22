@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_prf.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_result.h"
 
@@ -22,12 +23,12 @@
 #define S2N_APPLICATION_SECRET S2N_MASTER_SECRET
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+ *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A
  *# The notation "K_{send,recv} = foo" means "set
  *# the send/recv key to the given key".
  */
-#define K_send(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, (conn)->mode))
-#define K_recv(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, S2N_PEER_MODE((conn)->mode)))
+#define K_send(conn, secret_type) RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, secret_type, (conn)->mode))
+#define K_recv(conn, secret_type) RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, secret_type, S2N_PEER_MODE((conn)->mode)))
 
 static const struct s2n_blob s2n_zero_length_context = { 0 };
 
@@ -36,41 +37,29 @@ static S2N_RESULT s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
     struct s2n_blob sequence_number = { 0 };
-    if (mode == S2N_CLIENT) {
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number,
-                conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
-    } else {
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number,
-                conn->secure->server_sequence_number, sizeof(conn->secure->server_sequence_number)));
-    }
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, mode, &sequence_number));
     RESULT_GUARD_POSIX(s2n_blob_zero(&sequence_number));
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
+static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
+        struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
+        s2n_mode mode, struct s2n_blob *iv, struct s2n_blob *key)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(iv);
+    RESULT_ENSURE_REF(key);
     RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg->cipher);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
 
-    uint8_t *implicit_iv_data = NULL;
-    struct s2n_session_key *session_key = NULL;
-    if (mode == S2N_CLIENT) {
-        implicit_iv_data = conn->secure->client_implicit_iv;
-        session_key = &conn->secure->client_key;
-        conn->client = conn->secure;
-    } else {
-        implicit_iv_data = conn->secure->server_implicit_iv;
-        session_key = &conn->secure->server_key;
-        conn->server = conn->secure;
-    }
+    const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
+    RESULT_ENSURE_REF(cipher_suite);
+
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *# The traffic keying material is generated from the following input
      *# values:
      *#
@@ -82,7 +71,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     RESULT_GUARD(s2n_tls13_secrets_get(conn, secret_type, mode, &secret));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# -  A purpose value indicating the specific value being generated
      **/
@@ -90,7 +79,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     const struct s2n_blob *iv_purpose = &s2n_tls13_label_traffic_secret_iv;
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# -  The length of the key being generated
      **/
@@ -107,36 +96,67 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# The traffic keying material is generated from an input traffic secret
      *# value using:
      *#
      *# [sender]_write_key = HKDF-Expand-Label(Secret, "key", "", key_length)
      **/
-    struct s2n_blob key = { 0 };
-    uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, key_size));
+    RESULT_ENSURE_LTE(key_size, key->size);
+    key->size = key_size;
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, key_purpose, &s2n_zero_length_context, &key));
+            &secret, key_purpose, &s2n_zero_length_context, key));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *# [sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
      **/
-    struct s2n_blob iv = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&iv, implicit_iv_data, iv_size));
+    RESULT_ENSURE_LTE(iv_size, iv->size);
+    iv->size = iv_size;
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, iv_purpose, &s2n_zero_length_context, &iv));
+            &secret, iv_purpose, &s2n_zero_length_context, iv));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+
+    uint8_t *implicit_iv_data = NULL;
+    struct s2n_session_key *session_key = NULL;
+    uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    if (mode == S2N_CLIENT) {
+        implicit_iv_data = conn->secure->client_implicit_iv;
+        session_key = &conn->secure->client_key;
+        conn->client = conn->secure;
+    } else {
+        implicit_iv_data = conn->secure->server_implicit_iv;
+        session_key = &conn->secure->server_key;
+        conn->server = conn->secure;
+    }
+
+    struct s2n_blob iv = { 0 };
+    struct s2n_blob key = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&iv, implicit_iv_data, S2N_TLS13_FIXED_IV_LEN));
+    RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, sizeof(key_bytes)));
+    RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(
+            conn, secret_type, mode, &iv, &key));
+
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
 
     bool is_sending_secret = (mode == conn->mode);
     if (is_sending_secret) {
-        RESULT_GUARD_POSIX(cipher->set_encryption_key(session_key, &key));
+        RESULT_GUARD(cipher->set_encryption_key(session_key, &key));
     } else {
-        RESULT_GUARD_POSIX(cipher->set_decryption_key(session_key, &key));
+        RESULT_GUARD(cipher->set_decryption_key(session_key, &key));
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.3
      *# Each sequence number is
      *# set to zero at the beginning of a connection and whenever the key is
      *# changed; the first record transmitted under a particular traffic key
@@ -156,13 +176,13 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
     /**
      * How client keys are set varies depending on early data state.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A
      *# Actions which are taken only in certain circumstances
      *# are indicated in [].
      */
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                              START <----+
      *#               Send ClientHello |        | Recv HelloRetryRequest
      *#          [K_send = early data] |        |
@@ -172,7 +192,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_EARLY_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                                v        |
      *#           /                 WAIT_SH ----+
      *#           |                    | Recv ServerHello
@@ -182,7 +202,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#       Can |                    V
      *#      send |                 WAIT_EE
      *#     early |                    | Recv EncryptedExtensions
@@ -207,7 +227,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                              | [Send Certificate [+ CertificateVerify]]
      *#    Can send                  | Send Finished
      *#    app data   -->            | K_send = K_recv = application
@@ -217,7 +237,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_APPLICATION_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#    after here                v
      *#                          CONNECTED
      */
@@ -231,7 +251,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                              START <-----+
      *#               Recv ClientHello |         | Send HelloRetryRequest
      *#                                v         |
@@ -246,7 +266,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                                | Send EncryptedExtensions
      *#                                | [Send CertificateRequest]
      *# Can send                       | [Send Certificate + CertificateVerify]
@@ -257,7 +277,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_APPLICATION_SECRET);
         /* clang-format off */
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *# here                  +--------+--------+
      *#              No 0-RTT |                 | 0-RTT
      *#                       |                 |
@@ -271,7 +291,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         }
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *# [Skip decrypt errors] |    +------> WAIT_EOED -+
      *#                       |    |       Recv |      | Recv EndOfEarlyData
      *#                       |    | early data |      | K_recv = handshake
@@ -281,7 +301,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                       |                        |
      *#                       +> WAIT_FLIGHT2 <--------+
      *#                                |
@@ -303,7 +323,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_APPLICATION_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                                v
      *#                            CONNECTED
      */
@@ -333,5 +353,19 @@ S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn)
     conn->client = conn->initial;
     conn->server = conn->initial;
     conn->secrets.extract_secret_type = S2N_NONE_SECRET;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_tls13_key_schedule_generate_key_material(struct s2n_connection *conn,
+        s2n_mode sender, struct s2n_key_material *key_material)
+{
+    RESULT_GUARD(s2n_key_material_init(key_material, conn));
+    if (sender == S2N_CLIENT) {
+        RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(conn, S2N_MASTER_SECRET,
+                sender, &key_material->client_iv, &key_material->client_key));
+    } else {
+        RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(conn, S2N_MASTER_SECRET,
+                sender, &key_material->server_iv, &key_material->server_key));
+    }
     return S2N_RESULT_OK;
 }

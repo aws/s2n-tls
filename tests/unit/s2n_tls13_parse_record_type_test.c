@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    uint8_t record_type;
+    uint8_t record_type = 0;
 
     /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
     * test creates a fake unencrypted payload and checks that the helper function
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
         /** test: padding without record type should fail
          * 
-         *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
          *= type=test
          *# If a receiving implementation does not
          *# find a non-zero octet in the cleartext, it MUST terminate the

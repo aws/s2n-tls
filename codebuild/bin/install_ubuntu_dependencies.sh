@@ -13,21 +13,20 @@
 # permissions and limitations under the License.
 #
 
-# Shim code to get local docker/ec2 instances bootstraped like a CodeBuild instance.
+# Shim code to get local docker/ec2 instances bootstrapped like a CodeBuild instance.
 # Not actually used by CodeBuild.
+
+# This script is now targeting Ubuntu 24 not Ubuntu 18.
 
 source codebuild/bin/s2n_setup_env.sh
 
 set -e
 
 github_apt(){
-  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list
   apt update -y
   apt install -y gh
 }
 get_rust() {
-  apt install -y clang-10 sudo
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source $HOME/.cargo/env
   rustup default nightly
@@ -41,18 +40,13 @@ base_packages() {
   add-apt-repository ppa:longsleep/golang-backports -y
   apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build golang-go quilt jq apache2"
+  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlib1g-dev python3-pip python3-testresources llvm libclang-dev curl shellcheck git tox cmake libtool ninja-build golang-go quilt jq apache2"
   if [[ -n "${GCC_VERSION:-}" ]] && [[ "${GCC_VERSION:-}" != "NONE" ]]; then
     DEPENDENCIES+=" gcc-$GCC_VERSION g++-$GCC_VERSION";
-  fi
-  if ! command -v python3.9 &> /dev/null; then
-    add-apt-repository ppa:deadsnakes/ppa -y
-    DEPENDENCIES+=" python3.9 python3.9-distutils";
   fi
 
   apt-get -y install --no-install-recommends ${DEPENDENCIES}
 }
-
 
 base_packages
 github_apt

@@ -38,7 +38,7 @@ criterion_install_deps(){
 
 usage(){
     echo -e "Usage:\n\tget_latest_release: returns just the latest v.N.N.N version"
-    echo -e "\tgh_login <Secret Name> : retrieves a GitHub PAT from secrest manager and logs into GitHub.\n"
+    echo -e "\tgh_login <Secret Name> : retrieves a GitHub PAT from secrets manager and logs into GitHub.\n"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}"  ]]; then

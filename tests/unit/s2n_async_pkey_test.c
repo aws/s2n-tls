@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 
         /*  Test: apply while invoking callback */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
 
         /*  Test: wipe connection and then perform and apply pkey op */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
 
         /*  Test: free the pkey op and try s2n_negotiate again */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -527,7 +527,7 @@ int main(int argc, char **argv)
 
         /* Test: Apply invalid signature */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));

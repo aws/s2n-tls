@@ -1,0 +1,44 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.2"
+
+# 7.4.7.2.  Client Diffie-Hellman Public Value
+#
+# Meaning of this message:
+# 
+#    This structure conveys the client's Diffie-Hellman public value
+#    (Yc) if it was not already included in the client's certificate.
+#    The encoding used for Yc is determined by the enumerated
+#    PublicValueEncoding.  This structure is a variant of the client
+#    key exchange message, and not a message in itself.
+# 
+# Structure of this message:
+# 
+#    enum { implicit, explicit } PublicValueEncoding;
+# 
+#    implicit
+#       If the client has sent a certificate which contains a suitable
+#       Diffie-Hellman key (for fixed_dh client authentication), then
+#       Yc is implicit and does not need to be sent again.  In this
+#       case, the client key exchange message will be sent, but it MUST
+#       be empty.
+# 
+#    explicit
+#       Yc needs to be sent.
+# 
+#    struct {
+#        select (PublicValueEncoding) {
+#            case implicit: struct { };
+#            case explicit: opaque dh_Yc<1..2^16-1>;
+#        } dh_public;
+#    } ClientDiffieHellmanPublic;
+# 
+#    dh_Yc
+#       The client's Diffie-Hellman public value (Yc).
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this
+case, the client key exchange message will be sent, but it MUST
+be empty.
+'''
+

@@ -25,6 +25,12 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Not all hash algorithms are used in the handshake hashes */
+    const bool skip_handshake_hash[S2N_HASH_ALGS_COUNT] = {
+        [S2N_HASH_NONE] = true,
+        [S2N_HASH_SHAKE256_64] = true,
+    };
+
     /* Test s2n_handshake_hashes_new */
     {
         /* Safety */
@@ -41,8 +47,8 @@ int main(int argc, char **argv)
             uint8_t data[100] = { 0 };
 
             /* Allocates all hashes */
-            for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_SENTINEL; alg++) {
-                if (alg == S2N_HASH_NONE) {
+            for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_ALGS_COUNT; alg++) {
+                if (skip_handshake_hash[alg]) {
                     continue;
                 }
 
@@ -74,8 +80,8 @@ int main(int argc, char **argv)
 
             uint8_t data[100] = { 0 };
 
-            for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_SENTINEL; alg++) {
-                if (alg == S2N_HASH_NONE) {
+            for (s2n_hash_algorithm alg = 0; alg < S2N_HASH_ALGS_COUNT; alg++) {
+                if (skip_handshake_hash[alg]) {
                     continue;
                 }
 

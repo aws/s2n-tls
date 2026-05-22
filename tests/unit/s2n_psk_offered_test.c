@@ -22,28 +22,6 @@
 
 #define MILLIS_TO_NANOS(millis) (millis * (uint64_t) ONE_MILLISEC_IN_NANOS)
 
-static int s2n_setup_ticket_key(struct s2n_config *config)
-{
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time = 0;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-
-    POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, 1));
-    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &current_time));
-    POSIX_GUARD(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-    return S2N_SUCCESS;
-}
-
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     conn->tls13_ticket_fields = (struct s2n_ticket_fields){ 0 };
@@ -51,8 +29,11 @@ static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct
     RESULT_GUARD_POSIX(s2n_alloc(&conn->tls13_ticket_fields.session_secret, sizeof(test_secret_data)));
     RESULT_CHECKED_MEMCPY(conn->tls13_ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
 
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+
     /* Create a valid resumption psk identity */
-    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
     output->blob.size = s2n_stuffer_data_available(output);
 
     return S2N_RESULT_OK;
@@ -215,7 +196,7 @@ int main(int argc, char **argv)
         };
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          *# used, and servers MUST ignore the value.
@@ -349,9 +330,7 @@ int main(int argc, char **argv)
 
             uint8_t *data = NULL;
             uint16_t size = 0;
-            EXPECT_SUCCESS(s2n_offered_psk_get_identity(psk, &data, &size));
-            EXPECT_EQUAL(size, 0);
-            EXPECT_EQUAL(data, NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_get_identity(psk, &data, &size), S2N_ERR_NULL);
         };
 
         /* Valid identity */
@@ -470,7 +449,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             server_conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
@@ -509,7 +488,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             server_conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;

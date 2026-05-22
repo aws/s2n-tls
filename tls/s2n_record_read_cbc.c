@@ -56,7 +56,7 @@ int s2n_record_parse_cbc(
     POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
-    uint8_t mac_digest_size;
+    uint8_t mac_digest_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
     POSIX_ENSURE_GTE(payload_length, mac_digest_size);
@@ -103,7 +103,6 @@ int s2n_record_parse_cbc(
 
     /* Padding. This finalizes the provided HMAC. */
     if (s2n_verify_cbc(conn, mac, &en) < 0) {
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 

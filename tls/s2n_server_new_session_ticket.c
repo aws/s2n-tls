@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <time.h>
 
 #include "api/s2n.h"
@@ -37,13 +36,13 @@
  *
  * This constant is enforced via unit tests.
  */
-#define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 79
+#define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 112
 
 int s2n_server_nst_recv(struct s2n_connection *conn)
 {
     POSIX_GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
 
-    uint16_t session_ticket_len;
+    uint16_t session_ticket_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(&conn->handshake.io, &session_ticket_len));
 
     if (session_ticket_len > 0) {
@@ -72,34 +71,80 @@ int s2n_server_nst_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint64_t key_intro_time,
+        uint32_t *ticket_lifetime)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_MUT(ticket_lifetime);
+
+    uint64_t now = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
+
+    /* Calculate ticket key age */
+    RESULT_ENSURE_GTE(now, key_intro_time);
+    uint64_t ticket_key_age_in_nanos = now - key_intro_time;
+
+    /* Calculate remaining key lifetime */
+    uint64_t key_lifetime_in_nanos = conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos;
+    RESULT_ENSURE_GTE(key_lifetime_in_nanos, ticket_key_age_in_nanos);
+    uint32_t remaining_key_lifetime = (key_lifetime_in_nanos - ticket_key_age_in_nanos) / ONE_SEC_IN_NANOS;
+
+    uint32_t session_lifetime = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+
+    /* Min of remaining key lifetime and session */
+    uint32_t min_lifetime = S2N_MIN(remaining_key_lifetime, session_lifetime);
+
+    /* In TLS1.3 we take into account keying material lifetime */
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        uint32_t key_material_lifetime = conn->server_keying_material_lifetime;
+        struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+        if (chosen_psk) {
+            RESULT_ENSURE_GTE(chosen_psk->keying_material_expiration, now);
+            uint32_t psk_key_material_lifetime = (chosen_psk->keying_material_expiration - now) / ONE_SEC_IN_NANOS;
+            key_material_lifetime = S2N_MIN(key_material_lifetime, psk_key_material_lifetime);
+        }
+        min_lifetime = S2N_MIN(min_lifetime, key_material_lifetime);
+    }
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
+     *# Servers MUST NOT use any value greater than
+     *# 604800 seconds (7 days).
+     **/
+    *ticket_lifetime = S2N_MIN(min_lifetime, ONE_WEEK_IN_SEC);
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
-    uint16_t session_ticket_len = S2N_TLS12_TICKET_SIZE_IN_BYTES;
-    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob entry = { 0 };
-    POSIX_GUARD(s2n_blob_init(&entry, data, sizeof(data)));
-    struct s2n_stuffer to = { 0 };
-    uint32_t lifetime_hint_in_secs =
-            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
+    POSIX_ENSURE_REF(conn);
 
-    /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
-    if (!conn->config->use_tickets) {
+    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
+    struct s2n_blob session_ticket = { 0 };
+    POSIX_GUARD(s2n_blob_init(&session_ticket, data, sizeof(data)));
+
+    uint32_t lifetime_hint_in_secs = 0;
+
+    /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
+     * its mind mid-handshake or if there are no valid encrypt keys currently available. 
+     *
+     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
+     *# If the server determines that it does not want to include a
+     *# ticket after it has included the SessionTicket extension in the
+     *# ServerHello, then it sends a zero-length ticket in the
+     *# NewSessionTicket handshake message.
+     **/
+    if (s2n_result_is_error(s2n_server_nst_write(conn, &lifetime_hint_in_secs, &session_ticket))) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
-
-        return 0;
+        return S2N_SUCCESS;
     }
 
-    if (!s2n_server_sending_nst(conn)) {
-        POSIX_BAIL(S2N_ERR_SENDING_NST);
-    }
-
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
-    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
-
-    POSIX_GUARD(s2n_encrypt_session_ticket(conn, &to));
-    POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket.size));
+    POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &session_ticket));
 
     /* For parity with TLS1.3, track the single ticket sent.
      * This simplifies s2n_connection_get_tickets_sent.
@@ -108,9 +153,28 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_hint_in_secs,
+        struct s2n_blob *session_ticket)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE(s2n_server_sending_nst(conn), S2N_ERR_SENDING_NST);
+
+    struct s2n_stuffer output = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&output, session_ticket));
+
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, lifetime_hint_in_secs));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &output));
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     /* Usually tickets are sent immediately after the handshake.
      * If possible, reuse the handshake IO stuffer before it's wiped.
@@ -121,7 +185,15 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
      */
     struct s2n_stuffer *nst_stuffer = &conn->handshake.io;
 
-    if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13 || !conn->config->use_tickets) {
+    if (conn->mode != S2N_SERVER || !conn->config->use_tickets) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Legacy behavior is that the s2n server sends a NST even if the client did not indicate support
+     * for resumption or does not support the psk_dhe_ke mode. This is potentially wasteful so we 
+     * choose to not extend this behavior to QUIC.
+     */
+    if (conn->quic_enabled && conn->psk_params.psk_ke_mode != S2N_PSK_DHE_KE) {
         return S2N_RESULT_OK;
     }
 
@@ -133,7 +205,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Note that in principle it is possible to continue issuing new tickets
      *# which indefinitely extend the lifetime of the keying material
      *# originally derived from an initial non-PSK handshake (which was most
@@ -169,32 +241,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 }
 
 /** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
- *# Indicates the lifetime in seconds as a 32-bit
- *# unsigned integer in network byte order from the time of ticket
- *# issuance. 
- **/
-static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint32_t *ticket_lifetime)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_MUT(ticket_lifetime);
-
-    uint32_t key_lifetime_in_secs =
-            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
-    uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
-    uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
-    /** 
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
-     *# Servers MUST NOT use any value greater than
-     *# 604800 seconds (7 days).
-     **/
-    *ticket_lifetime = MIN(key_and_session_min_lifetime, ONE_WEEK_IN_SEC);
-
-    return S2N_RESULT_OK;
-}
-
-/** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# A per-ticket value that is unique across all tickets
  *# issued on this connection.
  **/
@@ -210,7 +257,7 @@ static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *out
 }
 
 /** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# A securely generated, random 32-bit value that is
  *# used to obscure the age of the ticket that the client includes in
  *# the "pre_shared_key" extension.
@@ -229,7 +276,7 @@ static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# The PSK associated with the ticket is computed as:
  *#
  *#    HKDF-Expand-Label(resumption_master_secret,
@@ -255,6 +302,9 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
 
+    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Write message type because session resumption in TLS13 is a post-handshake message */
@@ -264,7 +314,9 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
     uint32_t ticket_lifetime_in_secs = 0;
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, &ticket_lifetime_in_secs));
+
+    RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_ZERO_LIFETIME_TICKET);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
@@ -272,7 +324,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     struct s2n_blob random_data = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&random_data, data, sizeof(data)));
     /** 
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *#  The server MUST generate a fresh value
      *#  for each ticket it sends.
      **/
@@ -294,7 +346,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Write ticket */
     struct s2n_stuffer_reservation ticket_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(output, &ticket_size));
-    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
@@ -308,7 +360,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *#     struct {
  *#         uint32 ticket_lifetime;
  *#         uint32 ticket_age_add;
@@ -335,13 +387,13 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     uint32_t ticket_lifetime = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &ticket_lifetime));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      */
     RESULT_ENSURE(ticket_lifetime <= ONE_WEEK_IN_SEC, S2N_ERR_BAD_MESSAGE);
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# The value of zero indicates that the
      *# ticket should be discarded immediately.
      */

@@ -52,6 +52,15 @@ struct s2n_x509_trust_store {
     unsigned loaded_system_certs : 1;
 };
 
+struct s2n_cert_validation_info {
+    unsigned finished : 1;
+    unsigned accepted : 1;
+};
+
+struct s2n_validated_cert_chain {
+    STACK_OF(X509) *stack;
+};
+
 /**
  * You should have one instance of this per connection.
  */
@@ -64,6 +73,8 @@ struct s2n_x509_validator {
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
     struct s2n_array *crl_lookup_list;
+    struct s2n_cert_validation_info cert_validation_info;
+    bool cert_validation_cb_invoked;
 };
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
@@ -129,12 +140,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
  */
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
 
-/**
- * Validates that each certificate in a peer's cert chain contains only signature algorithms in a security policy's
- * certificate_signatures_preference list.
- */
-S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert);
+S2N_RESULT s2n_x509_validator_get_validated_cert_chain(const struct s2n_x509_validator *validator,
+        struct s2n_validated_cert_chain *validated_cert_chain);
 
-/* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
-S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert,
-        const struct s2n_signature_preferences *cert_sig_preferences);
+S2N_CLEANUP_RESULT s2n_x509_validator_validated_cert_chain_free(struct s2n_validated_cert_chain *validated_cert_chain);

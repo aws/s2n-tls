@@ -37,8 +37,8 @@
 int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2n_config *client_config, struct s2n_cert_chain_and_key *ecdsa_cert, bool no_cert)
 {
     /* Set up client and server connections */
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_connection *server_conn = NULL;
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -47,8 +47,8 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     client_conn->server_protocol_version = S2N_TLS13;
     client_conn->client_protocol_version = S2N_TLS13;
     client_conn->actual_protocol_version = S2N_TLS13;
-    client_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
-    client_conn->handshake_params.client_cert_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
+    client_conn->handshake_params.client_cert_sig_scheme = &s2n_ecdsa_sha256;
     client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     if (!no_cert) {
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -58,7 +58,7 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     server_conn->server_protocol_version = S2N_TLS13;
     server_conn->client_protocol_version = S2N_TLS13;
     server_conn->actual_protocol_version = S2N_TLS13;
-    server_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    server_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
     server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     if (no_cert) {
@@ -101,10 +101,10 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
  */
 int s2n_test_client_auth_message_by_message(bool no_cert)
 {
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_connection *server_conn = NULL;
 
-    struct s2n_config *server_config, *client_config;
+    struct s2n_config *server_config = NULL, *client_config = NULL;
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
@@ -119,7 +119,7 @@ int s2n_test_client_auth_message_by_message(bool no_cert)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
 
-    struct s2n_cert_chain_and_key *default_cert;
+    struct s2n_cert_chain_and_key *default_cert = NULL;
     EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
@@ -309,14 +309,19 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+            s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
     /* client_auth handshake negotiation */
     {
-        struct s2n_config *server_config, *client_config;
+        struct s2n_config *server_config = NULL, *client_config = NULL;
         uint8_t *cert_chain_pem = NULL;
         uint8_t *private_key_pem = NULL;
         uint32_t cert_chain_len = 0;
         uint32_t private_key_len = 0;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
+        struct s2n_cert_chain_and_key *ecdsa_cert = NULL;
 
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -356,6 +361,171 @@ int main(int argc, char **argv)
 
         /* Test message by message with a cert */
         s2n_test_client_auth_message_by_message(0);
+    };
+
+    /* Test unexpected certificate request */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Enable client auth on the server, but not on the client */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_NONE));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
+                S2N_ERR_UNEXPECTED_CERT_REQUEST);
+    };
+
+    /* Test missing certificate request */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Require client auth on the client, but not on the server */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_NONE));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
+                S2N_ERR_MISSING_CERT_REQUEST);
+    };
+
+    /* By default, client accepts certificate requests */
+    {
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+        /* Enable client auth on the server */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+    };
+
+    /* Test: all combinations of client and server mutual auth settings produce useful errors
+     *
+     * Customers have struggled to correctly configure client auth in the past.
+     * We should provide very specific and helpful errors to facilitate debugging.
+     * Do not allow any generic errors like S2N_ERR_BAD_MESSAGE.
+     */
+    {
+        const int S2N_CERT_AUTH_DEFAULT = -255;
+        int all_options[] = {
+            S2N_CERT_AUTH_DEFAULT,
+            S2N_CERT_AUTH_NONE,
+            S2N_CERT_AUTH_OPTIONAL,
+            S2N_CERT_AUTH_REQUIRED
+        };
+
+        struct {
+            int client_auth_type;
+            int server_auth_type;
+            bool client_cert_exists;
+            uint8_t version;
+        } test_cases[100] = { 0 };
+        size_t test_case_count = 0;
+
+        for (size_t client_i = 0; client_i < s2n_array_len(all_options); client_i++) {
+            for (size_t server_i = 0; server_i < s2n_array_len(all_options); server_i++) {
+                for (size_t cert_i = 0; cert_i <= 1; cert_i++) {
+                    for (size_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
+                        EXPECT_TRUE(test_case_count < s2n_array_len(test_cases));
+                        test_cases[test_case_count].client_auth_type = all_options[client_i];
+                        test_cases[test_case_count].server_auth_type = all_options[server_i];
+                        test_cases[test_case_count].client_cert_exists = (cert_i == 1);
+                        test_cases[test_case_count].version = version;
+                        test_case_count++;
+                    }
+                }
+            }
+        }
+
+        for (size_t i = 0; i < test_case_count; i++) {
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            if (test_cases[i].client_cert_exists) {
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+            }
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+            server->server_protocol_version = test_cases[i].version;
+
+            if (test_cases[i].client_auth_type != S2N_CERT_AUTH_DEFAULT) {
+                EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, test_cases[i].client_auth_type));
+            }
+
+            if (test_cases[i].server_auth_type != S2N_CERT_AUTH_DEFAULT) {
+                EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, test_cases[i].server_auth_type));
+            }
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            int result = s2n_negotiate_test_server_and_client(server, client);
+            EXPECT_EQUAL(client->actual_protocol_version, test_cases[i].version);
+            EXPECT_EQUAL(server->actual_protocol_version, test_cases[i].version);
+            if (result != S2N_SUCCESS) {
+                EXPECT_TRUE(s2n_errno == S2N_ERR_MISSING_CERT_REQUEST
+                        || s2n_errno == S2N_ERR_UNEXPECTED_CERT_REQUEST
+                        || s2n_errno == S2N_ERR_MISSING_CLIENT_CERT);
+            }
+        }
     };
 
     END_TEST();

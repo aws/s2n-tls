@@ -1,0 +1,25 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.8.1"
+
+# 4.2.8.1.  Diffie-Hellman Parameters
+#
+# Diffie-Hellman [DH76] parameters for both clients and servers are
+# encoded in the opaque key_exchange field of a KeyShareEntry in a
+# KeyShare structure.  The opaque value contains the Diffie-Hellman
+# public value (Y = g^X mod p) for the specified group (see [RFC7919]
+# for group definitions) encoded as a big-endian integer and padded to
+# the left with zeros to the size of p in bytes.
+# 
+# Note: For a given Diffie-Hellman group, the padding results in all
+# public keys having the same length.
+# 
+# Peers MUST validate each other's public key Y by ensuring that 1 < Y
+# < p-1.  This check ensures that the remote peer is properly behaved
+# and isn't forcing the local system into a small subgroup.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Peers MUST validate each other's public key Y by ensuring that 1 < Y
+< p-1.
+'''
+

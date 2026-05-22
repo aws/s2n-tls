@@ -19,9 +19,12 @@
 
 #include "tls/s2n_connection.h"
 
+#define S2N_TLS_ALERT_LEVEL_WARNING 1
+#define S2N_TLS_ALERT_LEVEL_FATAL   2
+
 typedef enum {
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *# enum {
      *#     close_notify(0),
      *#     unexpected_message(10),
@@ -35,7 +38,7 @@ typedef enum {
     S2N_TLS_ALERT_RECORD_OVERFLOW = 22,
     S2N_TLS_ALERT_HANDSHAKE_FAILURE = 40,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     bad_certificate(42),
      *#     unsupported_certificate(43),
      *#     certificate_revoked(44),
@@ -48,7 +51,7 @@ typedef enum {
     S2N_TLS_ALERT_CERTIFICATE_EXPIRED = 45,
     S2N_TLS_ALERT_CERTIFICATE_UNKNOWN = 46,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     illegal_parameter(47),
      *#     unknown_ca(48),
      *#     access_denied(49),
@@ -61,7 +64,7 @@ typedef enum {
     S2N_TLS_ALERT_DECODE_ERROR = 50,
     S2N_TLS_ALERT_DECRYPT_ERROR = 51,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     protocol_version(70),
      *#     insufficient_security(71),
      *#     internal_error(80),
@@ -74,12 +77,12 @@ typedef enum {
     S2N_TLS_ALERT_INAPPROPRIATE_FALLBACK = 86,
     S2N_TLS_ALERT_USER_CANCELED = 90,
     /*
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.2
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.2
      *#     no_renegotiation(100),
      */
     S2N_TLS_ALERT_NO_RENEGOTIATION = 100,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     missing_extension(109),
      *#     unsupported_extension(110),
      *#     unrecognized_name(112),
@@ -92,7 +95,7 @@ typedef enum {
     S2N_TLS_ALERT_BAD_CERTIFICATE_STATUS_RESPONSE = 113,
     S2N_TLS_ALERT_UNKNOWN_PSK_IDENTITY = 115,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     certificate_required(116),
      *#     no_application_protocol(120),
      *#     (255)
@@ -103,8 +106,8 @@ typedef enum {
 } s2n_tls_alert_code;
 
 int s2n_process_alert_fragment(struct s2n_connection *conn);
-int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn);
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn);
 int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn);
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn);
-S2N_RESULT s2n_alerts_close_if_fatal(struct s2n_connection *conn, struct s2n_blob *alert);
+S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn);
+S2N_RESULT s2n_alerts_write_warning(struct s2n_connection *conn);

@@ -26,7 +26,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer out = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.send(conn, &out));
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
@@ -221,13 +221,55 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: s2n_psk_key_exchange_modes_should_send */
+    {
+        /* When neither resumption nor PSKs are enabled, the extension should not be sent. */
+        {
+            DEFER_CLEANUP(struct s2n_config *no_resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(no_resumption_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_resumption_config, false));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, no_resumption_config));
+
+            EXPECT_FALSE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        };
+
+        /* When session resumption is enabled, the extension should be sent. */
+        {
+            DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(resumption_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(resumption_config, true));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, resumption_config));
+
+            EXPECT_TRUE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        };
+
+        /* When a client is using out-of-band PSKs, the extension should be sent. */
+        {
+            DEFER_CLEANUP(struct s2n_config *psk_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(psk_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(psk_config, false));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, psk_config));
+
+            DEFER_CLEANUP(struct s2n_psk *psk = s2n_test_psk_new(conn), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, psk));
+
+            EXPECT_TRUE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        };
+    };
+
     /* Functional test */
     {
         struct s2n_stuffer out = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_EQUAL(server_conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);

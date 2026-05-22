@@ -25,6 +25,8 @@ void s2n_hash_init_harness()
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
     s2n_hash_algorithm alg;
 
+    assert(s2n_result_is_ok(s2n_hash_algorithms_init()));
+
     /* Operation under verification. */
     if (s2n_hash_init(state, alg) == S2N_SUCCESS) {
         /* Post-conditions. */

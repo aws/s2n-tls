@@ -128,7 +128,7 @@ static int success_memcpy()
 
 static int failure_memcpy()
 {
-    char src[1024];
+    char src[1024] = { 0 };
     char *ptr = NULL;
 
     POSIX_CHECKED_MEMCPY(ptr, src, 1024);
@@ -279,6 +279,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(success_ct_pkcs1());
     EXPECT_SUCCESS(success_ct_pkcs1_negative());
 
+    /* Check the special case where one parameter refers to an array of N bytes */
+    /* where all elements are 0x00, and the other parameter is NULL             */
+    uint8_t all_zero[4] = { 0, 0, 0, 0 };
+
+    EXPECT_FALSE(s2n_constant_time_equals(all_zero, NULL, sizeof(all_zero)));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, all_zero, sizeof(all_zero)));
+
     uint8_t a[4] = { 1, 2, 3, 4 };
     uint8_t b[4] = { 1, 2, 3, 4 };
     uint8_t c[4] = { 5, 6, 7, 8 };
@@ -387,6 +394,68 @@ int main(int argc, char **argv)
     CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 99);
     CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 1);
 
+    /* Test: S2N_ADD_IS_OVERFLOW_SAFE */
+    {
+        const size_t num = 100;
+
+        uint64_t success_test_values[][3] = {
+            { 0, 0, 0 },
+            { 1, 0, 1 },
+            { 0, 0, UINT8_MAX },
+            { 1, 1, UINT8_MAX },
+            { UINT8_MAX, 0, UINT8_MAX },
+            { UINT8_MAX - num, num, UINT8_MAX },
+            { UINT8_MAX / 2, UINT8_MAX / 2, UINT8_MAX },
+            { 1, 1, UINT64_MAX },
+            { UINT64_MAX, 0, UINT64_MAX },
+            { UINT64_MAX - num, num, UINT64_MAX },
+            { UINT64_MAX / 2, UINT64_MAX / 2, UINT64_MAX },
+        };
+        for (size_t i = 0; i < s2n_array_len(success_test_values); i++) {
+            uint64_t v1 = success_test_values[i][0];
+            uint64_t v2 = success_test_values[i][1];
+            uint64_t max = success_test_values[i][2];
+            EXPECT_TRUE(S2N_ADD_IS_OVERFLOW_SAFE(v1, v2, max));
+            EXPECT_TRUE(S2N_ADD_IS_OVERFLOW_SAFE(v2, v1, max));
+        }
+
+        uint64_t failure_test_values[][3] = {
+            { 1, 0, 0 },
+            { UINT8_MAX, 0, 0 },
+            { UINT64_MAX, 0, UINT8_MAX },
+            { UINT64_MAX, UINT64_MAX, UINT8_MAX },
+            { UINT8_MAX, 1, UINT8_MAX },
+            { UINT8_MAX - 1, UINT8_MAX - 1, UINT8_MAX },
+            { UINT16_MAX, 1, UINT16_MAX },
+            { UINT64_MAX, 1, UINT64_MAX },
+            { UINT8_MAX, num, UINT8_MAX },
+            { UINT16_MAX, num, UINT16_MAX },
+            { UINT64_MAX, num, UINT64_MAX },
+            { UINT8_MAX, UINT8_MAX, UINT8_MAX },
+            { UINT16_MAX, UINT16_MAX, UINT16_MAX },
+            { UINT64_MAX, UINT64_MAX, UINT64_MAX },
+            { UINT64_MAX - num, UINT64_MAX - num, UINT64_MAX },
+        };
+        for (size_t i = 0; i < s2n_array_len(failure_test_values); i++) {
+            uint64_t v1 = failure_test_values[i][0];
+            uint64_t v2 = failure_test_values[i][1];
+            uint64_t max = failure_test_values[i][2];
+            EXPECT_FALSE(S2N_ADD_IS_OVERFLOW_SAFE(v1, v2, max));
+            EXPECT_FALSE(S2N_ADD_IS_OVERFLOW_SAFE(v2, v1, max));
+        }
+    }
+
+    /* Test: s2n_array_len */
+    {
+        /* Must return correct length */
+        uint16_t test_data[10] = { 0 };
+        EXPECT_EQUAL(s2n_array_len(test_data), 10);
+        EXPECT_NOT_EQUAL(s2n_array_len(test_data), sizeof(test_data));
+
+        /* Must be usable as an array size / constant expression */
+        uint16_t test_data_dup[s2n_array_len(test_data)] = { 0 };
+        EXPECT_EQUAL(sizeof(test_data), sizeof(test_data_dup));
+    }
+
     END_TEST();
-    return 0;
 }

@@ -36,7 +36,7 @@ int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
     cert->pkey_type = pkey_type;
-    POSIX_GUARD(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
+    POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
     return 0;
 }
 
@@ -47,44 +47,30 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
     struct s2n_cert **insert = &cert_chain_out->head;
     uint32_t chain_size = 0;
-    do {
-        struct s2n_cert *new_node = NULL;
+    while (s2n_stuffer_has_pem_encapsulated_block(chain_in_stuffer)) {
+        int result = s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer);
+        POSIX_ENSURE(result == S2N_SUCCESS, S2N_ERR_INVALID_PEM);
 
-        if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
-            if (chain_size == 0) {
-                POSIX_BAIL(S2N_ERR_NO_CERTIFICATE_IN_PEM);
-            }
-            break;
-        }
-        struct s2n_blob mem = { 0 };
+        DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
-        new_node = (struct s2n_cert *) (void *) mem.data;
+        POSIX_GUARD(s2n_blob_zero(&mem));
 
-        if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)) != S2N_SUCCESS) {
-            POSIX_GUARD(s2n_free(&mem));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-        if (s2n_stuffer_read(&cert_out_stuffer, &new_node->raw) != S2N_SUCCESS) {
-            POSIX_GUARD(s2n_free(&mem));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+        POSIX_GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
+        POSIX_GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
+        ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
         /* Additional 3 bytes for the length field in the protocol */
         chain_size += new_node->raw.size + 3;
         new_node->next = NULL;
         *insert = new_node;
         insert = &new_node->next;
-    } while (s2n_stuffer_data_available(chain_in_stuffer));
+    };
 
-    /* Leftover data at this point means one of two things:
-     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
-     * Be conservative and fail instead of using a partial chain.
-     */
-    S2N_ERROR_IF(s2n_stuffer_data_available(chain_in_stuffer) > 0, S2N_ERR_INVALID_PEM);
-
+    POSIX_ENSURE(chain_size > 0, S2N_ERR_NO_CERTIFICATE_IN_PEM);
     cert_chain_out->chain_size = chain_size;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_cert_chain_and_key_set_cert_chain_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key, struct s2n_stuffer *chain_in_stuffer)
@@ -121,13 +107,13 @@ int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_an
     POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    int type = 0;
-    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type));
+    int type_hint = 0;
+    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type_hint));
     key_blob.size = s2n_stuffer_data_available(key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(key_out_stuffer, key_blob.size);
     POSIX_ENSURE_REF(key_blob.data);
 
-    POSIX_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type));
+    POSIX_GUARD_RESULT(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type_hint));
     return S2N_SUCCESS;
 }
 
@@ -224,6 +210,7 @@ DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->san_names);
+    POSIX_ENSURE_REF(x509_cert);
 
     DEFER_CLEANUP(GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL), GENERAL_NAMES_free_pointer);
     if (san_names == NULL) {
@@ -276,6 +263,7 @@ DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->cn_names);
+    POSIX_ENSURE_REF(x509_cert);
 
     X509_NAME *subject = X509_get_subject_name(x509_cert);
     if (!subject) {
@@ -297,7 +285,7 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
         /* We need to try and decode the CN since it may be encoded as unicode with a
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
-         * 
+         *
          * `ASN1_STRING_to_UTF8` allocates in both the success case and in the zero return case, but
          * not in the failure case (negative return value). Therefore, we use `ZERO_TO_DISABLE_DEFER_CLEANUP`
          * in the failure case to prevent double-freeing `utf8_str`. For the zero and success cases, `utf8_str`
@@ -311,8 +299,8 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             continue;
         } else if (utf8_out_len == 0) {
             /* We still need to free memory for this case, so let the DEFER_CLEANUP free it
-             * see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 and 
-             * https://security.archlinux.org/CVE-2017-7521 
+             * see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 and
+             * https://security.archlinux.org/CVE-2017-7521
             */
         } else {
             struct s2n_blob *cn_name = NULL;
@@ -334,22 +322,14 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
     return 0;
 }
 
-static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
+static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, X509 *cert)
 {
-    const unsigned char *leaf_der = leaf_bytes->data;
-    X509 *cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
-    if (!cert) {
-        POSIX_BAIL(S2N_ERR_INVALID_PEM);
-    }
-
     POSIX_GUARD(s2n_cert_chain_and_key_load_sans(chain_and_key, cert));
     /* For current use cases, we *could* avoid populating the common names if any sans were loaded in
      * s2n_cert_chain_and_key_load_sans. Let's unconditionally populate this field to avoid surprises
      * in the future.
      */
     POSIX_GUARD(s2n_cert_chain_and_key_load_cns(chain_and_key, cert));
-
-    X509_free(cert);
     return 0;
 }
 
@@ -361,10 +341,15 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     POSIX_ENSURE_REF(chain_and_key->private_key);
     struct s2n_cert *head = chain_and_key->cert_chain->head;
 
+    DEFER_CLEANUP(X509 *leaf_cert = NULL, X509_free_pointer);
+    POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&head->raw, &leaf_cert));
+    POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(leaf_cert, &head->info));
+
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &head->raw));
+    POSIX_GUARD_RESULT(s2n_pkey_from_x509(leaf_cert, &public_key, &pkey_type));
+
     POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));
 
@@ -374,14 +359,16 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     }
 
     /* Populate name information from the SAN/CN for the leaf certificate */
-    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &head->raw));
+    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, leaf_cert));
 
-    /* Populate ec curve libcrypto nid */
-    if (pkey_type == S2N_PKEY_TYPE_ECDSA) {
-        int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(public_key.key.ecdsa_key.ec_key));
-        POSIX_ENSURE(nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        POSIX_ENSURE(nid < UINT16_MAX, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        head->ec_curve_nid = nid;
+    /* populate libcrypto nid's required for cert restrictions */
+    struct s2n_cert *current = head->next;
+    while (current != NULL) {
+        DEFER_CLEANUP(X509 *parsed_cert = NULL, X509_free_pointer);
+        POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&current->raw, &parsed_cert));
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(parsed_cert, &current->info));
+
+        current = current->next;
     }
 
     return S2N_SUCCESS;
@@ -722,15 +709,16 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **) (void *) &asn1_str_data, extension_len);
     POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
     /* ASN1_STRING_type() returns the type of `asn1_str`, using standard constants such as V_ASN1_OCTET_STRING.
-     * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_type.html. 
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_type.html.
      */
     int type = ASN1_STRING_type(asn1_str);
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
 
     int len = ASN1_STRING_length(asn1_str);
+    POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        /* ASN1_STRING_data() returns an internal pointer to the data. 
+        /* ASN1_STRING_data() returns an internal pointer to the data.
         * Since this is an internal pointer it should not be freed or modified in any way.
         * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
         */
@@ -769,7 +757,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
         uint8_t *ext_value, uint32_t *ext_value_len, bool *critical)
 {
     POSIX_ENSURE_REF(cert->raw.data);
-    /* Obtain the openssl x509 cert from the ASN1 DER certificate input. 
+    /* Obtain the openssl x509 cert from the ASN1 DER certificate input.
      * Note that d2i_X509 increments *der_in to the byte following the parsed data.
      * Using a temporary variable is mandatory to prevent memory free-ing errors.
      * Ref to the warning section here for more information:
@@ -780,8 +768,8 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             X509_free_pointer);
     POSIX_ENSURE_REF(x509_cert);
 
-    /* Retrieve the number of x509 extensions present in the certificate 
-     * X509_get_ext_count returns the number of extensions in the x509 certificate. 
+    /* Retrieve the number of x509 extensions present in the certificate
+     * X509_get_ext_count returns the number of extensions in the x509 certificate.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
      */
     int ext_count_value = X509_get_ext_count(x509_cert);
@@ -790,7 +778,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
 
     /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
      * If no_name is 0 then long names and short names will be interpreted as well as numerical forms.
-     * If no_name is 1 only the numerical form is acceptable. 
+     * If no_name is 1 only the numerical form is acceptable.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_txt2obj.html.
      */
     DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *) oid, 0), s2n_asn1_obj_free);
@@ -809,9 +797,9 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
         X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
         POSIX_ENSURE_REF(x509_ext);
 
-        /* Retrieve the extension object/OID/extnId. 
-         * X509_EXTENSION_get_object() returns the extension type of `x509_ext` as an ASN1_OBJECT pointer. 
-         * The returned pointer is an internal value which must not be freed up. 
+        /* Retrieve the extension object/OID/extnId.
+         * X509_EXTENSION_get_object() returns the extension type of `x509_ext` as an ASN1_OBJECT pointer.
+         * The returned pointer is an internal value which must not be freed up.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_object.html.
          */
         ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
@@ -824,11 +812,12 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
 
         /* If match found, retrieve the corresponding OID value for the x509 extension */
         if (match_found) {
-            /* X509_EXTENSION_get_data() returns the data of extension `x509_ext`. 
+            /* X509_EXTENSION_get_data() returns the data of extension `x509_ext`.
              * The returned pointer is an internal value which must not be freed up.
              * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_data.html.
              */
             asn1_str = X509_EXTENSION_get_data(x509_ext);
+            POSIX_ENSURE_REF(asn1_str);
             /* ASN1_STRING_length() returns the length of the content of `asn1_str`.
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */
@@ -836,7 +825,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             if (ext_value != NULL) {
                 POSIX_ENSURE_GTE(len, 0);
                 POSIX_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-                /* ASN1_STRING_data() returns an internal pointer to the data. 
+                /* ASN1_STRING_data() returns an internal pointer to the data.
                  * Since this is an internal pointer it should not be freed or modified in any way.
                  * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
                  */

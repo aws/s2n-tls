@@ -34,6 +34,7 @@
 #include "api/s2n.h"
 #include "api/unstable/npn.h"
 #include "common.h"
+#include "crypto/s2n_libcrypto.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -131,11 +132,16 @@ static char default_private_key[] =
         "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
         "-----END RSA PRIVATE KEY-----";
 
-#define OPT_BUFFERED_SEND 1000
+#define OPT_BUFFERED_SEND  1000
+#define OPT_SERIALIZE_OUT  1001
+#define OPT_DESERIALIZE_IN 1002
 
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nd is an s2n-tls server testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nd [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
@@ -145,7 +151,7 @@ void usage()
     fprintf(stderr, "    Sets a single application protocol supported by this server.\n");
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
-    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\" \n");
     fprintf(stderr, "  --enter-fips-mode\n");
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  --cert\n");
@@ -221,9 +227,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    s2n_setup_server_connection(conn, fd, config, settings);
+    GUARD_EXIT(s2n_setup_server_connection(conn, fd, config, settings), "Error setting up connection");
 
-    if (negotiate(conn, fd) != S2N_SUCCESS) {
+    if (!settings.deserialize_in && negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
                 print_s2n_error("Error: Mutual Auth was required, but not negotiated");
@@ -243,7 +249,11 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         echo(conn, fd, &stop_echo);
     }
 
-    GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
+    if (settings.serialize_out) {
+        GUARD_RETURN(s2n_connection_serialize_out(conn, settings.serialize_out), "Error serializing connection");
+    } else {
+        GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
+    }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
@@ -254,8 +264,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai;
-    int r, sockfd = 0;
+    struct addrinfo hints, *ai = NULL;
+    int r = 0, sockfd = 0;
 
     /* required args */
     const char *host = NULL;
@@ -307,6 +317,8 @@ int main(int argc, char *const *argv)
         { "ca-file", required_argument, 0, 't' },
         { "insecure", no_argument, 0, 'i' },
         { "stk-file", required_argument, 0, 'a' },
+        { "serialize-out", required_argument, 0, OPT_SERIALIZE_OUT },
+        { "deserialize-in", required_argument, 0, OPT_DESERIALIZE_IN },
         { "no-session-ticket", no_argument, 0, 'T' },
         { "corked-io", no_argument, 0, 'C' },
         { "max-conns", optional_argument, 0, 'X' },
@@ -426,6 +438,22 @@ int main(int argc, char *const *argv)
                 send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
                 break;
             }
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nd by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nd alone.
+             */
+            case OPT_SERIALIZE_OUT:
+                conn_settings.serialize_out = optarg;
+                break;
+            case OPT_DESERIALIZE_IN:
+                conn_settings.deserialize_in = optarg;
+                break;
             case 'A':
                 alpn = optarg;
                 break;
@@ -520,24 +548,18 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
+
     if (fips_mode) {
-#ifndef S2N_INTERN_LIBCRYPTO
-    #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-        if (FIPS_mode_set(1) == 0) {
-            unsigned long fips_rc = ERR_get_error();
-            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+        s2n_fips_mode mode = 0;
+        GUARD_EXIT(s2n_get_fips_mode(&mode), "Unable to retrieve FIPS mode");
+        if (mode != S2N_FIPS_MODE_ENABLED) {
+            fprintf(stderr, "FIPS mode not enabled: libcrypto does not support FIPS\n");
             exit(1);
         }
         printf("s2nd entered FIPS mode\n");
-    #else
-        fprintf(stderr, "Error entering FIPS mode. s2nd was not built against a FIPS-capable libcrypto.\n");
-        exit(1);
-    #endif
-#endif
     }
-
-    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     printf("Listening on %s:%s\n", host, port);
 
@@ -616,6 +638,11 @@ int main(int argc, char *const *argv)
         GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
     }
 
+    if (conn_settings.serialize_out) {
+        GUARD_EXIT(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
+                "Error setting serialized version");
+    }
+
     FILE *key_log_file = NULL;
 
     if (key_log_path) {
@@ -629,7 +656,7 @@ int main(int argc, char *const *argv)
                 "Failed to set key log callback");
     }
 
-    int fd;
+    int fd = 0;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (non_blocking) {
             int flags = fcntl(sockfd, F_GETFL, 0);

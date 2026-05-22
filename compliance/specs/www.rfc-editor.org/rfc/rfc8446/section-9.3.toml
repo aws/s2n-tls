@@ -1,0 +1,155 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-9.3"
+
+# 9.3.  Protocol Invariants
+#
+# This section describes invariants that TLS endpoints and middleboxes
+# MUST follow.  It also applies to earlier versions of TLS.
+# 
+# TLS is designed to be securely and compatibly extensible.  Newer
+# clients or servers, when communicating with newer peers, should
+# negotiate the most preferred common parameters.  The TLS handshake
+# provides downgrade protection: Middleboxes passing traffic between a
+# newer client and newer server without terminating TLS should be
+# unable to influence the handshake (see Appendix E.1).  At the same
+# time, deployments update at different rates, so a newer client or
+# server MAY continue to support older parameters, which would allow it
+# to interoperate with older endpoints.
+# 
+# For this to work, implementations MUST correctly handle extensible
+# fields:
+# 
+# -  A client sending a ClientHello MUST support all parameters
+#    advertised in it.  Otherwise, the server may fail to interoperate
+#    by selecting one of those parameters.
+# 
+# -  A server receiving a ClientHello MUST correctly ignore all
+#    unrecognized cipher suites, extensions, and other parameters.
+#    Otherwise, it may fail to interoperate with newer clients.  In
+#    TLS 1.3, a client receiving a CertificateRequest or
+#    NewSessionTicket MUST also ignore all unrecognized extensions.
+# 
+# -  A middlebox which terminates a TLS connection MUST behave as a
+#    compliant TLS server (to the original client), including having a
+#    certificate which the client is willing to accept, and also as a
+#    compliant TLS client (to the original server), including verifying
+#    the original server's certificate.  In particular, it MUST
+#    generate its own ClientHello containing only parameters it
+#    understands, and it MUST generate a fresh ServerHello random
+#    value, rather than forwarding the endpoint's value.
+# 
+#    Note that TLS's protocol requirements and security analysis only
+#    apply to the two connections separately.  Safely deploying a TLS
+#    terminator requires additional security considerations which are
+#    beyond the scope of this document.
+# 
+# -  A middlebox which forwards ClientHello parameters it does not
+#    understand MUST NOT process any messages beyond that ClientHello.
+#    It MUST forward all subsequent traffic unmodified.  Otherwise, it
+#    may fail to interoperate with newer clients and servers.
+# 
+#    Forwarded ClientHellos may contain advertisements for features not
+#    supported by the middlebox, so the response may include future TLS
+#    additions the middlebox does not recognize.  These additions MAY
+#    change any message beyond the ClientHello arbitrarily.  In
+#    particular, the values sent in the ServerHello might change, the
+#    ServerHello format might change, and the TLSCiphertext format
+#    might change.
+# 
+# The design of TLS 1.3 was constrained by widely deployed
+# non-compliant TLS middleboxes (see Appendix D.4); however, it does
+# not relax the invariants.  Those middleboxes continue to be
+# non-compliant.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This section describes invariants that TLS endpoints and middleboxes
+MUST follow.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+At the same
+time, deployments update at different rates, so a newer client or
+server MAY continue to support older parameters, which would allow it
+to interoperate with older endpoints.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For this to work, implementations MUST correctly handle extensible
+fields:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  A client sending a ClientHello MUST support all parameters
+advertised in it.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  A server receiving a ClientHello MUST correctly ignore all
+unrecognized cipher suites, extensions, and other parameters.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In
+TLS 1.3, a client receiving a CertificateRequest or
+NewSessionTicket MUST also ignore all unrecognized extensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  A middlebox which terminates a TLS connection MUST behave as a
+compliant TLS server (to the original client), including having a
+certificate which the client is willing to accept, and also as a
+compliant TLS client (to the original server), including verifying
+the original server's certificate.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, it MUST
+generate its own ClientHello containing only parameters it
+understands, and it MUST generate a fresh ServerHello random
+value, rather than forwarding the endpoint's value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, it MUST
+generate its own ClientHello containing only parameters it
+understands, and it MUST generate a fresh ServerHello random
+value, rather than forwarding the endpoint's value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  A middlebox which forwards ClientHello parameters it does not
+understand MUST NOT process any messages beyond that ClientHello.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST forward all subsequent traffic unmodified.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+These additions MAY
+change any message beyond the ClientHello arbitrarily.
+'''
+

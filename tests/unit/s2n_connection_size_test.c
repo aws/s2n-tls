@@ -41,11 +41,10 @@ int main(int argc, char **argv)
     */
     if (is_32_bit_platform()) {
         END_TEST();
-        return 0;
     }
 
     /* Carefully consider any increases to this number. */
-    const uint16_t max_connection_size = 4274;
+    const uint16_t max_connection_size = 4443;
     const uint16_t min_connection_size = max_connection_size * 0.9;
 
     size_t connection_size = sizeof(struct s2n_connection);

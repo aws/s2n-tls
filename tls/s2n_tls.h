@@ -29,7 +29,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn);
 int s2n_client_hello_send(struct s2n_connection *conn);
 int s2n_client_hello_recv(struct s2n_connection *conn);
 int s2n_establish_session(struct s2n_connection *conn);
-int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
+int s2n_sslv2_client_hello_parse(struct s2n_connection *conn);
 int s2n_server_hello_retry_send(struct s2n_connection *conn);
 int s2n_server_hello_retry_recv(struct s2n_connection *conn);
 int s2n_server_hello_write_message(struct s2n_connection *conn);
@@ -60,6 +60,8 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn);
 int s2n_tls13_cert_verify_recv(struct s2n_connection *conn);
 int s2n_tls13_cert_verify_send(struct s2n_connection *conn);
 int s2n_server_nst_send(struct s2n_connection *conn);
+S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_hint_in_secs,
+        struct s2n_blob *session_ticket);
 int s2n_server_nst_recv(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output);
@@ -83,6 +85,9 @@ int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type);
 int s2n_handshake_finish_header(struct s2n_stuffer *out);
 S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t *message_type, uint32_t *length);
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2);
+S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count,
+        ssize_t offs, ssize_t *total_size_out);
+S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint32_t size);
 
 extern uint16_t mfl_code_to_length[5];
 

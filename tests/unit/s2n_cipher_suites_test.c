@@ -30,7 +30,7 @@ int main()
 
         /* Test: all cipher suites in s2n_all_cipher_suites are in IANA order */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             const uint8_t cipher_suite_count = cipher_preferences_test_all.count;

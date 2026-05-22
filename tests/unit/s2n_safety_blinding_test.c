@@ -151,6 +151,26 @@ int main(int argc, char **argv)
             EXPECT_BLINDING(conn);
         };
 
+        /* Skips blinding if set to 0 */
+        {
+            SETUP_TEST(conn);
+            s2n_errno = S2N_ERR_UNIMPLEMENTED;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* No blinding delay, but closed connection */
+            EXPECT_SUCCESS(s2n_config_set_max_blinding_delay(config, 0));
+            EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
+            EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+
+            /* Any non-zero blinding delay still causes blinding */
+            EXPECT_SUCCESS(s2n_config_set_max_blinding_delay(config, 1));
+            EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
+            EXPECT_BLINDING(conn);
+        }
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 

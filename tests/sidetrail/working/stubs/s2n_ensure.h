@@ -31,7 +31,10 @@ void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
 #define __S2N_ENSURE_PRECONDITION( result )                S2N_RESULT_OK
 #define __S2N_ENSURE_POSTCONDITION( result )               S2N_RESULT_OK
 
-#define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )      do { memcpy((d), (s), (n)); } while(0)
+/* memmove isn't supported, so use memcpy instead.
+ * For the purposes of these proofs, there should be no useful difference.
+ */
+#define __S2N_ENSURE_SAFE_MEMMOVE( d , s , n , guard )      do { memcpy((d), (s), (n)); } while(0)
 
 #define __S2N_ENSURE_SAFE_MEMSET( d , c , n , guard )      \
   do {                                                     \
@@ -43,6 +46,7 @@ void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
     }                                                      \
   } while(0)
 
+#define __S2N_ENSURE_CHECKED_RETURN(v)                     do { return v; } while(0)
 
 /**
  * The C runtime does not give a way to check these properties,

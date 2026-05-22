@@ -20,22 +20,17 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+#define S2N_CLOSED_FD -1
+
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
+extern const struct s2n_security_policy security_policy_test_tls13_retry_with_pq;
 
-/* Read and write hex */
-int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, uint32_t n);
-int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
-int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u);
-int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u);
-int s2n_stuffer_read_uint64_hex(struct s2n_stuffer *stuffer, uint64_t *u);
-
-int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, uint32_t n);
-int s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u);
-int s2n_stuffer_write_uint16_hex(struct s2n_stuffer *stuffer, uint16_t u);
-int s2n_stuffer_write_uint32_hex(struct s2n_stuffer *stuffer, uint32_t u);
-int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u);
-int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
+/* Hex methods for testing */
+S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *stuffer, const char *str);
+/* Unlike other hex methods, the hex string read here may include spaces.
+ * This is useful for hex strings with odd whitespace for readability purposes. */
+S2N_RESULT s2n_blob_alloc_from_hex_with_whitespace(struct s2n_blob *bytes_out, const char *str);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
@@ -75,6 +70,8 @@ int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
+S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_test_message_type(struct s2n_connection *conn, message_type_t expected_message_type);
 
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
 
@@ -92,21 +89,26 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, con
 S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
 S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
-#define S2N_MAX_TEST_PEM_SIZE 8192
+#define S2N_MAX_TEST_PEM_SIZE        12000
+#define S2N_MAX_TEST_PEM_PATH_LENGTH 512
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
  * Absolute paths will be needed if test directories go to deeper levels.
  */
-#define S2N_RSA_2048_PKCS8_CERT_CHAIN "../pems/rsa_2048_pkcs8_cert.pem"
-#define S2N_RSA_2048_PKCS1_CERT_CHAIN "../pems/rsa_2048_pkcs1_cert.pem"
+#define S2N_RSA_2048_PKCS8_CERT_CHAIN        "../pems/rsa_2048_pkcs8_cert.pem"
+#define S2N_RSA_2048_PKCS1_CERT_CHAIN        "../pems/rsa_2048_pkcs1_cert.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN "../pems/permutations/rsae_pkcs_2048_sha256/server-chain.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_KEY   "../pems/permutations/rsae_pkcs_2048_sha256/server-key.pem"
 
 #define S2N_RSA_2048_PKCS1_LEAF_CERT    "../pems/rsa_2048_pkcs1_leaf.pem"
 #define S2N_ECDSA_P256_PKCS1_CERT_CHAIN "../pems/ecdsa_p256_pkcs1_cert.pem"
 #define S2N_ECDSA_P384_PKCS1_CERT_CHAIN "../pems/ecdsa_p384_pkcs1_cert.pem"
+#define S2N_ECDSA_P512_CERT_CHAIN       "../pems/ecdsa_p521_cert.pem"
 #define S2N_RSA_CERT_CHAIN_CRLF         "../pems/rsa_2048_pkcs1_cert_crlf.pem"
 #define S2N_RSA_KEY_CRLF                "../pems/rsa_2048_pkcs1_key_crlf.pem"
 #define S2N_ECDSA_P256_PKCS1_KEY        "../pems/ecdsa_p256_pkcs1_key.pem"
 #define S2N_ECDSA_P384_PKCS1_KEY        "../pems/ecdsa_p384_pkcs1_key.pem"
+#define S2N_ECDSA_P512_KEY              "../pems/ecdsa_p521_key.pem"
 #define S2N_RSA_2048_PKCS1_KEY          "../pems/rsa_2048_pkcs1_key.pem"
 #define S2N_RSA_2048_PKCS8_KEY          "../pems/rsa_2048_pkcs8_key.pem"
 
@@ -115,10 +117,17 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
 
+#define S2N_MLDSA44_KEY  "../pems/mldsa/ML-DSA-44-seed.priv"
+#define S2N_MLDSA44_CERT "../pems/mldsa/ML-DSA-44.crt"
+
+#define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
+#define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"
+
 #define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
+#define S2N_RSA_2048_SHA256_WILDCARD_KEY     "../pems/rsa_2048_sha256_wildcard_key.pem"
 
 #define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
 
@@ -132,6 +141,12 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* Missing line endings between PEM encapsulation boundaries */
 #define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN "../pems/rsa_2048_missing_line_endings_cert.pem"
 
+/* PEMs with invalid timestamp fields */
+#define S2N_EXPIRED_CERT_CHAIN       "../pems/rsa_2048_expired_cert.pem"
+#define S2N_EXPIRED_KEY              "../pems/rsa_2048_expired_key.pem"
+#define S2N_NOT_YET_VALID_CERT_CHAIN "../pems/rsa_2048_not_yet_valid_cert.pem"
+#define S2N_NOT_YET_VALID_KEY        "../pems/rsa_2048_not_yet_valid_key.pem"
+
 /* Illegally formatted PEMs */
 #define S2N_INVALID_HEADER_CERT_CHAIN  "../pems/rsa_2048_invalid_header_cert.pem"
 #define S2N_INVALID_TRAILER_CERT_CHAIN "../pems/rsa_2048_invalid_trailer_cert.pem"
@@ -141,6 +156,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_UNKNOWN_KEYWORD_KEY        "../pems/rsa_2048_unknown_keyword_key.pem"
 #define S2N_WEIRD_DASHES_CERT_CHAIN    "../pems/rsa_2048_weird_dashes_cert.pem"
 #define S2N_NO_DASHES_CERT_CHAIN       "../pems/rsa_2048_no_dashes_cert.pem"
+
+/* Certificate with unusual curve not supported by awslc */
+#define S2N_BRAINPOOL_CURVE_CERT "../pems/ecdsa_brainpoolP512t1_cert.pem"
 
 /* OCSP Stapled Response Testing files */
 #define S2N_OCSP_SERVER_CERT              "../pems/ocsp/server_cert.pem"
@@ -173,8 +191,15 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
  * that our certificate validation code does not fail a root certificate signed with SHA-1. */
 #define S2N_SHA1_ROOT_SIGNATURE_CA_CERT "../pems/rsa_1024_sha1_CA_cert.pem"
 
-#define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
-#define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
+/* The leaf and intermediate have larger key sizes than the root. */
+#define S2N_MIXED_CHAIN_CERTS "../pems/mixed_chains/ecdsa/server-chain.pem"
+#define S2N_MIXED_CHAIN_KEY   "../pems/mixed_chains/ecdsa/server-key.pem"
+#define S2N_MIXED_CHAIN_CA    "../pems/mixed_chains/ecdsa/ca-cert.pem"
+
+#define S2N_TEST_TRUST_STORE "../pems/trust-store/ca-bundle.crt"
+
+#define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN
+#define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_SHA256_CERT_KEY
 
 #define S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN  S2N_ECDSA_P384_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY S2N_ECDSA_P384_PKCS1_KEY
@@ -187,6 +212,43 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
+#define S2N_TEST_CERT_CHAIN_LIST_MAX 19
+struct s2n_test_cert_chain_entry {
+    struct s2n_cert_chain_and_key *chain;
+    /* Use this field to indicate support: by array index, version number, etc. */
+    uint64_t supported;
+};
+struct s2n_test_cert_chain_list {
+    struct s2n_test_cert_chain_entry chains[S2N_TEST_CERT_CHAIN_LIST_MAX];
+    size_t count;
+    /* Certs skipped because they were not supported by the libcrypto. */
+    size_t skipped;
+};
+S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains);
+S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
+        s2n_pkey_type pkey_type, uint64_t supported);
+S2N_CLEANUP_RESULT s2n_test_cert_chains_free(struct s2n_test_cert_chain_list *chains);
+
+/**
+ * load the `server-cert.pem` for the appropriate permutation
+ * @param type indicates an `ec`, `rsae` or `rsapss` key type
+ * @param signature indicates an `ecdsa`, `pkcs`, or `pss` signature
+ * @param size indicates an rsa cert of `2048`, `3072`, or `4096` or an ecdsa
+ * cert with `p256` or `p384`
+ * @param digest indicates the certificate signature digest of `sha256` or
+ * `sha384`
+ * 
+ * @note The OpenSSL FIPS module requires the key size for RSA certs to be greater than or equal to 1024 bits.
+ * See https://github.com/aws/s2n-tls/issues/4651 for more information.
+ */
+int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
+        const char *type, const char *signature, const char *size, const char *digest);
+
+int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
+        const char *size, const char *digest);
+S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
+        const char *signature, const char *size, const char *digest);
+
 S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer);
 S2N_RESULT s2n_test_cert_chain_data_from_pem_data(struct s2n_connection *conn, uint8_t *pem_data, uint32_t pem_data_len,
@@ -198,20 +260,19 @@ S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connect
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
+S2N_RESULT s2n_send_and_recv_test(struct s2n_connection *send_conn, struct s2n_connection *recv_conn);
 
-struct s2n_kem_kat_test_vector {
-    const struct s2n_kem *kem;
-    const char *kat_file;
-    bool (*asm_is_enabled)();
-    S2N_RESULT (*enable_asm)();
-    S2N_RESULT (*disable_asm)();
+/* Testing only with easily constructed contiguous data buffers could hide errors.
+ * We should use iovecs where every buffer is allocated separately.
+ * These test methods construct separate io buffers from one contiguous buffer.
+ */
+struct s2n_test_iovecs {
+    struct iovec *iovecs;
+    size_t iovecs_count;
 };
-S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
-int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char *cipher_pref_version, const char *kat_file_name, uint32_t server_key_message_length,
-        uint32_t client_key_message_length);
-S2N_RESULT s2n_pq_noop_asm();
-bool s2n_pq_no_asm_available();
+S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
+        struct s2n_blob *data, const size_t *lens, size_t lens_count);
+S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
 
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
 #define S2N_BLOB_EXPECT_EQUAL(blob1, blob2)                         \
@@ -244,3 +305,16 @@ extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
+
+S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
+
+#define S2N_BLOB_FROM_HEX(name, hex) S2N_CHECKED_BLOB_FROM_HEX(name, POSIX_GUARD_RESULT, hex)
+#define S2N_CHECKED_BLOB_FROM_HEX(name, check, hex)        \
+    DEFER_CLEANUP(struct s2n_blob name = { 0 }, s2n_free); \
+    check(s2n_blob_alloc_from_hex_with_whitespace(&name, (const char *) hex));
+
+bool s2n_is_seccomp_supported();
+S2N_RESULT s2n_seccomp_init();
+
+S2N_RESULT s2n_config_set_tls12_security_policy(struct s2n_config *config);
+S2N_RESULT s2n_connection_set_tls12_security_policy(struct s2n_connection *connection);

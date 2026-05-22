@@ -29,6 +29,8 @@
 #include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_pkey.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 #define STDIO_BUFSIZE 10240
 
@@ -38,6 +40,7 @@ const char *sig_alg_strs[] = {
     [S2N_TLS_SIGNATURE_ECDSA] = "ECDSA",
     [S2N_TLS_SIGNATURE_RSA_PSS_RSAE] = "RSA-PSS-RSAE",
     [S2N_TLS_SIGNATURE_RSA_PSS_PSS] = "RSA-PSS-PSS",
+    [S2N_TLS_SIGNATURE_MLDSA] = "MLDSA",
 };
 
 const char *sig_hash_strs[] = {
@@ -50,6 +53,11 @@ const char *sig_hash_strs[] = {
     [S2N_TLS_HASH_SHA512] = "SHA512",
     [S2N_TLS_HASH_MD5_SHA1] = "MD5_SHA1",
 };
+
+/* Careful: don't change this without updating the integration tests that check for it!
+ * Negative cases may stop working but not fail when this is updated.
+ */
+const char *pq_enabled_note = "PQ key exchange enabled";
 
 void print_s2n_error(const char *app_error)
 {
@@ -139,10 +147,10 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
 
 int print_connection_info(struct s2n_connection *conn)
 {
-    int client_hello_version;
-    int client_protocol_version;
-    int server_protocol_version;
-    int actual_protocol_version;
+    int client_hello_version = 0;
+    int client_protocol_version = 0;
+    int server_protocol_version = 0;
+    int actual_protocol_version = 0;
 
     if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
         fprintf(stderr, "Could not get client hello version\n");
@@ -175,11 +183,23 @@ int print_connection_info(struct s2n_connection *conn)
         printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    printf("Curve: %s\n", s2n_connection_get_curve(conn));
-    printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
-    printf("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
+    const char *kem = s2n_connection_get_kem_name(conn);
+    if (strcmp(kem, "NONE") != 0) {
+        printf("Legacy TLS1.2 KEM: %s (%s, but the use of PQ key exchange with "
+               "TLS1.2 was experimental and is neither stable nor on a path to "
+               "standardization. The TLS1.3 version should be used instead: "
+               "https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html)\n",
+                kem, pq_enabled_note);
+    }
 
-    uint32_t length;
+    const char *kem_group = s2n_connection_get_kem_group_name(conn);
+    if (strcmp(kem_group, "NONE") != 0) {
+        printf("KEM Group: %s (%s)\n", kem_group, pq_enabled_note);
+    } else {
+        printf("Curve: %s\n", s2n_connection_get_curve(conn));
+    }
+
+    uint32_t length = 0;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
     if (status && length > 0) {
         printf("OCSP response received, length %u\n", length);
@@ -283,7 +303,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
-int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
+int renegotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint8_t buffer[STDIO_BUFSIZE] = { 0 };
@@ -294,13 +314,6 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
 
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
-
-    /* Do not proceed with renegotiation until we receive more data from the server */
-    if (wait_for_more_data) {
-        fd_set fds = { 0 };
-        FD_SET(fd, &fds);
-        select(FD_SETSIZE, &fds, NULL, NULL, NULL);
-    }
 
     while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
         uint8_t *data_ptr = buffer;

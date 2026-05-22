@@ -142,8 +142,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     size_t serialized_session_state_length = 0;
     uint8_t serialized_session_state[256] = { 0 };
 
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -153,6 +153,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    s2n_config_set_cipher_preferences(config, "20240501");
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
@@ -213,6 +214,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
     s2n_connection_set_io_pair(conn, io_pair);
+    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
@@ -244,6 +246,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
+    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     s2n_connection_set_io_pair(conn, io_pair);
 
     /* Change the format of the session state and check we cannot deserialize it */
@@ -287,18 +291,18 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    int status = 0;
+    pid_t pid = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     char buffer[256];
-    int bytes_read;
+    int bytes_read = 0;
     int shutdown_rc = -1;
-    uint64_t now;
+    uint64_t now = 0;
     uint8_t session_id_from_server[MAX_KEY_LEN];
     uint8_t session_id_from_client[MAX_KEY_LEN];
 
@@ -337,7 +341,7 @@ int main(int argc, char **argv)
         initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -527,7 +531,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
      *= type=test
      *# If the original session used the "extended_master_secret"
      *# extension but the new ClientHello does not contain it, the server
@@ -560,6 +564,7 @@ int main(int argc, char **argv)
         /* Wipe connections and set up new handshake */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -576,10 +581,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
      *= type=test
      *# If the original session did not use the "extended_master_secret"
      *# extension but the new ClientHello contains the extension, then the
@@ -663,5 +669,4 @@ int main(int argc, char **argv)
     free(private_key_pem);
 
     END_TEST();
-    return 0;
 }

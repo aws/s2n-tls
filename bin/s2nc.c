@@ -33,6 +33,7 @@
 #include "api/unstable/npn.h"
 #include "api/unstable/renegotiate.h"
 #include "common.h"
+#include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 
@@ -44,6 +45,30 @@
 #define OPT_PREFER_LOW_LATENCY 1005
 #define OPT_PREFER_THROUGHPUT  1006
 #define OPT_BUFFERED_SEND      1007
+#define OPT_SERIALIZE_OUT      1008
+#define OPT_DESERIALIZE_IN     1009
+
+/* This should match the final cert in the s2nd default_certificate_chain */
+const char default_trusted_cert[] =
+        "-----BEGIN CERTIFICATE-----"
+        "MIIC/jCCAeagAwIBAgIUFFjxpSf0mUsrVbyLPQhccDYfixowDQYJKoZIhvcNAQEL"
+        "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwODIyWhgPMjEx"
+        "OTEyMzEwMTA4MjJaMBYxFDASBgNVBAMMC3MyblRlc3RSb290MIIBIjANBgkqhkiG"
+        "9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz3AaOAlkcxJHryCI9SfwB9q4PA53hv5tz4ZL"
+        "be37b69v58mfP+D18cWIBHUmkmN6gWWoWZ/9hv75pxcNXW0zPn7+wOVvXLUjtmkq"
+        "1IGT/mykhasw00viaBFAuBHZ5iLwfc4/cjUFAPVCKLmfv5Xs7TJVzWA/0mR4r1h8"
+        "uFqqXczkVMklIbsOIrlZXz8ifQs3DpFA2FeoziEh+Pcb4c3QBPgCHFDEGyTSdqo9"
+        "+NbS+iRlw0T6tqUOpC0DdKXo/3mJNBmy4XPahTi9zgsu7b+UVqemL7eXXf/iSr5y"
+        "iwJKJjz+N/rLpcF1VJtF8q0fpHagzljQaN7/emjg7BplUUyLawIDAQABo0IwQDAP"
+        "BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTDmXkyQEJ7ZciyE4KF7wAJKDxMfDAO"
+        "BgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAFobyhsc7mYoGaA7N4Pp"
+        "it+MQZZNzWte5vWal/3/2V7ZGrJsgeCPwLblzzTmey85RilX6ovMQHEqT1vBFSHq"
+        "nntMZnHkEl2QLU8XopJWR4MXK7LzjjQYaXiZhGbJbtylVSfATAa/ZzdgjBx1C8aD"
+        "IM1+ELGCP/UHD0YEJkFoxSUwXGAXoV8I+cPDAWHC6VnC4mY8qubhx95FpX02ERnz"
+        "1Cw2YWtntyO8P52dEJD1+0EJjtVX4Bj5wwgJHHbDkPP1IzFrR/uBC2LCjtRY+UtZ"
+        "kfoDfWu2tslkLK7/LaC5qZyCPKnpPHLLz8gUWKlvbuejM99FTlBg/tcH+bv5x7WB"
+        "MZ8="
+        "-----END CERTIFICATE-----";
 
 /*
  * s2nc is an example client that uses many s2n-tls APIs.
@@ -52,6 +77,9 @@
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nc is an s2n-tls client testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
@@ -61,7 +89,7 @@ void usage()
     fprintf(stderr, "    Sets the application protocols supported by this client, as a comma separated list.\n");
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
-    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\" \n");
     fprintf(stderr, "  --enter-fips-mode\n");
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
@@ -111,10 +139,9 @@ void usage()
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
     fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.\n");
-    fprintf(stderr, "  --renegotiation [accept|reject|wait]\n"
+    fprintf(stderr, "  --renegotiation [accept|reject]\n"
                     "    accept: Accept all server requests for a new handshake\n"
-                    "    reject: Reject all server requests for a new handshake\n"
-                    "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
+                    "    reject: Reject all server requests for a new handshake\n");
     fprintf(stderr, "  --npn \n");
     fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "\n");
@@ -151,7 +178,6 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
 
 struct reneg_req_ctx {
     bool do_renegotiate;
-    bool wait;
     s2n_renegotiate_response response;
 };
 
@@ -176,6 +202,9 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         print_s2n_error("Error getting new config");
         exit(1);
     }
+
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
@@ -278,8 +307,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai_list, *ai;
-    int r, sockfd = 0;
+    struct addrinfo hints, *ai_list = NULL, *ai = NULL;
+    int r = 0, sockfd = 0;
     bool session_ticket_recv = 0;
     /* Optional args */
     const char *alpn_protocols = NULL;
@@ -292,6 +321,8 @@ int main(int argc, char *const *argv)
     bool client_key_input = false;
     const char *ticket_out = NULL;
     char *ticket_in = NULL;
+    const char *serialize_out = NULL;
+    const char *deserialize_in = NULL;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -340,6 +371,8 @@ int main(int argc, char *const *argv)
         { "ticket-out", required_argument, 0, OPT_TICKET_OUT },
         { "ticket-in", required_argument, 0, OPT_TICKET_IN },
         { "no-session-ticket", no_argument, 0, 'T' },
+        { "serialize-out", required_argument, 0, OPT_SERIALIZE_OUT },
+        { "deserialize-in", required_argument, 0, OPT_DESERIALIZE_IN },
         { "dynamic", required_argument, 0, 'D' },
         { "timeout", required_argument, 0, 't' },
         { "corked-io", no_argument, 0, 'C' },
@@ -419,6 +452,22 @@ int main(int argc, char *const *argv)
             case OPT_TICKET_IN:
                 ticket_in = optarg;
                 break;
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nc by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nc alone.
+             */
+            case OPT_SERIALIZE_OUT:
+                serialize_out = optarg;
+                break;
+            case OPT_DESERIALIZE_IN:
+                deserialize_in = optarg;
+                break;
             case 'T':
                 session_ticket = 0;
                 break;
@@ -458,9 +507,6 @@ int main(int argc, char *const *argv)
                     reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
                 } else if (strcmp(optarg, "reject") == 0) {
                     reneg_ctx.response = S2N_RENEGOTIATE_REJECT;
-                } else if (strcmp(optarg, "wait") == 0) {
-                    reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
-                    reneg_ctx.wait = true;
                 } else {
                     fprintf(stderr, "Unrecognized option: %s\n", optarg);
                     exit(1);
@@ -518,29 +564,23 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (fips_mode) {
-#ifndef S2N_INTERN_LIBCRYPTO
-    #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-        if (FIPS_mode_set(1) == 0) {
-            unsigned long fips_rc = ERR_get_error();
-            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
-            exit(1);
-        }
-        printf("s2nc entered FIPS mode\n");
-    #else
-        fprintf(stderr, "Error entering FIPS mode. s2nc was not built against a FIPS-capable libcrypto.\n");
-        exit(1);
-    #endif
-#endif
-    }
-
     if (prefer_low_latency && prefer_throughput) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
         exit(1);
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
+
+    if (fips_mode) {
+        s2n_fips_mode mode = 0;
+        GUARD_EXIT(s2n_get_fips_mode(&mode), "Unable to retrieve FIPS mode");
+        if (mode != S2N_FIPS_MODE_ENABLED) {
+            fprintf(stderr, "FIPS mode not enabled: libcrypto does not support FIPS\n");
+            exit(1);
+        }
+        printf("s2nc entered FIPS mode\n");
+    }
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
@@ -594,6 +634,8 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
         }
 
+        GUARD_EXIT(s2n_config_add_pem_to_trust_store(config, default_trusted_cert),
+                "Error adding default cert to trust store.");
         if (ca_file || ca_dir) {
             GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
@@ -629,11 +671,20 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
         }
 
+        if (serialize_out) {
+            GUARD_EXIT(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
+                    "Error setting serialized version");
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
             print_s2n_error("Error getting new connection");
             exit(1);
+        }
+
+        if (deserialize_in) {
+            GUARD_EXIT(s2n_connection_deserialize_in(conn, deserialize_in), "Failed to deserialize file");
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
@@ -684,8 +735,7 @@ int main(int argc, char *const *argv)
             }
         }
 
-        /* See echo.c */
-        if (negotiate(conn, sockfd) != 0) {
+        if (!deserialize_in && negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
             S2N_ERROR_PRESERVE_ERRNO();
         }
@@ -743,10 +793,14 @@ int main(int argc, char *const *argv)
             }
 
             reneg_ctx.do_renegotiate = false;
-            GUARD_EXIT(renegotiate(conn, sockfd, reneg_ctx.wait), "Renegotiation failed");
+            GUARD_EXIT(renegotiate(conn, sockfd), "Renegotiation failed");
         }
 
-        GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
+        if (serialize_out) {
+            GUARD_EXIT(s2n_connection_serialize_out(conn, serialize_out), "Error serializing connection");
+        } else {
+            GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
+        }
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 

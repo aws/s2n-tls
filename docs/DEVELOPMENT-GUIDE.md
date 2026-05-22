@@ -2,7 +2,7 @@
 
 If you are curious about the internals of s2n-tls, or interested in contributing to
 s2n-tls, this document is for you. If instead you are interested in using s2n-tls in an application
-that you are developing, please see the accompanying [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
+that you are developing, please see the accompanying [Usage Guide](usage-guide).
 
 ## s2n-tls's development principles
 
@@ -156,6 +156,11 @@ As discussed below, s2n-tls rarely allocates resources, and so has nothing to cl
 
 `DEFER_CLEANUP(_thealloc, _thecleanup)` is a failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
+### Lifecycle of s2n memory
+`s2n_init()` resources have to be explicitly cleaned up by users by calling `s2n_cleanup_final()`. Previously we had an atexit handler that cleaned up s2n resources automatically, but it was disabled in our library. The only place it is still on is our unit tests.
+
+`s2n_cleanup()` is a legacy API that previously cleaned up per-thread random state. Since s2n-tls no longer maintains thread-local random state, `s2n_cleanup()` is now a no-op. Use `s2n_cleanup_final()` for full library cleanup.
+
 ### Control flow and the state machine
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while also remembering that there is another path to be explored. When branches are nested, they can often lead to impossible to grasp combinatorial explosions. s2n-tls tries to systematically reduce the number of branches used in the code in several ways.
@@ -180,7 +185,7 @@ GUARD(s2n_baz());
 
 This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n-tls rarely allocates resources, and so has nothing to clean up on error.
 
-This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering).
+This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any misordering).
 
 For branches on small enumerated types, s2n-tls generally favors switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory.
 
@@ -250,12 +255,14 @@ C has a history of issues around memory and buffer handling. To avoid problems i
 
 ### s2n_blob: keeping track of memory ranges
 
-`s2n_blob` is a very simple data structure:
+`s2n_blob` is a data structure representing either allocated, "owned" memory or a reference to some other non-owned slice of memory.
 
 ```c
 struct s2n_blob {
     uint8_t *data;
     uint32_t size;
+    uint32_t allocated;
+    unsigned growable: 1;
 };
 ```
 
@@ -322,7 +329,7 @@ the first function returns a pointer to the existing location of the write curso
 The second function does the same thing, except that it increments the read cursor.
 Use of these functions is discouraged and should only be done when necessary for compatibility.
 
-One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be tainted, which prevents them from being resized within their present life-cycle.
+One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be marked as tainted, which prevents them from being resized within their present life-cycle.
 
 Internally stuffers track 4 pieces of state:
 
@@ -337,10 +344,10 @@ The `high_water_mark` tracks the furthermost byte which has been written but not
 Note that this may be past the `write_cursor` if `s2n_stuffer_rewrite()` has been called.
 Explicitly tracking the `high_water_mark` allows us to track the bytes which need to be wiped, and helps avoids needless zeroing of memory.
 The next two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable.
-`tainted` is set to 1 whenever the raw access functions are called.
-If a stuffer is currently tainted then it can not be resized and it becomes ungrowable.
+`tainted` is set to true whenever `s2n_stuffer_raw_read/write()` are called.
+If a stuffer is currently tainted then it can not be resized and it becomes ungrowable due to memory safety constraints.
 This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew.
-So any pointers returned by the raw access functions are legal only until `s2n_stuffer_wipe()` is called.
+So any pointers returned by `s2n_stuffer_raw_read/write()` are legal only until `s2n_stuffer_wipe()` is called.
 The end result is that this kind of pattern is legal:
 
 ```c
@@ -358,11 +365,13 @@ uint8_t * ptr = s2n_stuffer_raw_read(&in, 1500);
 
 /* This write will fail, the stuffer is no longer growable, as a raw
  * pointer was taken */
-GUARD(s2n_stuffer_write(&in, &some_more_data_blob);
+GUARD(s2n_stuffer_write(&in, &some_more_data_blob));
 
 /* Stuffer life cycle is now complete, reset everything and wipe */
 GUARD(s2n_stuffer_wipe(&in));
 ```
+
+Ideally, a `tainted` stuffer should be wiped before further write operations. If that is not an option, you may need to manually reset the `tainted` flag to false. When resetting the `tainted` flag, be very careful that the pointer is really no longer accessible and that a future developer won't unknowingly change the lifetime of the pointer. Include a comment explaining why resetting the `tainted` flag is safe.
 
 ## s2n_connection and the TLS state machine
 
@@ -411,21 +420,25 @@ struct s2n_stuffer alert_in;
 
 'header_in' is a small 5-byte stuffer, which is used to read in a record header. Once that stuffer is full, and the size of the next record is determined (from that header), inward data is directed to the 'in' stuffer.  The 'out' stuffer is for data that we are writing out; like an encrypted TLS record. 'alert_in' is for any TLS alert message that s2n-tls receives from its peer. s2n-tls treats all alerts as fatal, but we buffer the full alert message so that reason can be logged.
 
-When past the handshake phase, s2n-tls supports full-duplex I/O. Separate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional stuffers for storing outbound alert messages:
+When past the handshake phase, s2n-tls supports full-duplex I/O. Separate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional fields for storing outbound alert messages:
 
 ```c
-struct s2n_stuffer reader_alert_out;
-struct s2n_stuffer writer_alert_out;
+uint8_t reader_alert_out;
+uint8_t writer_alert_out;
 ```
 
-this pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closing' state to 1.
+This pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closed' states to 1.
 
 ```c
-sig_atomic_t closing;
-sig_atomic_t closed;
+sig_atomic_t read_closed;
+sig_atomic_t write_closed;
 ```
 
-'closing' is an atomic, but even if it were not it can only be changed from 0 to 1, so an over-write is harmless. Every time a TLS record is fully-written, s2n_send() checks to see if closing is set to 1. If it is then the reader or writer alert message will be sent (writer takes priority, if both are present) and the connection will be closed. Once the closed is 1, no more I/O may be sent or received on the connection.
+These fields are atomic. However because they are only ever changed from 0 to 1, an over-write would be harmless.
+
+s2n-tls only sends fatal alerts during `s2n_shutdown()` or `s2n_shutdown_send()`.
+Only one alert is sent, so writer alerts take priority if both are present.
+If no alerts are present, then a generic close_notify will be sent instead.
 
 ## s2n-tls and entropy
 

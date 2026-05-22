@@ -1,0 +1,33 @@
+target = "https://www.rfc-editor.org/rfc/rfc7627#section-6.4"
+
+# 6.4.  No SSL 3.0 Support
+#
+# The Secure Sockets Layer (SSL) protocol version 3.0 [RFC6101] is a
+# predecessor of the TLS protocol, and it is equally vulnerable to
+# triple handshake attacks, alongside other vulnerabilities stemming
+# from its use of obsolete cryptographic constructions that are now
+# considered weak.  SSL 3.0 has been deprecated [RFC7568].
+# 
+# The countermeasure described in this document relies on a TLS
+# extension and hence cannot be used with SSL 3.0.  Clients and servers
+# implementing this document SHOULD refuse SSL 3.0 handshakes.  If they
+# choose to support SSL 3.0, the resulting sessions MUST use the legacy
+# master secret computation, and the interoperability considerations of
+# Section 5.4 apply.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients and servers
+implementing this document SHOULD refuse SSL 3.0 handshakes.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If they
+choose to support SSL 3.0, the resulting sessions MUST use the legacy
+master secret computation, and the interoperability considerations of
+Section 5.4 apply.
+'''
+

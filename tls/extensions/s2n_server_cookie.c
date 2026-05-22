@@ -18,7 +18,7 @@
 #include "utils/s2n_random.h"
 
 /*
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.2
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.2
  *# Cookies serve two primary purposes:
  *#
  *#    -  Allowing the server to force the client to demonstrate
@@ -49,7 +49,7 @@ static bool s2n_server_cookie_should_send(struct s2n_connection *conn)
 }
 
 /*
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.2
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.2
  *# When sending the new ClientHello, the client MUST copy
  *# the contents of the extension received in the HelloRetryRequest into
  *# a "cookie" extension in the new ClientHello.

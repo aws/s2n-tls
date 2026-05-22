@@ -36,8 +36,9 @@ int s2n_fd_set_non_blocking(int fd)
 
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
+    struct s2n_stuffer *in_buf = NULL;
+    int n_read = 0, n_avail = 0;
+    errno = EIO;
 
     if (buf == NULL) {
         return 0;
@@ -58,13 +59,13 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
+    POSIX_GUARD(s2n_stuffer_read_bytes(in_buf, buf, n_read));
     return n_read;
 }
 
 static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_stuffer *out;
+    struct s2n_stuffer *out = NULL;
 
     if (buf == NULL) {
         return 0;
@@ -186,10 +187,12 @@ int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close)
 {
-    if (mode_to_close == S2N_CLIENT) {
+    if (mode_to_close == S2N_CLIENT && io_pair->client != S2N_CLOSED_FD) {
         POSIX_GUARD(close(io_pair->client));
-    } else if (mode_to_close == S2N_SERVER) {
+        io_pair->client = S2N_CLOSED_FD;
+    } else if (mode_to_close == S2N_SERVER && io_pair->server != S2N_CLOSED_FD) {
         POSIX_GUARD(close(io_pair->server));
+        io_pair->server = S2N_CLOSED_FD;
     }
     return 0;
 }
@@ -295,14 +298,14 @@ S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
     uint8_t client_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "client key";
     struct s2n_blob client_key = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
-    RESULT_GUARD_POSIX(cipher->init(&conn->secure->client_key));
-    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->client_key, &client_key));
+    RESULT_GUARD(cipher->init(&conn->secure->client_key));
+    RESULT_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &client_key));
 
     uint8_t server_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "server key";
     struct s2n_blob server_key = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
-    RESULT_GUARD_POSIX(cipher->init(&conn->secure->server_key));
-    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->server_key, &server_key));
+    RESULT_GUARD(cipher->init(&conn->secure->server_key));
+    RESULT_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &server_key));
 
     conn->client = conn->secure;
     conn->server = conn->secure;
@@ -330,5 +333,14 @@ S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
         conn->kex_params.mutually_supported_kem_groups[i] = kem_pref->tls13_kem_groups[i];
     }
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn)
+{
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+    while (!s2n_handshake_is_complete(conn)) {
+        conn->handshake.message_number++;
+    }
     return S2N_RESULT_OK;
 }

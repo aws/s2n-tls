@@ -15,8 +15,6 @@
 
 #include "tls/s2n_early_data.h"
 
-#include <sys/param.h>
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_psk.h"
@@ -64,7 +62,7 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->secure);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# In order to accept early data, the server MUST have accepted a PSK
      *# cipher suite and selected the first key offered in the client's
      *# "pre_shared_key" extension.
@@ -76,7 +74,7 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
     RESULT_ENSURE_GT(config->max_early_data_size, 0);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# In addition, it MUST verify that the
      *# following values are the same as those associated with the
      *# selected PSK:
@@ -85,18 +83,18 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
      **/
     RESULT_ENSURE_EQ(config->protocol_version, s2n_connection_get_protocol_version(conn));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# -  The selected cipher suite
      **/
     RESULT_ENSURE_EQ(config->cipher_suite, conn->secure->cipher_suite);
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# -  The selected ALPN [RFC7301] protocol, if any
      **/
     const size_t app_protocol_size = strlen(conn->application_protocol);
     if (app_protocol_size > 0 || config->application_protocol.size > 0) {
         RESULT_ENSURE_EQ(config->application_protocol.size, app_protocol_size + 1 /* null-terminating char */);
-        RESULT_ENSURE_EQ(memcmp(config->application_protocol.data, conn->application_protocol, app_protocol_size), 0);
+        RESULT_ENSURE(s2n_constant_time_equals(config->application_protocol.data, (uint8_t *) conn->application_protocol, app_protocol_size), S2N_ERR_SAFETY);
     }
 
     return S2N_RESULT_OK;
@@ -119,7 +117,7 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# If any of these checks fail, the server MUST NOT respond with the
      *# extension
      **/
@@ -374,7 +372,7 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
      * while setting up this connection, not during a previous connection.
      */
     if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        *max_early_data_size = MIN(*max_early_data_size, server_max_early_data_size);
+        *max_early_data_size = S2N_MIN(*max_early_data_size, server_max_early_data_size);
     }
 
     return S2N_SUCCESS;

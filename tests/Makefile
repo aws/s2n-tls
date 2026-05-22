@@ -25,19 +25,6 @@ all: libs viz
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
-.PHONY : benchmark
-benchmark: libs
-	${MAKE} -C benchmark
-
-.PHONY : valgrind
-valgrind: libs
-	${MAKE} -C unit valgrind
-
-# https://github.com/aws/s2n-tls/issues/3758
-# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
-pedantic_valgrind: libs
-	${MAKE} -C unit pedantic_valgrind
-
 .PHONY : libs
 libs:
 	${MAKE} -C testlib
@@ -46,11 +33,6 @@ libs:
 .PHONY : integrationv2
 integrationv2:
 	${MAKE} -C integrationv2
-
-.PHONY : fuzz
-fuzz:
-	${MAKE} -C testlib
-	${MAKE} -C fuzz
 
 .PHONY : viz
 viz:
@@ -63,8 +45,6 @@ clean: decruft
 	${MAKE} -C testlib decruft
 	${MAKE} -C LD_PRELOAD decruft
 	${MAKE} -C unit clean
-	${MAKE} -C fuzz clean
 	${MAKE} -C viz clean
 	${MAKE} -C saw decruft
-	${MAKE} -C benchmark decruft
 

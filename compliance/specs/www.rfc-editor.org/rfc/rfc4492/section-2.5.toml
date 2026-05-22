@@ -1,0 +1,56 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-2.5"
+
+# 2.5.  ECDH_anon
+#
+# In ECDH_anon, the server's Certificate, the CertificateRequest, the
+# client's Certificate, and the CertificateVerify messages MUST NOT be
+# sent.
+# 
+# The server MUST send an ephemeral ECDH public key and a specification
+# of the corresponding curve in the ServerKeyExchange message.  These
+# parameters MUST NOT be signed.
+# 
+# The client generates an ECDH key pair on the same curve as the
+# server's ephemeral ECDH key and sends its public key in the
+# ClientKeyExchange message.
+# 
+# Both client and server perform an ECDH operation and use the
+# resultant shared secret as the premaster secret.  All ECDH
+# calculations are performed as specified in Section 5.10.
+# 
+# Note that while the ECDH_ECDSA, ECDHE_ECDSA, ECDH_RSA, and ECDHE_RSA
+# key exchange algorithms require the server's certificate to be signed
+# with a particular signature scheme, this specification (following the
+# similar cases of DH_DSS, DHE_DSS, DH_RSA, and DHE_RSA in [2] and [3])
+# does not impose restrictions on signature schemes used elsewhere in
+# the certificate chain.  (Often such restrictions will be useful, and
+# it is expected that this will be taken into account in certification
+# authorities' signing practices.  However, such restrictions are not
+# strictly required in general: Even if it is beyond the capabilities
+# of a client to completely validate a given chain, the client may be
+# able to validate the server's certificate by relying on a trusted
+# certification authority whose certificate appears as one of the
+# intermediate certificates in the chain.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+In ECDH_anon, the server's Certificate, the CertificateRequest, the
+client's Certificate, and the CertificateVerify messages MUST NOT be
+sent.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST send an ephemeral ECDH public key and a specification
+of the corresponding curve in the ServerKeyExchange message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+These
+parameters MUST NOT be signed.
+'''
+

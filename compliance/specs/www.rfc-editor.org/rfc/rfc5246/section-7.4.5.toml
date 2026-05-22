@@ -1,0 +1,32 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.4.5"
+
+# 7.4.5.  Server Hello Done
+#
+# When this message will be sent:
+# 
+#    The ServerHelloDone message is sent by the server to indicate the
+#    end of the ServerHello and associated messages.  After sending
+#    this message, the server will wait for a client response.
+# 
+# Meaning of this message:
+# 
+#    This message means that the server is done sending messages to
+#    support the key exchange, and the client can proceed with its
+#    phase of the key exchange.
+# 
+#    Upon receipt of the ServerHelloDone message, the client SHOULD
+#    verify that the server provided a valid certificate, if required,
+#    and check that the server hello parameters are acceptable.
+# 
+# Structure of this message:
+# 
+#    struct { } ServerHelloDone;
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Upon receipt of the ServerHelloDone message, the client SHOULD
+verify that the server provided a valid certificate, if required,
+and check that the server hello parameters are acceptable.
+'''
+

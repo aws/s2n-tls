@@ -45,18 +45,18 @@ int main(int argc, char **argv)
 
     /** Test 0 length application data record handled gracefully in client and server mode
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Application Data records may contain a zero-length 
      *# TLSInnerPlaintext.content if the sender desires.
      **/
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_connection_set_secrets(server_conn));
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_connection_set_secrets(client_conn));
@@ -81,8 +81,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_flush(server_conn, &blocked));
         EXPECT_TRUE(s2n_stuffer_data_available(&server_to_client) > 0);
 
-        uint8_t record_type;
-        int isSSLv2;
+        uint8_t record_type = 0;
+        int isSSLv2 = 0;
 
         EXPECT_SUCCESS(s2n_read_full_record(server_conn, &record_type, &isSSLv2));
         EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
@@ -96,18 +96,18 @@ int main(int argc, char **argv)
 
     /** Test 0 length payload in handshake record terminates connection in client and server mode
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
      *# TLSInnerPlaintext.content; if such a message is received, the receiving 
      *# implementation MUST terminate the connection with an "unexpected_message" alert.
      **/
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 
@@ -135,18 +135,18 @@ int main(int argc, char **argv)
 
     /** Test 0 length payload in alert record terminates connection in client and server modes
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
      *# TLSInnerPlaintext.content; if such a message is received, the receiving 
      *# implementation MUST terminate the connection with an "unexpected_message" alert.
      **/
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 

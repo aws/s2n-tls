@@ -23,7 +23,7 @@ echo $S2N_BASE
 
 cd $BASEDIR
 mkdir -p crypto
-#The hmac should be based off the old hmac, so just apply the patches to add the invarients
+#The hmac should be based off the old hmac, so just apply the patches to add the invariants
 cp $S2N_BASE/crypto/s2n_hmac.c crypto/
 cp $S2N_BASE/crypto/s2n_hmac.h crypto/
 patch -p5 < ../patches/hmac.patch
@@ -47,7 +47,6 @@ patch -p5 < ../patches/cbc.patch
 patch -p1 < record_read.patch
 
 mkdir -p utils
-cp $S2N_BASE/utils/s2n_result.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
 patch -p1 < ../patches/safety.patch
 

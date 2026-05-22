@@ -31,7 +31,7 @@ void s2n_stuffer_read_base64_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(out)));
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -42,11 +42,6 @@ void s2n_stuffer_read_base64_harness()
 
     if (s2n_stuffer_read_base64(stuffer, out) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_stuffer_validate(out)));
-        if (s2n_stuffer_data_available(&old_stuffer) >= 4) {
-            size_t idx;
-            __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < old_stuffer.write_cursor);
-            assert(s2n_is_base64_char(stuffer->blob.data[ idx ]));
-        }
     }
 
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);

@@ -14,23 +14,28 @@
 #
 
 .PHONY : all
-all: s2nc s2nd
+all: s2nc s2nd policy
 include ../s2n.mk
 
 LDFLAGS += -L../lib/ -L${LIBCRYPTO_ROOT}/lib ../lib/libs2n.a ${CRYPTO_LIBS} ${LIBS}
-CRUFT += s2nc s2nd
+CRUFT += s2nc s2nd policy
 
 s2nc: s2nc.c echo.c
 	${CC} ${CFLAGS} s2nc.c echo.c common.c -o s2nc ${LDFLAGS}
 
 s2nd: s2nd.c echo.c
 	${CC} ${CFLAGS} s2nd.c echo.c https.c common.c -o s2nd ${LDFLAGS}
+	
+policy: policy.c
+	${CC} ${CFLAGS} policy.c -o policy ${LDFLAGS}
 
 $(bindir):
 	@mkdir -p $(bindir)
 
-install: s2nc s2nd $(bindir)
+install: s2nc s2nd policy $(bindir)
 	@cp s2n? $(bindir)
+	@cp policy $(bindir)
 
 uninstall:
 	@rm -f $(bindir)/s2n?
+	@rm -f $(bindir)/policy

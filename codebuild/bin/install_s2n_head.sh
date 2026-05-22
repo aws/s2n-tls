@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,31 +12,68 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -ex
-pushd "$(pwd)"
+set -eux
 
 usage() {
     echo "install_s2n_head.sh build_dir"
     exit 1
 }
 
+BUILD_DIR=$1
+SRC_ROOT=${SRC_ROOT:-$(pwd)}
+
 if [ "$#" -ne "1" ]; then
     usage
 fi
 
-BUILD_DIR=$1
-source codebuild/bin/jobs.sh
-cd "$BUILD_DIR"
+# CMake(nix) and Make are using different directory structures.
+set +u
+if [[ "$IN_NIX_SHELL" ]]; then
+    export DEST_DIR="$SRC_ROOT"/build/bin
+    export EXTRA_BUILD_FLAGS=""
+    # Work around issue cloning inside a nix devshell https://github.com/NixOS/nixpkgs/issues/299949 
+    export CLONE_SRC="."
+    # Make sure main is available in our workspace.
+    # This is a workaround for the merge queue workflow.
+    git fetch origin
+    git checkout main
+    git checkout $CODEBUILD_SOURCE_VERSION
+else
+    export DEST_DIR="$SRC_ROOT"/bin
+    export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
+    # Work around different pathing issues for internal rel.
+    export CLONE_SRC="https://github.com/aws/s2n-tls"
+fi
+set -eu
 
-# Clone the most recent s2n commit
-git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
-cmake ./s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-cmake --build ./build -- -j $JOBS
+s2nc_head="$DEST_DIR/s2nc_head"
+if [[ -f "$s2nc_head" ]]; then
+    now=$(date +%s)
+    last_modified=$(stat -c %Y "$s2nc_head")
+    days_old=$(( (now - last_modified) / 86400))
+    if ((days_old <= 1)); then
+        echo "Reusing s2n_head: s2nc_head exists and is $days_old days old."
+        exit 0
+    fi
+fi
 
-# Copy new executables to bin directory
-cp -f "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head
-cp -f "$BUILD_DIR"/build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd_head
+git clone --branch "main" --single-branch "$CLONE_SRC" "$BUILD_DIR"
 
-popd
+cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_SHARED_LIBS=on \
+    -DBUILD_TESTING=on
+cmake --build "$BUILD_DIR"/build --target s2nc -- -j $(nproc) 
+cmake --build "$BUILD_DIR"/build --target s2nd -- -j $(nproc) 
+
+cp -f "$BUILD_DIR"/build/bin/s2nc "$s2nc_head"
+cp -f "$BUILD_DIR"/build/bin/s2nd "$DEST_DIR"/s2nd_head
+
+if [[ -f "$s2nc_head" ]]; then
+    echo "Successfully installed s2n?_head"
+else
+    echo "$s2nc_head not found, head build failed"
+    exit 255
+fi
 
 exit 0

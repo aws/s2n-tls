@@ -50,7 +50,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     uint16_t timeout = 1;
     s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
-    int i;
+    int i = 0;
     for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
@@ -67,7 +67,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
     struct timespec sleep_time = { .tv_sec = timeout, .tv_nsec = 50000000 };
-    int r;
+    int r = 0;
     do {
         r = nanosleep(&sleep_time, &sleep_time);
     } while (r != 0);
@@ -86,7 +86,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
+    /* Give the server a chance to avoid a sigpipe */
     sleep(1);
 
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
@@ -99,8 +99,8 @@ int main(int argc, char **argv)
     struct s2n_connection *conn = NULL;
     struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
 
     BEGIN_TEST();
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
@@ -138,6 +138,7 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+    EXPECT_NOT_NULL(s2n_connection_get_client_hello(conn));
     EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
 
     char buffer[0xffff];
@@ -180,5 +181,4 @@ int main(int argc, char **argv)
     s2n_disable_tls13_in_test();
 
     END_TEST();
-    return 0;
 }

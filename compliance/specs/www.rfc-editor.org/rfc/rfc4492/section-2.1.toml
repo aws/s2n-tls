@@ -1,0 +1,36 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-2.1"
+
+# 2.1.  ECDH_ECDSA
+#
+# In ECDH_ECDSA, the server's certificate MUST contain an ECDH-capable
+# public key and be signed with ECDSA.
+# 
+# A ServerKeyExchange MUST NOT be sent (the server's certificate
+# contains all the necessary keying information required by the client
+# to arrive at the premaster secret).
+# 
+# The client generates an ECDH key pair on the same curve as the
+# server's long-term public key and sends its public key in the
+# ClientKeyExchange message (except when using client authentication
+# algorithm ECDSA_fixed_ECDH or RSA_fixed_ECDH, in which case the
+# modifications from Section 3.2 or Section 3.3 apply).
+# 
+# Both client and server perform an ECDH operation and use the
+# resultant shared secret as the premaster secret.  All ECDH
+# calculations are performed as specified in Section 5.10.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In ECDH_ECDSA, the server's certificate MUST contain an ECDH-capable
+public key and be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A ServerKeyExchange MUST NOT be sent (the server's certificate
+contains all the necessary keying information required by the client
+to arrive at the premaster secret).
+'''
+

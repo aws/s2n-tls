@@ -70,6 +70,8 @@ extern const struct s2n_blob s2n_tls13_label_resumption_master_secret;
 
 extern const struct s2n_blob s2n_tls13_label_finished;
 
+extern const struct s2n_blob s2n_tls13_label_exporter;
+
 /* Traffic secret labels */
 
 extern const struct s2n_blob s2n_tls13_label_traffic_secret_key;

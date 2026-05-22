@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_supported_group_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
@@ -25,8 +26,12 @@ int main()
 {
     BEGIN_TEST();
 
-/* Need at least two KEM's to test fallback */
-#if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
+    /* Need at least two KEM's available to test fallback */
+    uint32_t available_groups = 0;
+    EXPECT_OK(s2n_kem_preferences_groups_available(&kem_preferences_all, &available_groups));
+    if (available_groups < 2) {
+        END_TEST();
+    }
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -40,7 +45,7 @@ int main()
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
@@ -109,24 +114,10 @@ int main()
     };
 
     {
-        const struct s2n_kem_group *test_kem_groups[] = {
-            &s2n_secp256r1_kyber_512_r3,
-    #if EVP_APIS_SUPPORTED
-            &s2n_x25519_kyber_512_r3,
-    #endif
-        };
-
-        const struct s2n_kem_preferences test_kem_pref = {
-            .kem_count = 0,
-            .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(test_kem_groups),
-            .tls13_kem_groups = test_kem_groups,
-        };
-
         const struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = S2N_SSLv3,
             .cipher_preferences = &cipher_preferences_test_all_tls13,
-            .kem_preferences = &test_kem_pref,
+            .kem_preferences = &kem_preferences_all,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -151,7 +142,7 @@ int main()
             server_conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
-                    S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                    S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
@@ -392,8 +383,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
 
-        /* When client sent valid keyshares
-         * only for ECC, server should choose curves[0] and not send HRR. */
+        /* When client sent KeyShares only for ECC but also supports PQ, server should choose PQ and send HRR. */
         {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -431,18 +421,15 @@ int main()
 
             EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
-            /* Server should update its choice to curve[0], no HRR */
-            EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-            EXPECT_NULL(server_params->kem_group);
-            EXPECT_NULL(server_params->kem_params.kem);
-            EXPECT_NULL(server_params->ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_EQUAL(server_params->kem_group, kem_group0);
+            EXPECT_EQUAL(server_params->kem_params.kem, kem_group0->kem);
+            EXPECT_EQUAL(server_params->ecc_params.negotiated_curve, kem_group0->curve);
             EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
-            EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
+            EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
     };
-#endif
     END_TEST();
-    return 0;
 }

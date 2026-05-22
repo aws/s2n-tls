@@ -171,18 +171,18 @@ int main()
         /**
          * Ensure response extensions are only received if sent
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2
          *= type=test
          *# Upon receiving such an extension, an endpoint MUST abort the handshake
          *# with an "unsupported_extension" alert.
          *
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *# If the original session did not use the "extended_master_secret"
          *# extension but the new ServerHello contains the extension, the
          *# client MUST abort the handshake.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *= type=test
          *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
          *# extensions that were not first offered by the client in its
@@ -241,7 +241,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2));
 
             s2n_extension_type request_extension_type = test_extension_type;
             request_extension_type.is_response = false;
@@ -251,12 +251,12 @@ int main()
             EXPECT_TRUE(S2N_CBIT_TEST(conn.extension_requests_sent, test_extension_id));
 
             /* writes iana_value */
-            uint16_t iana_value;
+            uint16_t iana_value = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &iana_value));
             EXPECT_EQUAL(iana_value, request_extension_type.iana_value);
 
             /* writes length */
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);
@@ -267,13 +267,13 @@ int main()
         /**
          * Ensure correct response extension send behavior
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2
          *= type=test
          *# Implementations MUST NOT send extension responses if the remote
          *# endpoint did not send the corresponding extension requests, with the
          *# exception of the "cookie" extension in the HelloRetryRequest.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *= type=test
          *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
          *# extensions that were not first offered by the client in its
@@ -283,7 +283,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2));
 
             s2n_extension_type response_extension_type = test_extension_type;
             response_extension_type.is_response = true;
@@ -301,12 +301,12 @@ int main()
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             /* writes iana_value */
-            uint16_t iana_value;
+            uint16_t iana_value = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &iana_value));
             EXPECT_EQUAL(iana_value, response_extension_type.iana_value);
 
             /* writes length */
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);
@@ -332,7 +332,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN));
 
             s2n_extension_type extension_type_with_failure = test_extension_type;
             extension_type_with_failure.send = s2n_extension_send_unimplemented;
@@ -348,7 +348,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_growable_alloc(&stuffer, 0);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             s2n_extension_type extension_type_with_too_much_data = test_extension_type;
             extension_type_with_too_much_data.send = test_send_too_much_data;
@@ -487,7 +487,7 @@ int main()
                 EXPECT_NOT_NULL(server_conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, test_all_config));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -515,7 +515,7 @@ int main()
                 EXPECT_NOT_NULL(server_conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, test_all_config));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -544,7 +544,7 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, test_all_config));
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 

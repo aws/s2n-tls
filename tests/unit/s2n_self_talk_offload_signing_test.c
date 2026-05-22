@@ -13,17 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_rsa_signing.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
 #define S2N_TEST_CERT_MEM 5000
 
-int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, struct s2n_blob *signature);
-int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
-        struct s2n_blob *digest, struct s2n_blob *signature);
-int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
-        struct s2n_blob *digest_in, struct s2n_blob *signature_out);
+S2N_RESULT s2n_async_pkey_op_copy_hash_state_for_testing(struct s2n_async_pkey_op *op,
+        struct s2n_hash_state *copy);
 
 struct s2n_async_pkey_op *pkey_op = NULL;
 struct s2n_connection *pkey_op_conn = NULL;
@@ -34,7 +30,37 @@ static int s2n_test_async_pkey_cb(struct s2n_connection *conn, struct s2n_async_
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_async_pkey_sign(struct s2n_cert_chain_and_key *complete_chain)
+static S2N_RESULT s2n_test_pkey_sign(const struct s2n_pkey *pkey,
+        struct s2n_blob *input, struct s2n_blob *output,
+        s2n_signature_algorithm sig_alg)
+{
+    /* We're going to cheat a little here.
+     * Our pkey signing methods operate on hash states, not raw digests.
+     * So we need to use the hash state from the operation directly.
+     */
+
+    /* First, make sure that the actual input matches the digest
+     * produced by digesting the hash state.
+     * This proves the two are equivalent and we can use the hash state.
+     */
+    DEFER_CLEANUP(struct s2n_blob digest = { 0 }, s2n_free);
+    RESULT_GUARD_POSIX(s2n_alloc(&digest, input->size));
+    DEFER_CLEANUP(struct s2n_hash_state digest_copy = { 0 }, s2n_hash_free);
+    RESULT_GUARD_POSIX(s2n_hash_new(&digest_copy));
+    RESULT_GUARD(s2n_async_pkey_op_copy_hash_state_for_testing(pkey_op, &digest_copy));
+    RESULT_GUARD_POSIX(s2n_hash_digest(&digest_copy, digest.data, digest.size));
+    EXPECT_BYTEARRAY_EQUAL(digest.data, input->data, input->size);
+
+    /* Use the hash state instead of the input to calculate the signature */
+    DEFER_CLEANUP(struct s2n_hash_state sign_copy = { 0 }, s2n_hash_free);
+    RESULT_GUARD_POSIX(s2n_hash_new(&sign_copy));
+    RESULT_GUARD(s2n_async_pkey_op_copy_hash_state_for_testing(pkey_op, &sign_copy));
+    RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, &sign_copy, output));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_async_pkey_sign_test(struct s2n_cert_chain_and_key *complete_chain)
 {
     RESULT_ENSURE_REF(pkey_op);
     RESULT_ENSURE_REF(pkey_op_conn);
@@ -55,13 +81,13 @@ static S2N_RESULT s2n_async_pkey_sign(struct s2n_cert_chain_and_key *complete_ch
 
     /* Get signature algorithm */
     s2n_tls_signature_algorithm sig_alg = 0;
-    struct s2n_signature_scheme *sig_scheme = NULL;
+    const struct s2n_signature_scheme *sig_scheme = NULL;
     if (pkey_op_conn->mode == S2N_CLIENT) {
         RESULT_GUARD_POSIX(s2n_connection_get_selected_client_cert_signature_algorithm(pkey_op_conn, &sig_alg));
-        sig_scheme = &pkey_op_conn->handshake_params.client_cert_sig_scheme;
+        sig_scheme = pkey_op_conn->handshake_params.client_cert_sig_scheme;
     } else {
         RESULT_GUARD_POSIX(s2n_connection_get_selected_signature_algorithm(pkey_op_conn, &sig_alg));
-        sig_scheme = &pkey_op_conn->handshake_params.conn_sig_scheme;
+        sig_scheme = pkey_op_conn->handshake_params.server_cert_sig_scheme;
     }
 
     /* These are our "external" / "offloaded" operations.
@@ -73,14 +99,9 @@ static S2N_RESULT s2n_async_pkey_sign(struct s2n_cert_chain_and_key *complete_ch
     if (op_type == S2N_ASYNC_DECRYPT) {
         output.size = S2N_TLS_SECRET_LEN;
         RESULT_GUARD_POSIX(s2n_pkey_decrypt(complete_chain->private_key, &input, &output));
-    } else if (sig_alg == S2N_TLS_SIGNATURE_ECDSA) {
-        RESULT_GUARD_POSIX(s2n_ecdsa_sign_digest(complete_chain->private_key, &input, &output));
-    } else if (sig_alg == S2N_TLS_SIGNATURE_RSA) {
-        RESULT_GUARD_POSIX(s2n_rsa_pkcs1v15_sign_digest(
-                complete_chain->private_key, sig_scheme->hash_alg, &input, &output));
-    } else if (sig_alg == S2N_TLS_SIGNATURE_RSA_PSS_RSAE) {
-        RESULT_GUARD_POSIX(s2n_rsa_pss_sign_digest(
-                complete_chain->private_key, sig_scheme->hash_alg, &input, &output));
+    } else if (op_type == S2N_ASYNC_SIGN) {
+        RESULT_GUARD(s2n_test_pkey_sign(complete_chain->private_key, &input, &output,
+                sig_scheme->sig_alg));
     } else {
         RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
     }
@@ -113,7 +134,7 @@ static S2N_RESULT s2n_do_test_handshake(struct s2n_config *config, struct s2n_ce
 
     while (s2n_negotiate_test_server_and_client(server_conn, client_conn) != S2N_SUCCESS) {
         EXPECT_EQUAL(s2n_errno, S2N_ERR_ASYNC_BLOCKED);
-        RESULT_GUARD(s2n_async_pkey_sign(complete_chain));
+        RESULT_GUARD(s2n_async_pkey_sign_test(complete_chain));
     }
 
     RESULT_ENSURE_EQ(client_conn->actual_protocol_version, expected_protocol_version);

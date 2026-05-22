@@ -20,6 +20,9 @@
 
 extern const s2n_extension_type s2n_client_supported_versions_extension;
 
+int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension,
+        uint8_t *client_protocol_version_out, uint8_t *actual_protocol_version_out);
+
 /* Old-style extension functions -- remove after extensions refactor is complete */
 int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn);

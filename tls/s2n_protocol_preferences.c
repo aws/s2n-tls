@@ -62,7 +62,7 @@ S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocol
     RESULT_ENSURE_REF(protocol);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+     *= https://www.rfc-editor.org/rfc/rfc7301#section-3.1
      *# Empty strings
      *# MUST NOT be included and byte strings MUST NOT be truncated.
      */
@@ -114,7 +114,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
         size_t length = strlen(protocols[i]);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+         *= https://www.rfc-editor.org/rfc/rfc7301#section-3.1
          *# Empty strings
          *# MUST NOT be included and byte strings MUST NOT be truncated.
          */
@@ -129,11 +129,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     /* update the connection/config application_protocols with the newly allocated blob */
     *application_protocols = new_protocols;
 
-    /* zero out new_protocols so the DEFER_CLEANUP from above doesn't free
-     * the blob that we created and assigned to application_protocols
-     */
-    /* cppcheck-suppress unreadVariable */
-    new_protocols = (struct s2n_blob){ 0 };
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_protocols);
 
     return S2N_RESULT_OK;
 }

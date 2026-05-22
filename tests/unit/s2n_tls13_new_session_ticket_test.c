@@ -46,29 +46,6 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, st
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_test_ticket_key(struct s2n_config *config)
-{
-    POSIX_ENSURE_REF(config);
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time = 0;
-    uint8_t ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = "2016.07.26.15\0";
-    EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-    EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-
-    return S2N_SUCCESS;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -90,12 +67,11 @@ int main(int argc, char **argv)
         struct s2n_config *client_config = s2n_config_new();
         EXPECT_NOT_NULL(client_config);
 
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-        EXPECT_SUCCESS(s2n_setup_test_ticket_key(server_config));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(server_config));
 
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
         EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(client_config, s2n_test_session_ticket_cb, NULL));

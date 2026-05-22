@@ -21,10 +21,14 @@
 /* Writes length bytes of input to stuffer, in network order, starting from the smallest byte of input. */
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t input, const uint8_t length)
 {
+    if (length == 0) {
+        return S2N_SUCCESS;
+    }
+    POSIX_ENSURE_REF(stuffer);
     POSIX_ENSURE(length <= sizeof(input), S2N_ERR_SAFETY);
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
-    uint8_t *data = (stuffer->blob.data) ? (stuffer->blob.data + stuffer->write_cursor - length) : NULL;
-
+    POSIX_ENSURE_REF(stuffer->blob.data);
+    uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
     for (int i = 0; i < length; i++) {
         S2N_INVARIANT(i <= length);
         uint8_t shift = (length - i - 1) * CHAR_BIT;
@@ -107,6 +111,7 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u)
 
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
 {
+    POSIX_ENSURE(u < (1 << 24), S2N_ERR_INTEGER_OVERFLOW);
     return s2n_stuffer_write_network_order(stuffer, u, SIZEOF_UINT24);
 }
 
@@ -193,11 +198,18 @@ int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, c
     return result;
 }
 
-int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation)
+int s2n_stuffer_get_vector_size(const struct s2n_stuffer_reservation *reservation, uint32_t *size)
 {
     POSIX_PRECONDITION(s2n_stuffer_reservation_validate(reservation));
+    POSIX_ENSURE_REF(size);
+    *size = reservation->stuffer->write_cursor - (reservation->write_cursor + reservation->length);
+    return S2N_SUCCESS;
+}
+
+int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation)
+{
     uint32_t size = 0;
-    POSIX_GUARD(s2n_sub_overflow(reservation->stuffer->write_cursor, reservation->write_cursor, &size));
-    POSIX_GUARD(s2n_sub_overflow(size, reservation->length, &size));
-    return s2n_stuffer_write_reservation(reservation, size);
+    POSIX_GUARD(s2n_stuffer_get_vector_size(reservation, &size));
+    POSIX_GUARD(s2n_stuffer_write_reservation(reservation, size));
+    return S2N_SUCCESS;
 }

@@ -163,8 +163,6 @@ uint8_t fatal_alert[] = { /* Fatal: unexpected message */
     0x02, 0x0a
 };
 
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-
 void fragmented_message(int write_fd)
 {
     int written = 0;
@@ -391,12 +389,12 @@ void interleaved_fragmented_warning_alert(int write_fd)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
 
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
     int p[2];
 
     BEGIN_TEST();

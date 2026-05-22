@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_max_frag_len.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
@@ -51,11 +50,11 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
         return S2N_SUCCESS;
     }
 
-    uint8_t mfl_code;
+    uint8_t mfl_code = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
 
     /*
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *= type=exception
      *= reason=For compatibility, we choose to ignore malformed extensions if they are optional
      *# If a server receives a maximum fragment length negotiation request
@@ -67,7 +66,7 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
     }
 
     /*
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *# Once a maximum fragment length other than 2^14 has been successfully
      *# negotiated, the client and server MUST immediately begin fragmenting
      *# messages (including handshake messages) to ensure that no fragment

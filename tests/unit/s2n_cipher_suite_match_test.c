@@ -16,7 +16,7 @@
 #include <string.h>
 
 #include "crypto/s2n_ecc_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         };
 
         /** Clients MUST verify
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# that the server selected a cipher suite
          *# indicating a Hash associated with the PSK
@@ -152,10 +152,10 @@ int main(int argc, char **argv)
 
     /* Test server cipher selection and scsv detection */
     {
-        struct s2n_connection *conn;
-        struct s2n_config *server_config;
-        char *rsa_cert_chain_pem, *rsa_private_key_pem, *ecdsa_cert_chain_pem, *ecdsa_private_key_pem;
-        struct s2n_cert_chain_and_key *rsa_cert, *ecdsa_cert;
+        struct s2n_connection *conn = NULL;
+        struct s2n_config *server_config = NULL;
+        char *rsa_cert_chain_pem = NULL, *rsa_private_key_pem = NULL, *ecdsa_cert_chain_pem = NULL, *ecdsa_private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *rsa_cert = NULL, *ecdsa_cert = NULL;
         /* Allocate all of the objects and PEMs we'll need for this test. */
         EXPECT_NOT_NULL(rsa_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(rsa_private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -195,7 +195,6 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-            TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -297,7 +296,7 @@ int main(int argc, char **argv)
 
         /* TEST RENEGOTIATION
          *
-         *= https://tools.ietf.org/rfc/rfc5746#3.6
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.6
          *= type=test
          *# o  When a ClientHello is received, the server MUST check if it
          *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
@@ -335,64 +334,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure->cipher_suite, expected_rsa_wire_choice);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
-        /* Test that PQ cipher suites are marked available/unavailable appropriately in s2n_cipher_suites_init() */
-        {
-            const struct s2n_cipher_suite *pq_suites[] = {
-                &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
-            };
-
-            for (size_t i = 0; i < s2n_array_len(pq_suites); i++) {
-                if (s2n_pq_is_enabled()) {
-                    EXPECT_EQUAL(pq_suites[i]->available, 1);
-                    EXPECT_NOT_NULL(pq_suites[i]->record_alg);
-                } else {
-                    EXPECT_EQUAL(pq_suites[i]->available, 0);
-                    EXPECT_NULL(pq_suites[i]->record_alg);
-                }
-            }
-        };
-
-        /* Test that clients that support PQ ciphers can negotiate them. */
-        {
-            uint8_t client_extensions_data[] = {
-                0xFE, 0x01,                                /* PQ KEM extension ID */
-                0x00, 0x04,                                /* Total extension length in bytes */
-                0x00, 0x02,                                /* Length of the supported parameters list in bytes */
-                0x00, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 /* Kyber-512-Round3*/
-            };
-            int client_extensions_len = sizeof(client_extensions_data);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "PQ-TLS-1-0-2021-05-24"));
-            conn->actual_protocol_version = S2N_TLS12;
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->kex_params.client_pq_kem_extension.data = client_extensions_data;
-            conn->kex_params.client_pq_kem_extension.size = client_extensions_len;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-            const struct s2n_cipher_suite *kyber_cipher = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-            const struct s2n_cipher_suite *ecc_cipher = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
-            if (s2n_pq_is_enabled()) {
-                EXPECT_EQUAL(conn->secure->cipher_suite, kyber_cipher);
-            } else {
-                EXPECT_EQUAL(conn->secure->cipher_suite, ecc_cipher);
-            }
-
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
-            /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
-             * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
-             * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
-            for (int i = S2N_TLS10; i <= S2N_TLS11; i++) {
-                const struct s2n_cipher_suite *expected_classic_wire_choice = &s2n_ecdhe_rsa_with_aes_256_cbc_sha;
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"));
-                conn->actual_protocol_version = i;
-                conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-                conn->kex_params.client_pq_kem_extension.data = client_extensions_data;
-                conn->kex_params.client_pq_kem_extension.size = client_extensions_len;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-                EXPECT_EQUAL(conn->secure->cipher_suite, expected_classic_wire_choice);
-                EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
-        };
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -433,6 +374,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
         /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured */
         {
@@ -550,6 +492,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         /* Override auto-chosen defaults with only RSA cert default. ECDSA still loaded, but not default. */
         EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 1));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
         /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured,
          * only RSA is default. Expect default RSA used instead of previous test that expects ECDSA for this case. */
@@ -787,7 +730,7 @@ int main(int argc, char **argv)
 
         /* If a PSK is being used, then the cipher suite must match the PSK's HMAC algorithm.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# The server MUST ensure that it selects a compatible PSK
          *# (if any) and cipher suite.
@@ -833,7 +776,7 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             uint8_t invalid_cipher_pref[] = {
-                TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
+                TLS_NULL_WITH_NULL_NULL
             };
 
             const uint8_t invalid_cipher_count = sizeof(invalid_cipher_pref) / S2N_TLS_CIPHER_SUITE_LEN;

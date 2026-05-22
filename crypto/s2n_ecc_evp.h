@@ -44,6 +44,7 @@ extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1;
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1;
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1;
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
+extern const struct s2n_ecc_named_curve s2n_ecc_curve_none;
 
 /* BoringSSL only supports using EVP_PKEY_X25519 with "modern" EC EVP APIs. BoringSSL has a note to possibly add this in
  * the future. See https://github.com/google/boringssl/blob/master/crypto/evp/p_x25519_asn1.c#L233
@@ -85,3 +86,5 @@ int s2n_ecc_evp_parse_params(struct s2n_connection *conn,
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_is_evp_apis_supported();
+bool s2n_ecc_evp_supports_fips_check();
+int s2n_find_ecc_curve_from_iana_id(uint16_t iana_id, const struct s2n_ecc_named_curve **out, bool *found);

@@ -13,19 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-static int mock_time(void *data, uint64_t *timestamp)
-{
-    *timestamp = *(uint64_t *) data;
-    return 0;
-}
+#include "tls/s2n_certificate_keys.h"
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    /* 2200-11-27 */
-    *timestamp = 7283958536000000000;
+    /* 2250-01-01 */
+    *timestamp = 8835984000000000000;
     return 0;
 }
 
@@ -37,6 +35,11 @@ static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timest
 }
 
 #if S2N_OCSP_STAPLING_SUPPORTED
+static int mock_time(void *data, uint64_t *timestamp)
+{
+    *timestamp = *(uint64_t *) data;
+    return 0;
+}
 static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
     /* 2015-02-27 */
@@ -55,13 +58,13 @@ static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp)
 static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len)
 {
     FILE *fd = fopen(path, "rb");
-    s2n_stuffer_alloc(file_output, max_len);
+    POSIX_GUARD(s2n_stuffer_alloc(file_output, max_len));
 
     if (fd) {
         char data[1024];
         size_t r = 0;
         while ((r = fread(data, 1, sizeof(data), fd)) > 0) {
-            s2n_stuffer_write_bytes(file_output, (const uint8_t *) data, (const uint32_t) r);
+            POSIX_GUARD(s2n_stuffer_write_bytes(file_output, (const uint8_t *) data, (const uint32_t) r));
         }
         fclose(fd);
         return s2n_stuffer_data_available(file_output) > 0;
@@ -112,10 +115,49 @@ static bool s2n_supports_large_time_t()
     return sizeof(time_t) == 8;
 }
 
+/* Early versions of Openssl (Openssl-1.0.2k confirmed) included a bug where UTCTime
+ * formatted dates in certificates could not be compared to dates after the year 2050,
+ * because Openssl would assume that the validation date was also UTCTime formatted
+ * and therefore reject any date with a year after 2050.
+ * This is an issue because RFC5280 requires that dates in certificates be in
+ * UTCTime format for years before 2050.
+ * Affected tests are modified to account for this bug.
+ * See https://github.com/openssl/openssl/blob/OpenSSL_1_0_2k/crypto/x509/x509_vfy.c#L2027C1-L2027C26
+ */
+static bool s2n_libcrypto_supports_2050()
+{
+    ASN1_TIME *utc_time = ASN1_UTCTIME_set(NULL, 0);
+    if (!utc_time) {
+        return false;
+    }
+
+    /* The `32BitBuildAndUnit` job in s2nGeneralBatch runs on a 32-bit system
+     * where time_t cannot represent the year 2050 (2524608000) and triggers
+     * -Wconstant-conversion (treated as an error).
+     *
+     * The libcrypto used by the job (i386-linux-gnu) does support year 2050.
+     * Return true to skip the `X509_cmp_time` call.
+     */
+    if (sizeof(time_t) < 8) {
+        ASN1_STRING_free(utc_time);
+        return true;
+    }
+
+    time_t time_2050 = (time_t) 2524608000LL;
+    int result = X509_cmp_time(utc_time, &time_2050);
+    ASN1_STRING_free(utc_time);
+    return (result != 0);
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* The issues with 2050 only affected openssl-1.0.2 */
+    if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) {
+        EXPECT_TRUE(s2n_libcrypto_supports_2050());
+    }
 
     /* test empty trust store */
     {
@@ -187,7 +229,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -213,7 +254,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
@@ -262,7 +302,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -300,8 +339,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -328,6 +366,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "foo://bar" };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
@@ -381,8 +420,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -419,8 +457,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
         struct s2n_pkey public_key_out;
@@ -444,7 +481,7 @@ int main(int argc, char **argv)
      * platforms where time_t is 4 bytes because representing dates past 2038 as
      * unix seconds overflows the time_t.
      */
-    if (s2n_supports_large_time_t()) {
+    {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -464,8 +501,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
@@ -473,10 +509,19 @@ int main(int argc, char **argv)
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        int expected_errno = S2N_ERR_CERT_EXPIRED;
+        /* In some cases validation may fail with a less specific error due to
+         * issues with large dates, but validation does always fail. */
+        if (!s2n_supports_large_time_t()) {
+            expected_errno = S2N_ERR_SAFETY;
+        } else if (!s2n_libcrypto_supports_2050()) {
+            expected_errno = S2N_ERR_CERT_UNTRUSTED;
+        }
         EXPECT_ERROR_WITH_ERRNO(
                 s2n_x509_validator_validate_cert_chain(&validator, connection,
                         chain_data, chain_len, &pkey_type, &public_key_out),
-                S2N_ERR_CERT_EXPIRED);
+                expected_errno);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
@@ -512,8 +557,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL));
@@ -551,11 +595,12 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         /* alter a random byte in the certificate to make it invalid */
-        chain_data[500] = (uint8_t) (chain_data[500] << 2);
+        size_t corrupt_index = 200;
+        EXPECT_TRUE(chain_len > corrupt_index);
+        chain_data[corrupt_index] = (uint8_t) (chain_data[corrupt_index] << 2);
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
@@ -595,15 +640,14 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_INVALID_HOSTNAME);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_connection_free(connection);
@@ -643,15 +687,14 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_INVALID_HOSTNAME);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
@@ -683,8 +726,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -731,8 +773,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -766,6 +807,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -810,6 +852,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -823,7 +866,7 @@ int main(int argc, char **argv)
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_INVALID_HOSTNAME);
 
         EXPECT_EQUAL(0, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
@@ -854,6 +897,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -891,6 +935,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -932,6 +977,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -984,6 +1030,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1021,7 +1068,7 @@ int main(int argc, char **argv)
      * After the "Next Update" time in the OCSP response, the certificate should
      * fail as expired.
      */
-    if (s2n_supports_large_time_t()) {
+    {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
@@ -1031,6 +1078,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1054,9 +1102,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                                        s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
-                S2N_ERR_CERT_EXPIRED);
+
+        if (s2n_supports_large_time_t()) {
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                            s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
+                    S2N_ERR_CERT_EXPIRED);
+        } else {
+            /* fetch_expired_after_ocsp_timestamp is in 2200 which is not
+             * representable for 32 bit time_t's.
+             */
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                            s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
+                    S2N_ERR_SAFETY);
+        }
 
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_stuffer_free(&ocsp_data_stuffer);
@@ -1082,6 +1140,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1123,6 +1182,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1170,6 +1230,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1217,6 +1278,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1264,6 +1326,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1311,6 +1374,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1356,6 +1420,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1469,6 +1534,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(connection);
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
             struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
             EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
@@ -1521,6 +1587,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
 
@@ -1554,6 +1621,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         EXPECT_SUCCESS(s2n_set_server_name(connection, "test.localhost"));
 
@@ -1587,6 +1655,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         EXPECT_SUCCESS(s2n_set_server_name(connection, "127.0.0.1"));
 
@@ -1602,7 +1671,7 @@ int main(int argc, char **argv)
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_INVALID_HOSTNAME);
 
         EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
         s2n_connection_free(connection);
@@ -1623,6 +1692,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         /* the provided hostname should be an empty string */
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "::1" };
@@ -1655,6 +1725,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         /* the provided hostname should be an empty string */
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "" };
@@ -1687,6 +1758,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(
@@ -1700,7 +1772,7 @@ int main(int argc, char **argv)
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_INVALID_HOSTNAME);
 
         EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
         s2n_connection_free(connection);
@@ -1724,6 +1796,7 @@ int main(int argc, char **argv)
         s2n_x509_validator_init_no_x509_validation(&validator);
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct s2n_stuffer chain_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_ONE_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
@@ -1748,6 +1821,7 @@ int main(int argc, char **argv)
         s2n_x509_validator_init_no_x509_validation(&validator);
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
         struct s2n_stuffer chain_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_FOUR_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
@@ -1759,15 +1833,94 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
-        /* Expect to return S2N_CERT_ERR_UNTRUSTED */
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                                        &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+        EXPECT_ERROR_WITH_ERRNO(
+                s2n_x509_validator_validate_cert_chain(&validator,
+                        connection, chain_data, chain_len, &pkey_type, &public_key_out),
+                S2N_ERR_DECODE_CERTIFICATE);
 
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
+    };
+
+    /* Test unknown curve in cert validator for negative case */
+    if (s2n_libcrypto_is_awslc()) {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
+
+        char pem_str[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_BRAINPOOL_CURVE_CERT, pem_str, sizeof(pem_str)));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, pem_str));
+
+        DEFER_CLEANUP(struct s2n_stuffer message = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&message, 0));
+        EXPECT_SUCCESS(s2n_send_cert_chain(conn, &message, chain_and_key));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&message, 3));
+
+        uint32_t chain_len = s2n_stuffer_data_available(&message);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&message, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_ERROR_WITH_ERRNO(
+                s2n_x509_validator_validate_cert_chain(&validator,
+                        conn, chain_data, chain_len, &pkey_type, &public_key_out),
+                S2N_ERR_DECODE_CERTIFICATE);
+    };
+
+    /* Ensure that certs after the leaf cert can have an arbitrary number of trailing bytes */
+    {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
+
+        DEFER_CLEANUP(struct s2n_stuffer one_trailing_byte_chain = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(read_file(&one_trailing_byte_chain, S2N_ONE_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t one_trailing_byte_chain_len = s2n_stuffer_data_available(&one_trailing_byte_chain);
+        uint8_t *one_trailing_byte_chain_data = s2n_stuffer_raw_read(&one_trailing_byte_chain,
+                one_trailing_byte_chain_len);
+
+        DEFER_CLEANUP(struct s2n_stuffer four_trailing_bytes_chain = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(read_file(&four_trailing_bytes_chain, S2N_FOUR_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t four_trailing_bytes_chain_len = s2n_stuffer_data_available(&four_trailing_bytes_chain);
+        uint8_t *four_trailing_bytes_chain_data = s2n_stuffer_raw_read(&four_trailing_bytes_chain,
+                four_trailing_bytes_chain_len);
+
+        DEFER_CLEANUP(struct s2n_stuffer chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&chain_stuffer, S2N_MAX_TEST_PEM_SIZE * 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&chain_stuffer, one_trailing_byte_chain_data,
+                one_trailing_byte_chain_len));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&chain_stuffer, four_trailing_bytes_chain_data,
+                four_trailing_bytes_chain_len));
+
+        uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key));
+
+        EXPECT_EQUAL(sk_X509_num(validator.cert_chain_from_wire), 2);
     };
 
     /* Test validator trusts a SHA-1 signature in a certificate chain if certificate validation is off */
@@ -1844,8 +1997,8 @@ int main(int argc, char **argv)
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                                        &pkey_type, &public_key_out),
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection,
+                                        chain_data, chain_len, &pkey_type, &public_key_out),
                 S2N_ERR_CERT_UNTRUSTED);
 
         s2n_connection_free(connection);
@@ -1855,6 +2008,24 @@ int main(int argc, char **argv)
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     };
+
+    /* Validator fails if cert chain is empty */
+    {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
+
+        struct s2n_pkey public_key = { 0 };
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, NULL, 0, &pkey_type,
+                                        &public_key),
+                S2N_ERR_NO_CERT_FOUND);
+    }
 
     /* Test trust store can be wiped */
     {
@@ -1925,6 +2096,211 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             free(cert_chain);
             s2n_config_free(cfg);
+        };
+    };
+
+    /* Ensure that non-root certificates added to the trust store are trusted */
+    {
+        const char *non_root_cert_path = S2N_RSA_2048_PKCS1_LEAF_CERT;
+
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        /* Ensure that the test certificate isn't self-signed, and is therefore not a root.
+         *
+         * The X509_get_extension_flags API wasn't added to OpenSSL until 1.1.0.
+         */
+        {
+            const char *non_root_key_path = S2N_RSA_2048_PKCS1_KEY;
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, non_root_cert_path, non_root_key_path));
+            struct s2n_cert *cert = NULL;
+            EXPECT_SUCCESS(s2n_cert_chain_get_cert(chain_and_key, &cert, 0));
+            EXPECT_NOT_NULL(cert);
+
+            /* Use the s2n_cert to convert the PEM to ASN.1. */
+            const uint8_t *asn1_data = NULL;
+            uint32_t asn1_len = 0;
+            EXPECT_SUCCESS(s2n_cert_get_der(cert, &asn1_data, &asn1_len));
+            EXPECT_NOT_NULL(asn1_data);
+
+            /* Parse the ASN.1 data with the libcrypto */
+            DEFER_CLEANUP(X509 *x509 = d2i_X509(NULL, &asn1_data, asn1_len), X509_free_pointer);
+            EXPECT_NOT_NULL(x509);
+
+            /* Ensure that the self-signed flag isn't set */
+            uint32_t extension_flags = X509_get_extension_flags(x509);
+            EXPECT_EQUAL(extension_flags & EXFLAG_SS, 0);
+        }
+#endif
+
+        /* Test s2n_config_set_verification_ca_location */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, non_root_cert_path, NULL));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+        }
+
+        /* Test s2n_config_add_pem_to_trust_store */
+        {
+            char non_root_cert_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_read_test_pem(non_root_cert_path, non_root_cert_pem, S2N_MAX_TEST_PEM_SIZE));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, non_root_cert_pem));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+        }
+
+        /* Test system trust store
+         *
+         * This test uses the SSL_CERT_FILE environment variable to override the system trust store
+         * location, which isn't supported by LibreSSL.
+         */
+        if (!s2n_libcrypto_is_libressl()) {
+            /* Override the system cert file with the non-root test cert. */
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", non_root_cert_path, 1));
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+
+            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
+        }
+    }
+
+    /* Test that CAs must comply with cert preferences */
+    {
+        uint8_t invalid_root_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        uint32_t root_pem_len = 0;
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_MIXED_CHAIN_CA, &invalid_root_pem[0], &root_pem_len,
+                S2N_MAX_TEST_PEM_SIZE));
+
+        uint8_t chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        uint32_t chain_pem_len = 0;
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_MIXED_CHAIN_CERTS, &chain_pem[0], &chain_pem_len,
+                S2N_MAX_TEST_PEM_SIZE));
+
+        struct s2n_security_policy security_policy_not_local = security_policy_20250429;
+        security_policy_not_local.certificate_preferences_apply_locally = false;
+
+        /* when the peer sends the full chain with a non-compliant CA, verification fails when reading in the certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &security_policy_not_local;
+            EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem_data(conn, &chain_pem[0], chain_pem_len, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                                            &pkey_type, &public_key_out),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            /* Failed while processing/reading in the cert chain */
+            EXPECT_TRUE(validator.state == INIT);
+        };
+
+        /* when the peer sends only compliant certs from a non-compliant CA, 
+         * validation fails on the local trust store 
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &security_policy_not_local;
+            EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+
+            /* `chain_pem_len - root_pem_len`: only use the first two certs in the chain (leaf and intermediate) to 
+             * ensure we are correctly failing on the local trust store and not the chain that the peer sent.
+             */
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem_data(conn, &chain_pem[0], chain_pem_len - root_pem_len,
+                    &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                                            &pkey_type, &public_key_out),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            /* X509_verify_cert finished successfully */
+            EXPECT_TRUE(validator.state == VALIDATED);
         };
     };
 

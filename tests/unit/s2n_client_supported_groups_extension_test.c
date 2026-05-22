@@ -15,9 +15,10 @@
 
 #include <stdint.h>
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -32,8 +33,9 @@ int main()
 
     /* Test s2n_extension_should_send_if_ecc_enabled */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         /* ecc extensions are required for the default config */
         EXPECT_TRUE(s2n_client_supported_groups_extension.should_send(conn));
@@ -46,8 +48,9 @@ int main()
 
     /* Test send (with default KEM prefs = kem_preferences_null) */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
 
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -63,12 +66,12 @@ int main()
 
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
-        uint16_t length;
+        uint16_t length = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
         EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(length, ecc_pref->count * sizeof(uint16_t));
 
-        uint16_t curve_id;
+        uint16_t curve_id = 0;
         for (size_t i = 0; i < ecc_pref->count; i++) {
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
             EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
@@ -81,20 +84,17 @@ int main()
     {
         /* Define various PQ security policies to test different configurations */
 
-        /* Kyber */
-        const struct s2n_kem_group *test_kem_groups_kyber[] = {
-            &s2n_secp256r1_kyber_512_r3,
-        };
-        const struct s2n_kem_preferences test_kem_prefs_kyber = {
+        /* MLKEM */
+        const struct s2n_kem_preferences test_kem_prefs_mlkem_all = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(test_kem_groups_kyber),
-            .tls13_kem_groups = test_kem_groups_kyber,
+            .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
         };
-        const struct s2n_security_policy test_pq_security_policy_kyber = {
+        const struct s2n_security_policy test_pq_security_policy_mlkem_all = {
             .minimum_protocol_version = S2N_SSLv3,
             .cipher_preferences = &cipher_preferences_test_all_tls13,
-            .kem_preferences = &test_kem_prefs_kyber,
+            .kem_preferences = &test_kem_prefs_mlkem_all,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -102,12 +102,12 @@ int main()
         /* Test send with TLS 1.3 KEM groups */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            conn->security_policy_override = &test_pq_security_policy_kyber;
+            conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -119,24 +119,29 @@ int main()
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
+            uint32_t available_groups = 0;
             if (s2n_pq_is_enabled()) {
-                expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
+                EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &available_groups));
+                expected_length += available_groups * sizeof(uint16_t);
             }
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, expected_length);
 
             if (s2n_pq_is_enabled()) {
-                uint16_t kem_id;
+                uint16_t kem_id = 0;
                 for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                    if (!s2n_kem_group_is_available(kem_pref->tls13_kem_groups[i])) {
+                        continue;
+                    }
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
                     EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
                 }
             }
 
-            uint16_t curve_id;
+            uint16_t curve_id = 0;
             for (size_t i = 0; i < ecc_pref->count; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
                 EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
@@ -147,13 +152,13 @@ int main()
         };
         /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS12);
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            conn->security_policy_override = &test_pq_security_policy_kyber;
+            conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -165,12 +170,12 @@ int main()
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, ecc_pref->count * sizeof(uint16_t));
 
-            uint16_t curve_id;
+            uint16_t curve_id = 0;
             for (size_t i = 0; i < ecc_pref->count; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
                 EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
@@ -180,25 +185,20 @@ int main()
         };
         /* Test recv - in each case, the security policy overrides allow for a successful PQ handshake */
         {
-#define NUM_PQ_TEST_POLICY_OVERRIDES 1
             /* Security policy overrides: {client_policy, server_policy} */
-            const struct s2n_security_policy *test_policy_overrides[NUM_PQ_TEST_POLICY_OVERRIDES][2] = {
-                /* Client sends Kyber; server supports Kyber */
-                { &test_pq_security_policy_kyber, &test_pq_security_policy_kyber },
+            const struct s2n_security_policy *test_policy_overrides[][2] = {
+                /* Client sends MLKEM; server supports MLKEM */
+                { &test_pq_security_policy_mlkem_all, &test_pq_security_policy_mlkem_all },
 
             };
-            /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
-            const struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
-                &s2n_secp256r1_kyber_512_r3,
-            };
 
-            for (size_t i = 0; i < NUM_PQ_TEST_POLICY_OVERRIDES; i++) {
+            for (size_t i = 0; i < s2n_array_len(test_policy_overrides); i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                struct s2n_connection *client_conn;
+                struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 client_conn->security_policy_override = test_policy_overrides[i][0];
 
-                struct s2n_connection *server_conn;
+                struct s2n_connection *server_conn = NULL;
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
                 server_conn->security_policy_override = test_policy_overrides[i][1];
 
@@ -234,9 +234,12 @@ int main()
                     }
                 } else {
                     EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
+                    EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                    const struct s2n_kem_group *expected_negotiated_kem_group = s2n_kem_preferences_get_highest_priority_group(server_kem_pref);
+                    EXPECT_NOT_NULL(expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group->curve);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group->kem);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -250,22 +253,34 @@ int main()
 #define NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES 3
             /* Security policy overrides: {client_policy, server_policy} */
             const struct s2n_security_policy *test_policy_overrides[NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES][2] = {
-                /* Client sends Kyber; server supports only ECC */
-                { &test_pq_security_policy_kyber, NULL },
-                /* Client sends only ECC ; server supports ECC and Kyber */
-                { NULL, &test_pq_security_policy_kyber },
+                /* Client sends MLKEM; server supports only ECC */
+                { &test_pq_security_policy_mlkem_all, NULL },
+                /* Client sends only ECC ; server supports ECC and MLKEM */
+                { NULL, &test_pq_security_policy_mlkem_all },
                 /* Client sends only ECC; server supports only ECC */
                 { NULL, NULL }
             };
 
             for (size_t i = 0; i < NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES; i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                struct s2n_connection *client_conn;
+
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                        s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                /* These tests explicitly set security_policy_override to test ECC
+                 * selection logic and expect a s2n_config that does support x25519 and
+                 * TLS 1.3, but does not support PQ.
+                 */
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240503"));
+
+                struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
                 client_conn->security_policy_override = test_policy_overrides[i][0];
 
-                struct s2n_connection *server_conn;
+                struct s2n_connection *server_conn = NULL;
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
                 server_conn->security_policy_override = test_policy_overrides[i][1];
 
                 const struct s2n_ecc_preferences *server_ecc_pref = NULL;
@@ -299,9 +314,9 @@ int main()
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-            server_conn->security_policy_override = &test_pq_security_policy_kyber;
+            server_conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
             /* Manually craft a supported_groups extension with bogus IDs */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
@@ -332,10 +347,10 @@ int main()
         /* Test recv - server doesn't recognize PQ group IDs when TLS 1.3 is disabled */
         {
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(s2n_connection_get_protocol_version(client_conn), S2N_TLS12);
-            client_conn->security_policy_override = &test_pq_security_policy_kyber;
+            client_conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
             const struct s2n_ecc_preferences *client_ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &client_ecc_pref));
@@ -345,9 +360,9 @@ int main()
             EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
             EXPECT_NOT_NULL(client_kem_pref);
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-            server_conn->security_policy_override = &test_pq_security_policy_kyber;
+            server_conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
             /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
              * s2n_client_supported_groups_extension.send will ignore PQ IDs when TLS 1.3 is disabled */
@@ -379,9 +394,9 @@ int main()
         {
             if (!s2n_pq_is_enabled()) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                struct s2n_connection *client_conn;
+                struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                client_conn->security_policy_override = &test_pq_security_policy_kyber;
+                client_conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
                 const struct s2n_ecc_preferences *client_ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &client_ecc_pref));
@@ -391,9 +406,9 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
                 EXPECT_NOT_NULL(client_kem_pref);
 
-                struct s2n_connection *server_conn;
+                struct s2n_connection *server_conn = NULL;
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-                server_conn->security_policy_override = &test_pq_security_policy_kyber;
+                server_conn->security_policy_override = &test_pq_security_policy_mlkem_all;
 
                 /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
                  * s2n_client_supported_groups_extension.send will ignore PQ IDs when PQ is disabled */
@@ -426,7 +441,7 @@ int main()
 
     /* Test recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -451,7 +466,7 @@ int main()
 
     /* Test recv - no common curve */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -477,7 +492,7 @@ int main()
 
     /* Test recv - malformed extension */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -508,7 +523,7 @@ int main()
             { .iana_id = 0xFF01, .libcrypto_nid = 0, .name = 0x0, .share_size = 0 },
         };
         int ec_curves_count = s2n_array_len(unsupported_curves);
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer supported_groups_extension = { 0 };
@@ -532,5 +547,4 @@ int main()
     };
 
     END_TEST();
-    return 0;
 }

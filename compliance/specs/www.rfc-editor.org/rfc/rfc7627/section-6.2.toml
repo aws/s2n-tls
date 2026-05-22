@@ -1,0 +1,30 @@
+target = "https://www.rfc-editor.org/rfc/rfc7627#section-6.2"
+
+# 6.2.  Cryptographic Properties of the Hash Function
+#
+# The session hashes of two different sessions need to be distinct;
+# hence, the "Hash" function used to compute the "session_hash" needs
+# to be collision resistant.  As such, hash functions such as MD5 or
+# SHA1 are NOT RECOMMENDED.
+# 
+# We observe that the "Hash" function used in the Finished message
+# computation already needs to be collision resistant for the
+# renegotiation indication extension [RFC5746] to work, because a
+# meaningful collision on the handshake messages (and hence on the
+# "verify_data") may re-enable the renegotiation attack [Ray09].
+# 
+# The hash function used to compute the session hash depends on the TLS
+# protocol version.  All current ciphersuites defined for TLS 1.2 use
+# SHA256 or better, and so does the session hash.  For earlier versions
+# of the protocol, only MD5 and SHA1 can be assumed to be supported,
+# and this document does not require legacy implementations to add
+# support for new hash functions.  In these versions, the session hash
+# uses the concatenation of MD5 and SHA1, as in the Finished message.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+As such, hash functions such as MD5 or
+SHA1 are NOT RECOMMENDED.
+'''
+

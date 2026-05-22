@@ -15,6 +15,7 @@
 
 #include "tls/s2n_connection.h"
 
+#include "api/unstable/ktls.h"
 #include "crypto/s2n_hash.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -122,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Return NULL by default / for new connection */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_NULL(s2n_get_server_name(conn));
@@ -132,7 +133,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if set */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if server_name extension parsed, but not yet processed */
         {
-            struct s2n_connection *client_conn, *server_conn;
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -154,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
             EXPECT_SUCCESS(s2n_client_server_name_extension.send(client_conn, &stuffer));
 
-            s2n_extension_type_id extension_id;
+            s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension_type = TLS_EXTENSION_SERVER_NAME;
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension = stuffer.blob;
@@ -172,15 +173,17 @@ int main(int argc, char **argv)
         {
             s2n_server_name_test_callback_flag = false;
 
-            struct s2n_config *config;
+            struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -203,7 +206,7 @@ int main(int argc, char **argv)
 
     /* s2n_connection_get_protocol_version */
     {
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_set_test_protocol_versions(client_conn));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -228,7 +231,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected digest alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_hash_algorithm output = { 0 };
@@ -244,18 +247,22 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_TLS_HASH_NONE, output);
 
-        s2n_tls_hash_algorithm expected_output[] = {
-            S2N_TLS_HASH_NONE, S2N_TLS_HASH_MD5,
-            S2N_TLS_HASH_SHA1, S2N_TLS_HASH_SHA224,
-            S2N_TLS_HASH_SHA256, S2N_TLS_HASH_SHA384,
-            S2N_TLS_HASH_SHA512, S2N_TLS_HASH_MD5_SHA1,
-            S2N_TLS_HASH_NONE
+        s2n_tls_hash_algorithm expected_output[S2N_HASH_ALGS_COUNT] = {
+            [S2N_HASH_MD5] = S2N_TLS_HASH_MD5,
+            [S2N_HASH_SHA1] = S2N_TLS_HASH_SHA1,
+            [S2N_HASH_SHA224] = S2N_TLS_HASH_SHA224,
+            [S2N_HASH_SHA256] = S2N_TLS_HASH_SHA256,
+            [S2N_HASH_SHA384] = S2N_TLS_HASH_SHA384,
+            [S2N_HASH_SHA512] = S2N_TLS_HASH_SHA512,
+            [S2N_HASH_MD5_SHA1] = S2N_TLS_HASH_MD5_SHA1,
         };
 
         for (size_t i = S2N_TLS_HASH_NONE; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.hash_alg = i;
-            conn->handshake_params.conn_sig_scheme.hash_alg = i;
-            if (i <= S2N_HASH_SENTINEL) {
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.hash_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
+            if (i < S2N_HASH_ALGS_COUNT) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
 
@@ -275,7 +282,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected signature alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_signature_algorithm output = { 0 };
@@ -297,11 +304,14 @@ int main(int argc, char **argv)
             [S2N_SIGNATURE_ECDSA] = S2N_TLS_SIGNATURE_ECDSA,
             [S2N_SIGNATURE_RSA_PSS_RSAE] = S2N_TLS_SIGNATURE_RSA_PSS_RSAE,
             [S2N_SIGNATURE_RSA_PSS_PSS] = S2N_TLS_SIGNATURE_RSA_PSS_PSS,
+            [S2N_SIGNATURE_MLDSA] = S2N_TLS_SIGNATURE_MLDSA,
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.sig_alg = i;
-            conn->handshake_params.conn_sig_scheme.sig_alg = i;
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.sig_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
 
             if (i < s2n_array_len(expected_output)) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
@@ -366,7 +376,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
@@ -622,6 +632,54 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
+    /* Test s2n_connection_set_config */
+    {
+        /* when the config is not compliant with the security policy override, then
+         * s2n_connection_set_config will fail 
+         */
+        {
+            struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
+            rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            conn->security_policy_override = &rfc9151_applied_locally;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+
+        /* s2n_connection_set_config doesn't enforce cert preferences
+        * 
+        * Customers may configure large numbers of certs on each config. This test
+        * asserts that we don't do any validation on certificates as part of set_config,
+        * because that would incur a potentially large performance penalty.
+        */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(
+                    s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
+
+            DEFER_CLEANUP(struct s2n_config *invalid_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(invalid_config, invalid_cert));
+
+            /* directly set the security policy to avoid the validation in "set_cipher_preferences" */
+            const struct s2n_security_policy *security_policy = NULL;
+            POSIX_GUARD(s2n_find_security_policy_from_version("rfc9151", &security_policy));
+            invalid_config->security_policy = security_policy;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            POSIX_ENSURE_REF(conn);
+            /* Success implies that certificates are not validated as during "set_config" */
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, invalid_config));
+        };
+    };
+
     /* Test s2n_connection_get_wire_bytes_out */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -795,14 +853,6 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_CLOSED));
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, 10));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, 10));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-            conn->write_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
-            conn->read_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
         }
 
         /* TLS1.2 */
@@ -819,24 +869,24 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_flag_clear(&conn->write_closed);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_flag_clear(&conn->read_closed);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
@@ -857,28 +907,205 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_flag_clear(&conn->write_closed);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_flag_clear(&conn->read_closed);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+        };
+    };
+
+    /* Test s2n_connection_get_key_update_counts */
+    {
+        /* Safety */
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        uint8_t send_count = 0, recv_count = 0;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(NULL, &send_count, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, NULL, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, &send_count, NULL),
+                S2N_ERR_NULL);
+
+        /* Returns counts */
+        const uint8_t expected_send_count = 10;
+        conn->send_key_updated = expected_send_count;
+        const uint8_t expected_recv_count = 255;
+        conn->recv_key_updated = expected_recv_count;
+        EXPECT_SUCCESS(s2n_connection_get_key_update_counts(conn, &send_count, &recv_count));
+        EXPECT_EQUAL(send_count, expected_send_count);
+        EXPECT_EQUAL(recv_count, expected_recv_count);
+    }
+
+    /* Test s2n_connection_get_client_auth_type */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Test: use defaults if no overrides set */
+        {
+            /* Ensure that defaults are still used if the override flags are not set,
+             * even if client_cert_auth_type is somehow set.
+             */
+            server->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+            client->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+        };
+
+        /* Test: use config overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+        };
+
+        /* Test: use connection overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_NONE));
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+        };
+    };
+
+    /* Test s2n_connection_get_signature_scheme */
+    {
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            const char *name = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(&conn, NULL),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(NULL, &name),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: connection without a handshake returns an error */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            const char *name = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_scheme(conn, &name),
+                    S2N_ERR_INVALID_STATE);
+        };
+
+        /* Test: all valid signature schemes succeed */
+        {
+            const struct s2n_signature_preferences *all_prefs = &s2n_signature_preferences_all;
+            for (size_t i = 0; i < all_prefs->count; i++) {
+                for (size_t version = 0; version <= S2N_TLS13; version++) {
+                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                            s2n_connection_ptr_free);
+                    conn->handshake.handshake_type = NEGOTIATED;
+                    conn->handshake_params.server_cert_sig_scheme = all_prefs->signature_schemes[i];
+                    conn->actual_protocol_version = version;
+
+                    const char *name = NULL;
+                    EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &name));
+                    EXPECT_NOT_NULL(name);
+                }
+            }
+        };
+
+        /* Test: simple known values */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pss_rsae_sha256;
+            const char *rsa_name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &rsa_name));
+            EXPECT_STRING_EQUAL(rsa_name, "rsa_pss_rsae_sha256");
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_mldsa65;
+            const char *mldsa_name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &mldsa_name));
+            EXPECT_STRING_EQUAL(mldsa_name, "mldsa65");
+
+            conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha224;
+            const char *legacy_ecdsa = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &legacy_ecdsa));
+            EXPECT_STRING_EQUAL(legacy_ecdsa, "legacy_ecdsa_sha224");
+        };
+
+        /* Test: connection without a chosen signature scheme returns "none" */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+            const char *name = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &name));
+            EXPECT_STRING_EQUAL(name, "none");
+        };
+
+        /* Test: chooses ECDSA name based on version */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
+
+            const char *tls13_name = NULL;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls13_name));
+            EXPECT_STRING_EQUAL(tls13_name, s2n_ecdsa_sha256.tls13_name);
+            EXPECT_STRING_EQUAL(tls13_name, "ecdsa_secp256r1_sha256");
+
+            const char *tls12_name = NULL;
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls12_name));
+            EXPECT_STRING_EQUAL(tls12_name, s2n_ecdsa_sha256.legacy_name);
+            EXPECT_STRING_EQUAL(tls12_name, "legacy_ecdsa_sha256");
+
+            const char *tls10_name = NULL;
+            conn->actual_protocol_version = S2N_TLS10;
+            EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls10_name));
+            EXPECT_STRING_EQUAL(tls10_name, s2n_ecdsa_sha256.legacy_name);
         };
     };
 

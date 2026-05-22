@@ -24,10 +24,23 @@
 /* We need access to some io logic */
 #include "tls/s2n_handshake_io.c"
 
+#define TEST_TICKET_AGE_ADD 0x01, 0x02, 0x03, 0x04
+#define TEST_LIFETIME       0x00, 0x01, 0x01, 0x01
+#define TEST_TICKET         0x01, 0xFF, 0x23
+
 static const uint8_t TEST_DATA[] = "test";
 static const size_t TEST_DATA_SIZE = sizeof(TEST_DATA);
 
 struct s2n_stuffer input_stuffer, output_stuffer;
+
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
+{
+    uint8_t *count = (uint8_t *) ctx;
+    (*count)++;
+
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
@@ -119,7 +132,7 @@ int main(int argc, char **argv)
 
         /* Writes handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             uint8_t message_data[] = "The client says hello";
@@ -147,7 +160,7 @@ int main(int argc, char **argv)
 
         /* Reads basic handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -174,7 +187,7 @@ int main(int argc, char **argv)
 
         /* Blocks on insufficient data for handshake message header */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -193,7 +206,7 @@ int main(int argc, char **argv)
 
         /* Blocks on insufficient data for handshake message data */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -214,7 +227,7 @@ int main(int argc, char **argv)
 
         /* Fails for an impossibly large handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -230,6 +243,87 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+        };
+
+        /* Succeeds for a handshake message larger than the input buffer */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            uint8_t actual_message_type = 0;
+
+            /* Read a small message to initialize the input buffer */
+            const size_t small_message_size = 10;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, small_message_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, small_message_size));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_message_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+            EXPECT_OK(s2n_record_wipe(conn));
+            const size_t max_buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+            EXPECT_TRUE(max_buffer_size > small_message_size);
+
+            /* Read a large message to force the input buffer to resize */
+            const size_t large_message_size = max_buffer_size + 10;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, large_message_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, large_message_size));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), large_message_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+            EXPECT_OK(s2n_record_wipe(conn));
+            const size_t resized_buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+            EXPECT_TRUE(resized_buffer_size >= large_message_size);
+
+            /* Read another message to check that the resize doesn't prevent future reads */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), TEST_DATA_SIZE);
+            EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->in, TEST_DATA_SIZE),
+                    TEST_DATA, sizeof(TEST_DATA));
+        };
+
+        /* Succeeds for multiple messages */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            uint8_t actual_message_type = 0;
+            size_t expected_buffer_size = 0;
+            for (size_t i = 0; i < 100; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+                EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), TEST_DATA_SIZE);
+                EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->in, TEST_DATA_SIZE),
+                        TEST_DATA, sizeof(TEST_DATA));
+
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+                EXPECT_OK(s2n_record_wipe(conn));
+
+                /* Ensure buffer size stays constant */
+                const size_t buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+                if (i == 0) {
+                    expected_buffer_size = buffer_size;
+                }
+                EXPECT_EQUAL(expected_buffer_size, buffer_size);
+            }
         };
     };
 
@@ -252,13 +346,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output_stuffer, 0));
 
         /* Setup config */
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
         /* Functional: successfully reads full handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -274,7 +368,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully reads fragmented handshake message */
         for (size_t i = 1; i < server_hello.size - 1; i++) {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -299,7 +393,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully reads multiple handshake messages */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -319,7 +413,7 @@ int main(int argc, char **argv)
 
         /* Function: fails to read record instead of handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -339,7 +433,7 @@ int main(int argc, char **argv)
 
         /* Function: fails to read Change Cipher Spec record */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -361,7 +455,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully writes full handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -369,11 +463,11 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             client_hello_length = s2n_stuffer_data_available(&output_stuffer);
 
-            uint8_t actual_message_type;
+            uint8_t actual_message_type = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output_stuffer, &actual_message_type));
             EXPECT_EQUAL(actual_message_type, TLS_CLIENT_HELLO);
 
-            uint32_t actual_message_size;
+            uint32_t actual_message_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint24(&output_stuffer, &actual_message_size));
             EXPECT_EQUAL(actual_message_size, TEST_DATA_SIZE);
 
@@ -388,7 +482,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully retries after blocked write */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -415,6 +509,100 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&output_stuffer));
         EXPECT_SUCCESS(s2n_config_free(config));
     };
+
+    /* Test: s2n_recv_quic_post_handshake_message */
+    {
+        /* Safety checks */
+        s2n_blocked_status blocked = 0;
+        EXPECT_FAILURE(s2n_recv_quic_post_handshake_message(NULL, &blocked));
+
+        /* Parsable session ticket message */
+        uint8_t ticket_message_bytes[] = {
+            TLS_SERVER_NEW_SESSION_TICKET,
+            0x00, 0x00, 0x12,    /* message size */
+            TEST_LIFETIME,       /* ticket lifetime */
+            TEST_TICKET_AGE_ADD, /* ticket age add */
+            0x02,                /* nonce len */
+            0x00, 0x00,          /* nonce */
+            0x00, 0x03,          /* ticket len */
+            TEST_TICKET,         /* ticket */
+            0x00, 0x00,          /* extensions len */
+        };
+
+        /* Test: fails to read post-handshake message that is not a ST */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Create a post-handshake message that isn't supported by quic */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_KEY_UPDATE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv_quic_post_handshake_message(conn, &blocked), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+        };
+
+        /* Test: successfully reads and processes post-handshake message */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            uint8_t session_ticket_cb_count = 0;
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, &session_ticket_cb_count));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Construct and process multiple ST handshake messages */
+            for (size_t i = 1; i < 10; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes, sizeof(ticket_message_bytes)));
+                EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
+
+                /* Callback was triggered */
+                EXPECT_EQUAL(session_ticket_cb_count, i);
+            }
+        };
+
+        /* Test: successfully reads and processes fragmented post-handshake message */
+        for (size_t i = 1; i < sizeof(ticket_message_bytes); i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            uint8_t session_ticket_cb_count = 0;
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, &session_ticket_cb_count));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Mock receiving a fragmented handshake message */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes, i));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv_quic_post_handshake_message(conn, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+
+            /* Callback was not triggered */
+            EXPECT_EQUAL(session_ticket_cb_count, 0);
+
+            /* "Write" the rest of the message */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes + i, sizeof(ticket_message_bytes) - i));
+
+            EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
+
+            /* Callback was triggered */
+            EXPECT_EQUAL(session_ticket_cb_count, 1);
+        };
+    }
 
     END_TEST();
 }

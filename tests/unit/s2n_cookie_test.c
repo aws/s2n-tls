@@ -15,8 +15,6 @@
 
 #include "tls/extensions/s2n_cookie.h"
 
-#include <sys/param.h>
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_handshake_type.h"
@@ -43,7 +41,7 @@ int main()
     /**
      * Test: client only sends extension if cookie present
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.2
      *= type=test
      *# -   Including a "cookie" extension if one was provided in the
      *#     HelloRetryRequest.
@@ -160,7 +158,7 @@ int main()
      * So for the self-talk tests, reduce the size of any large test cookies.
      */
     for (size_t i = 0; i < TEST_COOKIE_COUNT; i++) {
-        test_cookies[i].size = MIN(test_cookies[i].size, UINT16_MAX / 2);
+        test_cookies[i].size = S2N_MIN(test_cookies[i].size, UINT16_MAX / 2);
     }
 
     /* Sanity check: server fails if client does not provide expected cookie */
@@ -252,7 +250,7 @@ int main()
 
     /* Self-Talk: Server does use cookies
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.2
      *= type=test
      *# When sending a HelloRetryRequest, the server MAY provide a "cookie"
      *# extension to the client (this is an exception to the usual rule that

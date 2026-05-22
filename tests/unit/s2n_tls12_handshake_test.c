@@ -107,8 +107,8 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), state_machine);
-        EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), handshakes);
+        EXPECT_EQUAL(&ACTIVE_STATE_MACHINE(conn)[0], &state_machine[0]);
+        EXPECT_EQUAL(&ACTIVE_HANDSHAKES(conn)[0], &handshakes[0]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
@@ -449,7 +449,7 @@ int main(int argc, char **argv)
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT | TLS12_PERFECT_FORWARD_SECRECY | OCSP_STATUS | WITH_SESSION_TICKET | WITH_NPN;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
-        const char *handshake_type_name;
+        const char *handshake_type_name = NULL;
         for (int i = 0; i < valid_tls12_handshakes_size; i++) {
             conn->handshake.handshake_type = valid_tls12_handshakes[i];
 
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 
         conn->handshake.handshake_type = test_handshake_type;
 
-        for (size_t i = 0; i < sizeof(expected) / sizeof(char *); i++) {
+        for (size_t i = 0; i < s2n_array_len(expected); i++) {
             conn->handshake.message_number = i;
             EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
         }
@@ -492,12 +492,9 @@ int main(int argc, char **argv)
 
     /* Test: A WITH_NPN form of every valid, negotiated handshake exists */
     {
-        uint32_t handshake_type_original, handshake_type_npn;
-        message_type_t *messages_original, *messages_npn;
-
         for (size_t i = 0; i < valid_tls12_handshakes_size; i++) {
-            handshake_type_original = valid_tls12_handshakes[i];
-            messages_original = handshakes[handshake_type_original];
+            uint32_t handshake_type_original = valid_tls12_handshakes[i];
+            message_type_t *messages_original = handshakes[handshake_type_original];
 
             /* Ignore INITIAL and WITH_NPN handshakes */
             if (!(handshake_type_original & NEGOTIATED) || (handshake_type_original & WITH_NPN)) {
@@ -505,8 +502,8 @@ int main(int argc, char **argv)
             }
 
             /* Get the WITH_NPN form of the handshake */
-            handshake_type_npn = handshake_type_original | WITH_NPN;
-            messages_npn = handshakes[handshake_type_npn];
+            uint32_t handshake_type_npn = handshake_type_original | WITH_NPN;
+            message_type_t *messages_npn = handshakes[handshake_type_npn];
 
             for (size_t j = 0, j_npn = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_npn < S2N_MAX_HANDSHAKE_LENGTH; j++, j_npn++) {
                 /* The original handshake cannot contain the Next Protocol message */
@@ -523,6 +520,39 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Test: ensure that there isn't a collision between TLS 1.2 and TLS 1.3 flags
+     * that share the same bit.
+     */
+    {
+        /* sanity check: these flags are the same bit */
+        EXPECT_EQUAL((int) TLS12_PERFECT_FORWARD_SECRECY, (int) HELLO_RETRY_REQUEST);
+
+        uint32_t tls12_type = NEGOTIATED | FULL_HANDSHAKE | TLS12_PERFECT_FORWARD_SECRECY;
+        uint32_t tls13_type = NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST;
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        /* Clear the cache entries so we start fresh */
+        memset(handshake_type_str_tls12ish[tls12_type], 0, MAX_HANDSHAKE_TYPE_LEN);
+        memset(handshake_type_str_tls13[tls13_type], 0, MAX_HANDSHAKE_TYPE_LEN);
+
+        /* First: populate cache via TLS 1.2 */
+        conn->actual_protocol_version = S2N_TLS12;
+        conn->handshake.handshake_type = tls12_type;
+        const char *tls12_name = s2n_connection_get_handshake_type_name(conn);
+        EXPECT_NOT_NULL(tls12_name);
+        EXPECT_STRING_EQUAL(tls12_name, "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY");
+
+        /* Second: query cache via TLS 1.3 with same bitmap — should not collide */
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->handshake.handshake_type = tls13_type;
+        const char *tls13_name = s2n_connection_get_handshake_type_name(conn);
+        EXPECT_NOT_NULL(tls13_name);
+        EXPECT_STRING_EQUAL(tls13_name, "NEGOTIATED|FULL_HANDSHAKE|HELLO_RETRY_REQUEST");
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    };
+
     END_TEST();
-    return 0;
 }

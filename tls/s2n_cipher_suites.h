@@ -22,6 +22,7 @@
 #include "crypto/s2n_hmac.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 
 /* Key exchange flags that can be OR'ed */
@@ -32,7 +33,7 @@
 #define S2N_MAX_POSSIBLE_RECORD_ALGS 2
 
 /* Kept up-to-date by s2n_cipher_suite_test */
-#define S2N_CIPHER_SUITE_COUNT 37
+#define S2N_CIPHER_SUITE_COUNT 36
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
@@ -91,6 +92,10 @@ struct s2n_cipher_suite {
 
     /* Cipher name in Openssl format */
     const char *name;
+
+    /* Cipher name in IANA format */
+    const char *iana_name;
+
     const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
 
     const struct s2n_kex *key_exchange_alg;
@@ -152,7 +157,6 @@ extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha;
-extern struct s2n_cipher_suite s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;

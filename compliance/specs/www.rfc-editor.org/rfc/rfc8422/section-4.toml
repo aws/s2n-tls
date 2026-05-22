@@ -1,0 +1,75 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-4"
+
+# 4.  TLS Extensions for ECC
+#
+# Two TLS extensions are defined in this specification: (i) the
+# Supported Elliptic Curves Extension and (ii) the Supported Point
+# Formats Extension.  These allow negotiating the use of specific
+# curves and point formats (e.g., compressed vs. uncompressed,
+# respectively) during a handshake starting a new session.  These
+# extensions are especially relevant for constrained clients that may
+# only support a limited number of curves or point formats.  They
+# follow the general approach outlined in [RFC4366]; message details
+# are specified in Section 5.  The client enumerates the curves it
+# supports and the point formats it can parse by including the
+# appropriate extensions in its ClientHello message.  The server
+# similarly enumerates the point formats it can parse by including an
+# extension in its ServerHello message.
+# 
+# A TLS client that proposes ECC cipher suites in its ClientHello
+# message SHOULD include these extensions.  Servers implementing ECC
+# cipher suites MUST support these extensions, and when a client uses
+# these extensions, servers MUST NOT negotiate the use of an ECC cipher
+# suite unless they can complete the handshake while respecting the
+# choice of curves specified by the client.  This eliminates the
+# possibility that a negotiated ECC handshake will be subsequently
+# aborted due to a client's inability to deal with the server's EC key.
+# 
+# The client MUST NOT include these extensions in the ClientHello
+# message if it does not propose any ECC cipher suites.  A client that
+# proposes ECC cipher suites may choose not to include these
+# extensions.  In this case, the server is free to choose any one of
+# the elliptic curves or point formats listed in Section 5.  That
+# section also describes the structure and processing of these
+# extensions in greater detail.
+# 
+# In the case of session resumption, the server simply ignores the
+# Supported Elliptic Curves Extension and the Supported Point Formats
+# Extension appearing in the current ClientHello message.  These
+# extensions only play a role during handshakes negotiating a new
+# session.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+A TLS client that proposes ECC cipher suites in its ClientHello
+message SHOULD include these extensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers implementing ECC
+cipher suites MUST support these extensions, and when a client uses
+these extensions, servers MUST NOT negotiate the use of an ECC cipher
+suite unless they can complete the handshake while respecting the
+choice of curves specified by the client.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers implementing ECC
+cipher suites MUST support these extensions, and when a client uses
+these extensions, servers MUST NOT negotiate the use of an ECC cipher
+suite unless they can complete the handshake while respecting the
+choice of curves specified by the client.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The client MUST NOT include these extensions in the ClientHello
+message if it does not propose any ECC cipher suites.
+'''
+

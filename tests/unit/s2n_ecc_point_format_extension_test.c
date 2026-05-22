@@ -23,12 +23,12 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Test server should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Do not send for null connection */
@@ -48,16 +48,12 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
         EXPECT_TRUE(s2n_server_ec_point_format_extension.should_send(conn));
 
-        /* Do send for connection with hybrid ec kex */
-        conn->secure->cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-        EXPECT_TRUE(s2n_server_ec_point_format_extension.should_send(conn));
-
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
     /* Test send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -66,11 +62,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_client_ec_point_format_extension.send(conn, &stuffer));
 
-        uint8_t length;
+        uint8_t length = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &length));
         EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
 
-        uint8_t point_format;
+        uint8_t point_format = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &point_format));
         EXPECT_EQUAL(point_format, TLS_EC_POINT_FORMAT_UNCOMPRESSED);
 
@@ -82,7 +78,7 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -102,5 +98,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
-    return 0;
 }

@@ -1,21 +1,27 @@
 name: FreeBSD
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
     types: [checks_requested]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   testfreebsd:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     name: CI FreeBSD
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Build and test in FreeBSD
         id: test
-        uses: vmactions/freebsd-vm@v0.3.0
+        uses: vmactions/freebsd-vm@v1
+        timeout-minutes: 45
         with:
           prepare: pkg install -y ninja cmake
           run: |

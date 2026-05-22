@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
 
 #include "crypto/s2n_hmac.h"
@@ -64,7 +63,10 @@ int simple_cbc_wrapper(int currently_in_hash_block, int size, int *xor_pad, int 
   struct s2n_crypto_parameters client;
   struct s2n_connection conn = {
     .client = &client,
-    .mode = S2N_SERVER
+    .mode = S2N_SERVER,
+    .extension_requests_sent = { 0 },
+    .extension_requests_received = { 0 },
+    .extension_responses_received = { 0 }
   };
 
   /* Data represents the decrypted data handed to the process.

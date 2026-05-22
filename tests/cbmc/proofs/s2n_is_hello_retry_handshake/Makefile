@@ -25,7 +25,6 @@ PROJECT_SOURCES += $(SRCDIR)/tls/s2n_connection.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake_io.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake_type.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
 

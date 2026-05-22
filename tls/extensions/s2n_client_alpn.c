@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_alpn.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_protocol_preferences.h"
@@ -39,7 +38,7 @@ const s2n_extension_type s2n_client_alpn_extension = {
 
 bool s2n_client_alpn_should_send(struct s2n_connection *conn)
 {
-    struct s2n_blob *client_app_protocols;
+    struct s2n_blob *client_app_protocols = NULL;
 
     return s2n_connection_get_protocol_preferences(conn, &client_app_protocols) == S2N_SUCCESS
             && client_app_protocols->size != 0 && client_app_protocols->data != NULL;
@@ -47,7 +46,7 @@ bool s2n_client_alpn_should_send(struct s2n_connection *conn)
 
 static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    struct s2n_blob *client_app_protocols;
+    struct s2n_blob *client_app_protocols = NULL;
     POSIX_GUARD(s2n_connection_get_protocol_preferences(conn, &client_app_protocols));
     POSIX_ENSURE_REF(client_app_protocols);
 

@@ -59,15 +59,15 @@
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCC, 0xAA
 
 /* TLS 1.2 hybrid post-quantum definitions from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
-#define TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x0C
-#define TLS_EXTENSION_PQ_KEM_PARAMETERS             0xFE01
-#define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3        28
+#define TLS_EXTENSION_PQ_KEM_PARAMETERS 0xFE01
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
- * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
- * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md */
-#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3    0x2F39
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3 0x2F3A
+ * in https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+ */
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_MLKEM_768  0x11EB
+#define TLS_PQ_KEM_GROUP_ID_X25519_MLKEM_768     0x11EC
+#define TLS_PQ_KEM_GROUP_ID_SECP384R1_MLKEM_1024 0x11ED
+#define TLS_PQ_KEM_GROUP_ID_MLKEM_1024           0x0202
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                 0x56, 0x00
@@ -113,12 +113,12 @@
 #define TLS_PSK_DHE_KE_MODE 1
 
 /**
- *= https://tools.ietf.org/rfc/rfc9001.txt#8.2
+ *= https://www.rfc-editor.org/rfc/rfc9001#8.2
  *#   enum {
  *#      quic_transport_parameters(0x39), (65535)
  *#   } ExtensionType;
  */
-#define TLS_QUIC_TRANSPORT_PARAMETERS 0x39
+#define TLS_EXTENSION_QUIC_TRANSPORT_PARAMETERS 0x39
 
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
@@ -141,21 +141,22 @@
 #define TLS_SIGNATURE_SCHEME_ECDSA_SHA384 0x0503
 #define TLS_SIGNATURE_SCHEME_ECDSA_SHA512 0x0603
 
-/* TLS 1.3 ECDSA Signature Schemes */
-#define TLS_SIGNATURE_SCHEME_ECDSA_SECP256R1_SHA256 0x0403
-#define TLS_SIGNATURE_SCHEME_ECDSA_SECP384R1_SHA384 0x0503
-#define TLS_SIGNATURE_SCHEME_ECDSA_SECP521R1_SHA512 0x0603
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA256    0x0804
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA384    0x0805
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA512    0x0806
-#define TLS_SIGNATURE_SCHEME_ED25519                0x0807
-#define TLS_SIGNATURE_SCHEME_ED448                  0x0808
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256     0x0809
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384     0x080A
-#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512     0x080B
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA256 0x0804
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA384 0x0805
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA512 0x0806
+#define TLS_SIGNATURE_SCHEME_ED25519             0x0807
+#define TLS_SIGNATURE_SCHEME_ED448               0x0808
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256  0x0809
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384  0x080A
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512  0x080B
+
+/* ML-DSA: post-quantum signature schemes */
+#define TLS_SIGNATURE_SCHEME_MLDSA44 0x0904
+#define TLS_SIGNATURE_SCHEME_MLDSA65 0x0905
+#define TLS_SIGNATURE_SCHEME_MLDSA87 0x0906
 
 #define TLS_SIGNATURE_SCHEME_LEN          2
-#define TLS_SIGNATURE_SCHEME_LIST_MAX_LEN 64
+#define TLS_SIGNATURE_SCHEME_LIST_MAX_LEN 128
 
 /* The TLS record types we support */
 #define SSLv2_CLIENT_HELLO     1

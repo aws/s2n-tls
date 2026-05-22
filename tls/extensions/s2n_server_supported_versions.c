@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_server_supported_versions.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
@@ -71,7 +70,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
     uint16_t server_version = (server_version_parts[0] * 10) + server_version_parts[1];
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# The value of selected_version in the HelloRetryRequest
      *# "supported_versions" extension MUST be retained in the ServerHello,
      *# and a client MUST abort the handshake with an "illegal_parameter"

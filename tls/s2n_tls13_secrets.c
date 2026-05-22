@@ -34,7 +34,7 @@
         (struct s2n_blob){ .data = (conn)->handshake.mode##_finished, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn)) })
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# If a given secret is not available, then the 0-value consisting of a
  *# string of Hash.length bytes set to zeros is used.
  */
@@ -46,7 +46,7 @@ static uint8_t zero_value_bytes[S2N_MAX_HASHLEN] = { 0 };
  * When an operation doesn't need an actual transcript hash,
  * it uses an empty transcript hash as an input instead.
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# Note that in some cases a zero-
  *# length Context (indicated by "") is passed to HKDF-Expand-Label
  */
@@ -139,7 +139,7 @@ static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# Derive-Secret(Secret, Label, Messages) =
  *#      HKDF-Expand-Label(Secret, Label,
  *#                        Transcript-Hash(Messages), Hash.length)
@@ -190,7 +190,7 @@ static S2N_RESULT s2n_derive_secret_without_context(struct s2n_connection *conn,
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
  *# The key used to compute the Finished message is computed from the
  *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
  *# Specifically:
@@ -219,6 +219,20 @@ static S2N_RESULT s2n_tls13_compute_finished_key(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_call_secret_callbacks(struct s2n_connection *conn,
+        const struct s2n_blob *secret, s2n_secret_type_t secret_type)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(secret);
+
+    if (conn->secret_cb && (s2n_connection_is_quic_enabled(conn) || s2n_in_unit_test())) {
+        RESULT_GUARD_POSIX(conn->secret_cb(conn->secret_cb_context, conn, secret_type,
+                secret->data, secret->size));
+    }
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, secret, secret_type));
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_trigger_secret_callbacks(struct s2n_connection *conn,
         const struct s2n_blob *secret, s2n_extract_secret_type_t secret_type, s2n_mode mode)
 {
@@ -232,22 +246,18 @@ static S2N_RESULT s2n_trigger_secret_callbacks(struct s2n_connection *conn,
     };
     s2n_secret_type_t callback_secret_type = conversions[secret_type][mode];
 
-    if (conn->secret_cb && (s2n_connection_is_quic_enabled(conn) || s2n_in_unit_test())) {
-        RESULT_GUARD_POSIX(conn->secret_cb(conn->secret_cb_context, conn, callback_secret_type,
-                secret->data, secret->size));
-    }
-    s2n_result_ignore(s2n_key_log_tls13_secret(conn, secret, callback_secret_type));
+    RESULT_GUARD(s2n_call_secret_callbacks(conn, secret, callback_secret_type));
     return S2N_RESULT_OK;
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           0
  *#           |
  *#           v
  *# PSK ->  HKDF-Extract = Early Secret
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# There are multiple potential Early Secret values, depending on which
  *# PSK the server ultimately selects.  The client will need to compute
  *# one for each potential PSK
@@ -285,7 +295,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
      *# if no PSK is selected, it will then need
      *# to compute the Early Secret corresponding to the zero PSK.
      */
@@ -308,7 +318,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "ext binder" | "res binder", "")
  *#           |                     = binder_key
@@ -332,7 +342,7 @@ S2N_RESULT s2n_derive_binder_key(struct s2n_psk *psk, struct s2n_blob *output)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c e traffic", ClientHello)
  *#           |                     = client_early_traffic_secret
@@ -348,7 +358,7 @@ static S2N_RESULT s2n_derive_client_early_traffic_secret(struct s2n_connection *
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           v
  *#     Derive-Secret(., "derived", "")
@@ -377,7 +387,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c hs traffic",
  *#           |                     ClientHello...ServerHello)
@@ -398,7 +408,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
      * The client finished key needs to be calculated using the
      * same connection state as the client handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
@@ -409,7 +419,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "s hs traffic",
  *#           |                     ClientHello...ServerHello)
@@ -430,7 +440,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
      * The server finished key needs to be calculated using the
      * same connection state as the server handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
@@ -441,7 +451,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           v
  *#     Derive-Secret(., "derived", "")
  *#           |
@@ -465,7 +475,7 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c ap traffic",
  *#           |                     ClientHello...server Finished)
@@ -482,7 +492,7 @@ static S2N_RESULT s2n_derive_client_application_traffic_secret(struct s2n_connec
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "s ap traffic",
  *#           |                     ClientHello...server Finished)
@@ -499,7 +509,7 @@ static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connec
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "res master",
  *#                                 ClientHello...client Finished)
@@ -517,6 +527,31 @@ S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
             &s2n_tls13_label_resumption_master_secret,
             CLIENT_FINISHED,
             &CONN_SECRET(conn, resumption_master_secret)));
+    return S2N_RESULT_OK;
+}
+
+/**
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
+ *#           |
+ *#           +-----> Derive-Secret(., "exp master",
+ *#           |                     ClientHello...server Finished)
+ *#           |                     = exporter_master_secret
+ */
+S2N_RESULT s2n_derive_exporter_master_secret(struct s2n_connection *conn, struct s2n_blob *secret)
+{
+    RESULT_ENSURE_REF(conn);
+    /* Secret derivation requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_MASTER_SECRET,
+            &s2n_tls13_label_exporter_master_secret,
+            SERVER_FINISHED,
+            secret));
+
+    RESULT_GUARD(s2n_call_secret_callbacks(conn, secret, S2N_EXPORTER_SECRET));
+
     return S2N_RESULT_OK;
 }
 
@@ -636,6 +671,8 @@ S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
                     S2N_CLIENT, &CONN_SECRET(conn, client_app_secret)));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
                     S2N_SERVER, &CONN_SECRET(conn, server_app_secret)));
+            RESULT_GUARD(s2n_derive_exporter_master_secret(conn,
+                    &CONN_SECRET(conn, exporter_master_secret)));
             break;
         case CLIENT_FINISHED:
             RESULT_GUARD(s2n_calculate_transcript_digest(conn));
@@ -656,6 +693,11 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
+    bool is_available = (secret_type <= conn->secrets.extract_secret_type)
+            /* Unlike the other secrets, we don't wipe the master / app secrets */
+            || (secret_type == S2N_MASTER_SECRET && s2n_handshake_is_complete(conn));
+    RESULT_ENSURE(is_available, S2N_ERR_SAFETY);
+
     uint8_t *secrets[][2] = {
         [S2N_EARLY_SECRET] = { NULL, CONN_SECRETS(conn).client_early_secret },
         [S2N_HANDSHAKE_SECRET] = { CONN_SECRETS(conn).server_handshake_secret, CONN_SECRETS(conn).client_handshake_secret },
@@ -663,11 +705,73 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     };
     RESULT_ENSURE_GT(secret_type, S2N_NONE_SECRET);
     RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
-    RESULT_ENSURE_LTE(secret_type, conn->secrets.extract_secret_type);
     RESULT_ENSURE_REF(secrets[secret_type][mode]);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
     RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);
     RESULT_ENSURE_GT(secret->size, 0);
     return S2N_RESULT_OK;
+}
+
+/*
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.5
+ *# The exporter value is computed as:
+ *#
+ *# TLS-Exporter(label, context_value, key_length) =
+ *#     HKDF-Expand-Label(Derive-Secret(Secret, label, ""),
+ *#                       "exporter", Hash(context_value), key_length)
+ */
+int s2n_connection_tls_exporter(struct s2n_connection *conn,
+        const uint8_t *label_in, uint32_t label_length,
+        const uint8_t *context, uint32_t context_length,
+        uint8_t *output_in, uint32_t output_length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(output_in);
+    POSIX_ENSURE_REF(label_in);
+    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE(s2n_connection_get_protocol_version(conn) == S2N_TLS13, S2N_ERR_INVALID_STATE);
+
+    POSIX_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    s2n_hmac_algorithm hmac_alg = conn->secure->cipher_suite->prf_alg;
+
+    uint8_t label_bytes[S2N_MAX_HKDF_EXPAND_LABEL_LENGTH] = { 0 };
+    struct s2n_blob label = { 0 };
+    POSIX_ENSURE_LTE(label_length, sizeof(label_bytes));
+    POSIX_CHECKED_MEMCPY(label_bytes, label_in, label_length);
+    POSIX_GUARD(s2n_blob_init(&label, label_bytes, label_length));
+
+    uint8_t derived_secret_bytes[S2N_MAX_DIGEST_LEN] = { 0 };
+    struct s2n_blob derived_secret = { 0 };
+    POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
+    POSIX_GUARD(s2n_blob_init(&derived_secret,
+            derived_secret_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
+    POSIX_GUARD_RESULT(s2n_derive_secret(hmac_alg, &CONN_SECRET(conn, exporter_master_secret),
+            &label, &EMPTY_CONTEXT(hmac_alg), &derived_secret));
+
+    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
+    POSIX_GUARD(s2n_hmac_new(&hmac_state));
+
+    DEFER_CLEANUP(struct s2n_hash_state hash = { 0 }, s2n_hash_free);
+    POSIX_GUARD(s2n_hash_new(&hash));
+
+    s2n_hash_algorithm hash_alg = { 0 };
+    POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
+    uint8_t digest_bytes[S2N_MAX_DIGEST_LEN] = { 0 };
+    struct s2n_blob digest = { 0 };
+    POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
+    POSIX_GUARD(s2n_blob_init(&digest, digest_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
+
+    POSIX_GUARD(s2n_hash_init(&hash, hash_alg));
+    POSIX_GUARD(s2n_hash_update(&hash, context, context_length));
+    POSIX_GUARD(s2n_hash_digest(&hash, digest.data, digest.size));
+
+    struct s2n_blob output = { 0 };
+    POSIX_GUARD(s2n_blob_init(&output, output_in, output_length));
+    POSIX_GUARD(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+            &derived_secret, &s2n_tls13_label_exporter, &digest, &output));
+
+    return S2N_SUCCESS;
 }

@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_tls_parameters.h"
@@ -49,6 +51,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
@@ -99,6 +102,14 @@ const struct s2n_ecc_named_curve s2n_unsupported_curve = {
     .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
+const struct s2n_ecc_named_curve s2n_ecc_curve_none = {
+    .iana_id = 0,
+    .name = "none",
+    .libcrypto_nid = 0,
+    .share_size = 0,
+    .generate_key = s2n_ecc_evp_generate_key_noop,
+};
+
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */
@@ -116,6 +127,33 @@ const size_t s2n_all_supported_curves_list_len = s2n_array_len(s2n_all_supported
 int s2n_is_evp_apis_supported()
 {
     return EVP_APIS_SUPPORTED;
+}
+
+bool s2n_ecc_evp_supports_fips_check()
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    return true;
+#else
+    return false;
+#endif
+}
+
+int s2n_find_ecc_curve_from_iana_id(uint16_t iana_id, const struct s2n_ecc_named_curve **out, bool *found)
+{
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(found);
+    *found = false;
+
+    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
+        const struct s2n_ecc_named_curve *curve = s2n_all_supported_curves_list[i];
+        POSIX_ENSURE_REF(curve);
+        if (curve->iana_id == iana_id) {
+            *out = curve;
+            *found = true;
+            return S2N_SUCCESS;
+        }
+    }
+    return S2N_SUCCESS;
 }
 
 #if EVP_APIS_SUPPORTED
@@ -155,6 +193,11 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     return 0;
 }
 
+static int s2n_ecc_evp_generate_key_noop(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
 {
     POSIX_ENSURE_REF(named_curve);
@@ -163,27 +206,50 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
+static S2N_RESULT s2n_ecc_check_key(EC_KEY *ec_key)
+{
+    RESULT_ENSURE_REF(ec_key);
+
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD_OSSL(EC_KEY_check_fips(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
+        return S2N_RESULT_OK;
+    }
+#endif
+
+    RESULT_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
 
-    /* From RFC 8446(TLS1.3) Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
-     * each other's public value Q by ensuring that the point is a valid point on the elliptic curve.
-     * For the curve x25519 and x448 the peer public-key validation check doesn't apply.
-     * From RFC 8422(TLS1.2) Section 5.11: With the NIST curves, each party MUST validate the public key sent by its peer
-     * in the ClientKeyExchange and ServerKeyExchange messages. A receiving party MUST check that the x and y parameters from 
-     * the peer's public value satisfy the curve equation, y^2 = x^3 + ax + b mod p.
-     * Note that the `EC_KEY_check_key` validation is a MUST for only NIST curves, if a non-NIST curve is added to s2n-tls 
-     * this is an additional validation step that increases security but decreases performance.
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.8.2
+     *# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
+     *# validate each other's public value Q by ensuring that the point is a
+     *# valid point on the elliptic curve.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8422#section-5.11
+     *# With the NIST curves, each party MUST validate the public key sent by
+     *# its peer in the ClientKeyExchange and ServerKeyExchange messages.  A
+     *# receiving party MUST check that the x and y parameters from the
+     *# peer's public value satisfy the curve equation, y^2 = x^3 + ax + b
+     *# mod p.
+     *
+     * The validation requirement for the public key value only applies to NIST curves. The
+     * validation is skipped with non-NIST curves for increased performance.
      */
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-        S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-        POSIX_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+        POSIX_ENSURE(ec_key, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        POSIX_GUARD_RESULT(s2n_ecc_check_key(ec_key));
     }
 
-    size_t shared_secret_size;
+    size_t shared_secret_size = 0;
 
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
@@ -233,7 +299,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     POSIX_ENSURE_REF(ecc_evp_params->evp_pkey);
     POSIX_ENSURE_REF(Yc_in);
 
-    uint8_t client_public_len;
+    uint8_t client_public_len = 0;
     struct s2n_blob client_public_blob = { 0 };
 
     DEFER_CLEANUP(EVP_PKEY *peer_key = EVP_PKEY_new(), EVP_PKEY_free_pointer);
@@ -345,8 +411,8 @@ int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
         struct s2n_ecdhe_raw_server_params *raw_server_ecc_params)
 {
     POSIX_ENSURE_REF(in);
-    uint8_t curve_type;
-    uint8_t point_length;
+    uint8_t curve_type = 0;
+    uint8_t point_length = 0;
 
     /* Remember where we started reading the data */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
@@ -378,7 +444,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    struct s2n_blob point_blob = { 0 };
     uint8_t *encoded_point = NULL;
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
@@ -386,13 +451,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        POSIX_ENSURE_REF(point_blob.data);
-        POSIX_CHECKED_MEMCPY(point_blob.data, encoded_point, size);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
         OPENSSL_free(encoded_point);
     }
 #else
-    uint8_t point_len;
+    uint8_t point_len = 0;
     struct s2n_blob point_blob = { 0 };
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
@@ -422,9 +485,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     POSIX_ENSURE_REF(written);
 
     uint8_t key_share_size = ecc_evp_params->negotiated_curve->share_size;
-    /* Remember where the written data starts */
-    written->data = s2n_stuffer_raw_write(out, 0);
-    POSIX_ENSURE_REF(written->data);
+    uint32_t key_share_offset = out->write_cursor;
 
     POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
@@ -434,6 +495,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 
     /* key share + key share size (1) + iana (2) + curve type (1) */
     written->size = key_share_size + 4;
+    written->data = out->blob.data + key_share_offset;
 
     return written->size;
 }
@@ -507,7 +569,7 @@ int s2n_ecc_evp_find_supported_curve(struct s2n_connection *conn, struct s2n_blo
     for (size_t i = 0; i < ecc_prefs->count; i++) {
         const struct s2n_ecc_named_curve *supported_curve = ecc_prefs->ecc_curves[i];
         for (uint32_t j = 0; j < iana_ids->size / 2; j++) {
-            uint16_t iana_id;
+            uint16_t iana_id = 0;
             POSIX_GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
             if (supported_curve->iana_id == iana_id) {
                 *found = supported_curve;

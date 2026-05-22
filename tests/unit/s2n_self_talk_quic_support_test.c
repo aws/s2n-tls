@@ -18,7 +18,7 @@
 #include "tls/s2n_quic_support.h"
 
 #define S2N_MODE_COUNT        2
-#define S2N_SECRET_TYPE_COUNT 5
+#define S2N_SECRET_TYPE_COUNT 6
 
 static const uint8_t CLIENT_TRANSPORT_PARAMS[] = "client transport params";
 static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";
@@ -50,15 +50,15 @@ int main(int argc, char **argv)
     uint16_t transport_params_len = 0;
 
     /* Setup connections */
-    struct s2n_connection *client_conn, *server_conn;
+    struct s2n_connection *client_conn = NULL, *server_conn = NULL;
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
     /* Setup config */
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));

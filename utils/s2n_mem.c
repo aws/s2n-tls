@@ -18,10 +18,14 @@
     #include <features.h>
 #endif
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <unistd.h>
+#ifndef _WIN32
+    #include <sys/mman.h>
+    #include <sys/param.h>
+    #include <unistd.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
@@ -33,42 +37,80 @@ static bool initialized = false;
 
 static int s2n_mem_init_impl(void);
 static int s2n_mem_cleanup_impl(void);
+
+#ifdef _WIN32
+static int s2n_windows_mem_free_impl(void *ptr, uint32_t size);
+static int s2n_windows_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+#else
 static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size);
-static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
 static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
 static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+#endif
 
 static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
 static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
+#ifdef _WIN32
+static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_windows_mem_malloc_impl;
+static s2n_mem_free_callback s2n_mem_free_cb = s2n_windows_mem_free_impl;
+#else
 static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
 static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
+#endif
 
 static int s2n_mem_init_impl(void)
 {
+#ifndef _WIN32
     long sysconf_rc = sysconf(_SC_PAGESIZE);
 
     /* sysconf must not error, and page_size cannot be 0 */
     POSIX_ENSURE_GT(sysconf_rc, 0);
 
     /* page_size must be a valid uint32 */
-    POSIX_ENSURE_LTE(sysconf_rc, UINT32_MAX);
-
+    long max_page_size = S2N_MIN(UINT32_MAX, LONG_MAX);
+    POSIX_ENSURE_LTE(sysconf_rc, max_page_size);
     page_size = (uint32_t) sysconf_rc;
 
     if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
+#endif
     return S2N_SUCCESS;
 }
 
 static int s2n_mem_cleanup_impl(void)
 {
     page_size = 4096;
+#ifdef _WIN32
+    s2n_mem_malloc_cb = s2n_windows_mem_malloc_impl;
+    s2n_mem_free_cb = s2n_windows_mem_free_impl;
+#else
     s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
     s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+#endif
     return S2N_SUCCESS;
 }
+
+#ifdef _WIN32
+/* mlock is not supported on Windows, so these use plain malloc/free without memory locking. */
+
+static int s2n_windows_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated)
+{
+    *ptr = malloc(requested);
+    POSIX_ENSURE(*ptr != NULL, S2N_ERR_ALLOC);
+    *allocated = requested;
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_windows_mem_free_impl(void *ptr, uint32_t size)
+{
+    free(ptr);
+    return S2N_SUCCESS;
+}
+
+#else
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
@@ -90,7 +132,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE_REF(ptr);
 
     /* Page aligned allocation required for mlock */
-    uint32_t allocate;
+    uint32_t allocate = 0;
 
     POSIX_GUARD(s2n_align_to(requested, page_size, &allocate));
 
@@ -98,16 +140,16 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE(posix_memalign(ptr, page_size, allocate) == 0, S2N_ERR_ALLOC);
     *allocated = allocate;
 
-/*
-** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
-** both need to be able to dump pages to function. It's how they map heap output.
-*/
-#if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
+    /*
+    ** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
+    ** both need to be able to dump pages to function. It's how they map heap output.
+    */
+    #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         POSIX_BAIL(S2N_ERR_MADVISE);
     }
-#endif
+    #endif
 
     if (mlock(*ptr, *allocated) != 0) {
         /* When mlock fails, no memory will be locked, so we don't use munlock on free */
@@ -129,24 +171,57 @@ static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t
     return S2N_SUCCESS;
 }
 
+#endif
+
 int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
+    POSIX_GUARD_RESULT(s2n_mem_override_callbacks(mem_init_callback, mem_cleanup_callback,
+            mem_malloc_callback, mem_free_callback));
+    return S2N_SUCCESS;
+}
 
-    POSIX_ENSURE_REF(mem_init_callback);
-    POSIX_ENSURE_REF(mem_cleanup_callback);
-    POSIX_ENSURE_REF(mem_malloc_callback);
-    POSIX_ENSURE_REF(mem_free_callback);
+S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+        s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
+{
+    RESULT_ENSURE_REF(mem_init_callback);
+    RESULT_ENSURE_REF(mem_cleanup_callback);
+    RESULT_ENSURE_REF(mem_malloc_callback);
+    RESULT_ENSURE_REF(mem_free_callback);
 
     s2n_mem_init_cb = mem_init_callback;
     s2n_mem_cleanup_cb = mem_cleanup_callback;
     s2n_mem_malloc_cb = mem_malloc_callback;
     s2n_mem_free_cb = mem_free_callback;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_mem_cleanup_callback *mem_cleanup_callback,
+        s2n_mem_malloc_callback *mem_malloc_callback, s2n_mem_free_callback *mem_free_callback)
+{
+    RESULT_ENSURE_REF(mem_init_callback);
+    RESULT_ENSURE_REF(mem_cleanup_callback);
+    RESULT_ENSURE_REF(mem_malloc_callback);
+    RESULT_ENSURE_REF(mem_free_callback);
+
+    *mem_init_callback = s2n_mem_init_cb;
+    *mem_cleanup_callback = s2n_mem_cleanup_cb;
+    *mem_malloc_callback = s2n_mem_malloc_cb;
+    *mem_free_callback = s2n_mem_free_cb;
+
+    return S2N_RESULT_OK;
+}
+
+/**
+ * Allocate a new blob on the heap.
+ * 
+ * The blob will be _growable_.
+ * 
+ * This blob owns the underlying memory, which will be freed when `s2n_free` is 
+ * called on `b`.
+ */
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
@@ -163,9 +238,13 @@ bool s2n_blob_is_growable(const struct s2n_blob *b)
     return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
 
-/* Tries to realloc the requested bytes.
- * If successful, updates *b.
- * If failed, *b remains unchanged
+/**
+ * Resize a blob to `size`. The blob must be allocated or empty.
+ * 
+ * This will allocate more memory if necessary, or reuse the existing allocation
+ * if the requested size is smaller than the current size.
+ *
+ * If failed, *b remains unchanged.
  */
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
@@ -227,9 +306,15 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     return s2n_free(&b);
 }
 
+/**
+ * Allocate enough memory for `to` to contain all the data in `from`, then copy
+ * the data in `from` to `to`.
+ */
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(from);
     POSIX_ENSURE_EQ(to->size, 0);
     POSIX_ENSURE_EQ(to->data, NULL);
     POSIX_ENSURE_NE(from->size, 0);
@@ -288,7 +373,11 @@ int s2n_free_without_wipe(struct s2n_blob *b)
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
     if (b->data) {
-        POSIX_ENSURE(s2n_mem_free_cb(b->data, b->allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+        void *data = b->data;
+        uint32_t allocated = b->allocated;
+        /* Set data point to NULL first to prevent potential double-free on s2n_mem_free_cb error path */
+        *b = (struct s2n_blob){ 0 };
+        POSIX_ENSURE(s2n_mem_free_cb(data, allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     *b = (struct s2n_blob){ 0 };

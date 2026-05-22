@@ -75,26 +75,6 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
     return S2N_SUCCESS;
 }
 
-/* Return 1 if hmac algorithm is available, 0 otherwise. */
-bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
-{
-    switch(hmac_alg) {
-    case S2N_HMAC_MD5:
-    case S2N_HMAC_SSLv3_MD5:
-    case S2N_HMAC_SSLv3_SHA1:
-        /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
-        return !s2n_is_in_fips_mode();
-    case S2N_HMAC_NONE:
-    case S2N_HMAC_SHA1:
-    case S2N_HMAC_SHA224:
-    case S2N_HMAC_SHA256:
-    case S2N_HMAC_SHA384:
-    case S2N_HMAC_SHA512:
-        return true;
-    }
-    return false;
-}
-
 static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     for (int i = 0; i < state->xor_pad_size; i++) {
@@ -203,10 +183,6 @@ S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     POSIX_ENSURE_REF(state);
-    if (!s2n_hmac_is_available(alg)) {
-        /* Prevent hmacs from being used if they are not available. */
-        POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
-    }
 
     state->alg = alg;
     POSIX_GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
@@ -330,7 +306,7 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     POSIX_ENSURE(state->hash_block_size != 0, S2N_ERR_PRECONDITION_VIOLATION);
     POSIX_GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
 
-    uint64_t bytes_in_hash;
+    uint64_t bytes_in_hash = 0;
     POSIX_GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
     bytes_in_hash %= state->hash_block_size;
     POSIX_ENSURE(bytes_in_hash <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
@@ -395,4 +371,35 @@ int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s
     hmac->outer_just_key.digest.high_level = backup->outer_just_key;
     POSIX_POSTCONDITION(s2n_hmac_state_validate(hmac));
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md)
+{
+    RESULT_ENSURE_REF(md);
+
+    switch (alg) {
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_MD5:
+            *md = EVP_md5();
+            break;
+        case S2N_HMAC_SSLv3_SHA1:
+        case S2N_HMAC_SHA1:
+            *md = EVP_sha1();
+            break;
+        case S2N_HMAC_SHA224:
+            *md = EVP_sha224();
+            break;
+        case S2N_HMAC_SHA256:
+            *md = EVP_sha256();
+            break;
+        case S2N_HMAC_SHA384:
+            *md = EVP_sha384();
+            break;
+        case S2N_HMAC_SHA512:
+            *md = EVP_sha512();
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+    }
+    return S2N_RESULT_OK;
 }

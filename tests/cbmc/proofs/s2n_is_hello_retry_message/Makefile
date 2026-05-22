@@ -23,7 +23,6 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake_io.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
 

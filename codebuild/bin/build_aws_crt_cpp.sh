@@ -30,6 +30,8 @@ source codebuild/bin/s2n_setup_env.sh
 BUILD_DIR=$1
 INSTALL_DIR=$2
 
+# Make sure there isn't another source tree hanging around.
+rm -rf /opt/s2n-tls || true
 mkdir -p "$BUILD_DIR/s2n"
 # In case $BUILD_DIR is a subdirectory of current directory
 for file in *;do test "$file" != "$BUILD_DIR" && cp -r "$file" "$BUILD_DIR/s2n";done
@@ -39,7 +41,13 @@ git clone --depth 1 --shallow-submodules --recurse-submodules https://github.com
 rm -r aws-crt-cpp/crt/s2n
 mv s2n aws-crt-cpp/crt/
 
-cmake ./aws-crt-cpp -Bbuild -GNinja -DBUILD_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cmake ./aws-crt-cpp \
+    -Bbuild \
+    -GNinja \
+    -DENFORCE_SUBMODULE_VERSIONS=off \
+    -DBUILD_DEPS=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 ninja -C ./build install
 CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) ninja -C ./build test
 

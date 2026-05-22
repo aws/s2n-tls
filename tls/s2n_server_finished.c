@@ -86,7 +86,7 @@ int s2n_tls13_server_finished_recv(struct s2n_connection *conn)
 
     /* read finished mac from handshake */
     struct s2n_blob wire_finished_mac = { 0 };
-    s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length);
+    POSIX_GUARD(s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length));
 
     /* get tls13 keys */
     s2n_tls13_connection_keys(keys, conn);

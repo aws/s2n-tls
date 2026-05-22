@@ -14,10 +14,10 @@
  */
 
 #include "api/s2n.h"
-#include "crypto/s2n_rsa_signing.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem_preferences.h"
@@ -25,6 +25,112 @@
 
 /* Include C file directly to access static functions */
 #include "tls/s2n_handshake_io.c"
+
+const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct s2n_security_policy *client_policy, const struct s2n_security_policy *server_policy)
+{
+    PTR_ENSURE_REF(client_policy);
+    PTR_ENSURE_REF(server_policy);
+
+    const struct s2n_kem_preferences *client_prefs = client_policy->kem_preferences;
+    const struct s2n_kem_preferences *server_prefs = server_policy->kem_preferences;
+
+    PTR_ENSURE_REF(client_prefs);
+    PTR_ENSURE_REF(server_prefs);
+
+    /* Client will offer their highest priority PQ KeyShare in their ClientHello. This PQ KeyShare
+     * will be most preferred since it can be negotiated in 1-RTT (even if there are other mutually
+     * supported PQ KeyShares that the server would prefer over this one but would require 2-RTT's).
+     */
+    const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
+    PTR_ENSURE_REF(client_default);
+
+    for (int i = 0; server_policy->strongly_preferred_groups != NULL && i < server_policy->strongly_preferred_groups->count; i++) {
+        for (int j = 0; j < client_policy->kem_preferences->tls13_kem_group_count; j++) {
+            if (server_policy->strongly_preferred_groups->iana_ids[i] == client_policy->kem_preferences->tls13_kem_groups[j]->iana_id
+                    && s2n_kem_group_is_available(client_policy->kem_preferences->tls13_kem_groups[j])) {
+                return client_policy->kem_preferences->tls13_kem_groups[j];
+            }
+        }
+    }
+
+    for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
+        PTR_ENSURE_REF(server_group);
+        if (s2n_kem_group_is_available(client_default) && s2n_kem_group_is_available(server_group)
+                && client_default->iana_id == server_group->iana_id
+                && s2n_kem_group_is_available(client_default)) {
+            return client_default;
+        }
+    }
+
+    /* Otherwise, if the client's default isn't supported, and a 2-RTT PQ handshake is required, the server will choose
+     * whichever mutually supported PQ KeyShare that is highest on the server's preference list. */
+    for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
+
+        /* j starts at 1 since we already checked client_prefs->tls13_kem_groups[0] above */
+        for (int j = 1; j < client_prefs->tls13_kem_group_count; j++) {
+            const struct s2n_kem_group *client_group = client_prefs->tls13_kem_groups[j];
+            PTR_ENSURE_REF(client_group);
+            PTR_ENSURE_REF(server_group);
+            if (s2n_kem_group_is_available(client_group) && s2n_kem_group_is_available(server_group)
+                    && client_group->iana_id == server_group->iana_id
+                    && s2n_kem_group_is_available(client_group)) {
+                return client_group;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const struct s2n_security_policy *client_sec_policy,
+        const struct s2n_security_policy *server_sec_policy)
+{
+    PTR_ENSURE_REF(client_sec_policy);
+    PTR_ENSURE_REF(server_sec_policy);
+
+    /* Client will offer their highest priority ECDHE KeyShare in their ClientHello. This KeyShare
+     * will be most preferred since it can be negotiated in 1-RTT (even if there are other mutually
+     * supported ECDHE KeyShares that the server would prefer over this one but would require 2-RTT's).
+     */
+    const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
+    PTR_ENSURE_REF(client_default);
+
+    for (int i = 0; server_sec_policy->strongly_preferred_groups != NULL && i < server_sec_policy->strongly_preferred_groups->count; i++) {
+        for (int j = 0; j < client_sec_policy->ecc_preferences->count; j++) {
+            if (server_sec_policy->strongly_preferred_groups->iana_ids[i] == client_sec_policy->ecc_preferences->ecc_curves[j]->iana_id) {
+                return client_sec_policy->ecc_preferences->ecc_curves[j];
+            }
+        }
+    }
+
+    for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
+        PTR_ENSURE_REF(server_curve);
+        if (server_curve->iana_id == client_default->iana_id) {
+            return client_default;
+        }
+    }
+
+    /* Otherwise, if the client's default isn't supported, and a 2-RTT handshake is required, the server will choose
+     * whichever mutually supported PQ KeyShare that is highest on the server's preference list. */
+    for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
+
+        /* j starts at 1 since we already checked client_sec_policy->ecc_preferences->ecc_curves[0] above */
+        for (int j = 1; j < client_sec_policy->ecc_preferences->count; j++) {
+            const struct s2n_ecc_named_curve *client_curve = client_sec_policy->ecc_preferences->ecc_curves[j];
+            PTR_ENSURE_REF(client_curve);
+            PTR_ENSURE_REF(server_curve);
+            if (client_curve->iana_id == server_curve->iana_id) {
+                return client_curve;
+            }
+        }
+    }
+
+    return NULL;
+}
 
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
@@ -80,29 +186,41 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        /* Client should always determine whether the Hybrid KEM used len_prefixed format, and server should match client's behavior. */
+        /* Client should always determine whether the KEM group used len_prefixed format, and server should match client's behavior. */
         POSIX_ENSURE_EQ(len_prefix_expected, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
         POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
         POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
 
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        if (expected_kem_group->curve != &s2n_ecc_curve_none) {
+            POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        }
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        if (expected_curve != server_conn->kex_params.server_ecc_evp_params.negotiated_curve) {
+            const char *expected_name = "NULL";
+            const char *actual_name = "NULL";
+            if (expected_curve != NULL && expected_curve->name != NULL) {
+                expected_name = expected_curve->name;
+            }
+            if (server_conn->kex_params.server_ecc_evp_params.negotiated_curve != NULL && server_conn->kex_params.server_ecc_evp_params.negotiated_curve->name != NULL) {
+                actual_name = server_conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
+            }
+
+            fprintf(stderr, "\n\nError: Unexpected curve was negotiated. Expected: %s, Actual: %s\n", expected_name, actual_name);
+            fflush(stderr);
+        }
+
         POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Server sends ServerHello or HRR */
     POSIX_GUARD(s2n_conn_set_handshake_type(server_conn));
-    if (hrr_expected) {
-        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), HELLO_RETRY_MSG);
-    } else {
-        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
-    }
+    POSIX_ENSURE_EQ(hrr_expected, s2n_handshake_type_check_tls13_flag(server_conn, HELLO_RETRY_REQUEST));
     POSIX_GUARD(s2n_handshake_write_io(server_conn));
 
     /* Server sends CCS */
@@ -151,13 +269,32 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     if (expected_kem_group) {
         POSIX_ENSURE_EQ(expected_kem_group, client_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+        if (expected_kem_group->curve != &s2n_ecc_curve_none) {
+            POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        }
+
+        /* Ensure s2n_connection_get_kem_group_name() gives the correct answer for both client and server */
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(s2n_connection_get_kem_group_name(server_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, s2n_connection_get_kem_group_name(server_conn), strlen(expected_kem_group->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(s2n_connection_get_kem_group_name(client_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, s2n_connection_get_kem_group_name(client_conn), strlen(expected_kem_group->name)), 0);
+
+        /* Ensure s2n_connection_get_key_exchange_group() gives the correct answer for both client and server */
+        const char *server_group_name = NULL;
+        const char *client_group_name = NULL;
+        POSIX_GUARD(s2n_connection_get_key_exchange_group(server_conn, &server_group_name));
+        POSIX_GUARD(s2n_connection_get_key_exchange_group(client_conn, &client_group_name));
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(server_group_name));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, server_group_name, strlen(expected_kem_group->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(client_group_name));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, client_group_name, strlen(expected_kem_group->name)), 0);
     } else {
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_params.kem);
@@ -168,6 +305,22 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+        /* Ensure s2n_connection_get_curve() gives the correct answer for both client and server */
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(s2n_connection_get_curve(server_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, s2n_connection_get_curve(server_conn), strlen(expected_curve->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(s2n_connection_get_curve(client_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, s2n_connection_get_curve(client_conn), strlen(expected_curve->name)), 0);
+
+        /* Ensure s2n_connection_get_key_exchange_group() gives the correct answer for both client and server */
+        const char *server_group_name = NULL;
+        const char *client_group_name = NULL;
+        POSIX_GUARD(s2n_connection_get_key_exchange_group(server_conn, &server_group_name));
+        POSIX_GUARD(s2n_connection_get_key_exchange_group(client_conn, &client_group_name));
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(server_group_name));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, server_group_name, strlen(expected_curve->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(client_group_name));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, client_group_name, strlen(expected_curve->name)), 0);
     }
 
     /* Verify basic properties of secrets */
@@ -231,60 +384,71 @@ int main()
      * write the supported_groups extension. Because these unofficial policies don't exist in that
      * array, the supported_groups extension won't get sent and the handshake won't complete as expected. */
 
-    /* Kyber */
-    const struct s2n_kem_group *kyber_test_groups[] = {
-#if EVP_APIS_SUPPORTED
-        &s2n_x25519_kyber_512_r3,
-#endif
-        &s2n_secp256r1_kyber_512_r3,
+    const struct s2n_kem_group *mlkem768_test_groups[] = {
+        &s2n_x25519_mlkem_768,
+        &s2n_secp256r1_mlkem_768,
     };
 
-    const struct s2n_kem_preferences kyber_test_prefs_draft0 = {
+    const struct s2n_kem_preferences mlkem768_test_prefs = {
         .kem_count = 0,
         .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
-        .tls13_kem_groups = kyber_test_groups,
-        .tls13_pq_hybrid_draft_revision = 0
-    };
-
-    const struct s2n_security_policy kyber_test_policy_draft0 = {
-        .minimum_protocol_version = S2N_TLS10,
-        .cipher_preferences = &cipher_preferences_20190801,
-        .kem_preferences = &kyber_test_prefs_draft0,
-        .signature_preferences = &s2n_signature_preferences_20200207,
-        .ecc_preferences = &s2n_ecc_preferences_20200310,
-    };
-
-    const struct s2n_kem_preferences kyber_test_prefs_draft5 = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
-        .tls13_kem_groups = kyber_test_groups,
+        .tls13_kem_group_count = s2n_array_len(mlkem768_test_groups),
+        .tls13_kem_groups = mlkem768_test_groups,
         .tls13_pq_hybrid_draft_revision = 5
     };
 
-    const struct s2n_security_policy kyber_test_policy_draft5 = {
-        .minimum_protocol_version = S2N_TLS10,
+    const struct s2n_security_policy mlkem768_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
         .cipher_preferences = &cipher_preferences_20190801,
-        .kem_preferences = &kyber_test_prefs_draft5,
+        .kem_preferences = &mlkem768_test_prefs,
         .signature_preferences = &s2n_signature_preferences_20200207,
-        .ecc_preferences = &s2n_ecc_preferences_20200310,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
     };
 
-    const struct s2n_security_policy ecc_retry_policy = {
-        .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
-        .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
-        .kem_preferences = security_policy_pq_tls_1_0_2020_12.kem_preferences,
-        .signature_preferences = security_policy_pq_tls_1_0_2020_12.signature_preferences,
-        .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
+    const struct s2n_kem_group *mlkem1024_test_groups[] = {
+        &s2n_secp384r1_mlkem_1024,
     };
 
-    const struct s2n_kem_group *expected_kyber_r3_group = &s2n_x25519_kyber_512_r3;
-    const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
+    const struct s2n_kem_preferences mlkem1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(mlkem1024_test_groups),
+        .tls13_kem_groups = mlkem1024_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy mlkem1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &mlkem1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
+    };
+
+    const struct s2n_kem_group *pure_mlkem1024_test_groups[] = {
+        &s2n_pure_mlkem_1024,
+    };
+
+    const struct s2n_kem_preferences pure_mlkem1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(pure_mlkem1024_test_groups),
+        .tls13_kem_groups = pure_mlkem1024_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy pure_mlkem1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &pure_mlkem1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
+    };
+
+    const struct s2n_ecc_named_curve *default_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
-        expected_kyber_r3_group = &s2n_secp256r1_kyber_512_r3;
-        expected_curve = &s2n_ecc_curve_secp256r1;
+        default_curve = &s2n_ecc_curve_secp256r1;
     }
 
     struct pq_handshake_test_vector {
@@ -296,136 +460,69 @@ int main()
         bool len_prefix_expected;
     };
 
+    /* Self talk test with each TLS 1.3 KemGroup we support */
+    for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
+        const struct s2n_kem_group *kem_group = ALL_SUPPORTED_KEM_GROUPS[i];
+
+        if (kem_group == NULL || !s2n_kem_group_is_available(kem_group)) {
+            continue;
+        }
+
+        const struct s2n_kem_preferences singleton_test_pref = {
+            .kem_count = 0,
+            .kems = NULL,
+            .tls13_kem_group_count = 1,
+            .tls13_kem_groups = &kem_group,
+            .tls13_pq_hybrid_draft_revision = 5
+        };
+
+        const struct s2n_security_policy singleton_test_policy = {
+            .minimum_protocol_version = S2N_TLS13,
+            .cipher_preferences = &cipher_preferences_20190801,
+            .kem_preferences = &singleton_test_pref,
+            .signature_preferences = &s2n_signature_preferences_20200207,
+            .ecc_preferences = &s2n_ecc_preferences_20240603,
+        };
+
+        const struct pq_handshake_test_vector test_vec = {
+            .client_policy = &singleton_test_policy,
+            .server_policy = &singleton_test_policy,
+            .expected_kem_group = kem_group,
+            .expected_curve = NULL,
+            .hrr_expected = false,
+            .len_prefix_expected = false,
+        };
+
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(test_vec.client_policy, test_vec.server_policy,
+                test_vec.expected_kem_group, test_vec.expected_curve, test_vec.hrr_expected, test_vec.len_prefix_expected));
+    }
+
+    /* ML-KEM is only available on newer versions of AWS-LC. If it's
+     * unavailable, we must downgrade the assertions to EC. */
+    const struct s2n_kem_group *null_if_no_mlkem_768 = &s2n_x25519_mlkem_768;
+    const struct s2n_kem_group *null_if_no_mlkem_1024 = &s2n_secp384r1_mlkem_1024;
+    const struct s2n_kem_group *null_if_no_pure_mlkem_1024 = &s2n_pure_mlkem_1024;
+    const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    bool hrr_expected_if_mlkem = true;
+    if (!s2n_libcrypto_supports_mlkem()) {
+        null_if_no_mlkem_768 = NULL;
+        null_if_no_mlkem_1024 = NULL;
+        null_if_no_pure_mlkem_1024 = NULL;
+        ec_if_no_mlkem = default_curve;
+        hrr_expected_if_mlkem = false;
+    }
+
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
      * If PQ is disabled, the expected negotiation outcome is overridden below
      * before performing the handshake test. */
     const struct pq_handshake_test_vector test_vectors[] = {
-        /* Server and Client both support PQ and TLS 1.3 */
-        {
-                .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
-                .server_policy = &security_policy_pq_tls_1_1_2021_05_21,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_22,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_22,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_23,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_23,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_26,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_26,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
-                .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = false,
-        },
-
-        /* Check that we're backwards and forwards compatible with different Hybrid PQ draft revisions*/
-        {
-                .client_policy = &kyber_test_policy_draft0,
-                .server_policy = &kyber_test_policy_draft5,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &kyber_test_policy_draft5,
-                .server_policy = &kyber_test_policy_draft0,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = false,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
-                .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
-                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = false,
-        },
-
-        /* Server supports all KEM groups; client sends a PQ key share and an EC key
-         * share; server chooses to negotiate client's first choice PQ without HRR. */
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-
-        /* Server supports only one KEM group and it is the client's first choice;
-         * client sends a PQ share and an EC share; server chooses to negotiate PQ
-         * without HRR. */
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                .server_policy = &kyber_test_policy_draft0,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-
-        /* Server supports only one KEM group and it is the client's first choice;
-         * client sends a PQ share and an EC share; server chooses to negotiate PQ
-         * without HRR. */
-        {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                .server_policy = &kyber_test_policy_draft5,
-                .expected_kem_group = expected_kyber_r3_group,
-                .expected_curve = NULL,
-                .hrr_expected = false,
-                .len_prefix_expected = true,
-        },
-
         /* Server does not support PQ; client sends a PQ key share and an EC key share;
          * server should negotiate EC without HRR. */
         {
-                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .client_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
         },
@@ -433,10 +530,10 @@ int main()
         /* Server does not support PQ; client sends a PQ key share, but no EC shares;
          * server should negotiate EC and send HRR. */
         {
-                .client_policy = &ecc_retry_policy,
+                .client_policy = &security_policy_test_tls13_retry_with_pq,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
         },
@@ -445,22 +542,97 @@ int main()
          * EC should be negotiated without HRR */
         {
                 .client_policy = &security_policy_test_all_tls13,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
         },
 
         /* Server supports PQ, but client does not. Client did not send any EC shares,
-         * EC should be negotiated after exchanging HRR */
+        * EC should be negotiated after exchanging HRR */
         {
                 .client_policy = &security_policy_test_tls13_retry,
-                .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &security_policy_pq_tls_1_2_2024_10_09,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
+        },
+
+        /* Confirm that MLKEM768 is negotiable */
+        {
+                .client_policy = &mlkem768_test_policy,
+                .server_policy = &mlkem768_test_policy,
+                .expected_kem_group = null_if_no_mlkem_768,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        /* Confirm that MLKEM1024 is negotiable */
+        {
+                .client_policy = &mlkem1024_test_policy,
+                .server_policy = &mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        /* Confirm that pure MLKEM1024 is negotiable; fall back to EC when MLKEM is not supported. */
+        {
+                .client_policy = &pure_mlkem1024_test_policy,
+                .server_policy = &pure_mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+
+        /* Client supports pure MLKEM but did not send that key share. Pure MLKEM should be negotiated after exchanging HRR.
+         * If ML-KEM is not supported, EC should be negotiated without HRR. */
+        {
+                .client_policy = &security_policy_test_all,
+                .server_policy = &pure_mlkem1024_test_policy,
+                .expected_kem_group = null_if_no_pure_mlkem_1024,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = hrr_expected_if_mlkem,
+                .len_prefix_expected = false,
+        },
+
+        /* Client supports p384 but did not send that key share when connecting to server that strongly prefers p384. */
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251113, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251114, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251115, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
+                .server_policy = &security_policy_20251116, /* Strongly prefers p384 */
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp384r1,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
         },
     };
 
@@ -473,10 +645,66 @@ int main()
         bool hrr_expected = vector->hrr_expected;
         bool len_prefix_expected = vector->len_prefix_expected;
 
-        if (!s2n_pq_is_enabled()) {
-            /* If PQ is disabled, we always expected to negotiate ECC. */
+        /* Print Test Vector Info for easier debugging on failure. */
+        {
+            const char *kem_group_str = (kem_group == NULL) ? "NULL" : kem_group->name;
+            const char *curve_str = (curve == NULL) ? "NULL" : curve->name;
+            fprintf(stderr, "\n\nRunning test (%zu/%zu)...\n", i + 1, s2n_array_len(test_vectors));
+            fflush(stderr);
+            fprintf(stderr, "Test Vector: kem_group: %s, curve: %s, hrr_expected: %d, len_prefix_expected: %d\n", kem_group_str, curve_str, hrr_expected, len_prefix_expected);
+            fflush(stderr);
+            uint32_t output_size = 0;
+            fprintf(stderr, "\nClient Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(client_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+
+            fprintf(stderr, "\nServer Security Policy: \n");
+            EXPECT_SUCCESS(s2n_security_policy_write_fd(server_policy, S2N_POLICY_FORMAT_DEBUG_V1, STDERR_FILENO, &output_size));
+            fflush(stderr);
+        }
+
+        /* Check if we need to override the test vector. This may need to be done due to some LibCryptos not supporting PQ. */
+        if (!s2n_kem_group_is_available(kem_group)) {
             kem_group = NULL;
-            curve = expected_curve;
+            if (curve == NULL) {
+                curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
+            }
+        }
+
+        if (!s2n_pq_is_enabled()) {
+            EXPECT_TRUE(client_policy->ecc_preferences->count > 0);
+            const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
+            const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
+
+            /* If the  default curve is x25519, and the test vector is predicting the default, but neither policy supports x25519,
+             * fall back to predict p256 as it should be in common with every ECC preference list. */
+            if (default_curve->iana_id == s2n_ecc_curve_x25519.iana_id
+                    && curve->iana_id == default_curve->iana_id
+                    && (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id)
+                            || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_x25519.iana_id))) {
+                EXPECT_TRUE(s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
+                EXPECT_TRUE(s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
+                curve = &s2n_ecc_curve_secp256r1;
+            }
+
+            /* The client's preferred curve will be a higher priority than the default if both sides
+             * support TLS 1.3, and if the client's default can be chosen by the server in 1-RTT. */
+            if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
+                    && (server_policy->strongly_preferred_groups == NULL || server_policy->strongly_preferred_groups->count == 0)
+                    && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
+                curve = client_default;
+            }
+
+            /* Finally, confirm that the expected curve listed in the test vector matches the output of s2n_get_predicted_negotiated_ecdhe_curve() */
+            EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
+        }
+
+        if (kem_group != NULL) {
+            const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_policy, server_policy);
+            POSIX_ENSURE_REF(predicted_kem_group);
+
+            /* Confirm that the expected KEM Group listed in the test vector matches the output of
+             * s2n_get_predicted_negotiated_kem_group() */
+            POSIX_ENSURE_EQ(kem_group->iana_id, predicted_kem_group->iana_id);
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

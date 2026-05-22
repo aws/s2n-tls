@@ -1,0 +1,24 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#raw-output"
+
+# ### Raw Output
+#
+# The program should allow for raw outputs either sorted or original.  
+# -r (raw fingerprint) -o (original) 
+# 
+# The raw fingerprint for JA4 would look like this:
+# ```
+# JA4_r = t13d1516h2_002f,0035,009c,009d,1301,1302,1303,c013,c014,c02b,c02c,c02f,c030,cca8,cca9_0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01_0403,0804,0401,0503,0805,0501,0806,0601
+# ```
+# 
+# The "o" option includes the original values in the original order, less GREASE values. This means SNI (0000) and ALPN (0010) are included. 
+# 
+# The raw fingerprint with the original ordering (-o) would look like this:
+# ```
+# JA4_ro = t13d1516h2_1301,1302,1303,c02b,c02f,c02c,c030,cca9,cca8,c013,c014,009c,009d,002f,0035_001b,0000,0033,0010,4469,0017,002d,000d,0005,0023,0012,002b,ff01,000b,000a,0015_0403,0804,0401,0503,0805,0501,0806,0601
+# ```
+# When ‘-o’ flag is specified, ‘ja4’ field must be renamed to ‘ja4_o’:
+# ```
+# JA4_o = t13d1516h2_acb858a92679_18f69afefd3d
+# ```
+# 
+

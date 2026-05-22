@@ -24,11 +24,7 @@ static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     struct s2n_blob sequence_number = { 0 };
-    if (mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
-    } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, sizeof(conn->secure->server_sequence_number)));
-    }
+    POSIX_GUARD_RESULT(s2n_connection_get_sequence_number(conn, mode, &sequence_number));
     POSIX_GUARD(s2n_blob_zero(&sequence_number));
     return S2N_SUCCESS;
 }
@@ -77,8 +73,10 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
 }
 
 /* Computes the ECDHE+PQKEM hybrid shared secret as defined in
- * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
-int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+ * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design
+ * Also supports "pure PQ" mode when kem_group->curve == &s2n_ecc_curve_none.
+ */
+int s2n_tls13_compute_pq_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(shared_secret);
@@ -97,15 +95,6 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(client_ecc_params);
 
-    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_free_or_wipe);
-
-    /* Compute the ECDHE shared secret, and retrieve the PQ shared secret. */
-    if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
-    } else {
-        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
-    }
-
     struct s2n_blob *pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     POSIX_ENSURE_REF(pq_shared_secret);
     POSIX_ENSURE_REF(pq_shared_secret->data);
@@ -114,6 +103,16 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     POSIX_ENSURE_REF(negotiated_kem_group);
     POSIX_ENSURE_REF(negotiated_kem_group->kem);
 
+    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_free_or_wipe);
+
+    if (negotiated_kem_group->curve == &s2n_ecc_curve_none) {
+        POSIX_ENSURE_EQ(ecdhe_shared_secret.size, 0);
+    } else if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
+    } else {
+        POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
+    }
+
     POSIX_ENSURE_EQ(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
 
     /* Construct the concatenated/hybrid shared secret */
@@ -121,13 +120,19 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_alloc(shared_secret, hybrid_shared_secret_size));
     struct s2n_stuffer stuffer_combiner = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&stuffer_combiner, shared_secret));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+
+    if (negotiated_kem_group->send_kem_first) {
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
+    } else {
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+    }
 
     return S2N_SUCCESS;
 }
 
-static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
+int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
 {
     return conn->kex_params.server_kem_group_params.kem_group != NULL;
 }
@@ -137,7 +142,7 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
     POSIX_ENSURE_REF(conn);
 
     if (s2n_tls13_pq_hybrid_supported(conn)) {
-        POSIX_GUARD(s2n_tls13_compute_pq_hybrid_shared_secret(conn, shared_secret));
+        POSIX_GUARD(s2n_tls13_compute_pq_shared_secret(conn, shared_secret));
     } else {
         POSIX_GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));
     }
@@ -158,11 +163,12 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
-    struct s2n_session_key *old_key;
+    struct s2n_session_key *old_key = NULL;
     struct s2n_blob old_app_secret = { 0 };
     struct s2n_blob app_iv = { 0 };
 
@@ -185,12 +191,20 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     s2n_tls13_key_blob(app_key, conn->secure->cipher_suite->record_alg->cipher->key_material_size);
 
     /* Derives next generation of traffic key */
+    uint8_t *count = NULL;
     POSIX_GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
     if (status == RECEIVING) {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
+        POSIX_GUARD_RESULT(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
+        count = &conn->recv_key_updated;
     } else {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
+        POSIX_GUARD_RESULT(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
+        count = &conn->send_key_updated;
     }
+
+    /* Increment the count.
+     * Don't treat overflows as errors-- we only do best-effort reporting.
+     */
+    *count = S2N_MIN(UINT8_MAX, *count + 1);
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and

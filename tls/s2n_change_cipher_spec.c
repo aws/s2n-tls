@@ -27,7 +27,7 @@
 
 int s2n_basic_ccs_recv(struct s2n_connection *conn)
 {
-    uint8_t type;
+    uint8_t type = 0;
 
     POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
     S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);

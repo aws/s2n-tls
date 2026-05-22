@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_ems.h"
 #include "tls/s2n_tls.h"
@@ -24,7 +23,7 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 static bool s2n_client_ems_should_send(struct s2n_connection *conn);
 
 /**
- *= https://tools.ietf.org/rfc/rfc7627#section-5.1
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-5.1
  *#
  *#   This document defines a new TLS extension, "extended_master_secret"
  *#   (with extension type 0x0017), which is used to signal both client and

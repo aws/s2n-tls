@@ -10,12 +10,12 @@ pushd $TOPLEVEL > /dev/null
 
 duvet \
   report \
+  --spec-path 'compliance' \
   --spec-pattern 'compliance/specs/**/*.toml' \
   --source-pattern '(*=,*#)api/**/*.[ch]' \
   --source-pattern '(*=,*#)bin/**/*.[ch]' \
   --source-pattern '(*=,*#)crypto/**/*.[ch]' \
   --source-pattern '(*=,*#)error/**/*.[ch]' \
-  --source-pattern '(*=,*#)pq-crypto/**/*.[ch]' \
   --source-pattern '(*=,*#)stuffer/**/*.[ch]' \
   --source-pattern '(*=,*#)tests/**/*.[ch]' \
   --source-pattern '(*=,*#)tls/**/*.[ch]' \

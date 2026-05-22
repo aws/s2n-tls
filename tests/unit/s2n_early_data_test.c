@@ -424,7 +424,7 @@ int main(int argc, char **argv)
 
         /* Not valid if the first wire PSK was not chosen
         *
-        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
         *= type=test
         *# In order to accept early data, the server MUST have accepted a PSK
         *# cipher suite and selected the first key offered in the client's
@@ -457,7 +457,7 @@ int main(int argc, char **argv)
         };
 
         /**
-        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
         *= type=test
         *# In addition, it MUST verify that the
         *# following values are the same as those associated with the
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
         **/
         {
             /**
-            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
             *= type=test
             *# -  The TLS version number
             **/
@@ -492,7 +492,7 @@ int main(int argc, char **argv)
             };
 
             /**
-            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
             *= type=test
             *# -  The selected cipher suite
             **/
@@ -515,7 +515,7 @@ int main(int argc, char **argv)
             };
 
             /**
-            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
             *= type=test
             *# -  The selected ALPN [RFC7301] protocol, if any
             **/

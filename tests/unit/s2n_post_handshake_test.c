@@ -41,11 +41,11 @@ int main(int argc, char **argv)
     {
         /* post_handshake_recv processes a key update requested message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_KEY_UPDATE));
@@ -53,18 +53,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
             EXPECT_OK(s2n_post_handshake_recv(conn));
-            EXPECT_TRUE(conn->key_update_pending);
+            EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
         /* post_handshake_recv rejects an unknown post handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, -1));
@@ -72,25 +72,25 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
         /* post_handshake_recv processes a malformed post handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_KEY_UPDATE));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_LENGTH));
 
             EXPECT_ERROR(s2n_post_handshake_recv(conn));
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -177,18 +177,57 @@ int main(int argc, char **argv)
 
     /* post_handshake_send */
     {
-        /* Post handshake message can be sent */
+        /* Post handshake messages can be sent */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            s2n_blocked_status blocked;
+            s2n_atomic_flag_set(&conn->key_update_pending);
 
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_TRUE(s2n_stuffer_data_available(&conn->out) == 0);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_TRUE(s2n_stuffer_data_available(&output) > 0);
+        };
+
+        /* No messages sent if no post-handshake messages required */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            s2n_atomic_flag_clear(&conn->key_update_pending);
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
+
+        /* No messages sent if <TLS1.3 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            conn->actual_protocol_version = S2N_TLS12;
+            s2n_atomic_flag_set(&conn->key_update_pending);
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+
+            EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
         };
     };
 

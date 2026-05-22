@@ -18,9 +18,9 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_stream_cipher_null_available()
+static bool s2n_stream_cipher_null_available(void)
 {
-    return 1;
+    return true;
 }
 
 static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
@@ -33,19 +33,19 @@ static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct 
     return 0;
 }
 
-static int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
 {
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_null_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_stream_cipher_null_init(struct s2n_session_key *key)
 {
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_cipher s2n_null_cipher = {

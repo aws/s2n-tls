@@ -14,7 +14,6 @@
  */
 
 #include <math.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -90,7 +89,7 @@ static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
     POSIX_ENSURE_LT(context->calls, context->results_len);
     const struct s2n_send_result *result = &context->results[context->calls];
 
-    int retval = MIN((int) len, result->result);
+    int retval = S2N_MIN((int) len, result->result);
 
     context->calls++;
     if (retval > 0) {
@@ -598,6 +597,211 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+    };
+
+    /* Test: s2n_sendv_with_offset_total_size */
+    {
+        const struct iovec test_multiple_bufs[] = {
+            { .iov_len = 0 },
+            { .iov_len = 1 },
+            { .iov_len = 2 },
+            { .iov_len = 0 },
+            { .iov_len = 14 },
+            { .iov_len = 0 },
+            { .iov_len = 3 },
+            { .iov_len = 0 },
+        };
+        const ssize_t test_multiple_bufs_total_size = 20;
+
+        /* Safety */
+        {
+            const struct iovec test_buf = { 0 };
+            ssize_t out = 0;
+
+            /* Check null safety */
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(&test_buf, 1, 0, NULL),
+                    S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(NULL, 1, 0, &out),
+                    S2N_ERR_NULL);
+
+            /* Check negative safety */
+            EXPECT_OK(s2n_sendv_with_offset_total_size(NULL, -1, 0, &out));
+            EXPECT_EQUAL(out, 0);
+            EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, -1, 0, &out));
+            EXPECT_EQUAL(out, 0);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(NULL, 0, -1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(&test_buf, 1, -1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+        }
+
+        /* No iovecs */
+        {
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(NULL, 0, 0, &out));
+            EXPECT_EQUAL(out, 0);
+        }
+
+        /* Array of zero-length iovecs */
+        {
+            const struct iovec test_bufs[10] = { 0 };
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(
+                    test_bufs, s2n_array_len(test_bufs), 0, &out));
+            EXPECT_EQUAL(out, 0);
+        }
+
+        /* Single iovec */
+        {
+            const ssize_t expected_size = 10;
+            const struct iovec test_buf = { .iov_len = expected_size };
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, 1, 0, &out));
+            EXPECT_EQUAL(out, expected_size);
+        }
+
+        /* Single iovec with offset */
+        {
+            const struct iovec test_buf = { .iov_len = 10 };
+            const ssize_t offset = 5;
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, 1, offset, &out));
+            EXPECT_EQUAL(out, test_buf.iov_len - offset);
+        }
+
+        /* Multiple iovecs */
+        {
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(
+                    test_multiple_bufs, s2n_array_len(test_multiple_bufs), 0, &out));
+            EXPECT_EQUAL(out, test_multiple_bufs_total_size);
+        }
+
+        /* Multiple iovecs with offset */
+        {
+            const ssize_t offset = 10;
+            ssize_t out = 0;
+            EXPECT_OK(s2n_sendv_with_offset_total_size(
+                    test_multiple_bufs, s2n_array_len(test_multiple_bufs), offset, &out));
+            EXPECT_EQUAL(out, test_multiple_bufs_total_size - offset);
+        }
+
+        /* Offset with no data */
+        {
+            const struct iovec test_bufs[10] = { 0 };
+            ssize_t out = 0;
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(NULL, 0, 1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_bufs, 0, 1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_bufs, s2n_array_len(test_bufs), 1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+        }
+
+        /* Offset larger than available data */
+        {
+            const struct iovec test_buf = { .iov_len = 10 };
+            ssize_t out = 0;
+
+            ssize_t test_buf_offset = test_buf.iov_len + 1;
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(&test_buf, 1, test_buf_offset, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+
+            ssize_t test_multiple_bufs_offset = test_multiple_bufs_total_size + 1;
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_multiple_bufs,
+                            s2n_array_len(test_multiple_bufs), test_multiple_bufs_offset, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+        }
+
+        /* Too much data to count
+         *
+         * This isn't really practically possible since an application would need
+         * to allocate more than SIZE_MAX memory for the iovec buffers, but we
+         * should ensure that the inputs don't cause unexpected behavior.
+         */
+        {
+            ssize_t out = 0;
+
+            const struct iovec test_bufs_ssize[] = {
+                { .iov_len = SSIZE_MAX },
+                { .iov_len = 1 },
+            };
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_bufs_ssize, s2n_array_len(test_bufs_ssize), 0, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+
+            const struct iovec test_bufs_size[] = {
+                { .iov_len = SIZE_MAX },
+                { .iov_len = 1 },
+            };
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_bufs_size, s2n_array_len(test_bufs_size), 0, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+        }
+    };
+
+    /* Test: s2n_flush is necessary and not achievable with s2n_send */
+    {
+        bool use_send[] = { true, false };
+
+        /* To reproduce the problematic scenario, we need to block on
+         * sending a record during a multi-record write.
+         */
+        struct s2n_send_result results[] = {
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT,
+            OK_SEND_RESULT,
+            OK_SEND_RESULT,
+        };
+
+        for (size_t i = 0; i < s2n_array_len(use_send); i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            struct s2n_send_context context = {
+                .results = results,
+                .results_len = s2n_array_len(results)
+            };
+            EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+            EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+
+            s2n_blocked_status blocked = 0;
+
+            /* First attempt blocks */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                    S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            EXPECT_EQUAL(context.bytes_sent, 0);
+
+            /* For our control case, we attempt to use a zero-length send as flush */
+            if (use_send[i]) {
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, 0, &blocked),
+                        S2N_ERR_SEND_SIZE);
+                continue;
+            }
+
+            /* Unlike the zero-length send, s2n_flush succeeds */
+            EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+            EXPECT_EQUAL(context.bytes_sent, max_frag_bytes_sent[S2N_MFL_DEFAULT]);
+
+            /* We can also successfully finish sending */
+            EXPECT_EQUAL(
+                    s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                    sizeof(large_test_data));
+            EXPECT_EQUAL(context.bytes_sent, large_test_data_bytes_sent);
+        }
     };
 
     END_TEST();

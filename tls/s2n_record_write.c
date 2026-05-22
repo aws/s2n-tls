@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
@@ -24,12 +23,18 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
 extern uint8_t s2n_unknown_protocol_version;
+
+/* In TLS1.3 the record type is obfuscated as APPLICATION_DATA once the handshake begins to be encrypted.
+ * The real record type is encrypted and written in the final byte of the record.
+ * In TLS1.2 the record type is always cleartext. */
+#define RECORD_TYPE(is_tls13_record, content_type) (is_tls13_record ? TLS_APPLICATION_DATA : content_type)
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t *out)
@@ -42,7 +47,7 @@ static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t 
         active = conn->client;
     }
 
-    uint8_t extra;
+    uint8_t extra = 0;
     RESULT_GUARD_POSIX(s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg, &extra));
 
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -74,7 +79,7 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     RESULT_ENSURE_MUT(max_fragment_size);
     RESULT_ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
-    *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+    *max_fragment_size = S2N_MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* If a custom send buffer is configured, ensure it will be large enough for the payload.
      * That may mean we need a smaller fragment size.
@@ -154,7 +159,7 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
-int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t record_type, struct s2n_stuffer *out)
 {
     uint8_t record_protocol_version = conn->actual_protocol_version;
 
@@ -169,12 +174,14 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_st
      * use that assumed value here in case we are talking to a legacy
      * server that expects TLS1.0.
      *
-     * If we are requesting early data, we can assume that we aren't talking to
-     * a legacy server as a legacy server would not know how to handle early data.
+     * Both TLS 1.3 early data and a deserialized connection will
+     * send data without the server_protocol_version being known. However,
+     * the record type would be set to APPLICATION_DATA in their cases
+     * so this check is avoided.
      **/
     if (conn->server_protocol_version == s2n_unknown_protocol_version
-            && conn->early_data_state != S2N_EARLY_DATA_REQUESTED) {
-        record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
+            && record_type == TLS_HANDSHAKE) {
+        record_protocol_version = S2N_MIN(record_protocol_version, S2N_TLS10);
     }
 
     /**
@@ -184,7 +191,7 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_st
      *#    ClientHello (i.e., one not generated after a HelloRetryRequest),
      *#    where it MAY also be 0x0301 for compatibility purposes.
      **/
-    record_protocol_version = MIN(record_protocol_version, S2N_TLS12);
+    record_protocol_version = S2N_MIN(record_protocol_version, S2N_TLS12);
 
     /* Never send an empty protocol version.
      * If the protocol version is unknown, default to TLS1.0 like we do for initial ClientHellos.
@@ -245,8 +252,112 @@ static inline int s2n_record_encrypt(
     return 0;
 }
 
+static S2N_RESULT s2n_record_write_mac(struct s2n_connection *conn, struct s2n_blob *record_header,
+        struct s2n_blob *plaintext, struct s2n_stuffer *out, uint32_t *bytes_written)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->server);
+    RESULT_ENSURE_REF(conn->client);
+    RESULT_ENSURE_REF(record_header);
+    RESULT_ENSURE_REF(plaintext);
+    RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(bytes_written);
+    *bytes_written = 0;
+
+    struct s2n_hmac_state *mac = &conn->server->server_record_mac;
+    const struct s2n_cipher_suite *cipher_suite = conn->server->cipher_suite;
+    uint8_t *sequence_number = conn->server->server_sequence_number;
+
+    if (conn->mode == S2N_CLIENT) {
+        mac = &conn->client->client_record_mac;
+        cipher_suite = conn->client->cipher_suite;
+        sequence_number = conn->client->client_sequence_number;
+    }
+
+    RESULT_ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(cipher_suite->record_alg);
+
+    if (cipher_suite->record_alg->hmac_alg == S2N_HMAC_NONE) {
+        /* If the S2N_HMAC_NONE algorithm is specified, a MAC should not be explicitly written.
+         * This is the case for AEAD and Composite cipher types, where the MAC is written as part
+         * of encryption. This is also the case for plaintext handshake records, where the null
+         * stream cipher is used.
+         */
+        return S2N_RESULT_OK;
+    }
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-6.2.3.1
+     *# The MAC is generated as:
+     *#
+     *#    MAC(MAC_write_key, seq_num +
+     */
+    RESULT_GUARD_POSIX(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+    struct s2n_stuffer header_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&header_stuffer, record_header));
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-6.2.3.1
+     *#     TLSCompressed.type +
+     */
+    void *record_type_byte = s2n_stuffer_raw_read(&header_stuffer, sizeof(uint8_t));
+    RESULT_ENSURE_REF(record_type_byte);
+    RESULT_GUARD_POSIX(s2n_hmac_update(mac, record_type_byte, sizeof(uint8_t)));
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-6.2.3.1
+     *#     TLSCompressed.version +
+     */
+    void *protocol_version_bytes = s2n_stuffer_raw_read(&header_stuffer, S2N_TLS_PROTOCOL_VERSION_LEN);
+    RESULT_ENSURE_REF(protocol_version_bytes);
+    if (conn->actual_protocol_version > S2N_SSLv3) {
+        /* SSLv3 doesn't include the protocol version in the MAC. */
+        RESULT_GUARD_POSIX(s2n_hmac_update(mac, protocol_version_bytes, S2N_TLS_PROTOCOL_VERSION_LEN));
+    }
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-6.2.3.1
+     *#     TLSCompressed.length +
+     *
+     * Note that the length field refers to the length of the plaintext content, not the length of
+     * TLSCiphertext fragment written to the record header, which accounts for additional fields
+     * such as the padding and MAC.
+     */
+    uint8_t content_length_bytes[sizeof(uint16_t)] = { 0 };
+    struct s2n_blob content_length_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&content_length_blob, content_length_bytes, sizeof(content_length_bytes)));
+    struct s2n_stuffer content_length_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&content_length_stuffer, &content_length_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&content_length_stuffer, plaintext->size));
+    RESULT_GUARD_POSIX(s2n_hmac_update(mac, content_length_bytes, sizeof(content_length_bytes)));
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-6.2.3.1
+     *#     TLSCompressed.fragment);
+     *#
+     *# where "+" denotes concatenation.
+     */
+    RESULT_GUARD_POSIX(s2n_hmac_update(mac, plaintext->data, plaintext->size));
+
+    uint8_t mac_digest_size = 0;
+    RESULT_GUARD_POSIX(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
+    uint8_t *digest = s2n_stuffer_raw_write(out, mac_digest_size);
+    RESULT_ENSURE_REF(digest);
+    RESULT_GUARD_POSIX(s2n_hmac_digest(mac, digest, mac_digest_size));
+    *bytes_written = mac_digest_size;
+
+    RESULT_GUARD_POSIX(s2n_hmac_reset(mac));
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
+    if (conn->ktls_send_enabled) {
+        return s2n_ktls_record_writev(conn, content_type, in, in_count, offs, to_write);
+    }
+
     struct s2n_blob iv = { 0 };
     uint8_t padding = 0;
     uint16_t block_size = 0;
@@ -262,14 +373,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     }
 
     uint8_t *sequence_number = conn->server->server_sequence_number;
-    struct s2n_hmac_state *mac = &conn->server->server_record_mac;
     struct s2n_session_key *session_key = &conn->server->server_key;
     const struct s2n_cipher_suite *cipher_suite = conn->server->cipher_suite;
     uint8_t *implicit_iv = conn->server->server_implicit_iv;
 
     if (conn->mode == S2N_CLIENT) {
         sequence_number = conn->client->client_sequence_number;
-        mac = &conn->client->client_record_mac;
         session_key = &conn->client->client_key;
         cipher_suite = conn->client->cipher_suite;
         implicit_iv = conn->client->client_implicit_iv;
@@ -289,15 +398,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
     }
 
-    uint8_t mac_digest_size;
-    POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
-
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
     uint16_t max_write_payload_size = 0;
     POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_write_payload_size));
-    const uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
+    const uint16_t data_bytes_to_take = S2N_MIN(to_write, max_write_payload_size);
 
     uint16_t extra = 0;
     POSIX_GUARD_RESULT(s2n_tls_record_overhead(conn, &extra));
@@ -311,9 +417,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     } else if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         block_size = cipher_suite->record_alg->cipher->io.comp.block_size;
     }
-
-    /* Start the MAC with the sequence number */
-    POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     if (s2n_stuffer_is_freed(&conn->out)) {
         /* If the output buffer has not been allocated yet, allocate
@@ -332,7 +435,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
 
-        uint32_t buffer_size = MAX(conn->config->send_buffer_size_override, max_wire_record_size);
+        uint32_t buffer_size = S2N_MAX(conn->config->send_buffer_size_override, max_wire_record_size);
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
     }
 
@@ -347,21 +450,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &record_blob));
 
     /* Now that we know the length, start writing the record */
-    POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, is_tls13_record ?
-                    /* tls 1.3 opaque type */ TLS_APPLICATION_DATA :
-                    /* actual content_type */ content_type));
-    POSIX_GUARD(s2n_record_write_protocol_version(conn, &record_stuffer));
-
-    /* First write a header that has the payload length, this is for the MAC */
-    POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, data_bytes_to_take));
-
-    if (conn->actual_protocol_version > S2N_SSLv3) {
-        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data, S2N_TLS_RECORD_HEADER_LENGTH));
-    } else {
-        /* SSLv3 doesn't include the protocol version in the MAC */
-        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data, 1));
-        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data + 3, 2));
-    }
+    uint8_t record_type = RECORD_TYPE(is_tls13_record, content_type);
+    POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, record_type));
+    POSIX_GUARD(s2n_record_write_protocol_version(conn, record_type, &record_stuffer));
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
      * Composite "encrypt" will MAC the payload data and fill in padding.
@@ -374,7 +465,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         }
 
         /* Outputs number of extra bytes required for MAC and padding */
-        int pad_and_mac_len;
+        int pad_and_mac_len = 0;
         POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
                 payload_and_eiv_len, &pad_and_mac_len));
         extra += pad_and_mac_len;
@@ -390,13 +481,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* ensure actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH <= max record length */
     const uint16_t max_record_length = is_tls13_record ? S2N_TLS13_MAXIMUM_RECORD_LENGTH : S2N_TLS_MAXIMUM_RECORD_LENGTH;
     S2N_ERROR_IF(actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH > max_record_length, S2N_ERR_RECORD_LENGTH_TOO_LARGE);
-    POSIX_GUARD(s2n_stuffer_wipe_n(&record_stuffer, 2));
     POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, actual_fragment_length));
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
         struct s2n_stuffer iv_stuffer = { 0 };
-        s2n_blob_init(&iv, aad_iv, sizeof(aad_iv));
+        POSIX_GUARD(s2n_blob_init(&iv, aad_iv, sizeof(aad_iv)));
         POSIX_GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
         if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
@@ -424,7 +514,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
             POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
         }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        s2n_blob_init(&iv, implicit_iv, block_size);
+        POSIX_GUARD(s2n_blob_init(&iv, implicit_iv, block_size));
 
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {
@@ -457,22 +547,22 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         }
     }
 
+    /* Write the plaintext data */
+    POSIX_GUARD(s2n_stuffer_writev_bytes(&record_stuffer, in, in_count, offs, data_bytes_to_take));
+    void *orig_write_ptr = record_stuffer.blob.data + record_stuffer.write_cursor - data_bytes_to_take;
+
+    /* Write the MAC */
+    struct s2n_blob header_blob = { 0 };
+    POSIX_GUARD(s2n_blob_slice(&record_blob, &header_blob, 0, S2N_TLS_RECORD_HEADER_LENGTH));
+    struct s2n_blob plaintext_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&plaintext_blob, orig_write_ptr, data_bytes_to_take));
+    uint32_t mac_digest_size = 0;
+    POSIX_GUARD_RESULT(s2n_record_write_mac(conn, &header_blob, &plaintext_blob, &record_stuffer, &mac_digest_size));
+
     /* We are done with this sequence number, so we can increment it */
     struct s2n_blob seq = { 0 };
     POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
-
-    /* Write the plaintext data */
-    POSIX_GUARD(s2n_stuffer_writev_bytes(&record_stuffer, in, in_count, offs, data_bytes_to_take));
-    void *orig_write_ptr = record_stuffer.blob.data + record_stuffer.write_cursor - data_bytes_to_take;
-    POSIX_GUARD(s2n_hmac_update(mac, orig_write_ptr, data_bytes_to_take));
-
-    /* Write the digest */
-    uint8_t *digest = s2n_stuffer_raw_write(&record_stuffer, mac_digest_size);
-    POSIX_ENSURE_REF(digest);
-
-    POSIX_GUARD(s2n_hmac_digest(mac, digest, mac_digest_size));
-    POSIX_GUARD(s2n_hmac_reset(mac));
 
     /* Write content type for TLS 1.3 record (RFC 8446 Section 5.2) */
     if (is_tls13_record) {

@@ -1,0 +1,61 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-5.9"
+
+# 5.9.  Elliptic Curve Certificates
+#
+# X.509 certificates containing ECC public keys or signed using ECDSA
+# MUST comply with [RFC3279] or another RFC that replaces or extends
+# it.  X.509 certificates containing ECC public keys or signed using
+# EdDSA MUST comply with [RFC8410].  Clients SHOULD use the elliptic
+# curve domain parameters recommended in ANSI X9.62, FIPS 186-4, and
+# SEC 2 [SECG-SEC2], or in [RFC8032].
+# 
+# EdDSA keys using the Ed25519 algorithm MUST use the ed25519 signature
+# algorithm, and Ed448 keys MUST use the ed448 signature algorithm.
+# This document does not define use of Ed25519ph and Ed448ph keys with
+# TLS.  Ed25519, Ed25519ph, Ed448, and Ed448ph keys MUST NOT be used
+# with ECDSA.
+
+[[spec]]
+level = "MUST"
+quote = '''
+X.509 certificates containing ECC public keys or signed using ECDSA
+MUST comply with [RFC3279] or another RFC that replaces or extends
+it.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+X.509 certificates containing ECC public keys or signed using
+EdDSA MUST comply with [RFC8410].
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD use the elliptic
+curve domain parameters recommended in ANSI X9.62, FIPS 186-4, and
+SEC 2 [SECG-SEC2], or in [RFC8032].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+EdDSA keys using the Ed25519 algorithm MUST use the ed25519 signature
+algorithm, and Ed448 keys MUST use the ed448 signature algorithm.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+EdDSA keys using the Ed25519 algorithm MUST use the ed25519 signature
+algorithm, and Ed448 keys MUST use the ed448 signature algorithm.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Ed25519, Ed25519ph, Ed448, and Ed448ph keys MUST NOT be used
+with ECDSA.
+'''
+

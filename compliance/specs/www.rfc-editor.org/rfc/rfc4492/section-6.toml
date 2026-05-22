@@ -1,0 +1,73 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-6"
+
+# 6.  Cipher Suites
+#
+# The table below defines new ECC cipher suites that use the key
+# exchange algorithms specified in Section 2.
+# 
+#   CipherSuite TLS_ECDH_ECDSA_WITH_NULL_SHA           = { 0xC0, 0x01 }
+#   CipherSuite TLS_ECDH_ECDSA_WITH_RC4_128_SHA        = { 0xC0, 0x02 }
+#   CipherSuite TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA   = { 0xC0, 0x03 }
+#   CipherSuite TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA    = { 0xC0, 0x04 }
+#   CipherSuite TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA    = { 0xC0, 0x05 }
+# 
+#   CipherSuite TLS_ECDHE_ECDSA_WITH_NULL_SHA          = { 0xC0, 0x06 }
+#   CipherSuite TLS_ECDHE_ECDSA_WITH_RC4_128_SHA       = { 0xC0, 0x07 }
+#   CipherSuite TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA  = { 0xC0, 0x08 }
+#   CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA   = { 0xC0, 0x09 }
+#   CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA   = { 0xC0, 0x0A }
+# 
+#   CipherSuite TLS_ECDH_RSA_WITH_NULL_SHA             = { 0xC0, 0x0B }
+#   CipherSuite TLS_ECDH_RSA_WITH_RC4_128_SHA          = { 0xC0, 0x0C }
+#   CipherSuite TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA     = { 0xC0, 0x0D }
+#   CipherSuite TLS_ECDH_RSA_WITH_AES_128_CBC_SHA      = { 0xC0, 0x0E }
+#   CipherSuite TLS_ECDH_RSA_WITH_AES_256_CBC_SHA      = { 0xC0, 0x0F }
+# 
+#   CipherSuite TLS_ECDHE_RSA_WITH_NULL_SHA            = { 0xC0, 0x10 }
+#   CipherSuite TLS_ECDHE_RSA_WITH_RC4_128_SHA         = { 0xC0, 0x11 }
+#   CipherSuite TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA    = { 0xC0, 0x12 }
+#   CipherSuite TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA     = { 0xC0, 0x13 }
+#   CipherSuite TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA     = { 0xC0, 0x14 }
+# 
+#   CipherSuite TLS_ECDH_anon_WITH_NULL_SHA            = { 0xC0, 0x15 }
+#   CipherSuite TLS_ECDH_anon_WITH_RC4_128_SHA         = { 0xC0, 0x16 }
+#   CipherSuite TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA    = { 0xC0, 0x17 }
+#   CipherSuite TLS_ECDH_anon_WITH_AES_128_CBC_SHA     = { 0xC0, 0x18 }
+#   CipherSuite TLS_ECDH_anon_WITH_AES_256_CBC_SHA     = { 0xC0, 0x19 }
+# 
+#                      Table 5: TLS ECC cipher suites
+# 
+# The key exchange method, cipher, and hash algorithm for each of these
+# cipher suites are easily determined by examining the name.  Ciphers
+# (other than AES ciphers) and hash algorithms are defined in [2] and
+# [3].  AES ciphers are defined in [19].
+# 
+# Server implementations SHOULD support all of the following cipher
+# suites, and client implementations SHOULD support at least one of
+# them: TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+# TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+# TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, and
+# TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Server implementations SHOULD support all of the following cipher
+suites, and client implementations SHOULD support at least one of
+them: TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, and
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Server implementations SHOULD support all of the following cipher
+suites, and client implementations SHOULD support at least one of
+them: TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, and
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA.
+'''
+

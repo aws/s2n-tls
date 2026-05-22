@@ -47,7 +47,7 @@ int main(int argc, char **argv)
                 "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
                 "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
         server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;

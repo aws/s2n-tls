@@ -47,9 +47,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&copy));
     EXPECT_SUCCESS(s2n_hmac_new(&cmac));
 
-    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
-        /* Try SSLv3 MD5 */
-        uint8_t hmac_sslv3_md5_size;
+    /* Try SSLv3 MD5 */
+    {
+        uint8_t hmac_sslv3_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *) sekrit)));
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 16; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from Go */
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 16; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from Go */
@@ -80,9 +80,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
     }
 
-    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_SHA1)) {
-        /* Try SSLv3 SHA1 */
-        uint8_t hmac_sslv3_sha1_size;
+    /* Try SSLv3 SHA1 */
+    {
+        uint8_t hmac_sslv3_sha1_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
         EXPECT_EQUAL(hmac_sslv3_sha1_size, 20);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_SHA1, sekrit, strlen((char *) sekrit)));
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 20; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from Go */
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 20; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from Go */
@@ -113,9 +113,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
     }
 
-    if (s2n_hmac_is_available(S2N_HMAC_MD5)) {
-        /* Try MD5 */
-        uint8_t hmac_md5_size;
+    /* Try MD5 */
+    {
+        uint8_t hmac_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
         EXPECT_EQUAL(hmac_md5_size, 16);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_MD5, sekrit, strlen((char *) sekrit)));
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 16; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from python */
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     }
 
     /* Try SHA1 */
-    uint8_t hmac_sha1_size;
+    uint8_t hmac_sha1_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA1, &hmac_sha1_size));
     EXPECT_EQUAL(hmac_sha1_size, 20);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA1, sekrit, strlen((char *) sekrit)));
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
     /* Try SHA224 */
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
-    uint8_t hmac_sha224_size;
+    uint8_t hmac_sha224_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA224, &hmac_sha224_size));
     EXPECT_EQUAL(hmac_sha224_size, 28);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA224, sekrit, strlen((char *) sekrit)));
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 28; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
     /* Try SHA256 */
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
-    uint8_t hmac_sha256_size;
+    uint8_t hmac_sha256_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA256, &hmac_sha256_size));
     EXPECT_EQUAL(hmac_sha256_size, 32);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA256, sekrit, strlen((char *) sekrit)));
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 32; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
     /* Try SHA384 */
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
-    uint8_t hmac_sha384_size;
+    uint8_t hmac_sha384_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA384, &hmac_sha384_size));
     EXPECT_EQUAL(hmac_sha384_size, 48);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA384, sekrit, strlen((char *) sekrit)));
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
     /* Try SHA512 */
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
-    uint8_t hmac_sha512_size;
+    uint8_t hmac_sha512_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA512, &hmac_sha512_size));
     EXPECT_EQUAL(hmac_sha512_size, 64);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA512, sekrit, strlen((char *) sekrit)));
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 64; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from python */

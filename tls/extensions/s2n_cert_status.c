@@ -63,7 +63,7 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     POSIX_ENSURE_REF(conn);
     /**
-     *= https://tools.ietf.org/rfc/rfc6066#section-8
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-8
      *#   struct {
      *#       CertificateStatusType status_type;
      *#       select (status_type) {
@@ -77,7 +77,7 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
      *# (using the ASN.1 type OCSPResponse defined in [RFC2560]).  Only one
      *# OCSP response may be sent.
      **/
-    uint8_t type;
+    uint8_t type = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &type));
     if (type != S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP */
@@ -92,7 +92,7 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
         conn->status_type = S2N_STATUS_REQUEST_OCSP;
     }
 
-    uint32_t status_size;
+    uint32_t status_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint24(in, &status_size));
     POSIX_ENSURE_LTE(status_size, s2n_stuffer_data_available(in));
 

@@ -14,7 +14,6 @@
  */
 
 #include <errno.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_cipher.h"
@@ -24,9 +23,12 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_internal.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_io.h"
 #include "utils/s2n_safety.h"
 
 /*
@@ -57,7 +59,7 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
         /* When in doubt, flush */
         return true;
     }
-    max_payload_size = MIN(max_payload_size, remaining_payload_size);
+    max_payload_size = S2N_MIN(max_payload_size, remaining_payload_size);
 
     uint16_t max_write_size = 0;
     if (!s2n_result_is_ok(s2n_record_max_write_size(conn, max_payload_size, &max_write_size))) {
@@ -80,70 +82,75 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 
 int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    int w;
-
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(blocked);
     *blocked = S2N_BLOCKED_ON_WRITE;
 
     /* Write any data that's already pending */
-WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
         errno = 0;
-        w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
-        if (w < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                POSIX_BAIL(S2N_ERR_IO_BLOCKED);
-            }
-            POSIX_BAIL(S2N_ERR_IO);
-        }
+        int w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
+        POSIX_GUARD_RESULT(s2n_io_check_write_result(w));
         conn->wire_bytes_out += w;
-    }
-
-    if (conn->write_closing) {
-        conn->write_closed = 1;
     }
     POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
 
-    /* If there's an alert pending out, send that */
-    if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
-        struct s2n_blob alert = { 0 };
-        alert.data = conn->reader_alert_out.blob.data;
-        alert.size = 2;
-        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
-        POSIX_GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
-        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
-
-        /* Actually write it ... */
-        goto WRITE;
-    }
-
-    /* Do the same for writer driven alerts */
-    if (s2n_stuffer_data_available(&conn->writer_alert_out) == 2) {
-        struct s2n_blob alert = { 0 };
-        alert.data = conn->writer_alert_out.blob.data;
-        alert.size = 2;
-        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
-        POSIX_GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
-        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
-
-        /* Actually write it ... */
-        goto WRITE;
+    if (conn->reader_warning_out) {
+        POSIX_GUARD_RESULT(s2n_alerts_write_warning(conn));
+        conn->reader_warning_out = 0;
+        POSIX_GUARD(s2n_flush(conn, blocked));
     }
 
     *blocked = S2N_NOT_BLOCKED;
-
     return 0;
+}
+
+S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count,
+        ssize_t offs, ssize_t *total_size_out)
+{
+    RESULT_ENSURE_REF(total_size_out);
+    if (count > 0) {
+        RESULT_ENSURE_REF(bufs);
+    }
+
+    size_t total_size = 0;
+    for (ssize_t i = 0; i < count; i++) {
+        size_t iov_len = bufs[i].iov_len;
+        /* Account for any offset */
+        if (offs > 0) {
+            size_t offs_consumed = S2N_MIN((size_t) offs, iov_len);
+            iov_len -= offs_consumed;
+            offs -= offs_consumed;
+        }
+        RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(total_size, iov_len, SIZE_MAX),
+                S2N_ERR_INVALID_ARGUMENT);
+        total_size += iov_len;
+    }
+
+    /* We must have fully accounted for the offset, or else the offset is larger
+     * than the available data and our inputs are invalid.
+     */
+    RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
+
+    RESULT_ENSURE(total_size <= SSIZE_MAX, S2N_ERR_INVALID_ARGUMENT);
+    *total_size_out = total_size;
+    return S2N_RESULT_OK;
 }
 
 ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iovec *bufs,
         ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
-    ssize_t user_data_sent, total_size = 0;
+    ssize_t user_data_sent = 0, total_size = 0;
 
     POSIX_ENSURE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE), S2N_ERR_CLOSED);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
 
     /* Flush any pending I/O */
     POSIX_GUARD(s2n_flush(conn, blocked));
+
+    if (conn->ktls_send_enabled) {
+        return s2n_ktls_sendv_with_offset(conn, bufs, count, offs, blocked);
+    }
 
     /* Acknowledge consumed and flushed user data as sent */
     user_data_sent = conn->current_user_data_consumed;
@@ -164,27 +171,13 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         writer = conn->client;
     }
 
+    POSIX_GUARD_RESULT(s2n_sendv_with_offset_total_size(bufs, count, offs, &total_size));
     /* Defensive check against an invalid retry */
-    if (offs > 0) {
-        const struct iovec *_bufs = bufs;
-        ssize_t _count = count;
-        while ((size_t) offs >= _bufs->iov_len && _count > 0) {
-            offs -= _bufs->iov_len;
-            _bufs++;
-            _count--;
-        }
-        bufs = _bufs;
-        count = _count;
-    }
-    for (ssize_t i = 0; i < count; i++) {
-        total_size += bufs[i].iov_len;
-    }
-    total_size -= offs;
-    S2N_ERROR_IF(conn->current_user_data_consumed > total_size, S2N_ERR_SEND_SIZE);
+    POSIX_ENSURE(conn->current_user_data_consumed <= total_size, S2N_ERR_SEND_SIZE);
     POSIX_GUARD_RESULT(s2n_early_data_validate_send(conn, total_size));
 
     if (conn->dynamic_record_timeout_threshold > 0) {
-        uint64_t elapsed;
+        uint64_t elapsed = 0;
         POSIX_GUARD_RESULT(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
         /* Reset record size back to a single segment after threshold seconds of inactivity */
         if (elapsed - conn->last_write_elapsed > (uint64_t) conn->dynamic_record_timeout_threshold * 1000000000) {
@@ -195,7 +188,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     /* Now write the data we were asked to send this round */
     while (total_size - conn->current_user_data_consumed) {
-        ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
+        ssize_t to_write = S2N_MIN(total_size - conn->current_user_data_consumed, max_payload_size);
 
         /* If dynamic record size is enabled,
          * use small TLS records that fit into a single TCP segment for the threshold bytes of data
@@ -203,7 +196,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
             uint16_t min_payload_size = 0;
             POSIX_GUARD_RESULT(s2n_record_min_write_payload_size(conn, &min_payload_size));
-            to_write = MIN(min_payload_size, to_write);
+            to_write = S2N_MIN(min_payload_size, to_write);
         }
 
         /* Don't split messages in server mode for interoperability with naive clients.

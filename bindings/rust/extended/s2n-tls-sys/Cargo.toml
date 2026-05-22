@@ -1,0 +1,59 @@
+[package]
+name = "s2n-tls-sys"
+description = "A C99 implementation of the TLS/SSL protocols"
+version = "0.3.37"
+authors = ["AWS s2n"]
+edition = "2021"
+rust-version = "1.84"
+links = "s2n-tls"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+include = [
+  "build.rs",
+  "Cargo.toml",
+  "files.rs",
+  "lib/**/*.c",
+  "lib/**/*.h",
+  "lib/**/*.S",
+  "lib/CMakeLists.txt",
+  "lib/**/*.cmake",
+  "lib/**/*.flags", # for feature probes
+  "src/**/*.rs",
+  "tests/**/*.rs",
+]
+
+[features]
+default = []
+# preserve the cmake feature in case any consumers had it enabled before
+cmake = []
+quic = []
+fips = ["aws-lc-rs/fips"]
+pq = []
+internal = []
+stacktrace = []
+unstable-async_offload = []
+unstable-cert_authorities = []
+unstable-cleanup = []
+unstable-crl = []
+unstable-custom_x509_extensions = []
+unstable-events = []
+unstable-fingerprint = []
+unstable-ktls = []
+unstable-npn = []
+unstable-renegotiate = []
+# e.g. something like
+# unstable-foo = []
+
+[dependencies]
+# aws-lc-rs >=1.16.1 imports `EVP_PKEY_pqdsa_get_type()` used by s2n-tls ML-DSA feature probe.
+aws-lc-rs = { version = ">=1.16.1" }
+# s2n-tls-sys depends on libc (e.g. data types like `libc::c_int`)
+libc = "0.2.121"
+
+[build-dependencies]
+cc = { version = "1.2.26", features = ["parallel"] }
+
+[dev-dependencies]
+home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
+regex = "1.12"
+zeroize = "1.8"

@@ -67,7 +67,7 @@ static int s2n_quic_transport_params_recv(struct s2n_connection *conn, struct s2
 }
 
 const s2n_extension_type s2n_quic_transport_parameters_extension = {
-    .iana_value = TLS_QUIC_TRANSPORT_PARAMETERS,
+    .iana_value = TLS_EXTENSION_QUIC_TRANSPORT_PARAMETERS,
     .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_quic_transport_params_send,

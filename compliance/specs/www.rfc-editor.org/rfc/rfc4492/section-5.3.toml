@@ -1,0 +1,174 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-5.3"
+
+# 5.3.  Server Certificate
+#
+# When this message is sent:
+# 
+# This message is sent in all non-anonymous ECC-based key exchange
+# algorithms.
+# 
+# Meaning of this message:
+# 
+# This message is used to authentically convey the server's static
+# public key to the client.  The following table shows the server
+# certificate type appropriate for each key exchange algorithm.  ECC
+# public keys MUST be encoded in certificates as described in
+# Section 5.9.
+# 
+# NOTE: The server's Certificate message is capable of carrying a chain
+# of certificates.  The restrictions mentioned in Table 3 apply only to
+# the server's certificate (first in the chain).
+# 
+#        Key Exchange Algorithm  Server Certificate Type
+#        ----------------------  -----------------------
+# 
+#        ECDH_ECDSA              Certificate MUST contain an
+#                                ECDH-capable public key.  It
+#                                MUST be signed with ECDSA.
+# 
+#        ECDHE_ECDSA             Certificate MUST contain an
+#                                ECDSA-capable public key.  It
+#                                MUST be signed with ECDSA.
+# 
+#        ECDH_RSA                Certificate MUST contain an
+#                                ECDH-capable public key.  It
+#                                MUST be signed with RSA.
+# 
+#        ECDHE_RSA               Certificate MUST contain an
+#                                RSA public key authorized for
+#                                use in digital signatures.  It
+#                                MUST be signed with RSA.
+# 
+#                  Table 3: Server Certificate Types
+# 
+# Structure of this message:
+# 
+# Identical to the TLS Certificate format.
+# 
+# Actions of the sender:
+# 
+# The server constructs an appropriate certificate chain and conveys it
+# to the client in the Certificate message.  If the client has used a
+# Supported Elliptic Curves Extension, the public key in the server's
+# certificate MUST respect the client's choice of elliptic curves; in
+# particular, the public key MUST employ a named curve (not the same
+# curve as an explicit curve) unless the client has indicated support
+# for explicit curves of the appropriate type.  If the client has used
+# a Supported Point Formats Extension, both the server's public key
+# point and (in the case of an explicit curve) the curve's base point
+# MUST respect the client's choice of point formats.  (A server that
+# cannot satisfy these requirements MUST NOT choose an ECC cipher suite
+# in its ServerHello message.)
+# 
+# Actions of the receiver:
+# 
+# The client validates the certificate chain, extracts the server's
+# public key, and checks that the key type is appropriate for the
+# negotiated key exchange algorithm.  (A possible reason for a fatal
+# handshake failure is that the client's capabilities for handling
+# elliptic curves and point formats are exceeded; cf. Section 5.1.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECC
+public keys MUST be encoded in certificates as described in
+Section 5.9.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDH_ECDSA              Certificate MUST contain an
+ECDH-capable public key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It
+MUST be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDHE_ECDSA             Certificate MUST contain an
+ECDSA-capable public key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It
+MUST be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDH_RSA                Certificate MUST contain an
+ECDH-capable public key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It
+MUST be signed with RSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDHE_RSA               Certificate MUST contain an
+RSA public key authorized for
+use in digital signatures.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It
+MUST be signed with RSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client has used a
+Supported Elliptic Curves Extension, the public key in the server's
+certificate MUST respect the client's choice of elliptic curves; in
+particular, the public key MUST employ a named curve (not the same
+curve as an explicit curve) unless the client has indicated support
+for explicit curves of the appropriate type.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client has used a
+Supported Elliptic Curves Extension, the public key in the server's
+certificate MUST respect the client's choice of elliptic curves; in
+particular, the public key MUST employ a named curve (not the same
+curve as an explicit curve) unless the client has indicated support
+for explicit curves of the appropriate type.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client has used
+a Supported Point Formats Extension, both the server's public key
+point and (in the case of an explicit curve) the curve's base point
+MUST respect the client's choice of point formats.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+(A server that
+cannot satisfy these requirements MUST NOT choose an ECC cipher suite
+in its ServerHello message.)
+'''
+

@@ -26,8 +26,8 @@
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
 {
-    struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -63,8 +63,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
 
@@ -82,7 +81,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Create a child process */
-        pid = fork();
+        pid_t pid = fork();
         if (pid == 0) {
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));

@@ -1,0 +1,53 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+env:
+  variables:
+    S2N_LIBCRYPTO: "awslc"
+    COMPILER: clang
+
+phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . -Bbuild \
+        -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+        -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
+        -DS2N_FUZZ_TEST=on \
+        -DCOVERAGE=on \
+        -DBUILD_SHARED_LIBS=on
+      - cmake --build ./build -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      - ./codebuild/bin/fuzz_corpus_download.sh
+      # -L: Restrict tests to labels matching the pattern 'fuzz'
+      # --timeout: override ctest's default timeout of 1500
+      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure -j $(nproc) --timeout 28800"
+      - ./codebuild/bin/fuzz_corpus_upload.sh
+      - ./codebuild/bin/fuzz_coverage_report.sh
+
+artifacts:
+  # upload all files in the fuzz_coverage_report directory
+  files:
+    - '**/*'
+  base-directory: coverage/fuzz/total_fuzz_coverage

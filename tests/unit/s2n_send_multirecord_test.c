@@ -15,7 +15,6 @@
 
 #include <math.h>
 #include <pthread.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -57,7 +56,7 @@ static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
     POSIX_ENSURE_LT(context->calls, context->results_len);
     const struct s2n_send_result *result = &context->results[context->calls];
 
-    int retval = MIN((int) len, result->result);
+    int retval = S2N_MIN((int) len, result->result);
     if (result->assert_result) {
         POSIX_ENSURE_EQ(retval, len);
     }
@@ -402,9 +401,9 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            s2n_atomic_flag_set(&conn->key_update_pending);
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         };
         EXPECT_TRUE(key_update_size > 0);
@@ -433,7 +432,7 @@ int main(int argc, char **argv)
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
         EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
-        EXPECT_FALSE(conn->key_update_pending);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send */
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
@@ -478,7 +477,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(min_send_buffer_size <= buffer_size);
 
         /* Queue the alert */
-        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
+        EXPECT_OK(s2n_queue_reader_no_renegotiation_alert(conn));
 
         /* Send the Application Data and Alert */
         s2n_blocked_status blocked = 0;
@@ -512,9 +511,9 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            s2n_atomic_flag_set(&conn->key_update_pending);
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         }
         EXPECT_TRUE(key_update_size > 0);
@@ -551,7 +550,7 @@ int main(int argc, char **argv)
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
         EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
-        EXPECT_FALSE(conn->key_update_pending);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send until all data written */
         size_t total = 0;

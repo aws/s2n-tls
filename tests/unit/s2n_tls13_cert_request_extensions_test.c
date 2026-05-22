@@ -33,21 +33,21 @@ int main(int argc, char **argv)
 
     /* Test correct required extension (sig_alg) sent and received */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         conn->actual_protocol_version = S2N_TLS13;
 
-        EXPECT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+        EXPECT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, 0);
         EXPECT_SUCCESS(s2n_tls13_cert_req_send(conn));
         EXPECT_SUCCESS(s2n_tls13_cert_req_recv(conn));
-        EXPECT_NOT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+        EXPECT_NOT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test client fails to parse certificate request with no extensions */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 

@@ -44,8 +44,8 @@ struct alert_ctx {
 
 int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behavior, int expect_failure)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
     int rc = 0;
@@ -55,6 +55,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behav
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
     s2n_config_disable_x509_verification(config);
     s2n_config_set_alert_behavior(config, alert_behavior);
     s2n_connection_set_config(conn, config);
@@ -139,13 +140,13 @@ S2N_RESULT cleanup(char **cert_chain_pem, char **private_key_pem,
 int main(int argc, char **argv)
 {
     char buffer[0xffff];
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    int status = 0;
+    pid_t pid = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     BEGIN_TEST();
 
     /* Ignore SIGPIPE */
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         /* Set up the callback to send an alert after receiving ClientHello */
         struct alert_ctx warning_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 2, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME };
@@ -245,7 +246,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         /* Set up the callback to send an alert after receiving ClientHello */
         struct alert_ctx fatal_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 1, .level = TLS_ALERT_LEVEL_FATAL, .code = TLS_ALERT_UNRECOGNIZED_NAME };
@@ -299,7 +300,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alerts, &warning_alert));
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         /* This is the server process, close the client end of the pipe */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));

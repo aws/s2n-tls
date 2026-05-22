@@ -44,46 +44,46 @@ header = copyright + """
 """
 
 POSIX = dict(
-    name = "POSIX",
-    is_ok = "(result) > S2N_FAILURE",
-    ok = "S2N_SUCCESS",
-    error = "S2N_FAILURE",
-    ret = "int",
-    ret_doc = "`int` (POSIX error signal)",
-    expect_ok = "EXPECT_SUCCESS",
-    expect_err = "EXPECT_FAILURE_WITH_ERRNO",
+    name="POSIX",
+    is_ok="(result) > S2N_FAILURE",
+    ok="S2N_SUCCESS",
+    error="S2N_FAILURE",
+    ret="int",
+    ret_doc="`int` (POSIX error signal)",
+    expect_ok="EXPECT_SUCCESS",
+    expect_err="EXPECT_FAILURE_WITH_ERRNO",
 )
 
 PTR = dict(
-    name = "PTR",
-    is_ok = "(result) != NULL",
-    ok = '"ok"',
-    error = "NULL",
-    ret = "const char*",
-    ret_doc = "a pointer",
-    expect_ok = "EXPECT_NOT_NULL",
-    expect_err = "EXPECT_NULL_WITH_ERRNO",
+    name="PTR",
+    is_ok="(result) != NULL",
+    ok='"ok"',
+    error="NULL",
+    ret="const char*",
+    ret_doc="a pointer",
+    expect_ok="EXPECT_NOT_NULL",
+    expect_err="EXPECT_NULL_WITH_ERRNO",
 )
 
 RESULT = dict(
-    name = "RESULT",
-    is_ok = "s2n_result_is_ok(result)",
-    ok = "S2N_RESULT_OK",
-    error = "S2N_RESULT_ERROR",
-    ret = "s2n_result",
-    ret_doc = "`S2N_RESULT`",
-    expect_ok = "EXPECT_OK",
-    expect_err = "EXPECT_ERROR_WITH_ERRNO",
+    name="RESULT",
+    is_ok="s2n_result_is_ok(result)",
+    ok="S2N_RESULT_OK",
+    error="S2N_RESULT_ERROR",
+    ret="s2n_result",
+    ret_doc="`S2N_RESULT`",
+    expect_ok="EXPECT_OK",
+    expect_err="EXPECT_ERROR_WITH_ERRNO",
 )
 
 DEFAULT = dict(
-    name = "",
-    is_ok = RESULT['is_ok'],
-    ok = RESULT['ok'],
-    error = RESULT['error'],
-    ret = RESULT['ret'],
-    expect_ok = RESULT['expect_ok'],
-    expect_err = RESULT['expect_err'],
+    name="",
+    is_ok=RESULT['is_ok'],
+    ok=RESULT['ok'],
+    error=RESULT['error'],
+    ret=RESULT['ret'],
+    expect_ok=RESULT['expect_ok'],
+    expect_err=RESULT['expect_err'],
 )
 
 # TODO add DEFAULT and remove RESULT once all PR branches are up-to-date
@@ -91,10 +91,11 @@ CONTEXTS = [RESULT, POSIX, PTR]
 
 max_prefix_len = max(map(lambda c: len(c['name']), CONTEXTS))
 
+
 def cmp_check(op):
     return '__S2N_ENSURE((a) ' + op + ' (b), {bail}(S2N_ERR_SAFETY))'
 
-    ## TODO ensure type compatibility
+    # TODO ensure type compatibility
     # return '''\\
     # do {{ \\
     #     static_assert(__builtin_types_compatible_p(__typeof(a), __typeof(b)), "types do not match"); \\
@@ -104,52 +105,53 @@ def cmp_check(op):
     # }} while(0)
     # '''
 
+
 MACROS = {
     'BAIL(error)': dict(
-        doc  = 'Sets the global `s2n_errno` to `error` and returns with an `{error}`',
-        impl = 'do {{ _S2N_ERROR((error)); return {error}; }} while (0)',
-        harness = '''
+        doc='Sets the global `s2n_errno` to `error` and returns with an `{error}`',
+        impl='do {{ _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN({error}); }} while (0)',
+        harness='''
         static {ret} {bail}_harness()
         {{
             {bail}(S2N_ERR_SAFETY);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_err}({bail}_harness(), S2N_ERR_SAFETY);'
         ],
     ),
     'ENSURE(condition, error)': dict(
-        doc  = 'Ensures the `condition` is `true`, otherwise the function will `{bail}` with `error`',
-        impl = '__S2N_ENSURE((condition), {bail}(error))',
-        harness = '''
+        doc='Ensures the `condition` is `true`, otherwise the function will `{bail}` with `error`',
+        impl='__S2N_ENSURE((condition), {bail}(error))',
+        harness='''
         static {ret} {prefix}ENSURE_harness(bool is_ok)
         {{
             {prefix}ENSURE(is_ok, S2N_ERR_SAFETY);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_harness(true));',
             '{expect_err}({prefix}ENSURE_harness(false), S2N_ERR_SAFETY);'
         ],
     ),
     'DEBUG_ENSURE(condition, error)': dict(
-        doc  = '''
+        doc='''
         Ensures the `condition` is `true`, otherwise the function will `{bail}` with `error`
 
         NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
               In release mode, the check is removed.
         ''',
-        impl = '__S2N_ENSURE_DEBUG((condition), {bail}(error))',
-        harness = '''
+        impl='__S2N_ENSURE_DEBUG((condition), {bail}(error))',
+        harness='''
         static {ret} {prefix}DEBUG_ENSURE_harness(bool is_ok)
         {{
             {prefix}DEBUG_ENSURE(is_ok, S2N_ERR_SAFETY);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}DEBUG_ENSURE_harness(true));',
             '#ifdef NDEBUG',
             '{expect_ok}({prefix}DEBUG_ENSURE_harness(false));',
@@ -159,30 +161,30 @@ MACROS = {
         ],
     ),
     'ENSURE_OK(result, error)': dict(
-        doc  = '''
+        doc='''
         Ensures `{is_ok}`, otherwise the function will `{bail}` with `error`
         
         This can be useful for overriding the global `s2n_errno`
         ''',
-        impl = '__S2N_ENSURE({is_ok}, {bail}(error))',
-        harness = '''
+        impl='__S2N_ENSURE({is_ok}, {bail}(error))',
+        harness='''
         static {ret} {prefix}ENSURE_OK_harness(bool is_ok)
         {{
             {prefix}ENSURE_OK({prefix}ENSURE_harness(is_ok), S2N_ERR_IO);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_OK_harness(true));',
             '{expect_err}({prefix}ENSURE_OK_harness(false), S2N_ERR_IO);'
         ],
     ),
     'ENSURE_GTE(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is greater than or equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('>='),
-        harness = '''
+        impl=cmp_check('>='),
+        harness='''
         static {ret} {prefix}ENSURE_GTE_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_GTE(a, b);
@@ -199,7 +201,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_GTE_harness_uint32(0, 0));',
             '{expect_ok}({prefix}ENSURE_GTE_harness_uint32(1, 0));',
             '{expect_err}({prefix}ENSURE_GTE_harness_uint32(0, 1), S2N_ERR_SAFETY);',
@@ -209,11 +211,11 @@ MACROS = {
         ],
     ),
     'ENSURE_LTE(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is less than or equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('<='),
-        harness = '''
+        impl=cmp_check('<='),
+        harness='''
         static {ret} {prefix}ENSURE_LTE_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_LTE(a, b);
@@ -230,7 +232,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_LTE_harness_uint32(0, 0));',
             '{expect_ok}({prefix}ENSURE_LTE_harness_uint32(0, 1));',
             '{expect_err}({prefix}ENSURE_LTE_harness_uint32(1, 0), S2N_ERR_SAFETY);',
@@ -240,11 +242,11 @@ MACROS = {
         ],
     ),
     'ENSURE_GT(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is greater than `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('>'),
-        harness = '''
+        impl=cmp_check('>'),
+        harness='''
         static {ret} {prefix}ENSURE_GT_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_GT(a, b);
@@ -261,7 +263,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_err}({prefix}ENSURE_GT_harness_uint32(0, 0), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_GT_harness_uint32(1, 0));',
             '{expect_err}({prefix}ENSURE_GT_harness_uint32(0, 1), S2N_ERR_SAFETY);',
@@ -271,11 +273,11 @@ MACROS = {
         ],
     ),
     'ENSURE_LT(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is less than `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('<'),
-        harness = '''
+        impl=cmp_check('<'),
+        harness='''
         static {ret} {prefix}ENSURE_LT_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_LT(a, b);
@@ -292,7 +294,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_err}({prefix}ENSURE_LT_harness_uint32(0, 0), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_LT_harness_uint32(0, 1));',
             '{expect_err}({prefix}ENSURE_LT_harness_uint32(1, 0), S2N_ERR_SAFETY);',
@@ -302,11 +304,11 @@ MACROS = {
         ],
     ),
     'ENSURE_EQ(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('=='),
-        harness = '''
+        impl=cmp_check('=='),
+        harness='''
         static {ret} {prefix}ENSURE_EQ_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_EQ(a, b);
@@ -321,7 +323,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_EQ_harness_uint32(0, 0));',
             '{expect_err}({prefix}ENSURE_EQ_harness_uint32(1, 0), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_EQ_harness_int32(-1, -1));',
@@ -329,11 +331,11 @@ MACROS = {
         ],
     ),
     'ENSURE_NE(a, b)': dict(
-        doc  = '''
+        doc='''
         Ensures `a` is not equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
-        impl = cmp_check('!='),
-        harness = '''
+        impl=cmp_check('!='),
+        harness='''
         static {ret} {prefix}ENSURE_NE_harness_uint32(uint32_t a, uint32_t b)
         {{
             {prefix}ENSURE_NE(a, b);
@@ -348,7 +350,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_NE_harness_uint32(1, 0));',
             '{expect_err}({prefix}ENSURE_NE_harness_uint32(0, 0), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_NE_harness_int32(-2, -1));',
@@ -356,8 +358,8 @@ MACROS = {
         ],
     ),
     'ENSURE_INCLUSIVE_RANGE(min, n, max)': dict(
-        doc  = 'Ensures `min <= n <= max`, otherwise the function will `{bail}` with `S2N_ERR_SAFETY`',
-        impl = ''' \\
+        doc='Ensures `min <= n <= max`, otherwise the function will `{bail}` with `S2N_ERR_SAFETY`',
+        impl=''' \\
         do {{ \\
             __typeof(n) __tmp_n = ( n ); \\
             __typeof(n) __tmp_min = ( min ); \\
@@ -365,7 +367,7 @@ MACROS = {
             {prefix}ENSURE_GTE(__tmp_n, __tmp_min); \\
             {prefix}ENSURE_LTE(__tmp_n, __tmp_max); \\
         }} while(0)''',
-        harness = '''
+        harness='''
         static {ret} {prefix}ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
         {{
             {prefix}ENSURE_INCLUSIVE_RANGE(a, b, c);
@@ -378,7 +380,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_err}({prefix}ENSURE_INCLUSIVE_RANGE_harness_uint32(1, 0, 2), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_INCLUSIVE_RANGE_harness_uint32(1, 1, 2));',
             '{expect_ok}({prefix}ENSURE_INCLUSIVE_RANGE_harness_uint32(1, 2, 2));',
@@ -391,8 +393,8 @@ MACROS = {
         ],
     ),
     'ENSURE_EXCLUSIVE_RANGE(min, n, max)': dict(
-        doc  = 'Ensures `min < n < max`, otherwise the function will `{bail}` with `S2N_ERR_SAFETY`',
-        impl = ''' \\
+        doc='Ensures `min < n < max`, otherwise the function will `{bail}` with `S2N_ERR_SAFETY`',
+        impl=''' \\
         do {{ \\
             __typeof(n) __tmp_n = ( n ); \\
             __typeof(n) __tmp_min = ( min ); \\
@@ -400,7 +402,7 @@ MACROS = {
             {prefix}ENSURE_GT(__tmp_n, __tmp_min); \\
             {prefix}ENSURE_LT(__tmp_n, __tmp_max); \\
         }} while(0)''',
-        harness = '''
+        harness='''
         static {ret} {prefix}ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
         {{
             {prefix}ENSURE_EXCLUSIVE_RANGE(a, b, c);
@@ -413,7 +415,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_err}({prefix}ENSURE_EXCLUSIVE_RANGE_harness_uint32(1, 0, 3), S2N_ERR_SAFETY);',
             '{expect_err}({prefix}ENSURE_EXCLUSIVE_RANGE_harness_uint32(1, 1, 3), S2N_ERR_SAFETY);',
             '{expect_ok}({prefix}ENSURE_EXCLUSIVE_RANGE_harness_uint32(1, 2, 3));',
@@ -428,32 +430,32 @@ MACROS = {
         ],
     ),
     'ENSURE_REF(x)': dict(
-        doc  = 'Ensures `x` is a readable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
-        impl = '__S2N_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), {bail}(S2N_ERR_NULL))',
-        harness = '''
+        doc='Ensures `x` is a readable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
+        impl='__S2N_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), {bail}(S2N_ERR_NULL))',
+        harness='''
         static {ret} {prefix}ENSURE_REF_harness(const char* str)
         {{
             {prefix}ENSURE_REF(str);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}ENSURE_REF_harness(""));',
             '{expect_ok}({prefix}ENSURE_REF_harness("ok"));',
             '{expect_err}({prefix}ENSURE_REF_harness(NULL), S2N_ERR_NULL);',
         ],
     ),
     'ENSURE_MUT(x)': dict(
-        doc  = 'Ensures `x` is a mutable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
-        impl = '__S2N_ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), {bail}(S2N_ERR_NULL))',
-        harness = '''
+        doc='Ensures `x` is a mutable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
+        impl='__S2N_ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), {bail}(S2N_ERR_NULL))',
+        harness='''
         static {ret} {prefix}ENSURE_MUT_harness(uint32_t* v)
         {{
             {prefix}ENSURE_MUT(v);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             'uint32_t {prefix}ensure_mut_test = 0;',
             '{expect_ok}({prefix}ENSURE_MUT_harness(&{prefix}ensure_mut_test));',
             '{prefix}ensure_mut_test = 1;',
@@ -462,15 +464,15 @@ MACROS = {
         ],
     ),
     'PRECONDITION(result)': dict(
-        doc  = '''
+        doc='''
         Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
         `{prefix}PRECONDITION` should be used at the beginning of a function to make assertions about
         the provided arguments. By default, it is functionally equivalent to `{prefix}GUARD_RESULT(result)`
         but can be altered by a testing environment to provide additional guarantees.
         ''',
-        impl = '{prefix}GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))',
-        harness = '''
+        impl='{prefix}GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))',
+        harness='''
         static S2N_RESULT {prefix}PRECONDITION_harness_check(bool is_ok)
         {{
             RESULT_ENSURE(is_ok, S2N_ERR_SAFETY);
@@ -483,13 +485,13 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}PRECONDITION_harness({prefix}PRECONDITION_harness_check(true)));',
             '{expect_err}({prefix}PRECONDITION_harness({prefix}PRECONDITION_harness_check(false)), S2N_ERR_SAFETY);',
         ],
     ),
     'POSTCONDITION(result)': dict(
-        doc  = '''
+        doc='''
         Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
         NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
@@ -500,8 +502,8 @@ MACROS = {
         In production builds, it becomes a no-op. This can also be altered by a testing environment
         to provide additional guarantees.
         ''',
-        impl = '{prefix}GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))',
-        harness = '''
+        impl='{prefix}GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))',
+        harness='''
         static S2N_RESULT {prefix}POSTCONDITION_harness_check(bool is_ok)
         {{
             RESULT_ENSURE(is_ok, S2N_ERR_SAFETY);
@@ -514,7 +516,7 @@ MACROS = {
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}POSTCONDITION_harness({prefix}POSTCONDITION_harness_check(true)));',
             '#ifdef NDEBUG',
             '{expect_ok}({prefix}POSTCONDITION_harness({prefix}POSTCONDITION_harness_check(false)));',
@@ -524,7 +526,7 @@ MACROS = {
         ],
     ),
     'CHECKED_MEMCPY(destination, source, len)': dict(
-        doc  = '''
+        doc='''
         Performs a safer memcpy.
 
         The following checks are performed:
@@ -537,15 +539,15 @@ MACROS = {
         * The size of the data pointed to by both the `destination` and `source` parameters,
           shall be at least `len` bytes.
         ''',
-        impl = '__S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), {prefix}GUARD_PTR)',
-        harness = '''
+        impl='__S2N_ENSURE_SAFE_MEMMOVE((destination), (source), (len), {prefix}ENSURE_REF)',
+        harness='''
         static {ret} {prefix}CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source, size_t len)
         {{
             {prefix}CHECKED_MEMCPY(dest, source, len);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             'uint32_t {prefix}_checked_memcpy_dest = 1;',
             'uint32_t {prefix}_checked_memcpy_source = 2;',
             '{expect_ok}({prefix}CHECKED_MEMCPY_harness(&{prefix}_checked_memcpy_dest, &{prefix}_checked_memcpy_source, 0));',
@@ -557,7 +559,7 @@ MACROS = {
         ],
     ),
     'CHECKED_MEMSET(destination, value, len)': dict(
-        doc  = '''
+        doc='''
         Performs a safer memset
 
         The following checks are performed:
@@ -569,15 +571,15 @@ MACROS = {
         * The size of the data pointed to by the `destination` parameter shall be at least
           `len` bytes.
         ''',
-        impl = '__S2N_ENSURE_SAFE_MEMSET((destination), (value), (len), {prefix}ENSURE_REF)',
-        harness = '''
+        impl='__S2N_ENSURE_SAFE_MEMSET((destination), (value), (len), {prefix}ENSURE_REF)',
+        harness='''
         static {ret} {prefix}CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len)
         {{
             {prefix}CHECKED_MEMSET(dest, value, len);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             'uint32_t {prefix}_checked_memset_dest = 1;',
             '{expect_ok}({prefix}CHECKED_MEMSET_harness(&{prefix}_checked_memset_dest, 0x42, 0));',
             'EXPECT_EQUAL({prefix}_checked_memset_dest, 1);',
@@ -587,31 +589,31 @@ MACROS = {
         ],
     ),
     'GUARD(result)': dict(
-        doc  = 'Ensures `{is_ok}`, otherwise the function will return `{error}`',
-        impl = '__S2N_ENSURE({is_ok}, return {error})',
-        harness = '''
+        doc='Ensures `{is_ok}`, otherwise the function will return `{error}`',
+        impl='__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))',
+        harness='''
         static {ret} {prefix}GUARD_harness({ret} result)
         {{
             {prefix}GUARD(result);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}GUARD_harness({prefix}ENSURE_harness(true)));',
             '{expect_err}({prefix}GUARD_harness({prefix}ENSURE_harness(false)), S2N_ERR_SAFETY);',
         ],
     ),
     'GUARD_OSSL(result, error)': dict(
-        doc  = 'Ensures `result == _OSSL_SUCCESS`, otherwise the function will `{bail}` with `error`',
-        impl = '__S2N_ENSURE((result) == _OSSL_SUCCESS, {bail}(error))',
-        harness = '''
+        doc='Ensures `result == _OSSL_SUCCESS`, otherwise the function will `{bail}` with `error`',
+        impl='__S2N_ENSURE((result) == _OSSL_SUCCESS, {bail}(error))',
+        harness='''
         static {ret} {prefix}GUARD_OSSL_harness(int result, int error)
         {{
             {prefix}GUARD_OSSL(result, error);
             return {ok};
         }}
         ''',
-        tests = [
+        tests=[
             '{expect_ok}({prefix}GUARD_OSSL_harness(1, S2N_ERR_SAFETY));',
             '{expect_err}({prefix}GUARD_OSSL_harness(0, S2N_ERR_SAFETY), S2N_ERR_SAFETY);',
         ],
@@ -619,6 +621,7 @@ MACROS = {
 }
 
 max_macro_len = max(map(len, MACROS.keys())) + 8
+
 
 def push_macro(args):
     macro_indent = ' ' * (max_macro_len - len(args['macro']))
@@ -643,6 +646,7 @@ def push_macro(args):
 
     return h
 
+
 for context in CONTEXTS:
     # initialize contexts
     if len(context['name']) > 0:
@@ -666,6 +670,7 @@ docs = """
 checks = []
 deprecation_message = "DEPRECATED: all methods (except those in s2n.h) should return s2n_result."
 
+
 def push_doc(args):
     args['doc'] = textwrap.dedent(args['doc']).format_map(args).strip()
 
@@ -675,6 +680,7 @@ def push_doc(args):
     {doc}
 
     """).format_map(args)
+
 
 for context in CONTEXTS:
     docs += textwrap.dedent("""
@@ -712,9 +718,9 @@ for context in CONTEXTS:
                 doc = (deprecation_message + "\n\n" + doc)
 
             if other == context:
-                continue;
+                continue
 
-            impl = '__S2N_ENSURE({is_ok}, return {error})'
+            impl = '__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))'
             args = {
                 'prefix': context['prefix'],
                 'suffix': other['suffix'],
@@ -729,6 +735,7 @@ for context in CONTEXTS:
             docs += push_doc(args)
             header += push_macro(args)
 
+
 def cleanup(contents):
     # Remove any unnecessary generated "X_GUARD_X"s, like "RESULT_GUARD_RESULT"
     for context in CONTEXTS:
@@ -737,10 +744,12 @@ def cleanup(contents):
         contents = contents.replace(x_guard_x, x_guard)
     return contents
 
+
 def write(f, contents):
     contents = cleanup(contents)
     with open(f, "w") as header_file:
         header_file.write(contents)
+
 
 write("utils/s2n_safety_macros.h", header)
 
@@ -781,4 +790,3 @@ test += '''
 write("tests/unit/s2n_safety_macros_test.c", test)
 
 write("docs/SAFETY-MACROS.md", docs)
-

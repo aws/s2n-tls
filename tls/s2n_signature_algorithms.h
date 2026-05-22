@@ -17,6 +17,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_signature_scheme.h"
@@ -28,15 +29,14 @@ struct s2n_sig_scheme_list {
     uint8_t len;
 };
 
-int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer);
-int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out);
+S2N_RESULT s2n_signature_algorithm_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
 
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
-        struct s2n_signature_scheme *sig_scheme_out);
-int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
-        struct s2n_signature_scheme *chosen_sig_scheme);
+S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn);
 
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
-int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_supported_sig_schemes_count(struct s2n_connection *conn);
-int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn);
+S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn,
+        struct s2n_stuffer *out);
+
+S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg, s2n_pkey_type *pkey_type);
+
+S2N_RESULT s2n_signature_scheme_params_match(struct s2n_connection *conn, const struct s2n_pkey *pub_key, const struct s2n_signature_scheme *wire_scheme);

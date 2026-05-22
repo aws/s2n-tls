@@ -200,25 +200,3 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-   
-   
-============================================================================
-    S2N SUBCOMPONENTS:
-
-    The s2n Project contains subcomponents with seperate copyright notices
-    and license terms. Your use of the source code for these subcomponents is
-    subject to the terms and conditions of the following licenses.
-
-
-========================================================================
-Third party MIT licenses
-========================================================================
-
-The following components are provided under the MIT License. See project link for details.
-
-
-    SIKE
-      -> s2n/pq-crypto/sike_r1/LICENSE.txt
-
-   
-   

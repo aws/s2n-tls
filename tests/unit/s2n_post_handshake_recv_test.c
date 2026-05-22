@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <sys/socket.h>
 
 #include "api/unstable/renegotiate.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
+#include "testlib/s2n_mem_testlib.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
@@ -27,20 +27,9 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_safety.h"
 
-/* Required to override memory callbacks at runtime */
-#include "utils/s2n_mem.c"
-
 #define S2N_TEST_MESSAGE_COUNT 5
 
 int s2n_key_update_write(struct s2n_blob *out);
-
-static s2n_mem_malloc_callback original_malloc_callback = NULL;
-size_t mallocs_count = 0;
-static int s2n_count_mallocs_cb(void **ptr, uint32_t requested, uint32_t *allocated)
-{
-    mallocs_count++;
-    return original_malloc_callback(ptr, requested, allocated);
-}
 
 size_t tickets_count = 0;
 static int s2n_ticket_count_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
@@ -67,7 +56,7 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint32_t remaining = 0;
     while ((remaining = s2n_stuffer_data_available(&messages)) > 0) {
-        record_data.size = MIN(record_data.size, remaining);
+        record_data.size = S2N_MIN(record_data.size, remaining);
         RESULT_GUARD_POSIX(s2n_stuffer_read(&messages, &record_data));
         RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &record_data));
         RESULT_GUARD_POSIX(s2n_flush(conn, &blocked));
@@ -91,7 +80,7 @@ static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_
     RESULT_ENSURE_EQ(send_ret, sizeof(app_data));
 
     /* Reset all counters */
-    mallocs_count = 0;
+    RESULT_GUARD(s2n_mem_test_wipe_callbacks());
     tickets_count = 0;
     hello_request_count = 0;
 
@@ -118,7 +107,7 @@ static S2N_RESULT s2n_test_blocking_recv(struct s2n_connection *sender, struct s
     RESULT_ENSURE_EQ(send_ret, sizeof(app_data));
 
     /* Reset all counters */
-    mallocs_count = 0;
+    RESULT_GUARD(s2n_mem_test_wipe_callbacks());
     tickets_count = 0;
     hello_request_count = 0;
 
@@ -177,12 +166,6 @@ static S2N_RESULT s2n_test_init_sender_and_receiver(struct s2n_config *config,
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    /* Some tests need to make assertions about whether or not memory was allocated.
-     * Override the current memory callback with one that counts allocations.
-     */
-    original_malloc_callback = s2n_mem_malloc_cb;
-    s2n_mem_malloc_cb = s2n_count_mallocs_cb;
 
     const uint8_t unknown_message_type = UINT8_MAX;
     const uint32_t test_large_message_size = 3001;
@@ -251,8 +234,10 @@ int main(int argc, char **argv)
              * if we successfully decrypt all records. If they were not processed,
              * then we would try to use the wrong key to decrypt the next record.
              */
+            DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+            EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
             EXPECT_OK(s2n_test_basic_recv(sender, receiver));
-            EXPECT_EQUAL(mallocs_count, 0);
+            EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
         }
     }
 
@@ -352,9 +337,11 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_tls13_server_nst_write(client, &messages));
         EXPECT_OK(s2n_test_send_records(client, messages, fragment_size));
 
+        DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+        EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
         EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(client, server), S2N_ERR_BAD_MESSAGE);
         EXPECT_EQUAL(tickets_count, 0);
-        EXPECT_EQUAL(mallocs_count, 0);
+        EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
     }
 
     /* Test: server rejects fragmented post-handshake message (KeyUpdate) with an invalid size
@@ -383,10 +370,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_send_records(client, message, fragment_size));
         EXPECT_SUCCESS(s2n_update_application_traffic_keys(client, client->mode, SENDING));
 
+        DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+        EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
         EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(client, server), S2N_ERR_BAD_MESSAGE);
 
         /* No post-handshake message should trigger the server to allocate memory */
-        EXPECT_EQUAL(mallocs_count, 0);
+        EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
     };
 
     /* Test: client receives empty post-handshake messages (HelloRequests)
@@ -413,15 +402,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&messages, 0));
         }
 
+        DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+        EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
+
         EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
         EXPECT_OK(s2n_test_basic_recv(server, client));
         EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
-        EXPECT_EQUAL(mallocs_count, 0);
+        EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
 
         EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
         EXPECT_OK(s2n_test_blocking_recv(server, client, &io_pair));
         EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
-        EXPECT_EQUAL(mallocs_count, 0);
+        EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
     }
 
     /* Test: client and server reject known, invalid messages (ClientHellos) */
@@ -444,11 +436,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&message, test_large_message_size));
             EXPECT_OK(s2n_test_send_records(sender, message, fragment_size));
 
+            DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+            EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
             EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(sender, receiver), S2N_ERR_BAD_MESSAGE);
 
             /* No post-handshake message should trigger the server to allocate memory */
             if (mode == S2N_SERVER) {
-                EXPECT_EQUAL(mallocs_count, 0);
+                EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
             }
         }
     }
@@ -473,17 +467,19 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&message, test_large_message_size));
             EXPECT_OK(s2n_test_send_records(sender, message, fragment_size));
 
+            DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
+            EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
             EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(sender, receiver), S2N_ERR_BAD_MESSAGE);
 
             /* No post-handshake message should trigger the server to allocate memory */
             if (mode == S2N_SERVER) {
-                EXPECT_EQUAL(mallocs_count, 0);
+                EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
             }
         }
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
      *= type=test
      *#    -  Handshake messages MUST NOT be interleaved with other record
      *#       types.  That is, if a handshake message is split over two or more

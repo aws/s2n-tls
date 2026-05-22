@@ -139,7 +139,7 @@ if [ "$KEY_TYPE" == "rsa" ]; then
     openssl req -x509 -config "$cert_conf_path" -newkey rsa:${RSA_KEY_SIZE} -${HASH_ALG} -nodes -keyout ${PREFIX}rsa_key.pem -out ${PREFIX}rsa_cert.pem -days 36500
 elif [ "$KEY_TYPE" == "ecdsa" ]; then
     openssl ecparam -out "${PREFIX}ecdsa_key.pem" -name "$CURVE_NAME" -genkey
-    openssl req -new -config "$cert_conf_path" -days 36500 -nodes -x509 -key "${PREFIX}ecdsa_key.pem" -out "${PREFIX}ecdsa_cert.pem"
+    openssl req -new -config "$cert_conf_path" -${HASH_ALG} -days 36500 -nodes -x509 -key "${PREFIX}ecdsa_key.pem" -out "${PREFIX}ecdsa_cert.pem"
 else
     echo "Incorrect key-type: $KEY_TYPE"
     usage ;

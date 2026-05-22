@@ -28,10 +28,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -58,45 +58,17 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
 
         struct s2n_stuffer io = { 0 };
-        s2n_stuffer_growable_alloc(&io, 0);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io, 0));
 
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.send(client_conn, &io));
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(server_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
-        EXPECT_EQUAL(server_conn->handshake_params.client_sig_hash_algs.len,
-                s2n_supported_sig_schemes_count(client_conn));
+        EXPECT_TRUE(server_conn->handshake_params.peer_sig_scheme_list.len > 0);
 
         s2n_stuffer_free(&io);
         s2n_connection_free(client_conn);
         s2n_connection_free(server_conn);
-    };
-
-    /* Test that unknown TLS_EXTENSION_SIGNATURE_ALGORITHMS values are ignored and negotiation fails */
-    {
-        struct s2n_sig_scheme_list sig_hash_algs = {
-            .iana_list = { 0xFF01, 0xFFFF },
-            .len = 2,
-        };
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-        struct s2n_stuffer signature_algorithms_extension = { 0 };
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
-        POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
-        for (size_t i = 0; i < sig_hash_algs.len; i++) {
-            POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
-        }
-
-        /* If only unknown algorithms are offered, expect choosing a scheme to fail for TLS1.3 */
-        conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
-        EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
-        EXPECT_FAILURE(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
-                &conn->handshake_params.conn_sig_scheme));
-
-        EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
     /* Test that a valid algorithm is chosen when it is offered among unknown algorithms */
@@ -105,10 +77,11 @@ int main(int argc, char **argv)
             .iana_list = { 0xFF01, 0xFFFF, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384 },
             .len = 3,
         };
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         POSIX_GUARD(s2n_connection_set_config(conn, config));
         conn->actual_protocol_version = S2N_TLS12;
+        conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
@@ -119,10 +92,9 @@ int main(int argc, char **argv)
 
         /* If a valid algorithm is offered among unknown algorithms, the valid one should be chosen */
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
-        EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
-        EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
-                &conn->handshake_params.conn_sig_scheme));
-        EXPECT_EQUAL(conn->handshake_params.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
+        EXPECT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, sig_hash_algs.len);
+        EXPECT_OK(s2n_signature_algorithm_select(conn));
+        EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme->iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -132,5 +104,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     END_TEST();
-    return 0;
 }

@@ -25,7 +25,8 @@
     EXPECT_EQUAL(s2n_recv(conn, data_buffer, data_buffer_size, blocked), data_len);           \
     EXPECT_BYTEARRAY_EQUAL(data_buffer, data, data_len)
 
-static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
+static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn,
+        struct s2n_test_io_pair *io_pair)
 {
     *client_conn = s2n_connection_new(S2N_CLIENT);
     EXPECT_NOT_NULL(*client_conn);
@@ -36,9 +37,8 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     EXPECT_SUCCESS(s2n_connection_set_blinding(*server_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(*server_conn, "default_tls13"));
 
-    struct s2n_test_io_pair io_pair = { 0 };
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, &io_pair));
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(io_pair));
+    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -88,7 +88,8 @@ int main(int argc, char **argv)
         /* Early data not supported by server */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -115,7 +116,8 @@ int main(int argc, char **argv)
         /* Early data not supported by client */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -142,7 +144,8 @@ int main(int argc, char **argv)
         /* Server does not support TLS1.3 */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
@@ -166,7 +169,8 @@ int main(int argc, char **argv)
         /* Early data accepted */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -212,7 +216,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
 
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
@@ -255,7 +260,8 @@ int main(int argc, char **argv)
         /* Early data rejected */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_without_early_data));
@@ -289,7 +295,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
 
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
@@ -327,7 +334,8 @@ int main(int argc, char **argv)
         /* Early data rejected and ignored */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_to_reject));
@@ -364,7 +372,8 @@ int main(int argc, char **argv)
         /* Early data rejected, but too much early data received */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_to_reject));
@@ -403,7 +412,8 @@ int main(int argc, char **argv)
         /* Early data rejected due to HRR */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -494,7 +504,8 @@ int main(int argc, char **argv)
         /* PSK rejected altogether */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
@@ -526,7 +537,8 @@ int main(int argc, char **argv)
         /* End early data after the server accepts the early data request */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -589,7 +601,8 @@ int main(int argc, char **argv)
         /* End early data before the server accepts the early data request. */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -626,7 +639,8 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = NULL, s2n_connection_ptr_free);
             DEFER_CLEANUP(struct s2n_connection *server_conn = NULL, s2n_connection_ptr_free);
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -675,7 +689,8 @@ int main(int argc, char **argv)
         /* s2n_recv can read early data sent with s2n_send */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -742,7 +757,8 @@ int main(int argc, char **argv)
         /* s2n_recv fails if it encounters a handshake message instead of early data. */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -774,7 +790,8 @@ int main(int argc, char **argv)
         /* s2n_recv fails on too much early data */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));

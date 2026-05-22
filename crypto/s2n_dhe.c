@@ -34,7 +34,7 @@
  */
 static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *Ys;
+    const BIGNUM *Ys = NULL;
 
 /* DH made opaque in Openssl 1.1.0 */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
@@ -48,7 +48,7 @@ static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 
 static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *p;
+    const BIGNUM *p = NULL;
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
 #else
@@ -60,7 +60,7 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *g;
+    const BIGNUM *g = NULL;
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
 #else
@@ -91,10 +91,35 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
 static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *pub_key = s2n_get_Ys_dh_param(dh_params);
-
     POSIX_ENSURE_REF(pub_key);
 
+    /*
+     * https://www.rfc-editor.org/rfc/rfc2631#section-2.1.5
+     *
+     * The following algorithm MAY be used to validate a received public
+     * key y.
+     *
+     * 1. Verify that y lies within the interval [2,p-1].
+     *    If it does not, the key is invalid.
+     *
+     * This check is optional per the RFC, but applied here as
+     * defense-in-depth to reject degenerate public key values.
+     */
     S2N_ERROR_IF(BN_is_zero(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+    S2N_ERROR_IF(BN_is_one(pub_key), S2N_ERR_DH_PARAMS_CREATE);
+
+    const BIGNUM *p = s2n_get_p_dh_param(dh_params);
+    POSIX_ENSURE_REF(p);
+
+    BIGNUM *p_minus_one = BN_dup(p);
+    POSIX_ENSURE_REF(p_minus_one);
+    if (!BN_sub_word(p_minus_one, 1)) {
+        BN_free(p_minus_one);
+        POSIX_BAIL(S2N_ERR_DH_PARAMS_CREATE);
+    }
+    int cmp = BN_cmp(pub_key, p_minus_one);
+    BN_free(p_minus_one);
+    S2N_ERROR_IF(cmp > 0, S2N_ERR_DH_PARAMS_CREATE);
 
     return S2N_SUCCESS;
 }
@@ -138,24 +163,29 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
 {
     POSIX_ENSURE_REF(dh_params);
     POSIX_PRECONDITION(s2n_blob_validate(pkcs3));
+    DEFER_CLEANUP(struct s2n_dh_params temp_dh_params = { 0 }, s2n_dh_params_free);
 
     uint8_t *original_ptr = pkcs3->data;
-    dh_params->dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size);
-    POSIX_GUARD(s2n_check_p_g_dh_params(dh_params));
-    if (pkcs3->data && (pkcs3->data - original_ptr != pkcs3->size)) {
-        DH_free(dh_params->dh);
-        POSIX_BAIL(S2N_ERR_INVALID_PKCS3);
+    temp_dh_params.dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size);
+
+    POSIX_GUARD(s2n_check_p_g_dh_params(&temp_dh_params));
+
+    if (pkcs3->data) {
+        POSIX_ENSURE_GTE(pkcs3->data, original_ptr);
+        POSIX_ENSURE((uint32_t) (pkcs3->data - original_ptr) == pkcs3->size, S2N_ERR_INVALID_PKCS3);
     }
+
     pkcs3->data = original_ptr;
 
     /* Require at least 2048 bits for the DH size */
-    if (DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES) {
-        DH_free(dh_params->dh);
-        POSIX_BAIL(S2N_ERR_DH_TOO_SMALL);
-    }
+    POSIX_ENSURE(DH_size(temp_dh_params.dh) >= S2N_MIN_DH_PRIME_SIZE_BYTES, S2N_ERR_DH_TOO_SMALL);
 
     /* Check the generator and prime */
-    POSIX_GUARD(s2n_dh_params_check(dh_params));
+    POSIX_GUARD(s2n_dh_params_check(&temp_dh_params));
+
+    dh_params->dh = temp_dh_params.dh;
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(temp_dh_params);
 
     return S2N_SUCCESS;
 }
@@ -272,16 +302,30 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     BIGNUM *pub_key = NULL;
 
     POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
+    int server_dh_params_size = DH_size(server_dh_params->dh);
+    POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
 
+    /*
+     * As defined in https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.2,
+     * the client's DH public value (Yc) is sent as a variable-length opaque value.
+     * Validate that Yc_length does not exceed the DH group size to prevent
+     * unnecessary computation and memory allocation on oversized keys.
+     *
+     * According to https://www.rfc-editor.org/rfc/rfc2631#section-2.1.5,
+     * the valid range of Yc is [2, p-1]. When encoding a BIGNUM to bytes,
+     * leading zeros are often stripped, in which case Yc_length might be
+     * less than server_dh_params_size.
+     */
     POSIX_GUARD(s2n_stuffer_read_uint16(Yc_in, &Yc_length));
+    POSIX_ENSURE(Yc_length > 0, S2N_ERR_DH_SHARED_SECRET);
+    POSIX_ENSURE((int) Yc_length <= server_dh_params_size, S2N_ERR_DH_SHARED_SECRET);
+
     Yc.size = Yc_length;
     Yc.data = s2n_stuffer_raw_read(Yc_in, Yc.size);
     POSIX_ENSURE_REF(Yc.data);
 
     pub_key = BN_bin2bn((const unsigned char *) Yc.data, Yc.size, NULL);
     POSIX_ENSURE_REF(pub_key);
-    int server_dh_params_size = DH_size(server_dh_params->dh);
-    POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_GUARD(s2n_alloc(shared_key, server_dh_params_size));
 
     shared_key_size = DH_compute_key(shared_key->data, pub_key, server_dh_params->dh);

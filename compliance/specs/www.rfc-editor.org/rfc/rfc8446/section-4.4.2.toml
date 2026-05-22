@@ -1,0 +1,217 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.4.2"
+
+# 4.4.2.  Certificate
+#
+# This message conveys the endpoint's certificate chain to the peer.
+# 
+# The server MUST send a Certificate message whenever the agreed-upon
+# key exchange method uses certificates for authentication (this
+# includes all key exchange methods defined in this document
+# except PSK).
+# 
+# The client MUST send a Certificate message if and only if the server
+# has requested client authentication via a CertificateRequest message
+# (Section 4.3.2).  If the server requests client authentication but no
+# suitable certificate is available, the client MUST send a Certificate
+# message containing no certificates (i.e., with the "certificate_list"
+# field having length 0).  A Finished message MUST be sent regardless
+# of whether the Certificate message is empty.
+# 
+# Structure of this message:
+# 
+#    enum {
+#        X509(0),
+#        RawPublicKey(2),
+#        (255)
+#    } CertificateType;
+# 
+#    struct {
+#        select (certificate_type) {
+#            case RawPublicKey:
+#              /* From RFC 7250 ASN.1_subjectPublicKeyInfo */
+#              opaque ASN1_subjectPublicKeyInfo<1..2^24-1>;
+# 
+#            case X509:
+#              opaque cert_data<1..2^24-1>;
+#        };
+#        Extension extensions<0..2^16-1>;
+#    } CertificateEntry;
+# 
+#    struct {
+#        opaque certificate_request_context<0..2^8-1>;
+#        CertificateEntry certificate_list<0..2^24-1>;
+#    } Certificate;
+# 
+# certificate_request_context:  If this message is in response to a
+#    CertificateRequest, the value of certificate_request_context in
+#    that message.  Otherwise (in the case of server authentication),
+#    this field SHALL be zero length.
+# 
+# certificate_list:  A sequence (chain) of CertificateEntry structures,
+#    each containing a single certificate and set of extensions.
+# 
+# extensions:  A set of extension values for the CertificateEntry.  The
+#    "Extension" format is defined in Section 4.2.  Valid extensions
+#    for server certificates at present include the OCSP Status
+#    extension [RFC6066] and the SignedCertificateTimestamp extension
+#    [RFC6962]; future extensions may be defined for this message as
+#    well.  Extensions in the Certificate message from the server MUST
+#    correspond to ones from the ClientHello message.  Extensions in
+#    the Certificate message from the client MUST correspond to
+#    extensions in the CertificateRequest message from the server.  If
+#    an extension applies to the entire chain, it SHOULD be included in
+#    the first CertificateEntry.
+# 
+# If the corresponding certificate type extension
+# ("server_certificate_type" or "client_certificate_type") was not
+# negotiated in EncryptedExtensions, or the X.509 certificate type was
+# negotiated, then each CertificateEntry contains a DER-encoded X.509
+# certificate.  The sender's certificate MUST come in the first
+# CertificateEntry in the list.  Each following certificate SHOULD
+# directly certify the one immediately preceding it.  Because
+# certificate validation requires that trust anchors be distributed
+# independently, a certificate that specifies a trust anchor MAY be
+# omitted from the chain, provided that supported peers are known to
+# possess any omitted certificates.
+# 
+# Note: Prior to TLS 1.3, "certificate_list" ordering required each
+# certificate to certify the one immediately preceding it; however,
+# some implementations allowed some flexibility.  Servers sometimes
+# send both a current and deprecated intermediate for transitional
+# purposes, and others are simply configured incorrectly, but these
+# cases can nonetheless be validated properly.  For maximum
+# compatibility, all implementations SHOULD be prepared to handle
+# potentially extraneous certificates and arbitrary orderings from any
+# TLS version, with the exception of the end-entity certificate which
+# MUST be first.
+# 
+# If the RawPublicKey certificate type was negotiated, then the
+# certificate_list MUST contain no more than one CertificateEntry,
+# which contains an ASN1_subjectPublicKeyInfo value as defined in
+# [RFC7250], Section 3.
+# 
+# The OpenPGP certificate type [RFC6091] MUST NOT be used with TLS 1.3.
+# 
+# The server's certificate_list MUST always be non-empty.  A client
+# will send an empty certificate_list if it does not have an
+# appropriate certificate to send in response to the server's
+# authentication request.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST send a Certificate message whenever the agreed-upon
+key exchange method uses certificates for authentication (this
+includes all key exchange methods defined in this document
+except PSK).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The client MUST send a Certificate message if and only if the server
+has requested client authentication via a CertificateRequest message
+(Section 4.3.2).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server requests client authentication but no
+suitable certificate is available, the client MUST send a Certificate
+message containing no certificates (i.e., with the "certificate_list"
+field having length 0).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A Finished message MUST be sent regardless
+of whether the Certificate message is empty.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Otherwise (in the case of server authentication),
+this field SHALL be zero length.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Extensions in the Certificate message from the server MUST
+correspond to ones from the ClientHello message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Extensions in
+the Certificate message from the client MUST correspond to
+extensions in the CertificateRequest message from the server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If
+an extension applies to the entire chain, it SHOULD be included in
+the first CertificateEntry.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The sender's certificate MUST come in the first
+CertificateEntry in the list.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Each following certificate SHOULD
+directly certify the one immediately preceding it.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Because
+certificate validation requires that trust anchors be distributed
+independently, a certificate that specifies a trust anchor MAY be
+omitted from the chain, provided that supported peers are known to
+possess any omitted certificates.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For maximum
+compatibility, all implementations SHOULD be prepared to handle
+potentially extraneous certificates and arbitrary orderings from any
+TLS version, with the exception of the end-entity certificate which
+MUST be first.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the RawPublicKey certificate type was negotiated, then the
+certificate_list MUST contain no more than one CertificateEntry,
+which contains an ASN1_subjectPublicKeyInfo value as defined in
+[RFC7250], Section 3.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The OpenPGP certificate type [RFC6091] MUST NOT be used with TLS 1.3.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server's certificate_list MUST always be non-empty.
+'''
+

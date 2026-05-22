@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
     uint8_t app_data[] = "smaller hello world";
     uint8_t large_app_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = "hello world and a lot of zeroes";
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(small_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(small_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(small_frag_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(small_frag_config));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(small_frag_config, S2N_TLS_MAX_FRAG_LEN_512));
 
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(larger_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(larger_frag_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(larger_frag_config, S2N_TLS_MAX_FRAG_LEN_4096));
 
@@ -451,6 +451,41 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_peek(client_conn), 0);
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+        };
+
+        /* Wipe with next record buffered allowed, and data preserved */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            EXPECT_SUCCESS(s2n_connection_set_recv_buffering(client, true));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+            /* Write two records, but only receive one.
+             * Due to recv buffering, the second record will be read and buffered
+             * at the same time as the first record, but not processed yet.
+             */
+            uint8_t recv_buffer[sizeof(app_data)] = { 0 };
+            EXPECT_EQUAL(s2n_send(server, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_send(server, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_recv(client, recv_buffer, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_peek(client), 0);
+            EXPECT_TRUE(s2n_stuffer_data_available(&client->buffer_in));
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client));
+
+            /* The second record is still available to read after the wipe */
+            EXPECT_EQUAL(s2n_recv(client, recv_buffer, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
         };
     };
 

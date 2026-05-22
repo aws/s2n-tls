@@ -28,7 +28,8 @@
     EXPECT_EQUAL((blocked), (expected_blocked));                         \
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
 
-static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
+static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn,
+        struct s2n_test_io_pair *io_pair)
 {
     *client_conn = s2n_connection_new(S2N_CLIENT);
     EXPECT_NOT_NULL(*client_conn);
@@ -39,9 +40,8 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     EXPECT_SUCCESS(s2n_connection_set_blinding(*server_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(*server_conn, "default_tls13"));
 
-    struct s2n_test_io_pair io_pair = { 0 };
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, &io_pair));
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(io_pair));
+    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -247,7 +247,8 @@ int main(int argc, char **argv)
         /* Propagate errors from s2n_recv */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
 
@@ -276,7 +277,8 @@ int main(int argc, char **argv)
         /* Send zero-length early data */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -308,7 +310,8 @@ int main(int argc, char **argv)
         /* Send early data once */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -342,7 +345,8 @@ int main(int argc, char **argv)
         /* Receive early data too large for buffer */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -373,8 +377,8 @@ int main(int argc, char **argv)
 
             /* Pretend we didn't test the above error condition.
              * The S2N_ERR_BAD_MESSAGE error triggered S2N to close the connection. */
-            server_conn->write_closed = false;
-            client_conn->write_closed = false;
+            s2n_atomic_flag_clear(&server_conn->write_closed);
+            s2n_atomic_flag_clear(&client_conn->write_closed);
 
             /* Read the remaining early data properly */
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
@@ -393,7 +397,8 @@ int main(int argc, char **argv)
         /* Send multiple early data messages */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -432,7 +437,8 @@ int main(int argc, char **argv)
         /* Receive and combine multiple early data records */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -474,7 +480,8 @@ int main(int argc, char **argv)
         /* Early data not requested */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk_with_wrong_early_data));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -509,7 +516,8 @@ int main(int argc, char **argv)
         /* Early data rejected */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_with_wrong_early_data));
@@ -738,7 +746,7 @@ int main(int argc, char **argv)
         struct s2n_psk *known_psk = &resumption_psk;
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  generate resumption secret "tls13 resumption":
          *#
@@ -759,7 +767,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_secret(known_psk, psk_secret.data, psk_secret.size));
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  construct a NewSessionTicket handshake message:
          *#
@@ -799,7 +807,7 @@ int main(int argc, char **argv)
 
         /** ClientHello record
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (517 octets):  16 03 01 02 00 01 00 01 fc 03 03 1b
@@ -858,7 +866,7 @@ int main(int argc, char **argv)
 
         /* ApplicationData record containing early data
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  send application_data record:
          *#
@@ -873,7 +881,7 @@ int main(int argc, char **argv)
 
         /* EndOfEarlyData record
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (26 octets):  17 03 03 00 15 ac a6 fc 94 48 41 29

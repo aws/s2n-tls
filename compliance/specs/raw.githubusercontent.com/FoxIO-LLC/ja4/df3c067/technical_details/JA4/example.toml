@@ -1,0 +1,19 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#example"
+
+# ### Example
+#
+# JA4 fingerprint:  
+# t (TLS over TCP)  
+# 13 (TLS version 1.3)  
+# d (SNI exists so it’s going to a domain)  
+# 15 (15 cipher suites ignoring grease)  
+# 16 (16 extensions ignoring grease)  
+# h2 (first and last characters of the first ALPN extension value)  
+# _  
+# 8daaf6152771 (truncated sha256 hash of the list of ciphers sorted)
+# _  
+# e5627efa2ab1 (truncated sha256 hash of the list of extensions sorted, SNI and ALPN removed, followed by the list of signature algorithms)
+# ```
+# JA4 = t13d1516h2_8daaf6152771_e5627efa2ab1  
+# ```
+

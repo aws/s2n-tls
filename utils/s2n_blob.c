@@ -17,7 +17,6 @@
 
 #include <ctype.h>
 #include <string.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -29,12 +28,19 @@ S2N_RESULT s2n_blob_validate(const struct s2n_blob *b)
     RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->size == 0), S2N_ERR_SAFETY);
     RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->allocated == 0), S2N_ERR_SAFETY);
     RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->growable == 0, b->allocated == 0), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->growable == 1, b->allocated > 0 || b->size == 0), S2N_ERR_SAFETY);
     RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->growable != 0, b->size <= b->allocated), S2N_ERR_SAFETY);
     RESULT_DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->allocated), S2N_ERR_SAFETY);
     RESULT_DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->size), S2N_ERR_SAFETY);
     return S2N_RESULT_OK;
 }
 
+/**
+ * Initialize a blob to reference some data.
+ *  
+ * `b` will not free `data`. The caller is responsible for making sure that
+ * `data` outlives `b`.
+ */
 int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
 {
     POSIX_ENSURE_REF(b);
@@ -47,11 +53,17 @@ int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
 int s2n_blob_zero(struct s2n_blob *b)
 {
     POSIX_PRECONDITION(s2n_blob_validate(b));
-    POSIX_CHECKED_MEMSET(b->data, 0, MAX(b->allocated, b->size));
+    POSIX_CHECKED_MEMSET(b->data, 0, S2N_MAX(b->allocated, b->size));
     POSIX_POSTCONDITION(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
 
+/**
+ * Set `slice` to reference some portion of `b`.
+ * 
+ * The caller is responsible for ensuring that the data pointed to by `b` outlives
+ * `slice`.
+ */
 int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_blob_validate(b));
@@ -76,61 +88,5 @@ int s2n_blob_char_to_lower(struct s2n_blob *b)
         b->data[i] = tolower(b->data[i]);
     }
     POSIX_POSTCONDITION(s2n_blob_validate(b));
-    return S2N_SUCCESS;
-}
-
-/* An inverse map from an ascii value to a hexidecimal nibble value
- * accounts for all possible char values, where 255 is invalid value */
-static const uint8_t hex_inverse[256] = {
-    /* clang-format off */
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-      0,   1,   2,   3,   4,   5,   6,   7,   8,   9, 255, 255, 255, 255, 255, 255,
-    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
-    /* clang-format on */
-};
-
-/* takes a hex string and writes values in the s2n_blob
- * string needs to a valid hex and blob needs to be large enough */
-int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
-{
-    POSIX_ENSURE_REF(str);
-    POSIX_PRECONDITION(s2n_blob_validate(blob));
-    uint32_t len_with_spaces = strlen((const char *) str);
-
-    size_t i = 0, j = 0;
-    while (j < len_with_spaces) {
-        if (str[j] == ' ') {
-            j++;
-            continue;
-        }
-
-        uint8_t high_nibble = hex_inverse[str[j]];
-        POSIX_ENSURE(high_nibble != 255, S2N_ERR_INVALID_HEX);
-
-        uint8_t low_nibble = hex_inverse[str[j + 1]];
-        POSIX_ENSURE(low_nibble != 255, S2N_ERR_INVALID_HEX);
-
-        POSIX_ENSURE(i < blob->size, S2N_ERR_INVALID_HEX);
-        blob->data[i] = high_nibble << 4 | low_nibble;
-
-        i++;
-        j += 2;
-    }
-    blob->size = i;
-
-    POSIX_POSTCONDITION(s2n_blob_validate(blob));
     return S2N_SUCCESS;
 }

@@ -29,7 +29,7 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     uint8_t mac_key[] = "sample mac key";
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
@@ -53,10 +53,10 @@ int main(int argc, char **argv)
 
     /* test the AES128 cipher with a SHA1 hash */
     conn->secure->cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes128));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes128));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes128));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes128));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-        int bytes_written;
+        int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
@@ -99,8 +99,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
-        uint8_t content_type;
-        uint16_t fragment_length;
+        uint8_t content_type = 0;
+        uint16_t fragment_length = 0;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -110,8 +110,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* test the AES256 cipher with a SHA1 hash */
@@ -119,10 +119,10 @@ int main(int argc, char **argv)
     conn->server = conn->secure;
     conn->client = conn->secure;
     conn->secure->cipher_suite->record_alg = &s2n_record_alg_aes256_sha;
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes256));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes256));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes256));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes256));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-        int bytes_written;
+        int bytes_written = 0;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
@@ -165,8 +165,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
-        uint8_t content_type;
-        uint16_t fragment_length;
+        uint8_t content_type = 0;
+        uint16_t fragment_length = 0;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -176,8 +176,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();

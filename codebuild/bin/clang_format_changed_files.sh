@@ -13,12 +13,15 @@
 # permissions and limitations under the License.
 
 # Get a list of changed files
-changed_files=$(git diff --name-only)
+REMOTE="${1:-origin}"
+BRANCH="${2:-main}"
+changed_files=$(git diff "$REMOTE"/"$BRANCH" --name-only )
 
 # Run clang-format on each changed file
 for file in $changed_files
 do
     if [[ $file == *.c || $file == *.h ]]; then # Only run on .c and .h files
+        echo "clang formatting ${file}"
         clang-format -i $file
     fi
 done

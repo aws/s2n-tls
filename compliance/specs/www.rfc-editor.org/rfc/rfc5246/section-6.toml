@@ -1,0 +1,51 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-6"
+
+# 6.  The TLS Record Protocol
+#
+# The TLS Record Protocol is a layered protocol.  At each layer,
+# messages may include fields for length, description, and content.
+# The Record Protocol takes messages to be transmitted, fragments the
+# data into manageable blocks, optionally compresses the data, applies
+# a MAC, encrypts, and transmits the result.  Received data is
+# decrypted, verified, decompressed, reassembled, and then delivered to
+# higher-level clients.
+# 
+# Four protocols that use the record protocol are described in this
+# document: the handshake protocol, the alert protocol, the change
+# cipher spec protocol, and the application data protocol.  In order to
+# allow extension of the TLS protocol, additional record content types
+# can be supported by the record protocol.  New record content type
+# values are assigned by IANA in the TLS Content Type Registry as
+# described in Section 12.
+# 
+# Implementations MUST NOT send record types not defined in this
+# document unless negotiated by some extension.  If a TLS
+# implementation receives an unexpected record type, it MUST send an
+# unexpected_message alert.
+# 
+# Any protocol designed for use over TLS must be carefully designed to
+# deal with all possible attacks against it.  As a practical matter,
+# this means that the protocol designer must be aware of what security
+# properties TLS does and does not provide and cannot safely rely on
+# the latter.
+# 
+# Note in particular that type and length of a record are not protected
+# by encryption.  If this information is itself sensitive, application
+# designers may wish to take steps (padding, cover traffic) to minimize
+# information leakage.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST NOT send record types not defined in this
+document unless negotiated by some extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a TLS
+implementation receives an unexpected record type, it MUST send an
+unexpected_message alert.
+'''
+

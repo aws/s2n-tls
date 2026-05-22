@@ -1,0 +1,120 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#appendix-E.5"
+
+# E.5.  Replay Attacks on 0-RTT
+#
+# Replayable 0-RTT data presents a number of security threats to TLS-
+# using applications, unless those applications are specifically
+# engineered to be safe under replay (minimally, this means idempotent,
+# but in many cases may also require other stronger conditions, such as
+# constant-time response).  Potential attacks include:
+# 
+# -  Duplication of actions which cause side effects (e.g., purchasing
+#    an item or transferring money) to be duplicated, thus harming the
+#    site or the user.
+# 
+# -  Attackers can store and replay 0-RTT messages in order to reorder
+#    them with respect to other messages (e.g., moving a delete to
+#    after a create).
+# 
+# -  Exploiting cache timing behavior to discover the content of 0-RTT
+#    messages by replaying a 0-RTT message to a different cache node
+#    and then using a separate connection to measure request latency,
+#    to see if the two requests address the same resource.
+# 
+# If data can be replayed a large number of times, additional attacks
+# become possible, such as making repeated measurements of the speed of
+# cryptographic operations.  In addition, they may be able to overload
+# rate-limiting systems.  For a further description of these attacks,
+# see [Mac17].
+# 
+# Ultimately, servers have the responsibility to protect themselves
+# against attacks employing 0-RTT data replication.  The mechanisms
+# described in Section 8 are intended to prevent replay at the TLS
+# layer but do not provide complete protection against receiving
+# multiple copies of client data.  TLS 1.3 falls back to the 1-RTT
+# handshake when the server does not have any information about the
+# client, e.g., because it is in a different cluster which does not
+# share state or because the ticket has been deleted as described in
+# Section 8.1.  If the application-layer protocol retransmits data in
+# this setting, then it is possible for an attacker to induce message
+# duplication by sending the ClientHello to both the original cluster
+# (which processes the data immediately) and another cluster which will
+# fall back to 1-RTT and process the data upon application-layer
+# replay.  The scale of this attack is limited by the client's
+# willingness to retry transactions and therefore only allows a limited
+# amount of duplication, with each copy appearing as a new connection
+# at the server.
+# 
+# If implemented correctly, the mechanisms described in Sections 8.1
+# and 8.2 prevent a replayed ClientHello and its associated 0-RTT data
+# from being accepted multiple times by any cluster with consistent
+# state; for servers which limit the use of 0-RTT to one cluster for a
+# single ticket, then a given ClientHello and its associated 0-RTT data
+# will only be accepted once.  However, if state is not completely
+# consistent, then an attacker might be able to have multiple copies of
+# the data be accepted during the replication window.  Because clients
+# do not know the exact details of server behavior, they MUST NOT send
+# messages in early data which are not safe to have replayed and which
+# they would not be willing to retry across multiple 1-RTT connections.
+# 
+# Application protocols MUST NOT use 0-RTT data without a profile that
+# defines its use.  That profile needs to identify which messages or
+# interactions are safe to use with 0-RTT and how to handle the
+# situation when the server rejects 0-RTT and falls back to 1-RTT.
+# 
+# In addition, to avoid accidental misuse, TLS implementations MUST NOT
+# enable 0-RTT (either sending or accepting) unless specifically
+# requested by the application and MUST NOT automatically resend 0-RTT
+# data if it is rejected by the server unless instructed by the
+# application.  Server-side applications may wish to implement special
+# processing for 0-RTT data for some kinds of application traffic
+# (e.g., abort the connection, request that data be resent at the
+# application layer, or delay processing until the handshake
+# completes).  In order to allow applications to implement this kind of
+# processing, TLS implementations MUST provide a way for the
+# application to determine if the handshake has completed.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Because clients
+do not know the exact details of server behavior, they MUST NOT send
+messages in early data which are not safe to have replayed and which
+they would not be willing to retry across multiple 1-RTT connections.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Application protocols MUST NOT use 0-RTT data without a profile that
+defines its use.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In addition, to avoid accidental misuse, TLS implementations MUST NOT
+enable 0-RTT (either sending or accepting) unless specifically
+requested by the application and MUST NOT automatically resend 0-RTT
+data if it is rejected by the server unless instructed by the
+application.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In addition, to avoid accidental misuse, TLS implementations MUST NOT
+enable 0-RTT (either sending or accepting) unless specifically
+requested by the application and MUST NOT automatically resend 0-RTT
+data if it is rejected by the server unless instructed by the
+application.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In order to allow applications to implement this kind of
+processing, TLS implementations MUST provide a way for the
+application to determine if the handshake has completed.
+'''
+

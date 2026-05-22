@@ -32,7 +32,7 @@ s2n_pkey_type actual_cert_pkey_type;
 
 static int s2n_skip_cert_chain_size(struct s2n_stuffer *stuffer)
 {
-    uint32_t cert_chain_size;
+    uint32_t cert_chain_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint24(stuffer, &cert_chain_size));
     POSIX_ENSURE_EQ(cert_chain_size, s2n_stuffer_data_available(stuffer));
     return S2N_SUCCESS;
@@ -40,7 +40,7 @@ static int s2n_skip_cert_chain_size(struct s2n_stuffer *stuffer)
 
 static int s2n_skip_cert(struct s2n_stuffer *stuffer)
 {
-    uint32_t cert_size;
+    uint32_t cert_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint24(stuffer, &cert_size));
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, cert_size));
     return S2N_SUCCESS;
@@ -51,7 +51,7 @@ static int s2n_x509_validator_validate_cert_chain_test(struct s2n_connection *co
     POSIX_GUARD(s2n_skip_cert_chain_size(stuffer));
     uint32_t cert_chain_size = s2n_stuffer_data_available(stuffer);
 
-    uint8_t *cert_chain_data;
+    uint8_t *cert_chain_data = NULL;
     POSIX_ENSURE_REF(cert_chain_data = s2n_stuffer_raw_read(stuffer, cert_chain_size));
 
     POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn,
@@ -71,11 +71,16 @@ static int s2n_write_test_cert(struct s2n_stuffer *stuffer, struct s2n_cert_chai
 
 static int s2n_setup_connection_for_ocsp_validate_test(struct s2n_connection **conn, struct s2n_cert_chain_and_key *chain_and_key)
 {
-    struct s2n_connection *nconn;
+    struct s2n_connection *nconn = NULL;
 
     POSIX_ENSURE_REF(nconn = s2n_connection_new(S2N_SERVER));
     nconn->actual_protocol_version = S2N_TLS13;
     nconn->handshake_params.our_chain_and_key = chain_and_key;
+
+    /* The OCSP tests ensure that an OCSP response can be successfully sent/received. They do NOT
+     * ensure that the OCSP response is correctly validated.
+     */
+    nconn->x509_validator.skip_cert_validation = true;
 
     POSIX_GUARD(s2n_connection_allow_all_response_extensions(nconn));
     nconn->status_type = S2N_STATUS_REQUEST_OCSP;
@@ -90,16 +95,12 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-    struct s2n_config *config;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-
     EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
 
     /* Initialize cert chain */
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Initialize cert extension data */
     uint8_t data[] = "extension data";
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
     {
         /* Test: extensions only sent for >= TLS1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->handshake_params.our_chain_and_key = chain_and_key;
 
@@ -154,7 +155,7 @@ int main(int argc, char **argv)
 
         /* Test: extensions only sent on first certificate */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->handshake_params.our_chain_and_key = chain_and_key;
 
@@ -190,10 +191,11 @@ int main(int argc, char **argv)
     {
         /* Test: with no extensions */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake_params.our_chain_and_key = chain_and_key;
+            conn->x509_validator.skip_cert_validation = true;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -206,10 +208,11 @@ int main(int argc, char **argv)
 
         /* Test: with extensions */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake_params.our_chain_and_key = chain_and_key;
+            conn->x509_validator.skip_cert_validation = true;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -237,7 +240,7 @@ int main(int argc, char **argv)
     {
         /* Test: extensions only processed for >= TLS1.3 */
         {
-            struct s2n_connection *setup_conn;
+            struct s2n_connection *setup_conn = NULL;
             POSIX_GUARD(s2n_setup_connection_for_ocsp_validate_test(&setup_conn, chain_and_key));
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
@@ -251,7 +254,7 @@ int main(int argc, char **argv)
 
             /* TLS1.2 does NOT process extensions */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 POSIX_GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
 
                 EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
@@ -267,7 +270,7 @@ int main(int argc, char **argv)
 
             /* TLS1.3 DOES process extensions */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 POSIX_GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
 
                 EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
@@ -290,7 +293,7 @@ int main(int argc, char **argv)
 
             /* Extensions on second cert ignored */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 POSIX_GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
 
                 DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
@@ -313,7 +316,7 @@ int main(int argc, char **argv)
 
             /* Extensions on first cert processed */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 POSIX_GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
 
                 DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
@@ -337,7 +340,66 @@ int main(int argc, char **argv)
     };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    EXPECT_SUCCESS(s2n_config_free(config));
+
+    /* clang-format off */
+    struct {
+        const char *cert_path;
+        const char *key_path;
+        const char *server_name;
+    } test_cases[] = {
+        /* IPv4 Cert with CN=127.0.0.1 and no SAN extension */
+        {
+            .cert_path = "../pems/ip_cn_no_san_rsa_cert.pem",
+            .key_path = "../pems/ip_cn_no_san_rsa_key.pem",
+            .server_name = "127.0.0.1",
+        },
+        /* IPv6 Cert with CN=::1 and no SAN extension */
+        {
+            .cert_path = "../pems/ipv6_cn_no_san_rsa_cert.pem",
+            .key_path = "../pems/ipv6_cn_no_san_rsa_key.pem",
+            .server_name = "::1",
+        },
+    };
+    /* clang-format on */
+
+    /* RFC 6125: A cert with an IP literal CN and no SAN extension should NOT be accepted
+     * when the client connects to the IP address. */
+    for (int i = 0; i < s2n_array_len(test_cases); i++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
+                test_cases[i].cert_path, test_cases[i].key_path));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_path, NULL));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls12"));
+
+        /* The caller targets an IP literal. */
+        EXPECT_SUCCESS(s2n_set_server_name(client, test_cases[i].server_name));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls12"));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        /* The CN fallback in s2n_verify_host_information_common_name rejects CN values that parse as IP addresses,
+         * since per RFC 6125 section 6.4.4 the CN fallback only applies to fully qualified DNS domain names,
+         * and IP reference identities must match iPAddress SAN entries (section 6.2.1). */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client), S2N_ERR_CERT_UNTRUSTED);
+    };
 
     END_TEST();
 

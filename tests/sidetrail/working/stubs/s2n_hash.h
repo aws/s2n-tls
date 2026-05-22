@@ -32,8 +32,8 @@ typedef enum {
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
     S2N_HASH_MD5_SHA1,
-    /* Don't add any hash algorithms below S2N_HASH_SENTINEL */
-    S2N_HASH_SENTINEL
+    /* Don't add any hash algorithms below S2N_HASH_ALGS_COUNT */
+    S2N_HASH_ALGS_COUNT
 } s2n_hash_algorithm;
 
 struct s2n_hash_state {

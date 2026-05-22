@@ -31,12 +31,7 @@
 
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13};
 
-#ifdef S2N_TEST_IN_FIPS_MODE
-const struct s2n_cipher_preferences *cipher_prefs = &cipher_preferences_test_all_fips;
-#else
 const struct s2n_cipher_preferences *cipher_prefs = &cipher_preferences_test_all;
-#endif
-
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {

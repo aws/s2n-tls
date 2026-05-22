@@ -21,6 +21,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
+PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
@@ -28,6 +29,7 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_dhe.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 UNWINDSET +=
 

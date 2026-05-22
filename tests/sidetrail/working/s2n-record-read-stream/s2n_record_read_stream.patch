@@ -1,0 +1,29 @@
+diff --git a/tls/s2n_record_read_stream.c b/tls/s2n_record_read_stream.c
+index 927ab00f..3846cc4b 100644
+--- a/tls/s2n_record_read_stream.c
++++ b/tls/s2n_record_read_stream.c
+@@ -79,15 +79,20 @@ int s2n_record_parse_stream(
+         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+     }
+ 
++    /* All information is declassified after the MAC is successfully verified since the record is
++     * decrypted and authenticated. Code that's executed post MAC validation need not be constant
++     * time, so it's removed from the scope of SideTrail's analysis.
++     */
++
+     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
+      * for reading the plaintext data.
+      */
+-    POSIX_GUARD(s2n_stuffer_reread(&conn->in));
+-    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
++//    POSIX_GUARD(s2n_stuffer_reread(&conn->in));
++//    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
+ 
+     /* Truncate and wipe the MAC and any padding */
+-    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
+-    conn->in_status = PLAINTEXT;
++//    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
++//    conn->in_status = PLAINTEXT;
+ 
+     return 0;
+ }

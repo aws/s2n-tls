@@ -23,12 +23,6 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; t
     codebuild/bin/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
 
-# Download and Install LibFuzzer with latest clang
-if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
-    mkdir -p "$LIBFUZZER_INSTALL_DIR" || true
-    PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH codebuild/bin/install_libFuzzer.sh "$(mktemp -d)" "$LIBFUZZER_INSTALL_DIR" "$OS_NAME" ;
-fi
-
 # Download and Install Openssl 1.1.1
 if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
@@ -41,6 +35,12 @@ fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" && ! -d "$OPENSSL_3_0_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_3_0_INSTALL_DIR"
     codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_0_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+fi
+
+# Download and Install Openssl 3.0 FIPS
+if [[ "$S2N_LIBCRYPTO" == "openssl-3.0-fips" && ! -d "$OPENSSL_3_FIPS_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_3_FIPS_INSTALL_DIR"
+    codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_FIPS_INSTALL_DIR" "$OS_NAME" fips > /dev/null ;
 fi
 
 # Download and Install Openssl 1.0.2
@@ -66,13 +66,14 @@ fi
 
 # Download and Install AWS-LC
 if [[ "$S2N_LIBCRYPTO" == "awslc" && ! -d "$AWSLC_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" "0" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" > /dev/null ;
 fi
-if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
-fi
+
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" && ! -d "$AWSLC_FIPS_2022_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc_fips_2022.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" > /dev/null ;
+    codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" "2022" > /dev/null ;
+fi
+if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2024" && ! -d "$AWSLC_FIPS_2024_INSTALL_DIR" ]]; then
+    codebuild/bin/install_awslc_fips_2024.sh "$(mktemp -d)" "$AWSLC_FIPS_2024_INSTALL_DIR" "2024" > /dev/null ;
 fi
 
 if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
@@ -91,23 +92,11 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
                 brew install python@3
                 python3 -m pip install --user tox ;;
             *)
-                echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
+                echo "Unknown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
                 exit 1
                 ;;
             esac
         fi
-    fi
-
-    if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
-      # Download and Install Openssl 0.9.8
-      mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
-      codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-    fi
-
-    if [[ ! -x "$GNUTLS_INSTALL_DIR/bin/gnutls-cli" ]]; then
-      # Download and Install GnuTLS for integration tests
-      mkdir -p "$GNUTLS_INSTALL_DIR"||true
-      codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" > /dev/null ;
     fi
 
     if [[ ! -x "$GNUTLS37_INSTALL_DIR/bin/gnutls-cli" ]]; then
@@ -116,15 +105,9 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
       codebuild/bin/install_gnutls37.sh "$(mktemp -d)" "$GNUTLS37_INSTALL_DIR" > /dev/null ;
     fi
 
-    if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
-      # Download and Install OQS OpenSSL for integration tests
-      mkdir -p "$OQS_OPENSSL_1_1_1_INSTALL_DIR" ||true
-      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
-    fi
-
     if [[ "$DISTRO" == "ubuntu" ]]; then
         # Install SSLyze for all Integration Tests on Ubuntu.
-        # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
+        # There is a nassl dependency issue preventing this from working on on AL2 ARM (others?).
         if [[ "$S2N_NO_SSLYZE" != "true" ]]; then
             codebuild/bin/install_sslyze.sh
         fi
@@ -161,11 +144,3 @@ if [[ ! -x `which cmake` ]]; then
         ;;
     esac
 fi
-
-if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then
-    if [[ ! -x "$GB_INSTALL_DIR/lib/libbenchmark.a" ]]; then
-        mkdir -p "$GB_INSTALL_DIR"||true
-        codebuild/bin/install_googlebenchmark.sh "$(mktemp -d)" "$GB_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-    fi
-fi
-

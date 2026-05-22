@@ -60,7 +60,7 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     size_t idx = 0;
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
      *# opaque_type:  The outer opaque_type field of a TLSCiphertext record
      *#    is always set to the value 23 (application_data) for outward
      *#    compatibility with middleboxes accustomed to parsing previous
@@ -70,7 +70,7 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     data[idx++] = TLS_APPLICATION_DATA;
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
      *# legacy_record_version:  The legacy_record_version field is always
      *#    0x0303.  TLS 1.3 TLSCiphertexts are not generated until after
      *#    TLS 1.3 has been negotiated, so there are no historical
@@ -83,7 +83,7 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     data[idx++] = 0x03;
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
      *# length:  The length (in bytes) of the following
      *#    TLSCiphertext.encrypted_record, which is the sum of the lengths of
      *#    the content and the padding, plus one for the inner content type,

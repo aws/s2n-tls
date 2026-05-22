@@ -1,0 +1,60 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.2"
+
+# 7.2.  Alert Protocol
+#
+# One of the content types supported by the TLS record layer is the
+# alert type.  Alert messages convey the severity of the message
+# (warning or fatal) and a description of the alert.  Alert messages
+# with a level of fatal result in the immediate termination of the
+# connection.  In this case, other connections corresponding to the
+# session may continue, but the session identifier MUST be invalidated,
+# preventing the failed session from being used to establish new
+# connections.  Like other messages, alert messages are encrypted and
+# compressed, as specified by the current connection state.
+# 
+#    enum { warning(1), fatal(2), (255) } AlertLevel;
+# 
+#    enum {
+#        close_notify(0),
+#        unexpected_message(10),
+#        bad_record_mac(20),
+#        decryption_failed_RESERVED(21),
+#        record_overflow(22),
+#        decompression_failure(30),
+#        handshake_failure(40),
+#        no_certificate_RESERVED(41),
+#        bad_certificate(42),
+#        unsupported_certificate(43),
+#        certificate_revoked(44),
+#        certificate_expired(45),
+#        certificate_unknown(46),
+#        illegal_parameter(47),
+#        unknown_ca(48),
+#        access_denied(49),
+#        decode_error(50),
+#        decrypt_error(51),
+# 
+#        export_restriction_RESERVED(60),
+#        protocol_version(70),
+#        insufficient_security(71),
+#        internal_error(80),
+#        user_canceled(90),
+#        no_renegotiation(100),
+#        unsupported_extension(110),
+#        (255)
+#    } AlertDescription;
+# 
+#    struct {
+#        AlertLevel level;
+#        AlertDescription description;
+#    } Alert;
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this case, other connections corresponding to the
+session may continue, but the session identifier MUST be invalidated,
+preventing the failed session from being used to establish new
+connections.
+'''
+

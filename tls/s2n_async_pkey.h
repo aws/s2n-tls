@@ -15,9 +15,11 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
+#include "crypto/s2n_signature.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
+
+struct s2n_connection;
 
 typedef int (*s2n_async_pkey_sign_complete)(struct s2n_connection *conn, struct s2n_blob *signature);
 typedef int (*s2n_async_pkey_decrypt_complete)(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *decrypted);
@@ -75,3 +77,12 @@ S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *
         s2n_async_pkey_decrypt_complete on_complete);
 S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
         s2n_async_pkey_sign_complete on_complete);
+
+struct s2n_async_pkey_verify_data {
+    struct s2n_hash_state digest;
+    s2n_signature_algorithm sig_alg;
+    struct s2n_blob signature;
+};
+
+int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature);

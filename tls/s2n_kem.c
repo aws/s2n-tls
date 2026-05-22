@@ -15,82 +15,99 @@
 
 #include "tls/s2n_kem.h"
 
-#include "pq-crypto/s2n_kyber_512_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_evp_kem.h"
+#include "crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-/* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
-
-const struct s2n_kem s2n_kyber_512_r3 = {
-    .name = "kyber512r3",
-    .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
-    .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
-    .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
-    .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
-    .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER512)
-    .generate_keypair = &s2n_kyber_512_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_512_evp_encapsulate,
-    .decapsulate = &s2n_kyber_512_evp_decapsulate,
-#else
-    .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
-    .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
-    .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
-#endif
+const struct s2n_kem s2n_mlkem_768 = {
+    .name = "mlkem768",
+    .kem_nid = S2N_NID_MLKEM768,
+    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
+    .public_key_length = S2N_MLKEM_768_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_MLKEM_768_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_MLKEM_768_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_MLKEM_768_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
-const struct s2n_kem *kyber_kems[] = {
-    &s2n_kyber_512_r3,
+const struct s2n_kem s2n_mlkem_1024 = {
+    .name = "mlkem1024",
+    .kem_nid = S2N_NID_MLKEM1024,
+    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
+    .public_key_length = S2N_MLKEM_1024_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_MLKEM_1024_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_MLKEM_1024_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_MLKEM_1024_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
-const struct s2n_iana_to_kem kem_mapping[3] = {
+const struct s2n_iana_to_kem kem_mapping[1] = {
     {
-            .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
-            .kems = kyber_kems,
-            .kem_count = s2n_array_len(kyber_kems),
-    }
+            .iana_value = { TLS_NULL_WITH_NULL_NULL },
+            .kems = NULL,
+            .kem_count = 0,
+    },
 };
 
-/* Specific assignments of KEM group IDs and names have not yet been
- * published in an RFC (or draft). There is consensus in the
- * community to use values in the proposed reserved range defined in
- * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
- * Values for interoperability are defined in
- * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md
+/*
+ * ML-KEM based pure PQ KEMs as specified by IETF and registered in IANA.
  *
- * The structure of the hybrid share is:
- *    size of ECC key share (2 bytes)
- * || ECC key share (variable bytes)
- * || size of PQ key share (2 bytes)
- * || PQ key share (variable bytes) */
-const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
-    .name = "secp256r1_kyber-512-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+ * https://datatracker.ietf.org/doc/draft-connolly-tls-mlkem-key-agreement/05/
+ */
+const struct s2n_kem_group s2n_pure_mlkem_1024 = {
+    .name = "MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_MLKEM_1024,
+    .curve = &s2n_ecc_curve_none,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
+};
+
+/*
+ * ML-KEM based hybrid KEMs as specified by IETF and registered in IANA.
+ *
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+ * https://datatracker.ietf.org/doc/draft-kwiatkowski-tls-ecdhe-mlkem/
+ */
+const struct s2n_kem_group s2n_secp256r1_mlkem_768 = {
+    .name = "SecP256r1MLKEM768",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_MLKEM_768,
     .curve = &s2n_ecc_curve_secp256r1,
-    .kem = &s2n_kyber_512_r3,
+    .kem = &s2n_mlkem_768,
+    .send_kem_first = 0,
 };
 
-#if EVP_APIS_SUPPORTED
-const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
-    .name = "x25519_kyber-512-r3",
-    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
+const struct s2n_kem_group s2n_x25519_mlkem_768 = {
+    .name = "X25519MLKEM768",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_MLKEM_768,
     .curve = &s2n_ecc_curve_x25519,
-    .kem = &s2n_kyber_512_r3,
+    .kem = &s2n_mlkem_768,
+    /* ML-KEM KeyShare should always be sent first for X25519MLKEM768.
+     * https://datatracker.ietf.org/doc/html/draft-kwiatkowski-tls-ecdhe-mlkem-02#name-negotiated-groups */
+    .send_kem_first = 1,
 };
-#else
-const struct s2n_kem_group s2n_x25519_kyber_512_r3 = { 0 };
-#endif
 
-const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
-    &s2n_secp256r1_kyber_512_r3,
-/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-#if EVP_APIS_SUPPORTED
-    &s2n_x25519_kyber_512_r3,
-#endif
+const struct s2n_kem_group s2n_secp384r1_mlkem_1024 = {
+    .name = "SecP384r1MLKEM1024",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_MLKEM_1024,
+    .curve = &s2n_ecc_curve_secp384r1,
+    .kem = &s2n_mlkem_1024,
+    .send_kem_first = 0,
+};
+
+const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
+    &s2n_x25519_mlkem_768,
+    &s2n_secp256r1_mlkem_768,
+    &s2n_secp384r1_mlkem_1024,
+    &s2n_pure_mlkem_1024,
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -110,7 +127,7 @@ S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
     /* Need to save the private key for decapsulation */
     RESULT_GUARD_POSIX(s2n_realloc(&kem_params->private_key, kem->private_key_length));
 
-    GUARD_PQ_AS_RESULT(kem->generate_keypair(kem_params->public_key.data, kem_params->private_key.data));
+    GUARD_PQ_AS_RESULT(kem->generate_keypair(kem, kem_params->public_key.data, kem_params->private_key.data));
     return S2N_RESULT_OK;
 }
 
@@ -131,7 +148,7 @@ S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blo
     /* Need to save the shared secret for key derivation */
     RESULT_GUARD_POSIX(s2n_alloc(&(kem_params->shared_secret), kem->shared_secret_key_length));
 
-    GUARD_PQ_AS_RESULT(kem->encapsulate(ciphertext->data, kem_params->shared_secret.data, kem_params->public_key.data));
+    GUARD_PQ_AS_RESULT(kem->encapsulate(kem, ciphertext->data, kem_params->shared_secret.data, kem_params->public_key.data));
     return S2N_RESULT_OK;
 }
 
@@ -152,7 +169,7 @@ S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s
     /* Need to save the shared secret for key derivation */
     RESULT_GUARD_POSIX(s2n_alloc(&(kem_params->shared_secret), kem->shared_secret_key_length));
 
-    GUARD_PQ_AS_RESULT(kem->decapsulate(kem_params->shared_secret.data, ciphertext->data, kem_params->private_key.data));
+    GUARD_PQ_AS_RESULT(kem->decapsulate(kem, kem_params->shared_secret.data, ciphertext->data, kem_params->private_key.data));
     return S2N_RESULT_OK;
 }
 
@@ -194,7 +211,7 @@ int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_S
         }
 
         for (uint8_t j = 0; j < num_client_candidate_kems; j++) {
-            kem_extension_size candidate_client_kem_id;
+            kem_extension_size candidate_client_kem_id = 0;
             POSIX_GUARD(s2n_stuffer_read_uint16(&client_kem_ids_stuffer, &candidate_client_kem_id));
 
             if (candidate_server_kem->kem_extension_id == candidate_client_kem_id) {
@@ -248,7 +265,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
 {
     for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
-        if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+        if (s2n_constant_time_equals(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             *compatible_params = candidate;
             return S2N_SUCCESS;
         }
@@ -292,7 +309,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     kem_params->public_key.size = kem->public_key_length;
 
     /* Saves the private key in kem_params */
-    POSIX_GUARD_RESULT(s2n_kem_generate_keypair(kem_params));
+    s2n_result keypair_result = s2n_kem_generate_keypair(kem_params);
 
     /* After using s2n_stuffer_raw_write() above to write the public
      * key to the stuffer, we want to ensure that kem_params->public_key.data
@@ -300,6 +317,9 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
      * overwrite part of the stuffer when s2n_kem_free() is called. */
     kem_params->public_key.data = NULL;
     kem_params->public_key.size = 0;
+
+    /* only error after we have cleaned up public_key to no longer reference *out */
+    POSIX_GUARD_RESULT(keypair_result);
 
     return S2N_SUCCESS;
 }
@@ -374,20 +394,46 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-#if defined(S2N_NO_PQ)
-/* If S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
- * from compilation. We define stubs of these functions here to error if they are called. */
-/* kyber512r3 */
-int s2n_kyber_512_r3_crypto_kem_keypair(OUT uint8_t *pk, OUT uint8_t *sk)
+bool s2n_kem_is_available(const struct s2n_kem *kem)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    if (kem == NULL || kem->kem_nid == NID_undef) {
+        return false;
+    }
+
+    return s2n_libcrypto_supports_evp_kem();
 }
-int s2n_kyber_512_r3_crypto_kem_enc(OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk)
+
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    /* Check for values that might be undefined when compiling for older libcrypto's */
+    if (kem_group == NULL || kem_group->curve == NULL || kem_group->kem == NULL) {
+        return false;
+    }
+
+    bool available = s2n_kem_is_available(kem_group->kem);
+
+    /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+    if (kem_group->curve == &s2n_ecc_curve_x25519) {
+        available &= s2n_is_evp_apis_supported();
+    }
+
+    return available;
 }
-int s2n_kyber_512_r3_crypto_kem_dec(OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk)
+
+int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(found);
+    *found = false;
+
+    for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
+        const struct s2n_kem_group *kem_group = ALL_SUPPORTED_KEM_GROUPS[i];
+        POSIX_ENSURE_REF(kem_group);
+        if (kem_group->iana_id == iana_id) {
+            *out = kem_group;
+            *found = true;
+            return S2N_SUCCESS;
+        }
+    }
+    return S2N_SUCCESS;
 }
-#endif
