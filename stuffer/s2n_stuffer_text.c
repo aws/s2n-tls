@@ -14,7 +14,6 @@
  */
 
 #include <string.h>
-#include <sys/param.h>
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"

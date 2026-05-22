@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/param.h>
 #include <time.h>
 
 #include "api/unstable/fingerprint.h"
@@ -473,7 +472,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      * future versions of TLS. Therefore, we will negotiate down if a client sends
      * an unexpected value above 0x0303.
      */
-    conn->client_protocol_version = MIN(conn->client_hello.legacy_version, S2N_TLS12);
+    conn->client_protocol_version = S2N_MIN(conn->client_hello.legacy_version, S2N_TLS12);
 
     /* Copy the session id to the connection. */
     conn->session_id_len = conn->client_hello.session_id.size;
@@ -539,8 +538,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
-        conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
-        conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
+        conn->server_protocol_version = S2N_MIN(conn->server_protocol_version, S2N_TLS12);
+        conn->actual_protocol_version = S2N_MIN(conn->server_protocol_version, S2N_TLS12);
     }
 
     /* Set default key exchange curve.
@@ -580,7 +579,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
     if (conn->actual_protocol_version < S2N_TLS13) {
-        conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+        conn->actual_protocol_version = S2N_MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
@@ -724,14 +723,14 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_ENSURE_REF(cipher_preferences);
 
     if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
-        conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
-        conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+        conn->client_protocol_version = S2N_MIN(conn->client_protocol_version, S2N_TLS12);
+        conn->actual_protocol_version = S2N_MIN(conn->actual_protocol_version, S2N_TLS12);
     }
 
     struct s2n_stuffer *out = &conn->handshake.io;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
 
-    uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    uint8_t reported_protocol_version = S2N_MIN(conn->client_protocol_version, S2N_TLS12);
     conn->client_hello.legacy_version = reported_protocol_version;
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;
@@ -833,7 +832,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 int s2n_sslv2_client_hello_parse(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    conn->client_protocol_version = MIN(client_hello->legacy_version, S2N_TLS12);
+    conn->client_protocol_version = S2N_MIN(client_hello->legacy_version, S2N_TLS12);
 
     struct s2n_stuffer in_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));

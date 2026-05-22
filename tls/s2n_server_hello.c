@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <time.h>
 
 #include "api/s2n.h"
@@ -221,7 +220,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
             POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
-        conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+        conn->actual_protocol_version = S2N_MIN(conn->server_protocol_version, conn->client_protocol_version);
 
         /*
          *= https://www.rfc-editor.org/rfc/rfc5077#section-3.4
@@ -300,7 +299,7 @@ int s2n_server_hello_write_message(struct s2n_connection *conn)
     /* The actual_protocol_version is set while processing the CLIENT_HELLO message, so
      * it could be S2N_TLS13. SERVER_HELLO should always respond with the legacy version.
      * https://tools.ietf.org/html/rfc8446#section-4.1.3 */
-    const uint16_t legacy_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+    const uint16_t legacy_protocol_version = S2N_MIN(conn->actual_protocol_version, S2N_TLS12);
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     protocol_version[0] = (uint8_t) (legacy_protocol_version / 10);
     protocol_version[1] = (uint8_t) (legacy_protocol_version % 10);

@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -42,7 +41,7 @@ void s2n_stuffer_reserve_space_harness()
         if (s2n_stuffer_space_remaining(&old_stuffer) < size) {
             /* Always grow a stuffer by at least 1k */
             assert(stuffer->blob.size
-                   == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES)
+                   == (S2N_MAX(size - s2n_stuffer_space_remaining(&old_stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES)
                        + old_stuffer.blob.size));
             assert(stuffer->blob.allocated >= size);
         } else {

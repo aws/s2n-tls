@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -53,7 +52,7 @@ void s2n_stuffer_write_harness()
     if (s2n_stuffer_write(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + blob->size);
         assert(stuffer->blob.data[ idx ] == untouched_byte);
-        assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
+        assert(stuffer->high_water_mark == S2N_MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

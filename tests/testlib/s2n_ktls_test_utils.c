@@ -62,7 +62,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
         size_t len = msg->msg_iov[count].iov_len;
 
         if (s2n_stuffer_write_bytes(data_buffer, buf, len) != S2N_SUCCESS) {
-            size_t partial_len = MIN(len, s2n_stuffer_space_remaining(data_buffer));
+            size_t partial_len = S2N_MIN(len, s2n_stuffer_space_remaining(data_buffer));
             POSIX_GUARD(s2n_stuffer_write_bytes(data_buffer, buf, partial_len));
             total_len += partial_len;
             if (total_len) {
@@ -120,7 +120,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         uint16_t n_avail = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
 
-        size_t n_read = MIN(size - bytes_read, n_avail);
+        size_t n_read = S2N_MIN(size - bytes_read, n_avail);
         POSIX_ENSURE_GT(n_read, 0);
         POSIX_GUARD(s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + bytes_read, n_read));
 
