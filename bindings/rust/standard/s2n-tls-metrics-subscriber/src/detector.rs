@@ -7,10 +7,10 @@
 //!
 //! Each detector receives the parsed [`ClientHello`] and returns whether the
 //! handshake should be counted as synthetic. When a detector returns `true`,
-//! [`AggregatedMetricsSubscriber`] increments the `synthetic_traffic_count`
-//! field on the in-progress record. All other counters are unaffected, so the
-//! emitted record is lossless: downstream consumers should subtract
-//! `synthetic_traffic_count` from `handshake_count` to recover real traffic.
+//! [`AggregatedMetricsSubscriber`] increments only the `synthetic_traffic_count`
+//! field on the in-progress record; every other counter (including
+//! `handshake_count`) is left untouched, so each metric can be read directly
+//! as a real traffic figure.
 //!
 //! [`ClientHello`]: s2n_tls::client_hello::ClientHello
 //! [`AggregatedMetricsSubscriber`]: crate::AggregatedMetricsSubscriber

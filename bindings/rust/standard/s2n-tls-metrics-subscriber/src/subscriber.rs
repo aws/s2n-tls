@@ -131,10 +131,9 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
     }
 
     /// Install a detector that flags certain handshakes as synthetic traffic
-    /// (e.g. scanners, health-checks, load tests). When it returns `true`,
-    /// the subscriber bumps `synthetic_traffic_count` on the record. All
-    /// other counters are unaffected, so consumers can subtract this from
-    /// `handshake_count` to recover real traffic.
+    /// (e.g. scanners, health-checks, load tests). When it returns `true`, the
+    /// subscriber bumps `synthetic_traffic_count` on the record and skips
+    /// every other counter for that handshake.
     ///
     /// Must be called before any handshake traffic begins. Subsequent calls
     /// are silently ignored.
@@ -353,10 +352,8 @@ mod tests {
         );
     }
 
-    /// When a synthetic-traffic detector is configured and matches, the
-    /// `synthetic_traffic_count` field is bumped. Other counters
-    /// (`handshake_count`, etc.) still reflect every handshake — the record
-    /// is lossless and the consumer is responsible for subtracting.
+    /// When a synthetic-traffic detector is configured and matches, only
+    /// `synthetic_traffic_count` is bumped.
     #[test]
     fn synthetic_traffic_detector_increments_count() {
         use crate::{
@@ -414,9 +411,13 @@ mod tests {
         assert_eq!(records.len(), 1);
         let record = &records[0].handshake;
 
-        // 5 total handshakes; 3 of them flagged synthetic.
-        assert_eq!(record.handshake_count, 5);
+        // 2 real handshakes counted; 3 synthetic flagged separately and
+        // excluded from every other counter.
+        assert_eq!(record.handshake_count, 2);
         assert_eq!(record.synthetic_traffic_count, 3);
+        // Negotiated counters reflect only the 2 real handshakes.
+        assert_eq!(record.negotiated_protocols.total(), 2);
+        assert_eq!(record.negotiated_ciphers.total(), 2);
     }
 
     /// With no detector installed, `synthetic_traffic_count` stays at zero

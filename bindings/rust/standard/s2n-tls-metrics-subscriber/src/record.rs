@@ -89,9 +89,8 @@ pub(crate) struct HandshakeRecordInProgress {
     handshake_compute_us: AtomicU64,
 
     /// Number of handshakes flagged by the configured
-    /// [`SyntheticTrafficDetector`]. All other counters still include these handshakes,
-    /// so consumers should subtract this from `handshake_count` to recover real
-    /// traffic.
+    /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
+    /// every other counter on this record (including `handshake_count`).
     synthetic_traffic_count: AtomicU64,
 }
 
@@ -129,6 +128,20 @@ impl HandshakeRecordInProgress {
         event: &s2n_tls::events::HandshakeEvent,
         detector: Option<&dyn SyntheticTrafficDetector>,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let client_hello = conn.client_hello()?;
+
+        // Run the detector first, on every handshake (including SSLv2).
+        // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
+        // every other counter (including `handshake_count`) reflects real
+        // traffic only, so consumers can read each metric directly without
+        // post-processing.
+        if let Some(detector) = detector {
+            if detector.is_synthetic(client_hello) {
+                self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
+                return Ok(());
+            }
+        }
+
         self.handshake_count.fetch_add(1, Ordering::Relaxed);
 
         ////////////////////////////////////////////////////////////////////////
@@ -142,14 +155,6 @@ impl HandshakeRecordInProgress {
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
         } else {
-            let client_hello = conn.client_hello()?;
-
-            if let Some(detector) = detector {
-                if detector.is_synthetic(client_hello) {
-                    self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
-                }
-            }
-
             let supported_parameter = ClientHelloSupportedParameters::new(client_hello);
 
             supported_parameter
