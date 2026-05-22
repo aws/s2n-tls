@@ -31,7 +31,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/uio.h>
+#ifndef _WIN32
+    #include <sys/uio.h>
+#endif
 
 struct s2n_certificate_request;
 struct s2n_certificate_authority_list;

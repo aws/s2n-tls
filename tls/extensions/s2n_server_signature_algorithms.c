@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_signature_algorithms.h"

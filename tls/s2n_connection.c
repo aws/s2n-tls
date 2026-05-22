@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/param.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -1110,7 +1109,7 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
     if (conn->client_hello.sslv2) {
         return S2N_SSLv2;
     } else {
-        return MIN(conn->client_hello.legacy_version, S2N_TLS12);
+        return S2N_MIN(conn->client_hello.legacy_version, S2N_TLS12);
     }
 }
 
@@ -1400,7 +1399,7 @@ S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, u
     if (conn->negotiated_mfl_code) {
         /* Respect the upper limit agreed on with the peer */
         RESULT_ENSURE_LT(conn->negotiated_mfl_code, s2n_array_len(mfl_code_to_length));
-        conn->max_outgoing_fragment_length = MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
+        conn->max_outgoing_fragment_length = S2N_MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
     } else {
         conn->max_outgoing_fragment_length = max_frag_length;
     }

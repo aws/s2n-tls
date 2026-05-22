@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_signature_algorithms.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"

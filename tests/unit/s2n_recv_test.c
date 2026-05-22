@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 
                 size_t recv_bytes = 0;
                 while (recv_bytes < total_data_size) {
-                    size_t expected_recv_size = MIN(MIN(read_size, total_data_size - recv_bytes), max_recv_size);
+                    size_t expected_recv_size = S2N_MIN(S2N_MIN(read_size, total_data_size - recv_bytes), max_recv_size);
 
                     /* Perform the actual recv call */
                     ssize_t actual_recv_size = s2n_recv(server_conn, output.data, read_size, &blocked);
