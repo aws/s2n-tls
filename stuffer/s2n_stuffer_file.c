@@ -21,6 +21,13 @@
 #include <unistd.h>
 #endif
 
+
+#if defined(_MSC_VER)
+#include <io.h>
+#define read _read
+#define write _write
+#endif
+
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_io.h"

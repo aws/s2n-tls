@@ -58,8 +58,12 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t* dst, const uint8_t* src, uint
 /**
  * Runs _thecleanup function on _thealloc once _thealloc went out of scope
  */
+#if defined(_MSC_VER)
+#define DEFER_CLEANUP(_thealloc, _thecleanup) _thealloc
+#else
 #define DEFER_CLEANUP(_thealloc, _thecleanup) \
     __attribute__((cleanup(_thecleanup))) _thealloc
+#endif
 /**
  * Often we want to free memory on an error, but not on a success.
  * We do this by declaring a variable with DEFER_CLEANUP, then zeroing

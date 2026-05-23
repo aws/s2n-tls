@@ -17,7 +17,7 @@
 
 #include "win_shim.h"
 
-void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
+void *mmap(void *start, size_t length, int prot, int flags, int fd, size_t offset)
 {
 	if (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC))
 		return MAP_FAILED;
@@ -41,7 +41,7 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset
 	} else
 		flProtect = PAGE_READONLY;
 
-	off_t end = length + offset;
+	off_t end = (off_t)length + offset;
 	HANDLE mmap_fd, h;
 	if (fd == -1)
 		mmap_fd = INVALID_HANDLE_VALUE;

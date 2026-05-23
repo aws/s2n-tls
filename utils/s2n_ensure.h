@@ -60,6 +60,24 @@
     #define __S2N_ENSURE_POSTCONDITION(result) (s2n_likely(s2n_result_is_ok(result)) ? S2N_RESULT_OK : S2N_RESULT_ERROR)
 #endif
 
+#if defined(_MSC_VER)
+#define __S2N_ENSURE_SAFE_MEMMOVE(d, s, n, guard)                    \
+    do {                                                             \
+        if (s2n_likely((n))) {                                   \
+            void *r = s2n_ensure_memmove_trace((d), (s), (n));       \
+            guard(r);                                                \
+        }                                                            \
+    } while (0)
+#else
+#if defined(_MSC_VER)
+#define __S2N_ENSURE_SAFE_MEMMOVE(d, s, n, guard)                    \
+    do {                                                             \
+        if (s2n_likely((n))) {                                   \
+            void *r = s2n_ensure_memmove_trace((d), (s), (n));       \
+            guard(r);                                                \
+        }                                                            \
+    } while (0)
+#else
 #define __S2N_ENSURE_SAFE_MEMMOVE(d, s, n, guard)                    \
     do {                                                             \
         __typeof(n) __tmp_n = (n);                                   \
@@ -68,7 +86,27 @@
             guard(r);                                                \
         }                                                            \
     } while (0)
+#endif
+#endif
 
+#if defined(_MSC_VER)
+#define __S2N_ENSURE_SAFE_MEMSET(d, c, n, guard) \
+    do {                                         \
+        if (s2n_likely((n))) {                   \
+            guard((d));                          \
+            memset((d), (c), (n));               \
+        }                                        \
+    } while (0)
+#else
+#if defined(_MSC_VER)
+#define __S2N_ENSURE_SAFE_MEMSET(d, c, n, guard) \
+    do {                                         \
+        if (s2n_likely((n))) {                   \
+            guard((d));                          \
+            memset((d), (c), (n));               \
+        }                                        \
+    } while (0)
+#else
 #define __S2N_ENSURE_SAFE_MEMSET(d, c, n, guard) \
     do {                                         \
         __typeof(n) __tmp_n = (n);               \
@@ -78,6 +116,8 @@
             memset(__tmp_d, (c), __tmp_n);       \
         }                                        \
     } while (0)
+#endif
+#endif
 
 #if defined(S2N_DIAGNOSTICS_PUSH_SUPPORTED) && defined(S2N_DIAGNOSTICS_POP_SUPPORTED)
     #define __S2N_ENSURE_CHECKED_RETURN(v)                                     \

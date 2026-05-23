@@ -1,3 +1,25 @@
+#include "utils/s2n_prelude.h"
+#if defined(_MSC_VER)
+#pragma comment(lib, "bcrypt.lib")
+#include <windows.h>
+#include <bcrypt.h>
+#include "error/s2n_errno.h"
+#include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
+
+static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
+{
+    POSIX_ENSURE_REF(ptr);
+    if (!BCRYPT_SUCCESS(BCryptGenRandom(NULL, (PUCHAR)ptr, size, BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
+        POSIX_BAIL(S2N_ERR_RANDOM_UNINITIALIZED);
+    }
+    return S2N_SUCCESS;
+}
+
+static int s2n_rand_init_cb_impl(void) { return S2N_SUCCESS; }
+static int s2n_rand_cleanup_cb_impl(void) { return S2N_SUCCESS; }
+
+#else
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -56,7 +78,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
@@ -388,3 +412,5 @@ int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback,
     (void) rand_mix_callback;
     return S2N_SUCCESS;
 }
+
+#endif

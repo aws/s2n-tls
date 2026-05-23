@@ -16,7 +16,9 @@
 #include "tls/s2n_cipher_preferences.h"
 
 #include <stdint.h>
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"

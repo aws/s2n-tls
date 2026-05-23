@@ -54,7 +54,9 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
 
 #ifndef _WIN32
 
+#if !defined(_MSC_VER)
     #include <sys/socket.h>
+#endif
 
 /* These use POSIX socket types not available on Windows */
 S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct iovec *msg_iov,

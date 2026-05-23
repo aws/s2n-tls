@@ -35,13 +35,18 @@
     #define _FORTIFY_SOURCE 2
 #endif
 
+#ifndef S2N_API
 #if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
-    /**
-     * Marks a function as belonging to the public s2n API.
-     *
-     * See: https://gcc.gnu.org/wiki/Visibility
-     */
     #define S2N_API __attribute__((visibility("default")))
+#elif defined(_MSC_VER)
+    #if defined(S2N_EXPORTS)
+        #define S2N_API __declspec(dllexport)
+    #else
+        #define S2N_API __declspec(dllimport)
+    #endif
+#else
+    #define S2N_API
+#endif
 #endif
 
 /* These replace the use of MIN/MAX from <sys/param.h>, which is not available on Windows. */

@@ -22,7 +22,9 @@
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/select.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "api/unstable/fingerprint.h"

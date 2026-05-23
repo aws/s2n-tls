@@ -119,7 +119,7 @@ extern "C" {
  *
  * @warning To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
  */
-S2N_API extern __thread int s2n_errno;
+extern __thread int s2n_errno;
 
 /**
  * This function can be used instead of trying to resolve `s2n_errno` directly
@@ -2277,7 +2277,6 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
-#ifndef _WIN32
 /**
  * Works in the same way as s2n_sendv_with_offset() but with the `offs` parameter implicitly assumed to be 0.
  * Therefore in the partial write case, the caller would have to make sure that the `bufs` and `count` fields are modified in a way that takes
@@ -2309,7 +2308,6 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
-#endif
 
 /**
  * Decrypts and reads **size* to `buf` data from the associated

@@ -1,3 +1,4 @@
+#include "utils/s2n_prelude.h"
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -24,7 +25,9 @@
 #ifndef _WIN32
     #include <sys/mman.h>
     #include <sys/param.h>
+#if !defined(_MSC_VER)
     #include <unistd.h>
+#endif
 #endif
 
 #include "error/s2n_errno.h"

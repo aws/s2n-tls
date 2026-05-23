@@ -15,7 +15,11 @@
 
 #include "utils/s2n_init.h"
 
+#if !defined(_MSC_VER)
 #include <pthread.h>
+#else
+#include <windows.h>
+#endif
 
 #include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
@@ -35,7 +39,11 @@
 
 static void s2n_cleanup_atexit(void);
 
+#if !defined(_MSC_VER)
 static pthread_t main_thread = 0;
+#else
+static DWORD main_thread_id = 0;
+#endif
 static bool initialized = false;
 static bool atexit_cleanup = false;
 int s2n_disable_atexit(void)
@@ -59,7 +67,11 @@ int s2n_init(void)
      */
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
+    #if !defined(_MSC_VER)
     main_thread = pthread_self();
+#else
+    main_thread_id = GetCurrentThreadId();
+#endif
 
     if (getenv("S2N_INTEG_TEST")) {
         POSIX_GUARD(s2n_in_integ_test_set(true));

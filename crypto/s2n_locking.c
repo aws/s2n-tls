@@ -16,7 +16,9 @@
 #include "crypto/s2n_locking.h"
 
 #include <openssl/crypto.h>
+#if !defined(_MSC_VER)
 #include <pthread.h>
+#endif
 
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_mem.h"

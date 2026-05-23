@@ -18,6 +18,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
+#if !defined(_MSC_VER)
 struct s2n_rand_device {
     const char *source;
     int fd;
@@ -26,6 +27,7 @@ struct s2n_rand_device {
     mode_t mode;
     dev_t rdev;
 };
+#endif
 
 S2N_RESULT s2n_rand_init(void);
 S2N_RESULT s2n_rand_cleanup(void);

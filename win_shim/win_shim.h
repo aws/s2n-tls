@@ -5,6 +5,24 @@
 
 #include <CRTDEFS.H>
 
+#include <BaseTsd.h>
+#include <sys/types.h>
+typedef SSIZE_T ssize_t;
+
+#ifndef SSIZE_MAX
+#ifdef _WIN64
+#define SSIZE_MAX _I64_MAX
+#else
+#define SSIZE_MAX LONG_MAX
+#endif
+#endif
+
+
+#ifndef __thread
+#define __thread __declspec(thread)
+#endif
+
+
 struct iovec {
     size_t iov_len;
     void *iov_base;
@@ -44,11 +62,26 @@ struct iovec {
     # define DWORD_LO(x) (x)
 #endif
 
-void *mmap(void *, size_t, int, int, int, off_t);
+void *mmap(void *, size_t, int, int, int, size_t);
 void munmap(void *, size_t);
 
 /* </mmap-windows> */
 
+
+
+#ifndef strncasecmp
+#define strncasecmp _strnicmp
+#endif
+
+#ifndef __builtin_expect
+#define __builtin_expect(x, y) (x)
+#endif
+
+#ifndef strcasecmp
+#define strcasecmp _stricmp
+#endif
+
 #endif /* WIN32 */
 
 #endif  /* !S2N_WIN_SHIM_H */
+

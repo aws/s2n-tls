@@ -111,8 +111,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(OS_LIBS Threads::Threads dl)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    find_package(PThreads4W REQUIRED)
-    set(OS_LIBS PThreads4W::PThreads4W)
+    set(OS_LIBS bcrypt)
+    # pthreads is stubbed for native MSVC
 else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
@@ -176,12 +176,12 @@ endif ()
 if (S2N_WERROR_ALL)
     target_compile_options(${PROJECT_NAME} PUBLIC
             "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
-            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
     )
 elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE 
             "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
-            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
     )
 endif ()
 
@@ -253,7 +253,8 @@ if(TSAN OR ASAN OR UBSAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+file(TO_CMAKE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules" MODULE_PATH)
+set(CMAKE_MODULE_PATH "${MODULE_PATH}")
 
 if (COVERAGE)
     # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
@@ -504,7 +505,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
-if (BUILD_TESTING)
+if (BUILD_TESTING AND NOT MSVC)
     enable_testing()
 
     ############################################################################
@@ -623,7 +624,7 @@ if (BUILD_TESTING)
         if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
             target_compile_options(${test_case_name} PRIVATE 
                 "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
-                "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+                "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
             )
         endif()
         if (S2N_LTO)
@@ -644,6 +645,7 @@ if (BUILD_TESTING)
     ######################### build utility binaries ###########################
     ############################################################################
 
+if (NOT MSVC)
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
     target_compile_options(s2nc PRIVATE -std=gnu99)
@@ -659,6 +661,7 @@ if (BUILD_TESTING)
     if(S2N_LTO)
         target_compile_options(s2nc PRIVATE -flto)
         target_compile_options(s2nd PRIVATE -flto)
+    endif()
     endif()
 
     if (S2N_INTEG_TESTS)

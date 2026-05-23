@@ -15,7 +15,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "tls/policy/s2n_policy_feature.h"

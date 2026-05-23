@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_cert_status.h"
