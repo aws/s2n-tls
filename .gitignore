@@ -1,3 +1,4 @@
+vcpkg*
 build_*
 cmake-build-*
 *.o
