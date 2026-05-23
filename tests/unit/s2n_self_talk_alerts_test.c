@@ -50,8 +50,8 @@ int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behav
     int result = 0;
     int rc = 0;
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair is valid from fork; the kernel buffers writes until the
+     * parent reads, so no pre-negotiate sleep is needed. */
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
