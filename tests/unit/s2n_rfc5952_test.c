@@ -81,6 +81,40 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
     EXPECT_EQUAL(strcmp("::", (char *) ipv6_buf), 0);
 
+    /* Trailing zero-run cases: the longest zero run extends to the final
+     * 16-bit group. */
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "1::", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("1::", (char *) ipv6_buf), 0);
+
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "ff00::", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("ff00::", (char *) ipv6_buf), 0);
+
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8::", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("2001:db8::", (char *) ipv6_buf), 0);
+
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "1:2::", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("1:2::", (char *) ipv6_buf), 0);
+
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8:1:2:3:4::", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("2001:db8:1:2:3:4::", (char *) ipv6_buf), 0);
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5952#section-4.2.3
+     *= type=test
+     *# When the length of the consecutive 16-bit 0 fields
+     *# are equal (i.e., 2001:db8:0:0:1:0:0:1), the first sequence of zero
+     *# bits MUST be shortened.  For example, 2001:db8::1:0:0:1 is correct
+     *# representation.
+     */
+    EXPECT_SUCCESS(inet_pton(AF_INET6, "1:2:0:0:3:4:0:0", ipv6));
+    EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
+    EXPECT_EQUAL(strcmp("1:2::3:4:0:0", (char *) ipv6_buf), 0);
+
 /* Prevents build failure on Mac */
 #ifndef AF_BLUETOOTH
     #define AF_BLUETOOTH 31

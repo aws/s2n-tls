@@ -93,11 +93,15 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
                     *cursor++ = ':';
                 }
 
-                if (longest_run_length == 8) {
+                i += longest_run_length - 1;
+
+                /* If the compressed run ends at the last group, emit the
+                 * trailing ':' of "::" here, since no subsequent group
+                 * will supply it. Covers both addresses ending in "::"
+                 * (e.g. "2001:db8::") and the all-zero address "::". */
+                if (i == 7) {
                     *cursor++ = ':';
                 }
-
-                i += longest_run_length - 1;
 
             } else {
                 uint8_t nibbles[4] = { (octets[i] & 0xF000) >> 12,
