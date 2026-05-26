@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
 
 #include "crypto/s2n_hmac.h"
