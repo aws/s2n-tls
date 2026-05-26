@@ -42,6 +42,7 @@ pub struct AggregatedMetricsSubscriber<S: TelemetrySink> {
 /// are no references to the HandshakeRecordInProgress (e.g. no threads updating
 /// it) then its `drop` implementation will write it to the channel, where it can
 /// then be read by the export pipeline.
+#[derive(Debug)]
 struct MetricSubscriberInner<S: TelemetrySink> {
     current_record: ArcSwap<HandshakeRecordInProgress>,
     /// This handle is not directly used, but is used when constructing new
@@ -66,22 +67,6 @@ struct MetricSubscriberInner<S: TelemetrySink> {
     /// Installed once via `with_synthetic_traffic_detector`; the hot path
     /// reads it lock-free.
     synthetic_detector: OnceLock<Box<dyn SyntheticTrafficDetector>>,
-}
-
-impl<S: TelemetrySink + std::fmt::Debug> std::fmt::Debug for MetricSubscriberInner<S> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MetricSubscriberInner")
-            .field("current_record", &self.current_record)
-            .field("export_pipeline", &self.export_pipeline)
-            .field("attribution", &self.attribution)
-            .field("export_interval", &self.export_interval)
-            .field("last_export_epoch_ms", &self.last_export_epoch_ms)
-            .field(
-                "synthetic_detector_installed",
-                &self.synthetic_detector.get().is_some(),
-            )
-            .finish()
-    }
 }
 
 fn epoch_ms_now() -> u64 {
@@ -371,6 +356,7 @@ mod tests {
 
         // Toggleable detector: returns whatever its inner flag is set to.
         // Lets us drive "synthetic" vs "real" handshakes from the test body.
+        #[derive(Debug)]
         struct ToggleDetector(Arc<AtomicBool>);
         impl SyntheticTrafficDetector for ToggleDetector {
             fn is_synthetic(&self, _ch: &ClientHello) -> bool {

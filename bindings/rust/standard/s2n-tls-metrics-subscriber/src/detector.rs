@@ -15,6 +15,8 @@
 //! [`ClientHello`]: s2n_tls::client_hello::ClientHello
 //! [`AggregatedMetricsSubscriber`]: crate::AggregatedMetricsSubscriber
 
+use std::fmt::Debug;
+
 use s2n_tls::client_hello::ClientHello;
 
 /// Returns `true` for handshakes whose [`ClientHello`] should be counted as
@@ -22,22 +24,6 @@ use s2n_tls::client_hello::ClientHello;
 ///
 /// Implementations are called on the handshake-completion path, so they should
 /// be cheap. Allocations and locks should be avoided.
-pub trait SyntheticTrafficDetector: Send + Sync + 'static {
+pub trait SyntheticTrafficDetector: Debug + Send + Sync + 'static {
     fn is_synthetic(&self, client_hello: &ClientHello) -> bool;
-}
-
-/// Blanket impl so callers can pass a closure (wrapped in `Box::new`), for example:
-///
-/// ```ignore
-/// subscriber.with_synthetic_traffic_detector(Box::new(|ch: &ClientHello| {
-///     ch.random().map(|r| r.starts_with(b"my-marker")).unwrap_or(false)
-/// }));
-/// ```
-impl<F> SyntheticTrafficDetector for F
-where
-    F: Fn(&ClientHello) -> bool + Send + Sync + 'static,
-{
-    fn is_synthetic(&self, client_hello: &ClientHello) -> bool {
-        (self)(client_hello)
-    }
 }
