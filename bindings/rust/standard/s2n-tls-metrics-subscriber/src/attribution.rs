@@ -3,11 +3,14 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Identifies the source of a metric record by service and resource.
+/// Identifies the source of a metric record by service, resource, and operation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Attribution {
     /// The service or application name (e.g. "my-tls-service")
     pub service: String,
     /// The resource producing metrics (e.g. an ARN or listener name)
     pub resource: String,
+    /// Distinguishes telemetry from multiple subscribers in the same service
+    /// (e.g. "TlsTelemetry.external" vs "TlsTelemetry.internal")
+    pub operation: String,
 }

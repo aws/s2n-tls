@@ -44,6 +44,7 @@ impl MetricRecord {
 
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        writer.value("Operation", &self.attribution.operation);
         writer.value("service", &self.attribution.service);
         writer.value("resource", &self.attribution.resource);
         self.handshake.write(writer)

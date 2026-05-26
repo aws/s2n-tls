@@ -57,6 +57,7 @@ impl TestEndpoint<VecSink> {
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
+            operation: "TlsTelemetry".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
         let server_config = {
