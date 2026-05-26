@@ -4,6 +4,7 @@
 pub mod attribution;
 mod compatibility;
 pub mod counter;
+mod detector;
 mod label;
 #[cfg(feature = "fuzzing")]
 pub mod parsing;
@@ -18,6 +19,7 @@ mod test_utils;
 
 pub use attribution::Attribution;
 pub use counter::FrozenCounter;
+pub use detector::SyntheticTrafficDetector;
 pub use record::{FrozenHandshakeRecord, MetricRecord};
 pub use static_lists::{
     CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,

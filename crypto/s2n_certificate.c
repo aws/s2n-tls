@@ -388,6 +388,7 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
 int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len)
 {
+    POSIX_ENSURE_REF(chain_and_key);
     POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
     POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
     return S2N_SUCCESS;
@@ -602,12 +603,14 @@ int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key 
 
 int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx)
 {
+    POSIX_ENSURE_REF(cert_and_key);
     cert_and_key->context = ctx;
     return 0;
 }
 
 void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key)
 {
+    PTR_ENSURE_REF(cert_and_key);
     return cert_and_key->context;
 }
 

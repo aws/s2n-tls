@@ -12,6 +12,7 @@ use crate::{
     attribution::Attribution,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::{Counter, FrozenCounter},
+    detector::SyntheticTrafficDetector,
     label::{State, metric_label},
     parsing::ClientHelloSupportedParameters,
     static_lists::{
@@ -86,6 +87,11 @@ pub(crate) struct HandshakeRecordInProgress {
     ///
     /// To get the average, divide this by handshake_count.
     handshake_compute_us: AtomicU64,
+
+    /// Number of handshakes flagged by the configured
+    /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
+    /// every other counter on this record (including `handshake_count`).
+    synthetic_traffic_count: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
@@ -111,6 +117,7 @@ impl HandshakeRecordInProgress {
 
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
+            synthetic_traffic_count: Default::default(),
             exporter,
         }
     }
@@ -119,7 +126,22 @@ impl HandshakeRecordInProgress {
         &self,
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
+        detector: Option<&dyn SyntheticTrafficDetector>,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let client_hello = conn.client_hello()?;
+
+        // Run the detector first, on every handshake (including SSLv2).
+        // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
+        // every other counter (including `handshake_count`) reflects real
+        // traffic only, so consumers can read each metric directly without
+        // post-processing.
+        if let Some(detector) = detector {
+            if detector.is_synthetic(client_hello) {
+                self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
+                return Ok(());
+            }
+        }
+
         self.handshake_count.fetch_add(1, Ordering::Relaxed);
 
         ////////////////////////////////////////////////////////////////////////
@@ -133,7 +155,7 @@ impl HandshakeRecordInProgress {
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
         } else {
-            let supported_parameter = ClientHelloSupportedParameters::new(conn.client_hello()?)?;
+            let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
 
             supported_parameter
                 .supported_versions()
@@ -236,6 +258,7 @@ impl HandshakeRecordInProgress {
 
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
+            synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
         }
     }
 }
@@ -296,6 +319,9 @@ pub struct FrozenHandshakeRecord {
     pub handshake_duration_us: u64,
     #[serde(default)]
     pub handshake_compute_us: u64,
+
+    #[serde(default)]
+    pub synthetic_traffic_count: u64,
 }
 
 // This is just cfg(test) because we only use it in tests to assert on cases of
@@ -321,6 +347,7 @@ impl Default for FrozenHandshakeRecord {
             compatibility_cnsa2: 0,
             handshake_duration_us: 0,
             handshake_compute_us: 0,
+            synthetic_traffic_count: 0,
         }
     }
 }
@@ -410,6 +437,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value("handshake_count", &self.handshake_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
+        writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
     }
 }
 
@@ -659,5 +687,6 @@ mod tests {
         assert_eq!(record.compatibility_cnsa2, 0);
         assert_eq!(record.handshake_duration_us, 0);
         assert_eq!(record.handshake_compute_us, 0);
+        assert_eq!(record.synthetic_traffic_count, 0);
     }
 }
