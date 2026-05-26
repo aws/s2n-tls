@@ -55,7 +55,7 @@ fn all_available_ciphers() -> Vec<CipherInformation> {
             sp.ciphers()
                 .iter()
                 .cloned()
-                .map(|c| cipher_info_from_s2n(&c))
+                .map(cipher_info_from_s2n)
                 .collect::<Vec<_>>()
         })
         .collect();
