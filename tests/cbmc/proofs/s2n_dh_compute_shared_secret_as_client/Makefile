@@ -20,10 +20,11 @@ HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
+PROOF_SOURCES += $(PROOFDIR)/dh_compute_key_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_STUB)/memmove_havoc.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/madvise.c
@@ -45,10 +46,5 @@ UNWINDSET += s2n_stuffer_write_network_order.10:9
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 REMOVE_FUNCTION_BODY += s2n_blob_slice
-# The CBMC model for DH_size returns nondeterministic values, so separate calls
-# can return different sizes. This makes the pad function's pointer arithmetic
-# appear invalid to CBMC even though in reality DH_size is deterministic for a
-# given DH object. The pad function's correctness is verified by unit tests.
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_dhe_c_s2n_dh_pad_shared_secret
 
 include ../Makefile.common
