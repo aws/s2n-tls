@@ -141,9 +141,14 @@ fn subscriber_allocation_budget() {
 
     // The +(N + 31) / 32 term tracks std mpsc growing its node arena in
     // 32-slot chunks (i.e. ceil(N / 32) extra block allocations).
+    //
+    // Bytes scale with `sizeof(HandshakeRecordInProgress)` (per-flush
+    // `Arc::new`) and `sizeof(FrozenHandshakeRecord)` (per-flush mpsc
+    // node), so adding fields to either type bumps this number by
+    // roughly (field_size * 2) * N.
     const EXPORT: AllocDelta = AllocDelta {
         blocks: N * 3 + (N + 31) / 32,
-        bytes: 508_192,
+        bytes: 511_528,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across
