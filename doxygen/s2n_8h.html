@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.3-4823f936</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.3-ba48458c</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -8160,7 +8160,7 @@ Call <code>s2n_connection_serialization_length</code> to retrieve the amount of 
 <dd>
 This API will error if the handshake is not yet complete. Additionally it will error if there is still application data in the IO buffers given that this data does not get serialized by s2n-tls. You can use <code>s2n_send</code> to drain the send buffer and <code>s2n_peek</code> + <code>s2n_recv</code> to drain the read buffer. Note that s2n-tls will buffer record fragments until the complete record is available. <code>s2n_peek</code> will <em>not</em> report buffered record fragments. To avoid buffered record fragments, applications should continue to call s2n_recv until a non-blocked status is returned, after which point s2n_peek and s2n_recv can be used to drain the read buffer. </dd></dl>
 <dl class="section warning"><dt>Warning</dt><dd>Due to the above read/buffering interaction, this API must not be used with recv_buffering (s2n_connection_set_recv_buffering), because there is no way to ensure that an s2n-tls connection hasn't buffered any record fragments. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Serialization is unsupported for TLS 1.0 &amp; SSLv3 connections. See: <a href="https://github.com/aws/s2n-tls/issues/5538">https://github.com/aws/s2n-tls/issues/5538</a>.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Stream cipher (RC4) connections cannot be serialized. RC4 keystream position is held in libcrypto state that this API does not capture, so a deserialized RC4 connection cannot decrypt records from its peer.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
