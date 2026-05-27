@@ -18,7 +18,7 @@ fn sample_record_json() -> serde_json::Value {
         "attribution": {
             "service": "my-service",
             "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
-            "operation": "TlsTelemetry"
+            "component": "frontend"
         },
         "handshake": {
             "freeze_time": {"secs_since_epoch": 1_700_000_000u64, "nanos_since_epoch": 0u32},
@@ -212,7 +212,7 @@ fn cbor_round_trip_preserves_all_fields() {
 #[test]
 fn empty_record_has_zero_slots() {
     let json = serde_json::json!({
-        "attribution": { "service": "s", "resource": "r", "operation": "TlsTelemetry" },
+        "attribution": { "service": "s", "resource": "r", "component": "frontend" },
         "handshake": {
             "freeze_time": {"secs_since_epoch": 0u64, "nanos_since_epoch": 0u32},
             "handshake_count": 0u64

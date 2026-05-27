@@ -44,7 +44,14 @@ impl MetricRecord {
 
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
-        writer.value("Operation", &self.attribution.operation);
+        // "Operation" is a reserved label in some telemetry systems,
+        // so the key generally shouldn't be changed.
+        let operation = if self.attribution.component.is_empty() {
+            "TlsTelemetry".to_owned()
+        } else {
+            format!("TlsTelemetry.{}", self.attribution.component)
+        };
+        writer.value("Operation", &operation);
         writer.value("service", &self.attribution.service);
         writer.value("resource", &self.attribution.resource);
         self.handshake.write(writer)

@@ -48,7 +48,7 @@ fn main() {
     let attribution = Attribution {
         service: "my-service".to_owned(),
         resource: "test-resource".to_owned(),
-        operation: "TlsTelemetry".to_owned(),
+        component: "frontend".to_owned(),
     };
 
     // Passive periodic export: the subscriber will automatically export

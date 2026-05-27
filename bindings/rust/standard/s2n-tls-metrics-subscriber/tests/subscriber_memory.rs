@@ -41,7 +41,7 @@ fn attribution() -> Attribution {
     Attribution {
         service: "memtest".to_owned(),
         resource: "memtest".to_owned(),
-        operation: "TlsTelemetry".to_owned(),
+        component: "memtest".to_owned(),
     }
 }
 
@@ -149,7 +149,7 @@ fn subscriber_allocation_budget() {
     // roughly (field_size * 2) * N.
     const EXPORT: AllocDelta = AllocDelta {
         blocks: N * 4 + (N + 31) / 32,
-        bytes: 513_928,
+        bytes: 512_928,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across
