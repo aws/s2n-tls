@@ -51,20 +51,20 @@ option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
 file(GLOB API_HEADERS "api/*.h")
 file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
 
-file(GLOB CRYPTO_HEADERS "crypto/*.h")
-file(GLOB CRYPTO_SRC "crypto/*.c")
+file(GLOB CRYPTO_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/crypto/*.h")
+file(GLOB CRYPTO_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/crypto/*.c")
 
-file(GLOB ERROR_HEADERS "error/*.h")
-file(GLOB ERROR_SRC "error/*.c")
+file(GLOB ERROR_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/error/*.h")
+file(GLOB ERROR_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/error/*.c")
 
-file(GLOB STUFFER_HEADERS "stuffer/*.h")
-file(GLOB STUFFER_SRC "stuffer/*.c")
+file(GLOB STUFFER_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/stuffer/*.h")
+file(GLOB STUFFER_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/stuffer/*.c")
 
-file(GLOB_RECURSE TLS_HEADERS "tls/*.h")
-file(GLOB_RECURSE TLS_SRC "tls/*.c")
+file(GLOB_RECURSE TLS_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tls/*.h")
+file(GLOB_RECURSE TLS_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tls/*.c")
 
-file(GLOB UTILS_HEADERS "utils/*.h")
-file(GLOB UTILS_SRC "utils/*.c")
+file(GLOB UTILS_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/utils/*.h")
+file(GLOB UTILS_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/utils/*.c")
 if (WINDOWS)
     list(APPEND UTILS_HEADERS "win_shim/win_shim.h")
     list(APPEND UTILS_SRC "win_shim/mmap-windows.c")
@@ -502,7 +502,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
-target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../auto-win-msvc/rewritten_src> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
 if (BUILD_TESTING AND NOT MSVC)
@@ -512,7 +512,7 @@ if (BUILD_TESTING AND NOT MSVC)
     ################### build testlib (utility library) ########################
     ############################################################################
 
-    file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+    file(GLOB TESTLIB_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tests/testlib/*.c")
     file(GLOB EXAMPLES_SRC "docs/examples/*.c")
 
     add_library(testss2n STATIC ${TESTLIB_SRC} ${EXAMPLES_SRC})
@@ -599,7 +599,7 @@ if (BUILD_TESTING AND NOT MSVC)
     ############################ build unit tests ##############################
     ############################################################################
 
-    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    file(GLOB UNITTESTS_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
         # NAME_WE: name without extension
         get_filename_component(test_case_name ${test_case} NAME_WE)
@@ -646,15 +646,15 @@ if (BUILD_TESTING AND NOT MSVC)
     ############################################################################
 
 if (NOT MSVC)
-    add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+    add_executable(s2nc "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/s2nc.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/echo.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/https.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
     target_compile_options(s2nc PRIVATE -std=gnu99)
 
-    add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+    add_executable(s2nd "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/s2nd.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/echo.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/https.c" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
     target_compile_options(s2nd PRIVATE -std=gnu99)
 
-    add_executable(policy "bin/policy.c")
+    add_executable(policy "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/bin/policy.c")
     target_link_libraries(policy ${PROJECT_NAME})
     target_compile_options(policy PRIVATE -std=gnu99)
 
@@ -719,8 +719,8 @@ if (NOT MSVC)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
-        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+        file(GLOB TESTLIB_SRC "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tests/testlib/*.h" "${CMAKE_CURRENT_LIST_DIR}/../auto-win-msvc/rewritten_src/tests/s2n_test.h")
 
         # This must be a shared object so that symbols can be overridden by the
         # fuzz test specific LD_PRELOAD libraries.
