@@ -155,28 +155,28 @@ impl HandshakeRecordInProgress {
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
         } else {
-            let supported_parameter = ClientHelloSupportedParameters::new(client_hello);
+            let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
 
             supported_parameter
-                .supported_versions()?
+                .supported_versions()
                 .iter()
                 .for_each(|version| self.supported_protocols.increment(version));
 
             supported_parameter
-                .supported_ciphers()?
+                .supported_ciphers()
                 .iter()
                 .for_each(|cipher| self.supported_ciphers.increment(cipher));
 
             supported_parameter
-                .supported_groups()?
+                .supported_groups()
                 .iter()
-                .flatten()
+                .flat_map(|groups| groups.iter())
                 .for_each(|group| self.supported_groups.increment(group));
 
             supported_parameter
-                .supported_signatures()?
+                .supported_signatures()
                 .iter()
-                .flatten()
+                .flat_map(|sigs| sigs.iter())
                 .for_each(|signature| self.supported_signatures.increment(signature));
 
             if General20251201::supported(&supported_parameter) {
