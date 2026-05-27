@@ -4000,7 +4000,9 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @warning Due to the above read/buffering interaction, this API must not be used
  * with recv_buffering (s2n_connection_set_recv_buffering), because there is no
  * way to ensure that an s2n-tls connection hasn't buffered any record fragments.
- * @note Serialization is unsupported for TLS 1.0 & SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
+ * @note Stream cipher (RC4) connections cannot be serialized. RC4 keystream
+ * position is held in libcrypto state that this API does not capture, so a
+ * deserialized RC4 connection cannot decrypt records from its peer.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
