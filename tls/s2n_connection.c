@@ -400,6 +400,7 @@ int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
 
 void *s2n_connection_get_ctx(struct s2n_connection *conn)
 {
+    PTR_ENSURE_REF(conn);
     return conn->context;
 }
 
@@ -928,6 +929,9 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
 
 uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
+    if (conn == NULL) {
+        return 0;
+    }
     if (conn->ktls_recv_enabled) {
         return 0;
     }
@@ -936,6 +940,9 @@ uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 
 uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
+    if (conn == NULL) {
+        return 0;
+    }
     if (conn->ktls_send_enabled) {
         return 0;
     }
@@ -1507,6 +1514,7 @@ int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection
 
 const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length)
 {
+    PTR_ENSURE_REF(conn);
     if (!length) {
         return NULL;
     }
