@@ -1689,6 +1689,11 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
  * policy table. If no match is found in the security policy table then "unknown"
  * will be returned.
  * 
+ * Note that a given security policy may appear in the security policy table multiple
+ * times under different names. This is the case for our default policy, which 
+ * has both a `default` and numbered label. This function will return the label
+ * of the first matching entry.
+ * 
  * The returned `char *` is static memory and must not be freed by the application.
  */
 const char *s2n_find_version_from_security_policy(const struct s2n_security_policy *security_policy)
