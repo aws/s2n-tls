@@ -57,6 +57,7 @@ impl TestEndpoint<VecSink> {
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
         let server_config = {
