@@ -136,8 +136,8 @@ fn subscriber_allocation_budget() {
     // Block counts are deterministic per code path so we use strict equality;
     // byte counts can drift with capacity rounding so we use fuzzy_equals.
     const HOT_PATH: AllocDelta = AllocDelta {
-        blocks: N * 40,
-        bytes: N * 1720,
+        blocks: N * 8,
+        bytes: N * 344,
     };
 
     // The +(N + 31) / 32 term tracks std mpsc growing its node arena in
