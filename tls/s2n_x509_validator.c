@@ -347,10 +347,15 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
      * section 6.2.1, IP reference identities must only be matched against
      * iPAddress SAN entries, never against CN values. Reject the CN if it
      * parses as an IPv4 or IPv6 address.
+     *
+     * This check can be temporarily disabled via s2n_config_allow_ip_in_cn()
+     * while re-issuing certs with proper iPAddress SAN entries.
      */
-    unsigned char ip_buf[sizeof(struct in6_addr)] = { 0 };
-    if (inet_pton(AF_INET, peer_cn, ip_buf) == 1 || inet_pton(AF_INET6, peer_cn, ip_buf) == 1) {
-        RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    if (!conn->config->allow_ip_in_cn) {
+        unsigned char ip_buf[sizeof(struct in6_addr)] = { 0 };
+        if (inet_pton(AF_INET, peer_cn, ip_buf) == 1 || inet_pton(AF_INET6, peer_cn, ip_buf) == 1) {
+            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+        }
     }
 
     RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
