@@ -311,6 +311,7 @@ mod tests {
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
         };
         // Use a zero-duration interval so every handshake triggers an export
         let subscriber = AggregatedMetricsSubscriber::with_periodic_export(
@@ -369,6 +370,7 @@ mod tests {
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution)
             .with_synthetic_traffic_detector(Box::new(ToggleDetector(toggle.clone())));
