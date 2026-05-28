@@ -20,11 +20,10 @@ HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-PROOF_SOURCES += $(PROOFDIR)/dh_compute_key_override.c
+PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_STUB)/memmove_havoc.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/madvise.c

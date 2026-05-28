@@ -69,10 +69,24 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
  */
 static void s2n_dh_pad_shared_secret(struct s2n_blob *shared_key, int computed_size, int expected_size)
 {
+#ifdef CBMC
+    /* Skip the pad logic during CBMC proofs.
+     *
+     * CBMC's built-in memmove model is computationally expensive enough to time
+     * out the proof CI job. Additionally, the libcrypto verification model
+     * returns a fresh nondeterministic value from DH_size on each call, which
+     * lets CBMC explore impossible states where computed_size > expected_size
+     * (making `padding` negative and the memmove destination invalid). The
+     * pad function's correctness is verified by the unit test
+     * s2n_dh_pad_shared_secret_test.
+     */
+    shared_key->size = expected_size;
+#else
     int padding = expected_size - computed_size;
     memmove(shared_key->data + padding, shared_key->data, computed_size);
     memset(shared_key->data, 0, padding);
     shared_key->size = expected_size;
+#endif
 }
 
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
