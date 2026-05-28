@@ -21,6 +21,7 @@
 #include <strings.h>
 #include <time.h>
 
+#include "api/unstable/allow_ip_in_cn.h"
 #include "api/unstable/custom_x509_extensions.h"
 #include "api/unstable/npn.h"
 #include "crypto/s2n_certificate.h"
