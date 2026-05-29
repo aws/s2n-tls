@@ -104,6 +104,7 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
 int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(blocked);
 
     *blocked = S2N_BLOCKED_ON_READ;
 

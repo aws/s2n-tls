@@ -19,7 +19,7 @@ on:
 # .github/workflows/proof_ci_resources/config.yaml
 #
 # If you want the CI to use a different GitHub-hosted runner (which must still
-# be running Ubuntu 20.04), modify the value of this key:
+# be running Ubuntu 24.04), modify the value of this key:
 # jobs.run_cbmc_proofs.runs-on
 
 jobs:
@@ -83,7 +83,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           CBMC_REL="https://api.github.com/repos/diffblue/cbmc/releases?page=1&per_page=5"
-          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
+          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[].browser_download_url' | grep -e 'ubuntu-24.04-cbmc' | head -n 1)
           CBMC_ARTIFACT_NAME=$(basename $CBMC_DEB)
           curl -o $CBMC_ARTIFACT_NAME -L $CBMC_DEB
           sudo dpkg -i $CBMC_ARTIFACT_NAME
@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: |
           curl -o cbmc.deb -L \
-            https://github.com/diffblue/cbmc/releases/download/cbmc-${{ env.CBMC_VERSION }}/ubuntu-20.04-cbmc-${{ env.CBMC_VERSION }}-Linux.deb
+            https://github.com/diffblue/cbmc/releases/download/cbmc-${{ env.CBMC_VERSION }}/ubuntu-24.04-cbmc-${{ env.CBMC_VERSION }}-Linux.deb
           sudo dpkg -i ./cbmc.deb
           rm ./cbmc.deb
       - name: Install latest CBMC viewer

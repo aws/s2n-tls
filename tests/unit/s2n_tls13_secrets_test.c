@@ -14,8 +14,6 @@
  */
 #include "tls/s2n_tls13_secrets.h"
 
-#include <sys/param.h>
-
 #include "crypto/s2n_ecc_evp.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"

@@ -696,6 +696,7 @@ if (BUILD_TESTING)
         # fuzz test specific LD_PRELOAD libraries.
         add_library(fuzztest SHARED ${TESTLIB_SRC})
         target_include_directories(fuzztest PUBLIC tests)
+        target_compile_options(fuzztest PUBLIC -include "${S2N_PRELUDE}" -fPIC)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
         # Set default values for fuzzing

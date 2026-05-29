@@ -19,7 +19,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/uio.h>
+#ifndef _WIN32
+    #include <sys/uio.h>
+#endif
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"

@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 /* Use usleep */
 #define _XOPEN_SOURCE 500
 #include <errno.h>
@@ -60,7 +58,7 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
     while (s2n_stuffer_data_available(output) < length) {
         uint32_t remaining = length - s2n_stuffer_data_available(output);
         if (conn->recv_buffering) {
-            remaining = MAX(remaining, s2n_stuffer_space_remaining(output));
+            remaining = S2N_MAX(remaining, s2n_stuffer_space_remaining(output));
         }
         errno = 0;
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
@@ -109,7 +107,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     if (header_available < S2N_TLS_RECORD_HEADER_LENGTH) {
         uint32_t header_remaining = S2N_TLS_RECORD_HEADER_LENGTH - header_available;
         s2n_result ret = s2n_recv_buffer_in(conn, header_remaining);
-        uint32_t header_read = MIN(header_remaining, s2n_stuffer_data_available(&conn->buffer_in));
+        uint32_t header_read = S2N_MIN(header_remaining, s2n_stuffer_data_available(&conn->buffer_in));
         POSIX_GUARD(s2n_stuffer_copy(&conn->buffer_in, &conn->header_in, header_read));
         POSIX_GUARD_RESULT(ret);
     }
@@ -129,7 +127,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     if (fragment_available < fragment_length || fragment_length == 0) {
         POSIX_GUARD(s2n_stuffer_rewind_read(&conn->buffer_in, fragment_available));
         s2n_result ret = s2n_recv_buffer_in(conn, fragment_length);
-        uint32_t fragment_read = MIN(fragment_length, s2n_stuffer_data_available(&conn->buffer_in));
+        uint32_t fragment_read = S2N_MIN(fragment_length, s2n_stuffer_data_available(&conn->buffer_in));
         POSIX_GUARD_RESULT(s2n_recv_in_init(conn, fragment_read, fragment_length));
         POSIX_GUARD_RESULT(ret);
     }
@@ -258,7 +256,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
             continue;
         }
 
-        out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
+        out.size = S2N_MIN(size, s2n_stuffer_data_available(&conn->in));
 
         POSIX_GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
         bytes_read += out.size;
@@ -293,6 +291,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
 ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
+    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
     conn->recv_in_use = true;
 
