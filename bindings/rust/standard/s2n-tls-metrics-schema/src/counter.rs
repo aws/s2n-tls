@@ -1,6 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//! Generic per-kind counter abstraction used by the handshake record.
+//!
+//! A [`FrozenCounter<N, T>`] is a dense array of `N` `u64` slots indexed by
+//! the slot positions that [`FiniteCounter<N>`] assigns to each value of `T`.
+
 use std::marker::PhantomData;
 
 use crate::static_lists::FiniteCounter;
@@ -70,6 +75,11 @@ impl<const N: usize, T> serde::Serialize for FrozenCounter<N, T>
 where
     T: FiniteCounter<N> + serde::Serialize,
 {
+    /// Emit non-zero slots as a sequence of `(T, u64)` pairs. Each `T`
+    /// serializes itself in value position, so element types whose native
+    /// form isn't a primitive (e.g. `Cipher`'s `[u8; 2]`) round-trip via
+    /// plain `#[derive]`. Pre-counting gives length-prefixed formats
+    /// (CBOR, postcard) the exact pair count.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeSeq;
         let non_zero_count = self.slots.iter().filter(|&&c| c > 0).count();
@@ -85,6 +95,10 @@ impl<'de, const N: usize, T> serde::Deserialize<'de> for FrozenCounter<N, T>
 where
     T: FiniteCounter<N> + serde::de::DeserializeOwned + std::fmt::Display,
 {
+    /// Decode a sequence of `(T, u64)` pairs. Each `T` parses itself; the
+    /// counter then filters by [`FiniteCounter::slot_from_key`], so values
+    /// whose wire form is well-formed but unknown to this build's `ELEMENTS`
+    /// are dropped (and logged at `debug!`). Missing slots default to 0.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct SeqVisitor<const N: usize, T: FiniteCounter<N>>(PhantomData<T>);
 

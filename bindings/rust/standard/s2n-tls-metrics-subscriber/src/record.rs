@@ -37,8 +37,11 @@ fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
 /// information - e.g. negotiated parameters.
 #[derive(Debug)]
 pub(crate) struct HandshakeRecordInProgress {
+    /// This is used to send a frozen version back to the Aggregator, after which
+    /// point it can be exported. This is only used in the drop impl.
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
+    /// the total number of handshakes that this record represents.
     handshake_count: AtomicU64,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
@@ -46,6 +49,8 @@ pub(crate) struct HandshakeRecordInProgress {
     negotiated_groups: Counter<GROUP_COUNT, Group>,
     negotiated_signatures: Counter<SIGNATURE_COUNT, Signature>,
 
+    // we do not attempt to detect supported parameters for SSLv2 formatted client
+    // hellos
     sslv2_client_hello: AtomicU64,
     supported_protocols: Counter<PROTOCOL_COUNT, Version>,
     supported_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -57,9 +62,18 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_cnsa1: AtomicU64,
     compatibility_cnsa2: AtomicU64,
 
+    /// sum of handshake duration, including network latency and waiting
+    ///
+    /// To get the average, divide this by handshake_count.
     handshake_duration_us: AtomicU64,
+    /// sum of handshake compute
+    ///
+    /// To get the average, divide this by handshake_count.
     handshake_compute_us: AtomicU64,
 
+    /// Number of handshakes flagged by the configured
+    /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
+    /// every other counter on this record (including `handshake_count`).
     synthetic_traffic_count: AtomicU64,
 }
 
@@ -99,6 +113,11 @@ impl HandshakeRecordInProgress {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let client_hello = conn.client_hello()?;
 
+        // Run the detector first, on every handshake (including SSLv2).
+        // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
+        // every other counter (including `handshake_count`) reflects real
+        // traffic only, so consumers can read each metric directly without
+        // post-processing.
         if let Some(detector) = detector {
             if detector.is_synthetic(client_hello) {
                 self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
@@ -167,6 +186,9 @@ impl HandshakeRecordInProgress {
             self.negotiated_groups.increment(&group);
         }
 
+        // accuracy: as long as the handshake took less than 500,000 years
+        // this cast will not truncate. We prefer truncation/less accurate metrics
+        // over a panic.
         self.handshake_compute_us.fetch_add(
             event.synchronous_time().as_micros() as u64,
             Ordering::Relaxed,
@@ -177,6 +199,16 @@ impl HandshakeRecordInProgress {
         Ok(())
     }
 
+    /// make a copy of this record to be exported.
+    ///
+    /// ### A Note On Ordering Correctness
+    ///
+    /// It is important that this function observes the results of all the `fetch_add`
+    /// operations on other threads.
+    ///
+    /// Simple Intuition: This function takes a `&mut`. Therefore the rust compiler
+    /// enforces that there are no other references to this memory and there isn't
+    /// anything to actually synchronize. So a Relaxed load is fine.
     fn finish(&mut self) -> FrozenHandshakeRecord {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
@@ -209,6 +241,7 @@ impl HandshakeRecordInProgress {
 impl Drop for HandshakeRecordInProgress {
     fn drop(&mut self) {
         let frozen = self.finish();
+        // no available way to report error
         let _ = self.exporter.send(frozen);
     }
 }
@@ -412,6 +445,7 @@ mod tests {
         );
     }
 
+    /// A record with no handshakes should be entirely empty/default.
     #[test]
     fn empty_record() {
         let endpoint = TestEndpoint::new();
@@ -420,10 +454,14 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let mut record = records[0].as_schema().handshake.clone();
 
+        // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
         assert_eq!(record, FrozenHandshakeRecord::default());
     }
 
+    /// ARBITRARY_POLICY_1 (20240503 / default_tls13) should be compatible with
+    /// General, Fips, and Cnsa1 profiles, but not CNSA2 (which requires MLKEM1024
+    /// and mldsa87).
     #[test]
     fn record_contents_compatibility_metrics() {
         let endpoint = TestEndpoint::new();
@@ -439,6 +477,10 @@ mod tests {
         assert_eq!(record.compatibility_cnsa2, 0);
     }
 
+    /// Make sure that the compute time is less than the overall handshake time.
+    ///
+    /// Additionally, make sure that three handshakes takes longer than one handshake.
+    /// This provides some confidence that we are correctly e.g. adding amounts
     #[test]
     fn timers() {
         let endpoint = TestEndpoint::new();

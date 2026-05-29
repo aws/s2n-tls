@@ -1,6 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//! This module contains the static lists of all possible values emitted by the
+//! s2n-tls "getter" APIs. These static lists are important because they allow us
+//! to maintain an array of atomic counters instead of having to resort to a hashmap.
+
 use std::{fmt::Display, str::FromStr};
 
 use s2n_codec::zerocopy::U16;

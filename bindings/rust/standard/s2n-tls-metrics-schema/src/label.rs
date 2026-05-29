@@ -24,6 +24,9 @@ impl Display for State {
     }
 }
 
+/// Cache key keyed by slot index so the cache type stays non-generic.
+/// `(parameter, slot)` is unique across the four TLS parameter kinds because
+/// `TlsParam` already discriminates between them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct MetricLabel {
     parameter: TlsParam,
@@ -31,6 +34,13 @@ struct MetricLabel {
     state: State,
 }
 
+/// We want all of our metrics counters to be prefixed, e.g. `group.negotiated.secp256r1`
+/// This will allow much easier CloudWatch graphs, because you can say things like
+/// "graph all `group.negotiated.*` metrics"
+///
+/// metrique needs the string to be static, so we deliberately "leak" the data.
+///
+/// This is acceptable because it's just a finite set of values.
 #[derive(Debug, Default)]
 struct MetricLabeller(RwLock<HashMap<MetricLabel, &'static str>>);
 
@@ -41,12 +51,15 @@ impl MetricLabeller {
 
     fn insert(&self, metric: MetricLabel, value: String) -> &'static str {
         let mut write_lock = self.0.write().unwrap();
+        // it's important that we only leak _after_ we have acquired the write lock.
+        // otherwise we might end up leaking extra copies of the metric label
         let label = value.leak();
         write_lock.insert(metric, label);
         label
     }
 }
 
+/// lookup from metric to the prefixed string, e.g. "group.negotiated.secp256r1"
 pub fn metric_label<T>(slot: usize, item: T, parameter: TlsParam, state: State) -> &'static str
 where
     T: Display,

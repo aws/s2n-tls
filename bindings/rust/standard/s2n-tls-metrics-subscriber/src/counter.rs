@@ -9,6 +9,9 @@ use std::{
 use s2n_tls_metrics_schema::{counter::FrozenCounter, static_lists::FiniteCounter};
 
 /// Atomic-backed counter storage for one parameter kind.
+///
+/// An inline array of `N` `AtomicU64`s. Hot path is one relaxed `fetch_add`
+/// on the slot for `element`.
 pub(crate) struct Counter<const N: usize, T: FiniteCounter<N>> {
     slots: [AtomicU64; N],
     element: PhantomData<T>,
@@ -23,6 +26,9 @@ impl<const N: usize, T: FiniteCounter<N>> Counter<N, T> {
         }
     }
 
+    /// Increment the slot for `element`. No-op if `element` is not in
+    /// [`FiniteCounter::ELEMENTS`] — wire types decoded from client-hello
+    /// bytes may not match any known value.
     pub(crate) fn increment(&self, element: &T) {
         if let Some(counter) = element
             .slot_from_key()
@@ -32,6 +38,8 @@ impl<const N: usize, T: FiniteCounter<N>> Counter<N, T> {
         }
     }
 
+    /// Snapshot current values. `&mut self` guarantees no concurrent writer,
+    /// so relaxed loads are sufficient.
     pub(crate) fn freeze(&mut self) -> FrozenCounter<N, T> {
         FrozenCounter::from_slots(std::array::from_fn(|i| {
             self.slots[i].load(Ordering::Relaxed)
