@@ -301,6 +301,7 @@ static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X
 static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection *conn, X509 *public_cert, bool *cn_found)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(public_cert);
     RESULT_ENSURE_REF(cn_found);
 
