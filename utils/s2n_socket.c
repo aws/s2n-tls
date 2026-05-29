@@ -15,10 +15,24 @@
 
 #include "utils/s2n_socket.h"
 
+#if defined(_MSC_VER)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
+
+#if !defined(_MSC_VER)
 #include <netinet/in.h>
+#endif
+#if !defined(_MSC_VER)
 #include <netinet/tcp.h>
+#endif
+#if !defined(_MSC_VER)
 #include <sys/socket.h>
+#endif
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
@@ -188,7 +202,18 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */
+    #if defined(_MSC_VER)
+    ssize_t result = recv(rfd, (char *)buf, (int)len, 0);
+    if (result < 0) {
+        int wsa_err = WSAGetLastError();
+        if (wsa_err == WSAEWOULDBLOCK) { errno = EWOULDBLOCK; }
+        else if (wsa_err == WSAECONNRESET) { errno = ECONNRESET; }
+        else if (wsa_err == WSAEINTR) { errno = EINTR; }
+        else { errno = EIO; }
+    }
+#else
     ssize_t result = read(rfd, buf, len);
+#endif
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
     return result;
 }
@@ -205,7 +230,18 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
 
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
+    #if defined(_MSC_VER)
+    ssize_t result = send(wfd, (const char *)buf, (int)len, 0);
+    if (result < 0) {
+        int wsa_err = WSAGetLastError();
+        if (wsa_err == WSAEWOULDBLOCK) { errno = EWOULDBLOCK; }
+        else if (wsa_err == WSAECONNRESET) { errno = ECONNRESET; }
+        else if (wsa_err == WSAEINTR) { errno = EINTR; }
+        else { errno = EIO; }
+    }
+#else
     ssize_t result = write(wfd, buf, len);
+#endif
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
     return result;
 }

@@ -31,6 +31,24 @@ struct s2n_async_pkey_op;
  * continue. If async operation is invoking or was invoked, but yet to be complete, we error out of the handler to let
  * s2n_handle_retry_state try again. If async operation was complete we clear the state and let s2n_handle_retry_state
  * proceed to the next handler */
+#if defined(_MSC_VER)
+#define S2N_ASYNC_PKEY_GUARD(conn)                                         \
+    do {                                                                   \
+        POSIX_GUARD_PTR((conn));                                       \
+        switch ((conn)->handshake.async_state) {                             \
+            case S2N_ASYNC_NOT_INVOKED:                                    \
+                break;                                                     \
+                                                                           \
+            case S2N_ASYNC_INVOKED:                                        \
+                POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);                         \
+                                                                           \
+            case S2N_ASYNC_COMPLETE:                                       \
+                /* clean up state and return a success from handler */     \
+                (conn)->handshake.async_state = S2N_ASYNC_NOT_INVOKED; \
+                return S2N_SUCCESS;                                        \
+        }                                                                  \
+    } while (0)
+#else
 #define S2N_ASYNC_PKEY_GUARD(conn)                                         \
     do {                                                                   \
         __typeof(conn) __tmp_conn = (conn);                                \
@@ -48,6 +66,7 @@ struct s2n_async_pkey_op;
                 return S2N_SUCCESS;                                        \
         }                                                                  \
     } while (0)
+#endif
 
 /* Macros for safe exection of async sign/decrypt.
  *

@@ -1,3 +1,4 @@
+#include "utils/s2n_prelude.h"
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -21,10 +22,16 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
+#if !defined(_MSC_VER)
 #include <sys/mman.h>
+#endif
+#if !defined(_MSC_VER)
 #include <sys/socket.h>
+#endif
 #include <sys/stat.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #ifndef S2N_INTERN_LIBCRYPTO
     #include <openssl/crypto.h>

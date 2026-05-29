@@ -15,8 +15,16 @@
 
 #include "utils/s2n_rfc5952.h"
 
+#if defined(_MSC_VER)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
+
 #include <stdio.h>
+#if !defined(_MSC_VER)
 #include <sys/socket.h>
+#endif
 #include <sys/types.h>
 
 #include "error/s2n_errno.h"

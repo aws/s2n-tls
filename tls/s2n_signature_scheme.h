@@ -15,7 +15,9 @@
 
 #pragma once
 
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
 
 #include "api/s2n.h"
 #include "crypto/s2n_ecc_evp.h"

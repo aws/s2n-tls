@@ -22,7 +22,9 @@
 #include <openssl/pem.h>
 #include <openssl/x509v3.h>
 #include <string.h>
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
 
 #include "api/s2n.h"
 #include "crypto/s2n_openssl_x509.h"

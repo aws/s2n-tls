@@ -14,11 +14,15 @@
  */
 
 #ifndef _S2N_PRELUDE_INCLUDED
-    /* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
-    #error "Expected s2n_prelude.h to be included as part of the compiler flags"
+    #if !defined(_MSC_VER)
+        /* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
+        #error "Expected s2n_prelude.h to be included as part of the compiler flags"
+    #endif
 #endif
 
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
 #include <time.h>
 
 #include "api/unstable/custom_x509_extensions.h"
@@ -38,13 +42,16 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
-#if defined(CLOCK_MONOTONIC_RAW)
+#if defined(_MSC_VER)
+    #define S2N_CLOCK_HW 0
+    #define S2N_CLOCK_SYS 0
+#elif defined(CLOCK_MONOTONIC_RAW)
     #define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
+    #define S2N_CLOCK_SYS CLOCK_REALTIME
 #else
     #define S2N_CLOCK_HW CLOCK_MONOTONIC
+    #define S2N_CLOCK_SYS CLOCK_REALTIME
 #endif
-
-#define S2N_CLOCK_SYS CLOCK_REALTIME
 
 int s2n_default_monotonic_clock(void *unused_data, uint64_t *nanoseconds)
 {

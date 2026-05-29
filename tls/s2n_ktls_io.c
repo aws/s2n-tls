@@ -1,3 +1,4 @@
+#include "utils/s2n_prelude.h"
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -26,7 +27,9 @@
      */
         #undef _POSIX_C_SOURCE
     #endif
+#if !defined(_MSC_VER)
     #include <sys/socket.h>
+#endif
 
     #ifdef S2N_LINUX_SENDFILE
         #include <sys/sendfile.h>

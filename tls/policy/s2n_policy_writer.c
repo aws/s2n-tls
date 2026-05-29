@@ -15,7 +15,9 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/policy/s2n_policy_feature.h"

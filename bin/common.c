@@ -1,3 +1,4 @@
+#include "utils/s2n_prelude.h"
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -21,10 +22,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined(_MSC_VER)
 #include <strings.h>
+#endif
+#if !defined(_MSC_VER)
 #include <sys/mman.h>
+#endif
 #include <sys/stat.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"

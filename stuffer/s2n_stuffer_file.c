@@ -15,7 +15,18 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#include <win_shim/win_shim.h>
+#else
 #include <unistd.h>
+#endif
+
+
+#if defined(_MSC_VER)
+#include <io.h>
+#define read _read
+#define write _write
+#endif
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"

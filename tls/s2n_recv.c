@@ -1,3 +1,4 @@
+#include "utils/s2n_prelude.h"
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -16,7 +17,9 @@
 /* Use usleep */
 #define _XOPEN_SOURCE 500
 #include <errno.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"

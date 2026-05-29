@@ -15,7 +15,20 @@
 
 #pragma once
 
+
+#if defined(_MSC_VER)
+#define S2N_GCC_VERSION 0
+#define S2N_GCC_VERSION_AT_LEAST(major, minor, patch_level) 0
+#else
 #define S2N_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
 #define S2N_GCC_VERSION_AT_LEAST(major, minor, patch_level) \
     ((S2N_GCC_VERSION) >= ((major) * 10000 + (minor) * 100 + (patch_level)))
+#endif
+
+
+#if defined(_MSC_VER)
+#ifndef __builtin_expect
+#define __builtin_expect(x, y) (x)
+#endif
+#endif

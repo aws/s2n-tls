@@ -19,8 +19,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
-#ifndef _WIN32
-    #include <sys/uio.h>
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#include <win_shim/win_shim.h>
+#else
+#include <sys/uio.h>
 #endif
 
 #include "utils/s2n_blob.h"

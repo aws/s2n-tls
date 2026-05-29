@@ -1,3 +1,6 @@
+vcpkg*
+build_*
+cmake-build-*
 *.o
 *.a
 *.dylib

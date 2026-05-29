@@ -13,12 +13,21 @@
  * permissions and limitations under the License.
  */
 
+#if !defined(_MSC_VER)
 #include <arpa/inet.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+#if !defined(_MSC_VER)
 #include <netinet/in.h>
+#endif
 #include <openssl/asn1.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
+#if !defined(_MSC_VER)
 #include <sys/socket.h>
+#endif
 
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl_x509.h"

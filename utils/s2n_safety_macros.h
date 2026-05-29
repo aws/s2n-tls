@@ -95,6 +95,13 @@
 /**
  * Ensures `min <= n <= max`, otherwise the function will `RESULT_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define RESULT_ENSURE_INCLUSIVE_RANGE(min, n, max)              \
+        do { \
+            RESULT_ENSURE_GTE((n), (min)); \
+            RESULT_ENSURE_LTE((n), (max)); \
+        } while(0)
+#else
 #define RESULT_ENSURE_INCLUSIVE_RANGE(min, n, max)              \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -103,10 +110,18 @@
             RESULT_ENSURE_GTE(__tmp_n, __tmp_min); \
             RESULT_ENSURE_LTE(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * Ensures `min < n < max`, otherwise the function will `RESULT_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define RESULT_ENSURE_EXCLUSIVE_RANGE(min, n, max)              \
+        do { \
+            RESULT_ENSURE_GT((n), (min)); \
+            RESULT_ENSURE_LT((n), (max)); \
+        } while(0)
+#else
 #define RESULT_ENSURE_EXCLUSIVE_RANGE(min, n, max)              \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -115,6 +130,7 @@
             RESULT_ENSURE_GT(__tmp_n, __tmp_min); \
             RESULT_ENSURE_LT(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * Ensures `x` is a readable reference, otherwise the function will `RESULT_BAIL` with `S2N_ERR_NULL`
@@ -279,6 +295,13 @@
  *
  * Ensures `min <= n <= max`, otherwise the function will `POSIX_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define POSIX_ENSURE_INCLUSIVE_RANGE(min, n, max)              \
+        do { \
+            POSIX_ENSURE_GTE((n), (min)); \
+            POSIX_ENSURE_LTE((n), (max)); \
+        } while(0)
+#else
 #define POSIX_ENSURE_INCLUSIVE_RANGE(min, n, max)              \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -287,12 +310,20 @@
             POSIX_ENSURE_GTE(__tmp_n, __tmp_min); \
             POSIX_ENSURE_LTE(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
  * Ensures `min < n < max`, otherwise the function will `POSIX_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define POSIX_ENSURE_EXCLUSIVE_RANGE(min, n, max)              \
+        do { \
+            POSIX_ENSURE_GT((n), (min)); \
+            POSIX_ENSURE_LT((n), (max)); \
+        } while(0)
+#else
 #define POSIX_ENSURE_EXCLUSIVE_RANGE(min, n, max)              \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -301,6 +332,7 @@
             POSIX_ENSURE_GT(__tmp_n, __tmp_min); \
             POSIX_ENSURE_LT(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -485,6 +517,13 @@
  *
  * Ensures `min <= n <= max`, otherwise the function will `PTR_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define PTR_ENSURE_INCLUSIVE_RANGE(min, n, max)                \
+        do { \
+            PTR_ENSURE_GTE((n), (min)); \
+            PTR_ENSURE_LTE((n), (max)); \
+        } while(0)
+#else
 #define PTR_ENSURE_INCLUSIVE_RANGE(min, n, max)                \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -493,12 +532,20 @@
             PTR_ENSURE_GTE(__tmp_n, __tmp_min); \
             PTR_ENSURE_LTE(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
  * Ensures `min < n < max`, otherwise the function will `PTR_BAIL` with `S2N_ERR_SAFETY`
  */
+#if defined(_MSC_VER)
+#define PTR_ENSURE_EXCLUSIVE_RANGE(min, n, max)                \
+        do { \
+            PTR_ENSURE_GT((n), (min)); \
+            PTR_ENSURE_LT((n), (max)); \
+        } while(0)
+#else
 #define PTR_ENSURE_EXCLUSIVE_RANGE(min, n, max)                \
         do { \
             __typeof(n) __tmp_n = ( n ); \
@@ -507,6 +554,7 @@
             PTR_ENSURE_GT(__tmp_n, __tmp_min); \
             PTR_ENSURE_LT(__tmp_n, __tmp_max); \
         } while(0)
+#endif
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
