@@ -9,7 +9,6 @@
 
 pub mod attribution;
 pub mod counter;
-#[cfg(feature = "metrique")]
 pub mod label;
 pub mod record;
 pub mod static_lists;

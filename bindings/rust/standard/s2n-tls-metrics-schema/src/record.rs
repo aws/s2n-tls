@@ -14,24 +14,19 @@ use crate::{
     },
 };
 
-#[cfg(feature = "metrique")]
 use crate::{
     label::{State, metric_label},
     static_lists::{FiniteCounter, TlsParam},
 };
 
-/// Metric Record is an opaque type which implements `metrique_writer::Entry`
+/// Metric Record is an type which implements `metrique_writer::Entry`
 /// (when the `metrique` feature is enabled).
-///
-/// This is the preferred type for public s2n-tls-metric-subscriber traits and
-/// interfaces.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MetricRecord {
     pub attribution: Attribution,
     pub handshake: FrozenHandshakeRecord,
 }
 
-#[cfg(feature = "metrique")]
 impl metrique_writer::Entry for MetricRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         let operation = if self.attribution.component.is_empty() {
@@ -124,7 +119,6 @@ impl Default for FrozenHandshakeRecord {
     }
 }
 
-#[cfg(feature = "metrique")]
 impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         writer.timestamp(self.freeze_time);

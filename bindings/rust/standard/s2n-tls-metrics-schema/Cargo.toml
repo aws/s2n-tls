@@ -13,11 +13,10 @@ zerocopy = "0.8.33"
 serde = { version = "1.0.225", features = ["derive"] }
 serde_with = "3.16"
 tracing = "0.1.43"
-metrique-writer = { version = "0.1.19", optional = true }
+metrique-writer = "0.1.19"
 
 [features]
 default = []
-metrique = ["dep:metrique-writer"]
 
 [dev-dependencies]
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }

@@ -16,9 +16,9 @@ use crate::MetricRecord;
 /// so sinks can choose between serde-based formats (JSON via `serde_json`,
 /// CBOR via `ciborium`, etc.) or the metrique writer pipeline.
 ///
-/// For direct field access to the underlying schema types, use
-/// [`MetricRecord::as_schema()`] — but note that those types live in
-/// `s2n-tls-metrics-schema` which has no stability guarantees.
+/// For field-level inspection, consumers should depend on
+/// `s2n-tls-metrics-schema` directly and deserialize from the serialized
+/// bytes. That crate carries no stability guarantees.
 pub trait TelemetrySink: Send + Sync + 'static {
     /// Export a single metric record.
     fn export_record(&self, record: &MetricRecord);
