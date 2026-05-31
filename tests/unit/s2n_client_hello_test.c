@@ -44,6 +44,11 @@
 #define COMPRESSION_METHODS     0x00, 0x01, 0x02, 0x03, 0x04
 #define COMPRESSION_METHODS_LEN 0x05
 
+/* Encrypted Client Hello extension
+ *= https://www.rfc-editor.org/rfc/rfc9849
+ */
+#define TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO 0xFE0D
+
 int s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension);
@@ -1303,14 +1308,41 @@ int main(int argc, char **argv)
         free(sent_client_hello);
     };
 
-    /* Minimal TLS 1.2 client hello with SNI and a dummy ECH extension. */
-    {
+    /* Minimal TLS 1.3 client hello with SNI and a dummy ECH extension.
+     *
+     * Encrypted Client Hello (ECH) is only defined for TLS 1.3, so this test
+     * verifies that s2n-tls correctly handles a TLS 1.3 ClientHello containing
+     * an unknown/dummy ECH extension without rejecting it.
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
         struct s2n_connection *server_conn = NULL;
         struct s2n_config *server_config = NULL;
-        s2n_blocked_status server_blocked;
-        uint8_t *sent_client_hello = NULL;
 
-        uint8_t client_extensions[] = {
+        uint8_t client_hello_message[] = {
+            /* Protocol version TLS 1.2 (legacy_version for TLS 1.3) */
+            0x03,
+            0x03,
+            /* Client random */
+            ZERO_TO_THIRTY_ONE,
+            /* SessionID len - 32 bytes */
+            0x20,
+            /* Session ID */
+            ZERO_TO_THIRTY_ONE,
+            /* Cipher suites len */
+            0x00,
+            0x02,
+            /* Cipher suite - TLS_AES_128_GCM_SHA256 */
+            0x13,
+            0x01,
+            /* Compression methods len */
+            0x01,
+            /* Compression method - none */
+            0x00,
+            /* Extensions len */
+            0x00,
+            0x51,
             /* Extension type TLS_EXTENSION_SERVER_NAME */
             0x00,
             0x00,
@@ -1325,13 +1357,53 @@ int main(int argc, char **argv)
             /* First server name len */
             0x00,
             0x03,
-            /* First server name, matches sent_server_name */
+            /* First server name */
             's',
             'v',
             'r',
-            /* Extension type dummy ECH (0xFE0D) */
-            0xFE,
+            /* Extension type TLS_EXTENSION_SUPPORTED_VERSIONS */
+            0x00,
+            0x2B,
+            /* Extension size */
+            0x00,
+            0x03,
+            /* Supported versions length */
+            0x02,
+            /* TLS 1.3 */
+            0x03,
+            0x04,
+            /* Extension type TLS_EXTENSION_SIGNATURE_ALGORITHMS */
+            0x00,
             0x0D,
+            /* Extension size */
+            0x00,
+            0x04,
+            /* Signature algorithms length */
+            0x00,
+            0x02,
+            /* ecdsa_secp256r1_sha256 */
+            0x04,
+            0x03,
+            /* Extension type TLS_EXTENSION_KEY_SHARE */
+            0x00,
+            0x33,
+            /* Extension size */
+            0x00,
+            0x26,
+            /* Client key shares length */
+            0x00,
+            0x24,
+            /* Named group - x25519 */
+            0x00,
+            0x1D,
+            /* Key exchange length */
+            0x00,
+            0x20,
+            /* Key exchange data (dummy x25519 public key) */
+            ZERO_TO_THIRTY_ONE,
+            /* Extension type TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO */
+            (TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO >> 8) & 0xFF,
+            TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO & 0xFF,
             /* Extension size */
             0x00,
             0x08,
@@ -1355,85 +1427,23 @@ int main(int argc, char **argv)
             /* First server name len */
             0x00,
             0x03,
-            /* First server name, matches sent_server_name */
+            /* First server name */
             's',
             'v',
             'r',
         };
         int server_name_extension_len = sizeof(server_name_extension);
 
-        int client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_prefix[] = {
-            /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Client random */
-            ZERO_TO_THIRTY_ONE,
-            /* SessionID len - 32 bytes */
-            0x20,
-            /* Session ID */
-            ZERO_TO_THIRTY_ONE,
-            /* Cipher suites len */
-            0x00,
-            0x02,
-            /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-            0x00,
-            0x3C,
-            /* Compression methods len */
-            0x01,
-            /* Compression method - none */
-            0x00,
-            /* Extensions len */
-            (client_extensions_len >> 8) & 0xff,
-            (client_extensions_len & 0xff),
-        };
-        int client_hello_prefix_len = sizeof(client_hello_prefix);
-        int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
-        uint8_t message_header[] = {
-            /* Handshake message type CLIENT HELLO */
-            0x01,
-            /* Body len */
-            (sent_client_hello_len >> 16) & 0xff,
-            (sent_client_hello_len >> 8) & 0xff,
-            (sent_client_hello_len & 0xff),
-        };
-        int message_len = sizeof(message_header) + sent_client_hello_len;
-        uint8_t record_header[] = {
-            /* Record type HANDSHAKE */
-            0x16,
-            /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Message len */
-            (message_len >> 8) & 0xff,
-            (message_len & 0xff),
-        };
-
-        EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
-        EXPECT_MEMCPY_SUCCESS(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
-        EXPECT_MEMCPY_SUCCESS(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
-
-        struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
-        /* Security policy must allow cipher suite hard coded into client hello */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
-
-        s2n_negotiate(server_conn, &server_blocked);
-        EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->handshake.io,
+                client_hello_message, sizeof(client_hello_message)));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
         EXPECT_NOT_NULL(client_hello);
@@ -1451,15 +1461,13 @@ int main(int argc, char **argv)
         EXPECT_TRUE(extension_exists);
 
         extension_exists = false;
-        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, 0xFE0D, &extension_exists));
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO, &extension_exists));
         EXPECT_TRUE(extension_exists);
 
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
         EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        free(sent_client_hello);
+
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     };
 
     /* Client hello api with NULL inputs */
