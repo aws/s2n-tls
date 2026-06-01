@@ -10,7 +10,11 @@ project (s2n C)
 
 include(FetchContent)
 if(WIN32)
-FetchContent_Declare(auto_win_msvc SOURCE_DIR C:/Users/samue/repos/auto-win-msvc)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../auto-win-msvc")
+    FetchContent_Declare(auto_win_msvc SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../auto-win-msvc")
+else()
+    FetchContent_Declare(auto_win_msvc GIT_REPOSITORY https://github.com/SamuelMarks/auto-win-msvc.git GIT_TAG master)
+endif()
 FetchContent_MakeAvailable(auto_win_msvc)
 endif()
 
@@ -845,4 +849,5 @@ install(FILES "cmake/modules/Findcrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)
 message(STATUS "PROJECT_NAME is ${PROJECT_NAME}")
+
 
