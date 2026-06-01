@@ -31,29 +31,41 @@ if (TARGET crypto OR TARGET AWS::crypto)
     set(CRYPTO_FOUND true)
     set(crypto_FOUND true)
 else()
-    find_path(crypto_INCLUDE_DIR
-        NAMES openssl/crypto.h
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES include
-    )
+    find_package(OpenSSL QUIET)
+    if (OpenSSL_FOUND)
+        set(crypto_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
+        set(crypto_SHARED_LIBRARY ${OPENSSL_CRYPTO_LIBRARY})
+        set(crypto_STATIC_LIBRARY ${OPENSSL_CRYPTO_LIBRARY})
+        set(crypto_LIBRARY ${OPENSSL_CRYPTO_LIBRARY})
+        if (NOT TARGET AWS::crypto AND TARGET OpenSSL::Crypto)
+            add_library(AWS::crypto INTERFACE IMPORTED)
+            target_link_libraries(AWS::crypto INTERFACE OpenSSL::Crypto)
+        endif()
+    else()
+        find_path(crypto_INCLUDE_DIR
+            NAMES openssl/crypto.h
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES include
+        )
 
-    find_library(crypto_SHARED_LIBRARY
-        NAMES libcrypto.so libcrypto.dylib
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES build/crypto build lib64 lib
-    )
+        find_library(crypto_SHARED_LIBRARY
+            NAMES libcrypto.so libcrypto.dylib libcrypto.lib crypto.lib
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES build/crypto build lib64 lib
+        )
 
-    find_library(crypto_STATIC_LIBRARY
-        NAMES libcrypto.a
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES build/crypto build lib64 lib
-    )
+        find_library(crypto_STATIC_LIBRARY
+            NAMES libcrypto.a libcrypto.lib crypto.lib
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES build/crypto build lib64 lib
+        )
+    endif()
 
     if (NOT crypto_LIBRARY)
         if (BUILD_SHARED_LIBS OR S2N_USE_CRYPTO_SHARED_LIBS)
@@ -95,7 +107,7 @@ else()
         message(STATUS "LibCrypto Include Dir: ${crypto_INCLUDE_DIR}")
         message(STATUS "LibCrypto Shared Lib:  ${crypto_SHARED_LIBRARY}")
         message(STATUS "LibCrypto Static Lib:  ${crypto_STATIC_LIBRARY}")
-        if (NOT TARGET crypto AND
+        if (NOT TARGET crypto AND NOT TARGET AWS::crypto AND
             (EXISTS "${crypto_LIBRARY}")
         )
             set(THREADS_PREFER_PTHREAD_FLAG ON)

@@ -1,5 +1,18 @@
 cmake_minimum_required (VERSION 3.10)
+if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE AND EXISTS "C:/Users/samue/repos/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE "C:/Users/samue/repos/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "" FORCE)
+endif()
+
+
+
 project (s2n C)
+
+
+include(FetchContent)
+if(WIN32)
+FetchContent_Declare(auto_win_msvc SOURCE_DIR C:/Users/samue/repos/auto-win-msvc)
+FetchContent_MakeAvailable(auto_win_msvc)
+endif()
 
 if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW) #option does nothing when a normal variable of the same name exists.
@@ -51,20 +64,24 @@ option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
 file(GLOB API_HEADERS "api/*.h")
 file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
 
-file(GLOB CRYPTO_HEADERS "crypto/*.h")
-file(GLOB CRYPTO_SRC "crypto/*.c")
+file(GLOB CRYPTO_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/crypto/*.h")
+file(GLOB CRYPTO_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/crypto/*.c")
 
-file(GLOB ERROR_HEADERS "error/*.h")
-file(GLOB ERROR_SRC "error/*.c")
+file(GLOB ERROR_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/error/*.h")
+file(GLOB ERROR_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/error/*.c")
 
-file(GLOB STUFFER_HEADERS "stuffer/*.h")
-file(GLOB STUFFER_SRC "stuffer/*.c")
+file(GLOB STUFFER_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/stuffer/*.h")
+file(GLOB STUFFER_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/stuffer/*.c")
 
-file(GLOB_RECURSE TLS_HEADERS "tls/*.h")
-file(GLOB_RECURSE TLS_SRC "tls/*.c")
+file(GLOB_RECURSE TLS_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tls/*.h")
+file(GLOB_RECURSE TLS_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tls/*.c")
 
-file(GLOB UTILS_HEADERS "utils/*.h")
-file(GLOB UTILS_SRC "utils/*.c")
+file(GLOB UTILS_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/utils/*.h")
+file(GLOB UTILS_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/utils/*.c")
+if (WINDOWS)
+    list(APPEND UTILS_HEADERS "win_shim/win_shim.h")
+    list(APPEND UTILS_SRC "win_shim/mmap-windows.c")
+endif (WINDOWS)
 
 message(STATUS "Detected CMAKE_SYSTEM_PROCESSOR as ${CMAKE_SYSTEM_PROCESSOR}")
 
@@ -93,6 +110,9 @@ else()
     find_package(Threads REQUIRED)
 endif()
 
+set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -103,6 +123,9 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
     set(OS_LIBS Threads::Threads kvm)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(OS_LIBS Threads::Threads dl)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(OS_LIBS bcrypt)
+    # pthreads is stubbed for native MSVC
 else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
@@ -134,37 +157,45 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE 
-    -pedantic
-    -std=gnu99
-    -Wall
-    -Wcast-align
-    -Wcast-qual
-    -Wchar-subscripts
-    -Wcomment
-    -Wformat-security
-    -Wimplicit
-    -Wshadow
-    -Wsign-compare
-    -Wuninitialized
-    -Wunused
-    -Wwrite-strings
-    
-    # Assembler Options
-    -Wa,--noexecstack
+if (NOT MSVC AND NOT CYGWIN AND NOT MSYS AND NOT MINGW)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        -pedantic
+        -std=gnu99
+        -Wall
+        -Wcast-align
+        -Wcast-qual
+        -Wchar-subscripts
+        -Wcomment
+        -Wformat-security
+        -Wimplicit
+        -Wshadow
+        -Wsign-compare
+        -Wuninitialized
+        -Wunused
+        -Wwrite-strings
+        
+        # Assembler Options
+        -Wa,--noexecstack
 
-    # Suppressed Warnings
-    -Wno-deprecated-declarations
-    # GCC 4 fails to parse our macros with a "missing-braces" error
-    -Wno-missing-braces
-    -Wno-strict-prototypes
-    -Wno-unknown-pragmas
-)
+        # Suppressed Warnings
+        -Wno-deprecated-declarations
+        # GCC 4 fails to parse our macros with a "missing-braces" error
+        -Wno-missing-braces
+        -Wno-strict-prototypes
+        -Wno-unknown-pragmas
+    )
+endif ()
 
 if (S2N_WERROR_ALL)
-    target_compile_options(${PROJECT_NAME} PUBLIC -Werror)
+    target_compile_options(${PROJECT_NAME} PUBLIC
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
+    )
 elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
+    )
 endif ()
 
 if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
@@ -181,7 +212,7 @@ if(S2N_LTO)
     endif()
 endif()
 
-if(NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "AIX")
+if(NOT APPLE AND NOT WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL \"AIX\")
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
 endif()
 
@@ -235,7 +266,8 @@ if(TSAN OR ASAN OR UBSAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+file(TO_CMAKE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules" MODULE_PATH)
+set(CMAKE_MODULE_PATH "${MODULE_PATH}")
 
 if (COVERAGE)
     # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
@@ -269,6 +301,10 @@ endif()
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
+elseif(DEFINED Z_VCPKG_EXECUTABLE OR CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg" OR MSVC)
+    find_package(OpenSSL REQUIRED)
+    message(STATUS "Using libcrypto from vcpkg")
+    set(LINK_LIB "OpenSSL::Crypto")
 else()
     find_package(crypto REQUIRED)
     message(STATUS "Using libcrypto from the cmake path")
@@ -477,19 +513,27 @@ else()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
+if(MSVC)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} auto-win-msvc)
+    install(TARGETS auto-win-msvc EXPORT s2n-targets)
+    if(TARGET wepoll)
+        install(TARGETS wepoll EXPORT s2n-targets)
+    endif()
+else()
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
+endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${auto_win_msvc_SOURCE_DIR}/rewritten_src> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
-if (BUILD_TESTING)
+if (BUILD_TESTING AND NOT MSVC)
     enable_testing()
 
     ############################################################################
     ################### build testlib (utility library) ########################
     ############################################################################
 
-    file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+    file(GLOB TESTLIB_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tests/testlib/*.c")
     file(GLOB EXAMPLES_SRC "docs/examples/*.c")
 
     add_library(testss2n STATIC ${TESTLIB_SRC} ${EXAMPLES_SRC})
@@ -576,7 +620,7 @@ if (BUILD_TESTING)
     ############################ build unit tests ##############################
     ############################################################################
 
-    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    file(GLOB UNITTESTS_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
         # NAME_WE: name without extension
         get_filename_component(test_case_name ${test_case} NAME_WE)
@@ -591,13 +635,18 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE 
-            -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
-            -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
-            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
-        )
+        if (NOT MSVC AND NOT CYGWIN AND NOT MSYS AND NOT MINGW)
+            target_compile_options(${test_case_name} PRIVATE 
+                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
+            )
+        endif()
         if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
-            target_compile_options(${test_case_name} PRIVATE -Werror)
+            target_compile_options(${test_case_name} PRIVATE 
+                "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+                "$<${msvc}:$<BUILD_INTERFACE:-W3;-Zi;-permissive->>"
+            )
         endif()
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
@@ -617,21 +666,23 @@ if (BUILD_TESTING)
     ######################### build utility binaries ###########################
     ############################################################################
 
-    add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+if (NOT MSVC)
+    add_executable(s2nc "${CMAKE_CURRENT_SOURCE_DIR}/bin/s2nc.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/echo.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/https.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
     target_compile_options(s2nc PRIVATE -std=gnu99)
 
-    add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+    add_executable(s2nd "${CMAKE_CURRENT_SOURCE_DIR}/bin/s2nd.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/echo.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/https.c" "${CMAKE_CURRENT_SOURCE_DIR}/bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
     target_compile_options(s2nd PRIVATE -std=gnu99)
 
-    add_executable(policy "bin/policy.c")
+    add_executable(policy "${CMAKE_CURRENT_SOURCE_DIR}/bin/policy.c")
     target_link_libraries(policy ${PROJECT_NAME})
     target_compile_options(policy PRIVATE -std=gnu99)
 
     if(S2N_LTO)
         target_compile_options(s2nc PRIVATE -flto)
         target_compile_options(s2nd PRIVATE -flto)
+    endif()
     endif()
 
     if (S2N_INTEG_TESTS)
@@ -689,8 +740,8 @@ if (BUILD_TESTING)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
-        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+        file(GLOB TESTLIB_SRC "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tests/testlib/*.h" "${auto_win_msvc_SOURCE_DIR}/rewritten_src/tests/s2n_test.h")
 
         # This must be a shared object so that symbols can be overridden by the
         # fuzz test specific LD_PRELOAD libraries.
@@ -793,3 +844,5 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/Findcrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)
+message(STATUS "PROJECT_NAME is ${PROJECT_NAME}")
+
