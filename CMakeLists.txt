@@ -310,7 +310,7 @@ elseif(DEFINED Z_VCPKG_EXECUTABLE OR CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg" OR MSV
     message(STATUS "Using libcrypto from vcpkg")
     set(LINK_LIB "OpenSSL::Crypto")
 else()
-    find_package(crypto REQUIRED)
+    
     message(STATUS "Using libcrypto from the cmake path")
     set(LINK_LIB "AWS::crypto")
 endif()
