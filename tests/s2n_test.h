@@ -19,7 +19,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef _WIN32
+    #include <io.h>
+    #define setenv(name, value, overwrite) _putenv_s(name, value)
+    #define unsetenv(name) _putenv_s(name, "")
+    #ifdef _MSC_VER
+        /* MSVC prefixes POSIX-like functions with underscores. */
+        #define isatty _isatty
+        #define fileno _fileno
+    #endif
+#else
+    #include <unistd.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_alerts.h"
@@ -106,7 +117,12 @@ bool s2n_use_color_in_output = true;
 #define FAIL_MSG_PRINT( msg ) do { \
                           /* isatty and s2n_print_stacktrace will overwrite errno on failure */ \
                           int real_errno = errno; \
+                          /* s2n_print_stacktrace overwrites s2n_errno with S2N_ERR_UNIMPLEMENTED \
+                           * on platforms where stacktraces are not supported (e.g. Windows). \
+                           * Save and restore so the error message reports the actual failure. */ \
+                          int real_s2n_errno = s2n_errno; \
                           s2n_print_stacktrace(stderr); \
+                          s2n_errno = real_s2n_errno; \
                           if (s2n_use_color_in_output && isatty(fileno(stderr))) { \
                             errno = real_errno; \
                             fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
