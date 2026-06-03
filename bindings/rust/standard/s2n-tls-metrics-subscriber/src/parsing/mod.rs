@@ -18,12 +18,10 @@ use s2n_codec::DecoderBuffer;
 use s2n_tls::{client_hello::ClientHello as S2NClientHello, error::Fallible};
 use s2n_tls_sys::{s2n_client_hello_get_extension_by_id, s2n_client_hello_get_extension_length};
 
-use crate::{
-    parsing::messages::{
-        ClientHello, SignatureSchemeList, SupportedGroups, SupportedVersionsClientHello,
-    },
-    static_lists::{Cipher, Group, Signature, Version},
+use crate::parsing::messages::{
+    ClientHello, SignatureSchemeList, SupportedGroups, SupportedVersionsClientHello,
 };
+use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
 pub mod cert;
 mod messages;

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use crate::record::MetricRecord;
+use crate::MetricRecord;
 
 /// Trait abstracting the export destination for metric records.
 ///
@@ -12,10 +12,13 @@ use crate::record::MetricRecord;
 /// and writing it to a destination such as stdout, a file, or a network
 /// socket.
 ///
-/// `MetricRecord` implements both `serde::Serialize` and
-/// `metrique_writer::Entry`, so sinks can choose between serde-based
-/// formats (JSON via `serde_json`, CBOR via `ciborium`, etc.) or the
-/// metrique writer pipeline.
+/// `MetricRecord` implements `serde::Serialize` and `metrique_writer::Entry`,
+/// so sinks can choose between serde-based formats (JSON via `serde_json`,
+/// CBOR via `ciborium`, etc.) or the metrique writer pipeline.
+///
+/// For field-level inspection, consumers should depend on
+/// `s2n-tls-metrics-schema` directly and deserialize from the serialized
+/// bytes. That crate carries no stability guarantees.
 pub trait TelemetrySink: Send + Sync + 'static {
     /// Export a single metric record.
     fn export_record(&self, record: &MetricRecord);
