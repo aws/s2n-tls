@@ -35,7 +35,7 @@ s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
 serde_json = "1.0.141"
 ciborium = "0.2"
 dhat = "0.3"
-tabled = "0.20"
+tabled = "0.21"
 
 [[test]]
 name = "subscriber_memory"

@@ -168,6 +168,7 @@ struct s2n_config {
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
+    unsigned allow_ip_in_cn : 1;
 
     s2n_crl_lookup_callback crl_lookup_cb;
     void *crl_lookup_ctx;

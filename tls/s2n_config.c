@@ -21,6 +21,7 @@
 #include <strings.h>
 #include <time.h>
 
+#include "api/unstable/allow_ip_in_cn.h"
 #include "api/unstable/custom_x509_extensions.h"
 #include "api/unstable/npn.h"
 #include "crypto/s2n_certificate.h"
@@ -462,6 +463,13 @@ int s2n_config_disable_x509_intent_verification(struct s2n_config *config)
 {
     POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
     config->disable_x509_intent_verification = true;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_allow_ip_in_cn(struct s2n_config *config)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    config->allow_ip_in_cn = true;
     return S2N_SUCCESS;
 }
 
