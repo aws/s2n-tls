@@ -131,6 +131,9 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha256_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha256_chain_and_key, "ec", "ecdsa", "p256", "sha256"));
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     if (s2n_is_rsa_pss_certs_supported()) {
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
@@ -994,6 +997,12 @@ int main(int argc, char **argv)
 
                 /* 20250211 > 20250414 (with p-384 cert only) */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "20250414", ecdsa_sha384_chain_and_key));
+
+                /* 20250414 > 20260513 (with either p-256 or p-384 cert) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha256_chain_and_key));
+                /* 20260513 also supports ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
             };
         };
     };
