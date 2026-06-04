@@ -203,6 +203,14 @@ extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;
 extern const struct s2n_security_policy security_policy_20260219;
 extern const struct s2n_security_policy security_policy_20260220;
+extern const struct s2n_security_policy security_policy_20260520;
+extern const struct s2n_security_policy security_policy_20260520_gcm;
+extern const struct s2n_security_policy security_policy_20260521;
+extern const struct s2n_security_policy security_policy_20260521_gcm;
+extern const struct s2n_security_policy security_policy_20260522;
+extern const struct s2n_security_policy security_policy_20260522_gcm;
+extern const struct s2n_security_policy security_policy_20260523;
+extern const struct s2n_security_policy security_policy_20260523_gcm;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;

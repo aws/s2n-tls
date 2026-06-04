@@ -21,6 +21,7 @@
 #include <strings.h>
 #include <time.h>
 
+#include "api/unstable/allow_ip_in_cn.h"
 #include "api/unstable/custom_x509_extensions.h"
 #include "api/unstable/npn.h"
 #include "crypto/s2n_certificate.h"
@@ -352,6 +353,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
      * As of now, some tests free chains before the config, so that pattern may also
      * appear in application code.
      */
+    POSIX_ENSURE_REF(config);
     if (config->cert_ownership != S2N_LIB_OWNED) {
         return S2N_SUCCESS;
     }
@@ -369,6 +371,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 
 int s2n_config_free_dhparams(struct s2n_config *config)
 {
+    POSIX_ENSURE_REF(config);
     if (config->dhparams) {
         POSIX_GUARD(s2n_dh_params_free(config->dhparams));
     }
@@ -460,6 +463,13 @@ int s2n_config_disable_x509_intent_verification(struct s2n_config *config)
 {
     POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
     config->disable_x509_intent_verification = true;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_allow_ip_in_cn(struct s2n_config *config)
+{
+    POSIX_ENSURE(config, S2N_ERR_INVALID_ARGUMENT);
+    config->allow_ip_in_cn = true;
     return S2N_SUCCESS;
 }
 
@@ -739,6 +749,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
+    POSIX_ENSURE_REF(config);
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = { 0 }, s2n_stuffer_free);
     struct s2n_blob dhparams_blob = { 0 };
@@ -771,6 +782,7 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 
 int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(clock_fn);
 
     config->wall_clock = clock_fn;
@@ -781,6 +793,7 @@ int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseco
 
 int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(clock_fn);
 
     config->monotonic_clock = clock_fn;
@@ -791,6 +804,7 @@ int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nan
 
 int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(cache_store_callback);
 
     config->cache_store = cache_store_callback;
@@ -801,6 +815,7 @@ int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_sto
 
 int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(cache_retrieve_callback);
 
     config->cache_retrieve = cache_retrieve_callback;
@@ -811,6 +826,7 @@ int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_
 
 int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(cache_delete_callback);
 
     config->cache_delete = cache_delete_callback;
@@ -1069,6 +1085,7 @@ int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool en
 
 int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb)
 {
+    POSIX_ENSURE_REF(config);
     config->cert_tiebreak_cb = cert_tiebreak_cb;
     return 0;
 }

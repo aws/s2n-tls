@@ -13,33 +13,38 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_socket.h"
+/* On Windows, s2n-tls does not provide built-in socket I/O.
+ * This file compiles to an empty translation unit on Windows.
+ */
+#ifndef _WIN32
 
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <unistd.h>
+    #include "utils/s2n_socket.h"
 
-#include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
+    #include <netinet/in.h>
+    #include <netinet/tcp.h>
+    #include <sys/socket.h>
+    #include <unistd.h>
 
-#if TCP_CORK
-    #define S2N_CORK     TCP_CORK
-    #define S2N_CORK_ON  1
-    #define S2N_CORK_OFF 0
-#elif TCP_NOPUSH
-    #define S2N_CORK     TCP_NOPUSH
-    #define S2N_CORK_ON  1
-    #define S2N_CORK_OFF 0
-#elif TCP_NODELAY
-    #define S2N_CORK     TCP_NODELAY
-    #define S2N_CORK_ON  0
-    #define S2N_CORK_OFF 1
-#endif
+    #include "tls/s2n_connection.h"
+    #include "utils/s2n_safety.h"
+
+    #if TCP_CORK
+        #define S2N_CORK     TCP_CORK
+        #define S2N_CORK_ON  1
+        #define S2N_CORK_OFF 0
+    #elif TCP_NOPUSH
+        #define S2N_CORK     TCP_NOPUSH
+        #define S2N_CORK_ON  1
+        #define S2N_CORK_OFF 0
+    #elif TCP_NODELAY
+        #define S2N_CORK     TCP_NODELAY
+        #define S2N_CORK_ON  0
+        #define S2N_CORK_OFF 1
+    #endif
 
 int s2n_socket_quickack(struct s2n_connection *conn)
 {
-#ifdef TCP_QUICKACK
+    #ifdef TCP_QUICKACK
     POSIX_ENSURE_REF(conn);
     if (!conn->managed_recv_io) {
         return 0;
@@ -56,14 +61,14 @@ int s2n_socket_quickack(struct s2n_connection *conn)
     if (setsockopt(r_io_ctx->fd, IPPROTO_TCP, TCP_QUICKACK, &optval, sizeof(optval)) == 0) {
         r_io_ctx->tcp_quickack_set = 1;
     }
-#endif
+    #endif
 
     return 0;
 }
 
 int s2n_socket_write_snapshot(struct s2n_connection *conn)
 {
-#ifdef S2N_CORK
+    #ifdef S2N_CORK
     socklen_t corklen = sizeof(int);
     POSIX_ENSURE_REF(conn);
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
@@ -72,14 +77,14 @@ int s2n_socket_write_snapshot(struct s2n_connection *conn)
     getsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &w_io_ctx->original_cork_val, &corklen);
     POSIX_ENSURE_EQ(corklen, sizeof(int));
     w_io_ctx->original_cork_is_set = 1;
-#endif
+    #endif
 
     return 0;
 }
 
 int s2n_socket_read_snapshot(struct s2n_connection *conn)
 {
-#ifdef SO_RCVLOWAT
+    #ifdef SO_RCVLOWAT
     socklen_t watlen = sizeof(int);
     POSIX_ENSURE_REF(conn);
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
@@ -88,14 +93,14 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
     getsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
     POSIX_ENSURE_EQ(watlen, sizeof(int));
     r_io_ctx->original_rcvlowat_is_set = 1;
-#endif
+    #endif
 
     return 0;
 }
 
 int s2n_socket_write_restore(struct s2n_connection *conn)
 {
-#ifdef S2N_CORK
+    #ifdef S2N_CORK
     POSIX_ENSURE_REF(conn);
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
     POSIX_ENSURE_REF(w_io_ctx);
@@ -105,14 +110,14 @@ int s2n_socket_write_restore(struct s2n_connection *conn)
     }
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &w_io_ctx->original_cork_val, sizeof(w_io_ctx->original_cork_val));
     w_io_ctx->original_cork_is_set = 0;
-#endif
+    #endif
 
     return 0;
 }
 
 int s2n_socket_read_restore(struct s2n_connection *conn)
 {
-#ifdef SO_RCVLOWAT
+    #ifdef SO_RCVLOWAT
     POSIX_ENSURE_REF(conn);
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     POSIX_ENSURE_REF(r_io_ctx);
@@ -122,7 +127,7 @@ int s2n_socket_read_restore(struct s2n_connection *conn)
     }
     setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, sizeof(r_io_ctx->original_rcvlowat_val));
     r_io_ctx->original_rcvlowat_is_set = 0;
-#endif
+    #endif
 
     return 0;
 }
@@ -143,7 +148,7 @@ int s2n_socket_was_corked(struct s2n_connection *conn)
 
 int s2n_socket_write_cork(struct s2n_connection *conn)
 {
-#ifdef S2N_CORK
+    #ifdef S2N_CORK
     POSIX_ENSURE_REF(conn);
     int optval = S2N_CORK_ON;
 
@@ -152,14 +157,14 @@ int s2n_socket_write_cork(struct s2n_connection *conn)
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
-#endif
+    #endif
 
     return 0;
 }
 
 int s2n_socket_write_uncork(struct s2n_connection *conn)
 {
-#ifdef S2N_CORK
+    #ifdef S2N_CORK
     POSIX_ENSURE_REF(conn);
     int optval = S2N_CORK_OFF;
 
@@ -168,7 +173,7 @@ int s2n_socket_write_uncork(struct s2n_connection *conn)
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
-#endif
+    #endif
 
     return 0;
 }
@@ -226,3 +231,8 @@ int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
 
     return 0;
 }
+
+#endif
+
+/* Suppress empty translation unit warning when compiled on Windows. */
+#pragma clang diagnostic ignored "-Wempty-translation-unit"

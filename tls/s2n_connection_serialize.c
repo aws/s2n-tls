@@ -29,6 +29,20 @@ static bool s2n_libcrypto_supports_evp_aead_tls(void)
 #endif
 }
 
+/* True if a serialized blob carries the CBC implicit IV state. Only TLS1.0
+ * and SSLv3 chain the implicit IV across records (TLS1.1+ uses an explicit
+ * per-record IV), and only for CBC and composite (CBC + HMAC fused) record
+ * algorithms. */
+static bool s2n_serialization_includes_implicit_iv(uint8_t protocol_version,
+        const struct s2n_cipher_suite *cipher_suite)
+{
+    if (protocol_version >= S2N_TLS11) {
+        return false;
+    }
+    int type = cipher_suite->record_alg->cipher->type;
+    return type == S2N_CBC || type == S2N_COMPOSITE;
+}
+
 int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length)
 {
     POSIX_ENSURE_REF(conn);
@@ -44,6 +58,9 @@ int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *l
         uint8_t secret_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
         *length = S2N_SERIALIZED_CONN_FIXED_SIZE + (secret_size * 3);
+    } else if (s2n_serialization_includes_implicit_iv(conn->actual_protocol_version,
+                       conn->secure->cipher_suite)) {
+        *length = S2N_SERIALIZED_CONN_TLS10_SIZE;
     } else {
         *length = S2N_SERIALIZED_CONN_TLS12_SIZE;
     }
@@ -72,6 +89,7 @@ static S2N_RESULT s2n_connection_serialize_tls13_secrets(struct s2n_connection *
 static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secrets.version.tls12.master_secret,
             S2N_TLS_SECRET_LEN));
@@ -79,6 +97,17 @@ static S2N_RESULT s2n_connection_serialize_secrets(struct s2n_connection *conn, 
             S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->handshake_params.server_random,
             S2N_TLS_RANDOM_DATA_LEN));
+
+    /* TLS1.0 and SSLv3 CBC chain the implicit IV across records; capture it so
+     * the deserialized connection can keep talking to its peer.
+     */
+    if (s2n_serialization_includes_implicit_iv(conn->actual_protocol_version,
+                conn->secure->cipher_suite)) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secure->client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, conn->secure->server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+    }
     return S2N_RESULT_OK;
 }
 
@@ -112,6 +141,16 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     uint32_t context_length = 0;
     POSIX_GUARD(s2n_connection_serialization_length(conn, &context_length));
     POSIX_ENSURE(buffer_length >= context_length, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    /* Stream ciphers (RC4) hold keystream position in libcrypto state that
+     * this API does not capture, so a deserialized stream-cipher connection
+     * cannot decrypt records from its peer. Reject rather than producing a
+     * blob that can't be used.
+     */
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg->cipher);
+    POSIX_ENSURE(conn->secure->cipher_suite->record_alg->cipher->type != S2N_STREAM,
+            S2N_ERR_INVALID_STATE);
 
     struct s2n_blob context_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&context_blob, buffer, buffer_length));
@@ -160,6 +199,9 @@ struct s2n_connection_deserialize {
             uint8_t master_secret[S2N_TLS_SECRET_LEN];
             uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
             uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
+            /* Only set for blobs with protocol_version < S2N_TLS11 + CBC/composite cipher */
+            uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
+            uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
         } tls12;
         struct {
             uint8_t secret_size;
@@ -193,10 +235,23 @@ static S2N_RESULT s2n_connection_deserialize_secrets(struct s2n_stuffer *input,
 {
     RESULT_ENSURE_REF(input);
     RESULT_ENSURE_REF(parsed_values);
+    RESULT_ENSURE_REF(parsed_values->cipher_suite);
+    RESULT_ENSURE_REF(parsed_values->cipher_suite->record_alg);
+    RESULT_ENSURE_REF(parsed_values->cipher_suite->record_alg->cipher);
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.master_secret, S2N_TLS_SECRET_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.client_random, S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    /* TLS1.0 and SSLv3 CBC blobs trail the implicit IVs. See
+     * s2n_connection_serialize_secrets. Other blobs end at server_random. */
+    if (s2n_serialization_includes_implicit_iv(parsed_values->protocol_version,
+                parsed_values->cipher_suite)) {
+        RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+        RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(input, parsed_values->version.tls12.server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN));
+    }
 
     return S2N_RESULT_OK;
 }
@@ -226,6 +281,16 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
     RESULT_GUARD(s2n_cipher_suite_from_iana(cipher_suite, S2N_TLS_CIPHER_SUITE_LEN, &parsed_values->cipher_suite));
+
+    /* SSLv3 uses a cloned cipher suite variant with the SSLv3-specific
+     * record_alg. s2n_cipher_suite_from_iana returns the base; swap to the
+     * variant. Same lookup-then-swap pattern as s2n_set_cipher_as_client and
+     * s2n_set_cipher_as_server during handshake.
+     */
+    if (parsed_values->protocol_version == S2N_SSLv3) {
+        RESULT_ENSURE_REF(parsed_values->cipher_suite->sslv3_cipher_suite);
+        parsed_values->cipher_suite = parsed_values->cipher_suite->sslv3_cipher_suite;
+    }
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, parsed_values->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&input, parsed_values->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
@@ -327,6 +392,7 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
+    RESULT_ENSURE_REF(conn->secure);
 
     RESULT_CHECKED_MEMCPY(conn->secrets.version.tls12.master_secret, parsed_values->version.tls12.master_secret,
             S2N_TLS_SECRET_LEN);
@@ -335,6 +401,18 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
     RESULT_CHECKED_MEMCPY(conn->handshake_params.server_random, parsed_values->version.tls12.server_random,
             S2N_TLS_RANDOM_DATA_LEN);
     RESULT_GUARD_POSIX(s2n_prf_key_expansion(conn));
+
+    /* PRF key expansion seeds the implicit IVs from the master secret, which is
+     * only correct at record 0. For TLS1.0 and SSLv3 CBC the blob ships the
+     * current IV state so the connection can continue where it left off.
+     */
+    if (s2n_serialization_includes_implicit_iv(parsed_values->protocol_version,
+                parsed_values->cipher_suite)) {
+        RESULT_CHECKED_MEMCPY(conn->secure->client_implicit_iv,
+                parsed_values->version.tls12.client_implicit_iv, S2N_TLS_MAX_IV_LEN);
+        RESULT_CHECKED_MEMCPY(conn->secure->server_implicit_iv,
+                parsed_values->version.tls12.server_implicit_iv, S2N_TLS_MAX_IV_LEN);
+    }
 
     return S2N_RESULT_OK;
 }

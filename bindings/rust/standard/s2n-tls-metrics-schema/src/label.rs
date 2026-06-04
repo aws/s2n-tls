@@ -10,7 +10,7 @@ use std::{
 use crate::static_lists::TlsParam;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum State {
+pub enum State {
     Negotiated,
     Supported,
 }
@@ -60,12 +60,7 @@ impl MetricLabeller {
 }
 
 /// lookup from metric to the prefixed string, e.g. "group.negotiated.secp256r1"
-pub(crate) fn metric_label<T>(
-    slot: usize,
-    item: T,
-    parameter: TlsParam,
-    state: State,
-) -> &'static str
+pub fn metric_label<T>(slot: usize, item: T, parameter: TlsParam, state: State) -> &'static str
 where
     T: Display,
 {

@@ -403,6 +403,14 @@ int main(int argc, char **argv)
             "PQ-TLS-1-2-2024-10-08",
             "PQ-TLS-1-2-2024-10-08_gcm",
             "PQ-TLS-1-2-2024-10-09",
+            "20260520",
+            "20260520_gcm",
+            "20260521",
+            "20260521_gcm",
+            "20260522",
+            "20260522_gcm",
+            "20260523",
+            "20260523_gcm",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;

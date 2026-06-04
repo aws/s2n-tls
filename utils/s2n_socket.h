@@ -15,7 +15,13 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
+/* On Windows, s2n-tls does not provide built-in socket I/O.
+ * Windows users must supply custom I/O callbacks via
+ * s2n_connection_set_recv_cb() / s2n_connection_set_send_cb().
+ */
+#ifndef _WIN32
+
+    #include "tls/s2n_connection.h"
 
 /* The default read I/O context for communication over a socket */
 struct s2n_socket_read_io_context {
@@ -50,3 +56,5 @@ int s2n_socket_write_uncork(struct s2n_connection *conn);
 int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len);
 int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len);
 int s2n_socket_is_ipv6(int fd, uint8_t *ipv6);
+
+#endif
