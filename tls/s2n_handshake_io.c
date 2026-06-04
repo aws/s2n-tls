@@ -1635,6 +1635,13 @@ bool s2n_handshake_is_complete(struct s2n_connection *conn)
     return conn && (ACTIVE_STATE(conn).writer == 'B' || conn->deserialized_conn);
 }
 
+/* Public API: see api/s2n.h */
+int s2n_connection_handshake_complete(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    return s2n_handshake_is_complete(conn) ? 1 : 0;
+}
+
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);

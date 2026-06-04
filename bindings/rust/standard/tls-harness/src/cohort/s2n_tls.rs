@@ -131,10 +131,6 @@ pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
     connection: Connection,
     // We have to store the result of s2n_negotiate to know when the handshake is complete.
-    //
-    // As of 2025-11-16 s2n-tls does not provide a convenient way to figure out if the handshake is
-    // complete. Checking if `handshake_type()` contains "NEGOTIATED" is _not_ sufficient.
-    handshake_done: bool,
 }
 
 impl S2NConnection {
@@ -186,20 +182,18 @@ impl TlsConnection for S2NConnection {
         Ok(Self {
             io,
             connection,
-            handshake_done: false,
         })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         if let Poll::Ready(res) = self.connection.poll_negotiate() {
             res?;
-            self.handshake_done = true;
         }
         Ok(())
     }
 
     fn handshake_completed(&self) -> bool {
-        self.handshake_done
+        self.connection.handshake_complete().unwrap_or(false)
     }
 
     fn send(&mut self, data: &[u8]) {
