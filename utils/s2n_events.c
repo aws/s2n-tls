@@ -16,6 +16,7 @@
 #include "utils/s2n_events.h"
 
 #include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 
 /**
  * Populate handshake information at the end of the handshake.
@@ -31,6 +32,12 @@ S2N_RESULT s2n_event_handshake_populate(struct s2n_connection *conn, struct s2n_
     /* get_key_group is expected to fail in cases where a group is not negotiated,
      * e.g. RSA key exchange. In this case event->group will be null. */
     s2n_connection_get_key_exchange_group(conn, &event->group);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    if (s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS) {
+        event->security_policy_label = s2n_find_version_from_security_policy(security_policy);
+    }
+
     return S2N_RESULT_OK;
 }
 

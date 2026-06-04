@@ -34,6 +34,11 @@ impl<'a> HandshakeEvent<'a> {
         }
     }
 
+    /// The security policy label for the connection.
+    pub fn security_policy_label(&self) -> &'static str {
+        maybe_string(self.0.security_policy_label).unwrap_or("unknown")
+    }
+
     /// Handshake duration, which includes network latency and waiting for the peer.
     pub fn duration(&self) -> Duration {
         Duration::from_nanos(self.0.handshake_end_ns - self.0.handshake_start_ns)
@@ -53,6 +58,7 @@ impl Debug for HandshakeEvent<'_> {
             .field("protocol_version", &self.protocol_version())
             .field("cipher", &self.cipher())
             .field("group", &self.group())
+            .field("security_policy_label", &self.security_policy_label())
             .field("handshake_duration", &self.duration())
             .field("handshake_cpu_duration", &self.synchronous_time())
             .finish()
@@ -104,6 +110,7 @@ mod tests {
         cipher: &'static str,
         group: Option<&'static str>,
         protocol: crate::enums::Version,
+        security_policy_label: &'static str,
     }
 
     #[derive(Debug, Default)]
@@ -117,6 +124,7 @@ mod tests {
             assert_eq!(self.cipher, event.cipher());
             assert_eq!(self.group, event.group());
             assert_eq!(self.protocol, event.protocol_version());
+            assert_eq!(self.security_policy_label, event.security_policy_label());
         }
     }
 
@@ -145,6 +153,7 @@ mod tests {
             cipher: "TLS_AES_128_GCM_SHA256",
             group: Some("X25519MLKEM768"),
             protocol: Version::TLS13,
+            security_policy_label: "default",
         };
 
         let subscriber = TestSubscriber::default();
@@ -201,6 +210,7 @@ mod tests {
             cipher: "AES128-SHA256",
             group: None,
             protocol: Version::TLS12,
+            security_policy_label: "20140601",
         };
         // 20140601 only support DHE and RSA kx. We don't load any DHE params, so
         // it only supports RSA kx.
@@ -232,11 +242,13 @@ mod tests {
             cipher: "ECDHE-RSA-AES128-GCM-SHA256",
             group: Some("secp256r1"),
             protocol: Version::TLS12,
+            security_policy_label: "ELBSecurityPolicy-TLS-1-0-2015-04",
         };
         const RESUMPTION_EVENT: ExpectedEvent = ExpectedEvent {
             cipher: "ECDHE-RSA-AES128-GCM-SHA256",
             group: None,
             protocol: Version::TLS12,
+            security_policy_label: "ELBSecurityPolicy-TLS-1-0-2015-04",
         };
 
         let subscriber = TestSubscriber::default();

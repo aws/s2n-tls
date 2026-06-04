@@ -2308,7 +2308,8 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
- * @param offs The write cursor offset. This should be updated as data is written. See the example code.
+ * @param offs The write cursor offset. This is the byte offset, not a buffer offset.
+ * This should be updated as data is written. See the example code.
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
