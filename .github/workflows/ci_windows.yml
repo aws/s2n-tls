@@ -70,5 +70,6 @@ jobs:
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_PREFIX_PATH=${{matrix.env-path}}/local \
-            -DBUILD_TESTING=OFF
+            -DBUILD_TESTING=OFF \
+            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON
           cmake --build ./build -j $(nproc)
