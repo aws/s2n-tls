@@ -15,7 +15,7 @@ use crate::{
 };
 
 use crate::{
-    label::{State, metric_label},
+    label::{State, telemetry_label, telemetry_prefix},
     static_lists::{FiniteCounter, TlsParam},
 };
 
@@ -125,65 +125,56 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
         fn write_counter<'a, const N: usize, T, W>(
             counter: &'a FrozenCounter<N, T>,
-            parameter: TlsParam,
-            state: State,
+            prefix: &'static str,
             writer: &mut W,
         ) where
             T: FiniteCounter<N> + std::fmt::Display,
             W: metrique_writer::EntryWriter<'a>,
         {
             for (slot, element, count) in counter.iter_non_zero() {
-                let label = metric_label(slot, element, parameter, state);
+                let label = telemetry_label(slot, element, prefix);
                 writer.value(label, &count);
             }
         }
 
         write_counter(
             &self.negotiated_protocols,
-            TlsParam::Version,
-            State::Negotiated,
+            telemetry_prefix(TlsParam::Version, State::Negotiated),
             writer,
         );
         write_counter(
             &self.negotiated_ciphers,
-            TlsParam::Cipher,
-            State::Negotiated,
+            telemetry_prefix(TlsParam::Cipher, State::Negotiated),
             writer,
         );
         write_counter(
             &self.negotiated_groups,
-            TlsParam::Group,
-            State::Negotiated,
+            telemetry_prefix(TlsParam::Group, State::Negotiated),
             writer,
         );
         write_counter(
             &self.negotiated_signatures,
-            TlsParam::SignatureScheme,
-            State::Negotiated,
+            telemetry_prefix(TlsParam::SignatureScheme, State::Negotiated),
             writer,
         );
         write_counter(
             &self.supported_protocols,
-            TlsParam::Version,
-            State::Supported,
+            telemetry_prefix(TlsParam::Version, State::Supported),
             writer,
         );
         write_counter(
             &self.supported_ciphers,
-            TlsParam::Cipher,
-            State::Supported,
+            telemetry_prefix(TlsParam::Cipher, State::Supported),
             writer,
         );
         write_counter(
             &self.supported_groups,
-            TlsParam::Group,
-            State::Supported,
+            telemetry_prefix(TlsParam::Group, State::Supported),
             writer,
         );
         write_counter(
             &self.supported_signatures,
-            TlsParam::SignatureScheme,
-            State::Supported,
+            telemetry_prefix(TlsParam::SignatureScheme, State::Supported),
             writer,
         );
 
