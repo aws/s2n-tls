@@ -9,11 +9,11 @@ use serde::{Deserialize, Serialize};
 pub enum FrozenBoundedStringSet {
     /// more than 10 values were supplied
     TooMany,
-    Entires(BTreeSet<String>),
+    Entries(BTreeSet<String>),
 }
 
 impl Default for FrozenBoundedStringSet {
     fn default() -> Self {
-        FrozenBoundedStringSet::Entires(BTreeSet::new())
+        FrozenBoundedStringSet::Entries(BTreeSet::new())
     }
 }

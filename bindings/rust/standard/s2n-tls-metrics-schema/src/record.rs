@@ -128,7 +128,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         match &self.security_policies {
             FrozenBoundedStringSet::TooMany => writer.value("tls_policy.TOO_MANY", &1_u64),
-            FrozenBoundedStringSet::Entires(hash_set) => {
+            FrozenBoundedStringSet::Entries(hash_set) => {
                 for policy in hash_set {
                     writer.value(format!("tls_policy.{policy}"), &1_u64);
                 }

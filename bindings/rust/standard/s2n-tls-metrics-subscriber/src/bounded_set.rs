@@ -46,7 +46,7 @@ impl BoundedStringSet {
         if storage.len() >= Self::MAX_STORAGE {
             FrozenBoundedStringSet::TooMany
         } else {
-            FrozenBoundedStringSet::Entires(storage.iter().cloned().collect())
+            FrozenBoundedStringSet::Entries(storage.iter().cloned().collect())
         }
     }
 }

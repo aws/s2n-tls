@@ -498,7 +498,7 @@ mod tests {
             let records = endpoint.sink.records.lock().unwrap();
             let policies = &records[0].as_schema().handshake.security_policies;
             match policies {
-                FrozenBoundedStringSet::Entires(set) => {
+                FrozenBoundedStringSet::Entries(set) => {
                     assert_eq!(set.len(), 1);
                     assert!(set.contains("default_tls13"));
                 }
@@ -522,7 +522,7 @@ mod tests {
             let records = endpoint.sink.records.lock().unwrap();
             let policies = &records[0].as_schema().handshake.security_policies;
             match policies {
-                FrozenBoundedStringSet::Entires(set) => {
+                FrozenBoundedStringSet::Entries(set) => {
                     assert_eq!(set.len(), 2);
                 }
                 FrozenBoundedStringSet::TooMany => panic!("expected Entires"),
