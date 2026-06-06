@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     attribution::Attribution,
+    bounded_set::FrozenBoundedStringSet,
     counter::FrozenCounter,
     static_lists::{
         CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
@@ -52,6 +53,9 @@ fn system_time_epoch() -> SystemTime {
 pub struct FrozenHandshakeRecord {
     #[serde(default = "system_time_epoch")]
     pub freeze_time: SystemTime,
+
+    #[serde(default)]
+    pub security_policies: FrozenBoundedStringSet,
 
     #[serde(default)]
     pub handshake_count: u64,
@@ -115,12 +119,21 @@ impl Default for FrozenHandshakeRecord {
             handshake_duration_us: 0,
             handshake_compute_us: 0,
             synthetic_traffic_count: 0,
+            security_policies: Default::default(),
         }
     }
 }
 
 impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        match &self.security_policies {
+            FrozenBoundedStringSet::TooMany => writer.value("tls_policy.TOO_MANY", &1_u64),
+            FrozenBoundedStringSet::Entires(hash_set) => {
+                for policy in hash_set {
+                    writer.value(format!("tls_policy.{policy}"), &1_u64);
+                }
+            }
+        }
         writer.timestamp(self.freeze_time);
 
         fn write_counter<'a, const N: usize, T, W>(
