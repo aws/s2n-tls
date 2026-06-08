@@ -21,7 +21,7 @@ fn sample_schema_record() -> s2n_tls_metrics_schema::record::MetricRecord {
         },
         "handshake": {
             "freeze_time": {"secs_since_epoch": 1_700_000_000u64, "nanos_since_epoch": 0u32},
-            "handshake_count": 1000,
+            "handshake_success_count": 1000,
             "negotiated_protocols": [[0x0303u16, 400], [0x0304u16, 600]],
             "negotiated_ciphers": [[[0x13, 0x01], 600], [[0x13, 0x02], 400]],
             "negotiated_groups": [[23u16, 500], [29u16, 500]],
@@ -67,7 +67,7 @@ fn cbor_stream_round_trip() {
     assert_eq!(records.len(), 3);
     for r in &records {
         assert_eq!(r.attribution.service, "my-service");
-        assert_eq!(r.handshake.handshake_count, 1000);
+        assert_eq!(r.handshake.handshake_success_count, 1000);
     }
 }
 
@@ -82,7 +82,7 @@ fn schema_field_access() {
         "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc"
     );
 
-    assert_eq!(record.handshake.handshake_count, 1000);
+    assert_eq!(record.handshake.handshake_success_count, 1000);
     assert_eq!(record.handshake.sslv2_client_hello, 2);
     assert_eq!(record.handshake.compatibility_general20251201, 950);
     assert_eq!(record.handshake.compatibility_fips20251201, 800);
@@ -214,7 +214,7 @@ fn empty_record_has_zero_slots() {
         "attribution": { "service": "s", "resource": "r" },
         "handshake": {
             "freeze_time": {"secs_since_epoch": 0u64, "nanos_since_epoch": 0u32},
-            "handshake_count": 0u64
+            "handshake_success_count": 0u64
         }
     });
     let record: s2n_tls_metrics_schema::record::MetricRecord =

@@ -55,7 +55,7 @@ fn opaque_serialize_then_schema_deserialize() {
 
     assert_eq!(schema_record.attribution.service, "test");
     assert_eq!(schema_record.attribution.component, "frontend");
-    assert_eq!(schema_record.handshake.handshake_count, 1);
+    assert_eq!(schema_record.handshake.handshake_success_count, 1);
     assert!(
         schema_record
             .handshake

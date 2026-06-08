@@ -42,7 +42,10 @@ pub(crate) struct HandshakeRecordInProgress {
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
     /// the total number of handshakes that this record represents.
-    handshake_count: AtomicU64,
+    handshake_success_count: AtomicU64,
+
+    /// the total number of failed handshakes
+    handshake_failed_count: AtomicU64,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -64,23 +67,24 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// sum of handshake duration, including network latency and waiting
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_compute_us: AtomicU64,
 
     /// Number of handshakes flagged by the configured
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
-    /// every other counter on this record (including `handshake_count`).
+    /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
-            handshake_count: Default::default(),
+            handshake_success_count: Default::default(),
+            handshake_failed_count: Default::default(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -115,7 +119,7 @@ impl HandshakeRecordInProgress {
 
         // Run the detector first, on every handshake (including SSLv2).
         // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
-        // every other counter (including `handshake_count`) reflects real
+        // every other counter (including `handshake_success_count`) reflects real
         // traffic only, so consumers can read each metric directly without
         // post-processing.
         if let Some(detector) = detector {
@@ -125,7 +129,16 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        self.handshake_count.fetch_add(1, Ordering::Relaxed);
+        let success = match event.result() {
+            s2n_tls::events::HandshakeResult::Failure(_) => {
+                self.handshake_failed_count.fetch_add(1, Ordering::Relaxed);
+                return Ok(());
+            }
+            s2n_tls::events::HandshakeResult::Success(s) => {
+                self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
+                s
+            }
+        };
 
         if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
             self.negotiated_signatures.increment(&sig);
@@ -174,15 +187,15 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        if let Some(version) = protocol_version_to_iana(event.protocol_version()) {
+        if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
             self.negotiated_protocols.increment(&version);
         }
 
-        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
+        if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
             self.negotiated_ciphers.increment(&cipher);
         }
 
-        if let Some(group) = event.group().and_then(|g| g.parse().ok()) {
+        if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
             self.negotiated_groups.increment(&group);
         }
 
@@ -212,7 +225,8 @@ impl HandshakeRecordInProgress {
     fn finish(&mut self) -> FrozenHandshakeRecord {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
-            handshake_count: self.handshake_count.load(Ordering::Relaxed),
+            handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
+            handshake_failed_count: self.handshake_failed_count.load(Ordering::Relaxed),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),
@@ -265,7 +279,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 1);
+        assert_eq!(record.handshake_success_count, 1);
         assert_eq!(
             record
                 .negotiated_ciphers
@@ -410,7 +424,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 3);
+        assert_eq!(record.handshake_success_count, 3);
         assert_eq!(
             record
                 .negotiated_ciphers
