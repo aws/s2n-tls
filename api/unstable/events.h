@@ -34,6 +34,8 @@ struct s2n_event_handshake {
     const char *cipher;
     /* static memory */
     const char *group;
+    /* static memory */
+    const char *security_policy_label;
     /* the amount of time inside the synchronous s2n_negotiate method */
     uint64_t handshake_time_ns;
     /**

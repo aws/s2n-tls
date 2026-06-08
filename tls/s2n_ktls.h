@@ -76,4 +76,4 @@ void s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode kt
 
 int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,
         size_t *bytes_written, s2n_blocked_status *blocked);
-#endif /* _WIN32 */
+#endif

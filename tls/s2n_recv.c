@@ -32,7 +32,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_io.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
 
 S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint32_t total)
 {
