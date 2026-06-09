@@ -131,7 +131,7 @@
             "Name": "handshake_success_count"
           },
           {
-            "Name": "handshake_failed_count"
+            "Name": "handshake_failure_count"
           },
           {
             "Name": "handshake_duration_us"
@@ -173,7 +173,7 @@
   "group.supported.x25519": 1,
   "handshake_compute_us": "<DURATION>",
   "handshake_duration_us": "<DURATION>",
-  "handshake_failed_count": 0,
+  "handshake_failure_count": 0,
   "handshake_success_count": 1,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",

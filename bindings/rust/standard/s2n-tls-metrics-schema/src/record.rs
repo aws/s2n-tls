@@ -57,7 +57,7 @@ pub struct FrozenHandshakeRecord {
     pub handshake_success_count: u64,
 
     #[serde(default)]
-    pub handshake_failed_count: u64,
+    pub handshake_failure_count: u64,
 
     #[serde(default)]
     pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
@@ -102,7 +102,7 @@ impl Default for FrozenHandshakeRecord {
         Self {
             freeze_time: SystemTime::UNIX_EPOCH,
             handshake_success_count: 0,
-            handshake_failed_count: 0,
+            handshake_failure_count: 0,
             negotiated_protocols: FrozenCounter::default(),
             negotiated_ciphers: FrozenCounter::default(),
             negotiated_groups: FrozenCounter::default(),
@@ -195,7 +195,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
         writer.value("sslv2_client_hello", &self.sslv2_client_hello);
         writer.value("handshake_success_count", &self.handshake_success_count);
-        writer.value("handshake_failed_count", &self.handshake_failed_count);
+        writer.value("handshake_failure_count", &self.handshake_failure_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
         writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);

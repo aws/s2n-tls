@@ -45,7 +45,7 @@ pub(crate) struct HandshakeRecordInProgress {
     handshake_success_count: AtomicU64,
 
     /// the total number of failed handshakes
-    handshake_failed_count: AtomicU64,
+    handshake_failure_count: AtomicU64,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -84,7 +84,7 @@ impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
             handshake_success_count: Default::default(),
-            handshake_failed_count: Default::default(),
+            handshake_failure_count: Default::default(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -131,7 +131,7 @@ impl HandshakeRecordInProgress {
 
         let success = match event.result() {
             s2n_tls::events::HandshakeResult::Failure(_) => {
-                self.handshake_failed_count.fetch_add(1, Ordering::Relaxed);
+                self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
                 return Ok(());
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
@@ -226,7 +226,7 @@ impl HandshakeRecordInProgress {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
             handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
-            handshake_failed_count: self.handshake_failed_count.load(Ordering::Relaxed),
+            handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),
