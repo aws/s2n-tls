@@ -28,6 +28,7 @@ jobs:
           cpu_count: 4
           shell: bash
           run: |
+            export PKG_PATH="https://cdn.openbsd.org/pub/OpenBSD/$(uname -r)/packages/$(uname -p)/"
             sudo pkg_add ninja cmake
             pkg_info
             sysctl -n kern.version
