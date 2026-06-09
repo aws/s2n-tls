@@ -9,7 +9,7 @@
 //! handshake should be counted as synthetic. When a detector returns `true`,
 //! [`AggregatedMetricsSubscriber`] increments only the `synthetic_traffic_count`
 //! field on the in-progress record; every other counter (including
-//! `handshake_count`) is left untouched, so each metric can be read directly
+//! `handshake_success_count`) is left untouched, so each metric can be read directly
 //! as a real traffic figure.
 //!
 //! [`ClientHello`]: s2n_tls::client_hello::ClientHello

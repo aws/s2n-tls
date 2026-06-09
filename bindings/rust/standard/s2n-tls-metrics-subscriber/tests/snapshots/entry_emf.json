@@ -128,7 +128,10 @@
             "Name": "sslv2_client_hello"
           },
           {
-            "Name": "handshake_count"
+            "Name": "handshake_success_count"
+          },
+          {
+            "Name": "handshake_failure_count"
           },
           {
             "Name": "handshake_duration_us"
@@ -169,8 +172,9 @@
   "group.supported.secp521r1": 1,
   "group.supported.x25519": 1,
   "handshake_compute_us": "<DURATION>",
-  "handshake_count": 1,
   "handshake_duration_us": "<DURATION>",
+  "handshake_failure_count": 0,
+  "handshake_success_count": 1,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 1,
