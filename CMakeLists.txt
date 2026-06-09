@@ -588,57 +588,46 @@ if (BUILD_TESTING)
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     if (WIN32)
-        # On Windows, exclude tests that require fork(), pipe(), kTLS, or other POSIX-only features not yet ported.
-        # This list will be significantly shortened after next refactors.
         set(S2N_WINDOWS_EXCLUDE_TESTS
-            s2n_cleanup_test
-            s2n_client_auth_handshake_test
-            s2n_client_extensions_test
-            s2n_client_hello_recv_test
-            s2n_client_hello_test
-            s2n_client_record_version_test
-            s2n_client_secure_renegotiation_test
-            s2n_connection_test
-            s2n_drain_alert_test
-            s2n_examples_test
-            s2n_fragmentation_coalescing_test
-            s2n_handshake_invariant_test
-            s2n_handshake_test
-            s2n_init_test
-            s2n_io_test
-            s2n_key_update_threads_test
+            # Tests that require kTLS
             s2n_ktls_io_sendfile_test
             s2n_ktls_io_test
             s2n_ktls_test
             s2n_ktls_test_utils_test
+            s2n_self_talk_ktls_test
+
+            # Tests that depend on POSIX socket close behavior: on Windows,
+            # closesocket() abruptly resets the connection and discards unread
+            # data, so the peer sees an I/O error instead of the buffered alert.
+            s2n_drain_alert_test
+
+            # Tests that require seccomp which is only available on Linux
+            s2n_seccomp_failure_test
+
+            # Tests that measure memory via /proc/self/statm and getrlimit() which are not
+            # available on Windows
+            s2n_mem_usage_test
+
+            # Tests that use fork()
+            s2n_examples_test
+            s2n_fragmentation_coalescing_test
+            s2n_handshake_test
+            s2n_init_test
+            s2n_io_test
+            s2n_key_update_threads_test
             s2n_malformed_handshake_test
             s2n_mem_allocator_test
-            s2n_mem_usage_test
-            s2n_policy_writer_test
-            s2n_post_handshake_recv_test
-            s2n_quic_support_test
             s2n_random_test
-            s2n_recv_buffering_test
-            s2n_recv_test
             s2n_release_non_empty_buffers_test
-            s2n_renegotiate_io_test
-            s2n_renegotiate_test
-            s2n_rfc5952_test
-            s2n_seccomp_failure_test
             s2n_self_talk_alerts_test
             s2n_self_talk_broken_pipe_test
             s2n_self_talk_client_hello_cb_test
             s2n_self_talk_custom_io_test
-            s2n_self_talk_io_mem_test
-            s2n_self_talk_ktls_test
             s2n_self_talk_min_protocol_version_test
             s2n_self_talk_nonblocking_test
             s2n_self_talk_session_id_test
             s2n_self_talk_tls12_test
             s2n_self_talk_tls13_test
-            s2n_send_key_update_test
-            s2n_shutdown_test
-            s2n_tls13_zero_length_payload_test
         )
         foreach(excluded ${S2N_WINDOWS_EXCLUDE_TESTS})
             list(REMOVE_ITEM UNITTESTS_SRC
@@ -659,24 +648,16 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        # Windows uses different warning flags than GCC/Clang.
-        if (MSVC)
-            target_compile_options(${test_case_name} PRIVATE /W3 /wd4996)
-            if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
-                target_compile_options(${test_case_name} PRIVATE /WX)
-            endif()
-        else()
-            target_compile_options(${test_case_name} PRIVATE 
-                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
-                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
-                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
-            )
-            if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
-                target_compile_options(${test_case_name} PRIVATE -Werror)
-            endif()
-            if (S2N_LTO)
-                target_compile_options(${test_case_name} PRIVATE -flto)
-            endif()
+        target_compile_options(${test_case_name} PRIVATE 
+            -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+            -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+            -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99 -Wno-missing-braces
+        )
+        if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
+            target_compile_options(${test_case_name} PRIVATE -Werror)
+        endif()
+        if (S2N_LTO)
+            target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
 
         add_test(
