@@ -8,6 +8,9 @@
         ],
         "Metrics": [
           {
+            "Name": "tls_policy.default_tls13"
+          },
+          {
             "Name": "version.negotiated.TLSv1_3"
           },
           {
@@ -192,6 +195,7 @@
   "signature_scheme.supported.rsa_pss_rsae_sha512": 1,
   "sslv2_client_hello": 0,
   "synthetic_traffic_count": 0,
+  "tls_policy.default_tls13": 1,
   "version.negotiated.TLSv1_3": 1,
   "version.supported.TLSv1_2": 1,
   "version.supported.TLSv1_3": 1
