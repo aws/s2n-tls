@@ -58,7 +58,10 @@ pub struct FrozenHandshakeRecord {
     pub security_policies: FrozenBoundedStringSet,
 
     #[serde(default)]
-    pub handshake_count: u64,
+    pub handshake_success_count: u64,
+
+    #[serde(default)]
+    pub handshake_failure_count: u64,
 
     #[serde(default)]
     pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
@@ -102,7 +105,8 @@ impl Default for FrozenHandshakeRecord {
     fn default() -> Self {
         Self {
             freeze_time: SystemTime::UNIX_EPOCH,
-            handshake_count: 0,
+            handshake_success_count: 0,
+            handshake_failure_count: 0,
             negotiated_protocols: FrozenCounter::default(),
             negotiated_ciphers: FrozenCounter::default(),
             negotiated_groups: FrozenCounter::default(),
@@ -203,7 +207,8 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value("compatibility.cnsa2", &self.compatibility_cnsa2);
 
         writer.value("sslv2_client_hello", &self.sslv2_client_hello);
-        writer.value("handshake_count", &self.handshake_count);
+        writer.value("handshake_success_count", &self.handshake_success_count);
+        writer.value("handshake_failure_count", &self.handshake_failure_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
         writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
@@ -216,10 +221,10 @@ mod tests {
 
     #[test]
     fn deserialize_missing_fields_uses_defaults() {
-        let json = r#"{"handshake_count": 10}"#;
+        let json = r#"{"handshake_success_count": 10}"#;
         let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
 
-        assert_eq!(record.handshake_count, 10);
+        assert_eq!(record.handshake_success_count, 10);
         assert_eq!(record.freeze_time, SystemTime::UNIX_EPOCH);
 
         assert_eq!(record.negotiated_protocols, FrozenCounter::default());
