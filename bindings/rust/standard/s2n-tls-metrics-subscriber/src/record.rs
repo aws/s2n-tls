@@ -9,8 +9,7 @@ use std::{
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
-        Version,
+        Alert, CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version, DEFINED_ALERTS_COUNT
     },
 };
 
@@ -46,6 +45,7 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// the total number of failed handshakes
     handshake_failure_count: AtomicU64,
+    alerts: Counter<DEFINED_ALERTS_COUNT, Alert>,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -85,6 +85,7 @@ impl HandshakeRecordInProgress {
         Self {
             handshake_success_count: Default::default(),
             handshake_failure_count: Default::default(),
+            alerts: Counter::new(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -132,6 +133,7 @@ impl HandshakeRecordInProgress {
         let success = match event.result() {
             s2n_tls::events::HandshakeResult::Failure(_) => {
                 self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
+                let alert = conn.alert();
                 return Ok(());
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
