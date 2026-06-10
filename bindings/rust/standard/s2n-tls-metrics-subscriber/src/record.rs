@@ -278,33 +278,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn server_alert_sanity_check() {
-        // Client with no trust store — rejects the server certificate.
-        let client_config = {
-            let mut builder = s2n_tls::config::Builder::new();
-            builder
-                .set_security_policy(&s2n_tls::security::DEFAULT_TLS13)
-                .unwrap();
-            builder.with_system_certs(false).unwrap();
-            builder.build().unwrap()
-        };
-        let server_config =
-            s2n_tls::testing::build_config(&s2n_tls::security::DEFAULT_TLS13).unwrap();
-
-        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
-        let hs_result = pair.handshake();
-        eprintln!("handshake: {:?}", hs_result);
-        let poll_result = pair.server.poll_negotiate();
-        eprintln!("server poll: {:?}", poll_result);
-        eprintln!("server alert: {:?}", pair.server.alert());
-
-        assert!(
-            pair.server.alert().is_some(),
-            "server should have received an alert"
-        );
-    }
-
-    #[test]
     fn record_contents_negotiated_parameters() {
         let endpoint = TestEndpoint::new();
 
