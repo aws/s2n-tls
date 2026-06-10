@@ -1303,7 +1303,7 @@ impl Connection {
     }
 
     /// Returns the validated peer certificate chain.
-    /// 
+    ///
     /// Note that this will include the CA from the trust store, even if the CA
     /// was elided in the actual Certificate message.
     // 'static lifetime is because this copies the certificate chain from the connection into a new
