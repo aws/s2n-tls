@@ -4,8 +4,8 @@
 use std::{
     collections::HashSet,
     sync::{
-        atomic::{AtomicBool, Ordering},
         RwLock,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
