@@ -15,6 +15,7 @@ use s2n_tls_metrics_schema::{
 };
 
 use crate::{
+    bounded_set::BoundedStringSet,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
@@ -40,6 +41,8 @@ pub(crate) struct HandshakeRecordInProgress {
     /// This is used to send a frozen version back to the Aggregator, after which
     /// point it can be exported. This is only used in the drop impl.
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
+
+    security_policies: BoundedStringSet,
 
     /// the total number of handshakes that this record represents.
     handshake_success_count: AtomicU64,
@@ -84,6 +87,7 @@ pub(crate) struct HandshakeRecordInProgress {
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
+            security_policies: Default::default(),
             handshake_success_count: Default::default(),
             handshake_failure_count: Default::default(),
             alerts: Counter::new(),
@@ -145,6 +149,8 @@ impl HandshakeRecordInProgress {
                 s
             }
         };
+
+        self.security_policies.record(event.security_policy_label());
 
         if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
             self.negotiated_signatures.increment(&sig);
@@ -255,6 +261,7 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            security_policies: self.security_policies.freeze(),
         }
     }
 }
@@ -496,6 +503,93 @@ mod tests {
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
         assert_eq!(record.compatibility_cnsa2, 0);
+    }
+
+    #[test]
+    fn record_contents_security_policies() {
+        use s2n_tls::security::Policy;
+        use s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet;
+        use std::ffi::CStr;
+
+        // a single handshake -> a single security policy
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 1);
+                    assert!(set.contains("default_tls13"));
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // multiple handshakes shifting between two policies -> two policies recorded
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+            let policy_b = Policy::from_version("20240501").unwrap();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+            let mut pair =
+                s2n_tls::testing::TestPair::from_configs(&client_config, &endpoint.server_config);
+            pair.server.set_security_policy(&policy_b).unwrap();
+            pair.handshake().unwrap();
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 2);
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // more than 10 security policies -> TOO_MANY is recorded
+        {
+            let endpoint = TestEndpoint::new();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+
+            let policies: Vec<Policy> = {
+                let mut seen = std::collections::HashSet::new();
+                let mut result = Vec::new();
+                for entry in s2n_tls_sys_internal::security_policy_table() {
+                    // we need unique security policies (e.g. unique security policy
+                    // pointers)
+                    if !seen.insert(entry.security_policy as usize) {
+                        continue;
+                    }
+                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().unwrap();
+                    result.push(Policy::from_version(name).unwrap());
+                    if result.len() > BoundedStringSet::MAX_STORAGE {
+                        break;
+                    }
+                }
+                result
+            };
+            assert_eq!(policies.len(), BoundedStringSet::MAX_STORAGE + 1);
+
+            for policy in &policies {
+                let mut pair = s2n_tls::testing::TestPair::from_configs(
+                    &client_config,
+                    &endpoint.server_config,
+                );
+                pair.server.set_security_policy(policy).unwrap();
+                pair.handshake().unwrap();
+            }
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            assert_eq!(
+                records[0].as_schema().handshake.security_policies,
+                FrozenBoundedStringSet::TooMany
+            );
+        }
     }
 
     /// Make sure that the compute time is less than the overall handshake time.
