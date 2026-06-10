@@ -43,13 +43,13 @@ use s2n_tls_metrics_schema::static_lists::{CertKeyType, CertSignatureAlgorithm};
 
 /// Parsed cert fields from the TBSCertificate.
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParsedCertContent {
+pub struct ParsedCertContent<'a> {
     /// The serial of the certificate, allowing it to be uniquely identified
-    pub serial: Vec<u8>,
+    pub serial: &'a [u8],
     /// The issuer (CA) of the certificate, e.g. `Amazon Root CA 1`
-    pub issuer: String,
+    pub issuer: &'a str,
     /// The common name of the certificate subject, e.g. `sqs.us-east-2.amazonaws.com`
-    pub common_name: String,
+    pub common_name: &'a str,
     pub key_type: CertKeyType,
     pub signature: CertSignatureAlgorithm,
 }
@@ -415,7 +415,7 @@ mod der_codec {
     /// For our purposes, we discard all other fields (e.g. organization, country)
     ///
     /// Returns an empty string if no CN is found.
-    fn decode_common_name(content: &[u8]) -> Result<String, DecoderError> {
+    fn decode_common_name<'a>(content: &'a [u8]) -> Result<&'a str, DecoderError> {
         let mut buffer = DecoderBuffer::new(content);
         while !buffer.is_empty() {
             let (set, rest) = buffer.decode::<DerSet<'_>>()?;
@@ -425,16 +425,16 @@ mod der_codec {
                 let (oid, val_buf) = DecoderBuffer::new(attr.content).decode::<DerOid<'_>>()?;
                 if oid.content == OID_CN {
                     let (cn, _) = val_buf.decode::<DerUtf8ishString<'_>>()?;
-                    return Ok(cn.content.to_string());
+                    return Ok(cn.content);
                 }
                 set_buf = set_rest;
             }
             buffer = rest;
         }
-        Ok(String::new())
+        Ok("")
     }
 
-    impl<'a> DecoderValue<'a> for super::ParsedCertContent {
+    impl<'a> DecoderValue<'a> for super::ParsedCertContent<'a> {
         fn decode(buffer: DecoderBuffer<'a>) -> DecoderBufferResult<'a, Self> {
             // Certificate ::= SEQUENCE { tbs, sigAlg, sig }
             let (cert_seq, _buffer) = buffer.decode::<DerSequence<'a>>()?;
@@ -471,7 +471,7 @@ mod der_codec {
 
             Ok((
                 super::ParsedCertContent {
-                    serial: serial.content.to_vec(),
+                    serial: serial.content,
                     issuer: decode_common_name(issuer.content)?,
                     common_name: decode_common_name(subject.content)?,
                     key_type: key_type.0,
@@ -484,7 +484,7 @@ mod der_codec {
 }
 
 /// Parse a DER-encoded certificate into its component fields.
-pub fn parse(der: &[u8]) -> Result<ParsedCertContent, DecoderError> {
+pub fn parse(der: &[u8]) -> Result<ParsedCertContent<'_>, DecoderError> {
     let buf = s2n_codec::DecoderBuffer::new(der);
     let (parsed, _) = buf.decode::<ParsedCertContent>()?;
     Ok(parsed)
@@ -578,9 +578,9 @@ mod tests {
         for (prefix, serial, key_type, signature) in cases {
             let der = handshake_leaf_der(prefix);
             let expected = ParsedCertContent {
-                serial: serial.to_vec(),
-                issuer: S2N_LOCALHOST.into(),
-                common_name: S2N_LOCALHOST.into(),
+                serial: *serial,
+                issuer: S2N_LOCALHOST,
+                common_name: S2N_LOCALHOST,
                 key_type: *key_type,
                 signature: *signature,
             };
@@ -608,12 +608,12 @@ mod tests {
         assert_eq!(
             parse(SQS_LEAF).unwrap(),
             ParsedCertContent {
-                serial: vec![
+                serial: &[
                     0x06, 0xb1, 0xde, 0xc6, 0x59, 0x3a, 0x5f, 0x5d, 0x52, 0xcc, 0xce, 0x05, 0x13,
                     0x23, 0x8d, 0x1c,
                 ],
-                issuer: "Amazon RSA 2048 M04".into(),
-                common_name: "sqs.us-east-2.amazonaws.com".into(),
+                issuer: "Amazon RSA 2048 M04",
+                common_name: "sqs.us-east-2.amazonaws.com",
                 key_type: CertKeyType::Rsa2048,
                 signature: CertSignatureAlgorithm::RsaPkcsSha256,
             }
@@ -622,12 +622,12 @@ mod tests {
         assert_eq!(
             parse(SQS_INTERMEDIATE).unwrap(),
             ParsedCertContent {
-                serial: vec![
+                serial: &[
                     0x07, 0x73, 0x12, 0x4f, 0x2a, 0x95, 0x2e, 0x3e, 0xd1, 0x8a, 0x58, 0xbd, 0xb8,
                     0x5d, 0x1b, 0xc0, 0xce, 0x5f, 0x27,
                 ],
-                issuer: "Amazon Root CA 1".into(),
-                common_name: "Amazon RSA 2048 M04".into(),
+                issuer: "Amazon Root CA 1",
+                common_name: "Amazon RSA 2048 M04",
                 key_type: CertKeyType::Rsa2048,
                 signature: CertSignatureAlgorithm::RsaPkcsSha256,
             }
@@ -636,12 +636,12 @@ mod tests {
         assert_eq!(
             parse(SQS_ROOT).unwrap(),
             ParsedCertContent {
-                serial: vec![
+                serial: &[
                     0x06, 0x7f, 0x94, 0x4a, 0x2a, 0x27, 0xcd, 0xf3, 0xfa, 0xc2, 0xae, 0x2b, 0x01,
                     0xf9, 0x08, 0xee, 0xb9, 0xc4, 0xc6,
                 ],
-                issuer: "Starfield Services Root Certificate Authority - G2".into(),
-                common_name: "Amazon Root CA 1".into(),
+                issuer: "Starfield Services Root Certificate Authority - G2",
+                common_name: "Amazon Root CA 1",
                 key_type: CertKeyType::Rsa2048,
                 signature: CertSignatureAlgorithm::RsaPkcsSha256,
             }
@@ -662,12 +662,12 @@ mod tests {
             )))
             .unwrap(),
             ParsedCertContent {
-                serial: vec![
+                serial: &[
                     0x5b, 0x9d, 0xf7, 0x74, 0x5d, 0x46, 0x4e, 0xaf, 0x5f, 0x71, 0x9a, 0xb9, 0xa1,
                     0xb9, 0x55, 0xf9, 0xfe, 0x8b, 0x71, 0x59,
                 ],
-                issuer: "localhost".into(),
-                common_name: "localhost".into(),
+                issuer: "localhost",
+                common_name: "localhost",
                 key_type: CertKeyType::Unknown,
                 signature: CertSignatureAlgorithm::Unknown,
             }
