@@ -9,7 +9,8 @@ use std::{
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        Alert, CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version, DEFINED_ALERTS_COUNT
+        Alert, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -133,7 +134,12 @@ impl HandshakeRecordInProgress {
         let success = match event.result() {
             s2n_tls::events::HandshakeResult::Failure(_) => {
                 self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
-                let alert = conn.alert();
+                let alert = conn
+                    .alert()
+                    .map(|alert_value| Alert(alert_value));
+                if let Some(alert) = alert {
+                    self.alerts.increment(&alert);
+                }
                 return Ok(());
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
@@ -229,6 +235,7 @@ impl HandshakeRecordInProgress {
             freeze_time: SystemTime::now(),
             handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
             handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
+            alerts: self.alerts.freeze(),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),

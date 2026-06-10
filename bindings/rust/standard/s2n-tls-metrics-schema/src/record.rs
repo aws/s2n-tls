@@ -9,8 +9,8 @@ use crate::{
     attribution::Attribution,
     counter::FrozenCounter,
     static_lists::{
-        CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
-        Version,
+        Alert, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -60,6 +60,9 @@ pub struct FrozenHandshakeRecord {
     pub handshake_failure_count: u64,
 
     #[serde(default)]
+    pub alerts: FrozenCounter<DEFINED_ALERTS_COUNT, Alert>,
+
+    #[serde(default)]
     pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
     pub negotiated_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
@@ -103,6 +106,7 @@ impl Default for FrozenHandshakeRecord {
             freeze_time: SystemTime::UNIX_EPOCH,
             handshake_success_count: 0,
             handshake_failure_count: 0,
+            alerts: FrozenCounter::default(),
             negotiated_protocols: FrozenCounter::default(),
             negotiated_ciphers: FrozenCounter::default(),
             negotiated_groups: FrozenCounter::default(),
@@ -196,6 +200,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value("sslv2_client_hello", &self.sslv2_client_hello);
         writer.value("handshake_success_count", &self.handshake_success_count);
         writer.value("handshake_failure_count", &self.handshake_failure_count);
+        write_counter(&self.alerts, "alert", writer);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
         writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
@@ -218,6 +223,7 @@ mod tests {
         assert_eq!(record.negotiated_ciphers, FrozenCounter::default());
         assert_eq!(record.negotiated_groups, FrozenCounter::default());
         assert_eq!(record.negotiated_signatures, FrozenCounter::default());
+        assert_eq!(record.alerts, FrozenCounter::default());
         assert_eq!(record.supported_protocols, FrozenCounter::default());
         assert_eq!(record.supported_ciphers, FrozenCounter::default());
         assert_eq!(record.supported_groups, FrozenCounter::default());

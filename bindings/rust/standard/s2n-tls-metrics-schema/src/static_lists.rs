@@ -463,9 +463,29 @@ impl SignatureSchemeInformation {
 /// // domain of all defined alerts
 /// assert_eq!(Alert::DEFINED_ALERTS.len(), 30);
 /// ```
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Alert(u8);
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Alert(pub u8);
 include!(concat!(env!("OUT_DIR"), "/alerts_generated.rs"));
+
+impl Display for Alert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_alert_{}", self.0),
+        }
+    }
+}
+
+impl FromStr for Alert {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::DEFINED_ALERTS
+            .iter()
+            .find(|a| a.get_description() == Some(s))
+            .copied()
+            .ok_or(())
+    }
+}
 
 pub const DEFINED_ALERTS_COUNT: usize = Alert::DEFINED_ALERTS.len();
 
