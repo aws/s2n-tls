@@ -9,8 +9,8 @@ use std::{
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
-        Version,
+        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm, Cipher,
+        GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -19,7 +19,7 @@ use crate::{
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
-    parsing::ClientHelloSupportedParameters,
+    parsing::{self, ClientHelloSupportedParameters},
 };
 
 fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
@@ -63,6 +63,19 @@ pub(crate) struct HandshakeRecordInProgress {
     supported_groups: Counter<GROUP_COUNT, Group>,
     supported_signatures: Counter<SIGNATURE_COUNT, Signature>,
 
+    // chain counters will increment for both the ICA and the CA
+    server_leaf_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    server_leaf_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    server_chain_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    server_chain_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    client_leaf_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    client_leaf_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    client_chain_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    client_chain_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    /// indicates a parsing error in the metrics subscriber der codec
+    server_cert_parsing_failure: AtomicU64,
+    client_cert_parsing_failure: AtomicU64,
+
     compatibility_general20251201: AtomicU64,
     compatibility_fips20251201: AtomicU64,
     compatibility_cnsa1: AtomicU64,
@@ -100,6 +113,17 @@ impl HandshakeRecordInProgress {
             supported_ciphers: Counter::new(),
             supported_protocols: Counter::new(),
             supported_signatures: Counter::new(),
+
+            server_leaf_cert_key: Counter::new(),
+            server_leaf_cert_sig: Counter::new(),
+            server_chain_cert_key: Counter::new(),
+            server_chain_cert_sig: Counter::new(),
+            client_leaf_cert_key: Counter::new(),
+            client_leaf_cert_sig: Counter::new(),
+            client_chain_cert_key: Counter::new(),
+            client_chain_cert_sig: Counter::new(),
+            server_cert_parsing_failure: Default::default(),
+            client_cert_parsing_failure: Default::default(),
 
             compatibility_general20251201: AtomicU64::default(),
             compatibility_fips20251201: AtomicU64::default(),
@@ -146,10 +170,6 @@ impl HandshakeRecordInProgress {
 
         self.security_policies.record(event.security_policy_label());
 
-        if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
-            self.negotiated_signatures.increment(&sig);
-        }
-
         if conn.client_hello_is_sslv2()? {
             self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
         } else {
@@ -193,16 +213,89 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
-            self.negotiated_protocols.increment(&version);
+        // populate cert metrics
+        //
+        // TODO: This needs https://github.com/aws/s2n-tls/issues/3524 to make the
+        // client/server labels correct when called from a client
+        {
+            fn record_chain_metrics<'a>(
+                mut certs: impl Iterator<
+                    Item = Result<s2n_tls::cert_chain::Certificate<'a>, s2n_tls::error::Error>,
+                >,
+                leaf_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                leaf_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                chain_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                chain_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                parse_failures: &AtomicU64,
+            ) {
+                if let Some(Ok(cert)) = certs.next() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                leaf_key.increment(&c.key_type);
+                                leaf_sig.increment(&c.signature);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+                for cert in certs.flatten() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                chain_key.increment(&c.key_type);
+                                chain_sig.increment(&c.signature);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(cert) = conn.selected_cert() {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.server_leaf_cert_key,
+                    &self.server_leaf_cert_sig,
+                    &self.server_chain_cert_key,
+                    &self.server_chain_cert_sig,
+                    &self.server_cert_parsing_failure,
+                );
+            }
+
+            if let Ok(cert) = conn.peer_cert_chain() {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.client_leaf_cert_key,
+                    &self.client_leaf_cert_sig,
+                    &self.client_chain_cert_key,
+                    &self.client_chain_cert_sig,
+                    &self.client_cert_parsing_failure,
+                );
+            }
         }
 
-        if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
-            self.negotiated_ciphers.increment(&cipher);
-        }
+        // populate negotiation parameters
+        {
+            if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
+                self.negotiated_protocols.increment(&version);
+            }
 
-        if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
-            self.negotiated_groups.increment(&group);
+            if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
+                self.negotiated_ciphers.increment(&cipher);
+            }
+
+            if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
+                self.negotiated_groups.increment(&group);
+            }
+
+            if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
+                self.negotiated_signatures.increment(&sig);
+            }
         }
 
         // accuracy: as long as the handshake took less than 500,000 years
@@ -243,6 +336,17 @@ impl HandshakeRecordInProgress {
             supported_ciphers: self.supported_ciphers.freeze(),
             supported_groups: self.supported_groups.freeze(),
             supported_signatures: self.supported_signatures.freeze(),
+
+            server_leaf_cert_key: self.server_leaf_cert_key.freeze(),
+            server_leaf_cert_sig: self.server_leaf_cert_sig.freeze(),
+            server_chain_cert_key: self.server_chain_cert_key.freeze(),
+            server_chain_cert_sig: self.server_chain_cert_sig.freeze(),
+            client_leaf_cert_key: self.client_leaf_cert_key.freeze(),
+            client_leaf_cert_sig: self.client_leaf_cert_sig.freeze(),
+            client_chain_cert_key: self.client_chain_cert_key.freeze(),
+            client_chain_cert_sig: self.client_chain_cert_sig.freeze(),
+            server_cert_parsing_failure: self.server_cert_parsing_failure.load(Ordering::Relaxed),
+            client_cert_parsing_failure: self.client_cert_parsing_failure.load(Ordering::Relaxed),
 
             compatibility_general20251201: self
                 .compatibility_general20251201
