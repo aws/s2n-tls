@@ -502,7 +502,7 @@ mod tests {
                     assert_eq!(set.len(), 1);
                     assert!(set.contains("default_tls13"));
                 }
-                FrozenBoundedStringSet::TooMany => panic!("expected Entires"),
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
             }
         }
 
@@ -525,7 +525,7 @@ mod tests {
                 FrozenBoundedStringSet::Entries(set) => {
                     assert_eq!(set.len(), 2);
                 }
-                FrozenBoundedStringSet::TooMany => panic!("expected Entires"),
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
             }
         }
 
@@ -534,15 +534,24 @@ mod tests {
             let endpoint = TestEndpoint::new();
             let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
 
-            let policies: Vec<Policy> = s2n_tls_sys_internal::security_policy_table()
-                .iter()
-                .filter_map(|entry| {
-                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().ok()?;
-                    Policy::from_version(name).ok()
-                })
-                .take(11)
-                .collect();
-            assert!(policies.len() > 10, "not enough compatible policies found");
+            let policies: Vec<Policy> = {
+                let mut seen = std::collections::HashSet::new();
+                let mut result = Vec::new();
+                for entry in s2n_tls_sys_internal::security_policy_table() {
+                    // we need unique security policies (e.g. unique security policy
+                    // pointers)
+                    if !seen.insert(entry.security_policy as usize) {
+                        continue;
+                    }
+                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().unwrap();
+                    result.push(Policy::from_version(name).unwrap());
+                    if result.len() > BoundedStringSet::MAX_STORAGE {
+                        break;
+                    }
+                }
+                result
+            };
+            assert_eq!(policies.len(), BoundedStringSet::MAX_STORAGE + 1);
 
             for policy in &policies {
                 let mut pair = s2n_tls::testing::TestPair::from_configs(
