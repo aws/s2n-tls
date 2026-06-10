@@ -415,7 +415,7 @@ mod der_codec {
     /// For our purposes, we discard all other fields (e.g. organization, country)
     ///
     /// Returns an empty string if no CN is found.
-    fn decode_common_name<'a>(content: &'a [u8]) -> Result<&'a str, DecoderError> {
+    fn decode_common_name(content: &[u8]) -> Result<&str, DecoderError> {
         let mut buffer = DecoderBuffer::new(content);
         while !buffer.is_empty() {
             let (set, rest) = buffer.decode::<DerSet<'_>>()?;
@@ -578,7 +578,7 @@ mod tests {
         for (prefix, serial, key_type, signature) in cases {
             let der = handshake_leaf_der(prefix);
             let expected = ParsedCertContent {
-                serial: *serial,
+                serial,
                 issuer: S2N_LOCALHOST,
                 common_name: S2N_LOCALHOST,
                 key_type: *key_type,
