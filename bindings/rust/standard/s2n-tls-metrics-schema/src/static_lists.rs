@@ -449,17 +449,18 @@ impl SignatureSchemeInformation {
 }
 
 /// Represents a TLS alert
-/// 
-/// Most elements of this struct are code-generated from the relevant IANA csv
+///
+/// Most elements of this struct are code-generated from the relevant IANA CSV at
+/// <https://www.iana.org/assignments/tls-parameters/tls-parameters-6.csv>
 /// ```
 /// use s2n_tls_metrics_schema::static_lists::Alert;
-/// 
+///
 /// // named constant
 /// let alert = Alert::CLOSE_NOTIFY;
-/// 
+///
 /// // string description
 /// assert_eq!(Alert::CLOSE_NOTIFY.get_description(), Some("close_notify"));
-/// 
+///
 /// // domain of all defined alerts
 /// assert_eq!(Alert::DEFINED_ALERTS.len(), 30);
 /// ```
@@ -488,7 +489,6 @@ impl FromStr for Alert {
 }
 
 pub const DEFINED_ALERTS_COUNT: usize = Alert::DEFINED_ALERTS.len();
-
 
 pub const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("SSLv3", 0x0300),

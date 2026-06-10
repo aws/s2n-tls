@@ -1,8 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::io::Write;
-use std::{env, fs, path::Path};
+use std::{env, fs, io::Write, path::Path};
 
 struct AlertCsvEntry {
     value: u8,
