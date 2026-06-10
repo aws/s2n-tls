@@ -4062,7 +4062,7 @@ S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *
 /**
  * Get the mode of this connection, client or server.
  * 
- * The one error case is if conn is `NULL`, in which case `S2N_SERVER` is returned.
+ * If `conn` is `NULL`, then `S2N_SERVER` will be returned.
  */
 S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
 
