@@ -36,7 +36,6 @@ use s2n_tls::{
     config::{Builder, Config},
     connection::Connection,
     enums::ClientAuthType,
-    error::Error as S2NError,
 };
 
 use s2n_tls_sys::{
@@ -94,13 +93,9 @@ impl TestCertValidationCallback {
 }
 
 impl CertValidationCallbackSync for TestCertValidationCallback {
-    fn handle_validation(
-        &self,
-        _conn: &mut Connection,
-        _info: &mut CertValidationInfo,
-    ) -> Result<bool, S2NError> {
+    fn handle_validation(&self, _conn: &mut Connection, _info: &mut CertValidationInfo) -> bool {
         self.invoked.fetch_add(1, Ordering::SeqCst);
-        Ok(true)
+        true
     }
 }
 
