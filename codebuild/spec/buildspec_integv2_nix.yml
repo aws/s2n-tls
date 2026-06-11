@@ -108,19 +108,19 @@ phases:
       - |
         if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
           echo "Refreshing nix cache..."
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
           nix build .#devShell
           nix copy --to $NIX_CACHE_BUCKET .#devShell
         else
           echo "Downloading cache"
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
+          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
         fi
   pre_build:
     commands:
       - |
         set -e
         if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs
+          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs || true
           nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
         fi
   build:

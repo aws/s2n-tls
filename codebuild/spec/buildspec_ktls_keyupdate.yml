@@ -31,7 +31,7 @@ phases:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Populate the store from the nix cache
-      - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs
+      - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs || true
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
