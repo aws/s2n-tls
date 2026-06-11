@@ -661,13 +661,10 @@ impl Connection {
     ///
     /// Corresponds to [`s2n_connection_handshake_complete`].
     pub fn handshake_complete(&self) -> Result<bool, Error> {
-        let res = unsafe {
+        unsafe {
             s2n_connection_handshake_complete(self.connection.as_ptr())
-        };
-        match res {
-            1 => Ok(true),
-            0 => Ok(false),
-            _ => Err(Error::capture()),
+                .into_result()
+                .map(|res| res != 0)
         }
     }
 
