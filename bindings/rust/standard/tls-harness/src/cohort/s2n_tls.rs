@@ -179,10 +179,7 @@ impl TlsConnection for S2NConnection {
             connection.set_session_ticket(&ticket)?;
         }
 
-        Ok(Self {
-            io,
-            connection,
-        })
+        Ok(Self { io, connection })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
