@@ -133,4 +133,5 @@ phases:
         set -e
         nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; unit"
         echo "Pushing to nix cache..."
-        nix copy --to $NIX_CACHE_BUCKET $NIXDEV_LIBCRYPTO
+        # Push everything this job needed to S3 for future runs.
+        nix copy --to $NIX_CACHE_BUCKET --all
