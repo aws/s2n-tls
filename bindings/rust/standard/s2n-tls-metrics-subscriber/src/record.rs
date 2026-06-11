@@ -15,6 +15,7 @@ use s2n_tls_metrics_schema::{
 };
 
 use crate::{
+    bounded_set::BoundedStringSet,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
@@ -41,8 +42,13 @@ pub(crate) struct HandshakeRecordInProgress {
     /// point it can be exported. This is only used in the drop impl.
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
+    security_policies: BoundedStringSet,
+
     /// the total number of handshakes that this record represents.
-    handshake_count: AtomicU64,
+    handshake_success_count: AtomicU64,
+
+    /// the total number of failed handshakes
+    handshake_failure_count: AtomicU64,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -64,23 +70,25 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// sum of handshake duration, including network latency and waiting
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_compute_us: AtomicU64,
 
     /// Number of handshakes flagged by the configured
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
-    /// every other counter on this record (including `handshake_count`).
+    /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
-            handshake_count: Default::default(),
+            security_policies: Default::default(),
+            handshake_success_count: Default::default(),
+            handshake_failure_count: Default::default(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -115,7 +123,7 @@ impl HandshakeRecordInProgress {
 
         // Run the detector first, on every handshake (including SSLv2).
         // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
-        // every other counter (including `handshake_count`) reflects real
+        // every other counter (including `handshake_success_count`) reflects real
         // traffic only, so consumers can read each metric directly without
         // post-processing.
         if let Some(detector) = detector {
@@ -125,7 +133,18 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        self.handshake_count.fetch_add(1, Ordering::Relaxed);
+        let success = match event.result() {
+            s2n_tls::events::HandshakeResult::Failure(_) => {
+                self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
+                return Ok(());
+            }
+            s2n_tls::events::HandshakeResult::Success(s) => {
+                self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
+                s
+            }
+        };
+
+        self.security_policies.record(event.security_policy_label());
 
         if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
             self.negotiated_signatures.increment(&sig);
@@ -174,15 +193,15 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        if let Some(version) = protocol_version_to_iana(event.protocol_version()) {
+        if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
             self.negotiated_protocols.increment(&version);
         }
 
-        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
+        if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
             self.negotiated_ciphers.increment(&cipher);
         }
 
-        if let Some(group) = event.group().and_then(|g| g.parse().ok()) {
+        if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
             self.negotiated_groups.increment(&group);
         }
 
@@ -212,7 +231,8 @@ impl HandshakeRecordInProgress {
     fn finish(&mut self) -> FrozenHandshakeRecord {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
-            handshake_count: self.handshake_count.load(Ordering::Relaxed),
+            handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
+            handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),
@@ -234,6 +254,7 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            security_policies: self.security_policies.freeze(),
         }
     }
 }
@@ -265,7 +286,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 1);
+        assert_eq!(record.handshake_success_count, 1);
         assert_eq!(
             record
                 .negotiated_ciphers
@@ -410,7 +431,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 3);
+        assert_eq!(record.handshake_success_count, 3);
         assert_eq!(
             record
                 .negotiated_ciphers
@@ -475,6 +496,93 @@ mod tests {
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
         assert_eq!(record.compatibility_cnsa2, 0);
+    }
+
+    #[test]
+    fn record_contents_security_policies() {
+        use s2n_tls::security::Policy;
+        use s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet;
+        use std::ffi::CStr;
+
+        // a single handshake -> a single security policy
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 1);
+                    assert!(set.contains("default_tls13"));
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // multiple handshakes shifting between two policies -> two policies recorded
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+            let policy_b = Policy::from_version("20240501").unwrap();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+            let mut pair =
+                s2n_tls::testing::TestPair::from_configs(&client_config, &endpoint.server_config);
+            pair.server.set_security_policy(&policy_b).unwrap();
+            pair.handshake().unwrap();
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 2);
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // more than 10 security policies -> TOO_MANY is recorded
+        {
+            let endpoint = TestEndpoint::new();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+
+            let policies: Vec<Policy> = {
+                let mut seen = std::collections::HashSet::new();
+                let mut result = Vec::new();
+                for entry in s2n_tls_sys_internal::security_policy_table() {
+                    // we need unique security policies (e.g. unique security policy
+                    // pointers)
+                    if !seen.insert(entry.security_policy as usize) {
+                        continue;
+                    }
+                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().unwrap();
+                    result.push(Policy::from_version(name).unwrap());
+                    if result.len() > BoundedStringSet::MAX_STORAGE {
+                        break;
+                    }
+                }
+                result
+            };
+            assert_eq!(policies.len(), BoundedStringSet::MAX_STORAGE + 1);
+
+            for policy in &policies {
+                let mut pair = s2n_tls::testing::TestPair::from_configs(
+                    &client_config,
+                    &endpoint.server_config,
+                );
+                pair.server.set_security_policy(policy).unwrap();
+                pair.handshake().unwrap();
+            }
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            assert_eq!(
+                records[0].as_schema().handshake.security_policies,
+                FrozenBoundedStringSet::TooMany
+            );
+        }
     }
 
     /// Make sure that the compute time is less than the overall handshake time.

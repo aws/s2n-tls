@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     attribution::Attribution,
+    bounded_set::FrozenBoundedStringSet,
     counter::FrozenCounter,
     static_lists::{
         CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
@@ -54,7 +55,13 @@ pub struct FrozenHandshakeRecord {
     pub freeze_time: SystemTime,
 
     #[serde(default)]
-    pub handshake_count: u64,
+    pub security_policies: FrozenBoundedStringSet,
+
+    #[serde(default)]
+    pub handshake_success_count: u64,
+
+    #[serde(default)]
+    pub handshake_failure_count: u64,
 
     #[serde(default)]
     pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
@@ -98,7 +105,8 @@ impl Default for FrozenHandshakeRecord {
     fn default() -> Self {
         Self {
             freeze_time: SystemTime::UNIX_EPOCH,
-            handshake_count: 0,
+            handshake_success_count: 0,
+            handshake_failure_count: 0,
             negotiated_protocols: FrozenCounter::default(),
             negotiated_ciphers: FrozenCounter::default(),
             negotiated_groups: FrozenCounter::default(),
@@ -115,12 +123,21 @@ impl Default for FrozenHandshakeRecord {
             handshake_duration_us: 0,
             handshake_compute_us: 0,
             synthetic_traffic_count: 0,
+            security_policies: Default::default(),
         }
     }
 }
 
 impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
+        match &self.security_policies {
+            FrozenBoundedStringSet::TooMany => writer.value("tls_policy.TOO_MANY", &1_u64),
+            FrozenBoundedStringSet::Entries(hash_set) => {
+                for policy in hash_set {
+                    writer.value(format!("tls_policy.{policy}"), &1_u64);
+                }
+            }
+        }
         writer.timestamp(self.freeze_time);
 
         fn write_counter<'a, const N: usize, T, W>(
@@ -190,7 +207,8 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value("compatibility.cnsa2", &self.compatibility_cnsa2);
 
         writer.value("sslv2_client_hello", &self.sslv2_client_hello);
-        writer.value("handshake_count", &self.handshake_count);
+        writer.value("handshake_success_count", &self.handshake_success_count);
+        writer.value("handshake_failure_count", &self.handshake_failure_count);
         writer.value("handshake_duration_us", &self.handshake_duration_us);
         writer.value("handshake_compute_us", &self.handshake_compute_us);
         writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
@@ -203,10 +221,10 @@ mod tests {
 
     #[test]
     fn deserialize_missing_fields_uses_defaults() {
-        let json = r#"{"handshake_count": 10}"#;
+        let json = r#"{"handshake_success_count": 10}"#;
         let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
 
-        assert_eq!(record.handshake_count, 10);
+        assert_eq!(record.handshake_success_count, 10);
         assert_eq!(record.freeze_time, SystemTime::UNIX_EPOCH);
 
         assert_eq!(record.negotiated_protocols, FrozenCounter::default());
