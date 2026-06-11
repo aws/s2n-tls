@@ -3479,28 +3479,6 @@ S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_con
  * including the TLS 1.2 server Finished message. Once this returns 1,
  * the connection is ready for application data.
  *
- * This is the recommended way to drive a handshake loop:
- *
- * @code
- * s2n_blocked_status blocked;
- * while (!s2n_connection_handshake_complete(conn)) {
- *     if (s2n_negotiate(conn, &blocked) < 0) {
- *         if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) continue;
- *         return -1; // real error
- *     }
- * }
- * @endcode
- *
- * @note For TLS 1.2, returns 1 only after the server Finished message is
- * fully consumed. Checking handshake_type() for "NEGOTIATED" is not
- * sufficient and may cause the loop to exit one iteration too early.
- *
- * @note For TLS 1.3, post-handshake messages (e.g. NewSessionTicket,
- * KeyUpdate) do not affect this value. It returns 1 as soon as the
- * initial handshake exchange is complete.
- *
- * @note Returns 1 for connections restored via s2n_connection_deserialize(),
- * since serialization is only permitted after handshake completion.
  *
  * @param conn A pointer to the s2n_connection
  * @returns 1 if the handshake is complete, 0 if still in progress,
