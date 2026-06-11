@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
@@ -994,6 +995,17 @@ int main(int argc, char **argv)
 
                 /* 20250211 > 20250414 (with p-384 cert only) */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "20250414", ecdsa_sha384_chain_and_key));
+
+                /* 20250414 > 20260513 (with either p-256 or p-384 cert) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha256_chain_and_key));
+
+                /* 20260513 also supports ML-DSA-87 certs */
+                if (s2n_mldsa_is_supported()) {
+                    DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                    EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
+                }
             };
         };
     };

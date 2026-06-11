@@ -1335,6 +1335,7 @@ const struct s2n_security_policy security_policy_20251117 = {
     .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
+/* strict CNSA 2.0 policy */
 const struct s2n_security_policy security_policy_20260219 = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_20250211,
@@ -1350,12 +1351,27 @@ const struct s2n_security_policy security_policy_20260219 = {
     },
 };
 
+/* CNSA 1.0 - 2.0 interop policy */
 const struct s2n_security_policy security_policy_20260220 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20260220,
     .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
     .signature_preferences = &s2n_signature_preferences_20260220,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20260220,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+/* 20250414 with pure MLKEM1024 and ML-DSA-87 added, compatible with CNSA 2.0 */
+const struct s2n_security_policy security_policy_20260513 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_20250211,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
+    .signature_preferences = &s2n_signature_preferences_20260513,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20260514,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
@@ -1675,6 +1691,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20251116", .security_policy = &security_policy_20251116, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* the same as 20251114, but without any SHA1 HMAC ciphers */
     { .version = "20251117", .security_policy = &security_policy_20251117, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260219", .security_policy = &security_policy_20260219, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260220", .security_policy = &security_policy_20260220, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260513", .security_policy = &security_policy_20260513, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260520", .security_policy = &security_policy_20260520, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260520_gcm", .security_policy = &security_policy_20260520_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260521", .security_policy = &security_policy_20260521, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
