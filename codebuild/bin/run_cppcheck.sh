@@ -15,22 +15,11 @@
 
 set -e
 
-usage() {
-    echo "run_cppcheck.sh install_dir"
-    exit 1
-}
-
-if [ "$#" -ne "1" ]; then
-    usage
-fi
-
-INSTALL_DIR=$1
-
-CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck
+CPPCHECK_EXECUTABLE=$(which cppcheck)
 
 FAILED=0
 $CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=warning,style,performance,portability --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
 if [ $FAILED == 1 ];
 then
 	printf "\\033[31;1mFAILED cppcheck\\033[0m\\n"

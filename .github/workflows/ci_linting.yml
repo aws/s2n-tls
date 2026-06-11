@@ -14,28 +14,20 @@ permissions:
 jobs:
   cppcheck:
     runs-on: ubuntu-latest
-    env:
-      CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
       - uses: actions/checkout@v6
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
 
-      - name: Cache
-        id: cache
-        uses: actions/cache@v5
-        continue-on-error: true
-        with:
-          path: ${{ env.CPPCHECK_INSTALL_DIR }}
-          key: cppcheck-2.3-${{ env.CPPCHECK_INSTALL_DIR }}
-
       - name: Install
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+        run: |
+          sudo add-apt-repository -y universe
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
 
       - name: Check
-        run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+        run: ./codebuild/bin/run_cppcheck.sh
 
   headers:
     runs-on: ubuntu-latest
