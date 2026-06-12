@@ -26,7 +26,7 @@ tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
 
 # Pinned to avoid coherence conflict between time 0.3.48+ and aws-smithy-types.
-time = "0.3.47"
+time = ">=0.3, <0.3.48"
 
 [dev-dependencies]
 s2n-tls-tokio = { version = "0.3.16" }
