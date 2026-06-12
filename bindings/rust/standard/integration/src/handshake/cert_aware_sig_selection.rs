@@ -82,7 +82,7 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 #[test]
 fn signature_selection() {
     // ECDSA
-    required_capability(&[Capability::Tls13], || {
+    {
         let secp256r1 = CertMaterials::from_permutation("ec_ecdsa_p256_sha256");
         let secp521r1 = CertMaterials::from_permutation("ec_ecdsa_p521_sha512");
 
@@ -97,7 +97,7 @@ fn signature_selection() {
             trial(&policy, &secp521r1),
             iana::constants::ecdsa_secp521r1_sha512
         );
-    });
+    }
 
     // MLDSA
     required_capability(&[Capability::MLDsa], || {
