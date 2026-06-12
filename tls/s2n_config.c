@@ -1353,3 +1353,11 @@ int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_hands
     config->on_handshake_event = callback;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_timing_checkpoint_cb(struct s2n_config *config, s2n_event_on_timing_checkpoint_cb callback)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(callback);
+    config->on_timing_checkpoint_cb = callback;
+    return S2N_SUCCESS;
+}
