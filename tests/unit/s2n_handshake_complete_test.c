@@ -184,7 +184,32 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 0);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 0);
 
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        bool server_done = false;
+
+        while (!server_done) {
+            int server_rc = s2n_negotiate(server_conn, &blocked);
+            if (server_rc == S2N_SUCCESS) {
+                server_done = true;
+            } else {
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
+
+            if (server_done) {
+                EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 1);
+                EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 0);
+            }
+
+            int client_rc = s2n_negotiate(client_conn, &blocked);
+            if (client_rc != S2N_SUCCESS) {
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
+        }
+
+        /* Drain client fully */
+        while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
+            EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+        }
 
         /* Verify we actually negotiated TLS 1.3 */
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
@@ -194,6 +219,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 1);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 1);
 
+        /* Post-handshake: pump NST server→client and assert flag stays 1 */
+        s2n_negotiate(server_conn, &blocked);
+        s2n_negotiate(client_conn, &blocked);
+
+        EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 1);
+        EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 1);
+        
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
