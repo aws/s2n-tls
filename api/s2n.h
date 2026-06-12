@@ -3473,6 +3473,20 @@ S2N_API extern int s2n_connection_get_alert(struct s2n_connection *conn);
 S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
 
 /**
+ * Indicates whether the TLS handshake is fully complete.
+ *
+ * "Complete" means all handshake messages have been sent and received,
+ * including the TLS 1.2 server Finished message. Once this returns 1,
+ * the connection is ready for application data.
+ *
+ *
+ * @param conn A pointer to the s2n_connection
+ * @returns 1 if the handshake is complete, 0 if still in progress,
+ *          or -1 on error (e.g. NULL conn).
+ */
+S2N_API extern int s2n_connection_handshake_complete(struct s2n_connection *conn);
+
+/**
  * Function to return the last TLS message that was processed. The returned format is a human readable string.
  * @param conn A pointer to the s2n connection
  * @returns The last message name in the TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA". 
