@@ -27,3 +27,30 @@ jobs:
       - name: Build
         run: |
           .github/s2n_osx.sh
+
+  OSX-x64-awslc:
+    runs-on: macos-14-large
+    name: macOS x64 with aws-lc
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          brew install openssl ninja go
+
+      - name: Build and install AWS-LC
+        run: |
+          git clone --depth 1 https://github.com/aws/aws-lc.git
+          cmake -B aws-lc-build aws-lc -GNinja \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/aws-lc-install \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_TESTING=OFF
+          cmake --build aws-lc-build --target install
+
+      - name: Build s2n-tls
+        run: |
+          cmake -B build -GNinja \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/aws-lc-install \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF
+          cmake --build build
