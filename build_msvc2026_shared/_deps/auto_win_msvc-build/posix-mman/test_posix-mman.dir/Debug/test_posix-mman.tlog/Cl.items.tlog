@@ -1,0 +1,12 @@
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_madvise.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_madvise.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_main.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_main.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_mlock.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_mlock.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_mlockall.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_mlockall.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_mman.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_mman.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_mmap.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_mmap.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_mprotect.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_mprotect.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_msync.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_msync.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_munlock.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_munlock.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_munlockall.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_munlockall.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_munmap.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_munmap.obj
+C:\Users\samue\repos\auto-win-msvc\posix-mman\tests\test_shm.c;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.dir\Debug\test_shm.obj

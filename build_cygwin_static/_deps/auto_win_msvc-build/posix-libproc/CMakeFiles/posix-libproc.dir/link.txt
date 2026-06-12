@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-libproc.a "CMakeFiles/posix-libproc.dir/src/posix-libproc.c.o"
+/usr/bin/ranlib.exe libposix-libproc.a

@@ -1,0 +1,10 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2022_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\C29AE50E8EC67D15A53F6287CC17C4CD\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/wepoll-subbuild -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/wepoll-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/wepoll-subbuild/wepoll-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

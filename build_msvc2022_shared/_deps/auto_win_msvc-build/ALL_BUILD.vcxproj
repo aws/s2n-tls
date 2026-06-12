@@ -1,0 +1,529 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ResolveNugetPackages>false</ResolveNugetPackages>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FCC98C17-8F3A-394D-88A9-97EAF332CB32}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>ALL_BUILD</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\auto-win-msvc\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CPackConfig.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CPackConfig.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CPackConfig.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CPackConfig.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\ZERO_CHECK.vcxproj">
+      <Project>{1AA497A7-425E-3DE1-A0A9-513E0D9A7B79}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\auto-win-msvc.vcxproj">
+      <Project>{4567592A-9E03-3B0D-80DD-CDF8C1C45C66}</Project>
+      <Name>auto-win-msvc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-machine-endian\bsd-machine-endian.vcxproj">
+      <Project>{C1B9C5E1-CC6A-38EE-9113-3443DF14CE11}</Project>
+      <Name>bsd-machine-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-malloc-np\bsd-malloc-np.vcxproj">
+      <Project>{E4B3B2CD-07FB-361D-BBAD-AF6EBE94A59B}</Project>
+      <Name>bsd-malloc-np</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-pthread-np\bsd-pthread-np.vcxproj">
+      <Project>{FCFAABD2-459B-35E6-A057-79B7FF16BBBF}</Project>
+      <Name>bsd-pthread-np</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-cpuset\bsd-sys-cpuset.vcxproj">
+      <Project>{31DB223C-14E1-382A-B63C-85EFDF16F711}</Project>
+      <Name>bsd-sys-cpuset</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-endian\bsd-sys-endian.vcxproj">
+      <Project>{49E6F1D3-701D-3D10-AA05-F6F319DAA5A9}</Project>
+      <Name>bsd-sys-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-event\bsd-sys-event.vcxproj">
+      <Project>{6167453A-B68F-309E-8148-2393CAF2ABD6}</Project>
+      <Name>bsd-sys-event</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-file\bsd-sys-file.vcxproj">
+      <Project>{90061010-68A0-379C-B918-117A9259AC34}</Project>
+      <Name>bsd-sys-file</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-param\bsd-sys-param.vcxproj">
+      <Project>{49FC634E-1E3F-368C-A450-267F1F078AAE}</Project>
+      <Name>bsd-sys-param</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-sysctl\bsd-sys-sysctl.vcxproj">
+      <Project>{E309FEAA-F3FF-3B42-9DE7-3C46755422B7}</Project>
+      <Name>bsd-sys-sysctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-vm-param\bsd-vm-param.vcxproj">
+      <Project>{BEAACA7C-FF1C-3B69-8E75-D77B69E24A9E}</Project>
+      <Name>bsd-vm-param</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-backtrace\linux-backtrace.vcxproj">
+      <Project>{F7589892-8578-3B37-BDD8-6CE1A57FB474}</Project>
+      <Name>linux-backtrace</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-endian\linux-endian.vcxproj">
+      <Project>{002EE685-3A1A-3CA2-8EED-9E29FD29B10C}</Project>
+      <Name>linux-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\linux-epoll.vcxproj">
+      <Project>{D224F105-312F-32A8-AF73-A9A94924D1BC}</Project>
+      <Name>linux-epoll</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-execinfo\linux-execinfo.vcxproj">
+      <Project>{4411070A-4DA5-3703-9786-86F12CB1F2B5}</Project>
+      <Name>linux-execinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-features\linux-features.vcxproj">
+      <Project>{A2BA9ACF-A4E1-37B3-915D-A7E50C63EC27}</Project>
+      <Name>linux-features</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-getopt\linux-getopt.vcxproj">
+      <Project>{53C6379F-040C-347F-A50E-80B5319D1426}</Project>
+      <Name>linux-getopt</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-hv-hloop\linux-hv-hloop.vcxproj">
+      <Project>{CE254498-F1E3-38EC-AB18-4BFC7D68E108}</Project>
+      <Name>linux-hv-hloop</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-magic\linux-magic.vcxproj">
+      <Project>{60210333-BA01-36DB-B397-71E3F4A7283B}</Project>
+      <Name>linux-magic</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-rdma\linux-rdma.vcxproj">
+      <Project>{6FF49CD1-D2BC-3D0E-87A1-E4382478FEDA}</Project>
+      <Name>linux-rdma</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-bitops\linux-sys-bitops.vcxproj">
+      <Project>{71D7A17F-147E-326E-B41B-2B9A47E1E8CA}</Project>
+      <Name>linux-sys-bitops</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-prctl\linux-sys-prctl.vcxproj">
+      <Project>{0401C83D-8377-3757-8D79-F521318C11DC}</Project>
+      <Name>linux-sys-prctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-procfs\linux-sys-procfs.vcxproj">
+      <Project>{159474E7-E974-30CF-A00B-0E703A96CAA3}</Project>
+      <Name>linux-sys-procfs</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-statfs\linux-sys-statfs.vcxproj">
+      <Project>{E6EEC16A-EBF9-3458-A77C-C5DBBD398D4F}</Project>
+      <Name>linux-sys-statfs</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-syscall\linux-sys-syscall.vcxproj">
+      <Project>{D9885BEB-8650-384D-98D1-F6FDEA56F320}</Project>
+      <Name>linux-sys-syscall</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-user\linux-sys-user.vcxproj">
+      <Project>{534CF043-78EB-3C92-8B0E-7D77BE474E91}</Project>
+      <Name>linux-sys-user</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\linux-systemd.vcxproj">
+      <Project>{7E69BEEC-5832-3958-96B2-486DCCB483CD}</Project>
+      <Name>linux-systemd</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-alloca\posix-alloca.vcxproj">
+      <Project>{9C8C247A-BCFA-30A6-B94B-B77594B3B0EF}</Project>
+      <Name>posix-alloca</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-arpa\posix-arpa.vcxproj">
+      <Project>{F85C393C-FFA8-3AF4-A81B-28F89319393D}</Project>
+      <Name>posix-arpa</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-core.vcxproj">
+      <Project>{91C8548D-D840-3732-866D-AF28A8BE316C}</Project>
+      <Name>posix-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dirent\posix-dirent.vcxproj">
+      <Project>{C970B4F3-65C8-354C-900F-692E93E711E4}</Project>
+      <Name>posix-dirent</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dlfcn\posix-dlfcn.vcxproj">
+      <Project>{559221EE-856A-3E7A-9822-1428E386F94E}</Project>
+      <Name>posix-dlfcn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-glob\posix-glob.vcxproj">
+      <Project>{15E9D08C-E441-334A-B3E7-AD7F58A4CA2C}</Project>
+      <Name>posix-glob</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-inttypes\posix-inttypes.vcxproj">
+      <Project>{CF6CFCF6-6268-301A-BE4D-51166D5CD7CE}</Project>
+      <Name>posix-inttypes</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-ipc\posix-ipc.vcxproj">
+      <Project>{F9E1320B-DAFA-39D3-8414-A3D2C5EE925D}</Project>
+      <Name>posix-ipc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-langinfo\posix-langinfo.vcxproj">
+      <Project>{2EAC63EF-FD5F-3B8D-8DB4-F4C86D9E8F24}</Project>
+      <Name>posix-langinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libgen\posix-libgen.vcxproj">
+      <Project>{82873F2E-0639-3A4A-8B05-6FF2F61B5B03}</Project>
+      <Name>posix-libgen</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libproc\posix-libproc.vcxproj">
+      <Project>{3669A93E-3CD8-3503-8360-EF282D9A741D}</Project>
+      <Name>posix-libproc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-mman\posix-mman.vcxproj">
+      <Project>{F13B80F8-B1B2-35C0-A60F-8569E2FA56DF}</Project>
+      <Name>posix-mman</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-netdb\posix-netdb.vcxproj">
+      <Project>{3303F43C-A7A4-374F-8C90-93E900F4E52C}</Project>
+      <Name>posix-netdb</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-netinet\posix-netinet.vcxproj">
+      <Project>{B1CA52CD-DB45-3259-9247-684D67CE45AA}</Project>
+      <Name>posix-netinet</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pthread\posix-pthread.vcxproj">
+      <Project>{EC83FBA9-6E80-36A1-8CC1-674D86F56210}</Project>
+      <Name>posix-pthread</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pwdgrp\posix-pwdgrp.vcxproj">
+      <Project>{E72A5BBE-145C-3896-9D1D-C20FB8C7EBFA}</Project>
+      <Name>posix-pwdgrp</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-regex\posix-regex.vcxproj">
+      <Project>{68181B65-451D-318A-B1E0-A8292B071BF6}</Project>
+      <Name>posix-regex</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-sched\posix-sched.vcxproj">
+      <Project>{043C2D9F-DEA5-3B61-A61A-08CFB57E1230}</Project>
+      <Name>posix-sched</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-signal\posix-signal.vcxproj">
+      <Project>{AD0CF0AC-7B1A-3F51-8A2A-99CDCEA24905}</Project>
+      <Name>posix-signal</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-spawn\posix-spawn.vcxproj">
+      <Project>{3614F138-A3F3-3DE3-A867-96C0694936F5}</Project>
+      <Name>posix-spawn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-stat\posix-stat.vcxproj">
+      <Project>{C741A2D9-12C4-3F2A-B174-F4179BF40026}</Project>
+      <Name>posix-stat</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\posix-stdbool_build\posix-stdbool.vcxproj">
+      <Project>{CB3236DA-7F80-3E2C-A2ED-9A08C7C3F958}</Project>
+      <Name>posix-stdbool</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\posix-stdint_build\posix-stdint.vcxproj">
+      <Project>{B9084FB6-A217-372D-ACA9-E54A3F0FC25B}</Project>
+      <Name>posix-stdint</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-strings\posix-strings.vcxproj">
+      <Project>{A154539F-8EB4-389D-B2BF-6607B0877868}</Project>
+      <Name>posix-strings</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-stropts\posix-stropts.vcxproj">
+      <Project>{AF014CE1-D8F6-38CA-B55D-DBA66674347E}</Project>
+      <Name>posix-stropts</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-sys-resource\posix-sys-resource.vcxproj">
+      <Project>{5C487DC1-D48A-30A3-A623-963373CE0D26}</Project>
+      <Name>posix-sys-resource</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-syslog\posix-syslog.vcxproj">
+      <Project>{DB12341A-087D-32D5-9D19-530214825F45}</Project>
+      <Name>posix-syslog</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\posix-termios.vcxproj">
+      <Project>{7023AAF8-4965-3324-86C4-7E6FA8D739F8}</Project>
+      <Name>posix-termios</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-time\posix-time.vcxproj">
+      <Project>{F29120D9-2E01-3C32-BE16-07210732D56A}</Project>
+      <Name>posix-time</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-times\posix-times.vcxproj">
+      <Project>{BA35269D-41B6-31E5-95F8-C590996810A2}</Project>
+      <Name>posix-times</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-types\posix-types.vcxproj">
+      <Project>{3DC7921E-C680-32E5-9C36-E2E2E701F885}</Project>
+      <Name>posix-types</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-ucontext\posix-ucontext.vcxproj">
+      <Project>{ECBC240F-670A-3397-9D08-067A5F37B423}</Project>
+      <Name>posix-ucontext</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-unwind\posix-unwind.vcxproj">
+      <Project>{AD95AE7D-293E-39F8-97E8-7FD083BE7C70}</Project>
+      <Name>posix-unwind</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-utsname\posix-utsname.vcxproj">
+      <Project>{189A27CD-34FD-375A-84F4-9CE10389C202}</Project>
+      <Name>posix-utsname</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-wait\posix-wait.vcxproj">
+      <Project>{E6FD2960-ED3F-300B-98B7-26FC277ABFC1}</Project>
+      <Name>posix-wait</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-port\solaris-port.vcxproj">
+      <Project>{297ACA13-6F08-3882-9E11-53C4EF0576B0}</Project>
+      <Name>solaris-port</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-sys-byteorder\solaris-sys-byteorder.vcxproj">
+      <Project>{566BF10A-F750-3E3C-927C-75A37538350F}</Project>
+      <Name>solaris-sys-byteorder</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-sys-feature-tests\solaris-sys-feature-tests.vcxproj">
+      <Project>{9EC90E68-3D12-3A67-ADBC-168F4B50F1CF}</Project>
+      <Name>solaris-sys-feature-tests</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-cpuset\test_bsd-sys-cpuset.vcxproj">
+      <Project>{17461BD3-B6AA-3A3D-804F-2276C623F40B}</Project>
+      <Name>test_bsd-sys-cpuset</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-sysctl\test_bsd-sys-sysctl.vcxproj">
+      <Project>{A92DD970-ABBE-3F1B-A89B-4E4953722F13}</Project>
+      <Name>test_bsd-sys-sysctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-bitops\test_linux-sys-bitops.vcxproj">
+      <Project>{635E922E-03E5-3AA6-9057-A390C831637F}</Project>
+      <Name>test_linux-sys-bitops</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-alloca\test_posix-alloca.vcxproj">
+      <Project>{9837EF05-B7D1-376F-9BCD-4A2B0F905F26}</Project>
+      <Name>test_posix-alloca</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\test_posix-core.vcxproj">
+      <Project>{82EB0FF1-3D45-3FDA-986E-27E659979F9B}</Project>
+      <Name>test_posix-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dlfcn\test_posix-dlfcn.vcxproj">
+      <Project>{18FACB62-63B5-3FAA-919B-D338BBDAB728}</Project>
+      <Name>test_posix-dlfcn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-langinfo\test_posix-langinfo.vcxproj">
+      <Project>{34F211FF-069D-39DA-B220-79A15D47BEA0}</Project>
+      <Name>test_posix-langinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libproc\test_posix-libproc.vcxproj">
+      <Project>{9C62B7F9-C720-3973-9733-0D0624AB5D07}</Project>
+      <Name>test_posix-libproc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.vcxproj">
+      <Project>{3001B8F8-6D9D-3C91-AD93-59C557CBA8E6}</Project>
+      <Name>test_posix-mman</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pthread\test_posix-pthread.vcxproj">
+      <Project>{6019023C-3541-3E2F-BB61-3534296B100E}</Project>
+      <Name>test_posix-pthread</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-regex\test_posix-regex.vcxproj">
+      <Project>{28D8CE9C-A6F5-33BA-8E97-D74636C85644}</Project>
+      <Name>test_posix-regex</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-signal\test_posix-signal.vcxproj">
+      <Project>{B48E317C-B2F9-3FF4-89EE-CF99223F9266}</Project>
+      <Name>test_posix-signal</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-spawn\test_posix-spawn.vcxproj">
+      <Project>{2B7190DB-0648-3BE0-8343-72B1B0A073CE}</Project>
+      <Name>test_posix-spawn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-syslog\test_posix-syslog.vcxproj">
+      <Project>{B75432FB-AED1-3B7D-8628-5541974F757E}</Project>
+      <Name>test_posix-syslog</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.vcxproj">
+      <Project>{CE38B879-364F-32DA-BF71-AD3A147B93AE}</Project>
+      <Name>test_posix-termios</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-time\test_posix-time.vcxproj">
+      <Project>{79EBFE4D-4737-3B8D-BC4D-21A736FF5C0B}</Project>
+      <Name>test_posix-time</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-times\test_posix-times.vcxproj">
+      <Project>{F520A4F3-7BB6-384A-AAFD-965A65A983F9}</Project>
+      <Name>test_posix-times</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-types\test_posix-types.vcxproj">
+      <Project>{E437037A-0DF9-36C7-A2C1-C87F03C4A41B}</Project>
+      <Name>test_posix-types</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-unwind\test_posix-unwind.vcxproj">
+      <Project>{650BA877-A5C4-3CC7-85FB-25AD5F8BD7D0}</Project>
+      <Name>test_posix-unwind</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-utsname\test_posix-utsname.vcxproj">
+      <Project>{C75FA33D-CD9F-3E7F-B52A-BD40700A1E84}</Project>
+      <Name>test_posix-utsname</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-wait\test_posix-wait.vcxproj">
+      <Project>{B4EFA79E-5932-38C7-9BCA-C8A0DB6CBC7F}</Project>
+      <Name>test_posix-wait</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\wepoll.vcxproj">
+      <Project>{35E4D8AC-556B-396D-8CAE-4EE9A0CBE6F2}</Project>
+      <Name>wepoll</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

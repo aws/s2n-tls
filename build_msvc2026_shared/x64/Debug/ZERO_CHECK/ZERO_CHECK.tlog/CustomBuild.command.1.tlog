@@ -1,0 +1,10 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\CMAKEFILES\A8522BA16E76B18E8F0646849264295B\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/s2n.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

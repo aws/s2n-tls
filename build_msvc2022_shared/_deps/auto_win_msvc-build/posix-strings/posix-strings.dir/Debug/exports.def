@@ -1,0 +1,5 @@
+EXPORTS 
+	dummy_posix_strings
+	ffs
+	ffsl
+	ffsll

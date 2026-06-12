@@ -1,0 +1,5 @@
+EXPORTS 
+	basename
+	dirname
+	dummy_posix_libgen
+	strnlen_s

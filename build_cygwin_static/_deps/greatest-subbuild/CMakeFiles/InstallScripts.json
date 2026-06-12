@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

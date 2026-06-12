@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-poll.a "CMakeFiles/posix-poll.dir/src/posix-poll.c.o"
+/usr/bin/ranlib.exe libposix-poll.a

@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-mman.a "CMakeFiles/posix-mman.dir/src/posix-mman.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-mman.a

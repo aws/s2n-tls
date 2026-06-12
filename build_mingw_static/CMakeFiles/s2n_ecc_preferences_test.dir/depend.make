@@ -1,0 +1,2 @@
+# Empty dependencies file for s2n_ecc_preferences_test.
+# This may be replaced when dependencies are built.

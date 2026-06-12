@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-sys-event.a "CMakeFiles/bsd-sys-event.dir/src/bsd-sys-event.c.o"
+/usr/bin/ranlib.exe libbsd-sys-event.a

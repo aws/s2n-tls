@@ -1,0 +1,408 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4E6B9097-6F24-3D33-92F5-2AAAB45C53BF}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>s2n_client_key_share_extension_test</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\bin\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">s2n_client_key_share_extension_test.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">s2n_client_key_share_extension_test</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\bin\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">s2n_client_key_share_extension_test.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">s2n_client_key_share_extension_test</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\bin\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">s2n_client_key_share_extension_test.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">s2n_client_key_share_extension_test</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\bin\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">s2n_client_key_share_extension_test.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">s2n_client_key_share_extension_test</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <ForcedIncludeFiles>C:/Users/samue/repos/s2n-tls/utils/s2n_prelude.h</ForcedIncludeFiles>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>lib\Debug\testss2n.lib;lib\Debug\s2n.lib;_deps\auto_win_msvc-build\Debug\auto-win-msvc.lib;dbghelp.lib;advapi32.lib;netapi32.lib;userenv.lib;ole32.lib;psapi.lib;_deps\auto_win_msvc-build\linux-epoll\Debug\wepoll.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/lib/Debug/s2n_client_key_share_extension_test.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/bin/Debug/s2n_client_key_share_extension_test.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <ForcedIncludeFiles>C:/Users/samue/repos/s2n-tls/utils/s2n_prelude.h</ForcedIncludeFiles>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>lib\Release\testss2n.lib;lib\Release\s2n.lib;_deps\auto_win_msvc-build\Release\auto-win-msvc.lib;dbghelp.lib;advapi32.lib;netapi32.lib;userenv.lib;ole32.lib;psapi.lib;_deps\auto_win_msvc-build\linux-epoll\Release\wepoll.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/lib/Release/s2n_client_key_share_extension_test.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/bin/Release/s2n_client_key_share_extension_test.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <ForcedIncludeFiles>C:/Users/samue/repos/s2n-tls/utils/s2n_prelude.h</ForcedIncludeFiles>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>lib\MinSizeRel\testss2n.lib;lib\MinSizeRel\s2n.lib;_deps\auto_win_msvc-build\MinSizeRel\auto-win-msvc.lib;dbghelp.lib;advapi32.lib;netapi32.lib;userenv.lib;ole32.lib;psapi.lib;_deps\auto_win_msvc-build\linux-epoll\MinSizeRel\wepoll.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/lib/MinSizeRel/s2n_client_key_share_extension_test.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/bin/MinSizeRel/s2n_client_key_share_extension_test.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <ForcedIncludeFiles>C:/Users/samue/repos/s2n-tls/utils/s2n_prelude.h</ForcedIncludeFiles>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;AUTO_WIN_MSVC_EXPORT_LIB_STATIC_DEFINE;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\s2n-tls\tests;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\posix_includes;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-src;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\..\auto-win-msvc\rewritten_src;C:\Users\samue\repos\s2n-tls;C:\Users\samue\repos\s2n-tls\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>lib\RelWithDebInfo\testss2n.lib;lib\RelWithDebInfo\s2n.lib;_deps\auto_win_msvc-build\RelWithDebInfo\auto-win-msvc.lib;dbghelp.lib;advapi32.lib;netapi32.lib;userenv.lib;ole32.lib;psapi.lib;_deps\auto_win_msvc-build\linux-epoll\RelWithDebInfo\wepoll.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/lib/RelWithDebInfo/s2n_client_key_share_extension_test.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/bin/RelWithDebInfo/s2n_client_key_share_extension_test.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tests\unit\s2n_client_key_share_extension_test.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\dummy_main.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\ZERO_CHECK.vcxproj">
+      <Project>{15E32D39-0B40-32D7-A429-C343F16FDC10}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\auto-win-msvc.vcxproj">
+      <Project>{198192C9-878D-3FE0-83BC-BB676FE390F4}</Project>
+      <Name>auto-win-msvc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\s2n.vcxproj">
+      <Project>{D113494C-F33F-38D6-98CB-F139507F8EBE}</Project>
+      <Name>s2n</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\testss2n.vcxproj">
+      <Project>{6999ACD7-FB3E-35D3-ADB3-B6C5530811ED}</Project>
+      <Name>testss2n</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build\linux-epoll\wepoll.vcxproj">
+      <Project>{29EAC0E6-2CFE-3E1B-A947-5C5C5AF62F15}</Project>
+      <Name>wepoll</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

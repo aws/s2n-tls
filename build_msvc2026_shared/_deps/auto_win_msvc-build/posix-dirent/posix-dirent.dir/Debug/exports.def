@@ -1,0 +1,9 @@
+EXPORTS 
+	alphasort
+	closedir
+	opendir
+	readdir
+	rewinddir
+	scandir
+	seekdir
+	telldir

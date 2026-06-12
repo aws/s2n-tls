@@ -1,0 +1,1 @@
+C:/Users/samue/repos/auto-win-msvc/posix-stropts/include/posix-stropts.h

@@ -1,0 +1,3 @@
+EXPORTS 
+	dummy_posix_netinet
+	posix_netinet_dummy_link

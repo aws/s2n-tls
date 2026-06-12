@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-ucontext.a "CMakeFiles/posix-ucontext.dir/src/posix-ucontext.c.o"
+/usr/bin/ranlib.exe libposix-ucontext.a

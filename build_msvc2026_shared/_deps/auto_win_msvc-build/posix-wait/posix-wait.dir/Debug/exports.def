@@ -1,0 +1,12 @@
+EXPORTS 
+	g_posix_child_count 	 DATA
+	g_posix_child_handles 	 DATA
+	g_posix_child_pids 	 DATA
+	__local_stdio_printf_options
+	_vfprintf_l
+	cwait
+	dummy_posix_wait
+	printf
+	wait
+	waitid
+	waitpid

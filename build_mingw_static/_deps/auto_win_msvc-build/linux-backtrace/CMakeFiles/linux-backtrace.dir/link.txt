@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-backtrace.a "CMakeFiles/linux-backtrace.dir/src/linux-backtrace.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-backtrace.a

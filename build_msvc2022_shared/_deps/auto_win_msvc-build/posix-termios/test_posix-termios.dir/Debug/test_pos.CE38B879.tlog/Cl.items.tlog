@@ -1,0 +1,13 @@
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_cfgetispeed.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_cfgetispeed.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_cfgetospeed.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_cfgetospeed.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_cfsetispeed.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_cfsetispeed.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_cfsetospeed.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_cfsetospeed.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_main.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_main.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcdrain.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcdrain.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcflow.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcflow.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcflush.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcflush.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcgetattr.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcgetattr.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcgetsid.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcgetsid.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcsendbreak.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcsendbreak.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_tcsetattr.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_tcsetattr.obj
+C:\Users\samue\repos\auto-win-msvc\posix-termios\tests\test_termios.c;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.dir\Debug\test_termios.obj

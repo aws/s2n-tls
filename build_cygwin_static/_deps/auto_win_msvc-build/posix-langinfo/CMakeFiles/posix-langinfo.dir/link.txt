@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-langinfo.a "CMakeFiles/posix-langinfo.dir/src/posix-langinfo.c.o"
+/usr/bin/ranlib.exe libposix-langinfo.a

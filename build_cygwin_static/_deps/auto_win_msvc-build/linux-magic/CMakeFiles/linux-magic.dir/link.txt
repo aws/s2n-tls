@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-magic.a "CMakeFiles/linux-magic.dir/src/linux-magic.c.o"
+/usr/bin/ranlib.exe liblinux-magic.a

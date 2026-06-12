@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-pthread-np.a "CMakeFiles/bsd-pthread-np.dir/src/bsd-pthread-np.c.o"
+/usr/bin/ranlib.exe libbsd-pthread-np.a

@@ -1,0 +1,2 @@
+EXPORTS 
+	solaris_sys_byteorder_dummy

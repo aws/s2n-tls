@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-stdbool.a "CMakeFiles/posix-stdbool.dir/src/posix-stdbool.c.o"
+/usr/bin/ranlib.exe libposix-stdbool.a

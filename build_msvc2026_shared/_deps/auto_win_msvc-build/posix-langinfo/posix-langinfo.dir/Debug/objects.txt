@@ -1,0 +1,1 @@
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-build/posix-langinfo/posix-langinfo.dir/Debug/posix-langinfo.obj

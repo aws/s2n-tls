@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-vm-param.a "CMakeFiles/bsd-vm-param.dir/src/bsd-vm-param.c.o"
+/usr/bin/ranlib.exe libbsd-vm-param.a

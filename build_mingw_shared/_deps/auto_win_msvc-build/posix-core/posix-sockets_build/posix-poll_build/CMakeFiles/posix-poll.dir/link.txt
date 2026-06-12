@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libposix-poll.a "CMakeFiles/posix-poll.dir/src/posix-poll.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libposix-poll.a

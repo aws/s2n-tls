@@ -1,0 +1,11 @@
+EXPORTS 
+	posix_signal_kill
+	posix_signal_sigaction
+	posix_signal_sigaddset
+	posix_signal_sigdelset
+	posix_signal_sigemptyset
+	posix_signal_sigfillset
+	posix_signal_sigismember
+	posix_signal_sigpending
+	posix_signal_sigprocmask
+	posix_signal_sigsuspend

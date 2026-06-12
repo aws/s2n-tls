@@ -1,0 +1,11 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vfprintf_l
+	_vsnprintf_s_l
+	closelog
+	dummy_posix_syslog
+	fprintf
+	openlog
+	setlogmask
+	syslog
+	vsnprintf_s

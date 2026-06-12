@@ -1,0 +1,431 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{82EB0FF1-3D45-3FDA-986E-27E659979F9B}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>test_posix-core</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_posix-core.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_posix-core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_posix-core.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_posix-core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_posix-core.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_posix-core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_posix-core.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_posix-core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4127;4204;4221;4706;4055;4201;4214;4116;4100;4090;4098;4701;4267;4244;4054;4152</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SDLCheck>true</SDLCheck>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>Debug\posix-core.lib;posix-sockets_build\Debug\posix-sockets.lib;posix-sockets_build\posix-sys-uio_build\Debug\posix-sys-uio.lib;posix-sockets_build\posix-sys-ioctl_build\Debug\posix-sys-ioctl.lib;posix-sockets_build\posix-poll_build\Debug\posix-poll.lib;..\linux-epoll\Debug\linux-epoll.lib;..\linux-epoll\Debug\wepoll.lib;ws2_32.lib;advapi32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64 /GUARD:CF</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/Debug/test_posix-core.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/Debug/test_posix-core.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DisableSpecificWarnings>4127;4204;4221;4706;4055;4201;4214;4116;4100;4090;4098;4701;4267;4244;4054;4152</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SDLCheck>true</SDLCheck>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>Release\posix-core.lib;posix-sockets_build\Release\posix-sockets.lib;posix-sockets_build\posix-sys-uio_build\Release\posix-sys-uio.lib;posix-sockets_build\posix-sys-ioctl_build\Release\posix-sys-ioctl.lib;posix-sockets_build\posix-poll_build\Release\posix-poll.lib;..\linux-epoll\Release\linux-epoll.lib;..\linux-epoll\Release\wepoll.lib;ws2_32.lib;advapi32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64 /GUARD:CF</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/Release/test_posix-core.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/Release/test_posix-core.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DisableSpecificWarnings>4127;4204;4221;4706;4055;4201;4214;4116;4100;4090;4098;4701;4267;4244;4054;4152</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SDLCheck>true</SDLCheck>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>MinSizeRel\posix-core.lib;posix-sockets_build\MinSizeRel\posix-sockets.lib;posix-sockets_build\posix-sys-uio_build\MinSizeRel\posix-sys-uio.lib;posix-sockets_build\posix-sys-ioctl_build\MinSizeRel\posix-sys-ioctl.lib;posix-sockets_build\posix-poll_build\MinSizeRel\posix-poll.lib;..\linux-epoll\MinSizeRel\linux-epoll.lib;..\linux-epoll\MinSizeRel\wepoll.lib;ws2_32.lib;advapi32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64 /GUARD:CF</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/MinSizeRel/test_posix-core.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/MinSizeRel/test_posix-core.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4127;4204;4221;4706;4055;4201;4214;4116;4100;4090;4098;4701;4267;4244;4054;4152</DisableSpecificWarnings>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SDLCheck>true</SDLCheck>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;_CRT_NONSTDC_NO_WARNINGS;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\samue\repos\auto-win-msvc\greatest;C:\Users\samue\repos\auto-win-msvc\posix-core\include;C:\Users\samue\repos\auto-win-msvc\posix-sockets\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\include;C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\include;C:\Users\samue\repos\auto-win-msvc\posix-poll\include;C:\Users\samue\repos\auto-win-msvc\linux-epoll\include;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\wepoll-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>RelWithDebInfo\posix-core.lib;posix-sockets_build\RelWithDebInfo\posix-sockets.lib;posix-sockets_build\posix-sys-uio_build\RelWithDebInfo\posix-sys-uio.lib;posix-sockets_build\posix-sys-ioctl_build\RelWithDebInfo\posix-sys-ioctl.lib;posix-sockets_build\posix-poll_build\RelWithDebInfo\posix-poll.lib;..\linux-epoll\RelWithDebInfo\linux-epoll.lib;..\linux-epoll\RelWithDebInfo\wepoll.lib;ws2_32.lib;advapi32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64 /GUARD:CF</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/RelWithDebInfo/test_posix-core.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/RelWithDebInfo/test_posix-core.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\auto-win-msvc\posix-core\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/posix-core/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/posix-core/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/posix-core/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/samue/repos/auto-win-msvc/posix-core/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-build/posix-core/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CheckCCompilerFlag.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_fs.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_io.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_main.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_misc.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_posix.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_process.c" />
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_ugid.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\ZERO_CHECK.vcxproj">
+      <Project>{1AA497A7-425E-3DE1-A0A9-513E0D9A7B79}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\linux-epoll.vcxproj">
+      <Project>{D224F105-312F-32A8-AF73-A9A94924D1BC}</Project>
+      <Name>linux-epoll</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-core.vcxproj">
+      <Project>{91C8548D-D840-3732-866D-AF28A8BE316C}</Project>
+      <Name>posix-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-sockets_build\posix-poll_build\posix-poll.vcxproj">
+      <Project>{5374E933-09EB-3115-BE4F-713E1BAA710D}</Project>
+      <Name>posix-poll</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-sockets_build\posix-sockets.vcxproj">
+      <Project>{957E1EE1-08D5-3C89-8709-10ED79292265}</Project>
+      <Name>posix-sockets</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-sockets_build\posix-sys-ioctl_build\posix-sys-ioctl.vcxproj">
+      <Project>{08BCC5F2-71EA-3F20-B1A9-60DF07FFE02C}</Project>
+      <Name>posix-sys-ioctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-sockets_build\posix-sys-uio_build\posix-sys-uio.vcxproj">
+      <Project>{184643D7-E982-31ED-9706-F50642547A1E}</Project>
+      <Name>posix-sys-uio</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\wepoll.vcxproj">
+      <Project>{35E4D8AC-556B-396D-8CAE-4EE9A0CBE6F2}</Project>
+      <Name>wepoll</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

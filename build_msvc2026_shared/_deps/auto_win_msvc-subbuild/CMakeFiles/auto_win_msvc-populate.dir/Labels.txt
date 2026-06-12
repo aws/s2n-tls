@@ -1,0 +1,14 @@
+# Target labels
+ auto_win_msvc-populate
+# Source files and their labels
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5db822053056745ab835f5fac2f31046/auto_win_msvc-populate.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/07624ccd7eaa560256682677a64ca7f2/auto_win_msvc-populate-complete.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-build.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-configure.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-download.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-install.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-mkdir.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-patch.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-test.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/5298ab53c3b6588baa9bbd6480dd8d39/auto_win_msvc-populate-update.rule

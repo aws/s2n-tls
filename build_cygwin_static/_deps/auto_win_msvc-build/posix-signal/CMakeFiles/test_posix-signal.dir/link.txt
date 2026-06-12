@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--enable-auto-import "CMakeFiles/test_posix-signal.dir/tests/test_main.c.o" "CMakeFiles/test_posix-signal.dir/tests/test_signal.c.o" -o test_posix-signal.exe -Wl,--out-implib,libtest_posix-signal.dll.a -Wl,--major-image-version,0,--minor-image-version,0  libposix-signal.a

@@ -1,0 +1,1 @@
+ "posix-stdint_build/libposix-stdint.a" "posix-stdbool_build/libposix-stdbool.a" -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

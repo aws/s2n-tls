@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-netinet.a "CMakeFiles/posix-netinet.dir/src/posix-netinet.c.o"
+/usr/bin/ranlib.exe libposix-netinet.a

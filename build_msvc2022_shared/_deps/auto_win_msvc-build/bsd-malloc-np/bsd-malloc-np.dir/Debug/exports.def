@@ -1,0 +1,6 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	dummy_bsd_malloc_np
+	je_malloc_stats_print
+	sprintf_s

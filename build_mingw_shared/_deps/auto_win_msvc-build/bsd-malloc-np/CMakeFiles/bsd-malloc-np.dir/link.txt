@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\bsd-malloc-np.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\bsd-malloc-np.dir/objects.a @CMakeFiles\bsd-malloc-np.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o libbsd-malloc-np.dll -Wl,--out-implib,libbsd-malloc-np.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\bsd-malloc-np.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\bsd-malloc-np.dir\linkLibs.rsp

@@ -1,0 +1,6 @@
+EXPORTS 
+	posix_epoll_close
+	posix_epoll_create
+	posix_epoll_create1
+	posix_epoll_ctl
+	posix_epoll_wait

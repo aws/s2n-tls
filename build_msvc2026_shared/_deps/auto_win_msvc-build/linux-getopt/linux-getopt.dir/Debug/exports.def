@@ -1,0 +1,11 @@
+EXPORTS 
+	optarg 	 DATA
+	opterr 	 DATA
+	optind 	 DATA
+	optopt 	 DATA
+	__local_stdio_printf_options
+	_vfprintf_l
+	dummy_linux_getopt
+	fprintf
+	getopt
+	getopt_long

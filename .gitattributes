@@ -1,12 +1,7 @@
-*
-text=auto
-eol=lf
-*.patch
-text
-eol=lf
-CMakeLists.txt
-text
-eol=lf
-*.cmake
-text
-eol=lf
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf

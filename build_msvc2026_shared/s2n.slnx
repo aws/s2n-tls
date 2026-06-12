@@ -1,0 +1,2716 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4c137a1a-728e-3dd1-85b0-f4a9ae586e34" DefaultStartup="true">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-machine-endian/bsd-machine-endian.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-malloc-np/bsd-malloc-np.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-pthread-np/bsd-pthread-np.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-cpuset/bsd-sys-cpuset.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-endian/bsd-sys-endian.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-event/bsd-sys-event.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-file/bsd-sys-file.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-param/bsd-sys-param.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-sysctl/bsd-sys-sysctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-vm-param/bsd-vm-param.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-backtrace/linux-backtrace.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-endian/linux-endian.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-execinfo/linux-execinfo.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-features/linux-features.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-getopt/linux-getopt.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-hv-hloop/linux-hv-hloop.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-magic/linux-magic.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-rdma/linux-rdma.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-bitops/linux-sys-bitops.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-prctl/linux-sys-prctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-procfs/linux-sys-procfs.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-statfs/linux-sys-statfs.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-syscall/linux-sys-syscall.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-user/linux-sys-user.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/linux-systemd.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-alloca/posix-alloca.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-arpa/posix-arpa.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-core.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-dirent/posix-dirent.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-dlfcn/posix-dlfcn.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-glob/posix-glob.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-inttypes/posix-inttypes.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-ipc/posix-ipc.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-langinfo/posix-langinfo.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-libgen/posix-libgen.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-libproc/posix-libproc.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-mman/posix-mman.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-netdb/posix-netdb.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-netinet/posix-netinet.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-pthread/posix-pthread.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-pwdgrp/posix-pwdgrp.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-regex/posix-regex.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-sched/posix-sched.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-signal/posix-signal.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-spawn/posix-spawn.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-stat/posix-stat.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-strings/posix-strings.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-stropts/posix-stropts.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-sys-resource/posix-sys-resource.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-syslog/posix-syslog.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-termios/posix-termios.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-time/posix-time.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-times/posix-times.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-types/posix-types.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-ucontext/posix-ucontext.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-unwind/posix-unwind.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-utsname/posix-utsname.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-wait/posix-wait.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="s2n_3des_test.vcxproj"/>
+		<BuildDependency Project="s2n_aead_aes_test.vcxproj"/>
+		<BuildDependency Project="s2n_aead_chacha20_poly1305_test.vcxproj"/>
+		<BuildDependency Project="s2n_aes_sha_composite_test.vcxproj"/>
+		<BuildDependency Project="s2n_aes_test.vcxproj"/>
+		<BuildDependency Project="s2n_alerts_protocol_test.vcxproj"/>
+		<BuildDependency Project="s2n_alerts_test.vcxproj"/>
+		<BuildDependency Project="s2n_array_test.vcxproj"/>
+		<BuildDependency Project="s2n_async_offload_cb_test.vcxproj"/>
+		<BuildDependency Project="s2n_async_pkey_test.vcxproj"/>
+		<BuildDependency Project="s2n_auth_selection_test.vcxproj"/>
+		<BuildDependency Project="s2n_blob_test.vcxproj"/>
+		<BuildDependency Project="s2n_build_test.vcxproj"/>
+		<BuildDependency Project="s2n_cbc_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_authorities_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_chain_and_key_load_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_chain_and_key_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_status_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_status_response_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_cert_validation_callback_test.vcxproj"/>
+		<BuildDependency Project="s2n_certificate_extensions_test.vcxproj"/>
+		<BuildDependency Project="s2n_certificate_parsing_test.vcxproj"/>
+		<BuildDependency Project="s2n_certificate_test.vcxproj"/>
+		<BuildDependency Project="s2n_change_cipher_spec_test.vcxproj"/>
+		<BuildDependency Project="s2n_choose_supported_group_test.vcxproj"/>
+		<BuildDependency Project="s2n_cipher_info_test.vcxproj"/>
+		<BuildDependency Project="s2n_cipher_suite_match_test.vcxproj"/>
+		<BuildDependency Project="s2n_cipher_suites_test.vcxproj"/>
+		<BuildDependency Project="s2n_cleanup_test.vcxproj"/>
+		<BuildDependency Project="s2n_cleanup_with_no_init_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_alpn_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_auth_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_cert_request_context_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_cert_status_request_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_cert_verify_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_early_data_indication_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_empty_cert_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_extensions_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_finished_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_hello_get_supported_groups_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_hello_recv_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_hello_request_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_hello_retry_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_hello_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_key_exchange_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_key_share_extension_pq_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_key_share_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_max_frag_len_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_psk_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_record_version_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_renegotiation_info_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_sct_list_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_secure_renegotiation_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_server_name_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_session_ticket_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_signature_algorithms_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_supported_groups_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_client_supported_versions_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_config_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_blinding_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_context_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_preferences_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_protocol_versions_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_serialize_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_size_test.vcxproj"/>
+		<BuildDependency Project="s2n_connection_test.vcxproj"/>
+		<BuildDependency Project="s2n_cookie_test.vcxproj"/>
+		<BuildDependency Project="s2n_crl_test.vcxproj"/>
+		<BuildDependency Project="s2n_crypto_test.vcxproj"/>
+		<BuildDependency Project="s2n_drain_alert_test.vcxproj"/>
+		<BuildDependency Project="s2n_early_data_io_api_test.vcxproj"/>
+		<BuildDependency Project="s2n_early_data_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_early_data_test.vcxproj"/>
+		<BuildDependency Project="s2n_ecc_evp_test.vcxproj"/>
+		<BuildDependency Project="s2n_ecc_point_format_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_ecc_preferences_test.vcxproj"/>
+		<BuildDependency Project="s2n_ems_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_encrypted_extensions_test.vcxproj"/>
+		<BuildDependency Project="s2n_error_lookup_test.vcxproj"/>
+		<BuildDependency Project="s2n_error_type_test.vcxproj"/>
+		<BuildDependency Project="s2n_events_test.vcxproj"/>
+		<BuildDependency Project="s2n_examples_test.vcxproj"/>
+		<BuildDependency Project="s2n_extended_master_secret_test.vcxproj"/>
+		<BuildDependency Project="s2n_extension_list_parse_test.vcxproj"/>
+		<BuildDependency Project="s2n_extension_list_process_test.vcxproj"/>
+		<BuildDependency Project="s2n_extension_list_send_test.vcxproj"/>
+		<BuildDependency Project="s2n_extension_type_lists_test.vcxproj"/>
+		<BuildDependency Project="s2n_extension_type_test.vcxproj"/>
+		<BuildDependency Project="s2n_extensions_server_key_share_select_test.vcxproj"/>
+		<BuildDependency Project="s2n_fingerprint_ja3_test.vcxproj"/>
+		<BuildDependency Project="s2n_fingerprint_ja4_test.vcxproj"/>
+		<BuildDependency Project="s2n_fingerprint_test.vcxproj"/>
+		<BuildDependency Project="s2n_fips_rules_test.vcxproj"/>
+		<BuildDependency Project="s2n_fips_test.vcxproj"/>
+		<BuildDependency Project="s2n_fragmentation_coalescing_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_errno_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_fragment_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_hashes_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_invariant_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_io_async_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_io_early_data_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_io_errors_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_misc_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_partial_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_handshake_type_test.vcxproj"/>
+		<BuildDependency Project="s2n_hash_all_algs_test.vcxproj"/>
+		<BuildDependency Project="s2n_hash_test.vcxproj"/>
+		<BuildDependency Project="s2n_hkdf_test.vcxproj"/>
+		<BuildDependency Project="s2n_hmac_test.vcxproj"/>
+		<BuildDependency Project="s2n_init_test.vcxproj"/>
+		<BuildDependency Project="s2n_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_kem_preferences_test.vcxproj"/>
+		<BuildDependency Project="s2n_kem_test.vcxproj"/>
+		<BuildDependency Project="s2n_kex_test.vcxproj"/>
+		<BuildDependency Project="s2n_key_share_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_key_update_test.vcxproj"/>
+		<BuildDependency Project="s2n_key_update_threads_test.vcxproj"/>
+		<BuildDependency Project="s2n_ktls_io_sendfile_test.vcxproj"/>
+		<BuildDependency Project="s2n_ktls_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_ktls_mode_test.vcxproj"/>
+		<BuildDependency Project="s2n_ktls_test.vcxproj"/>
+		<BuildDependency Project="s2n_ktls_test_utils_test.vcxproj"/>
+		<BuildDependency Project="s2n_libcrypto_test.vcxproj"/>
+		<BuildDependency Project="s2n_locking_test.vcxproj"/>
+		<BuildDependency Project="s2n_malformed_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_map_iterator_test.vcxproj"/>
+		<BuildDependency Project="s2n_map_test.vcxproj"/>
+		<BuildDependency Project="s2n_mem_allocator_test.vcxproj"/>
+		<BuildDependency Project="s2n_mem_test.vcxproj"/>
+		<BuildDependency Project="s2n_mem_testlib_test.vcxproj"/>
+		<BuildDependency Project="s2n_mem_usage_test.vcxproj"/>
+		<BuildDependency Project="s2n_mldsa_test.vcxproj"/>
+		<BuildDependency Project="s2n_multi_message_test.vcxproj"/>
+		<BuildDependency Project="s2n_mutual_auth_test.vcxproj"/>
+		<BuildDependency Project="s2n_next_protocol_test.vcxproj"/>
+		<BuildDependency Project="s2n_npn_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_nst_early_data_indication_test.vcxproj"/>
+		<BuildDependency Project="s2n_openssl_x509_test.vcxproj"/>
+		<BuildDependency Project="s2n_optional_client_auth_test.vcxproj"/>
+		<BuildDependency Project="s2n_pem_rsa_dhe_test.vcxproj"/>
+		<BuildDependency Project="s2n_pem_test.vcxproj"/>
+		<BuildDependency Project="s2n_pkey_signing_test.vcxproj"/>
+		<BuildDependency Project="s2n_pkey_test.vcxproj"/>
+		<BuildDependency Project="s2n_policy_defaults_test.vcxproj"/>
+		<BuildDependency Project="s2n_policy_writer_test.vcxproj"/>
+		<BuildDependency Project="s2n_post_handshake_recv_test.vcxproj"/>
+		<BuildDependency Project="s2n_post_handshake_send_test.vcxproj"/>
+		<BuildDependency Project="s2n_post_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_pq_kem_test.vcxproj"/>
+		<BuildDependency Project="s2n_pq_mlkem_policies_test.vcxproj"/>
+		<BuildDependency Project="s2n_pq_mlkem_test.vcxproj"/>
+		<BuildDependency Project="s2n_prf_key_material_test.vcxproj"/>
+		<BuildDependency Project="s2n_protocol_preferences_test.vcxproj"/>
+		<BuildDependency Project="s2n_psk_key_exchange_modes_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_psk_offered_test.vcxproj"/>
+		<BuildDependency Project="s2n_psk_test.vcxproj"/>
+		<BuildDependency Project="s2n_quic_support_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_quic_support_test.vcxproj"/>
+		<BuildDependency Project="s2n_quic_transport_params_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_random_test.vcxproj"/>
+		<BuildDependency Project="s2n_rc4_test.vcxproj"/>
+		<BuildDependency Project="s2n_record_read_test.vcxproj"/>
+		<BuildDependency Project="s2n_record_size_test.vcxproj"/>
+		<BuildDependency Project="s2n_record_test.vcxproj"/>
+		<BuildDependency Project="s2n_record_write_test.vcxproj"/>
+		<BuildDependency Project="s2n_recv_buffering_test.vcxproj"/>
+		<BuildDependency Project="s2n_recv_test.vcxproj"/>
+		<BuildDependency Project="s2n_release_non_empty_buffers_test.vcxproj"/>
+		<BuildDependency Project="s2n_renegotiate_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_renegotiate_test.vcxproj"/>
+		<BuildDependency Project="s2n_resume_test.vcxproj"/>
+		<BuildDependency Project="s2n_rfc5952_test.vcxproj"/>
+		<BuildDependency Project="s2n_rsa_pss_rsae_test.vcxproj"/>
+		<BuildDependency Project="s2n_rsa_pss_test.vcxproj"/>
+		<BuildDependency Project="s2n_safety_blinding_test.vcxproj"/>
+		<BuildDependency Project="s2n_safety_macros_test.vcxproj"/>
+		<BuildDependency Project="s2n_safety_test.vcxproj"/>
+		<BuildDependency Project="s2n_seccomp_failure_test.vcxproj"/>
+		<BuildDependency Project="s2n_seccomp_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_security_policies_rules_test.vcxproj"/>
+		<BuildDependency Project="s2n_security_policies_test.vcxproj"/>
+		<BuildDependency Project="s2n_security_policy_cert_preferences_test.vcxproj"/>
+		<BuildDependency Project="s2n_security_rules_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_alerts_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_alpn_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_broken_pipe_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_certificates_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_client_hello_cb_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_custom_io_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_io_mem_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_key_log_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_ktls_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_min_protocol_version_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_nonblocking_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_npn_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_offload_signing_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_psk_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_quic_support_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_session_id_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_session_resumption_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_shutdown_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_tls12_test.vcxproj"/>
+		<BuildDependency Project="s2n_self_talk_tls13_test.vcxproj"/>
+		<BuildDependency Project="s2n_send_key_update_test.vcxproj"/>
+		<BuildDependency Project="s2n_send_multirecord_test.vcxproj"/>
+		<BuildDependency Project="s2n_send_test.vcxproj"/>
+		<BuildDependency Project="s2n_sequence_number_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_alpn_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_cert_request_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_cert_status_request_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_early_data_indication_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_extensions_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_finished_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_hello_retry_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_hello_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_key_share_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_max_frag_len_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_new_session_ticket_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_psk_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_renegotiation_info_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_sct_list_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_server_name_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_session_ticket_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_signature_algorithms_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_server_supported_versions_extension_test.vcxproj"/>
+		<BuildDependency Project="s2n_session_ticket_test.vcxproj"/>
+		<BuildDependency Project="s2n_shutdown_test.vcxproj"/>
+		<BuildDependency Project="s2n_signature_algorithms_test.vcxproj"/>
+		<BuildDependency Project="s2n_signature_scheme_test.vcxproj"/>
+		<BuildDependency Project="s2n_ssl_prf_test.vcxproj"/>
+		<BuildDependency Project="s2n_sslv3_test.vcxproj"/>
+		<BuildDependency Project="s2n_stacktrace_test.vcxproj"/>
+		<BuildDependency Project="s2n_stream_cipher_null_test.vcxproj"/>
+		<BuildDependency Project="s2n_strongly_preferred_groups_test.vcxproj"/>
+		<BuildDependency Project="s2n_stuffer_base64_test.vcxproj"/>
+		<BuildDependency Project="s2n_stuffer_hex_test.vcxproj"/>
+		<BuildDependency Project="s2n_stuffer_network_order_test.vcxproj"/>
+		<BuildDependency Project="s2n_stuffer_test.vcxproj"/>
+		<BuildDependency Project="s2n_stuffer_text_test.vcxproj"/>
+		<BuildDependency Project="s2n_test_mismatched_curves.vcxproj"/>
+		<BuildDependency Project="s2n_testlib_test.vcxproj"/>
+		<BuildDependency Project="s2n_timer_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls12_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_cert_request_extensions_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_cert_request_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_cert_verify_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_client_finished_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_compute_shared_secret_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_handshake_early_data_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_handshake_state_machine_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_hybrid_pq_shared_secret_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_key_schedule_rfc8448_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_key_schedule_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_keys_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_new_session_ticket_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_parse_record_type_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_pq_handshake_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_prf_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_pure_pq_shared_secret_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_record_aead_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_secrets_rfc8448_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_secrets_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_server_cert_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_server_finished_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_support_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls13_zero_length_payload_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls_prf_test.vcxproj"/>
+		<BuildDependency Project="s2n_tls_record_stuffer_test.vcxproj"/>
+		<BuildDependency Project="s2n_utils_test.vcxproj"/>
+		<BuildDependency Project="s2n_wildcard_hostname_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_get_validated_cert_chain_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_intent_verification_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_validator_certificate_signatures_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_validator_custom_oids_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_validator_test.vcxproj"/>
+		<BuildDependency Project="s2n_x509_validator_time_verification_test.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/solaris-port/solaris-port.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/solaris-sys-byteorder/solaris-sys-byteorder.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/solaris-sys-feature-tests/solaris-sys-feature-tests.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-cpuset/test_bsd-sys-cpuset.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-sysctl/test_bsd-sys-sysctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-bitops/test_linux-sys-bitops.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-alloca/test_posix-alloca.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/test_posix-core.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-dlfcn/test_posix-dlfcn.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-langinfo/test_posix-langinfo.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-libproc/test_posix-libproc.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-mman/test_posix-mman.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-pthread/test_posix-pthread.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-regex/test_posix-regex.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-signal/test_posix-signal.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-spawn/test_posix-spawn.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-syslog/test_posix-syslog.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-termios/test_posix-termios.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-time/test_posix-time.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-times/test_posix-times.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-types/test_posix-types.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-unwind/test_posix-unwind.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-utsname/test_posix-utsname.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-wait/test_posix-wait.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/Continuous.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="18d7fae9-2a01-3fc0-a1b5-5620d00e2ab2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/Experimental.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e7c1b872-82b0-31f9-ab49-eccee268b7f3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="INSTALL.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3a2ebfce-8111-35f7-953e-7014c75054c4">
+		<BuildDependency Project="ALL_BUILD.vcxproj"/>
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/Nightly.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="029c24cf-1871-3eb4-9da7-593cdc58a32c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/NightlyMemoryCheck.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f8ce20e6-e46f-3641-b5b0-e75f54efb449">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="PACKAGE.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="55c5d127-b017-39f2-97af-42f3c2dfae99">
+		<BuildDependency Project="ALL_BUILD.vcxproj"/>
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="RUN_TESTS.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="10db57e9-3f46-39cf-baa0-eedd8a1c3b81">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="15e32d39-0b40-32d7-a429-c343f16fdc10"/>
+	<Project Path="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="198192c9-878d-3fe0-83bc-bb676fe390f4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-machine-endian/bsd-machine-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e5da372e-c56f-3c7f-ac23-b2087b10c1c5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-malloc-np/bsd-malloc-np.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f3d103b-2909-341f-8987-014280053f64">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-pthread-np/bsd-pthread-np.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c19f9fe2-76d6-345c-8e63-3f00685622db">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-cpuset/bsd-sys-cpuset.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="337523d8-f278-344d-8fc9-9ae3b12e5725">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-endian/bsd-sys-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dc8eb732-a2a5-3831-bc17-874c6b8f4fdf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-event/bsd-sys-event.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="67919580-1319-384e-9015-a56400b9d34c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-file/bsd-sys-file.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f5f75bf-078f-3275-a2c0-6261bc4c4669">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-param/bsd-sys-param.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9cc8ad41-b776-36e3-84b5-86664d3f1afe">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-sysctl/bsd-sys-sysctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cc9a9696-b8f0-3ec2-8032-838c871012a6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-vm-param/bsd-vm-param.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="32513d60-8a52-38d3-a91a-624626934668">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-backtrace/linux-backtrace.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="566d1807-06fa-348a-b6bd-f31760823619">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-endian/linux-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8c8df9eb-5107-3597-957b-33255fe9f0ba">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-epoll/linux-epoll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b5e1936a-4100-34a8-b316-c945613c6c19">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-execinfo/linux-execinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d663984c-aa5d-3790-ad1e-98d2ead8a1de">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-features/linux-features.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2f7c5d6f-b230-3cc8-bde1-bac28ece772b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-getopt/linux-getopt.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fd02c131-94c0-37bb-b505-b180e694af3b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-hv-hloop/linux-hv-hloop.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1f70ac8a-13e3-3ab2-8296-c5ed6bd11546">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-magic/linux-magic.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1fac7c19-7ed4-3169-b6bd-7366d1e89cb7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-rdma/linux-rdma.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="33cd8324-25b1-34f5-82af-65be4e30a3eb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-bitops/linux-sys-bitops.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b1eb6ac7-28dc-31cf-960d-190341e662a8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-prctl/linux-sys-prctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8f1924cd-b447-35e8-a1c7-7649cc8b0feb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-procfs/linux-sys-procfs.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7936e3da-9337-302b-b0f6-31c472916899">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-statfs/linux-sys-statfs.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9bcfd6ca-bb3a-3f90-bf64-5c70a0570336">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-syscall/linux-sys-syscall.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="be9d938e-6d14-3bf9-b6e3-bfcf66e694d7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-user/linux-sys-user.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8847024a-5dea-3bf3-b921-dbb3692ea12a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-systemd/linux-systemd.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="36607991-61f6-34f0-83c3-020291169323">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-alloca/posix-alloca.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7246e201-f850-3485-af27-38924046044c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-arpa/posix-arpa.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9c9e73b7-88b8-3e87-8332-b439cb8deeb5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/posix-core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="78794ca1-5b51-3599-9fc1-9a22b0d31c7c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sockets.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-dirent/posix-dirent.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b12ce96e-2d76-39de-9a25-e6a45fa50c2f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-dlfcn/posix-dlfcn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4c87574f-ec74-33f2-9f77-d43632c5393c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-glob/posix-glob.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="96c8d638-32fd-39ae-ba8f-d0024b5f51cd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-inttypes/posix-inttypes.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="42a69707-4a2d-3266-bb03-5a47eca3a044">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-ipc/posix-ipc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e51719ef-2f93-3ca5-9d9b-81ed1c65f97e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-langinfo/posix-langinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dcaa2697-5ef2-315d-97a2-6e8cde5b4991">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-libgen/posix-libgen.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="25ca34bc-3073-3420-b8f1-e6a4197c4ae1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-libproc/posix-libproc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bef4576b-d335-3c06-b0ff-b75c1bb3ba0a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-mman/posix-mman.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="18856684-a5f2-361e-9442-5d49d75179af">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-netdb/posix-netdb.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3d570ddb-83bf-374e-a36e-6e60b830c2ac">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-netinet/posix-netinet.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ce6904fa-f4db-30d2-9f6d-05f29d36222d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7e3dbc59-e58c-398a-ad48-807acb36fca9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-pthread/posix-pthread.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e2237413-a381-3509-8425-7d98197049e2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-pwdgrp/posix-pwdgrp.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fd8055f9-6ff4-3604-b845-9e8d73a88cc6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-regex/posix-regex.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ea21c4be-22fb-3aa8-97c7-6c8ca6290c7c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-sched/posix-sched.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="16d4024f-b197-3526-915c-6dc54802445e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-signal/posix-signal.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="99a3e6a9-713d-3319-aed0-87a63a69a17e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sockets.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="61f63880-850f-3941-8ae1-748ea56476ec">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-spawn/posix-spawn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="62739656-2975-3dc9-9449-6160fcd32151">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-stat/posix-stat.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2f28b634-c4e3-3409-9ece-515297fa0721">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="302e96d4-a42d-3f36-9d48-54a5ab16c15e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-systemd/posix-stdint_build/posix-stdint.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0c6e0f5a-f52b-3dc2-88d5-e6289b1242df">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-strings/posix-strings.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d444f446-ea31-3330-bfca-f00290d83835">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-stropts/posix-stropts.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="83ac40a5-4635-3a04-929d-e6a4c3899651">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0ce41235-85ba-378d-8b58-b2fe7bb41799">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-sys-resource/posix-sys-resource.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2b56ee63-27c7-3ef5-946a-1242d57aae79">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="61dc87e6-12cf-39b5-bac8-02405a254b25">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-syslog/posix-syslog.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d7ead57e-3ae3-3c2f-9f17-07d43155caa0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-termios/posix-termios.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d5f99095-b99d-3ebe-9d75-a79780b26b7a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-time/posix-time.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="84a128a2-d7cf-3284-a0b4-699fe7c0d2be">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-times/posix-times.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c78a6340-0c11-3fec-84d8-f2b7ecc39d5c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-types/posix-types.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4ab075a8-3891-31d6-a1bc-48b2d251ef39">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-ucontext/posix-ucontext.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="201fb9aa-329f-3f8f-9cb1-6eaad104c2dc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-unwind/posix-unwind.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="94b6fd2d-89e4-3f49-8412-de5400bfd35f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-utsname/posix-utsname.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="403bd004-61f9-3968-bd8a-2b9397137e5e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-wait/posix-wait.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b92de22a-4a5d-3e91-91af-8952de81d70c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="s2n.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d113494c-f33f-38d6-98cb-f139507f8ebe">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_3des_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="58c5c0b5-9f84-322f-915c-efed61415b2f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_aead_aes_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cc929759-d459-328b-9702-619d98881e97">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_aead_chacha20_poly1305_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ee95cbed-5a0a-31c2-ba68-cb881d3d8ab5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_aes_sha_composite_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f5f3a17c-1844-3875-8b27-286a03375c8a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_aes_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2455b3e5-bd43-3c9f-8f46-3875acad6467">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_alerts_protocol_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7b050b80-674d-35ac-8fc5-a899906cf222">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_alerts_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1c97515e-41ef-3e8b-9287-abfa50d78301">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_array_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="119fb8d4-be72-3975-934b-8992a76376ca">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_async_offload_cb_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0ad8cf9b-aeca-30ec-a258-0c3f388506ab">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_async_pkey_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="465dd9ad-4af1-35a8-8359-f1949e5d3ced">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_auth_selection_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b619e0c0-9529-3704-b555-320fc3f1fefd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_blob_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aca3bfd4-5428-3996-8d83-136028c03d31">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_build_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aaec4b73-ad27-356f-adbf-c0a456ca164c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cbc_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="afc2e4b6-0f34-3551-b50a-5c80cc1b0450">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_authorities_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e6be5ac3-d634-3ab0-b529-e6576a2d68c4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_chain_and_key_load_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="081d26ee-6456-3328-affd-8d5aad780880">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_chain_and_key_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d0204f1e-e335-3071-8ba6-770885ba870f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_status_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cecbf4fa-ad20-3b88-a5f2-0b4fc8afe893">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_status_response_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a534b30d-945b-3ceb-b194-8851606bc28a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cert_validation_callback_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5505cd8f-af16-38df-8eed-1d68bde16eeb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_certificate_extensions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8e959c6e-a34f-3bac-91f8-fd9030eb1cd4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_certificate_parsing_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6e05b288-f116-3b40-ba91-a204f700bbf3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_certificate_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b4fc77be-6bfa-3417-badd-9477656cc78f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_change_cipher_spec_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9b2c3b1f-690c-3899-a70a-44ebd42de689">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_choose_supported_group_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3ae42552-b32b-3709-aa01-cc713422b723">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cipher_info_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3c0402dd-35b8-328c-b59e-140d1fc11aa2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cipher_suite_match_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f2c6eef-c47e-3ed6-8a66-043a5ad0c328">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cipher_suites_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="96f8f3df-168a-31d0-b4bc-9078c4df8d7c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cleanup_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8a083036-ebbd-30f2-8c46-b35b3a4b9c1b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cleanup_with_no_init_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c1f5e83a-49d7-3f72-af4d-10813e843e73">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_alpn_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="13aadced-1a6c-3cd5-a835-3783c01640c1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_auth_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="66890873-9b28-3dca-985f-b8ca75390adf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_cert_request_context_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dd6d6bf8-7fb7-3576-9fc0-877ebcfd0075">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_cert_status_request_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="472977d5-d02b-3fdb-8f23-a44c07cf3010">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_cert_verify_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e1151f9d-7bee-3518-bd05-8c4e5c2459ab">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_early_data_indication_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cb45e77a-acd0-3171-8150-8cd9864824d5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_empty_cert_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d9fa1ede-61e9-3e55-8264-e58d1e636d7b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_extensions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2f230e42-27f7-39d5-9500-95e70f8d8548">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_finished_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="28839d44-954e-313a-807d-54b9215f103e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_hello_get_supported_groups_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c9a052b9-6510-3bb0-8cde-6767f2429621">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_hello_recv_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a09f1123-1794-35bd-9eab-e4a51b5a8a54">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_hello_request_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b5469303-9b14-3248-9d5e-2032490ce6c9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_hello_retry_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a4c13291-2983-33fb-a31a-dc7cf879c616">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_hello_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b8558a04-20ea-33d1-b896-0a45802c4af8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_key_exchange_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9a51fdb9-6b1c-33bc-b914-d1df5183dd7f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_key_share_extension_pq_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="91028ecd-cbf6-3da6-8eba-4239a1609503">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_key_share_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4e6b9097-6f24-3d33-92f5-2aaab45c53bf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_max_frag_len_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3ba8d2ab-77b7-379a-8439-fefe562cd20e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_psk_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cc110826-362d-3820-b8a0-d4a05f1c682b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_record_version_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ebfefa0a-6550-3123-8f04-053b30a32e52">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_renegotiation_info_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6253979b-9e48-3c84-8def-0e05184cc299">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_sct_list_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="283dc607-89e1-3ebd-93a2-349d22c66abb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_secure_renegotiation_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8a60c290-40d1-3ac6-b94a-d25b0a8f868b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_server_name_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="81597fda-7f94-3208-b5c8-06525cb17ec3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_session_ticket_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="22d2f1b5-2255-3548-b011-6de3328f720c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_signature_algorithms_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="763a3ee8-ecda-3444-ac49-1c009a17b18e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_supported_groups_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="22f932fc-9956-3036-b7b1-3ad86bb0e954">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_client_supported_versions_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="670aa946-7dab-3515-a684-efe095c62f9e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_config_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a153ec0a-e5a0-35c9-838f-4748768fadcc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_blinding_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7d322b90-5de2-3096-9c8b-611f109121c6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_context_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1e6f195e-c5bd-3533-bf34-c96763a11d21">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_preferences_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="623d30e5-15e4-3a88-b18a-0aaaf127a75c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_protocol_versions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f41917a3-9afe-3848-93a1-94f96c01bda1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_serialize_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="33c171b7-318b-33a7-80cb-56db47e075de">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_size_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fd1ea2c2-578b-3942-8e92-586ff8f22431">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_connection_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="42a3f7bb-113f-3acf-adef-3fcacd4e2b8f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_cookie_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7981106e-e82b-382f-b1b8-b537f48c80c9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_crl_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e888c99a-2f06-3112-b54f-37faaf7f6aa5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_crypto_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ef2745c2-3004-32b9-88e9-7b5c3c2a9909">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_drain_alert_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="243a68da-5825-36b2-847d-a64f4f5a7c7e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_early_data_io_api_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c9ae1fbf-8f66-3c53-887a-cde1da024a8b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_early_data_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="da690d2b-0e8e-379c-8d6a-18bf6d2a4cae">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_early_data_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="da3b95a1-157a-3000-b487-f29a192c24eb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ecc_evp_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7d0cadef-b13f-3095-b859-f1ccb7d7c5a2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ecc_point_format_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b85be479-d8e4-3a9e-b427-f418a908fe23">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ecc_preferences_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c1a20df3-c39b-3b98-894d-6f38fdca57e4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ems_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9a0b2fb1-c095-378a-99c1-3c7ca0669f01">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_encrypted_extensions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="477b05da-386c-362a-90f2-cac29dbaf591">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_error_lookup_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1cce772e-c922-30db-833a-f8abcc4017be">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_error_type_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dc265ffe-4b59-332f-bed0-2c2c5fb04947">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_events_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b59cf36e-757f-3d5a-8b44-6bcd7e7bd84d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_examples_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="964b8c05-55ed-3d7e-9c9a-21b517933e1f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extended_master_secret_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c1e5230d-6b81-3916-b50c-e96ddfdc333c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extension_list_parse_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ba17397f-1e7e-365c-9e3a-61fd1b49cd0b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extension_list_process_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e97e626d-d52c-3f66-b6cb-e18e71cf3c2b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extension_list_send_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1adb2be3-b915-3a8d-a0d6-cdb009ec8aec">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extension_type_lists_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e631ada3-485b-3f6e-afd4-cf032bd0c88d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extension_type_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="22965878-068d-383f-8e71-9da4e0ce80db">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_extensions_server_key_share_select_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a167d17c-4016-3425-a8f8-051a79f9cdbf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fingerprint_ja3_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a33401ea-f7b3-3e1a-90e9-5b43e31c94cf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fingerprint_ja4_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b70a23cf-3c64-32a1-99ec-be12cdfe3e31">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fingerprint_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bf78b6f7-9575-339d-86e9-1117a17bae5b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fips_rules_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9bc272d0-a1d6-345e-9880-5c82d98ee79a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fips_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e87f9dd4-dea5-3098-a398-509baa8d9fc7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_fragmentation_coalescing_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1d5729ec-9456-32a0-ac26-7eb75e477614">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_errno_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6e371bae-1c5d-3b2c-84cf-b092d537cb5f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_fragment_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5347bb24-7397-3d70-b27d-0db6fc97fc82">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_hashes_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b1330a87-15d8-3ad7-86c1-064f274c39ca">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_invariant_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0658e3d7-7432-38ae-a4a2-523b5c30d0ae">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_io_async_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3b23ae17-70d1-356d-97e6-887ce08c22bf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_io_early_data_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="eb9c472c-d1e3-35a5-98a4-5b963ec7d9f8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_io_errors_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3ed8bb08-12ce-3297-a253-ce474cdf74fd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a78ec1b2-4d3e-3eed-a13e-ec6e10bfd70a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_misc_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="87c0a578-be2a-34ab-959f-750bfa3b7ac0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_partial_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7ca88245-eda7-38ca-835f-4ddf0f6e989b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9d5e13f4-50c6-3cb7-8e18-0a180e93f425">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_handshake_type_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e3cf4ecb-a271-3c83-8047-738eb8fdf8a2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_hash_all_algs_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aeb9e97c-9c25-3e03-a64e-8f0d5929193b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_hash_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="00307fa7-9e27-3c47-b336-f204392ec8d6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_hkdf_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1ebfa826-0f30-3604-b5bc-ca5342d4788a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_hmac_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f632761-ea44-3906-a4b1-f3370eed4ef8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_init_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="907f5907-a89b-37c9-8b93-4483ed38f1bc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2a1dbae8-002b-32f4-a3d4-c3cc5449a8b0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_kem_preferences_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="99b65d48-9065-3b15-8790-d7b43798df25">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_kem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f109e530-65a8-3b49-a0ed-d67fee239067">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_kex_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7cd6812c-070b-3e0d-b702-dda3a4f41c41">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_key_share_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="76c9f1c9-183d-3f9a-8635-4568061dc1ab">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_key_update_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0e30206e-560a-301d-985b-a3cdcbb3eb5e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_key_update_threads_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e8472d75-47dc-3486-8689-82ed622bc79a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ktls_io_sendfile_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a9d221ea-5c1b-3212-91a8-30790411d5d0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ktls_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ff5d0f5a-c625-3c41-9aff-10f4636c2c49">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ktls_mode_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="25f27a04-2ab7-37ab-9bd8-54ed6c8f6906">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ktls_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="59de1b76-def0-3907-a78a-7bda44422190">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ktls_test_utils_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="65b3152f-3915-350f-84d9-e312e497b6ec">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_libcrypto_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="86952a8a-0385-3265-8536-107f24670828">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_locking_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="84258ff0-c830-38d1-9e6b-0f7d33bcf213">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_malformed_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4dbc343c-aad6-335d-be8f-4d9e557cb7f3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_map_iterator_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="83e252de-7361-3abf-b5a4-b46430b4e244">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_map_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aeb7b993-2dd0-32be-a5e1-f18f95854238">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mem_allocator_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b7688f7e-f837-3114-afaa-c830e6826e73">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="388c8619-b174-3760-9437-7dea0516b160">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mem_testlib_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a2a8ae17-a8e1-3c5c-9896-fcead1bbc347">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mem_usage_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="56f05d30-d9ac-35f1-9dce-7f213572669c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mldsa_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8903158c-aa5b-3542-aa54-9b953d9ed80f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_multi_message_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a6e39354-f501-3495-8359-5663c27863b4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_mutual_auth_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4e0cc7c3-bbf8-3721-98d7-8249ff274723">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_next_protocol_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="85efcdf6-ce2f-323e-b336-40c5b3964266">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_npn_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ffe1646f-8114-31c3-a016-682b02950387">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_nst_early_data_indication_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="55daf651-d2a3-3ea8-999f-54c7cfd284e0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_openssl_x509_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ae7d8ef7-87e2-3f5a-b68e-c27f0296f9b4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_optional_client_auth_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f68a172a-1131-3c09-b896-688c278b3f97">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pem_rsa_dhe_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d93fdaab-5af6-3abb-ab9f-133d9071f451">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="33487b05-9e0d-36b0-b357-0fc2bc701e98">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pkey_signing_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4b19709b-ec93-3d01-b165-86ed7cf0567e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pkey_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="29d6500a-dffe-357f-8b38-1f94e30d2b6f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_policy_defaults_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c8c7d5bb-dc13-3147-a61d-943ea77a14ce">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_policy_writer_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="85204a0f-30db-32f5-9b61-a323beddde35">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_post_handshake_recv_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="82d3849f-05d5-3847-9406-4a523cc01160">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_post_handshake_send_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f15db1fb-7708-3486-b200-320f88e76377">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_post_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7f8c1d64-2343-3b5b-8fe9-0233f85c7404">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pq_kem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="834e2c2d-2127-38c3-b899-0da3b2da60c6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pq_mlkem_policies_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1f596ae6-4d29-3760-9e3a-7d6bb2adc68a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_pq_mlkem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a408a674-3b22-39b1-a58f-dd4038e9d327">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_prf_key_material_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0c9f9353-9de7-3537-9551-7ab9b06f5bfc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_protocol_preferences_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d5cc7a7b-1560-3b70-b33a-28d303a779a6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_psk_key_exchange_modes_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8342480d-d54d-3b95-b119-55fafee50aa2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_psk_offered_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="02b6d507-ef0c-3c2f-a8cb-5b6b2a8b4642">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_psk_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1163d9c5-aaea-32cf-97fe-fbf9badb21d6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_quic_support_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f6a0632a-fe25-326a-b921-2d9e9af405e4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_quic_support_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3239a9b1-034e-31b6-931a-6eb5aa957121">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_quic_transport_params_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="53e1dd44-977a-3d57-aa11-7c76d3d60322">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_random_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="da416e87-50bc-3ead-904f-b94ef5afadbc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_rc4_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="47b34cab-3dbe-39a2-aa7e-7b6c57f97c04">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_record_read_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9fa2eacd-fe5f-3617-ac60-ba0435dc5eec">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_record_size_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0726a1a9-ba07-3960-a1d8-c714588a1c94">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_record_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b4e92035-ea99-3e8e-b9d3-b8f9e69f5cad">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_record_write_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6da67ffc-c5c5-381d-b7ff-1ff2ef64b07e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_recv_buffering_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="996d02c5-6a04-3852-b8f8-999b8ee48f59">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_recv_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="49e189d7-b631-3a78-9e37-891702393ffc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_release_non_empty_buffers_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dda976a9-83aa-3712-8d76-8355551525f0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_renegotiate_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="35cded98-c7c0-31df-86f6-f35a926aaa79">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_renegotiate_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="95eaf321-863b-3fc8-a800-935638a92970">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_resume_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b89c5a57-ed56-3177-b5c9-74b7c1790085">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_rfc5952_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="598cf9e5-6e8c-39a4-a7a1-52721b2a1ad5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_rsa_pss_rsae_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="31ac9f72-ee0f-37f1-b539-72c6b681b30f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_rsa_pss_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d89edc3f-738b-34da-9e0f-2d37a89cafb5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_safety_blinding_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4ab5b55b-007a-3212-b2a5-bf3c97b2a4c2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_safety_macros_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b31d7419-5c94-3d3e-9186-3db69e78b995">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_safety_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c9aaf10a-0f95-38ac-963a-f60b2467e2f1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_seccomp_failure_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="16a67176-4211-3439-8707-e79fdb71e1de">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_seccomp_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="42d0bfa9-ffee-3933-9d5a-f786b0a73952">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_security_policies_rules_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="38ec1289-c4c9-3137-8bc1-c2eac07088a1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_security_policies_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d17dd052-86fc-3498-be88-e1bc99034b5d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_security_policy_cert_preferences_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0582b249-497f-3a52-b588-8592c9481419">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_security_rules_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7b31c7ef-1b45-35d0-9358-3ac4d97d6c81">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_alerts_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="69d356eb-76b3-30dc-b549-b4946d7acfaf">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_alpn_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="63cd83e3-7764-3db1-b059-faf30167d06a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_broken_pipe_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="35129ed7-a359-339b-bd4d-a4742f359107">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_certificates_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="036bed84-f19e-3a51-b75b-26db9cd2146c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_client_hello_cb_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9d243fb6-247f-35dc-9307-b64d93d69f19">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_custom_io_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="facafe12-50c8-3d97-99b1-23b75979a14b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_io_mem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aa2a5d65-1e23-3b72-a4fc-3e1fdcbdbdb0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_key_log_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1b1b1872-9e42-357e-b7be-a02ea0a39049">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_ktls_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b70b0a96-c97d-3f0b-803a-34473043b39e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_min_protocol_version_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9ade4af1-02ce-3f3d-beeb-ab36ab64590d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_nonblocking_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5cada478-17c4-30f4-94f9-c2a27751b5b0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_npn_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="af144d88-a4ee-3cbe-9a4a-231020d69489">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_offload_signing_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d34a3126-df2e-35f5-9df0-8e2214038ab2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_psk_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b6261caf-b92c-38e9-81db-70ef51fa185d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_quic_support_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c8c157d7-6243-3d30-826c-53fda45955ce">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_session_id_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d5c55326-3e19-32c5-806a-2e40c6f30bcc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_session_resumption_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="64696ed0-3455-39f1-ad98-ec92db7e5a24">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_shutdown_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0d54f7e6-7848-374e-ada5-4b5f24e0f4fa">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_tls12_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="221196db-e530-36c7-bd69-18e120536d58">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_self_talk_tls13_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7c94d9ed-8f3d-3702-ae95-9ca59f5b920c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_send_key_update_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b92298c0-b015-3b5c-9c92-4e2eff166223">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_send_multirecord_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="75c96682-8af8-377b-9e19-1b6ba5cda908">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_send_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="60f7222e-f12b-3410-bc28-4e9f4a04c433">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_sequence_number_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e3622517-9cc3-338e-a201-c701ead9756c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_alpn_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="67918f64-1599-3b74-b4c2-6e9e4dd4e11a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_cert_request_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f5b293eb-905b-3fdc-b56b-5eb24852b93b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_cert_status_request_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ba02d524-95fe-32c8-b962-fb3ac70c9cf1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_early_data_indication_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c5fae7bc-c386-34eb-befe-589b229f8521">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_extensions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="eeb2c02e-0004-3fb8-b402-0bd65c686a65">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_finished_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cd36ff91-fb4b-3dc7-82bd-48c01bc39c17">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_hello_retry_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="656cf5bf-4bf4-3002-8b2d-7c5403e30ee9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_hello_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5b7a3aad-55ff-3ca1-88da-353a715bd5f4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_key_share_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e36c35c9-3b5d-39b6-ad38-88e0d75de4bb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_max_frag_len_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="358ea8cd-bd5a-3bd7-b291-379a014c76f5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_new_session_ticket_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9af77d5c-49a4-34e8-8182-0b73b6c6cc09">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_psk_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ab9f84f7-e633-3f5e-9016-fc56eab960b9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_renegotiation_info_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="92ae89f2-625f-36d1-9e07-baeef31821d0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_sct_list_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9d6ea72e-4745-312c-a1b3-1c5b74aeaf00">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_server_name_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="933862fc-538a-3278-9ba7-eba666365fe6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_session_ticket_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="59c27fdf-4489-3331-97f3-159c4b11886f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_signature_algorithms_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3113d282-d55c-356d-90af-6f32db351b84">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_server_supported_versions_extension_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="72ff9e66-0f1d-3597-b185-16263d43e943">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_session_ticket_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fcda6916-1840-393b-aab3-728346f281e5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_shutdown_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="634e49bf-a780-3de6-9392-78bfce19e0dd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_signature_algorithms_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="afaee951-1cf1-3a52-9335-ec51d3c34378">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_signature_scheme_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a5477554-2898-3a7f-aa17-d09439ac8e37">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_ssl_prf_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ff4f1b30-6069-32ae-8bdb-d42d23af013e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_sslv3_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="50dece52-73af-3fac-804b-6378fa9cd120">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stacktrace_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d9200419-dcb6-3879-ab9a-5217397afd6a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stream_cipher_null_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="83a5fc51-d33e-3ae1-ab5a-2d9d22b9086b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_strongly_preferred_groups_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3ec7861d-afa5-3772-a64d-99bd9edd4444">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stuffer_base64_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="08e875e6-0466-3a63-9fa4-1ab34a944a04">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stuffer_hex_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6e365ff3-0691-3a6a-a702-ca4d51b818ca">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stuffer_network_order_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="caf1c069-6909-3de7-a8cd-a6f27df67fd5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stuffer_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6595f075-fdd8-3a3d-b1e7-a79e4e61c97a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_stuffer_text_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9be2e58f-e431-3609-8bad-dc73902a3a51">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_test_mismatched_curves.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b648e498-bf0b-3b31-8bcc-4105f6394021">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_testlib_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2b3805ee-5376-38a8-8442-b2c8be2e1404">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_timer_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1e3cc7cc-05d8-3169-86ee-746833fcc270">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls12_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0aadcea0-68ee-3ca4-bd7a-cca823243781">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_cert_request_extensions_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="db764b64-3c0a-3de4-a27f-2582aa2d807a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_cert_request_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c5295fd3-8ba4-3b57-8d3e-7bec0d956512">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_cert_verify_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3225a62b-fd63-30a8-b7cc-569f671e114d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_client_finished_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a0fd4c25-ee20-355e-8b24-7f6b514eb28a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_compute_shared_secret_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a0653577-4623-3bd9-b5dd-4ca29cd3eb58">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_handshake_early_data_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="80dd3c20-3e79-3551-b096-cf56683d7c5f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_handshake_state_machine_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2bfe76cb-0bbd-3d34-93f5-85876a08bc0a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a7ca4f85-f383-32b5-a9ef-7891403a4f06">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_hybrid_pq_shared_secret_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bcd80ed0-52f5-3e4f-aa61-645974b8bb5c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_key_schedule_rfc8448_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f59c9c70-469c-3736-915f-e97f16f9a467">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_key_schedule_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b66a2043-72c3-3c98-8eec-be0daa0739a9">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_keys_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="29e2209e-475d-316b-9db1-81e731f53468">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_new_session_ticket_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="53393313-0af5-31a3-b15a-d2926b78886e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_parse_record_type_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="96fa54d7-38d8-3872-bf8a-2285927b5266">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_pq_handshake_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d46fde79-0c6f-32e1-8780-aff6f4fed991">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_prf_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5437677d-12f4-33d1-aa1e-b078aa88f92c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_pure_pq_shared_secret_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="abef4d67-8ccb-31fb-9822-09ea02a57fe2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_record_aead_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ddc9374d-0ea8-3f04-9be3-ce5d0a791e70">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_secrets_rfc8448_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b13ca1f7-c010-3072-9cff-c8197d1fa168">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_secrets_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="53b758fb-2ce1-3caf-8d4c-5c04ae9a9796">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_server_cert_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="71ed0c3b-9731-32c4-8b2b-a618af8d3a76">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_server_finished_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a963164c-307d-333b-aea9-933d31ae7c73">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_support_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e8761065-75d6-3555-b724-a82213ba86bd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls13_zero_length_payload_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1e1f8ce9-ac74-3f72-892f-9a65e86a87c2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls_prf_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c3e11845-b25a-345c-93d8-f261c42e57e7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_tls_record_stuffer_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="61ad1909-2232-350a-ad63-a9ab5263a244">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_utils_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b9cc1544-a341-3f69-bd01-33182f4c9492">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_wildcard_hostname_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="de223a6f-1933-360d-adc0-1356eb1121be">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_get_validated_cert_chain_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="98304b89-4980-3f6e-b78c-cf414f19d22b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_intent_verification_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d2bc576c-dd1a-3751-a74e-9115dcde6f2f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_validator_certificate_signatures_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e4fda588-916c-37d7-92b2-705c0f29c4fe">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_validator_custom_oids_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b6a4160c-2a52-38d2-a175-6cab37f24716">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_validator_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="220a64f8-6197-3af5-a69d-ca3990ecb419">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="s2n_x509_validator_time_verification_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ab0ed0a9-4ca9-31e8-8309-796e35140c6f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="testss2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/solaris-port/solaris-port.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="10644f70-a6b1-3d98-a100-7fdf7fb27fc6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/solaris-sys-byteorder/solaris-sys-byteorder.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cbba6b04-66f6-370f-a2a0-a018611723d1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/solaris-sys-feature-tests/solaris-sys-feature-tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b0cf41a0-6574-375a-8f45-82d4f821c943">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-cpuset/test_bsd-sys-cpuset.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c6f311eb-a5a3-31fe-83e0-6fdede79f3e3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-cpuset/bsd-sys-cpuset.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/bsd-sys-sysctl/test_bsd-sys-sysctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f287c8cb-8f26-33c3-b1f7-2399ddcceb75">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/bsd-sys-sysctl/bsd-sys-sysctl.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-sys-bitops/test_linux-sys-bitops.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="533f92ad-3b57-38d8-88b1-17bdf921e370">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-sys-bitops/linux-sys-bitops.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-alloca/test_posix-alloca.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4602be88-2606-3fea-907b-7c3a44ab0bf0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-alloca/posix-alloca.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-core/test_posix-core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ad4fcd58-905b-371a-a7f6-7059a647a8a5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-core.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sockets.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-dlfcn/test_posix-dlfcn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="848d5c3a-fa54-3e9a-b5b4-e8409d69a083">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-dlfcn/posix-dlfcn.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-langinfo/test_posix-langinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4648fee7-50ec-39f4-b4dd-756f37a5c090">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-langinfo/posix-langinfo.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-libproc/test_posix-libproc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="09d6f159-aa52-30d6-9188-024c5b1cf662">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-libproc/posix-libproc.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-mman/test_posix-mman.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6ade78b1-3014-31c5-b6cf-2b9c08fca888">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-mman/posix-mman.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-pthread/test_posix-pthread.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c53c5b1c-c829-340e-96b2-1f39707ddee8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-pthread/posix-pthread.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-regex/test_posix-regex.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ccffd884-210f-3ffa-a1b1-6af00f764d3f">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-regex/posix-regex.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-signal/test_posix-signal.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="defb502a-6360-353b-b5e8-6f36dba90460">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-signal/posix-signal.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-spawn/test_posix-spawn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="486834f6-e5ce-3d64-ab6d-7be2b9a85ff0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-spawn/posix-spawn.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-syslog/test_posix-syslog.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b46748b7-fdf4-3f18-a258-f153c3b311c8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-syslog/posix-syslog.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-termios/test_posix-termios.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="17618856-6798-39c2-863b-47a5bd943981">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-termios/posix-termios.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-time/test_posix-time.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fb97a645-638e-3914-ba86-fcd906381518">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-time/posix-time.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-times/test_posix-times.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3919856a-038d-32c6-bd15-5386378f02c6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-times/posix-times.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-types/test_posix-types.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6654e450-3c39-3fe1-a772-0561ab3d8df8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-types/posix-types.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-unwind/test_posix-unwind.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c8487cf3-2c6b-3d41-81d2-009b801bc201">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-unwind/posix-unwind.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-utsname/test_posix-utsname.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2c63df91-e18b-3601-8f21-1b8269d16d9a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-utsname/posix-utsname.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/posix-wait/test_posix-wait.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c9aa51aa-57f0-3489-96ae-c7c895d7fabb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/posix-wait/posix-wait.vcxproj"/>
+	</Project>
+	<Project Path="testss2n.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6999acd7-fb3e-35d3-adb3-b6c5530811ed">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="s2n.vcxproj"/>
+		<BuildDependency Project="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="_deps/auto_win_msvc-build/linux-epoll/wepoll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="29eac0e6-2cfe-3e1b-a947-5c5c5af62f15">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+</Solution>

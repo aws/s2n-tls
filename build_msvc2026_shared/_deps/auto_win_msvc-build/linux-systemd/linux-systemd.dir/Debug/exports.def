@@ -1,0 +1,9 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_snprintf_s
+	_vsnprintf_s_l
+	sd_event_add_io
+	sd_event_default
+	sd_event_loop
+	sd_event_unref
+	sd_notify

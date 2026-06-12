@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libbsd-sys-file.a "CMakeFiles/bsd-sys-file.dir/src/bsd-sys-file.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libbsd-sys-file.a

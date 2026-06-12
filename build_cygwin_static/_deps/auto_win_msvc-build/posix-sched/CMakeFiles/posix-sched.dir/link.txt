@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-sched.a "CMakeFiles/posix-sched.dir/src/posix-sched.c.o"
+/usr/bin/ranlib.exe libposix-sched.a

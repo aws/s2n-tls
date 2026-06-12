@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-strings.a "CMakeFiles/posix-strings.dir/src/posix-strings.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-strings.a

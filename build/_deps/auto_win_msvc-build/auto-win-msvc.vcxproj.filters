@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-machine-endian\src\bsd-machine-endian.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-malloc-np\src\bsd-malloc-np.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-pthread-np\src\bsd-pthread-np.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-cpuset\src\bsd-sys-cpuset.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-endian\src\bsd-sys-endian.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-event\src\bsd-sys-event.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-file\src\bsd-sys-file.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-param\src\bsd-sys-param.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\bsd-sys-sysctl\src\bsd-sys-sysctl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-backtrace\src\linux-backtrace.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-endian\src\linux-endian.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-epoll\src\linux-epoll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-execinfo\src\linux-execinfo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-features\src\linux-features.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-getopt\src\linux-getopt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-bitops\src\linux-sys-bitops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-prctl\src\linux-sys-prctl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-procfs\src\linux-sys-procfs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-statfs\src\linux-sys-statfs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-syscall\src\linux-sys-syscall.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\linux-sys-user\src\linux-sys-user.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-arpa\src\posix-arpa-inet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\src\posix-core.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-core\src\posix_read_write.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-dirent\src\posix-dirent.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-dlfcn\src\posix-dlfcn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-glob\src\posix-glob.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-inttypes\src\posix-inttypes.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-ipc\src\posix-ipc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-langinfo\src\posix-langinfo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-libgen\src\posix-libgen.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-libproc\src\posix-libproc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-mman\src\posix-mman.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-netinet\src\posix-netinet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-pthread\src\posix-pthread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-pwdgrp\src\posix-pwdgrp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-regex\src\posix-regex.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-sched\src\posix-sched.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-signal\src\posix-signal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-sockets\src\posix-sockets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-poll\src\posix-poll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-spawn\src\posix-spawn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-stat\src\posix-stat.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-stdbool\src\posix-stdbool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-stdint\src\posix-stdint.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-strings\src\posix-strings.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-stropts\src\posix-stropts.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-sys-ioctl\src\posix-sys-ioctl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-sys-resource\src\posix-sys-resource.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-sys-uio\src\posix-sys-uio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-syslog\src\posix-syslog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-termios\src\posix-termios.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-time\src\posix-time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-times\src\posix-times.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-types\src\posix-types.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-ucontext\src\posix-ucontext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-utsname\src\posix-utsname.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-utsname\src\uname_main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-wait\src\posix-wait.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\solaris-port\src\solaris-port.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\solaris-sys-byteorder\src\solaris-sys-byteorder.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\solaris-sys-feature-tests\src\solaris-sys-feature-tests.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-alloca\src\posix-alloca.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\posix-unwind\src\posix-unwind.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\auto-win-msvc\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8A412F31-AB21-3AD7-9D42-0DC0773B6996}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,41 @@
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 19cac82356570903418d3d66a351c37282d2cba6ae782ceb3f4d548abee56149
+Status: install ok installed
+
+Package: vcpkg-cmake-get-vars
+Version: 2025-05-29
+Depends: vcpkg-cmake
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3132f0fcfb2a8a580d5d5c6d6260134b6faa56d961c11d067c91068bf5576738
+Status: install ok installed
+
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 6bbd7136e1416d176302b9b77b3e8f4cb15df0be1ac33711b2ae08528ed15119
+Status: install ok installed
+
+Package: openssl
+Version: 3.6.2
+Depends: vcpkg-cmake, vcpkg-cmake-config, vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 2dc8f9a883671fd77f578da4f7c1f99c3f8b6a5641dec5f000e63417df05564d
+Description: OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.
+Status: install ok installed
+
+Package: pthreads
+Version: 3.0.0
+Port-Version: 14
+Depends: vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 1fba2dad299739c814e5fde54d49afa3e29c2de84d1b00a304545a7280051944
+Description: Meta-package that provides PThreads4W on Windows, or assumes presence of system pthreads on POSIX systems.
+Status: install ok installed
+

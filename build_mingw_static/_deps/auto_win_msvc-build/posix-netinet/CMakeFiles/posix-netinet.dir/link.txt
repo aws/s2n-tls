@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-netinet.a "CMakeFiles/posix-netinet.dir/src/posix-netinet.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-netinet.a

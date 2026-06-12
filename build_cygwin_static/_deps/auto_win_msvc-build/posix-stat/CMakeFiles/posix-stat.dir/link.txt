@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-stat.a "CMakeFiles/posix-stat.dir/src/posix-stat.c.o"
+/usr/bin/ranlib.exe libposix-stat.a

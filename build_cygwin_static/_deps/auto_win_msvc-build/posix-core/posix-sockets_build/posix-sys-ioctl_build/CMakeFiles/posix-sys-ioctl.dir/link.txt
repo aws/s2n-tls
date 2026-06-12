@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-sys-ioctl.a "CMakeFiles/posix-sys-ioctl.dir/src/posix-sys-ioctl.c.o"
+/usr/bin/ranlib.exe libposix-sys-ioctl.a

@@ -1,0 +1,1 @@
+ "_deps/auto_win_msvc-build/libauto-win-msvc.dll.a" -lm -ldbghelp -ladvapi32 -lnetapi32 -luserenv -lole32 -lpsapi "_deps/auto_win_msvc-build/linux-epoll/libwepoll.a" -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

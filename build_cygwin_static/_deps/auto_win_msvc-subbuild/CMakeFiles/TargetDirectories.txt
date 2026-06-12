@@ -1,0 +1,3 @@
+/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate.dir
+/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/edit_cache.dir
+/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/rebuild_cache.dir

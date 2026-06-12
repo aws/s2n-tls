@@ -1,0 +1,90 @@
+EXPORTS 
+	g_posix_child_count 	 DATA
+	g_posix_child_handles 	 DATA
+	g_posix_child_pids 	 DATA
+	optarg 	 DATA
+	opterr 	 DATA
+	optind 	 DATA
+	optopt 	 DATA
+	__local_stdio_printf_options
+	_vfprintf_l
+	alarm
+	auto_win_exit
+	chown
+	confstr
+	crypt
+	encrypt
+	faccessat
+	fchown
+	fchownat
+	fcntl
+	fdatasync
+	fexecve
+	fork
+	fpathconf
+	fprintf
+	getegid
+	geteuid
+	getgid
+	getgroups
+	gethostid
+	gethostname_removed
+	getlogin
+	getlogin_r
+	getopt
+	getpgid
+	getpgrp
+	getppid
+	getsid
+	getuid
+	lchown
+	link
+	linkat
+	lockf
+	my_exit_hook
+	openat
+	pathconf
+	pause
+	pipe
+	pipe2
+	posix_close
+	posix_core_dummy_atfork
+	posix_dup2
+	posix_epoll_close_stub
+	posix_fadvise
+	posix_fallocate
+	posix_fopen
+	posix_isatty
+	posix_mkstemp
+	posix_open
+	posix_read
+	posix_rename
+	posix_write
+	pread
+	printf
+	pwrite
+	readlink
+	readlinkat
+	setegid
+	seteuid
+	setgid
+	setpgid
+	setpgrp
+	setregid
+	setreuid
+	setsid
+	setuid
+	snprintf
+	symlink
+	symlinkat
+	sync
+	sync_file_range
+	sysconf
+	tcgetpgrp
+	tcsetpgrp
+	truncate
+	ttyname
+	ttyname_r
+	ualarm
+	vfork
+	vsnprintf

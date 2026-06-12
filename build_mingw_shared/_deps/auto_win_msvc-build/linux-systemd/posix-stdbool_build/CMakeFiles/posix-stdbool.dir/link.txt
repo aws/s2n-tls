@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libposix-stdbool.a "CMakeFiles/posix-stdbool.dir/src/posix-stdbool.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libposix-stdbool.a

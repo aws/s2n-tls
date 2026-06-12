@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\policy.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\policy.dir/objects.a @CMakeFiles\policy.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -Wl,--whole-archive CMakeFiles\policy.dir/objects.a -Wl,--no-whole-archive -o bin\policy.exe -Wl,--out-implib,lib\libpolicy.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\policy.dir\linkLibs.rsp

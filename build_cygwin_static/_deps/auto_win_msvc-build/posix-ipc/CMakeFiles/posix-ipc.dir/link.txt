@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-ipc.a "CMakeFiles/posix-ipc.dir/src/posix-ipc.c.o"
+/usr/bin/ranlib.exe libposix-ipc.a

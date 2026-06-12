@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-stdint.a "CMakeFiles/posix-stdint.dir/src/posix-stdint.c.o"
+/usr/bin/ranlib.exe libposix-stdint.a

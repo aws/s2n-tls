@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-regex.a "CMakeFiles/posix-regex.dir/src/posix-regex.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-regex.a

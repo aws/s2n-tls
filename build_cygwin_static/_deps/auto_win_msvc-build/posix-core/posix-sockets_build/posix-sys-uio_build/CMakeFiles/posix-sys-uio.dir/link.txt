@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-sys-uio.a "CMakeFiles/posix-sys-uio.dir/src/posix-sys-uio.c.o"
+/usr/bin/ranlib.exe libposix-sys-uio.a

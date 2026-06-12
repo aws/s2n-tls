@@ -1,0 +1,3 @@
+EXPORTS 
+	bsd_sys_param_dummy_link
+	dummy_bsd_sys_param

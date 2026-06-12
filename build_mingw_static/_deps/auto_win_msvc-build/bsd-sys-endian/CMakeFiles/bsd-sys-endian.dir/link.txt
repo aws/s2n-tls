@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libbsd-sys-endian.a "CMakeFiles/bsd-sys-endian.dir/src/bsd-sys-endian.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libbsd-sys-endian.a

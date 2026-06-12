@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate-complete.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-build.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-configure.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-download.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-install.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-mkdir.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-patch.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-test.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"auto_win_msvc-populate"
+		],
+		"name" : "auto_win_msvc-populate"
+	}
+}

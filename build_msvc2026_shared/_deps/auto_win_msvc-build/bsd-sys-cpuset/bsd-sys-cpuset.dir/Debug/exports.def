@@ -1,0 +1,3 @@
+EXPORTS 
+	cpuset_getaffinity
+	cpuset_setaffinity

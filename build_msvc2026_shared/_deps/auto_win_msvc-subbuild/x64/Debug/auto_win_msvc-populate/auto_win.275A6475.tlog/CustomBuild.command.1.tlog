@@ -1,0 +1,144 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/tmp/auto_win_msvc-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-DOWNLOAD.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-UPDATE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-BUILD.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5298AB53C3B6588BAA9BBD6480DD8D39\AUTO_WIN_MSVC-POPULATE-TEST.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\07624CCD7EAA560256682677A64CA7F2\AUTO_WIN_MSVC-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/Debug/auto_win_msvc-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKEFILES\5DB822053056745AB835F5FAC2F31046\AUTO_WIN_MSVC-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\AUTO_WIN_MSVC-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

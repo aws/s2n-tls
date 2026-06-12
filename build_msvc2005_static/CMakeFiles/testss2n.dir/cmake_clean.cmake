@@ -1,0 +1,39 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_connection_test_utils.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_connection_test_utils.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_extension_test_utils.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_extension_test_utils.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_hex_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_hex_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_io_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_io_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_kem_fuzz_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_kem_fuzz_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_key_schedule_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_key_schedule_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_ktls_test_utils.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_ktls_test_utils.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_mem_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_mem_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_psk_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_psk_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_resumption_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_resumption_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_seccomp.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_seccomp.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_security_policy_testlib.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_security_policy_testlib.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_test_certs.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_test_certs.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_test_server_client.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_test_server_client.c.obj.d"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_testlib_ecc_keys.c.obj"
+  "CMakeFiles/testss2n.dir/C_/Users/samue/repos/auto-win-msvc/rewritten_src/tests/testlib/s2n_testlib_ecc_keys.c.obj.d"
+  "lib/testss2n.lib"
+  "lib/testss2n.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/testss2n.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

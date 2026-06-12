@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libsolaris-port.a "CMakeFiles/solaris-port.dir/src/solaris-port.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libsolaris-port.a

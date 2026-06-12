@@ -1,0 +1,69 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeCInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeGenericSystem.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeLanguageInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeRCInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CTest.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CTestTargets.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/CTestUseLaunchers.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Compiler/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Compiler/MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/DartConfiguration.tcl.in
+C:/Program Files/CMake/share/cmake-4.3/Modules/ExternalProject/shared_internal_commands.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/FetchContent.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/FetchContent/CMakeLists.cmake.in
+C:/Program Files/CMake/share/cmake-4.3/Modules/Internal/CMakeCLinkerInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Internal/CMakeCommonLinkerInformation.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Linker/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Linker/MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Linker/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Linker/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Windows-Initialize.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/Windows.cmake
+C:/Program Files/CMake/share/cmake-4.3/Modules/Platform/WindowsPaths.cmake
+C:/Program Files/CMake/share/cmake-4.3/Templates/CTestScript.cmake.in
+C:/Users/samue/repos/s2n-tls/CMakeLists.txt
+C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/4.3.3/CMakeCCompiler.cmake
+C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/4.3.3/CMakeRCCompiler.cmake
+C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/4.3.3/CMakeSystem.cmake
+C:/Users/samue/repos/s2n-tls/cmake/s2n-config.cmake
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_ATOMIC_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_CLOEXEC_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_CLOEXEC_XOPEN_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_CLONE_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_CPUID_AVAILABLE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_DIAGNOSTICS_POP_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_DIAGNOSTICS_PUSH_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_EXECINFO_AVAILABLE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_FALL_THROUGH_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_FEATURES_AVAILABLE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_KTLS_SUPPORTED.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SANITY_PROBE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_ENGINE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_HKDF.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_MLDSA.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_MLKEM.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_SHAKE.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c
+C:/Users/samue/repos/s2n-tls/tests/features/S2N_LINUX_SENDFILE.c

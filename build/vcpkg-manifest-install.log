@@ -1,0 +1,20 @@
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe
+The following packages are already installed:
+    openssl:x64-windows@3.6.2
+    pthreads:x64-windows@3.0.0#14
+  * vcpkg-cmake:x64-windows@2024-04-23
+  * vcpkg-cmake-config:x64-windows@2024-05-23
+  * vcpkg-cmake-get-vars:x64-windows@2025-05-29
+openssl is compatible with built-in CMake targets:
+
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(main PRIVATE OpenSSL::SSL)
+  target_link_libraries(main PRIVATE OpenSSL::Crypto)
+
+The package pthreads provides CMake targets:
+
+    find_package(PThreads4W REQUIRED)
+    target_link_libraries(main PRIVATE PThreads4W::PThreads4W)
+
+All requested installations completed successfully in: 325 us

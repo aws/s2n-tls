@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-getopt.a "CMakeFiles/linux-getopt.dir/src/linux-getopt.c.o"
+/usr/bin/ranlib.exe liblinux-getopt.a

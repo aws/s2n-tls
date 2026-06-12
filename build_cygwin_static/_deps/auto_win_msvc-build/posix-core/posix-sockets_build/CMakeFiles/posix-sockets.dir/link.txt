@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-sockets.a "CMakeFiles/posix-sockets.dir/src/posix-sockets.c.o"
+/usr/bin/ranlib.exe libposix-sockets.a

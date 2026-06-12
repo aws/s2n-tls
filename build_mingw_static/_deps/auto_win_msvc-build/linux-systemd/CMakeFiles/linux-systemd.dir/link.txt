@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-systemd.a "CMakeFiles/linux-systemd.dir/src/linux-systemd.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-systemd.a

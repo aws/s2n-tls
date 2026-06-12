@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/wepoll-populate"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/2d8da65a1e83e3a683414def37475a48/wepoll-populate.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/6ae8103bb297a3ded4cccb2713b2d57d/wepoll-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build/_deps/wepoll-subbuild/CMakeFiles/5e5d8df30bbcec208fad6e344ff11f59/wepoll-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"wepoll-populate"
+		],
+		"name" : "wepoll-populate"
+	}
+}

@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\posix-glob.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\posix-glob.dir/objects.a @CMakeFiles\posix-glob.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o libposix-glob.dll -Wl,--out-implib,libposix-glob.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\posix-glob.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\posix-glob.dir\linkLibs.rsp

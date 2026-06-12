@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libposix-stdint.a "CMakeFiles/posix-stdint.dir/src/posix-stdint.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libposix-stdint.a

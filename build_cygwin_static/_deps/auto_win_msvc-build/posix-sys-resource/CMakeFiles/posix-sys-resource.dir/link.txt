@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-sys-resource.a "CMakeFiles/posix-sys-resource.dir/src/posix-sys-resource.c.o"
+/usr/bin/ranlib.exe libposix-sys-resource.a

@@ -1,0 +1,1 @@
+ lib/libtestss2n.a lib/libs2n.a "_deps/auto_win_msvc-build/libauto-win-msvc.a" -ldbghelp -ladvapi32 -lnetapi32 -luserenv -lole32 -lpsapi "_deps/auto_win_msvc-build/linux-epoll/libwepoll.a" -lws2_32 -lm -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

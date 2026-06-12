@@ -1,0 +1,16 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	ftok
+	msgctl
+	msgget
+	msgrcv
+	msgsnd
+	semctl
+	semget
+	semop
+	shmat
+	shmctl
+	shmdt
+	shmget
+	sprintf_s

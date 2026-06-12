@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-spawn.a "CMakeFiles/posix-spawn.dir/src/posix-spawn.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-spawn.a

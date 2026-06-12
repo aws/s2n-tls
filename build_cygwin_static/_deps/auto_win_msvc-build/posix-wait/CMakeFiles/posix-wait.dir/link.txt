@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-wait.a "CMakeFiles/posix-wait.dir/src/posix-wait.c.o"
+/usr/bin/ranlib.exe libposix-wait.a

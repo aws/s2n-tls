@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-endian.a "CMakeFiles/linux-endian.dir/src/linux-endian.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-endian.a

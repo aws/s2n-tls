@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libbsd-sys-event.a "CMakeFiles/bsd-sys-event.dir/src/bsd-sys-event.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libbsd-sys-event.a

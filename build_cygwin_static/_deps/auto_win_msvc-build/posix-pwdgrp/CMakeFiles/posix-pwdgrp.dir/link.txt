@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-pwdgrp.a "CMakeFiles/posix-pwdgrp.dir/src/posix-pwdgrp.c.o"
+/usr/bin/ranlib.exe libposix-pwdgrp.a

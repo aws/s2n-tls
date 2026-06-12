@@ -1,0 +1,294 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E6A836AF-8922-3A1D-B104-A951DD1B5155}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>auto_win_msvc-populate</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-mkdir.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Creating directories for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/tmp/auto_win_msvc-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-mkdir</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-download.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No download step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\auto_win_msvc-populate-source_dirinfo.txt;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-download</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-update.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No update step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\auto_win_msvc-populate-update-info.txt;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-update</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-patch.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No patch step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\auto_win_msvc-populate-patch-info.txt;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-update;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-patch</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-configure.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No configure step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\tmp\auto_win_msvc-populate-cfgcmd.txt;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-patch;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-configure</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-build.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No build step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-configure;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-build</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-install.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No install step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-build;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-install</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\6a0c94afe971a646e385692d88ab1f7e\auto_win_msvc-populate-test.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No test step for 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-install;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-test</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\01da1ce540c32b5b47fa55fd8dee2525\auto_win_msvc-populate-complete.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Completed 'auto_win_msvc-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/Debug/auto_win_msvc-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/Debug/auto_win_msvc-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-install;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-mkdir;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-download;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-update;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-patch;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-configure;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-build;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\src\auto_win_msvc-populate-stamp\Debug\auto_win_msvc-populate-test;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\Debug\auto_win_msvc-populate-complete</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\b51a18dee38db3805c6bc994306b8d0d\auto_win_msvc-populate.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\Debug\auto_win_msvc-populate-complete;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\auto_win_msvc-populate</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\cfgcmd.txt.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\mkdirs.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\auto_win_msvc-populate-prefix\tmp\auto_win_msvc-populate-mkdirs.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\CMakeFiles\auto_win_msvc-populate">
+    </None>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-subbuild\ZERO_CHECK.vcxproj">
+      <Project>{4EED8649-E9ED-32BE-A3B7-6BCF90C35D08}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

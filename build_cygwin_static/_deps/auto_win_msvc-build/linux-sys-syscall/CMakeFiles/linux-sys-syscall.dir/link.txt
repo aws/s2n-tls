@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-syscall.a "CMakeFiles/linux-sys-syscall.dir/src/linux-sys-syscall.c.o"
+/usr/bin/ranlib.exe liblinux-sys-syscall.a

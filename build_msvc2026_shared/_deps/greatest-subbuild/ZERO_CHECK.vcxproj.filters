@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\greatest-subbuild\CMakeFiles\8173cd36a2ececd64c2febc7e991756d\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{A52CB8C1-8E5D-3B33-944D-A12B6B49B84A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

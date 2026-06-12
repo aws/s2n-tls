@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-syslog.a "CMakeFiles/posix-syslog.dir/src/posix-syslog.c.o"
+/usr/bin/ranlib.exe libposix-syslog.a

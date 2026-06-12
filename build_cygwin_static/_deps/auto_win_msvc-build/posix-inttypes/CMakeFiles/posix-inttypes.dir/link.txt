@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-inttypes.a "CMakeFiles/posix-inttypes.dir/src/posix-inttypes.c.o"
+/usr/bin/ranlib.exe libposix-inttypes.a

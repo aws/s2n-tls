@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\test_posix-libproc.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\test_posix-libproc.dir/objects.a @CMakeFiles\test_posix-libproc.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -flto=auto -fno-fat-lto-objects -Wl,--whole-archive CMakeFiles\test_posix-libproc.dir/objects.a -Wl,--no-whole-archive -o test_posix-libproc.exe -Wl,--out-implib,libtest_posix-libproc.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\test_posix-libproc.dir\linkLibs.rsp

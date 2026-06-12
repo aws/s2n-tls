@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-sys-endian.a "CMakeFiles/bsd-sys-endian.dir/src/bsd-sys-endian.c.o"
+/usr/bin/ranlib.exe libbsd-sys-endian.a

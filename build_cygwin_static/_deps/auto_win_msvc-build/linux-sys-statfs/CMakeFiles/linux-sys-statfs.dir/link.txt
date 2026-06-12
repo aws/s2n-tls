@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-statfs.a "CMakeFiles/linux-sys-statfs.dir/src/linux-sys-statfs.c.o"
+/usr/bin/ranlib.exe liblinux-sys-statfs.a

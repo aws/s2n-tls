@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\posix-dirent.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\posix-dirent.dir/objects.a @CMakeFiles\posix-dirent.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o libposix-dirent.dll -Wl,--out-implib,libposix-dirent.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\posix-dirent.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\posix-dirent.dir\linkLibs.rsp

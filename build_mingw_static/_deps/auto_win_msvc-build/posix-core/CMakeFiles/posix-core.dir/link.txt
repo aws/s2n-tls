@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-core.a "CMakeFiles/posix-core.dir/src/posix-core.c.obj" "CMakeFiles/posix-core.dir/src/posix_read_write.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-core.a

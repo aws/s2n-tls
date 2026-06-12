@@ -1,0 +1,15 @@
+EXPORTS 
+	endgrent
+	endpwent
+	getgrent
+	getgrgid
+	getgrgid_r
+	getgrnam
+	getgrnam_r
+	getpwent
+	getpwnam
+	getpwnam_r
+	getpwuid
+	getpwuid_r
+	setgrent
+	setpwent

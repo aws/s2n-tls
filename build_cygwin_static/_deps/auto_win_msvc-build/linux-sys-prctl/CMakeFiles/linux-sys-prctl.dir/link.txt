@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-prctl.a "CMakeFiles/linux-sys-prctl.dir/src/linux-sys-prctl.c.o"
+/usr/bin/ranlib.exe liblinux-sys-prctl.a

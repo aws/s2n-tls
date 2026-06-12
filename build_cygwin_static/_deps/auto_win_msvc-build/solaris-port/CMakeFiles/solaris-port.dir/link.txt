@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libsolaris-port.a "CMakeFiles/solaris-port.dir/src/solaris-port.c.o"
+/usr/bin/ranlib.exe libsolaris-port.a

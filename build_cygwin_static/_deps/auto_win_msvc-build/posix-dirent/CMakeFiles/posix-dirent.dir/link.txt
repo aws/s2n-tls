@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-dirent.a "CMakeFiles/posix-dirent.dir/src/posix-dirent.c.o"
+/usr/bin/ranlib.exe libposix-dirent.a

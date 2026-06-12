@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--enable-auto-import "CMakeFiles/test_posix-alloca.dir/tests/test_core.c.o" "CMakeFiles/test_posix-alloca.dir/tests/test_main.c.o" -o test_posix-alloca.exe -Wl,--out-implib,libtest_posix-alloca.dll.a -Wl,--major-image-version,0,--minor-image-version,0  libposix-alloca.a

@@ -1,0 +1,11 @@
+# Hashes of file build rules.
+6b6a09ed38a5973ddde39466ecda7715 CMakeFiles/auto_win_msvc-populate
+ac97dce3c006b36532cdd1cd8cd7e3d0 CMakeFiles/auto_win_msvc-populate-complete
+b27bf84e61b10286a42285df95e99ffb auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-build
+3beb6fe3c881ab3f9236a8f599782bf2 auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-configure
+eb1ac6ed4f2f7e77e79c7a984eca6efa auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-download
+6b484496a90a62e22bdc149ff4e51ce0 auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-install
+885e988fe74f2d214a9341e06daae0ca auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-mkdir
+989c29db88a47fc98979a8f885945346 auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-patch
+48fa8f2519dc308b58a6e3b12316e0e1 auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-test
+033bcadccd3953fa92754f364988f582 auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-update

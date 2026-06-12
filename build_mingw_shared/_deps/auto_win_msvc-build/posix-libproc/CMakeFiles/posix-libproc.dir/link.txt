@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libposix-libproc.a "CMakeFiles/posix-libproc.dir/src/posix-libproc.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libposix-libproc.a

@@ -1,0 +1,9 @@
+EXPORTS 
+	clock_gettime
+	dummy_posix_time
+	getitimer
+	gettimeofday
+	localtime_r
+	nanosleep
+	setitimer
+	utimes

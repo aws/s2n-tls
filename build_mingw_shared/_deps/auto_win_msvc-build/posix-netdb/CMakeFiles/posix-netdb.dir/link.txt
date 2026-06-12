@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libposix-netdb.a "CMakeFiles/posix-netdb.dir/src/posix-netdb.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libposix-netdb.a

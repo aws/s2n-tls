@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\greatest-subbuild\CMakeFiles\14c27999185c035313d7c7a95601cdb6\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{09A71413-EDCE-31E3-8A1B-26FD9C0B43C1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libsolaris-sys-feature-tests.a "CMakeFiles/solaris-sys-feature-tests.dir/src/solaris-sys-feature-tests.c.o"
+/usr/bin/ranlib.exe libsolaris-sys-feature-tests.a

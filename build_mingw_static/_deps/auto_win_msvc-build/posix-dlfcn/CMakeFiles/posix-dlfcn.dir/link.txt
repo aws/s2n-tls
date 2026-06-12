@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-dlfcn.a "CMakeFiles/posix-dlfcn.dir/src/posix-dlfcn.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-dlfcn.a

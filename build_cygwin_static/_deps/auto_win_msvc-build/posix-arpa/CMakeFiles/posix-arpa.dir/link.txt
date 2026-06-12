@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-arpa.a "CMakeFiles/posix-arpa.dir/src/posix-arpa-inet.c.o"
+/usr/bin/ranlib.exe libposix-arpa.a

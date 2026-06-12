@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--enable-auto-import "CMakeFiles/test_linux-sys-bitops.dir/tests/test_core.c.o" "CMakeFiles/test_linux-sys-bitops.dir/tests/test_main.c.o" -o test_linux-sys-bitops.exe -Wl,--out-implib,libtest_linux-sys-bitops.dll.a -Wl,--major-image-version,0,--minor-image-version,0  liblinux-sys-bitops.a

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libsolaris-sys-byteorder.a "CMakeFiles/solaris-sys-byteorder.dir/src/solaris-sys-byteorder.c.o"
+/usr/bin/ranlib.exe libsolaris-sys-byteorder.a

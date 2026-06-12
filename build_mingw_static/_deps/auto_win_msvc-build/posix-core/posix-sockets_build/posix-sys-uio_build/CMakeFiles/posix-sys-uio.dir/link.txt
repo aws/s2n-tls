@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-sys-uio.a "CMakeFiles/posix-sys-uio.dir/src/posix-sys-uio.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-sys-uio.a

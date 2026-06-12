@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/CMakeFiles/greatest-populate"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/CMakeFiles/greatest-populate.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/CMakeFiles/greatest-populate-complete.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-build.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-configure.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-download.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-install.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-mkdir.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-patch.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-test.rule"
+		},
+		{
+			"file" : "/cygdrive/c/Users/samue/repos/s2n-tls/build_cygwin_static/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/greatest-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"greatest-populate"
+		],
+		"name" : "greatest-populate"
+	}
+}

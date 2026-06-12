@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/CMakeFiles/wepoll-populate"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/CMakeFiles/wepoll-populate.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/CMakeFiles/wepoll-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/wepoll-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"wepoll-populate"
+		],
+		"name" : "wepoll-populate"
+	}
+}

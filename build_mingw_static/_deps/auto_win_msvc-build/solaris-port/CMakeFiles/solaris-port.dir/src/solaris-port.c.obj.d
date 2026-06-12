@@ -1,0 +1,8 @@
+_deps/auto_win_msvc-build/solaris-port/CMakeFiles/solaris-port.dir/src/solaris-port.c.obj: \
+ C:\Users\samue\repos\auto-win-msvc\solaris-port\src\solaris-port.c \
+ C:/Users/samue/repos/auto-win-msvc/solaris-port/include/solaris-port.h \
+ C:/msys64/mingw64/include/errno.h C:/msys64/mingw64/include/crtdefs.h \
+ C:/msys64/mingw64/include/corecrt.h C:/msys64/mingw64/include/_mingw.h \
+ C:/msys64/mingw64/include/_mingw_mac.h \
+ C:/msys64/mingw64/include/_mingw_secapi.h \
+ C:/msys64/mingw64/include/vadefs.h

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-netdb.a "CMakeFiles/posix-netdb.dir/src/posix-netdb.c.o"
+/usr/bin/ranlib.exe libposix-netdb.a

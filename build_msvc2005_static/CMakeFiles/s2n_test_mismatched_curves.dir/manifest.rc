@@ -1,0 +1,2 @@
+#pragma code_page(65001)
+1 /* CREATEPROCESS_MANIFEST_RESOURCE_ID */ 24 /* RT_MANIFEST */ "C:/Users/samue/repos/s2n-tls/build_msvc2005_static/CMakeFiles/s2n_test_mismatched_curves.dir/embed.manifest"

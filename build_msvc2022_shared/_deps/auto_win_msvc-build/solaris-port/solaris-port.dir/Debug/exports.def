@@ -1,0 +1,5 @@
+EXPORTS 
+	dummy_solaris_port
+	port_associate
+	port_create
+	port_getn

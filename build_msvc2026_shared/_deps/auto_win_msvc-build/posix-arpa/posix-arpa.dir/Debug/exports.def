@@ -1,0 +1,3 @@
+EXPORTS 
+	dummy_posix_arpa_inet
+	posix_inet_aton

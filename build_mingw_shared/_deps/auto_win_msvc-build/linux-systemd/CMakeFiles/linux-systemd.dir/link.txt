@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\linux-systemd.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\linux-systemd.dir/objects.a @CMakeFiles\linux-systemd.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o liblinux-systemd.dll -Wl,--out-implib,liblinux-systemd.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\linux-systemd.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\linux-systemd.dir\linkLibs.rsp

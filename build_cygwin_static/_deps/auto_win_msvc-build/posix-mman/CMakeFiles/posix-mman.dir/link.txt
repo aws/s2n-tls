@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-mman.a "CMakeFiles/posix-mman.dir/src/posix-mman.c.o"
+/usr/bin/ranlib.exe libposix-mman.a

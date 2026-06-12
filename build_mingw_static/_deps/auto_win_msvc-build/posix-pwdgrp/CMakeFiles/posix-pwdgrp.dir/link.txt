@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-pwdgrp.a "CMakeFiles/posix-pwdgrp.dir/src/posix-pwdgrp.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-pwdgrp.a

@@ -1,0 +1,1 @@
+-I"C:/Users/samue/repos/s2n-tls/../auto-win-msvc/rewritten_src" -I"C:/Users/samue/repos/s2n-tls" -I"C:/Users/samue/repos/s2n-tls/api" -I"C:/Users/samue/repos/s2n-tls/build_mingw_shared/posix_includes" -I"C:/Users/samue/repos/s2n-tls/build_mingw_shared/_deps/wepoll-src" -I"C:/Users/samue/repos/auto-win-msvc/linux-epoll/include"

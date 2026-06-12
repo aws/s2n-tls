@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\build\CMakeFiles\bd7d988ab3fac114b6c268cc5adbfbb5\Continuous.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\samue\repos\auto-win-msvc\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\CMakeFiles\Continuous" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{E8776B38-4E65-3758-9133-086EEB1DEE55}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-unwind.a "CMakeFiles/posix-unwind.dir/src/posix-unwind.c.o"
+/usr/bin/ranlib.exe libposix-unwind.a

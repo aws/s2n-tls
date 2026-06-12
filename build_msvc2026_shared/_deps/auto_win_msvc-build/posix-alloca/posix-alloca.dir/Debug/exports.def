@@ -1,0 +1,2 @@
+EXPORTS 
+	posix_alloca_dummy

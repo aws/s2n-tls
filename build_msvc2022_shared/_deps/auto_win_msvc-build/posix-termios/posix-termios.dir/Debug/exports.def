@@ -1,0 +1,16 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	cfgetispeed
+	cfgetospeed
+	cfsetispeed
+	cfsetospeed
+	dummy_posix_termios
+	sprintf_s
+	tcdrain
+	tcflow
+	tcflush
+	tcgetattr
+	tcgetsid
+	tcsendbreak
+	tcsetattr

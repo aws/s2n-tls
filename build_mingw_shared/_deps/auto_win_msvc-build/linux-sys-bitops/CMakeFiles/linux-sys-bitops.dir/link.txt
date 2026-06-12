@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc liblinux-sys-bitops.a "CMakeFiles/linux-sys-bitops.dir/src/linux-sys-bitops.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe liblinux-sys-bitops.a

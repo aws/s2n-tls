@@ -1,0 +1,10 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD\_DEPS\GREATEST-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build/_deps/greatest-subbuild -BC:/Users/samue/repos/s2n-tls/build/_deps/greatest-subbuild --check-stamp-file C:/Users/samue/repos/s2n-tls/build/_deps/greatest-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

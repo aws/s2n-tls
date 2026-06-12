@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-sys-ioctl.a "CMakeFiles/posix-sys-ioctl.dir/src/posix-sys-ioctl.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-sys-ioctl.a

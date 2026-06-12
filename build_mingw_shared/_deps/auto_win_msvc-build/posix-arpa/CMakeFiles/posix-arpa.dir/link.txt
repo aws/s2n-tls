@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\posix-arpa.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\posix-arpa.dir/objects.a @CMakeFiles\posix-arpa.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o libposix-arpa.dll -Wl,--out-implib,libposix-arpa.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\posix-arpa.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\posix-arpa.dir\linkLibs.rsp

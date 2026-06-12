@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\s2n.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\s2n.dir/objects.a @CMakeFiles\s2n.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o bin\libs2n.dll -Wl,--out-implib,lib\libs2n.dll.a -Wl,--major-image-version,1,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\s2n.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\s2n.dir\linkLibs.rsp

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-strings.a "CMakeFiles/posix-strings.dir/src/posix-strings.c.o"
+/usr/bin/ranlib.exe libposix-strings.a

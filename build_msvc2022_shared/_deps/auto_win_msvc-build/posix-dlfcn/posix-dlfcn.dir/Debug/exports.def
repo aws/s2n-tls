@@ -1,0 +1,10 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	dladdr
+	dlclose
+	dlerror
+	dlopen
+	dlsym
+	dummy_posix_dlfcn
+	sprintf_s

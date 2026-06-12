@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\posix-unwind.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\posix-unwind.dir/objects.a @CMakeFiles\posix-unwind.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -shared -o libposix-unwind.dll -Wl,--out-implib,libposix-unwind.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\posix-unwind.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\posix-unwind.dir\linkLibs.rsp

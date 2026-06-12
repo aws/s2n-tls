@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-wait.a "CMakeFiles/posix-wait.dir/src/posix-wait.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-wait.a

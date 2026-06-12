@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-ipc.a "CMakeFiles/posix-ipc.dir/src/posix-ipc.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-ipc.a

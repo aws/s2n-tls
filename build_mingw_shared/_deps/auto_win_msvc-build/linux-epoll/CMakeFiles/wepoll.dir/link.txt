@@ -1,0 +1,2 @@
+C:\msys64\mingw64\bin\ar.exe qc libwepoll.a "CMakeFiles/wepoll.dir/__/__/wepoll-src/wepoll.c.obj"
+C:\msys64\mingw64\bin\ranlib.exe libwepoll.a

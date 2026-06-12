@@ -1,0 +1,7 @@
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_fs.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_fs.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_io.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_io.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_main.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_main.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_misc.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_misc.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_posix.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_posix.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_process.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_process.obj
+C:\Users\samue\repos\auto-win-msvc\posix-core\tests\test_ugid.c;C:\Users\samue\repos\s2n-tls\build\_deps\auto_win_msvc-build\posix-core\test_posix-core.dir\Release\test_ugid.obj

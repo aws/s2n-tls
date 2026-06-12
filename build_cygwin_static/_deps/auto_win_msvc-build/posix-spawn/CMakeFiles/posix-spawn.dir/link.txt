@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-spawn.a "CMakeFiles/posix-spawn.dir/src/posix-spawn.c.o"
+/usr/bin/ranlib.exe libposix-spawn.a

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-utsname.a "CMakeFiles/posix-utsname.dir/src/posix-utsname.c.o"
+/usr/bin/ranlib.exe libposix-utsname.a

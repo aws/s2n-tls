@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-sys-param.a "CMakeFiles/bsd-sys-param.dir/src/bsd-sys-param.c.o"
+/usr/bin/ranlib.exe libbsd-sys-param.a

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-user.a "CMakeFiles/linux-sys-user.dir/src/linux-sys-user.c.o"
+/usr/bin/ranlib.exe liblinux-sys-user.a

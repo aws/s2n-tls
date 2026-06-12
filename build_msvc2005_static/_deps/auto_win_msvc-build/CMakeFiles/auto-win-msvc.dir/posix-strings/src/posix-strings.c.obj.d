@@ -1,0 +1,24 @@
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/posix_includes/posix-strings.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/string.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/sal.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtassem.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/vadefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/intrin.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/setjmp.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/stddef.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/emmintrin.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/xmmintrin.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/mmintrin.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/malloc.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/mmintrin.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/mm3dnow.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/crtdefs.h
+C:/Program Files (x86)/Microsoft Visual Studio 8/VC/INCLUDE/mmintrin.h

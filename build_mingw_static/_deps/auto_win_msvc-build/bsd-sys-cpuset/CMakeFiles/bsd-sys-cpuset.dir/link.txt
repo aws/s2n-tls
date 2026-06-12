@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libbsd-sys-cpuset.a "CMakeFiles/bsd-sys-cpuset.dir/src/bsd-sys-cpuset.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libbsd-sys-cpuset.a

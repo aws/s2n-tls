@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\test_posix-pthread.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\test_posix-pthread.dir/objects.a @CMakeFiles\test_posix-pthread.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -flto=auto -fno-fat-lto-objects -Wl,--whole-archive CMakeFiles\test_posix-pthread.dir/objects.a -Wl,--no-whole-archive -o test_posix-pthread.exe -Wl,--out-implib,libtest_posix-pthread.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\test_posix-pthread.dir\linkLibs.rsp

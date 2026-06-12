@@ -1,0 +1,144 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/tmp/greatest-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-DOWNLOAD.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-UPDATE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\greatest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-BUILD.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\greatest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\greatest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\83F84AEB68F2E81CE9514307F36756C8\GREATEST-POPULATE-TEST.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\greatest-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\3F1286E0709E222E12C13C28F3C9667E\GREATEST-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/Debug/greatest-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/greatest-populate-prefix/src/greatest-populate-stamp/Debug/greatest-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKEFILES\8173CD36A2ECECD64C2FEBC7E991756D\GREATEST-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\GREATEST-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libsolaris-sys-byteorder.a "CMakeFiles/solaris-sys-byteorder.dir/src/solaris-sys-byteorder.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libsolaris-sys-byteorder.a

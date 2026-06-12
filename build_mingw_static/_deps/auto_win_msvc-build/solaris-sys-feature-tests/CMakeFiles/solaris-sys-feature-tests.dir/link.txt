@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libsolaris-sys-feature-tests.a "CMakeFiles/solaris-sys-feature-tests.dir/src/solaris-sys-feature-tests.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libsolaris-sys-feature-tests.a

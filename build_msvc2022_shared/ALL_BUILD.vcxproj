@@ -1,0 +1,1653 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ResolveNugetPackages>false</ResolveNugetPackages>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FCC98C17-8F3A-394D-88A9-97EAF332CB32}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>ALL_BUILD</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/samue/repos/s2n-tls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build_msvc2022_shared --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTest.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestTargets.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CTestUseLaunchers.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\DartConfiguration.tcl.in;C:\Program Files\CMake\share\cmake-4.3\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Program Files\CMake\share\cmake-4.3\Templates\CTestScript.cmake.in;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeRCCompiler.cmake;C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\4.3.3\CMakeSystem.cmake;C:\Users\samue\repos\s2n-tls\cmake\s2n-config.cmake;C:\Users\samue\repos\s2n-tls\tests\features\S2N_ATOMIC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLOEXEC_XOPEN_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CLONE_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_COMPILER_SUPPORTS_BRANCH_ALIGN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_CPUID_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_POP_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_DIAGNOSTICS_PUSH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_EXECINFO_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FALL_THROUGH_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_FEATURES_AVAILABLE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_KTLS_SUPPORTED.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SANITY_PROBE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_CUSTOM_OID.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_ENGINE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_KEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_EVP_RC4.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_GET0_CHAIN.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_HKDF.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLDSA.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_MLKEM.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PRIVATE_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PROVIDERS.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_PUBLIC_RAND.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_SHAKE.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST.c;C:\Users\samue\repos\s2n-tls\tests\features\S2N_LINUX_SENDFILE.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\ZERO_CHECK.vcxproj">
+      <Project>{1AA497A7-425E-3DE1-A0A9-513E0D9A7B79}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\auto-win-msvc.vcxproj">
+      <Project>{4567592A-9E03-3B0D-80DD-CDF8C1C45C66}</Project>
+      <Name>auto-win-msvc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-machine-endian\bsd-machine-endian.vcxproj">
+      <Project>{C1B9C5E1-CC6A-38EE-9113-3443DF14CE11}</Project>
+      <Name>bsd-machine-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-malloc-np\bsd-malloc-np.vcxproj">
+      <Project>{E4B3B2CD-07FB-361D-BBAD-AF6EBE94A59B}</Project>
+      <Name>bsd-malloc-np</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-pthread-np\bsd-pthread-np.vcxproj">
+      <Project>{FCFAABD2-459B-35E6-A057-79B7FF16BBBF}</Project>
+      <Name>bsd-pthread-np</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-cpuset\bsd-sys-cpuset.vcxproj">
+      <Project>{31DB223C-14E1-382A-B63C-85EFDF16F711}</Project>
+      <Name>bsd-sys-cpuset</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-endian\bsd-sys-endian.vcxproj">
+      <Project>{49E6F1D3-701D-3D10-AA05-F6F319DAA5A9}</Project>
+      <Name>bsd-sys-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-event\bsd-sys-event.vcxproj">
+      <Project>{6167453A-B68F-309E-8148-2393CAF2ABD6}</Project>
+      <Name>bsd-sys-event</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-file\bsd-sys-file.vcxproj">
+      <Project>{90061010-68A0-379C-B918-117A9259AC34}</Project>
+      <Name>bsd-sys-file</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-param\bsd-sys-param.vcxproj">
+      <Project>{49FC634E-1E3F-368C-A450-267F1F078AAE}</Project>
+      <Name>bsd-sys-param</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-sysctl\bsd-sys-sysctl.vcxproj">
+      <Project>{E309FEAA-F3FF-3B42-9DE7-3C46755422B7}</Project>
+      <Name>bsd-sys-sysctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-vm-param\bsd-vm-param.vcxproj">
+      <Project>{BEAACA7C-FF1C-3B69-8E75-D77B69E24A9E}</Project>
+      <Name>bsd-vm-param</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-backtrace\linux-backtrace.vcxproj">
+      <Project>{F7589892-8578-3B37-BDD8-6CE1A57FB474}</Project>
+      <Name>linux-backtrace</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-endian\linux-endian.vcxproj">
+      <Project>{002EE685-3A1A-3CA2-8EED-9E29FD29B10C}</Project>
+      <Name>linux-endian</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\linux-epoll.vcxproj">
+      <Project>{D224F105-312F-32A8-AF73-A9A94924D1BC}</Project>
+      <Name>linux-epoll</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-execinfo\linux-execinfo.vcxproj">
+      <Project>{4411070A-4DA5-3703-9786-86F12CB1F2B5}</Project>
+      <Name>linux-execinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-features\linux-features.vcxproj">
+      <Project>{A2BA9ACF-A4E1-37B3-915D-A7E50C63EC27}</Project>
+      <Name>linux-features</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-getopt\linux-getopt.vcxproj">
+      <Project>{53C6379F-040C-347F-A50E-80B5319D1426}</Project>
+      <Name>linux-getopt</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-hv-hloop\linux-hv-hloop.vcxproj">
+      <Project>{CE254498-F1E3-38EC-AB18-4BFC7D68E108}</Project>
+      <Name>linux-hv-hloop</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-magic\linux-magic.vcxproj">
+      <Project>{60210333-BA01-36DB-B397-71E3F4A7283B}</Project>
+      <Name>linux-magic</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-rdma\linux-rdma.vcxproj">
+      <Project>{6FF49CD1-D2BC-3D0E-87A1-E4382478FEDA}</Project>
+      <Name>linux-rdma</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-bitops\linux-sys-bitops.vcxproj">
+      <Project>{71D7A17F-147E-326E-B41B-2B9A47E1E8CA}</Project>
+      <Name>linux-sys-bitops</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-prctl\linux-sys-prctl.vcxproj">
+      <Project>{0401C83D-8377-3757-8D79-F521318C11DC}</Project>
+      <Name>linux-sys-prctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-procfs\linux-sys-procfs.vcxproj">
+      <Project>{159474E7-E974-30CF-A00B-0E703A96CAA3}</Project>
+      <Name>linux-sys-procfs</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-statfs\linux-sys-statfs.vcxproj">
+      <Project>{E6EEC16A-EBF9-3458-A77C-C5DBBD398D4F}</Project>
+      <Name>linux-sys-statfs</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-syscall\linux-sys-syscall.vcxproj">
+      <Project>{D9885BEB-8650-384D-98D1-F6FDEA56F320}</Project>
+      <Name>linux-sys-syscall</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-user\linux-sys-user.vcxproj">
+      <Project>{534CF043-78EB-3C92-8B0E-7D77BE474E91}</Project>
+      <Name>linux-sys-user</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\linux-systemd.vcxproj">
+      <Project>{7E69BEEC-5832-3958-96B2-486DCCB483CD}</Project>
+      <Name>linux-systemd</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-alloca\posix-alloca.vcxproj">
+      <Project>{9C8C247A-BCFA-30A6-B94B-B77594B3B0EF}</Project>
+      <Name>posix-alloca</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-arpa\posix-arpa.vcxproj">
+      <Project>{F85C393C-FFA8-3AF4-A81B-28F89319393D}</Project>
+      <Name>posix-arpa</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\posix-core.vcxproj">
+      <Project>{91C8548D-D840-3732-866D-AF28A8BE316C}</Project>
+      <Name>posix-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dirent\posix-dirent.vcxproj">
+      <Project>{C970B4F3-65C8-354C-900F-692E93E711E4}</Project>
+      <Name>posix-dirent</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dlfcn\posix-dlfcn.vcxproj">
+      <Project>{559221EE-856A-3E7A-9822-1428E386F94E}</Project>
+      <Name>posix-dlfcn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-glob\posix-glob.vcxproj">
+      <Project>{15E9D08C-E441-334A-B3E7-AD7F58A4CA2C}</Project>
+      <Name>posix-glob</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-inttypes\posix-inttypes.vcxproj">
+      <Project>{CF6CFCF6-6268-301A-BE4D-51166D5CD7CE}</Project>
+      <Name>posix-inttypes</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-ipc\posix-ipc.vcxproj">
+      <Project>{F9E1320B-DAFA-39D3-8414-A3D2C5EE925D}</Project>
+      <Name>posix-ipc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-langinfo\posix-langinfo.vcxproj">
+      <Project>{2EAC63EF-FD5F-3B8D-8DB4-F4C86D9E8F24}</Project>
+      <Name>posix-langinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libgen\posix-libgen.vcxproj">
+      <Project>{82873F2E-0639-3A4A-8B05-6FF2F61B5B03}</Project>
+      <Name>posix-libgen</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libproc\posix-libproc.vcxproj">
+      <Project>{3669A93E-3CD8-3503-8360-EF282D9A741D}</Project>
+      <Name>posix-libproc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-mman\posix-mman.vcxproj">
+      <Project>{F13B80F8-B1B2-35C0-A60F-8569E2FA56DF}</Project>
+      <Name>posix-mman</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-netdb\posix-netdb.vcxproj">
+      <Project>{3303F43C-A7A4-374F-8C90-93E900F4E52C}</Project>
+      <Name>posix-netdb</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-netinet\posix-netinet.vcxproj">
+      <Project>{B1CA52CD-DB45-3259-9247-684D67CE45AA}</Project>
+      <Name>posix-netinet</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pthread\posix-pthread.vcxproj">
+      <Project>{EC83FBA9-6E80-36A1-8CC1-674D86F56210}</Project>
+      <Name>posix-pthread</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pwdgrp\posix-pwdgrp.vcxproj">
+      <Project>{E72A5BBE-145C-3896-9D1D-C20FB8C7EBFA}</Project>
+      <Name>posix-pwdgrp</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-regex\posix-regex.vcxproj">
+      <Project>{68181B65-451D-318A-B1E0-A8292B071BF6}</Project>
+      <Name>posix-regex</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-sched\posix-sched.vcxproj">
+      <Project>{043C2D9F-DEA5-3B61-A61A-08CFB57E1230}</Project>
+      <Name>posix-sched</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-signal\posix-signal.vcxproj">
+      <Project>{AD0CF0AC-7B1A-3F51-8A2A-99CDCEA24905}</Project>
+      <Name>posix-signal</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-spawn\posix-spawn.vcxproj">
+      <Project>{3614F138-A3F3-3DE3-A867-96C0694936F5}</Project>
+      <Name>posix-spawn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-stat\posix-stat.vcxproj">
+      <Project>{C741A2D9-12C4-3F2A-B174-F4179BF40026}</Project>
+      <Name>posix-stat</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\posix-stdbool_build\posix-stdbool.vcxproj">
+      <Project>{CB3236DA-7F80-3E2C-A2ED-9A08C7C3F958}</Project>
+      <Name>posix-stdbool</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-systemd\posix-stdint_build\posix-stdint.vcxproj">
+      <Project>{B9084FB6-A217-372D-ACA9-E54A3F0FC25B}</Project>
+      <Name>posix-stdint</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-strings\posix-strings.vcxproj">
+      <Project>{A154539F-8EB4-389D-B2BF-6607B0877868}</Project>
+      <Name>posix-strings</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-stropts\posix-stropts.vcxproj">
+      <Project>{AF014CE1-D8F6-38CA-B55D-DBA66674347E}</Project>
+      <Name>posix-stropts</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-sys-resource\posix-sys-resource.vcxproj">
+      <Project>{5C487DC1-D48A-30A3-A623-963373CE0D26}</Project>
+      <Name>posix-sys-resource</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-syslog\posix-syslog.vcxproj">
+      <Project>{DB12341A-087D-32D5-9D19-530214825F45}</Project>
+      <Name>posix-syslog</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\posix-termios.vcxproj">
+      <Project>{7023AAF8-4965-3324-86C4-7E6FA8D739F8}</Project>
+      <Name>posix-termios</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-time\posix-time.vcxproj">
+      <Project>{F29120D9-2E01-3C32-BE16-07210732D56A}</Project>
+      <Name>posix-time</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-times\posix-times.vcxproj">
+      <Project>{BA35269D-41B6-31E5-95F8-C590996810A2}</Project>
+      <Name>posix-times</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-types\posix-types.vcxproj">
+      <Project>{3DC7921E-C680-32E5-9C36-E2E2E701F885}</Project>
+      <Name>posix-types</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-ucontext\posix-ucontext.vcxproj">
+      <Project>{ECBC240F-670A-3397-9D08-067A5F37B423}</Project>
+      <Name>posix-ucontext</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-unwind\posix-unwind.vcxproj">
+      <Project>{AD95AE7D-293E-39F8-97E8-7FD083BE7C70}</Project>
+      <Name>posix-unwind</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-utsname\posix-utsname.vcxproj">
+      <Project>{189A27CD-34FD-375A-84F4-9CE10389C202}</Project>
+      <Name>posix-utsname</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-wait\posix-wait.vcxproj">
+      <Project>{E6FD2960-ED3F-300B-98B7-26FC277ABFC1}</Project>
+      <Name>posix-wait</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n.vcxproj">
+      <Project>{D1A79558-36BA-3302-8266-EB3CF067A6DB}</Project>
+      <Name>s2n</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_3des_test.vcxproj">
+      <Project>{67B316D3-4EC9-3BFF-A07F-A82C297335C4}</Project>
+      <Name>s2n_3des_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_aead_aes_test.vcxproj">
+      <Project>{74F9C3D9-5EED-34C3-ACFD-26F9AE4B50A9}</Project>
+      <Name>s2n_aead_aes_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_aead_chacha20_poly1305_test.vcxproj">
+      <Project>{9795F716-6EC1-39F1-9B78-CAA565222FC7}</Project>
+      <Name>s2n_aead_chacha20_poly1305_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_aes_sha_composite_test.vcxproj">
+      <Project>{EAE27471-8EF7-305D-9FCF-CE950964995F}</Project>
+      <Name>s2n_aes_sha_composite_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_aes_test.vcxproj">
+      <Project>{5BA5C051-2C9D-3B0C-883B-1F7C67787F36}</Project>
+      <Name>s2n_aes_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_alerts_protocol_test.vcxproj">
+      <Project>{72E69FF3-92CF-39C7-924A-8ECA966389C0}</Project>
+      <Name>s2n_alerts_protocol_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_alerts_test.vcxproj">
+      <Project>{37068437-DBE9-3B3A-87A8-08A7ABD95CE2}</Project>
+      <Name>s2n_alerts_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_array_test.vcxproj">
+      <Project>{9D7C49DF-C115-36FC-83C1-7C60E4B87098}</Project>
+      <Name>s2n_array_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_async_offload_cb_test.vcxproj">
+      <Project>{C155F43F-BEB5-3BE5-864E-65155482FB5B}</Project>
+      <Name>s2n_async_offload_cb_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_async_pkey_test.vcxproj">
+      <Project>{F4A63DE3-3882-3D47-B7E7-31506A4DA985}</Project>
+      <Name>s2n_async_pkey_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_auth_selection_test.vcxproj">
+      <Project>{61FE6CE0-0433-303F-97DC-60D826FFA5BB}</Project>
+      <Name>s2n_auth_selection_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_blob_test.vcxproj">
+      <Project>{1AE79B97-892C-34C2-BABB-6B9C9491DA10}</Project>
+      <Name>s2n_blob_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_build_test.vcxproj">
+      <Project>{27986586-3565-31A7-B80A-FE6B488A4C3E}</Project>
+      <Name>s2n_build_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cbc_test.vcxproj">
+      <Project>{60CB3C12-979D-3E23-89A6-C2DDE0B8428A}</Project>
+      <Name>s2n_cbc_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_authorities_test.vcxproj">
+      <Project>{04EED6C1-F896-3FC3-83CD-FB564A912A65}</Project>
+      <Name>s2n_cert_authorities_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_chain_and_key_load_test.vcxproj">
+      <Project>{DA3D8C06-1504-3B11-92C3-9C29BE81F3EE}</Project>
+      <Name>s2n_cert_chain_and_key_load_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_chain_and_key_test.vcxproj">
+      <Project>{68AAC62E-8F13-32B0-9F48-AEB079152139}</Project>
+      <Name>s2n_cert_chain_and_key_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_status_extension_test.vcxproj">
+      <Project>{305E1D60-3F2D-3A2C-8B45-DA49A67A0060}</Project>
+      <Name>s2n_cert_status_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_status_response_extension_test.vcxproj">
+      <Project>{B7F9090E-90BA-3B73-9432-5A733C51D19A}</Project>
+      <Name>s2n_cert_status_response_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cert_validation_callback_test.vcxproj">
+      <Project>{59BDAC16-84AA-313D-AE76-195F6F1701AD}</Project>
+      <Name>s2n_cert_validation_callback_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_certificate_extensions_test.vcxproj">
+      <Project>{713BF7F4-9256-3839-B7A1-ABEA6FA02A90}</Project>
+      <Name>s2n_certificate_extensions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_certificate_parsing_test.vcxproj">
+      <Project>{E08F51F6-315D-39AF-AF15-101F8780566A}</Project>
+      <Name>s2n_certificate_parsing_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_certificate_test.vcxproj">
+      <Project>{D6FB7301-E5F4-32FB-867A-BB16174EA686}</Project>
+      <Name>s2n_certificate_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_change_cipher_spec_test.vcxproj">
+      <Project>{E893D99E-0771-39AB-8D39-670152B349EA}</Project>
+      <Name>s2n_change_cipher_spec_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_choose_supported_group_test.vcxproj">
+      <Project>{3F51EAE9-5C26-3F71-8BCC-1D8F326F4E67}</Project>
+      <Name>s2n_choose_supported_group_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cipher_info_test.vcxproj">
+      <Project>{4105BD9E-E56F-3A56-9F34-36F40348640F}</Project>
+      <Name>s2n_cipher_info_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cipher_suite_match_test.vcxproj">
+      <Project>{43F188F2-2D66-362E-8043-571787198985}</Project>
+      <Name>s2n_cipher_suite_match_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cipher_suites_test.vcxproj">
+      <Project>{F1D85826-B18E-3E27-ADD6-50FB91E4829A}</Project>
+      <Name>s2n_cipher_suites_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cleanup_test.vcxproj">
+      <Project>{F829796A-2EBA-371A-89F9-0F3F22C39AAC}</Project>
+      <Name>s2n_cleanup_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cleanup_with_no_init_test.vcxproj">
+      <Project>{B6347E2E-918E-391A-9E21-DCD87E930FCB}</Project>
+      <Name>s2n_cleanup_with_no_init_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_alpn_extension_test.vcxproj">
+      <Project>{1A9805AF-9119-3B64-817A-95902B4609DA}</Project>
+      <Name>s2n_client_alpn_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_auth_handshake_test.vcxproj">
+      <Project>{1760988E-18B3-3353-82B1-A043F1A6EC05}</Project>
+      <Name>s2n_client_auth_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_cert_request_context_test.vcxproj">
+      <Project>{DD6189A3-BC16-306E-A83A-C3FAA29A202B}</Project>
+      <Name>s2n_client_cert_request_context_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_cert_status_request_extension_test.vcxproj">
+      <Project>{74E00AF0-7B79-3296-AA5F-2D947ED9DF06}</Project>
+      <Name>s2n_client_cert_status_request_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_cert_verify_test.vcxproj">
+      <Project>{FD6DD326-5934-30D1-93AD-194B3DC9FD0E}</Project>
+      <Name>s2n_client_cert_verify_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_early_data_indication_test.vcxproj">
+      <Project>{55EA8923-FDF1-3EDF-A828-6B238A052DF1}</Project>
+      <Name>s2n_client_early_data_indication_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_empty_cert_test.vcxproj">
+      <Project>{F4C4D840-5C02-3C7E-A2D8-83FBEA25E740}</Project>
+      <Name>s2n_client_empty_cert_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_extensions_test.vcxproj">
+      <Project>{26E89003-5414-35D5-9F62-C7B74F1C98C8}</Project>
+      <Name>s2n_client_extensions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_finished_test.vcxproj">
+      <Project>{D49EBEE6-A506-3657-9D39-B1FC256CF60E}</Project>
+      <Name>s2n_client_finished_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_hello_get_supported_groups_test.vcxproj">
+      <Project>{88A0B003-9A1A-3063-A8D0-24E7B5F306A8}</Project>
+      <Name>s2n_client_hello_get_supported_groups_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_hello_recv_test.vcxproj">
+      <Project>{F8DB2A06-6D01-3248-991A-194B68FADF08}</Project>
+      <Name>s2n_client_hello_recv_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_hello_request_test.vcxproj">
+      <Project>{37D9A9ED-1B47-3B14-84A3-5D4A3B5BBF3A}</Project>
+      <Name>s2n_client_hello_request_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_hello_retry_test.vcxproj">
+      <Project>{99741D05-B987-3C67-BBF7-09DED1C45F1B}</Project>
+      <Name>s2n_client_hello_retry_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_hello_test.vcxproj">
+      <Project>{1287BB0A-FCFC-317E-A265-9712A9325D8D}</Project>
+      <Name>s2n_client_hello_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_key_exchange_test.vcxproj">
+      <Project>{A25ACCB5-B63B-31FC-89E7-ED06D40B32C9}</Project>
+      <Name>s2n_client_key_exchange_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_key_share_extension_pq_test.vcxproj">
+      <Project>{147A2B55-FECD-378E-A090-824990789A84}</Project>
+      <Name>s2n_client_key_share_extension_pq_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_key_share_extension_test.vcxproj">
+      <Project>{A00B07EF-D828-34AB-8E73-8EF1013DB2B2}</Project>
+      <Name>s2n_client_key_share_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_max_frag_len_extension_test.vcxproj">
+      <Project>{1F953174-CD2C-3E4D-9933-570E611E31A8}</Project>
+      <Name>s2n_client_max_frag_len_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_psk_extension_test.vcxproj">
+      <Project>{563B5475-DFAE-3F1A-AE32-8D3FD2038895}</Project>
+      <Name>s2n_client_psk_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_record_version_test.vcxproj">
+      <Project>{3B653291-2296-39F7-A1FE-A8065E0ACC1A}</Project>
+      <Name>s2n_client_record_version_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_renegotiation_info_extension_test.vcxproj">
+      <Project>{852C0F5C-AA2F-37E0-8C69-8BE4418D1CF0}</Project>
+      <Name>s2n_client_renegotiation_info_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_sct_list_extension_test.vcxproj">
+      <Project>{CD88CDEE-9FAB-3060-8AE5-D659BA8BA72F}</Project>
+      <Name>s2n_client_sct_list_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_secure_renegotiation_test.vcxproj">
+      <Project>{82B6BACB-C685-316C-ACDB-5C541CE80F41}</Project>
+      <Name>s2n_client_secure_renegotiation_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_server_name_extension_test.vcxproj">
+      <Project>{82DD9152-09A3-3097-9FBB-0CE04F612612}</Project>
+      <Name>s2n_client_server_name_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_session_ticket_extension_test.vcxproj">
+      <Project>{4A20A748-7991-38F8-B2CA-07E8509D60BC}</Project>
+      <Name>s2n_client_session_ticket_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_signature_algorithms_extension_test.vcxproj">
+      <Project>{F1405F96-3963-310F-B260-7AD829B64891}</Project>
+      <Name>s2n_client_signature_algorithms_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_supported_groups_extension_test.vcxproj">
+      <Project>{0395B061-61C4-3956-B411-45E99D5E2DB7}</Project>
+      <Name>s2n_client_supported_groups_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_client_supported_versions_extension_test.vcxproj">
+      <Project>{7D018194-AFD2-322B-B72D-1E611DE13B43}</Project>
+      <Name>s2n_client_supported_versions_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_config_test.vcxproj">
+      <Project>{05AF63B5-CC90-34A3-9C88-26C0165BCDE2}</Project>
+      <Name>s2n_config_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_blinding_test.vcxproj">
+      <Project>{18DB75E1-8192-3407-82E8-3E1F79097F4C}</Project>
+      <Name>s2n_connection_blinding_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_context_test.vcxproj">
+      <Project>{E6330D3B-D7E0-3483-9977-7594CD95D4FD}</Project>
+      <Name>s2n_connection_context_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_preferences_test.vcxproj">
+      <Project>{57762D05-EE1A-3C93-9242-6372BCEEA19B}</Project>
+      <Name>s2n_connection_preferences_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_protocol_versions_test.vcxproj">
+      <Project>{4C414137-0E0E-3A15-B2CB-47BBF2707D7E}</Project>
+      <Name>s2n_connection_protocol_versions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_serialize_test.vcxproj">
+      <Project>{EEFD93EA-B2D0-31F5-8001-F6046D84DF53}</Project>
+      <Name>s2n_connection_serialize_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_size_test.vcxproj">
+      <Project>{6C3E2B71-B9BF-33F0-9214-BEEC94B217A7}</Project>
+      <Name>s2n_connection_size_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_connection_test.vcxproj">
+      <Project>{13FE0410-447E-3541-8DCD-8E15918BC3E8}</Project>
+      <Name>s2n_connection_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_cookie_test.vcxproj">
+      <Project>{5BD7BAAF-3E2B-3D18-84D2-7ACCB769431A}</Project>
+      <Name>s2n_cookie_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_crl_test.vcxproj">
+      <Project>{94BCBD2B-86AD-395E-9C4A-492C1CD93723}</Project>
+      <Name>s2n_crl_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_crypto_test.vcxproj">
+      <Project>{2ADA2FAC-E052-374A-BE11-0A3F473B1BD6}</Project>
+      <Name>s2n_crypto_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_drain_alert_test.vcxproj">
+      <Project>{19AE50B2-26A1-3FB2-AC50-123FAEC99E2B}</Project>
+      <Name>s2n_drain_alert_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_early_data_io_api_test.vcxproj">
+      <Project>{95FF9D96-0700-30CF-9E89-90A9A0BF31EB}</Project>
+      <Name>s2n_early_data_io_api_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_early_data_io_test.vcxproj">
+      <Project>{379EF60A-9F73-3779-A130-F630375BAAEB}</Project>
+      <Name>s2n_early_data_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_early_data_test.vcxproj">
+      <Project>{98DFFF37-E7BC-35FA-877A-0FB9894D3F3D}</Project>
+      <Name>s2n_early_data_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ecc_evp_test.vcxproj">
+      <Project>{D96C60DC-1BA9-329E-BC8E-9BE47BB4107C}</Project>
+      <Name>s2n_ecc_evp_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ecc_point_format_extension_test.vcxproj">
+      <Project>{98A90814-C4C0-3ED2-BB33-2AC9BB45FCD4}</Project>
+      <Name>s2n_ecc_point_format_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ecc_preferences_test.vcxproj">
+      <Project>{6C83B6A4-B4EA-39B2-8196-30637A7805C2}</Project>
+      <Name>s2n_ecc_preferences_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ems_extension_test.vcxproj">
+      <Project>{BF5B6214-AB71-3E31-9BCE-ED300AD4221E}</Project>
+      <Name>s2n_ems_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_encrypted_extensions_test.vcxproj">
+      <Project>{883A85FD-C1DB-34DC-914B-2534EF4F07C8}</Project>
+      <Name>s2n_encrypted_extensions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_error_lookup_test.vcxproj">
+      <Project>{B1C8C9EB-2B4B-3255-A4A7-04BB174FF23F}</Project>
+      <Name>s2n_error_lookup_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_error_type_test.vcxproj">
+      <Project>{386B60AE-0802-3D7B-A176-69FB83E05F3A}</Project>
+      <Name>s2n_error_type_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_events_test.vcxproj">
+      <Project>{AD0AC6D4-B984-322D-9860-56296C999036}</Project>
+      <Name>s2n_events_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_examples_test.vcxproj">
+      <Project>{F2B68BC4-3CBC-30FB-9EC8-8854C59A5F59}</Project>
+      <Name>s2n_examples_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extended_master_secret_test.vcxproj">
+      <Project>{BF491A9C-0BF8-3091-A1C2-B915833208EE}</Project>
+      <Name>s2n_extended_master_secret_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extension_list_parse_test.vcxproj">
+      <Project>{AF0EF217-9D0D-3E2C-B0D2-E57AA66DAFE0}</Project>
+      <Name>s2n_extension_list_parse_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extension_list_process_test.vcxproj">
+      <Project>{C2C594E1-BABE-3ADD-8ECB-51799FAF7FC3}</Project>
+      <Name>s2n_extension_list_process_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extension_list_send_test.vcxproj">
+      <Project>{68BC6D81-B37F-3DC5-A761-88131B50F814}</Project>
+      <Name>s2n_extension_list_send_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extension_type_lists_test.vcxproj">
+      <Project>{5F0D9F4D-2645-325E-8CD8-9D9E276D1D28}</Project>
+      <Name>s2n_extension_type_lists_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extension_type_test.vcxproj">
+      <Project>{8E33C5E7-2A80-371B-A660-30C22127BCD1}</Project>
+      <Name>s2n_extension_type_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_extensions_server_key_share_select_test.vcxproj">
+      <Project>{5C46FBBC-F28B-3928-A05C-91C6B3124C2A}</Project>
+      <Name>s2n_extensions_server_key_share_select_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fingerprint_ja3_test.vcxproj">
+      <Project>{3250AFC1-CE4B-3428-A574-C3942EAF0108}</Project>
+      <Name>s2n_fingerprint_ja3_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fingerprint_ja4_test.vcxproj">
+      <Project>{836F559D-ED86-3C1D-927F-C861589722C5}</Project>
+      <Name>s2n_fingerprint_ja4_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fingerprint_test.vcxproj">
+      <Project>{1E1A72CE-D853-3B15-88CA-EAD810E8C1B4}</Project>
+      <Name>s2n_fingerprint_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fips_rules_test.vcxproj">
+      <Project>{3EE1FEF4-B507-33D8-9AD3-0FA6D6BD98FE}</Project>
+      <Name>s2n_fips_rules_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fips_test.vcxproj">
+      <Project>{AEAD59DD-92E4-3768-92C2-8EB419702BFB}</Project>
+      <Name>s2n_fips_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_fragmentation_coalescing_test.vcxproj">
+      <Project>{5BB5445F-F060-3791-9D6B-EA56FAF87C99}</Project>
+      <Name>s2n_fragmentation_coalescing_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_errno_test.vcxproj">
+      <Project>{5C67E0AD-3E83-3ADB-941A-96E81CEF40B6}</Project>
+      <Name>s2n_handshake_errno_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_fragment_test.vcxproj">
+      <Project>{E709379C-9D5D-335F-B29B-75E62628779A}</Project>
+      <Name>s2n_handshake_fragment_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_hashes_test.vcxproj">
+      <Project>{545F47B3-A713-3FE5-B8C0-8B1318DE5CF6}</Project>
+      <Name>s2n_handshake_hashes_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_invariant_test.vcxproj">
+      <Project>{B74E04E4-74FE-35B6-A7B4-4EC7F5D0F616}</Project>
+      <Name>s2n_handshake_invariant_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_io_async_test.vcxproj">
+      <Project>{EB183587-466D-33FD-9FC6-50A1F9EDF060}</Project>
+      <Name>s2n_handshake_io_async_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_io_early_data_test.vcxproj">
+      <Project>{1FB90F12-C9E1-3082-8F19-EA96FC53E9C4}</Project>
+      <Name>s2n_handshake_io_early_data_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_io_errors_test.vcxproj">
+      <Project>{AC08345E-F778-3A97-9319-B6A177E11157}</Project>
+      <Name>s2n_handshake_io_errors_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_io_test.vcxproj">
+      <Project>{0A28B0E4-6305-31AE-AB3F-0AC90B09B6B0}</Project>
+      <Name>s2n_handshake_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_misc_test.vcxproj">
+      <Project>{AFCC112F-2009-3E11-8AAE-DF6B1C138616}</Project>
+      <Name>s2n_handshake_misc_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_partial_test.vcxproj">
+      <Project>{A7B2B9C8-CA39-3074-9146-1207B3C3BA00}</Project>
+      <Name>s2n_handshake_partial_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_test.vcxproj">
+      <Project>{3751C59C-25B2-3EF7-8BFA-35262EE77A0E}</Project>
+      <Name>s2n_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_handshake_type_test.vcxproj">
+      <Project>{F2075F63-6E10-3932-B147-7AC9142B4164}</Project>
+      <Name>s2n_handshake_type_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_hash_all_algs_test.vcxproj">
+      <Project>{939D3D3B-54E9-3115-9F20-B0637F73F9A2}</Project>
+      <Name>s2n_hash_all_algs_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_hash_test.vcxproj">
+      <Project>{76537005-655F-3084-B693-9CF7F6496921}</Project>
+      <Name>s2n_hash_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_hkdf_test.vcxproj">
+      <Project>{9FE515B4-9A3E-32C9-85E9-2BB2A57A9A26}</Project>
+      <Name>s2n_hkdf_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_hmac_test.vcxproj">
+      <Project>{565E0B3C-4F91-3C79-B310-04E70781A3B4}</Project>
+      <Name>s2n_hmac_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_init_test.vcxproj">
+      <Project>{CEC520D5-C21A-3E96-A8A5-833A40E13F0C}</Project>
+      <Name>s2n_init_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_io_test.vcxproj">
+      <Project>{B0778F08-8144-3EDB-8EA7-F74ADA9555BE}</Project>
+      <Name>s2n_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_kem_preferences_test.vcxproj">
+      <Project>{30C9EFB0-2A9C-3D28-A708-553047B185AA}</Project>
+      <Name>s2n_kem_preferences_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_kem_test.vcxproj">
+      <Project>{82F15F03-2B55-3152-9B54-F9CC30D5F7CA}</Project>
+      <Name>s2n_kem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_kex_test.vcxproj">
+      <Project>{861E9A5F-7792-3F3D-9A2B-4FD63173FAB3}</Project>
+      <Name>s2n_kex_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_key_share_extension_test.vcxproj">
+      <Project>{87D9D3F2-A83E-30CB-867B-574BA3FFDE63}</Project>
+      <Name>s2n_key_share_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_key_update_test.vcxproj">
+      <Project>{CAF74F8A-DA72-3923-8237-0A581DA556F5}</Project>
+      <Name>s2n_key_update_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_key_update_threads_test.vcxproj">
+      <Project>{D92647F5-A7AD-3539-84E5-5FDCEE75E0A2}</Project>
+      <Name>s2n_key_update_threads_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ktls_io_sendfile_test.vcxproj">
+      <Project>{081447BC-E1EE-340D-9C7B-A07FF339E9FD}</Project>
+      <Name>s2n_ktls_io_sendfile_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ktls_io_test.vcxproj">
+      <Project>{E363B917-3B05-3FBC-AA6E-AA5848589BD8}</Project>
+      <Name>s2n_ktls_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ktls_mode_test.vcxproj">
+      <Project>{622789C1-FEB3-39D2-B915-9122D7287DAD}</Project>
+      <Name>s2n_ktls_mode_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ktls_test.vcxproj">
+      <Project>{2A4399B0-108E-35F3-92B0-0C4AFE1BEC78}</Project>
+      <Name>s2n_ktls_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ktls_test_utils_test.vcxproj">
+      <Project>{D236A34F-3843-3027-96F4-1DCE632DB561}</Project>
+      <Name>s2n_ktls_test_utils_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_libcrypto_test.vcxproj">
+      <Project>{3A3DEECD-22D4-30C9-BD90-B292579D5BA7}</Project>
+      <Name>s2n_libcrypto_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_locking_test.vcxproj">
+      <Project>{27EF9446-4AD4-3FF2-9041-4C144D134F59}</Project>
+      <Name>s2n_locking_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_malformed_handshake_test.vcxproj">
+      <Project>{5909D7BE-E426-350C-8854-83696B22D140}</Project>
+      <Name>s2n_malformed_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_map_iterator_test.vcxproj">
+      <Project>{EEFFD22A-00E2-3686-B703-4939C01ED114}</Project>
+      <Name>s2n_map_iterator_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_map_test.vcxproj">
+      <Project>{3B6347F2-E7F2-3021-9DED-D9636BC8E501}</Project>
+      <Name>s2n_map_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mem_allocator_test.vcxproj">
+      <Project>{ECA27387-88AB-37F5-9CE8-20FE5EDF2C6E}</Project>
+      <Name>s2n_mem_allocator_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mem_test.vcxproj">
+      <Project>{4113C02B-8588-348C-B4BA-EF4227DFC8CB}</Project>
+      <Name>s2n_mem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mem_testlib_test.vcxproj">
+      <Project>{79B804F9-596C-3225-B759-4BC068368272}</Project>
+      <Name>s2n_mem_testlib_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mem_usage_test.vcxproj">
+      <Project>{A9217372-0F21-372D-9234-FDC7CE157461}</Project>
+      <Name>s2n_mem_usage_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mldsa_test.vcxproj">
+      <Project>{B34D41D4-1C6D-3511-B254-29DE5264E2AD}</Project>
+      <Name>s2n_mldsa_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_multi_message_test.vcxproj">
+      <Project>{219DAD82-9F5E-3C78-8A2B-14DEAF425433}</Project>
+      <Name>s2n_multi_message_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_mutual_auth_test.vcxproj">
+      <Project>{2831A0C8-D4E9-3F52-A4CF-A4DFC8BA45F0}</Project>
+      <Name>s2n_mutual_auth_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_next_protocol_test.vcxproj">
+      <Project>{924494C8-EF35-3C1E-8251-49D5767741E2}</Project>
+      <Name>s2n_next_protocol_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_npn_extension_test.vcxproj">
+      <Project>{3C80286E-21F2-3EF5-8BF4-E4572586787F}</Project>
+      <Name>s2n_npn_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_nst_early_data_indication_test.vcxproj">
+      <Project>{BF771A44-DA43-3AD4-AE6E-E0EE11D01DEE}</Project>
+      <Name>s2n_nst_early_data_indication_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_openssl_x509_test.vcxproj">
+      <Project>{89B5B745-2D2B-32F7-B89C-2D4071A97EF5}</Project>
+      <Name>s2n_openssl_x509_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_optional_client_auth_test.vcxproj">
+      <Project>{4E7D4BF9-B565-3F25-AE85-AA1902151D6A}</Project>
+      <Name>s2n_optional_client_auth_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pem_rsa_dhe_test.vcxproj">
+      <Project>{D1C97D01-1451-30C1-ADA1-AB68AE703AB2}</Project>
+      <Name>s2n_pem_rsa_dhe_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pem_test.vcxproj">
+      <Project>{3808649C-6873-336C-9A96-91801A417231}</Project>
+      <Name>s2n_pem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pkey_signing_test.vcxproj">
+      <Project>{65386AFD-AAA4-3C1B-AD0B-2B190639DBF2}</Project>
+      <Name>s2n_pkey_signing_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pkey_test.vcxproj">
+      <Project>{D650F54B-5B0C-39A0-808B-525B8C0A6C0B}</Project>
+      <Name>s2n_pkey_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_policy_defaults_test.vcxproj">
+      <Project>{7DA701FB-EDFC-37C2-9977-9F16F536BE99}</Project>
+      <Name>s2n_policy_defaults_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_policy_writer_test.vcxproj">
+      <Project>{F651B26B-474F-3B78-B5A8-4DDC28AD68A8}</Project>
+      <Name>s2n_policy_writer_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_post_handshake_recv_test.vcxproj">
+      <Project>{7E4D2F26-AABA-3795-A8ED-DC27B8807445}</Project>
+      <Name>s2n_post_handshake_recv_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_post_handshake_send_test.vcxproj">
+      <Project>{5DE4FA27-1E0A-3C7C-AC49-C776D9FC0D47}</Project>
+      <Name>s2n_post_handshake_send_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_post_handshake_test.vcxproj">
+      <Project>{EFE4CC01-BB40-3214-9DC7-5AF8698E0A89}</Project>
+      <Name>s2n_post_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pq_kem_test.vcxproj">
+      <Project>{49D02C83-79C7-34E7-A93C-B5C997BDF06F}</Project>
+      <Name>s2n_pq_kem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pq_mlkem_policies_test.vcxproj">
+      <Project>{20AF09BF-4802-319A-8948-EA61313FB3E2}</Project>
+      <Name>s2n_pq_mlkem_policies_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_pq_mlkem_test.vcxproj">
+      <Project>{567B3E02-D6E8-3961-9B02-162900EE5765}</Project>
+      <Name>s2n_pq_mlkem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_prf_key_material_test.vcxproj">
+      <Project>{4EB166BE-E053-3CC1-B08D-02DE1BB4631C}</Project>
+      <Name>s2n_prf_key_material_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_protocol_preferences_test.vcxproj">
+      <Project>{077A288C-DBC8-3C2D-9370-6BCFC1075E96}</Project>
+      <Name>s2n_protocol_preferences_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_psk_key_exchange_modes_extension_test.vcxproj">
+      <Project>{CF297869-63A7-3CDD-B679-9E130498239B}</Project>
+      <Name>s2n_psk_key_exchange_modes_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_psk_offered_test.vcxproj">
+      <Project>{6D81DBF2-D41C-3592-9F0D-5D3F5B91A21D}</Project>
+      <Name>s2n_psk_offered_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_psk_test.vcxproj">
+      <Project>{464B098A-21C4-3123-8069-3F5F6C48EF16}</Project>
+      <Name>s2n_psk_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_quic_support_io_test.vcxproj">
+      <Project>{DFF0DB75-6905-3936-977B-956648A2FBFD}</Project>
+      <Name>s2n_quic_support_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_quic_support_test.vcxproj">
+      <Project>{1311E8E0-8A6B-3E6A-B68A-0AB1BA73E201}</Project>
+      <Name>s2n_quic_support_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_quic_transport_params_extension_test.vcxproj">
+      <Project>{53C8BF20-675E-3890-898F-5D141E104730}</Project>
+      <Name>s2n_quic_transport_params_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_random_test.vcxproj">
+      <Project>{BF82FD91-085F-377C-B356-C42661F93C3D}</Project>
+      <Name>s2n_random_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_rc4_test.vcxproj">
+      <Project>{CE2FF450-7D0D-30FE-AC48-6EA37C52B854}</Project>
+      <Name>s2n_rc4_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_record_read_test.vcxproj">
+      <Project>{B2F90914-CF2B-3E5A-B10D-337504A0518E}</Project>
+      <Name>s2n_record_read_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_record_size_test.vcxproj">
+      <Project>{6C9E8FCE-D7F7-3B0B-BA44-945E0D008A7F}</Project>
+      <Name>s2n_record_size_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_record_test.vcxproj">
+      <Project>{F8B613A5-CD00-3270-9500-1FBAF92B944B}</Project>
+      <Name>s2n_record_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_record_write_test.vcxproj">
+      <Project>{66E09557-7219-39B7-90C0-EA52E9054D79}</Project>
+      <Name>s2n_record_write_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_recv_buffering_test.vcxproj">
+      <Project>{C4767215-499D-3CA6-BFC2-5BA83FD991BF}</Project>
+      <Name>s2n_recv_buffering_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_recv_test.vcxproj">
+      <Project>{5506FA9B-DDC7-302A-8834-86E3EB38BCF3}</Project>
+      <Name>s2n_recv_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_release_non_empty_buffers_test.vcxproj">
+      <Project>{85D395C1-0C61-3A52-ADB9-3A37364373AC}</Project>
+      <Name>s2n_release_non_empty_buffers_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_renegotiate_io_test.vcxproj">
+      <Project>{7B113783-32B2-3B77-900A-90F436353792}</Project>
+      <Name>s2n_renegotiate_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_renegotiate_test.vcxproj">
+      <Project>{BA980D20-32BD-3663-AB46-E11263DC3AF3}</Project>
+      <Name>s2n_renegotiate_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_resume_test.vcxproj">
+      <Project>{770452F0-3F54-3B10-BE00-4ECD426CB09A}</Project>
+      <Name>s2n_resume_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_rfc5952_test.vcxproj">
+      <Project>{72525587-F907-3336-A6E8-AB1DBE030620}</Project>
+      <Name>s2n_rfc5952_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_rsa_pss_rsae_test.vcxproj">
+      <Project>{A9EA8F47-9F41-34AA-B1B4-F5029FEBA22C}</Project>
+      <Name>s2n_rsa_pss_rsae_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_rsa_pss_test.vcxproj">
+      <Project>{C410E987-0600-3994-88D6-DF69CBE1A623}</Project>
+      <Name>s2n_rsa_pss_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_safety_blinding_test.vcxproj">
+      <Project>{C837458B-6BB8-3C4C-AFDB-2F361D47CCFB}</Project>
+      <Name>s2n_safety_blinding_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_safety_macros_test.vcxproj">
+      <Project>{901C7AFD-B898-3E52-896D-8BD9EB6B5289}</Project>
+      <Name>s2n_safety_macros_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_safety_test.vcxproj">
+      <Project>{FEC6B613-EFDB-3CFD-A509-47DEFD8A253D}</Project>
+      <Name>s2n_safety_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_seccomp_failure_test.vcxproj">
+      <Project>{800D0ECC-6A8D-3930-87ED-5A0342897285}</Project>
+      <Name>s2n_seccomp_failure_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_seccomp_handshake_test.vcxproj">
+      <Project>{81523A11-BBE1-3997-AFF3-BD97D3E3826E}</Project>
+      <Name>s2n_seccomp_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_security_policies_rules_test.vcxproj">
+      <Project>{01AB26F5-6B42-3CC7-8FCB-AAC10E3949AB}</Project>
+      <Name>s2n_security_policies_rules_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_security_policies_test.vcxproj">
+      <Project>{B3FAAD59-2124-38D4-828E-940383071215}</Project>
+      <Name>s2n_security_policies_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_security_policy_cert_preferences_test.vcxproj">
+      <Project>{E20DE614-96D4-388F-A3C6-EB61CB0F8E86}</Project>
+      <Name>s2n_security_policy_cert_preferences_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_security_rules_test.vcxproj">
+      <Project>{A792D6A2-52E0-3AEE-B4D6-4B13186DB82F}</Project>
+      <Name>s2n_security_rules_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_alerts_test.vcxproj">
+      <Project>{4153B7C1-3BC2-363C-8DDB-0A41EF86E510}</Project>
+      <Name>s2n_self_talk_alerts_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_alpn_test.vcxproj">
+      <Project>{91F17A85-1FD6-3072-9454-C16647BA0ABD}</Project>
+      <Name>s2n_self_talk_alpn_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_broken_pipe_test.vcxproj">
+      <Project>{5F433E06-0FFE-3BD4-B179-808C3BE91387}</Project>
+      <Name>s2n_self_talk_broken_pipe_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_certificates_test.vcxproj">
+      <Project>{6737DDC9-7462-3E4C-924A-6A5E8B053C21}</Project>
+      <Name>s2n_self_talk_certificates_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_client_hello_cb_test.vcxproj">
+      <Project>{339A1F41-3F20-319C-AE05-8040FC65A570}</Project>
+      <Name>s2n_self_talk_client_hello_cb_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_custom_io_test.vcxproj">
+      <Project>{544D6845-3901-30F7-8951-81706AAA0466}</Project>
+      <Name>s2n_self_talk_custom_io_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_io_mem_test.vcxproj">
+      <Project>{99B7184C-C306-39A9-84C2-BA666F5D6E38}</Project>
+      <Name>s2n_self_talk_io_mem_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_key_log_test.vcxproj">
+      <Project>{DFC849EE-059B-35E5-B166-2902104CB7DA}</Project>
+      <Name>s2n_self_talk_key_log_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_ktls_test.vcxproj">
+      <Project>{2B9D60C9-ACED-3C7D-B4BA-8B4690FC902C}</Project>
+      <Name>s2n_self_talk_ktls_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_min_protocol_version_test.vcxproj">
+      <Project>{363C5DAB-FFD1-3A05-8050-0896A9BE2B4B}</Project>
+      <Name>s2n_self_talk_min_protocol_version_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_nonblocking_test.vcxproj">
+      <Project>{C00D092F-4AB6-3756-81ED-0CA0002D863A}</Project>
+      <Name>s2n_self_talk_nonblocking_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_npn_test.vcxproj">
+      <Project>{EA11E76D-8482-31B6-B9D0-0E9A6FEC47F5}</Project>
+      <Name>s2n_self_talk_npn_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_offload_signing_test.vcxproj">
+      <Project>{CF8F02BD-95B0-3696-8DA7-3331675150F2}</Project>
+      <Name>s2n_self_talk_offload_signing_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_psk_test.vcxproj">
+      <Project>{F8BFE3F4-F348-3E3A-A229-08CABDD6C591}</Project>
+      <Name>s2n_self_talk_psk_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_quic_support_test.vcxproj">
+      <Project>{667DCD42-29B9-35A6-A6BA-E39CDF6B8825}</Project>
+      <Name>s2n_self_talk_quic_support_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_session_id_test.vcxproj">
+      <Project>{4FFC8E87-4C41-393D-A15C-DD3F2D2D67FE}</Project>
+      <Name>s2n_self_talk_session_id_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_session_resumption_test.vcxproj">
+      <Project>{1985C687-EABE-3CA9-B72F-89F2E8EF445F}</Project>
+      <Name>s2n_self_talk_session_resumption_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_shutdown_test.vcxproj">
+      <Project>{F6BDD677-AE95-35A1-B3DE-1DC3D2696AB7}</Project>
+      <Name>s2n_self_talk_shutdown_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_tls12_test.vcxproj">
+      <Project>{179187F8-F6B9-3131-A6B4-63B75027A16E}</Project>
+      <Name>s2n_self_talk_tls12_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_self_talk_tls13_test.vcxproj">
+      <Project>{F3533E67-8C99-34DB-8A6A-A263C99E6D51}</Project>
+      <Name>s2n_self_talk_tls13_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_send_key_update_test.vcxproj">
+      <Project>{D16A9653-69DD-3871-A0C0-94A2DD65DF05}</Project>
+      <Name>s2n_send_key_update_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_send_multirecord_test.vcxproj">
+      <Project>{42F7D950-067D-30DE-B45A-64F14B917B44}</Project>
+      <Name>s2n_send_multirecord_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_send_test.vcxproj">
+      <Project>{252AA061-D55B-33AB-BD42-186A5359B2AF}</Project>
+      <Name>s2n_send_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_sequence_number_test.vcxproj">
+      <Project>{BD4E7E94-8376-38F6-9ACE-0FDB85AA44F7}</Project>
+      <Name>s2n_sequence_number_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_alpn_extension_test.vcxproj">
+      <Project>{FD23296E-1E34-361B-80E7-0244839748BA}</Project>
+      <Name>s2n_server_alpn_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_cert_request_test.vcxproj">
+      <Project>{31DAC7A1-33D9-39FF-8F0F-0AD58063E12E}</Project>
+      <Name>s2n_server_cert_request_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_cert_status_request_extension_test.vcxproj">
+      <Project>{88D4FD07-1585-3363-A88F-CBFCA914F80D}</Project>
+      <Name>s2n_server_cert_status_request_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_early_data_indication_test.vcxproj">
+      <Project>{9BACADCD-5073-3D68-B7CD-59BEE999F5B9}</Project>
+      <Name>s2n_server_early_data_indication_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_extensions_test.vcxproj">
+      <Project>{192E9547-C68F-3ACE-8E1C-478FA90DF2A8}</Project>
+      <Name>s2n_server_extensions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_finished_test.vcxproj">
+      <Project>{813C0288-D3B1-3713-A147-EDAEE96085E4}</Project>
+      <Name>s2n_server_finished_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_hello_retry_test.vcxproj">
+      <Project>{F36152EC-6347-375C-9927-FCC2A9502469}</Project>
+      <Name>s2n_server_hello_retry_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_hello_test.vcxproj">
+      <Project>{E23F529C-86FD-3183-A6CB-82E01CAAF998}</Project>
+      <Name>s2n_server_hello_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_key_share_extension_test.vcxproj">
+      <Project>{406DFCF4-7F8C-3B3A-B006-EFC2D26DAE87}</Project>
+      <Name>s2n_server_key_share_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_max_frag_len_extension_test.vcxproj">
+      <Project>{4842BE71-7ABB-301B-8289-F1B6DBE7977A}</Project>
+      <Name>s2n_server_max_frag_len_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_new_session_ticket_test.vcxproj">
+      <Project>{68D9FD5E-8A36-3E34-AC8D-06B7419CC593}</Project>
+      <Name>s2n_server_new_session_ticket_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_psk_extension_test.vcxproj">
+      <Project>{9D5E6213-6A10-3248-89B3-EB3637FA8713}</Project>
+      <Name>s2n_server_psk_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_renegotiation_info_test.vcxproj">
+      <Project>{A3A668DB-5C76-34CB-944B-09E489D0F3B4}</Project>
+      <Name>s2n_server_renegotiation_info_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_sct_list_extension_test.vcxproj">
+      <Project>{C1B1023E-F6D8-32A6-A91E-112ADB77FE95}</Project>
+      <Name>s2n_server_sct_list_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_server_name_extension_test.vcxproj">
+      <Project>{C1517779-A2D0-32A9-BD00-42088CF9AF50}</Project>
+      <Name>s2n_server_server_name_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_session_ticket_extension_test.vcxproj">
+      <Project>{28EA185E-1630-3DC3-B644-126558B9CF65}</Project>
+      <Name>s2n_server_session_ticket_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_signature_algorithms_extension_test.vcxproj">
+      <Project>{23D0481F-70D3-3B07-8026-5DB37C15E1DB}</Project>
+      <Name>s2n_server_signature_algorithms_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_server_supported_versions_extension_test.vcxproj">
+      <Project>{6798FD52-98D2-3167-B689-0B224DBA5544}</Project>
+      <Name>s2n_server_supported_versions_extension_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_session_ticket_test.vcxproj">
+      <Project>{AF60A92B-C68B-325F-9855-0ECECBD161D8}</Project>
+      <Name>s2n_session_ticket_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_shutdown_test.vcxproj">
+      <Project>{A901BB0F-F8F5-3938-99ED-6643C916AD07}</Project>
+      <Name>s2n_shutdown_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_signature_algorithms_test.vcxproj">
+      <Project>{C0F655AC-0413-3175-9C56-2D5910435865}</Project>
+      <Name>s2n_signature_algorithms_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_signature_scheme_test.vcxproj">
+      <Project>{92DFE494-FEAD-3704-B516-7E40C8CFCF32}</Project>
+      <Name>s2n_signature_scheme_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_ssl_prf_test.vcxproj">
+      <Project>{CAFAC183-4838-35BA-B203-F3CB5ED752EC}</Project>
+      <Name>s2n_ssl_prf_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_sslv3_test.vcxproj">
+      <Project>{AE78B360-C346-37CA-BBD4-A6DF0DB64542}</Project>
+      <Name>s2n_sslv3_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stacktrace_test.vcxproj">
+      <Project>{79089979-DD3B-32C8-92FD-242086F34EE6}</Project>
+      <Name>s2n_stacktrace_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stream_cipher_null_test.vcxproj">
+      <Project>{99F7B948-025F-3890-AA04-F094B5798C19}</Project>
+      <Name>s2n_stream_cipher_null_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_strongly_preferred_groups_test.vcxproj">
+      <Project>{EEEEFFC7-6B5A-3C3F-BF19-369EAC0DE102}</Project>
+      <Name>s2n_strongly_preferred_groups_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stuffer_base64_test.vcxproj">
+      <Project>{29CBFD5C-01B3-3F84-B96D-CAEFF54B1A1D}</Project>
+      <Name>s2n_stuffer_base64_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stuffer_hex_test.vcxproj">
+      <Project>{9D14850E-3A51-3DAB-9B58-4B1032FD8A1A}</Project>
+      <Name>s2n_stuffer_hex_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stuffer_network_order_test.vcxproj">
+      <Project>{476E04B0-7376-35C5-8870-2E6D58E495C8}</Project>
+      <Name>s2n_stuffer_network_order_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stuffer_test.vcxproj">
+      <Project>{0562ED16-ACFE-3409-B78F-420169065ED6}</Project>
+      <Name>s2n_stuffer_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_stuffer_text_test.vcxproj">
+      <Project>{AFC061C8-0478-3F7C-9B4C-63DC8169D115}</Project>
+      <Name>s2n_stuffer_text_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_test_mismatched_curves.vcxproj">
+      <Project>{147AB784-4FBD-3F99-9031-43D114B005BA}</Project>
+      <Name>s2n_test_mismatched_curves</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_testlib_test.vcxproj">
+      <Project>{02A985BE-36A9-361C-8FF1-1C11970926F5}</Project>
+      <Name>s2n_testlib_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_timer_test.vcxproj">
+      <Project>{64972DA2-5FE3-3E16-B335-9D36A3036140}</Project>
+      <Name>s2n_timer_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls12_handshake_test.vcxproj">
+      <Project>{8A513C17-5890-3C82-973E-BEB6D1772AE9}</Project>
+      <Name>s2n_tls12_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_cert_request_extensions_test.vcxproj">
+      <Project>{D3DD0CDF-7D62-3120-A15C-4FE0DD8A29C3}</Project>
+      <Name>s2n_tls13_cert_request_extensions_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_cert_request_test.vcxproj">
+      <Project>{6420F58F-2E2D-36ED-9FB3-7308C01F3730}</Project>
+      <Name>s2n_tls13_cert_request_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_cert_verify_test.vcxproj">
+      <Project>{7A3B1FBB-69ED-3A28-84C0-F2AE3D985CFA}</Project>
+      <Name>s2n_tls13_cert_verify_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_client_finished_test.vcxproj">
+      <Project>{D0641DE8-D754-3F3F-BEF4-3287CFB760CE}</Project>
+      <Name>s2n_tls13_client_finished_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_compute_shared_secret_test.vcxproj">
+      <Project>{837D0829-F6DA-38AF-B0C2-419E06660E4D}</Project>
+      <Name>s2n_tls13_compute_shared_secret_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_handshake_early_data_test.vcxproj">
+      <Project>{614CA415-287C-3888-980E-2A58D7F844D7}</Project>
+      <Name>s2n_tls13_handshake_early_data_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_handshake_state_machine_test.vcxproj">
+      <Project>{4A24CEBC-9AE6-3831-99B8-F50CDB548763}</Project>
+      <Name>s2n_tls13_handshake_state_machine_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_handshake_test.vcxproj">
+      <Project>{F3CA8BDC-8DB5-3799-AEC9-5D33C3662244}</Project>
+      <Name>s2n_tls13_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_hybrid_pq_shared_secret_test.vcxproj">
+      <Project>{AFB6B10A-B7E0-3E73-8603-124F8D22C91A}</Project>
+      <Name>s2n_tls13_hybrid_pq_shared_secret_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_key_schedule_rfc8448_test.vcxproj">
+      <Project>{89683095-F97F-35B1-B169-AB42B6627277}</Project>
+      <Name>s2n_tls13_key_schedule_rfc8448_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_key_schedule_test.vcxproj">
+      <Project>{61164758-EEA6-3E59-92F4-565693C95C4A}</Project>
+      <Name>s2n_tls13_key_schedule_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_keys_test.vcxproj">
+      <Project>{F3AD7844-63FD-3BF4-A00E-32A1759F3B89}</Project>
+      <Name>s2n_tls13_keys_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_new_session_ticket_test.vcxproj">
+      <Project>{6FD609B0-81A1-32D3-82DF-FEB74C80960E}</Project>
+      <Name>s2n_tls13_new_session_ticket_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_parse_record_type_test.vcxproj">
+      <Project>{06D45BC6-811E-3F5F-8F7E-2D9CB3D30614}</Project>
+      <Name>s2n_tls13_parse_record_type_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_pq_handshake_test.vcxproj">
+      <Project>{423B57E2-0E73-32B0-B4D7-5C7C3A3A6662}</Project>
+      <Name>s2n_tls13_pq_handshake_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_prf_test.vcxproj">
+      <Project>{BA886B4B-DE80-3484-92DE-16BAB60E0659}</Project>
+      <Name>s2n_tls13_prf_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_pure_pq_shared_secret_test.vcxproj">
+      <Project>{1EB3731F-1C25-38C6-8D6B-F51D4B48D525}</Project>
+      <Name>s2n_tls13_pure_pq_shared_secret_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_record_aead_test.vcxproj">
+      <Project>{BDA0C969-2222-3C38-87E0-1E6C4B173835}</Project>
+      <Name>s2n_tls13_record_aead_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_secrets_rfc8448_test.vcxproj">
+      <Project>{1DF71803-F0DB-3D4B-9584-440670EF0E82}</Project>
+      <Name>s2n_tls13_secrets_rfc8448_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_secrets_test.vcxproj">
+      <Project>{22A26FB6-7381-3FDA-9C8A-11AB9A3E52D6}</Project>
+      <Name>s2n_tls13_secrets_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_server_cert_test.vcxproj">
+      <Project>{796EFF03-D372-31B3-BABD-031938E39E1C}</Project>
+      <Name>s2n_tls13_server_cert_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_server_finished_test.vcxproj">
+      <Project>{9AD0F7A4-1B27-37D9-8478-D503D717DA96}</Project>
+      <Name>s2n_tls13_server_finished_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_support_test.vcxproj">
+      <Project>{EFF8B4B7-5588-31F2-A852-A14C1DA185A3}</Project>
+      <Name>s2n_tls13_support_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls13_zero_length_payload_test.vcxproj">
+      <Project>{0744ECA9-C128-3929-BAF2-71A4663A0CE7}</Project>
+      <Name>s2n_tls13_zero_length_payload_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls_prf_test.vcxproj">
+      <Project>{BB0A960F-0203-39DB-8349-C3DAC7D2184C}</Project>
+      <Name>s2n_tls_prf_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_tls_record_stuffer_test.vcxproj">
+      <Project>{B54EC771-CB8C-34C0-9920-3C1726D89DBF}</Project>
+      <Name>s2n_tls_record_stuffer_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_utils_test.vcxproj">
+      <Project>{835EA7FE-8F73-3E2D-B5C9-EE9A97081AE4}</Project>
+      <Name>s2n_utils_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_wildcard_hostname_test.vcxproj">
+      <Project>{98087DF3-4658-3723-AE23-A999F185D14C}</Project>
+      <Name>s2n_wildcard_hostname_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_get_validated_cert_chain_test.vcxproj">
+      <Project>{9182728B-27D4-3041-8320-EC2252DA00FB}</Project>
+      <Name>s2n_x509_get_validated_cert_chain_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_intent_verification_test.vcxproj">
+      <Project>{BCCE9FD9-1CD0-3364-94C8-8A63921984AF}</Project>
+      <Name>s2n_x509_intent_verification_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_validator_certificate_signatures_test.vcxproj">
+      <Project>{120FEE5B-CD24-38BB-ADB1-E061E7EE8564}</Project>
+      <Name>s2n_x509_validator_certificate_signatures_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_validator_custom_oids_test.vcxproj">
+      <Project>{CED63F28-0B90-35BB-8CFB-3258E9E1378D}</Project>
+      <Name>s2n_x509_validator_custom_oids_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_validator_test.vcxproj">
+      <Project>{F685A4F8-2C6D-31F8-B752-26FD343AC6B6}</Project>
+      <Name>s2n_x509_validator_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\s2n_x509_validator_time_verification_test.vcxproj">
+      <Project>{8303C28F-C242-3DB1-AF7E-D0BA40FC309D}</Project>
+      <Name>s2n_x509_validator_time_verification_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-port\solaris-port.vcxproj">
+      <Project>{297ACA13-6F08-3882-9E11-53C4EF0576B0}</Project>
+      <Name>solaris-port</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-sys-byteorder\solaris-sys-byteorder.vcxproj">
+      <Project>{566BF10A-F750-3E3C-927C-75A37538350F}</Project>
+      <Name>solaris-sys-byteorder</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\solaris-sys-feature-tests\solaris-sys-feature-tests.vcxproj">
+      <Project>{9EC90E68-3D12-3A67-ADBC-168F4B50F1CF}</Project>
+      <Name>solaris-sys-feature-tests</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-cpuset\test_bsd-sys-cpuset.vcxproj">
+      <Project>{17461BD3-B6AA-3A3D-804F-2276C623F40B}</Project>
+      <Name>test_bsd-sys-cpuset</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\bsd-sys-sysctl\test_bsd-sys-sysctl.vcxproj">
+      <Project>{A92DD970-ABBE-3F1B-A89B-4E4953722F13}</Project>
+      <Name>test_bsd-sys-sysctl</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-sys-bitops\test_linux-sys-bitops.vcxproj">
+      <Project>{635E922E-03E5-3AA6-9057-A390C831637F}</Project>
+      <Name>test_linux-sys-bitops</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-alloca\test_posix-alloca.vcxproj">
+      <Project>{9837EF05-B7D1-376F-9BCD-4A2B0F905F26}</Project>
+      <Name>test_posix-alloca</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-core\test_posix-core.vcxproj">
+      <Project>{82EB0FF1-3D45-3FDA-986E-27E659979F9B}</Project>
+      <Name>test_posix-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-dlfcn\test_posix-dlfcn.vcxproj">
+      <Project>{18FACB62-63B5-3FAA-919B-D338BBDAB728}</Project>
+      <Name>test_posix-dlfcn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-langinfo\test_posix-langinfo.vcxproj">
+      <Project>{34F211FF-069D-39DA-B220-79A15D47BEA0}</Project>
+      <Name>test_posix-langinfo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-libproc\test_posix-libproc.vcxproj">
+      <Project>{9C62B7F9-C720-3973-9733-0D0624AB5D07}</Project>
+      <Name>test_posix-libproc</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-mman\test_posix-mman.vcxproj">
+      <Project>{3001B8F8-6D9D-3C91-AD93-59C557CBA8E6}</Project>
+      <Name>test_posix-mman</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-pthread\test_posix-pthread.vcxproj">
+      <Project>{6019023C-3541-3E2F-BB61-3534296B100E}</Project>
+      <Name>test_posix-pthread</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-regex\test_posix-regex.vcxproj">
+      <Project>{28D8CE9C-A6F5-33BA-8E97-D74636C85644}</Project>
+      <Name>test_posix-regex</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-signal\test_posix-signal.vcxproj">
+      <Project>{B48E317C-B2F9-3FF4-89EE-CF99223F9266}</Project>
+      <Name>test_posix-signal</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-spawn\test_posix-spawn.vcxproj">
+      <Project>{2B7190DB-0648-3BE0-8343-72B1B0A073CE}</Project>
+      <Name>test_posix-spawn</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-syslog\test_posix-syslog.vcxproj">
+      <Project>{B75432FB-AED1-3B7D-8628-5541974F757E}</Project>
+      <Name>test_posix-syslog</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-termios\test_posix-termios.vcxproj">
+      <Project>{CE38B879-364F-32DA-BF71-AD3A147B93AE}</Project>
+      <Name>test_posix-termios</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-time\test_posix-time.vcxproj">
+      <Project>{79EBFE4D-4737-3B8D-BC4D-21A736FF5C0B}</Project>
+      <Name>test_posix-time</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-times\test_posix-times.vcxproj">
+      <Project>{F520A4F3-7BB6-384A-AAFD-965A65A983F9}</Project>
+      <Name>test_posix-times</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-types\test_posix-types.vcxproj">
+      <Project>{E437037A-0DF9-36C7-A2C1-C87F03C4A41B}</Project>
+      <Name>test_posix-types</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-unwind\test_posix-unwind.vcxproj">
+      <Project>{650BA877-A5C4-3CC7-85FB-25AD5F8BD7D0}</Project>
+      <Name>test_posix-unwind</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-utsname\test_posix-utsname.vcxproj">
+      <Project>{C75FA33D-CD9F-3E7F-B52A-BD40700A1E84}</Project>
+      <Name>test_posix-utsname</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\posix-wait\test_posix-wait.vcxproj">
+      <Project>{B4EFA79E-5932-38C7-9BCA-C8A0DB6CBC7F}</Project>
+      <Name>test_posix-wait</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\testss2n.vcxproj">
+      <Project>{1629FA7A-A564-3E47-8DFF-513CAF06A5ED}</Project>
+      <Name>testss2n</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\samue\repos\s2n-tls\build_msvc2022_shared\_deps\auto_win_msvc-build\linux-epoll\wepoll.vcxproj">
+      <Project>{35E4D8AC-556B-396D-8CAE-4EE9A0CBE6F2}</Project>
+      <Name>wepoll</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

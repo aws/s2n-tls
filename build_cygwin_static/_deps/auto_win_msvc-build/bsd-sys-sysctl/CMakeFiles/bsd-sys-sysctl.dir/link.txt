@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-sys-sysctl.a "CMakeFiles/bsd-sys-sysctl.dir/src/bsd-sys-sysctl.c.o"
+/usr/bin/ranlib.exe libbsd-sys-sysctl.a

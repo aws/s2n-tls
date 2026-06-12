@@ -1,0 +1,5 @@
+EXPORTS 
+	rdma_accept
+	rdma_bind_addr
+	rdma_create_event_channel
+	rdma_listen

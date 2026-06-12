@@ -1,0 +1,152 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/tmp/wepoll-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-DOWNLOAD.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/download-wepoll-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/verify-wepoll-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/extract-wepoll-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-UPDATE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-BUILD.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\13A1292FD1D07F84403993242904E3F4\WEPOLL-POPULATE-TEST.RULE
+setlocal
+cd C:\Users\samue\repos\s2n-tls\build_msvc2026_shared\_deps\wepoll-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\0DD08394163194BC17C3F228C52EBCDC\WEPOLL-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/CMakeFiles/Debug/wepoll-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/Debug/wepoll-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKEFILES\868CF2709B31335EE73B946459285F99\WEPOLL-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD_MSVC2026_SHARED\_DEPS\WEPOLL-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild -BC:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild --check-stamp-file C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-dlfcn.a "CMakeFiles/posix-dlfcn.dir/src/posix-dlfcn.c.o"
+/usr/bin/ranlib.exe libposix-dlfcn.a

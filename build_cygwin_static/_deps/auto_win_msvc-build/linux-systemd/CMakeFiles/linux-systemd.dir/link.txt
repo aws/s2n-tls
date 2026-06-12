@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-systemd.a "CMakeFiles/linux-systemd.dir/src/linux-systemd.c.o"
+/usr/bin/ranlib.exe liblinux-systemd.a

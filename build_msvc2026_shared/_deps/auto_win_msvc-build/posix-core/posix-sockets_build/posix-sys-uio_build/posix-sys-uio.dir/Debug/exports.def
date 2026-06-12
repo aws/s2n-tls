@@ -1,0 +1,4 @@
+EXPORTS 
+	dummy_posix_sys_uio
+	posix_readv
+	posix_writev

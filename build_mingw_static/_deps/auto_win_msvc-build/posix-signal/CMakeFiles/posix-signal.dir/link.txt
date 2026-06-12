@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-signal.a "CMakeFiles/posix-signal.dir/src/posix-signal.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-signal.a

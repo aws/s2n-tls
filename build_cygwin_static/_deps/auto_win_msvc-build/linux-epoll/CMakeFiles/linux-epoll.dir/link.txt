@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-epoll.a "CMakeFiles/linux-epoll.dir/src/linux-epoll.c.o"
+/usr/bin/ranlib.exe liblinux-epoll.a

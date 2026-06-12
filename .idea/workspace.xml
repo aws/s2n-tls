@@ -1,0 +1,2009 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated>
+      <config projectName="s2n" targetName="s2n_stuffer_network_order_test" />
+      <config projectName="s2n" targetName="s2n_quic_transport_params_extension_test" />
+      <config projectName="s2n" targetName="s2n_tls13_key_schedule_rfc8448_test" />
+      <config projectName="s2n" targetName="s2n_extension_list_send_test" />
+      <config projectName="s2n" targetName="s2n_testlib_test" />
+      <config projectName="s2n" targetName="s2n_client_renegotiation_info_extension_test" />
+      <config projectName="s2n" targetName="s2n_tls13_hybrid_shared_secret_test" />
+      <config projectName="s2n" targetName="s2n_tls13_zero_length_payload_test" />
+      <config projectName="s2n" targetName="s2n_build_test" />
+      <config projectName="s2n" targetName="s2n_psk_key_exchange_modes_extension_test" />
+      <config projectName="s2n" targetName="s2n_3des_test" />
+      <config projectName="s2n" targetName="s2n_ssl_prf_test" />
+      <config projectName="s2n" targetName="s2n_hmac_test" />
+      <config projectName="s2n" targetName="s2n_extension_type_lists_test" />
+      <config projectName="s2n" targetName="s2n_map_test" />
+      <config projectName="s2n" targetName="s2n_server_server_name_extension_test" />
+      <config projectName="s2n" targetName="s2n_cert_chain_and_key_test" />
+      <config projectName="s2n" targetName="s2n_rfc5952_test" />
+      <config projectName="s2n" targetName="s2n_tls13_compute_shared_secret_test" />
+      <config projectName="s2n" targetName="s2n_post_handshake_recv_test" />
+      <config projectName="s2n" targetName="s2n_override_openssl_random_test" />
+      <config projectName="s2n" targetName="s2n_cleanup_test" />
+      <config projectName="s2n" targetName="s2n_signature_algorithms_test" />
+      <config projectName="s2n" targetName="s2n_handshake_io_test" />
+      <config projectName="s2n" targetName="s2n_ecdsa_test" />
+      <config projectName="s2n" targetName="s2n_protocol_preferences_test" />
+      <config projectName="s2n" targetName="s2n_key_update_test" />
+      <config projectName="s2n" targetName="s2n_tls13_key_schedule_test" />
+      <config projectName="s2n" targetName="s2n_safety_blinding_test" />
+      <config projectName="s2n" targetName="s2n_server_sct_list_extension_test" />
+      <config projectName="s2n" targetName="s2n_early_data_test" />
+      <config projectName="s2n" targetName="s2n_drbg_test" />
+      <config projectName="s2n" targetName="ContinuousStart" />
+      <config projectName="s2n" targetName="s2n_connection_preferences_test" />
+      <config projectName="s2n" targetName="s2n_ems_extension_test" />
+      <config projectName="s2n" targetName="s2n_handshake_errno_test" />
+      <config projectName="s2n" targetName="s2n_client_cert_verify_test" />
+      <config projectName="s2n" targetName="s2n_config_test" />
+      <config projectName="s2n" targetName="NightlyUpdate" />
+      <config projectName="s2n" targetName="Nightly" />
+      <config projectName="s2n" targetName="s2n_ecc_point_format_extension_test" />
+      <config projectName="s2n" targetName="s2n_server_new_session_ticket_test" />
+      <config projectName="s2n" targetName="s2n_tls12_handshake_test" />
+      <config projectName="s2n" targetName="s2n_tls13_prf_test" />
+      <config projectName="s2n" targetName="s2n_client_hello_test" />
+      <config projectName="s2n" targetName="s2n_connection_context_test" />
+      <config projectName="s2n" targetName="s2n_server_renegotiation_info_test" />
+      <config projectName="s2n" targetName="s2n_security_policies_test" />
+      <config projectName="s2n" targetName="s2n_async_pkey_test" />
+      <config projectName="s2n" targetName="s2n_extension_list_process_test" />
+      <config projectName="s2n" targetName="NightlyStart" />
+      <config projectName="s2n" targetName="s2n_client_supported_groups_extension_test" />
+      <config projectName="s2n" targetName="s2n_send_test" />
+      <config projectName="s2n" targetName="s2n_server_hello_retry_test" />
+      <config projectName="s2n" targetName="s2n_change_cipher_spec_test" />
+      <config projectName="s2n" targetName="s2n_pem_test" />
+      <config projectName="s2n" targetName="s2n_tls13_cert_request_test" />
+      <config projectName="s2n" targetName="s2n_post_handshake_test" />
+      <config projectName="s2n" targetName="s2n_early_data_io_api_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_alerts_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_offload_signing_test" />
+      <config projectName="s2n" targetName="s2n_record_write_test" />
+      <config projectName="s2n" targetName="s2n_shutdown_test" />
+      <config projectName="s2n" targetName="s2n_asn1_time_test" />
+      <config projectName="s2n" targetName="s2n_pq_kem_test" />
+      <config projectName="s2n" targetName="ExperimentalTest" />
+      <config projectName="s2n" targetName="s2n_ecc_preferences_test" />
+      <config projectName="s2n" targetName="s2n_x509_validator_test" />
+      <config projectName="s2n" targetName="s2n_client_psk_extension_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_nonblocking_test" />
+      <config projectName="s2n" targetName="s2n_server_max_frag_len_extension_test" />
+      <config projectName="s2n" targetName="s2n_pq_kem_kat_kyber_r3_test" />
+      <config projectName="s2n" targetName="s2n_client_key_share_extension_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_quic_support_test" />
+      <config projectName="s2n" targetName="s2n_mem_allocator_test" />
+      <config projectName="s2n" targetName="s2n_nst_early_data_indication_test" />
+      <config projectName="s2n" targetName="s2n_resume_test" />
+      <config projectName="s2n" targetName="s2n_stuffer_text_test" />
+      <config projectName="s2n" targetName="s2n_locking_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_client_hello_cb_test" />
+      <config projectName="s2n" targetName="s2n_tls13_handshake_test" />
+      <config projectName="s2n" targetName="s2n_client_cert_status_request_extension_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_min_protocol_version_test" />
+      <config projectName="s2n" targetName="s2n_tls13_pq_handshake_test" />
+      <config projectName="s2n" targetName="s2n_alerts_protocol_test" />
+      <config projectName="s2n" targetName="s2n_client_finished_test" />
+      <config projectName="s2n" targetName="s2n_malformed_handshake_test" />
+      <config projectName="s2n" targetName="s2n_client_cert_request_context_test" />
+      <config projectName="s2n" targetName="s2n_cookie_test" />
+      <config projectName="s2n" targetName="s2n_optional_client_auth_test" />
+      <config projectName="s2n" targetName="s2n_random_test" />
+      <config projectName="s2n" targetName="s2n_extension_type_test" />
+      <config projectName="s2n" targetName="s2n_tls13_server_cert_test" />
+      <config projectName="s2n" targetName="s2n_aes_test" />
+      <config projectName="s2n" targetName="s2n_tls_hybrid_prf_test" />
+      <config projectName="s2n" targetName="s2n_hash_all_algs_test" />
+      <config projectName="s2n" targetName="s2n_kem_test" />
+      <config projectName="s2n" targetName="s2n_tls_prf_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_tls13_test" />
+      <config projectName="s2n" targetName="s2n_client_key_share_extension_pq_test" />
+      <config projectName="s2n" targetName="ContinuousUpdate" />
+      <config projectName="s2n" targetName="s2n_self_talk_tls12_test" />
+      <config projectName="s2n" targetName="s2n_cipher_suites_test" />
+      <config projectName="s2n" targetName="s2n_error_lookup_test" />
+      <config projectName="s2n" targetName="s2n_tls13_handshake_early_data_test" />
+      <config projectName="s2n" targetName="ExperimentalStart" />
+      <config projectName="s2n" targetName="s2n_tls13_keys_test" />
+      <config projectName="s2n" targetName="s2n_hkdf_test" />
+      <config projectName="s2n" targetName="s2n_certificate_extensions_test" />
+      <config projectName="s2n" targetName="s2n_mutual_auth_test" />
+      <config projectName="s2n" targetName="ExperimentalConfigure" />
+      <config projectName="s2n" targetName="s2n_cert_status_extension_test" />
+      <config projectName="s2n" targetName="s2n_client_pq_kem_extension_test" />
+      <config projectName="s2n" targetName="NightlyMemCheck" />
+      <config projectName="s2n" targetName="s2n_ktls_test" />
+      <config projectName="s2n" targetName="s2n_stuffer_hex_test" />
+      <config projectName="s2n" targetName="ExperimentalSubmit" />
+      <config projectName="s2n" targetName="NightlyConfigure" />
+      <config projectName="s2n" targetName="s2n_rsa_pss_rsae_test" />
+      <config projectName="s2n" targetName="s2n_client_hello_request_test" />
+      <config projectName="s2n" targetName="s2n_tls13_parse_record_type_test" />
+      <config projectName="s2n" targetName="s2n_pem_rsa_dhe_test" />
+      <config projectName="s2n" targetName="s2n_evp_signing_test" />
+      <config projectName="s2n" targetName="ExperimentalCoverage" />
+      <config projectName="s2n" targetName="s2n_server_cert_status_request_extension_test" />
+      <config projectName="s2n" targetName="s2n_client_secure_renegotiation_test" />
+      <config projectName="s2n" targetName="s2n_client_alpn_extension_test" />
+      <config projectName="s2n" targetName="ExperimentalUpdate" />
+      <config projectName="s2n" targetName="s2n_client_empty_cert_test" />
+      <config projectName="s2n" targetName="s2n_rc4_test" />
+      <config projectName="s2n" targetName="s2n_client_sct_list_extension_test" />
+      <config projectName="s2n" targetName="s2n_handshake_invariant_test" />
+      <config projectName="s2n" targetName="s2n_sequence_number_test" />
+      <config projectName="s2n" targetName="ContinuousSubmit" />
+      <config projectName="s2n" targetName="s2n_self_talk_key_log_test" />
+      <config projectName="s2n" targetName="s2n_handshake_test" />
+      <config projectName="s2n" targetName="s2n_handshake_type_test" />
+      <config projectName="s2n" targetName="s2n_tls13_new_session_ticket_test" />
+      <config projectName="s2n" targetName="s2n_client_hello_recv_test" />
+      <config projectName="s2n" targetName="s2n_connection_test" />
+      <config projectName="s2n" targetName="s2n_set_test" />
+      <config projectName="s2n" targetName="s2n_key_share_extension_test" />
+      <config projectName="s2n" targetName="s2n_server_session_ticket_extension_test" />
+      <config projectName="s2n" targetName="s2n_psk_offered_test" />
+      <config projectName="s2n" targetName="s2n_server_key_share_extension_test" />
+      <config projectName="s2n" targetName="ContinuousCoverage" />
+      <config projectName="s2n" targetName="ContinuousBuild" />
+      <config projectName="s2n" targetName="NightlyTest" />
+      <config projectName="s2n" targetName="s2n_self_talk_psk_test" />
+      <config projectName="s2n" targetName="s2n_session_ticket_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_custom_io_test" />
+      <config projectName="s2n" targetName="s2n_quic_support_io_test" />
+      <config projectName="s2n" targetName="s2n_server_signature_algorithms_extension_test" />
+      <config projectName="s2n" targetName="s2n_array_test" />
+      <config projectName="s2n" targetName="s2n_ktls_mode_test" />
+      <config projectName="s2n" targetName="s2n_tls13_client_finished_test" />
+      <config projectName="s2n" targetName="s2n_stuffer_base64_test" />
+      <config projectName="s2n" targetName="s2n_server_finished_test" />
+      <config projectName="s2n" targetName="s2n_record_size_test" />
+      <config projectName="s2n" targetName="s2n_safety_macros_test" />
+      <config projectName="s2n" targetName="s2n_stacktrace_test" />
+      <config projectName="s2n" targetName="s2n_tls13_secrets_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_session_resumption_test" />
+      <config projectName="s2n" targetName="s2n_cipher_info_test" />
+      <config projectName="s2n" targetName="NightlyMemoryCheck" />
+      <config projectName="s2n" targetName="s2n_extended_master_secret_test" />
+      <config projectName="s2n" targetName="allocator_overrides" />
+      <config projectName="s2n" targetName="NightlySubmit" />
+      <config projectName="s2n" targetName="s2n_client_signature_algorithms_extension_test" />
+      <config projectName="s2n" targetName="s2n_client_hello_retry_test" />
+      <config projectName="s2n" targetName="s2n_handshake_hashes_test" />
+      <config projectName="s2n" targetName="s2n_choose_supported_group_test" />
+      <config projectName="s2n" targetName="s2n_fingerprint_ja3_test" />
+      <config projectName="s2n" targetName="s2n_npn_extension_test" />
+      <config projectName="s2n" targetName="s2n_kex_with_kem_test" />
+      <config projectName="s2n" targetName="s2n_cipher_suite_match_test" />
+      <config projectName="s2n" targetName="s2n_handshake_partial_test" />
+      <config projectName="s2n" targetName="s2n_client_supported_versions_extension_test" />
+      <config projectName="s2n" targetName="Experimental" />
+      <config projectName="s2n" targetName="s2n_tls13_cert_request_extensions_test" />
+      <config projectName="s2n" targetName="s2n_kem_preferences_test" />
+      <config projectName="s2n" targetName="s2n_kex_test" />
+      <config projectName="s2n" targetName="NightlyBuild" />
+      <config projectName="s2n" targetName="s2n_mem_usage_test" />
+      <config projectName="s2n" targetName="s2n_stream_cipher_null_test" />
+      <config projectName="s2n" targetName="s2n_blob_test" />
+      <config projectName="s2n" targetName="s2n_handshake_misc_test" />
+      <config projectName="s2n" targetName="s2n_server_cert_request_test" />
+      <config projectName="s2n" targetName="s2n_connection_size_test" />
+      <config projectName="s2n" targetName="ContinuousConfigure" />
+      <config projectName="s2n" targetName="s2n_fragmentation_coalescing_test" />
+      <config projectName="s2n" targetName="s2n_ecc_evp_test" />
+      <config projectName="s2n" targetName="s2n_early_data_io_test" />
+      <config projectName="s2n" targetName="s2n_hash_test" />
+      <config projectName="s2n" targetName="ContinuousTest" />
+      <config projectName="s2n" targetName="s2n_stuffer_test" />
+      <config projectName="s2n" targetName="s2n_aead_aes_test" />
+      <config projectName="s2n" targetName="Continuous" />
+      <config projectName="s2n" targetName="s2n_utils_test" />
+      <config projectName="s2n" targetName="s2n_handshake_fragment_test" />
+      <config projectName="s2n" targetName="s2n_recv_test" />
+      <config projectName="s2n" targetName="s2n_tls13_secrets_rfc8448_test" />
+      <config projectName="s2n" targetName="s2n_tls13_handshake_state_machine_test" />
+      <config projectName="s2n" targetName="s2n_crl_test" />
+      <config projectName="s2n" targetName="s2n_tls13_support_test" />
+      <config projectName="s2n" targetName="s2n_wildcard_hostname_test" />
+      <config projectName="s2n" targetName="s2n_handshake_io_async_test" />
+      <config projectName="s2n" targetName="s2n_pkey_test" />
+      <config projectName="s2n" targetName="s2n_client_extensions_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_alpn_test" />
+      <config projectName="s2n" targetName="s2n_client_early_data_indication_test" />
+      <config projectName="s2n" targetName="s2n_timer_test" />
+      <config projectName="s2n" targetName="s2n_next_protocol_test" />
+      <config projectName="s2n" targetName="s2n_handshake_io_errors_test" />
+      <config projectName="s2n" targetName="s2n_tls13_cert_verify_test" />
+      <config projectName="s2n" targetName="s2n_client_session_ticket_extension_test" />
+      <config projectName="s2n" targetName="s2nd" />
+      <config projectName="s2n" targetName="s2nc" />
+      <config projectName="s2n" targetName="s2n_renegotiate_test" />
+      <config projectName="s2n" targetName="ContinuousMemCheck" />
+      <config projectName="s2n" targetName="s2n_rsa_pss_test" />
+      <config projectName="s2n" targetName="s2n_client_auth_handshake_test" />
+      <config projectName="s2n" targetName="s2n_aes_sha_composite_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_session_id_test" />
+      <config projectName="s2n" targetName="s2n_extensions_server_key_share_select_test" />
+      <config projectName="s2n" targetName="s2n_record_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_broken_pipe_test" />
+      <config projectName="s2n" targetName="s2n_tls13_server_finished_test" />
+      <config projectName="s2n" targetName="s2n_openssl_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_io_mem_test" />
+      <config projectName="s2n" targetName="s2n_send_key_update_test" />
+      <config projectName="s2n" targetName="s2n_safety_test" />
+      <config projectName="s2n" targetName="ExperimentalMemCheck" />
+      <config projectName="s2n" targetName="s2n_mem_test" />
+      <config projectName="s2n" targetName="s2n_post_handshake_send_test" />
+      <config projectName="s2n" targetName="s2n_tls13_record_aead_test" />
+      <config projectName="s2n" targetName="s2n_error_type_test" />
+      <config projectName="s2n" targetName="s2n_encrypted_extensions_test" />
+      <config projectName="s2n" targetName="s2n_client_server_name_extension_test" />
+      <config projectName="s2n" targetName="s2n_renegotiate_io_test" />
+      <config projectName="s2n" targetName="ExperimentalBuild" />
+      <config projectName="s2n" targetName="s2n_server_early_data_indication_test" />
+      <config projectName="s2n" targetName="s2n_cert_status_response_extension_test" />
+      <config projectName="s2n" targetName="s2n_server_alpn_extension_test" />
+      <config projectName="s2n" targetName="s2n_tls_record_stuffer_test" />
+      <config projectName="s2n" targetName="s2n_handshake_io_early_data_test" />
+      <config projectName="s2n" targetName="s2n" />
+      <config projectName="s2n" targetName="s2n_self_talk_npn_test" />
+      <config projectName="s2n" targetName="s2n_server_hello_test" />
+      <config projectName="s2n" targetName="s2n_quic_support_test" />
+      <config projectName="s2n" targetName="s2n_ktls_feature_probe_test" />
+      <config projectName="s2n" targetName="s2n_alerts_test" />
+      <config projectName="s2n" targetName="s2n_client_record_version_test" />
+      <config projectName="s2n" targetName="s2n_client_max_frag_len_extension_test" />
+      <config projectName="s2n" targetName="s2n_release_non_empty_buffers_test" />
+      <config projectName="s2n" targetName="s2n_server_extensions_test" />
+      <config projectName="s2n" targetName="s2n_server_psk_extension_test" />
+      <config projectName="s2n" targetName="s2n_extension_list_parse_test" />
+      <config projectName="s2n" targetName="s2n_self_talk_shutdown_test" />
+      <config projectName="s2n" targetName="s2n_aead_chacha20_poly1305_test" />
+      <config projectName="s2n" targetName="s2n_fork_generation_number_test" />
+      <config projectName="s2n" targetName="s2n_init_test" />
+      <config projectName="s2n" targetName="s2n_psk_test" />
+      <config projectName="s2n" targetName="s2n_server_supported_versions_extension_test" />
+      <config projectName="s2n" targetName="s2n_x509_validator_certificate_signatures_test" />
+      <config projectName="s2n" targetName="testss2n" />
+      <config projectName="s2n" targetName="s2n_drain_alert_test" />
+      <config projectName="s2n" targetName="s2n_send_multirecord_test" />
+      <config projectName="s2n" targetName="s2n_certificate_test" />
+      <config projectName="s2n" targetName="s2n_auth_selection_test" />
+      <config projectName="s2n" targetName="NightlyCoverage" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=C:\Users\samue\repos\vcpkg\scripts\buildsystems\vcpkg.cmake" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e11466eb-c327-411a-aa26-ba67ee1d02ce" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2023" />
+    <option name="minorVersion" value="1.3" />
+  </component>
+  <component name="ProjectId" id="2QkG9nZ9MDdn22Fm4b9472R399q" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.fonts.default&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager" selected="CMake Application.s2n_3des_test">
+    <configuration name="Continuous" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="Continuous" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousBuild" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousBuild" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousConfigure" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousConfigure" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousCoverage" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousCoverage" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousMemCheck" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousMemCheck" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousStart" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousStart" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousSubmit" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousSubmit" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousTest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousTest" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ContinuousUpdate" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ContinuousUpdate" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Experimental" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="Experimental" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalBuild" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalBuild" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalConfigure" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalConfigure" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalCoverage" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalCoverage" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalMemCheck" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalMemCheck" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalStart" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalStart" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalSubmit" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalSubmit" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalTest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalTest" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExperimentalUpdate" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="ExperimentalUpdate" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Nightly" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="Nightly" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyBuild" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyBuild" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyConfigure" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyConfigure" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyCoverage" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyCoverage" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyMemCheck" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyMemCheck" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyMemoryCheck" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyMemoryCheck" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyStart" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyStart" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlySubmit" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlySubmit" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyTest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyTest" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NightlyUpdate" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="NightlyUpdate" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="allocator_overrides" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="allocator_overrides" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_3des_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_3des_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_3des_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_aead_aes_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_aead_aes_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_aead_aes_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_aead_chacha20_poly1305_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_aead_chacha20_poly1305_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_aead_chacha20_poly1305_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_aes_sha_composite_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_aes_sha_composite_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_aes_sha_composite_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_aes_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_aes_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_aes_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_alerts_protocol_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_alerts_protocol_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_alerts_protocol_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_alerts_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_alerts_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_alerts_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_array_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_array_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_array_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_asn1_time_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_asn1_time_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_asn1_time_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_async_pkey_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_async_pkey_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_async_pkey_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_auth_selection_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_auth_selection_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_auth_selection_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_blob_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_blob_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_blob_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_build_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_build_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_build_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cert_chain_and_key_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cert_chain_and_key_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cert_chain_and_key_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cert_status_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cert_status_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cert_status_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cert_status_response_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cert_status_response_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cert_status_response_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_certificate_extensions_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_certificate_extensions_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_certificate_extensions_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_certificate_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_certificate_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_certificate_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_change_cipher_spec_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_change_cipher_spec_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_change_cipher_spec_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_choose_supported_group_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_choose_supported_group_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_choose_supported_group_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cipher_info_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cipher_info_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cipher_info_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cipher_suite_match_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cipher_suite_match_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cipher_suite_match_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cipher_suites_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cipher_suites_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cipher_suites_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cleanup_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cleanup_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cleanup_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_alpn_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_alpn_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_alpn_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_auth_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_auth_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_auth_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_cert_request_context_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_cert_request_context_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_cert_request_context_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_cert_status_request_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_cert_status_request_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_cert_status_request_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_cert_verify_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_cert_verify_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_cert_verify_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_early_data_indication_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_early_data_indication_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_early_data_indication_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_empty_cert_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_empty_cert_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_empty_cert_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_extensions_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_extensions_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_extensions_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_finished_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_finished_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_finished_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_hello_recv_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_hello_recv_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_hello_recv_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_hello_request_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_hello_request_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_hello_request_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_hello_retry_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_hello_retry_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_hello_retry_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_hello_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_hello_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_hello_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_key_share_extension_pq_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_key_share_extension_pq_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_key_share_extension_pq_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_key_share_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_key_share_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_key_share_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_max_frag_len_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_max_frag_len_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_max_frag_len_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_pq_kem_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_pq_kem_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_pq_kem_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_psk_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_psk_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_psk_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_record_version_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_record_version_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_record_version_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_renegotiation_info_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_renegotiation_info_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_renegotiation_info_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_sct_list_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_sct_list_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_sct_list_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_secure_renegotiation_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_secure_renegotiation_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_secure_renegotiation_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_server_name_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_server_name_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_server_name_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_session_ticket_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_session_ticket_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_session_ticket_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_signature_algorithms_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_signature_algorithms_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_signature_algorithms_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_supported_groups_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_supported_groups_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_supported_groups_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_client_supported_versions_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_client_supported_versions_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_client_supported_versions_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_config_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_config_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_config_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_connection_context_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_connection_context_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_connection_context_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_connection_preferences_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_connection_preferences_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_connection_preferences_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_connection_size_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_connection_size_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_connection_size_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_connection_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_connection_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_connection_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_cookie_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_cookie_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_cookie_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_crl_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_crl_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_crl_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_drain_alert_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_drain_alert_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_drain_alert_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_drbg_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_drbg_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_drbg_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_early_data_io_api_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_early_data_io_api_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_early_data_io_api_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_early_data_io_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_early_data_io_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_early_data_io_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_early_data_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_early_data_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_early_data_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ecc_evp_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ecc_evp_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ecc_evp_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ecc_point_format_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ecc_point_format_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ecc_point_format_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ecc_preferences_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ecc_preferences_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ecc_preferences_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ecdsa_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ecdsa_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ecdsa_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ems_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ems_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ems_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_encrypted_extensions_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_encrypted_extensions_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_encrypted_extensions_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_error_lookup_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_error_lookup_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_error_lookup_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_error_type_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_error_type_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_error_type_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_evp_signing_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_evp_signing_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_evp_signing_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extended_master_secret_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extended_master_secret_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extended_master_secret_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extension_list_parse_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extension_list_parse_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extension_list_parse_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extension_list_process_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extension_list_process_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extension_list_process_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extension_list_send_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extension_list_send_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extension_list_send_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extension_type_lists_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extension_type_lists_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extension_type_lists_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extension_type_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extension_type_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extension_type_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_extensions_server_key_share_select_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_extensions_server_key_share_select_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_extensions_server_key_share_select_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_fingerprint_ja3_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_fingerprint_ja3_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_fingerprint_ja3_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_fork_generation_number_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_fork_generation_number_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_fork_generation_number_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_fragmentation_coalescing_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_fragmentation_coalescing_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_fragmentation_coalescing_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_errno_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_errno_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_errno_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_fragment_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_fragment_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_fragment_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_hashes_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_hashes_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_hashes_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_invariant_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_invariant_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_invariant_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_io_async_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_io_async_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_io_async_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_io_early_data_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_io_early_data_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_io_early_data_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_io_errors_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_io_errors_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_io_errors_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_io_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_io_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_io_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_misc_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_misc_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_misc_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_partial_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_partial_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_partial_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_handshake_type_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_handshake_type_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_handshake_type_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_hash_all_algs_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_hash_all_algs_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_hash_all_algs_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_hash_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_hash_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_hash_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_hkdf_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_hkdf_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_hkdf_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_hmac_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_hmac_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_hmac_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_init_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_init_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_init_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_kem_preferences_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_kem_preferences_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_kem_preferences_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_kem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_kem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_kem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_kex_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_kex_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_kex_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_kex_with_kem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_kex_with_kem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_kex_with_kem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_key_share_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_key_share_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_key_share_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_key_update_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_key_update_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_key_update_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ktls_feature_probe_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ktls_feature_probe_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ktls_feature_probe_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ktls_mode_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ktls_mode_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ktls_mode_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ktls_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ktls_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ktls_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_locking_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_locking_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_locking_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_malformed_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_malformed_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_malformed_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_map_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_map_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_map_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_mem_allocator_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_mem_allocator_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_mem_allocator_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_mem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_mem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_mem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_mem_usage_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_mem_usage_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_mem_usage_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_mutual_auth_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_mutual_auth_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_mutual_auth_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_next_protocol_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_next_protocol_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_next_protocol_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_npn_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_npn_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_npn_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_nst_early_data_indication_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_nst_early_data_indication_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_nst_early_data_indication_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_openssl_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_openssl_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_openssl_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_optional_client_auth_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_optional_client_auth_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_optional_client_auth_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_override_openssl_random_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_override_openssl_random_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_override_openssl_random_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_pem_rsa_dhe_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_pem_rsa_dhe_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_pem_rsa_dhe_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_pem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_pem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_pem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_pkey_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_pkey_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_pkey_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_post_handshake_recv_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_post_handshake_recv_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_post_handshake_recv_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_post_handshake_send_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_post_handshake_send_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_post_handshake_send_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_post_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_post_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_post_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_pq_kem_kat_kyber_r3_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_pq_kem_kat_kyber_r3_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_pq_kem_kat_kyber_r3_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_pq_kem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_pq_kem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_pq_kem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_protocol_preferences_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_protocol_preferences_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_protocol_preferences_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_psk_key_exchange_modes_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_psk_key_exchange_modes_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_psk_key_exchange_modes_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_psk_offered_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_psk_offered_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_psk_offered_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_psk_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_psk_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_psk_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_quic_support_io_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_quic_support_io_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_quic_support_io_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_quic_support_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_quic_support_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_quic_support_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_quic_transport_params_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_quic_transport_params_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_quic_transport_params_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_random_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_random_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_random_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_rc4_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_rc4_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_rc4_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_record_size_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_record_size_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_record_size_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_record_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_record_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_record_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_record_write_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_record_write_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_record_write_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_recv_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_recv_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_recv_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_release_non_empty_buffers_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_release_non_empty_buffers_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_release_non_empty_buffers_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_renegotiate_io_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_renegotiate_io_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_renegotiate_io_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_renegotiate_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_renegotiate_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_renegotiate_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_resume_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_resume_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_resume_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_rfc5952_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_rfc5952_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_rfc5952_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_rsa_pss_rsae_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_rsa_pss_rsae_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_rsa_pss_rsae_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_rsa_pss_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_rsa_pss_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_rsa_pss_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_safety_blinding_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_safety_blinding_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_safety_blinding_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_safety_macros_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_safety_macros_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_safety_macros_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_safety_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_safety_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_safety_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_security_policies_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_security_policies_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_security_policies_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_alerts_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_alerts_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_alerts_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_alpn_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_alpn_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_alpn_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_broken_pipe_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_broken_pipe_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_broken_pipe_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_client_hello_cb_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_client_hello_cb_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_client_hello_cb_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_custom_io_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_custom_io_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_custom_io_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_io_mem_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_io_mem_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_io_mem_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_key_log_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_key_log_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_key_log_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_min_protocol_version_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_min_protocol_version_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_min_protocol_version_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_nonblocking_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_nonblocking_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_nonblocking_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_npn_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_npn_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_npn_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_offload_signing_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_offload_signing_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_offload_signing_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_psk_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_psk_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_psk_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_quic_support_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_quic_support_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_quic_support_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_session_id_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_session_id_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_session_id_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_session_resumption_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_session_resumption_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_session_resumption_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_shutdown_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_shutdown_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_shutdown_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_tls12_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_tls12_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_tls12_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_self_talk_tls13_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_self_talk_tls13_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_self_talk_tls13_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_send_key_update_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_send_key_update_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_send_key_update_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_send_multirecord_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_send_multirecord_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_send_multirecord_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_send_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_send_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_send_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_sequence_number_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_sequence_number_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_sequence_number_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_alpn_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_alpn_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_alpn_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_cert_request_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_cert_request_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_cert_request_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_cert_status_request_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_cert_status_request_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_cert_status_request_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_early_data_indication_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_early_data_indication_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_early_data_indication_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_extensions_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_extensions_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_extensions_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_finished_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_finished_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_finished_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_hello_retry_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_hello_retry_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_hello_retry_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_hello_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_hello_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_hello_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_key_share_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_key_share_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_key_share_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_max_frag_len_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_max_frag_len_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_max_frag_len_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_new_session_ticket_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_new_session_ticket_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_new_session_ticket_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_psk_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_psk_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_psk_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_renegotiation_info_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_renegotiation_info_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_renegotiation_info_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_sct_list_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_sct_list_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_sct_list_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_server_name_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_server_name_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_server_name_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_session_ticket_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_session_ticket_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_session_ticket_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_signature_algorithms_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_signature_algorithms_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_signature_algorithms_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_server_supported_versions_extension_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_server_supported_versions_extension_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_server_supported_versions_extension_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_session_ticket_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_session_ticket_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_session_ticket_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_set_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_set_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_set_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_shutdown_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_shutdown_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_shutdown_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_signature_algorithms_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_signature_algorithms_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_signature_algorithms_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_ssl_prf_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_ssl_prf_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_ssl_prf_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stacktrace_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stacktrace_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stacktrace_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stream_cipher_null_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stream_cipher_null_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stream_cipher_null_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stuffer_base64_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stuffer_base64_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stuffer_base64_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stuffer_hex_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stuffer_hex_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stuffer_hex_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stuffer_network_order_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stuffer_network_order_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stuffer_network_order_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stuffer_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stuffer_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stuffer_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_stuffer_text_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_stuffer_text_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_stuffer_text_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_testlib_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_testlib_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_testlib_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_timer_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_timer_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_timer_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls12_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls12_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls12_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_cert_request_extensions_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_cert_request_extensions_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_cert_request_extensions_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_cert_request_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_cert_request_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_cert_request_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_cert_verify_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_cert_verify_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_cert_verify_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_client_finished_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_client_finished_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_client_finished_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_compute_shared_secret_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_compute_shared_secret_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_compute_shared_secret_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_handshake_early_data_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_handshake_early_data_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_handshake_early_data_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_handshake_state_machine_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_handshake_state_machine_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_handshake_state_machine_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_hybrid_shared_secret_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_hybrid_shared_secret_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_hybrid_shared_secret_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_key_schedule_rfc8448_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_key_schedule_rfc8448_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_key_schedule_rfc8448_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_key_schedule_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_key_schedule_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_key_schedule_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_keys_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_keys_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_keys_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_new_session_ticket_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_new_session_ticket_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_new_session_ticket_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_parse_record_type_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_parse_record_type_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_parse_record_type_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_pq_handshake_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_pq_handshake_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_pq_handshake_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_prf_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_prf_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_prf_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_record_aead_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_record_aead_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_record_aead_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_secrets_rfc8448_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_secrets_rfc8448_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_secrets_rfc8448_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_secrets_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_secrets_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_secrets_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_server_cert_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_server_cert_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_server_cert_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_server_finished_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_server_finished_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_server_finished_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_support_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_support_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_support_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls13_zero_length_payload_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls13_zero_length_payload_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls13_zero_length_payload_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls_hybrid_prf_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls_hybrid_prf_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls_hybrid_prf_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls_prf_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls_prf_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls_prf_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_tls_record_stuffer_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_tls_record_stuffer_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_tls_record_stuffer_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_utils_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_utils_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_utils_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_wildcard_hostname_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_wildcard_hostname_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_wildcard_hostname_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_x509_validator_certificate_signatures_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_x509_validator_certificate_signatures_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_x509_validator_certificate_signatures_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2n_x509_validator_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2n_x509_validator_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2n_x509_validator_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2nc" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2nc" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2nc">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="s2nd" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="s2nd" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="s2n" RUN_TARGET_NAME="s2nd">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="testss2n" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="s2n" TARGET_NAME="testss2n" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.allocator_overrides" />
+      <item itemvalue="CMake Application.Continuous" />
+      <item itemvalue="CMake Application.ContinuousBuild" />
+      <item itemvalue="CMake Application.ContinuousConfigure" />
+      <item itemvalue="CMake Application.ContinuousCoverage" />
+      <item itemvalue="CMake Application.ContinuousMemCheck" />
+      <item itemvalue="CMake Application.ContinuousStart" />
+      <item itemvalue="CMake Application.ContinuousSubmit" />
+      <item itemvalue="CMake Application.ContinuousTest" />
+      <item itemvalue="CMake Application.ContinuousUpdate" />
+      <item itemvalue="CMake Application.Experimental" />
+      <item itemvalue="CMake Application.ExperimentalBuild" />
+      <item itemvalue="CMake Application.ExperimentalConfigure" />
+      <item itemvalue="CMake Application.ExperimentalCoverage" />
+      <item itemvalue="CMake Application.ExperimentalMemCheck" />
+      <item itemvalue="CMake Application.ExperimentalStart" />
+      <item itemvalue="CMake Application.ExperimentalSubmit" />
+      <item itemvalue="CMake Application.ExperimentalTest" />
+      <item itemvalue="CMake Application.ExperimentalUpdate" />
+      <item itemvalue="CMake Application.Nightly" />
+      <item itemvalue="CMake Application.NightlyBuild" />
+      <item itemvalue="CMake Application.NightlyConfigure" />
+      <item itemvalue="CMake Application.NightlyCoverage" />
+      <item itemvalue="CMake Application.NightlyMemCheck" />
+      <item itemvalue="CMake Application.NightlyMemoryCheck" />
+      <item itemvalue="CMake Application.NightlyStart" />
+      <item itemvalue="CMake Application.NightlySubmit" />
+      <item itemvalue="CMake Application.NightlyTest" />
+      <item itemvalue="CMake Application.NightlyUpdate" />
+      <item itemvalue="CMake Application.s2n" />
+      <item itemvalue="CMake Application.s2n_3des_test" />
+      <item itemvalue="CMake Application.s2n_aead_aes_test" />
+      <item itemvalue="CMake Application.s2n_aead_chacha20_poly1305_test" />
+      <item itemvalue="CMake Application.s2n_aes_sha_composite_test" />
+      <item itemvalue="CMake Application.s2n_aes_test" />
+      <item itemvalue="CMake Application.s2n_alerts_protocol_test" />
+      <item itemvalue="CMake Application.s2n_alerts_test" />
+      <item itemvalue="CMake Application.s2n_array_test" />
+      <item itemvalue="CMake Application.s2n_asn1_time_test" />
+      <item itemvalue="CMake Application.s2n_async_pkey_test" />
+      <item itemvalue="CMake Application.s2n_auth_selection_test" />
+      <item itemvalue="CMake Application.s2n_blob_test" />
+      <item itemvalue="CMake Application.s2n_build_test" />
+      <item itemvalue="CMake Application.s2n_cert_chain_and_key_test" />
+      <item itemvalue="CMake Application.s2n_cert_status_extension_test" />
+      <item itemvalue="CMake Application.s2n_cert_status_response_extension_test" />
+      <item itemvalue="CMake Application.s2n_certificate_extensions_test" />
+      <item itemvalue="CMake Application.s2n_certificate_test" />
+      <item itemvalue="CMake Application.s2n_change_cipher_spec_test" />
+      <item itemvalue="CMake Application.s2n_choose_supported_group_test" />
+      <item itemvalue="CMake Application.s2n_cipher_info_test" />
+      <item itemvalue="CMake Application.s2n_cipher_suite_match_test" />
+      <item itemvalue="CMake Application.s2n_cipher_suites_test" />
+      <item itemvalue="CMake Application.s2n_cleanup_test" />
+      <item itemvalue="CMake Application.s2n_client_alpn_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_auth_handshake_test" />
+      <item itemvalue="CMake Application.s2n_client_cert_request_context_test" />
+      <item itemvalue="CMake Application.s2n_client_cert_status_request_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_cert_verify_test" />
+      <item itemvalue="CMake Application.s2n_client_early_data_indication_test" />
+      <item itemvalue="CMake Application.s2n_client_empty_cert_test" />
+      <item itemvalue="CMake Application.s2n_client_extensions_test" />
+      <item itemvalue="CMake Application.s2n_client_finished_test" />
+      <item itemvalue="CMake Application.s2n_client_hello_recv_test" />
+      <item itemvalue="CMake Application.s2n_client_hello_request_test" />
+      <item itemvalue="CMake Application.s2n_client_hello_retry_test" />
+      <item itemvalue="CMake Application.s2n_client_hello_test" />
+      <item itemvalue="CMake Application.s2n_client_key_share_extension_pq_test" />
+      <item itemvalue="CMake Application.s2n_client_key_share_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_max_frag_len_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_pq_kem_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_psk_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_record_version_test" />
+      <item itemvalue="CMake Application.s2n_client_renegotiation_info_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_sct_list_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_secure_renegotiation_test" />
+      <item itemvalue="CMake Application.s2n_client_server_name_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_session_ticket_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_signature_algorithms_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_supported_groups_extension_test" />
+      <item itemvalue="CMake Application.s2n_client_supported_versions_extension_test" />
+      <item itemvalue="CMake Application.s2n_config_test" />
+      <item itemvalue="CMake Application.s2n_connection_context_test" />
+      <item itemvalue="CMake Application.s2n_connection_preferences_test" />
+      <item itemvalue="CMake Application.s2n_connection_size_test" />
+      <item itemvalue="CMake Application.s2n_connection_test" />
+      <item itemvalue="CMake Application.s2n_cookie_test" />
+      <item itemvalue="CMake Application.s2n_crl_test" />
+      <item itemvalue="CMake Application.s2n_drain_alert_test" />
+      <item itemvalue="CMake Application.s2n_drbg_test" />
+      <item itemvalue="CMake Application.s2n_early_data_io_api_test" />
+      <item itemvalue="CMake Application.s2n_early_data_io_test" />
+      <item itemvalue="CMake Application.s2n_early_data_test" />
+      <item itemvalue="CMake Application.s2n_ecc_evp_test" />
+      <item itemvalue="CMake Application.s2n_ecc_point_format_extension_test" />
+      <item itemvalue="CMake Application.s2n_ecc_preferences_test" />
+      <item itemvalue="CMake Application.s2n_ecdsa_test" />
+      <item itemvalue="CMake Application.s2n_ems_extension_test" />
+      <item itemvalue="CMake Application.s2n_encrypted_extensions_test" />
+      <item itemvalue="CMake Application.s2n_error_lookup_test" />
+      <item itemvalue="CMake Application.s2n_error_type_test" />
+      <item itemvalue="CMake Application.s2n_evp_signing_test" />
+      <item itemvalue="CMake Application.s2n_extended_master_secret_test" />
+      <item itemvalue="CMake Application.s2n_extension_list_parse_test" />
+      <item itemvalue="CMake Application.s2n_extension_list_process_test" />
+      <item itemvalue="CMake Application.s2n_extension_list_send_test" />
+      <item itemvalue="CMake Application.s2n_extension_type_lists_test" />
+      <item itemvalue="CMake Application.s2n_extension_type_test" />
+      <item itemvalue="CMake Application.s2n_extensions_server_key_share_select_test" />
+      <item itemvalue="CMake Application.s2n_fingerprint_ja3_test" />
+      <item itemvalue="CMake Application.s2n_fork_generation_number_test" />
+      <item itemvalue="CMake Application.s2n_fragmentation_coalescing_test" />
+      <item itemvalue="CMake Application.s2n_handshake_errno_test" />
+      <item itemvalue="CMake Application.s2n_handshake_fragment_test" />
+      <item itemvalue="CMake Application.s2n_handshake_hashes_test" />
+      <item itemvalue="CMake Application.s2n_handshake_invariant_test" />
+      <item itemvalue="CMake Application.s2n_handshake_io_async_test" />
+      <item itemvalue="CMake Application.s2n_handshake_io_early_data_test" />
+      <item itemvalue="CMake Application.s2n_handshake_io_errors_test" />
+      <item itemvalue="CMake Application.s2n_handshake_io_test" />
+      <item itemvalue="CMake Application.s2n_handshake_misc_test" />
+      <item itemvalue="CMake Application.s2n_handshake_partial_test" />
+      <item itemvalue="CMake Application.s2n_handshake_test" />
+      <item itemvalue="CMake Application.s2n_handshake_type_test" />
+      <item itemvalue="CMake Application.s2n_hash_all_algs_test" />
+      <item itemvalue="CMake Application.s2n_hash_test" />
+      <item itemvalue="CMake Application.s2n_hkdf_test" />
+      <item itemvalue="CMake Application.s2n_hmac_test" />
+      <item itemvalue="CMake Application.s2n_init_test" />
+      <item itemvalue="CMake Application.s2n_kem_preferences_test" />
+      <item itemvalue="CMake Application.s2n_kem_test" />
+      <item itemvalue="CMake Application.s2n_kex_test" />
+      <item itemvalue="CMake Application.s2n_kex_with_kem_test" />
+      <item itemvalue="CMake Application.s2n_key_share_extension_test" />
+      <item itemvalue="CMake Application.s2n_key_update_test" />
+      <item itemvalue="CMake Application.s2n_ktls_feature_probe_test" />
+      <item itemvalue="CMake Application.s2n_ktls_mode_test" />
+      <item itemvalue="CMake Application.s2n_ktls_test" />
+      <item itemvalue="CMake Application.s2n_locking_test" />
+      <item itemvalue="CMake Application.s2n_malformed_handshake_test" />
+      <item itemvalue="CMake Application.s2n_map_test" />
+      <item itemvalue="CMake Application.s2n_mem_allocator_test" />
+      <item itemvalue="CMake Application.s2n_mem_test" />
+      <item itemvalue="CMake Application.s2n_mem_usage_test" />
+      <item itemvalue="CMake Application.s2n_mutual_auth_test" />
+      <item itemvalue="CMake Application.s2n_next_protocol_test" />
+      <item itemvalue="CMake Application.s2n_npn_extension_test" />
+      <item itemvalue="CMake Application.s2n_nst_early_data_indication_test" />
+      <item itemvalue="CMake Application.s2n_openssl_test" />
+      <item itemvalue="CMake Application.s2n_optional_client_auth_test" />
+      <item itemvalue="CMake Application.s2n_override_openssl_random_test" />
+      <item itemvalue="CMake Application.s2n_pem_rsa_dhe_test" />
+      <item itemvalue="CMake Application.s2n_pem_test" />
+      <item itemvalue="CMake Application.s2n_pkey_test" />
+      <item itemvalue="CMake Application.s2n_post_handshake_recv_test" />
+      <item itemvalue="CMake Application.s2n_post_handshake_send_test" />
+      <item itemvalue="CMake Application.s2n_post_handshake_test" />
+      <item itemvalue="CMake Application.s2n_pq_kem_kat_kyber_r3_test" />
+      <item itemvalue="CMake Application.s2n_pq_kem_test" />
+      <item itemvalue="CMake Application.s2n_protocol_preferences_test" />
+      <item itemvalue="CMake Application.s2n_psk_key_exchange_modes_extension_test" />
+      <item itemvalue="CMake Application.s2n_psk_offered_test" />
+      <item itemvalue="CMake Application.s2n_psk_test" />
+      <item itemvalue="CMake Application.s2n_quic_support_io_test" />
+      <item itemvalue="CMake Application.s2n_quic_support_test" />
+      <item itemvalue="CMake Application.s2n_quic_transport_params_extension_test" />
+      <item itemvalue="CMake Application.s2n_random_test" />
+      <item itemvalue="CMake Application.s2n_rc4_test" />
+      <item itemvalue="CMake Application.s2n_record_size_test" />
+      <item itemvalue="CMake Application.s2n_record_test" />
+      <item itemvalue="CMake Application.s2n_record_write_test" />
+      <item itemvalue="CMake Application.s2n_recv_test" />
+      <item itemvalue="CMake Application.s2n_release_non_empty_buffers_test" />
+      <item itemvalue="CMake Application.s2n_renegotiate_io_test" />
+      <item itemvalue="CMake Application.s2n_renegotiate_test" />
+      <item itemvalue="CMake Application.s2n_resume_test" />
+      <item itemvalue="CMake Application.s2n_rfc5952_test" />
+      <item itemvalue="CMake Application.s2n_rsa_pss_rsae_test" />
+      <item itemvalue="CMake Application.s2n_rsa_pss_test" />
+      <item itemvalue="CMake Application.s2n_safety_blinding_test" />
+      <item itemvalue="CMake Application.s2n_safety_macros_test" />
+      <item itemvalue="CMake Application.s2n_safety_test" />
+      <item itemvalue="CMake Application.s2n_security_policies_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_alerts_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_alpn_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_broken_pipe_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_client_hello_cb_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_custom_io_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_io_mem_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_key_log_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_min_protocol_version_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_nonblocking_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_npn_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_offload_signing_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_psk_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_quic_support_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_session_id_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_session_resumption_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_shutdown_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_tls12_test" />
+      <item itemvalue="CMake Application.s2n_self_talk_tls13_test" />
+      <item itemvalue="CMake Application.s2n_send_key_update_test" />
+      <item itemvalue="CMake Application.s2n_send_multirecord_test" />
+      <item itemvalue="CMake Application.s2n_send_test" />
+      <item itemvalue="CMake Application.s2n_sequence_number_test" />
+      <item itemvalue="CMake Application.s2n_server_alpn_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_cert_request_test" />
+      <item itemvalue="CMake Application.s2n_server_cert_status_request_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_early_data_indication_test" />
+      <item itemvalue="CMake Application.s2n_server_extensions_test" />
+      <item itemvalue="CMake Application.s2n_server_finished_test" />
+      <item itemvalue="CMake Application.s2n_server_hello_retry_test" />
+      <item itemvalue="CMake Application.s2n_server_hello_test" />
+      <item itemvalue="CMake Application.s2n_server_key_share_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_max_frag_len_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_new_session_ticket_test" />
+      <item itemvalue="CMake Application.s2n_server_psk_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_renegotiation_info_test" />
+      <item itemvalue="CMake Application.s2n_server_sct_list_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_server_name_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_session_ticket_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_signature_algorithms_extension_test" />
+      <item itemvalue="CMake Application.s2n_server_supported_versions_extension_test" />
+      <item itemvalue="CMake Application.s2n_session_ticket_test" />
+      <item itemvalue="CMake Application.s2n_set_test" />
+      <item itemvalue="CMake Application.s2n_shutdown_test" />
+      <item itemvalue="CMake Application.s2n_signature_algorithms_test" />
+      <item itemvalue="CMake Application.s2n_ssl_prf_test" />
+      <item itemvalue="CMake Application.s2n_stacktrace_test" />
+      <item itemvalue="CMake Application.s2n_stream_cipher_null_test" />
+      <item itemvalue="CMake Application.s2n_stuffer_base64_test" />
+      <item itemvalue="CMake Application.s2n_stuffer_hex_test" />
+      <item itemvalue="CMake Application.s2n_stuffer_network_order_test" />
+      <item itemvalue="CMake Application.s2n_stuffer_test" />
+      <item itemvalue="CMake Application.s2n_stuffer_text_test" />
+      <item itemvalue="CMake Application.s2n_testlib_test" />
+      <item itemvalue="CMake Application.s2n_timer_test" />
+      <item itemvalue="CMake Application.s2n_tls12_handshake_test" />
+      <item itemvalue="CMake Application.s2n_tls13_cert_request_extensions_test" />
+      <item itemvalue="CMake Application.s2n_tls13_cert_request_test" />
+      <item itemvalue="CMake Application.s2n_tls13_cert_verify_test" />
+      <item itemvalue="CMake Application.s2n_tls13_client_finished_test" />
+      <item itemvalue="CMake Application.s2n_tls13_compute_shared_secret_test" />
+      <item itemvalue="CMake Application.s2n_tls13_handshake_early_data_test" />
+      <item itemvalue="CMake Application.s2n_tls13_handshake_state_machine_test" />
+      <item itemvalue="CMake Application.s2n_tls13_handshake_test" />
+      <item itemvalue="CMake Application.s2n_tls13_hybrid_shared_secret_test" />
+      <item itemvalue="CMake Application.s2n_tls13_key_schedule_rfc8448_test" />
+      <item itemvalue="CMake Application.s2n_tls13_key_schedule_test" />
+      <item itemvalue="CMake Application.s2n_tls13_keys_test" />
+      <item itemvalue="CMake Application.s2n_tls13_new_session_ticket_test" />
+      <item itemvalue="CMake Application.s2n_tls13_parse_record_type_test" />
+      <item itemvalue="CMake Application.s2n_tls13_pq_handshake_test" />
+      <item itemvalue="CMake Application.s2n_tls13_prf_test" />
+      <item itemvalue="CMake Application.s2n_tls13_record_aead_test" />
+      <item itemvalue="CMake Application.s2n_tls13_secrets_rfc8448_test" />
+      <item itemvalue="CMake Application.s2n_tls13_secrets_test" />
+      <item itemvalue="CMake Application.s2n_tls13_server_cert_test" />
+      <item itemvalue="CMake Application.s2n_tls13_server_finished_test" />
+      <item itemvalue="CMake Application.s2n_tls13_support_test" />
+      <item itemvalue="CMake Application.s2n_tls13_zero_length_payload_test" />
+      <item itemvalue="CMake Application.s2n_tls_hybrid_prf_test" />
+      <item itemvalue="CMake Application.s2n_tls_prf_test" />
+      <item itemvalue="CMake Application.s2n_tls_record_stuffer_test" />
+      <item itemvalue="CMake Application.s2n_utils_test" />
+      <item itemvalue="CMake Application.s2n_wildcard_hostname_test" />
+      <item itemvalue="CMake Application.s2n_x509_validator_certificate_signatures_test" />
+      <item itemvalue="CMake Application.s2n_x509_validator_test" />
+      <item itemvalue="CMake Application.s2nc" />
+      <item itemvalue="CMake Application.s2nd" />
+      <item itemvalue="CMake Application.testss2n" />
+      <item itemvalue="CTest Application.All CTest" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e11466eb-c327-411a-aa26-ba67ee1d02ce" name="Changes" comment="" />
+      <created>1685890016472</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1685890016472</updated>
+      <workItem from="1685890017975" duration="4414000" />
+      <workItem from="1685913481712" duration="53000" />
+    </task>
+    <task id="LOCAL-00001" summary="WiP MSVC support">
+      <created>1685912341198</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1685912341198</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticEditVcpkgJson value="false" />
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticFoundErrors value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="WiP MSVC support" />
+    <option name="LAST_COMMIT_MESSAGE" value="WiP MSVC support" />
+  </component>
+</project>

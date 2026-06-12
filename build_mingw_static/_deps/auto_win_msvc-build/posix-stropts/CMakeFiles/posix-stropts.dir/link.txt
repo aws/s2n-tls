@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-stropts.a "CMakeFiles/posix-stropts.dir/src/posix-stropts.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-stropts.a

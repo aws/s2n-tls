@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-dirent.a "CMakeFiles/posix-dirent.dir/src/posix-dirent.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-dirent.a

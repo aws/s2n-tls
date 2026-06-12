@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-features.a "CMakeFiles/linux-features.dir/src/linux-features.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-features.a

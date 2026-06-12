@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\s2n_cert_status_response_extension_test.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\s2n_cert_status_response_extension_test.dir/objects.a @CMakeFiles\s2n_cert_status_response_extension_test.dir\objects1.rsp
+C:\msys64\mingw64\bin\cc.exe -g -Wl,--whole-archive CMakeFiles\s2n_cert_status_response_extension_test.dir/objects.a -Wl,--no-whole-archive -o bin\s2n_cert_status_response_extension_test.exe -Wl,--out-implib,lib\libs2n_cert_status_response_extension_test.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\s2n_cert_status_response_extension_test.dir\linkLibs.rsp

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-signal.a "CMakeFiles/posix-signal.dir/src/posix-signal.c.o"
+/usr/bin/ranlib.exe libposix-signal.a

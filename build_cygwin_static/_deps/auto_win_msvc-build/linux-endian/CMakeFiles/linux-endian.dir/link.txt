@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-endian.a "CMakeFiles/linux-endian.dir/src/linux-endian.c.o"
+/usr/bin/ranlib.exe liblinux-endian.a

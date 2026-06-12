@@ -1,0 +1,10 @@
+^C:\USERS\SAMUE\REPOS\S2N-TLS\BUILD\CMAKEFILES\75C6116B3A4E490B60F23CE3706CC2E1\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/samue/repos/s2n-tls -BC:/Users/samue/repos/s2n-tls/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/samue/repos/s2n-tls/build/s2n.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-backtrace.a "CMakeFiles/linux-backtrace.dir/src/linux-backtrace.c.o"
+/usr/bin/ranlib.exe liblinux-backtrace.a

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/b51a18dee38db3805c6bc994306b8d0d/auto_win_msvc-populate.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/01da1ce540c32b5b47fa55fd8dee2525/auto_win_msvc-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2022_shared/_deps/auto_win_msvc-subbuild/CMakeFiles/6a0c94afe971a646e385692d88ab1f7e/auto_win_msvc-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"auto_win_msvc-populate"
+		],
+		"name" : "auto_win_msvc-populate"
+	}
+}

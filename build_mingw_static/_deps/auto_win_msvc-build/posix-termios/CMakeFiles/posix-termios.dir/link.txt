@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-termios.a "CMakeFiles/posix-termios.dir/src/posix-termios.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-termios.a

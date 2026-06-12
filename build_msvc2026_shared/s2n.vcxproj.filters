@@ -1,0 +1,1050 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_aead_cipher_aes_gcm.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_aead_cipher_chacha20_poly1305.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_cbc_cipher_3des.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_cbc_cipher_aes.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_certificate.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_cipher.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_composite_cipher_aes_sha.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_crypto.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_dhe.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_ecc_evp.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_evp_kem.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_fips.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_fips_rules.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hash.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hkdf.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hmac.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_libcrypto.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_locking.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_mldsa.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_openssl_x509.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pkey.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pkey_evp.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pq.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_prf_libcrypto.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_rsa_pss.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_sequence.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_stream_cipher_null.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_stream_cipher_rc4.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_tls13_keys.c">
+      <Filter>Source Files\crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\error\s2n_errno.c">
+      <Filter>Source Files\error</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_base64.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_file.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_hex.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_network_order.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_pem.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer_text.c">
+      <Filter>Source Files\stuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_authorities.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_status.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_status_response.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_alpn.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_cert_status_request.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_cookie.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_early_data_indication.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_ems.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_key_share.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_max_frag_len.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_pq_kem.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_psk.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_renegotiation_info.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_sct_list.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_server_name.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_session_ticket.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_signature_algorithms.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_supported_groups.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_supported_versions.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_ec_point_format.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_list.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_type.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_type_lists.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_key_share.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_npn.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_nst_early_data_indication.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_psk_key_exchange_modes.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_quic_transport_params.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_alpn.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_cert_status_request.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_cookie.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_early_data_indication.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_ems.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_key_share.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_max_fragment_length.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_psk.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_renegotiation_info.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_sct_list.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_server_name.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_session_ticket.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_signature_algorithms.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_supported_versions.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_supported_versions.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\policy\s2n_policy_defaults.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\policy\s2n_policy_writer.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_aead.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_alerts.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_async_offload.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_async_pkey.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_auth_selection.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_cbc.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_certificate_keys.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_change_cipher_spec.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_cipher_preferences.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_cipher_suites.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_cert.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_cert_verify.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_finished.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_hello.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_hello_request.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_key_exchange.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_config.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_connection.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_connection_serialize.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_crl.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_crypto.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_early_data.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_early_data_io.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ecc_preferences.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_encrypted_extensions.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_establish_session.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_fingerprint.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_fingerprint_ja3.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_fingerprint_ja4.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_hashes.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_io.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_transcript.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_type.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kem.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kem_preferences.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kex.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_key_log.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_key_update.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ktls.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ktls_io.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_next_protocol.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ocsp_stapling.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_post_handshake.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_prf.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_protocol_preferences.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_psk.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_quic_support.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read_aead.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read_cbc.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read_composite.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read_stream.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_write.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_recv.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_renegotiate.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_resume.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_security_policies.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_security_rules.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_send.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_cert.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_cert_request.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_done.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_extensions.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_finished.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_hello.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_hello_retry.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_key_exchange.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_new_session_ticket.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_shutdown.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_signature_algorithms.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_signature_scheme.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_supported_group_preferences.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_certificate_verify.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_handshake.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_key_schedule.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_secrets.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_x509_validator.c">
+      <Filter>Source Files\tls</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_array.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_atomic.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_blob.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_ensure.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_events.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_init.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_io.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_map.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_mem.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_random.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_rfc5952.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_safety.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_socket.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_timer.c">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_certificate.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_cipher.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_crypto.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_dhe.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_ecc_evp.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_evp.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_evp_kem.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_fips.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hash.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hkdf.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_hmac.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_kdf.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_ktls_crypto.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_libcrypto.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_locking.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_mldsa.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_openssl.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_openssl_evp.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_openssl_x509.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pkey.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pkey_evp.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_pq.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_prf_libcrypto.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_rsa_pss.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_sequence.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_signature.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\crypto\s2n_tls13_keys.h">
+      <Filter>Header Files\s2n\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\error\s2n_errno.h">
+      <Filter>Header Files\s2n\error</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\stuffer\s2n_stuffer.h">
+      <Filter>Header Files\s2n\stuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_authorities.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_status.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cert_status_response.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_alpn.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_cert_status_request.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_key_share.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_max_frag_len.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_pq_kem.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_psk.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_renegotiation_info.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_sct_list.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_server_name.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_session_ticket.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_signature_algorithms.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_supported_groups.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_client_supported_versions.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_cookie.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_early_data_indication.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_ec_point_format.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_ems.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_list.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_type.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_extension_type_lists.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_key_share.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_npn.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_psk_key_exchange_modes.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_quic_transport_params.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_alpn.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_cert_status_request.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_key_share.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_max_fragment_length.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_psk.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_renegotiation_info.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_sct_list.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_server_name.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_session_ticket.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_signature_algorithms.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_server_supported_versions.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\extensions\s2n_supported_versions.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\policy\s2n_policy_defaults.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\policy\s2n_policy_feature.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_alerts.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_async_offload.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_async_pkey.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_auth_selection.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_certificate_keys.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_cipher_preferences.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_cipher_suites.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_hello.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_client_key_exchange.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_config.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_connection.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_connection_serialize.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_crl.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_crypto.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_crypto_constants.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_early_data.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ecc_preferences.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_fingerprint.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_hashes.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_handshake_type.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_internal.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kem.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kem_preferences.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kex.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_kex_data.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_key_log.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_key_update.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ktls.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_ktls_parameters.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_post_handshake.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_prf.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_protocol_preferences.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_psk.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_quic_support.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_record_read.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_renegotiate.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_resume.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_security_policies.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_security_rules.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_extensions.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_server_key_exchange.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_signature_algorithms.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_signature_scheme.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_supported_group_preferences.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_certificate_verify.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_handshake.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_key_schedule.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls13_secrets.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_tls_parameters.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\tls\s2n_x509_validator.h">
+      <Filter>Header Files\s2n\tls</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_annotations.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_array.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_atomic.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_bitmap.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_blob.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_compiler.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_ensure.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_events.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_init.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_io.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_map.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_map_internal.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_mem.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_prelude.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_random.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_result.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_rfc5952.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_safety.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_safety_macros.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_socket.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\auto-win-msvc\rewritten_src\utils\s2n_timer.h">
+      <Filter>Header Files\s2n\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\s2n.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\async_offload.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\cert_authorities.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\cleanup.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\crl.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\custom_x509_extensions.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\events.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\fingerprint.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\ktls.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\npn.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\samue\repos\s2n-tls\api\unstable\renegotiate.h">
+      <Filter>Header Files\s2n\api</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\samue\repos\s2n-tls\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{F1BDA688-103B-3975-950A-978998800003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n">
+      <UniqueIdentifier>{EC546A67-4AFA-37FA-82BE-CF3FCD11BF4B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\api">
+      <UniqueIdentifier>{8559D214-5A62-3EE0-B185-D371F9EAE1AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\crypto">
+      <UniqueIdentifier>{941439B3-6113-30BA-8030-3F40E0969870}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\error">
+      <UniqueIdentifier>{E64ACDF6-1368-3043-8E38-B7CCDA1F41D6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\stuffer">
+      <UniqueIdentifier>{8030FED9-1AA6-309C-9256-00BB252CF7E5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\tls">
+      <UniqueIdentifier>{0F1940A2-2E04-3A62-818C-C5AE9DC33215}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\s2n\utils">
+      <UniqueIdentifier>{7A38281B-32AC-3DF6-82F9-FD3BF04374BE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{6B2F71BB-36AE-3F08-8EC6-E58FC28F12BE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\crypto">
+      <UniqueIdentifier>{B9328E53-2FCA-3061-9802-D13D4482CD81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\error">
+      <UniqueIdentifier>{5D298DD0-2785-3D8A-AF54-A853204A8340}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\stuffer">
+      <UniqueIdentifier>{5B294E2F-903C-3412-AB07-75E1A41FC707}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\tls">
+      <UniqueIdentifier>{319AF2B6-59C8-3770-8A17-A83CA4E7876D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{742C20D6-0688-3AFD-9C8F-553008FA871F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

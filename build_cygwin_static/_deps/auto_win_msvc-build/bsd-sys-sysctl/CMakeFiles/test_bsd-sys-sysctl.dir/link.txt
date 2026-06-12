@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--enable-auto-import "CMakeFiles/test_bsd-sys-sysctl.dir/tests/test_core.c.o" "CMakeFiles/test_bsd-sys-sysctl.dir/tests/test_main.c.o" -o test_bsd-sys-sysctl.exe -Wl,--out-implib,libtest_bsd-sys-sysctl.dll.a -Wl,--major-image-version,0,--minor-image-version,0  libbsd-sys-sysctl.a

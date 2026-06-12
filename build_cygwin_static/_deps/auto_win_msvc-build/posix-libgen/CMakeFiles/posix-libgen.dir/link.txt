@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-libgen.a "CMakeFiles/posix-libgen.dir/src/posix-libgen.c.o"
+/usr/bin/ranlib.exe libposix-libgen.a

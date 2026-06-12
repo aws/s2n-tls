@@ -1,0 +1,14 @@
+# Target labels
+ auto_win_msvc-populate
+# Source files and their labels
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/CMakeFiles/auto_win_msvc-populate-complete.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-build.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-configure.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-download.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-install.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-mkdir.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-patch.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-test.rule
+C:/Users/samue/repos/s2n-tls/build_msvc2005_static/_deps/auto_win_msvc-subbuild/auto_win_msvc-populate-prefix/src/auto_win_msvc-populate-stamp/auto_win_msvc-populate-update.rule

@@ -1,0 +1,6 @@
+EXPORTS 
+	dummy_posix_regex
+	regcomp
+	regerror
+	regexec
+	regfree

@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-getopt.a "CMakeFiles/linux-getopt.dir/src/linux-getopt.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-getopt.a

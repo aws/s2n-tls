@@ -1,0 +1,12 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The download step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+method=url
+command=C:/Program Files/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/download-wepoll-populate.cmake;COMMAND;C:/Program Files/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/verify-wepoll-populate.cmake;COMMAND;C:/Program Files/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-subbuild/wepoll-populate-prefix/src/wepoll-populate-stamp/extract-wepoll-populate.cmake
+source_dir=C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/wepoll-src
+work_dir=C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps
+url(s)=https://github.com/piscisaureus/wepoll/archive/refs/tags/v1.5.8.zip
+hash=
+      no_extract=
+

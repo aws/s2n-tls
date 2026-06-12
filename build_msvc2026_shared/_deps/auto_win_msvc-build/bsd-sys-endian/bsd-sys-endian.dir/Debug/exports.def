@@ -1,0 +1,2 @@
+EXPORTS 
+	bsd_sys_endian_dummy

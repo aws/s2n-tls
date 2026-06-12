@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc liblinux-sys-syscall.a "CMakeFiles/linux-sys-syscall.dir/src/linux-sys-syscall.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" liblinux-sys-syscall.a

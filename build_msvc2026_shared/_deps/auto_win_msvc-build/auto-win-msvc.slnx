@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4c137a1a-728e-3dd1-85b0-f4a9ae586e34" DefaultStartup="true">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="auto-win-msvc.vcxproj"/>
+		<BuildDependency Project="bsd-machine-endian/bsd-machine-endian.vcxproj"/>
+		<BuildDependency Project="bsd-malloc-np/bsd-malloc-np.vcxproj"/>
+		<BuildDependency Project="bsd-pthread-np/bsd-pthread-np.vcxproj"/>
+		<BuildDependency Project="bsd-sys-cpuset/bsd-sys-cpuset.vcxproj"/>
+		<BuildDependency Project="bsd-sys-endian/bsd-sys-endian.vcxproj"/>
+		<BuildDependency Project="bsd-sys-event/bsd-sys-event.vcxproj"/>
+		<BuildDependency Project="bsd-sys-file/bsd-sys-file.vcxproj"/>
+		<BuildDependency Project="bsd-sys-param/bsd-sys-param.vcxproj"/>
+		<BuildDependency Project="bsd-sys-sysctl/bsd-sys-sysctl.vcxproj"/>
+		<BuildDependency Project="bsd-vm-param/bsd-vm-param.vcxproj"/>
+		<BuildDependency Project="linux-backtrace/linux-backtrace.vcxproj"/>
+		<BuildDependency Project="linux-endian/linux-endian.vcxproj"/>
+		<BuildDependency Project="linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="linux-execinfo/linux-execinfo.vcxproj"/>
+		<BuildDependency Project="linux-features/linux-features.vcxproj"/>
+		<BuildDependency Project="linux-getopt/linux-getopt.vcxproj"/>
+		<BuildDependency Project="linux-hv-hloop/linux-hv-hloop.vcxproj"/>
+		<BuildDependency Project="linux-magic/linux-magic.vcxproj"/>
+		<BuildDependency Project="linux-rdma/linux-rdma.vcxproj"/>
+		<BuildDependency Project="linux-sys-bitops/linux-sys-bitops.vcxproj"/>
+		<BuildDependency Project="linux-sys-prctl/linux-sys-prctl.vcxproj"/>
+		<BuildDependency Project="linux-sys-procfs/linux-sys-procfs.vcxproj"/>
+		<BuildDependency Project="linux-sys-statfs/linux-sys-statfs.vcxproj"/>
+		<BuildDependency Project="linux-sys-syscall/linux-sys-syscall.vcxproj"/>
+		<BuildDependency Project="linux-sys-user/linux-sys-user.vcxproj"/>
+		<BuildDependency Project="linux-systemd/linux-systemd.vcxproj"/>
+		<BuildDependency Project="posix-alloca/posix-alloca.vcxproj"/>
+		<BuildDependency Project="posix-arpa/posix-arpa.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-core.vcxproj"/>
+		<BuildDependency Project="posix-dirent/posix-dirent.vcxproj"/>
+		<BuildDependency Project="posix-dlfcn/posix-dlfcn.vcxproj"/>
+		<BuildDependency Project="posix-glob/posix-glob.vcxproj"/>
+		<BuildDependency Project="posix-inttypes/posix-inttypes.vcxproj"/>
+		<BuildDependency Project="posix-ipc/posix-ipc.vcxproj"/>
+		<BuildDependency Project="posix-langinfo/posix-langinfo.vcxproj"/>
+		<BuildDependency Project="posix-libgen/posix-libgen.vcxproj"/>
+		<BuildDependency Project="posix-libproc/posix-libproc.vcxproj"/>
+		<BuildDependency Project="posix-mman/posix-mman.vcxproj"/>
+		<BuildDependency Project="posix-netdb/posix-netdb.vcxproj"/>
+		<BuildDependency Project="posix-netinet/posix-netinet.vcxproj"/>
+		<BuildDependency Project="posix-pthread/posix-pthread.vcxproj"/>
+		<BuildDependency Project="posix-pwdgrp/posix-pwdgrp.vcxproj"/>
+		<BuildDependency Project="posix-regex/posix-regex.vcxproj"/>
+		<BuildDependency Project="posix-sched/posix-sched.vcxproj"/>
+		<BuildDependency Project="posix-signal/posix-signal.vcxproj"/>
+		<BuildDependency Project="posix-spawn/posix-spawn.vcxproj"/>
+		<BuildDependency Project="posix-stat/posix-stat.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+		<BuildDependency Project="posix-strings/posix-strings.vcxproj"/>
+		<BuildDependency Project="posix-stropts/posix-stropts.vcxproj"/>
+		<BuildDependency Project="posix-sys-resource/posix-sys-resource.vcxproj"/>
+		<BuildDependency Project="posix-syslog/posix-syslog.vcxproj"/>
+		<BuildDependency Project="posix-termios/posix-termios.vcxproj"/>
+		<BuildDependency Project="posix-time/posix-time.vcxproj"/>
+		<BuildDependency Project="posix-times/posix-times.vcxproj"/>
+		<BuildDependency Project="posix-types/posix-types.vcxproj"/>
+		<BuildDependency Project="posix-ucontext/posix-ucontext.vcxproj"/>
+		<BuildDependency Project="posix-unwind/posix-unwind.vcxproj"/>
+		<BuildDependency Project="posix-utsname/posix-utsname.vcxproj"/>
+		<BuildDependency Project="posix-wait/posix-wait.vcxproj"/>
+		<BuildDependency Project="solaris-port/solaris-port.vcxproj"/>
+		<BuildDependency Project="solaris-sys-byteorder/solaris-sys-byteorder.vcxproj"/>
+		<BuildDependency Project="solaris-sys-feature-tests/solaris-sys-feature-tests.vcxproj"/>
+		<BuildDependency Project="bsd-sys-cpuset/test_bsd-sys-cpuset.vcxproj"/>
+		<BuildDependency Project="bsd-sys-sysctl/test_bsd-sys-sysctl.vcxproj"/>
+		<BuildDependency Project="linux-sys-bitops/test_linux-sys-bitops.vcxproj"/>
+		<BuildDependency Project="posix-alloca/test_posix-alloca.vcxproj"/>
+		<BuildDependency Project="posix-core/test_posix-core.vcxproj"/>
+		<BuildDependency Project="posix-dlfcn/test_posix-dlfcn.vcxproj"/>
+		<BuildDependency Project="posix-langinfo/test_posix-langinfo.vcxproj"/>
+		<BuildDependency Project="posix-libproc/test_posix-libproc.vcxproj"/>
+		<BuildDependency Project="posix-mman/test_posix-mman.vcxproj"/>
+		<BuildDependency Project="posix-pthread/test_posix-pthread.vcxproj"/>
+		<BuildDependency Project="posix-regex/test_posix-regex.vcxproj"/>
+		<BuildDependency Project="posix-signal/test_posix-signal.vcxproj"/>
+		<BuildDependency Project="posix-spawn/test_posix-spawn.vcxproj"/>
+		<BuildDependency Project="posix-syslog/test_posix-syslog.vcxproj"/>
+		<BuildDependency Project="posix-termios/test_posix-termios.vcxproj"/>
+		<BuildDependency Project="posix-time/test_posix-time.vcxproj"/>
+		<BuildDependency Project="posix-times/test_posix-times.vcxproj"/>
+		<BuildDependency Project="posix-types/test_posix-types.vcxproj"/>
+		<BuildDependency Project="posix-unwind/test_posix-unwind.vcxproj"/>
+		<BuildDependency Project="posix-utsname/test_posix-utsname.vcxproj"/>
+		<BuildDependency Project="posix-wait/test_posix-wait.vcxproj"/>
+		<BuildDependency Project="linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="Continuous.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="18d7fae9-2a01-3fc0-a1b5-5620d00e2ab2">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="Experimental.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e7c1b872-82b0-31f9-ab49-eccee268b7f3">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="INSTALL.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3a2ebfce-8111-35f7-953e-7014c75054c4">
+		<BuildDependency Project="ALL_BUILD.vcxproj"/>
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="Nightly.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="029c24cf-1871-3eb4-9da7-593cdc58a32c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="NightlyMemoryCheck.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f8ce20e6-e46f-3641-b5b0-e75f54efb449">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="PACKAGE.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="55c5d127-b017-39f2-97af-42f3c2dfae99">
+		<BuildDependency Project="ALL_BUILD.vcxproj"/>
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="RUN_TESTS.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="10db57e9-3f46-39cf-baa0-eedd8a1c3b81">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="../../ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="15e32d39-0b40-32d7-a429-c343f16fdc10"/>
+	<Project Path="auto-win-msvc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="198192c9-878d-3fe0-83bc-bb676fe390f4">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="bsd-machine-endian/bsd-machine-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e5da372e-c56f-3c7f-ac23-b2087b10c1c5">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-malloc-np/bsd-malloc-np.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f3d103b-2909-341f-8987-014280053f64">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-pthread-np/bsd-pthread-np.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c19f9fe2-76d6-345c-8e63-3f00685622db">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-cpuset/bsd-sys-cpuset.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="337523d8-f278-344d-8fc9-9ae3b12e5725">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-endian/bsd-sys-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dc8eb732-a2a5-3831-bc17-874c6b8f4fdf">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-event/bsd-sys-event.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="67919580-1319-384e-9015-a56400b9d34c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-file/bsd-sys-file.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5f5f75bf-078f-3275-a2c0-6261bc4c4669">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-param/bsd-sys-param.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9cc8ad41-b776-36e3-84b5-86664d3f1afe">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-sysctl/bsd-sys-sysctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cc9a9696-b8f0-3ec2-8032-838c871012a6">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-vm-param/bsd-vm-param.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="32513d60-8a52-38d3-a91a-624626934668">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="linux-backtrace/linux-backtrace.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="566d1807-06fa-348a-b6bd-f31760823619">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-endian/linux-endian.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8c8df9eb-5107-3597-957b-33255fe9f0ba">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-epoll/linux-epoll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b5e1936a-4100-34a8-b316-c945613c6c19">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="linux-execinfo/linux-execinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d663984c-aa5d-3790-ad1e-98d2ead8a1de">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-features/linux-features.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2f7c5d6f-b230-3cc8-bde1-bac28ece772b">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-getopt/linux-getopt.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fd02c131-94c0-37bb-b505-b180e694af3b">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-hv-hloop/linux-hv-hloop.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1f70ac8a-13e3-3ab2-8296-c5ed6bd11546">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-magic/linux-magic.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1fac7c19-7ed4-3169-b6bd-7366d1e89cb7">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="linux-rdma/linux-rdma.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="33cd8324-25b1-34f5-82af-65be4e30a3eb">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-bitops/linux-sys-bitops.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b1eb6ac7-28dc-31cf-960d-190341e662a8">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-prctl/linux-sys-prctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8f1924cd-b447-35e8-a1c7-7649cc8b0feb">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-procfs/linux-sys-procfs.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7936e3da-9337-302b-b0f6-31c472916899">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-statfs/linux-sys-statfs.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9bcfd6ca-bb3a-3f90-bf64-5c70a0570336">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-syscall/linux-sys-syscall.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="be9d938e-6d14-3bf9-b6e3-bfcf66e694d7">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-user/linux-sys-user.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8847024a-5dea-3bf3-b921-dbb3692ea12a">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-systemd/linux-systemd.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="36607991-61f6-34f0-83c3-020291169323">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj"/>
+		<BuildDependency Project="linux-systemd/posix-stdint_build/posix-stdint.vcxproj"/>
+	</Project>
+	<Project Path="posix-alloca/posix-alloca.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7246e201-f850-3485-af27-38924046044c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-arpa/posix-arpa.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9c9e73b7-88b8-3e87-8332-b439cb8deeb5">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/posix-core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="78794ca1-5b51-3599-9fc1-9a22b0d31c7c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sockets.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+		<BuildDependency Project="linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="posix-dirent/posix-dirent.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b12ce96e-2d76-39de-9a25-e6a45fa50c2f">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-dlfcn/posix-dlfcn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4c87574f-ec74-33f2-9f77-d43632c5393c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-glob/posix-glob.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="96c8d638-32fd-39ae-ba8f-d0024b5f51cd">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-inttypes/posix-inttypes.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="42a69707-4a2d-3266-bb03-5a47eca3a044">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-ipc/posix-ipc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e51719ef-2f93-3ca5-9d9b-81ed1c65f97e">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-langinfo/posix-langinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="dcaa2697-5ef2-315d-97a2-6e8cde5b4991">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-libgen/posix-libgen.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="25ca34bc-3073-3420-b8f1-e6a4197c4ae1">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-libproc/posix-libproc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bef4576b-d335-3c06-b0ff-b75c1bb3ba0a">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-mman/posix-mman.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="18856684-a5f2-361e-9442-5d49d75179af">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-netdb/posix-netdb.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3d570ddb-83bf-374e-a36e-6e60b830c2ac">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-netinet/posix-netinet.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ce6904fa-f4db-30d2-9f6d-05f29d36222d">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7e3dbc59-e58c-398a-ad48-807acb36fca9">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-pthread/posix-pthread.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e2237413-a381-3509-8425-7d98197049e2">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-pwdgrp/posix-pwdgrp.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fd8055f9-6ff4-3604-b845-9e8d73a88cc6">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-regex/posix-regex.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ea21c4be-22fb-3aa8-97c7-6c8ca6290c7c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-sched/posix-sched.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="16d4024f-b197-3526-915c-6dc54802445e">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-signal/posix-signal.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="99a3e6a9-713d-3319-aed0-87a63a69a17e">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/posix-sockets_build/posix-sockets.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="61f63880-850f-3941-8ae1-748ea56476ec">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+	</Project>
+	<Project Path="posix-spawn/posix-spawn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="62739656-2975-3dc9-9449-6160fcd32151">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-stat/posix-stat.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2f28b634-c4e3-3409-9ece-515297fa0721">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-systemd/posix-stdbool_build/posix-stdbool.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="302e96d4-a42d-3f36-9d48-54a5ab16c15e">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="linux-systemd/posix-stdint_build/posix-stdint.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0c6e0f5a-f52b-3dc2-88d5-e6289b1242df">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-strings/posix-strings.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d444f446-ea31-3330-bfca-f00290d83835">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-stropts/posix-stropts.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="83ac40a5-4635-3a04-929d-e6a4c3899651">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0ce41235-85ba-378d-8b58-b2fe7bb41799">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-sys-resource/posix-sys-resource.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2b56ee63-27c7-3ef5-946a-1242d57aae79">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="61dc87e6-12cf-39b5-bac8-02405a254b25">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-syslog/posix-syslog.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d7ead57e-3ae3-3c2f-9f17-07d43155caa0">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-termios/posix-termios.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d5f99095-b99d-3ebe-9d75-a79780b26b7a">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-time/posix-time.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="84a128a2-d7cf-3284-a0b4-699fe7c0d2be">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-times/posix-times.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c78a6340-0c11-3fec-84d8-f2b7ecc39d5c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-types/posix-types.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4ab075a8-3891-31d6-a1bc-48b2d251ef39">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-ucontext/posix-ucontext.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="201fb9aa-329f-3f8f-9cb1-6eaad104c2dc">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-unwind/posix-unwind.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="94b6fd2d-89e4-3f49-8412-de5400bfd35f">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-utsname/posix-utsname.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="403bd004-61f9-3968-bd8a-2b9397137e5e">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="posix-wait/posix-wait.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b92de22a-4a5d-3e91-91af-8952de81d70c">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="solaris-port/solaris-port.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="10644f70-a6b1-3d98-a100-7fdf7fb27fc6">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="solaris-sys-byteorder/solaris-sys-byteorder.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="cbba6b04-66f6-370f-a2a0-a018611723d1">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="solaris-sys-feature-tests/solaris-sys-feature-tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b0cf41a0-6574-375a-8f45-82d4f821c943">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-cpuset/test_bsd-sys-cpuset.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c6f311eb-a5a3-31fe-83e0-6fdede79f3e3">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="bsd-sys-cpuset/bsd-sys-cpuset.vcxproj"/>
+	</Project>
+	<Project Path="bsd-sys-sysctl/test_bsd-sys-sysctl.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f287c8cb-8f26-33c3-b1f7-2399ddcceb75">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="bsd-sys-sysctl/bsd-sys-sysctl.vcxproj"/>
+	</Project>
+	<Project Path="linux-sys-bitops/test_linux-sys-bitops.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="533f92ad-3b57-38d8-88b1-17bdf921e370">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-sys-bitops/linux-sys-bitops.vcxproj"/>
+	</Project>
+	<Project Path="posix-alloca/test_posix-alloca.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4602be88-2606-3fea-907b-7c3a44ab0bf0">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-alloca/posix-alloca.vcxproj"/>
+	</Project>
+	<Project Path="posix-core/test_posix-core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ad4fcd58-905b-371a-a7f6-7059a647a8a5">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="linux-epoll/linux-epoll.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-core.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-poll_build/posix-poll.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sockets.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-ioctl_build/posix-sys-ioctl.vcxproj"/>
+		<BuildDependency Project="posix-core/posix-sockets_build/posix-sys-uio_build/posix-sys-uio.vcxproj"/>
+		<BuildDependency Project="linux-epoll/wepoll.vcxproj"/>
+	</Project>
+	<Project Path="posix-dlfcn/test_posix-dlfcn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="848d5c3a-fa54-3e9a-b5b4-e8409d69a083">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-dlfcn/posix-dlfcn.vcxproj"/>
+	</Project>
+	<Project Path="posix-langinfo/test_posix-langinfo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4648fee7-50ec-39f4-b4dd-756f37a5c090">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-langinfo/posix-langinfo.vcxproj"/>
+	</Project>
+	<Project Path="posix-libproc/test_posix-libproc.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="09d6f159-aa52-30d6-9188-024c5b1cf662">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-libproc/posix-libproc.vcxproj"/>
+	</Project>
+	<Project Path="posix-mman/test_posix-mman.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6ade78b1-3014-31c5-b6cf-2b9c08fca888">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-mman/posix-mman.vcxproj"/>
+	</Project>
+	<Project Path="posix-pthread/test_posix-pthread.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c53c5b1c-c829-340e-96b2-1f39707ddee8">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-pthread/posix-pthread.vcxproj"/>
+	</Project>
+	<Project Path="posix-regex/test_posix-regex.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ccffd884-210f-3ffa-a1b1-6af00f764d3f">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-regex/posix-regex.vcxproj"/>
+	</Project>
+	<Project Path="posix-signal/test_posix-signal.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="defb502a-6360-353b-b5e8-6f36dba90460">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-signal/posix-signal.vcxproj"/>
+	</Project>
+	<Project Path="posix-spawn/test_posix-spawn.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="486834f6-e5ce-3d64-ab6d-7be2b9a85ff0">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-spawn/posix-spawn.vcxproj"/>
+	</Project>
+	<Project Path="posix-syslog/test_posix-syslog.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b46748b7-fdf4-3f18-a258-f153c3b311c8">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-syslog/posix-syslog.vcxproj"/>
+	</Project>
+	<Project Path="posix-termios/test_posix-termios.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="17618856-6798-39c2-863b-47a5bd943981">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-termios/posix-termios.vcxproj"/>
+	</Project>
+	<Project Path="posix-time/test_posix-time.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fb97a645-638e-3914-ba86-fcd906381518">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-time/posix-time.vcxproj"/>
+	</Project>
+	<Project Path="posix-times/test_posix-times.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3919856a-038d-32c6-bd15-5386378f02c6">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-times/posix-times.vcxproj"/>
+	</Project>
+	<Project Path="posix-types/test_posix-types.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6654e450-3c39-3fe1-a772-0561ab3d8df8">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-types/posix-types.vcxproj"/>
+	</Project>
+	<Project Path="posix-unwind/test_posix-unwind.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c8487cf3-2c6b-3d41-81d2-009b801bc201">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-unwind/posix-unwind.vcxproj"/>
+	</Project>
+	<Project Path="posix-utsname/test_posix-utsname.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2c63df91-e18b-3601-8f21-1b8269d16d9a">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-utsname/posix-utsname.vcxproj"/>
+	</Project>
+	<Project Path="posix-wait/test_posix-wait.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c9aa51aa-57f0-3489-96ae-c7c895d7fabb">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="posix-wait/posix-wait.vcxproj"/>
+	</Project>
+	<Project Path="linux-epoll/wepoll.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="29eac0e6-2cfe-3e1b-a947-5c5c5af62f15">
+		<BuildDependency Project="../../ZERO_CHECK.vcxproj"/>
+	</Project>
+</Solution>

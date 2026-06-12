@@ -1,0 +1,6 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	dummy_posix_utsname
+	sprintf_s
+	uname

@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libbsd-malloc-np.a "CMakeFiles/bsd-malloc-np.dir/src/bsd-malloc-np.c.o"
+/usr/bin/ranlib.exe libbsd-malloc-np.a

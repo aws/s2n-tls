@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-hv-hloop.a "CMakeFiles/linux-hv-hloop.dir/src/linux-hv-hloop.c.o"
+/usr/bin/ranlib.exe liblinux-hv-hloop.a

@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-arpa.a "CMakeFiles/posix-arpa.dir/src/posix-arpa-inet.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-arpa.a

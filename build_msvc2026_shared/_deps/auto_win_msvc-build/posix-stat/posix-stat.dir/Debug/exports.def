@@ -1,0 +1,9 @@
+EXPORTS 
+	fchmod
+	fchmodat
+	fstatat
+	futimens
+	lstat
+	mknod
+	mknodat
+	utimensat

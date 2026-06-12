@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-procfs.a "CMakeFiles/linux-sys-procfs.dir/src/linux-sys-procfs.c.o"
+/usr/bin/ranlib.exe liblinux-sys-procfs.a

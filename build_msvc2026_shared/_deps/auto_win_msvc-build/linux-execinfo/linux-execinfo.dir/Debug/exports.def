@@ -1,0 +1,8 @@
+EXPORTS 
+	__local_stdio_printf_options
+	_vsprintf_s_l
+	backtrace
+	backtrace_symbols
+	backtrace_symbols_fd
+	dummy_linux_execinfo
+	sprintf_s

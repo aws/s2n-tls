@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc liblinux-sys-bitops.a "CMakeFiles/linux-sys-bitops.dir/src/linux-sys-bitops.c.o"
+/usr/bin/ranlib.exe liblinux-sys-bitops.a

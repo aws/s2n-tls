@@ -1,0 +1,4 @@
+_deps/auto_win_msvc-build/posix-core/posix-sockets_build/posix-poll_build/CMakeFiles/posix-poll.dir/src/posix-poll.c.o: \
+ /cygdrive/c/Users/samue/repos/auto-win-msvc/posix-poll/src/posix-poll.c \
+ /cygdrive/c/Users/samue/repos/auto-win-msvc/posix-poll/include/posix-poll.h \
+ /usr/lib/gcc/x86_64-pc-cygwin/13/include/stddef.h

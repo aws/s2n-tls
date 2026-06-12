@@ -1,0 +1,2 @@
+"C:/msys64/mingw64/bin/gcc-ar.exe" qc libposix-ucontext.a "CMakeFiles/posix-ucontext.dir/src/posix-ucontext.c.obj"
+"C:/msys64/mingw64/bin/gcc-ranlib.exe" libposix-ucontext.a

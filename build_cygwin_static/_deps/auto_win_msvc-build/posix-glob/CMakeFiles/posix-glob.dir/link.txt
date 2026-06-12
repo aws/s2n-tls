@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-glob.a "CMakeFiles/posix-glob.dir/src/posix-glob.c.o"
+/usr/bin/ranlib.exe libposix-glob.a

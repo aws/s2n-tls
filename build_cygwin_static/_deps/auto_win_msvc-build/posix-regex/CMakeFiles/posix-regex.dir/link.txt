@@ -1,0 +1,2 @@
+/usr/bin/ar.exe qc libposix-regex.a "CMakeFiles/posix-regex.dir/src/posix-regex.c.o"
+/usr/bin/ranlib.exe libposix-regex.a

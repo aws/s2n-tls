@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/greatest-populate"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/8173cd36a2ececd64c2febc7e991756d/greatest-populate.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/3f1286e0709e222e12c13c28f3c9667e/greatest-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/samue/repos/s2n-tls/build_msvc2026_shared/_deps/greatest-subbuild/CMakeFiles/83f84aeb68f2e81ce9514307f36756c8/greatest-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"greatest-populate"
+		],
+		"name" : "greatest-populate"
+	}
+}
