@@ -10,8 +10,8 @@ use crate::{
     bounded_set::FrozenBoundedStringSet,
     counter::FrozenCounter,
     static_lists::{
-        CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
-        Version,
+        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm, Cipher,
+        GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -84,6 +84,27 @@ pub struct FrozenHandshakeRecord {
     pub supported_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
 
     #[serde(default)]
+    pub server_leaf_cert_key: FrozenCounter<CERT_KEY_COUNT, CertKeyType>,
+    #[serde(default)]
+    pub server_leaf_cert_sig: FrozenCounter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    #[serde(default)]
+    pub server_chain_cert_key: FrozenCounter<CERT_KEY_COUNT, CertKeyType>,
+    #[serde(default)]
+    pub server_chain_cert_sig: FrozenCounter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    #[serde(default)]
+    pub client_leaf_cert_key: FrozenCounter<CERT_KEY_COUNT, CertKeyType>,
+    #[serde(default)]
+    pub client_leaf_cert_sig: FrozenCounter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    #[serde(default)]
+    pub client_chain_cert_key: FrozenCounter<CERT_KEY_COUNT, CertKeyType>,
+    #[serde(default)]
+    pub client_chain_cert_sig: FrozenCounter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    #[serde(default)]
+    pub server_cert_parsing_failure: u64,
+    #[serde(default)]
+    pub client_cert_parsing_failure: u64,
+
+    #[serde(default)]
     pub compatibility_general20251201: u64,
     #[serde(default)]
     pub compatibility_fips20251201: u64,
@@ -116,6 +137,16 @@ impl Default for FrozenHandshakeRecord {
             supported_ciphers: FrozenCounter::default(),
             supported_groups: FrozenCounter::default(),
             supported_signatures: FrozenCounter::default(),
+            server_leaf_cert_key: FrozenCounter::default(),
+            server_leaf_cert_sig: FrozenCounter::default(),
+            server_chain_cert_key: FrozenCounter::default(),
+            server_chain_cert_sig: FrozenCounter::default(),
+            client_leaf_cert_key: FrozenCounter::default(),
+            client_leaf_cert_sig: FrozenCounter::default(),
+            client_chain_cert_key: FrozenCounter::default(),
+            client_chain_cert_sig: FrozenCounter::default(),
+            server_cert_parsing_failure: 0,
+            client_cert_parsing_failure: 0,
             compatibility_general20251201: 0,
             compatibility_fips20251201: 0,
             compatibility_cnsa1: 0,
@@ -193,6 +224,22 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             &self.supported_signatures,
             telemetry_prefix(TlsParam::SignatureScheme, State::Supported),
             writer,
+        );
+        write_counter(&self.server_leaf_cert_key, "cert.server.leaf.key", writer);
+        write_counter(&self.server_leaf_cert_sig, "cert.server.leaf.sig", writer);
+        write_counter(&self.server_chain_cert_key, "cert.server.chain.key", writer);
+        write_counter(&self.server_chain_cert_sig, "cert.server.chain.sig", writer);
+        write_counter(&self.client_leaf_cert_key, "cert.client.leaf.key", writer);
+        write_counter(&self.client_leaf_cert_sig, "cert.client.leaf.sig", writer);
+        write_counter(&self.client_chain_cert_key, "cert.client.chain.key", writer);
+        write_counter(&self.client_chain_cert_sig, "cert.client.chain.sig", writer);
+        writer.value(
+            "cert.server.subscriber_parse_failure",
+            &self.server_cert_parsing_failure,
+        );
+        writer.value(
+            "cert.client.subscriber_parse_failure",
+            &self.client_cert_parsing_failure,
         );
 
         writer.value(
