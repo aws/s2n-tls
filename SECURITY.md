@@ -2,7 +2,7 @@
 
 ## Reporting Security Issues
 
-Amazon Web Services (AWS) is dedicated to the responsible disclosure of security vulnerabilities.  
+Amazon Web Services (AWS) practices industry-standard Coodinated Vulnerability Disclosure (CVD) with the goal of reducing adversary advantage while a security vulnerability is being addressed. The [CERT® Guide to Coordinated Vulnerability Disclosure](https://certcc.github.io/CERT-Guide-to-CVD/tutorials/cvd_in_a_nutshell/) provides information about the CVD process, and outlines tools and practices that can help achieve this goal.
   
 We kindly ask that you **do not** open a public GitHub issue to report security concerns.  
   
