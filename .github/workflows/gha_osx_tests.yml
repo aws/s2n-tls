@@ -36,7 +36,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install openssl ninja
+          brew install openssl ninja go
 
       - name: Build and install AWS-LC
         run: |
