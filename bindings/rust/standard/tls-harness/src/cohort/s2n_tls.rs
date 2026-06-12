@@ -130,7 +130,6 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
     connection: Connection,
-    // We have to store the result of s2n_negotiate to know when the handshake is complete.
 }
 
 impl S2NConnection {
