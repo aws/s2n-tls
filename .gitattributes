@@ -1,0 +1,12 @@
+*
+text=auto
+eol=lf
+*.patch
+text
+eol=lf
+CMakeLists.txt
+text
+eol=lf
+*.cmake
+text
+eol=lf
