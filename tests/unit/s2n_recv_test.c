@@ -16,7 +16,9 @@
 #include "api/s2n.h"
 #include "api/unstable/renegotiate.h"
 #include "s2n_test.h"
-#include "testlib/s2n_ktls_test_utils.h"
+#ifndef _WIN32
+    #include "testlib/s2n_ktls_test_utils.h"
+#endif
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
@@ -33,12 +35,15 @@ int s2n_expect_concurrent_error_recv_fn(void *io_context, uint8_t *buf, uint32_t
     return result;
 }
 
+#ifndef _WIN32
 static ssize_t s2n_test_ktls_recvmsg_cb(void *io_context, struct msghdr *msg)
 {
     POSIX_ENSURE_REF(io_context);
     return *(ssize_t *) io_context;
 }
+#endif
 
+#ifndef _WIN32
 static int s2n_test_reneg_req_cb(struct s2n_connection *conn, void *context,
         s2n_renegotiate_response *response)
 {
@@ -48,6 +53,7 @@ static int s2n_test_reneg_req_cb(struct s2n_connection *conn, void *context,
     *response = S2N_RENEGOTIATE_IGNORE;
     return S2N_SUCCESS;
 }
+#endif
 
 int main(int argc, char **argv)
 {
@@ -361,6 +367,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
     };
 
+#ifndef _WIN32
     /* Test with ktls */
     {
         uint8_t test_data[100] = { 0 };
@@ -665,6 +672,7 @@ int main(int argc, char **argv)
             };
         };
     };
+#endif
 
     END_TEST();
 }
