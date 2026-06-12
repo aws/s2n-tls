@@ -75,8 +75,6 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
 int s2n_cert_chain_and_key_set_cert_chain_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key, struct s2n_stuffer *chain_in_stuffer)
 {
-    POSIX_ENSURE_REF(cert_and_key);
-    POSIX_ENSURE_REF(cert_and_key->cert_chain);
     return s2n_create_cert_chain_from_stuffer(cert_and_key->cert_chain, chain_in_stuffer);
 }
 
@@ -104,9 +102,6 @@ int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_an
 int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key,
         struct s2n_stuffer *key_in_stuffer, struct s2n_stuffer *key_out_stuffer)
 {
-    POSIX_ENSURE_REF(cert_and_key);
-    POSIX_ENSURE_REF(cert_and_key->private_key);
-
     struct s2n_blob key_blob = { 0 };
 
     POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
