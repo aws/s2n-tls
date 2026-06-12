@@ -107,24 +107,55 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn = NULL;
         struct s2n_connection *server_conn = NULL;
         struct s2n_config *config = NULL;
-        struct s2n_test_io_pair io_pair = { 0 };
+        struct s2n_test_io_pair io_pair = {0};
 
-        /* "20170210" is a TLS 1.2-only cipher preference */
         EXPECT_OK(s2n_setup_negotiated_pair("20170210", rsa_chain_and_key,
-                &client_conn, &server_conn, &config, &io_pair));
+            &client_conn, &server_conn, &config, &io_pair));
 
-        /* Before negotiation: neither side is complete */
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 0);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 0);
 
-        /* Drive the handshake fully to completion */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        /* Drive the handshake one message at a time.
+        * We stop as soon as the server side reports its handshake done
+        * but BEFORE the client has had a chance to read the server's Finished.
+        * At that exact point the old "NEGOTIATED bit" logic would have returned
+        * 1 for the client; the new s2n_handshake_is_complete() path must return 0.
+        */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        bool server_done = false;
+        
+        while(!server_done){
+            int server_rc = s2n_negotiate(server_conn, &blocked);
+            if (server_rc == S2N_SUCCESS){
+                server_done = true;
+            }else{
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
 
-        /* Verify we actually negotiated TLS 1.2 */
+            /* Key assertion: client must NOT yet be complete even though
+            * the server just finished sending its Finished message.
+            * The old buggy logic (handshake_type & NEGOTIATED) would
+            * return 1 here; the correct implementation must return 0. */
+            if (server_done) {
+                EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 1);
+                EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 0); /* <-- regression guard */
+            }
+
+            /* Pump client one step to consume what the server just wrote */
+            int client_rc = s2n_negotiate(client_conn, &blocked);
+            if (client_rc != S2N_SUCCESS) {
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
+        }
+
+        /* Now drain the client fully */
+        while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
+            EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+        }
+
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
 
-        /* After full negotiation: both sides must report complete */
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), 1);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), 1);
 
