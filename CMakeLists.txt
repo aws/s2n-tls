@@ -483,9 +483,9 @@ endif()
 # shadow libcrypto headers from imported targets (propagated with -isystem).
 # Force -I for imported target includes so aws-lc headers take priority over
 # any brew-installed OpenSSL in /usr/local.
-if (APPLE)
-    set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
-endif()
+# if (APPLE)
+#     set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+# endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
