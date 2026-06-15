@@ -45,6 +45,7 @@ phases:
       # Configure S3 bucket as a nix substituter
       - echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
       - echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+      - echo "require-sigs = false" >> ~/.config/nix/nix.conf
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
       # Load the TLS kernel module
       - sudo modprobe tls

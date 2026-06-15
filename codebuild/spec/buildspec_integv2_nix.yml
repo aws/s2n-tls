@@ -75,8 +75,10 @@ phases:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
         # Configure S3 bucket as a nix substituter so nix develop pulls from it automatically.
+        mkdir -p ~/.config/nix
         echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
         echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "require-sigs = false" >> ~/.config/nix/nix.conf
   pre_build:
     commands:
       - |
