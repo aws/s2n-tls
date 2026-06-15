@@ -15,10 +15,8 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_renegotiate.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
 
 /* We use bitflags to test every combination
  * of where application data could appear in renegotiation.
