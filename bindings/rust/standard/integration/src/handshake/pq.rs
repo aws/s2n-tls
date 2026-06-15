@@ -69,7 +69,7 @@ fn s2n_mldsa_server() {
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
-                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
 
             // Setup OpenSSL client
             configs.client.set_ca_file(&mldsa87.ca_path).unwrap();
@@ -143,7 +143,7 @@ fn s2n_mlkem_server() {
 
         let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
             let mut configs =
-                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
 
             // Setup OpenSSL client restricted to SecP384r1MLKEM1024
             configs.client.set_ca_file(&certs.ca_path).unwrap();
