@@ -113,10 +113,13 @@ phases:
     commands:
       - |
         echo "Downloading nix cache..."
-        # Tolerate missing/corrupt paths; nix develop will fetch anything missing from cache.nixos.org
-        # This is necessary because our S3 lifecycle rule might accidentally delete
-        # files.
+        # Tolerate missing/corrupt paths; the S3 lifecycle rule may delete files.
         nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
+        # The S3 bucket has a 30-day lifecycle rule that can partially delete
+        # store paths (removing NARs but leaving .narinfo), causing hash
+        # mismatches on import. Verify and repair fixes these corrupt paths
+        # by re-downloading them from cache.nixos.org.
+        nix store verify --all --repair 2>/dev/null || true
   pre_build:
     commands:
       - |
