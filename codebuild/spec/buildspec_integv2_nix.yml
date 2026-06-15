@@ -74,8 +74,9 @@ phases:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
-        echo "Downloading nix cache..."
-        nix copy --from $NIX_CACHE_BUCKET --no-check-sigs $NIXDEV_LIBCRYPTO || true
+        # Configure S3 bucket as a nix substituter so nix develop pulls from it automatically.
+        echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
   pre_build:
     commands:
       - |
@@ -92,4 +93,5 @@ phases:
         set -e
         nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
         echo "Pushing to nix cache..."
-        nix copy --to $NIX_CACHE_BUCKET $NIXDEV_LIBCRYPTO
+        NIX_CACHE_PKG=".#cache-${NIXDEV_LIBCRYPTO#.#}"
+        nix copy --to $NIX_CACHE_BUCKET $NIX_CACHE_PKG

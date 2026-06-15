@@ -104,6 +104,20 @@
             openssl_3_0 aws-lc aws-lc-fips-2022 aws-lc-fips-2024 writeScript;
         };
         packages.devShell = devShells.default.inputDerivation;
+        # Expose devShell closures as packages so `nix copy --to` can push them to S3.
+        # Usage: nix copy --to s3://bucket .#cache-rust_awslc
+        packages.cache-default = devShells.default.inputDerivation;
+        packages.cache-openssl102 = devShells.openssl102.inputDerivation;
+        packages.cache-openssl111 = devShells.openssl111.inputDerivation;
+        packages.cache-libressl = devShells.libressl.inputDerivation;
+        packages.cache-awslc = devShells.awslc.inputDerivation;
+        packages.cache-awslcfips2022 = devShells.awslcfips2022.inputDerivation;
+        packages.cache-awslcfips2024 = devShells.awslcfips2024.inputDerivation;
+        packages.cache-rust_openssl102 = devShells.rust_openssl102.inputDerivation;
+        packages.cache-rust_openssl111 = devShells.rust_openssl111.inputDerivation;
+        packages.cache-rust_openssl30 = devShells.rust_openssl30.inputDerivation;
+        packages.cache-rust_awslc = devShells.rust_awslc.inputDerivation;
+        packages.cache-rust_awslcfips2024 = devShells.rust_awslcfips2024.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: { doCheck = true; });

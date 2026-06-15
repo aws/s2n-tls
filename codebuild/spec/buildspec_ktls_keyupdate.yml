@@ -30,8 +30,9 @@ phases:
   pre_build:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
-      # Populate the store from the nix cache
-      - nix copy --from $NIX_CACHE_BUCKET --no-check-sigs .#awslc || true
+      # Configure S3 bucket as a nix substituter
+      - echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+      - echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
@@ -39,4 +40,7 @@ phases:
     commands:
       - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
       - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
+  post_build:
+    commands:
+      - nix copy --to $NIX_CACHE_BUCKET .#cache-awslc
 
