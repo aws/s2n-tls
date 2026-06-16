@@ -111,12 +111,13 @@ batch:
 phases:
   install:
     commands:
+      - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
-        echo "Downloading nix cache..."
-        # Tolerate missing/corrupt paths; nix develop will fetch anything missing from cache.nixos.org
-        # This is necessary because our S3 lifecycle rule might accidentally delete
-        # files.
-        nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
+        # Configure S3 bucket as a nix substituter so nix develop pulls from it automatically.
+        mkdir -p ~/.config/nix
+        echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "require-sigs = false" >> ~/.config/nix/nix.conf
   pre_build:
     commands:
       - |
@@ -133,5 +134,5 @@ phases:
         set -e
         nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; unit"
         echo "Pushing to nix cache..."
-        # Push everything this job needed to S3 for future runs.
-        nix copy --to $NIX_CACHE_BUCKET --all
+        NIX_CACHE_PKG=".#cache-${NIXDEV_LIBCRYPTO#.#}"
+        nix copy --to $NIX_CACHE_BUCKET $NIX_CACHE_PKG

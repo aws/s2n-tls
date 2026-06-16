@@ -8,33 +8,13 @@
 version: 0.2
 env:
   shell: bash
+  variables:
+    NIXDEV_ARGS: --max-jobs auto
 
 batch:
   build-graph:
-    # Cache job for x86
-    - identifier: nixCache_x86_64
-      env:
-        fleet: ubuntu24_x86_64_nix
-        variables:
-          # max-jobs tell nix to use all available cores for building derivations.
-          NIXDEV_ARGS: --max-jobs auto
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
-
-    # Cache Job for aarch64
-    - identifier: nixCache_aarch64
-      env:
-        fleet: ubuntu24_aarch64_nix
-        variables:
-          # max-jobs tell nix to use all available cores for building derivations.
-          NIXDEV_ARGS: --max-jobs auto
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
-
-    # AWSLC  x86
+    # AWSLC x86
     - identifier: Integ_awslc_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -43,8 +23,6 @@ batch:
 
     # AWSLC aarch64
     - identifier: Integ_awslc_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -53,8 +31,6 @@ batch:
 
     # AWSLC-FIPS-2022
     - identifier: Integ_awslcfips2022_x86_64_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -63,8 +39,6 @@ batch:
 
     # AWSLC-FIPS-2024
     - identifier: Integ_awslcfips2024_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -73,8 +47,6 @@ batch:
 
     # Openssl30 x86
     - identifier: Integ_openssl30_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -83,8 +55,6 @@ batch:
 
     # Openssl30 aarch64
     - identifier: Integ_openssl30_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -93,8 +63,6 @@ batch:
 
     # Openssl111 aarch64 only
     - identifier: Integ_openssl111_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -106,34 +74,26 @@ phases:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
-        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          echo "Refreshing nix cache..."
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
-          nix build .#devShell
-          nix copy --to $NIX_CACHE_BUCKET .#devShell
-        else
-          echo "Downloading cache"
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs || true
-        fi
+        # Configure S3 bucket as a nix substituter so nix develop pulls from it automatically.
+        mkdir -p ~/.config/nix
+        echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "require-sigs = false" >> ~/.config/nix/nix.conf
   pre_build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix copy --from  $NIX_CACHE_BUCKET --all  --no-check-sigs || true
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
-        fi
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; configure"
   build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
-        fi
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; build"
   post_build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
-        fi
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh;uvinteg"
+        echo "Pushing to nix cache..."
+        NIX_CACHE_PKG=".#cache-${NIXDEV_LIBCRYPTO#.#}"
+        nix copy --to $NIX_CACHE_BUCKET $NIX_CACHE_PKG
