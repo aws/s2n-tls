@@ -16,7 +16,6 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"

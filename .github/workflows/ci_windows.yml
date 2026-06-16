@@ -62,7 +62,7 @@ jobs:
             -DBUILD_TESTING=OFF
           cmake --build aws-lc-build -j $(nproc) --target install
 
-      - name: Build libs2n.a
+      - name: Build libs2n.a and unit tests
         shell: msys2 {0}
         run: |
           set -eu
@@ -70,6 +70,12 @@ jobs:
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_PREFIX_PATH=${{matrix.env-path}}/local \
-            -DBUILD_TESTING=OFF \
-            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON
+            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON \
+            -DBUILD_TESTING=ON
           cmake --build ./build -j $(nproc)
+
+      - name: Run unit tests
+        shell: msys2 {0}
+        run: |
+          set -eu
+          ctest --test-dir build --output-on-failure -j $(nproc)
