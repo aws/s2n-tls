@@ -16,8 +16,8 @@ use crate::{
 };
 
 use crate::{
-    label::{State, telemetry_label, telemetry_prefix},
-    static_lists::{FiniteCounter, TlsParam},
+    label::{self as names, negotiated, supported, CounterGroup},
+    static_lists::FiniteCounter,
 };
 
 /// Metric Record is an type which implements `metrique_writer::Entry`
@@ -135,10 +135,12 @@ impl Default for FrozenHandshakeRecord {
 impl metrique_writer::Entry for FrozenHandshakeRecord {
     fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
         match &self.security_policies {
-            FrozenBoundedStringSet::TooMany => writer.value("tls_policy.TOO_MANY", &1_u64),
+            FrozenBoundedStringSet::TooMany => {
+                writer.value(names::SECURITY_POLICY_TOO_MANY, &1_u64)
+            }
             FrozenBoundedStringSet::Entries(hash_set) => {
                 for policy in hash_set {
-                    writer.value(format!("tls_policy.{policy}"), &1_u64);
+                    writer.value(names::security_policy_name(policy), &1_u64);
                 }
             }
         }
@@ -146,77 +148,38 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
 
         fn write_counter<'a, const N: usize, T, W>(
             counter: &'a FrozenCounter<N, T>,
-            prefix: &'static str,
+            group: &CounterGroup,
             writer: &mut W,
         ) where
             T: FiniteCounter<N> + std::fmt::Display,
             W: metrique_writer::EntryWriter<'a>,
         {
             for (slot, element, count) in counter.iter_non_zero() {
-                let label = telemetry_label(slot, element, prefix);
-                writer.value(label, &count);
+                writer.value(group.metric_name_for(slot, element), &count);
             }
         }
 
-        write_counter(
-            &self.negotiated_protocols,
-            telemetry_prefix(TlsParam::Version, State::Negotiated),
-            writer,
-        );
-        write_counter(
-            &self.negotiated_ciphers,
-            telemetry_prefix(TlsParam::Cipher, State::Negotiated),
-            writer,
-        );
-        write_counter(
-            &self.negotiated_groups,
-            telemetry_prefix(TlsParam::Group, State::Negotiated),
-            writer,
-        );
-        write_counter(
-            &self.negotiated_signatures,
-            telemetry_prefix(TlsParam::SignatureScheme, State::Negotiated),
-            writer,
-        );
-        write_counter(
-            &self.supported_protocols,
-            telemetry_prefix(TlsParam::Version, State::Supported),
-            writer,
-        );
-        write_counter(
-            &self.supported_ciphers,
-            telemetry_prefix(TlsParam::Cipher, State::Supported),
-            writer,
-        );
-        write_counter(
-            &self.supported_groups,
-            telemetry_prefix(TlsParam::Group, State::Supported),
-            writer,
-        );
-        write_counter(
-            &self.supported_signatures,
-            telemetry_prefix(TlsParam::SignatureScheme, State::Supported),
-            writer,
-        );
+        write_counter(&self.negotiated_protocols, &negotiated::VERSIONS, writer);
+        write_counter(&self.negotiated_ciphers, &negotiated::CIPHERS, writer);
+        write_counter(&self.negotiated_groups, &negotiated::GROUPS, writer);
+        write_counter(&self.negotiated_signatures, &negotiated::SIGNATURES, writer);
+        write_counter(&self.supported_protocols, &supported::VERSIONS, writer);
+        write_counter(&self.supported_ciphers, &supported::CIPHERS, writer);
+        write_counter(&self.supported_groups, &supported::GROUPS, writer);
+        write_counter(&self.supported_signatures, &supported::SIGNATURES, writer);
 
-        writer.value(
-            "compatibility.general20251201",
-            &self.compatibility_general20251201,
-        );
-        writer.value(
-            "compatibility.fips20251201",
-            &self.compatibility_fips20251201,
-        );
-        writer.value("compatibility.cnsa1", &self.compatibility_cnsa1);
-        writer.value("compatibility.cnsa2", &self.compatibility_cnsa2);
+        writer.value(names::COMPATIBILITY_GENERAL20251201, &self.compatibility_general20251201);
+        writer.value(names::COMPATIBILITY_FIPS20251201, &self.compatibility_fips20251201);
+        writer.value(names::COMPATIBILITY_CNSA1, &self.compatibility_cnsa1);
+        writer.value(names::COMPATIBILITY_CNSA2, &self.compatibility_cnsa2);
 
-        writer.value("sslv2_client_hello", &self.sslv2_client_hello);
-        writer.value("handshake_success_count", &self.handshake_success_count);
-        writer.value("handshake_failure_count", &self.handshake_failure_count);
-        write_counter(&self.alerts, "alert", writer);
-        writer.value("handshake_duration_us", &self.handshake_duration_us);
-        writer.value("handshake_compute_us", &self.handshake_compute_us);
-        writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
+        writer.value(names::SSLV2_CLIENT_HELLO, &self.sslv2_client_hello);
+        writer.value(names::HANDSHAKE_SUCCESS_COUNT, &self.handshake_success_count);
+        writer.value(names::HANDSHAKE_FAILURE_COUNT, &self.handshake_failure_count);
+        write_counter(&self.alerts, &names::ALERTS, writer);
+        writer.value(names::HANDSHAKE_DURATION_US, &self.handshake_duration_us);
+        writer.value(names::HANDSHAKE_COMPUTE_US, &self.handshake_compute_us);
+        writer.value(names::SYNTHETIC_TRAFFIC_COUNT, &self.synthetic_traffic_count);
     }
 }
 

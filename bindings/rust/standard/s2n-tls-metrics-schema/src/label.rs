@@ -1,28 +1,22 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//! Canonical metric name definitions and caching for TLS telemetry.
+//!
+//! All metric names emitted via EMF and consumed by MWS queries or storage
+//! layers are defined here. Downstream crates should import from this module
+//! rather than duplicating string literals.
+
 use std::{
     collections::HashMap,
     fmt::Display,
     sync::{LazyLock, RwLock},
 };
 
-use crate::static_lists::TlsParam;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum State {
-    Negotiated,
-    Supported,
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            State::Negotiated => write!(f, "negotiated"),
-            State::Supported => write!(f, "supported"),
-        }
-    }
-}
+use crate::static_lists::{
+    Alert, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, Group, Signature, Version, CIPHER_COUNT,
+    GROUP_COUNT, PROTOCOL_COUNT, SIGNATURE_COUNT,
+};
 
 /// Cache key keyed by slot index so the cache type stays non-generic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -74,38 +68,132 @@ where
     }
 }
 
-/// a helper function to create the prefix for (param, state) tuples
-pub fn telemetry_prefix(param: TlsParam, state: State) -> &'static str {
-    let prefix = match (param, state) {
-        (TlsParam::Version, State::Negotiated) => "version.negotiated",
-        (TlsParam::Version, State::Supported) => "version.supported",
-        (TlsParam::Cipher, State::Negotiated) => "cipher.negotiated",
-        (TlsParam::Cipher, State::Supported) => "cipher.supported",
-        (TlsParam::Group, State::Negotiated) => "group.negotiated",
-        (TlsParam::Group, State::Supported) => "group.supported",
-        (TlsParam::SignatureScheme, State::Negotiated) => "signature_scheme.negotiated",
-        (TlsParam::SignatureScheme, State::Supported) => "signature_scheme.supported",
-    };
-    // this debug assert makes sure that our labels match the Display implementation.
-    // We don't directly use Display because that requires an allocation. We could
-    // introduce a static display trait, but that feels like overkill :)
-    debug_assert_eq!(format!("{param}.{state}"), prefix);
-    prefix
+pub const HANDSHAKE_SUCCESS_COUNT: &str = "handshake_success_count";
+pub const HANDSHAKE_FAILURE_COUNT: &str = "handshake_failure_count";
+pub const COMPATIBILITY_GENERAL20251201: &str = "compatibility.general20251201";
+pub const COMPATIBILITY_FIPS20251201: &str = "compatibility.fips20251201";
+pub const COMPATIBILITY_CNSA1: &str = "compatibility.cnsa1";
+pub const COMPATIBILITY_CNSA2: &str = "compatibility.cnsa2";
+pub const SECURITY_POLICY_PREFIX: &str = "tls_policy";
+pub const SECURITY_POLICY_TOO_MANY: &str = "tls_policy.TOO_MANY";
+
+pub fn security_policy_name(policy: &str) -> String {
+    format!("{SECURITY_POLICY_PREFIX}.{policy}")
 }
+
+pub const SSLV2_CLIENT_HELLO: &str = "sslv2_client_hello";
+pub const HANDSHAKE_DURATION_US: &str = "handshake_duration_us";
+pub const HANDSHAKE_COMPUTE_US: &str = "handshake_compute_us";
+pub const SYNTHETIC_TRAFFIC_COUNT: &str = "synthetic_traffic_count";
+
+pub const ALL_SCALARS: &[&str] = &[
+    COMPATIBILITY_GENERAL20251201,
+    COMPATIBILITY_FIPS20251201,
+    COMPATIBILITY_CNSA1,
+    COMPATIBILITY_CNSA2,
+    SSLV2_CLIENT_HELLO,
+    HANDSHAKE_SUCCESS_COUNT,
+    HANDSHAKE_FAILURE_COUNT,
+    HANDSHAKE_DURATION_US,
+    HANDSHAKE_COMPUTE_US,
+    SYNTHETIC_TRAFFIC_COUNT,
+];
+
+/// A counter group descriptor: prefix string, element count, and cached name accessor.
+///
+/// Each group represents one (TlsParam, State) combination, e.g. "cipher.negotiated".
+/// Individual metric names are formed as `"{prefix}.{element}"` and cached via
+/// [`telemetry_label`] for zero-allocation access after the first call.
+pub struct CounterGroup {
+    pub prefix: &'static str,
+    pub count: usize,
+    name_from_slot: fn(usize, &'static str) -> &'static str,
+}
+
+impl CounterGroup {
+    /// Returns the cached metric name for a slot index.
+    pub fn metric_name(&self, slot: usize) -> &'static str {
+        debug_assert!(slot < self.count, "slot {slot} out of range for {}", self.prefix);
+        (self.name_from_slot)(slot, self.prefix)
+    }
+
+    /// Returns the cached metric name when the caller already has the element.
+    pub fn metric_name_for<T: Display>(&self, slot: usize, element: T) -> &'static str {
+        telemetry_label(slot, element, self.prefix)
+    }
+}
+
+fn version_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, Version::key_from_slot(slot).unwrap(), prefix)
+}
+
+fn cipher_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, Cipher::key_from_slot(slot).unwrap(), prefix)
+}
+
+fn group_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, Group::key_from_slot(slot).unwrap(), prefix)
+}
+
+fn signature_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, Signature::key_from_slot(slot).unwrap(), prefix)
+}
+
+fn alert_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, Alert::key_from_slot(slot).unwrap(), prefix)
+}
+
+pub const ALERTS: CounterGroup = CounterGroup {
+    prefix: "alert",
+    count: DEFINED_ALERTS_COUNT,
+    name_from_slot: alert_metric_name,
+};
+
+macro_rules! define_counter_groups {
+    ($mod_name:ident, $state:literal) => {
+        pub mod $mod_name {
+            use super::*;
+
+            pub const VERSIONS: CounterGroup = CounterGroup {
+                prefix: concat!("version.", $state),
+                count: PROTOCOL_COUNT,
+                name_from_slot: version_metric_name,
+            };
+
+            pub const CIPHERS: CounterGroup = CounterGroup {
+                prefix: concat!("cipher.", $state),
+                count: CIPHER_COUNT,
+                name_from_slot: cipher_metric_name,
+            };
+
+            pub const GROUPS: CounterGroup = CounterGroup {
+                prefix: concat!("group.", $state),
+                count: GROUP_COUNT,
+                name_from_slot: group_metric_name,
+            };
+
+            pub const SIGNATURES: CounterGroup = CounterGroup {
+                prefix: concat!("signature_scheme.", $state),
+                count: SIGNATURE_COUNT,
+                name_from_slot: signature_metric_name,
+            };
+
+            pub const ALL: &[&CounterGroup] = &[&VERSIONS, &CIPHERS, &GROUPS, &SIGNATURES];
+        }
+    };
+}
+
+define_counter_groups!(negotiated, "negotiated");
+define_counter_groups!(supported, "supported");
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::static_lists::Cipher;
 
     #[test]
     fn label_output() {
         assert_eq!(
-            telemetry_label(
-                0,
-                Cipher::TLS_AES_256_GCM_SHA384,
-                telemetry_prefix(TlsParam::Cipher, State::Negotiated),
-            ),
+            telemetry_label(0, Cipher::TLS_AES_256_GCM_SHA384, "cipher.negotiated"),
             "cipher.negotiated.TLS_AES_256_GCM_SHA384"
         );
     }

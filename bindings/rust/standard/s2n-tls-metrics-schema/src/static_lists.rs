@@ -11,33 +11,10 @@ use s2n_codec::zerocopy::U16;
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use zerocopy::{FromBytes, Immutable, Unaligned};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TlsParam {
-    /// E.g. TLS 1.2
-    Version,
-    /// E.g. TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-    Cipher,
-    /// E.g. SecP256r1MLKEM768
-    Group,
-    /// E.g. ecdsa_secp384r1_sha384
-    SignatureScheme,
-}
-
 pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
 pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
 pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
-
-impl Display for TlsParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TlsParam::Version => write!(f, "version"),
-            TlsParam::Cipher => write!(f, "cipher"),
-            TlsParam::Group => write!(f, "group"),
-            TlsParam::SignatureScheme => write!(f, "signature_scheme"),
-        }
-    }
-}
 
 /// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
 /// Shared by `Version`, `Group`, and `Signature`, whose wire form is the

@@ -6,11 +6,16 @@
 //! These tests exercise deserialization of `MetricRecord`, field access,
 //! counter slot layout, and round-trip serialization.
 
+use std::borrow::Cow;
+use std::collections::HashSet;
 use std::time::SystemTime;
 
-use s2n_tls_metrics_schema::static_lists::{
-    CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-    Signature, Version,
+use s2n_tls_metrics_schema::{
+    label::{self as names, negotiated, supported},
+    static_lists::{
+        CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group,
+        PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
+    },
 };
 
 fn sample_schema_record() -> s2n_tls_metrics_schema::record::MetricRecord {
@@ -292,5 +297,98 @@ fn empty_record_has_zero_slots() {
             .iter_non_zero()
             .count(),
         0
+    );
+}
+
+/// Mock writer that captures all metric names written by the Entry impl.
+struct NameCollector {
+    names: Vec<String>,
+}
+
+impl<'a> metrique_writer::EntryWriter<'a> for NameCollector {
+    fn timestamp(&mut self, _: SystemTime) {}
+
+    fn value(&mut self, name: impl Into<Cow<'a, str>>, _value: &(impl metrique_writer::Value + ?Sized)) {
+        self.names.push(name.into().into_owned());
+    }
+
+    fn config(&mut self, _: &'a dyn metrique_writer::EntryConfig) {}
+}
+
+/// Verifies that the metric names emitted by `FrozenHandshakeRecord::write()`
+/// exactly match the catalog defined in `metric_names`.
+#[test]
+fn entry_writes_match_metric_names_catalog() {
+    use s2n_tls_metrics_schema::counter::FrozenCounter;
+    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+    use metrique_writer::Entry;
+
+    // Build a record with every counter slot populated so all names are emitted.
+    let mut record = FrozenHandshakeRecord::default();
+    record.handshake_success_count = 1;
+    record.handshake_failure_count = 1;
+    record.negotiated_protocols = FrozenCounter::from_slots([1; PROTOCOL_COUNT]);
+    record.negotiated_ciphers = FrozenCounter::from_slots([1; CIPHER_COUNT]);
+    record.negotiated_groups = FrozenCounter::from_slots([1; GROUP_COUNT]);
+    record.negotiated_signatures = FrozenCounter::from_slots([1; SIGNATURE_COUNT]);
+    record.supported_protocols = FrozenCounter::from_slots([1; PROTOCOL_COUNT]);
+    record.supported_ciphers = FrozenCounter::from_slots([1; CIPHER_COUNT]);
+    record.supported_groups = FrozenCounter::from_slots([1; GROUP_COUNT]);
+    record.supported_signatures = FrozenCounter::from_slots([1; SIGNATURE_COUNT]);
+    record.alerts = FrozenCounter::from_slots([1; DEFINED_ALERTS_COUNT]);
+    record.security_policies = s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet::Entries(
+        ["TestPolicy"].into_iter().map(String::from).collect(),
+    );
+    record.compatibility_general20251201 = 1;
+    record.compatibility_fips20251201 = 1;
+    record.compatibility_cnsa1 = 1;
+    record.compatibility_cnsa2 = 1;
+    record.sslv2_client_hello = 1;
+    record.handshake_duration_us = 1;
+    record.handshake_compute_us = 1;
+    record.synthetic_traffic_count = 1;
+
+    let mut collector = NameCollector { names: Vec::new() };
+    record.write(&mut collector);
+
+    let emitted: HashSet<String> = collector.names.into_iter().collect();
+
+    // Build expected set from the metric_names catalog.
+    let mut expected: HashSet<String> = HashSet::new();
+    for group in negotiated::ALL.iter().chain(supported::ALL.iter()) {
+        for slot in 0..group.count {
+            expected.insert(group.metric_name(slot).to_string());
+        }
+    }
+    for slot in 0..names::ALERTS.count {
+        expected.insert(names::ALERTS.metric_name(slot).to_string());
+    }
+    for &name in names::ALL_SCALARS {
+        expected.insert(name.to_string());
+    }
+    expected.insert(names::security_policy_name("TestPolicy"));
+
+    // Guard against a new counter group being added to `write()` without
+    // updating this test and the catalog. If both sides silently omit the new
+    // group the diff checks below pass vacuously — this count check does not.
+    let expected_count = PROTOCOL_COUNT * 2
+        + CIPHER_COUNT * 2
+        + GROUP_COUNT * 2
+        + SIGNATURE_COUNT * 2
+        + DEFINED_ALERTS_COUNT
+        + names::ALL_SCALARS.len()
+        + 1; // security_policies: 1 test policy entry
+    assert_eq!(
+        expected.len(),
+        expected_count,
+        "expected set size drifted — did you add a counter group to the catalog without updating this assertion?"
+    );
+
+    let missing: Vec<_> = expected.difference(&emitted).collect();
+    let extra: Vec<_> = emitted.difference(&expected).collect();
+
+    assert!(
+        missing.is_empty() && extra.is_empty(),
+        "metric_names catalog vs Entry impl mismatch.\n  Missing from Entry: {missing:?}\n  Extra in Entry: {extra:?}"
     );
 }
