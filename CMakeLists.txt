@@ -485,6 +485,14 @@ if (NOT WIN32)
     target_link_libraries(${PROJECT_NAME} PUBLIC m)
 endif()
 
+# On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
+# shadow libcrypto headers from imported targets (propagated with -isystem).
+# Force -I for imported target includes so aws-lc headers take priority over
+# any brew-installed OpenSSL in /usr/local.
+if (APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
