@@ -16,7 +16,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"
@@ -283,10 +282,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
 
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -427,10 +426,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
 
         /* Verify that we fail for duplicated extension type Bad Message */
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
@@ -521,10 +520,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
 
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -623,10 +622,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
 
         /* Verify that we fail for non-empty renegotiated_connection */
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
@@ -638,7 +637,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
         /* Clear pipe since negotiation failed mid-handshake */
-        EXPECT_SUCCESS(read(io_pair.client, buf, sizeof(buf)));
+        EXPECT_SUCCESS(s2n_test_recv(io_pair.client, buf, sizeof(buf)));
     };
 
     /* Client doesn't use the OCSP extension. */
