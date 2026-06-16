@@ -6,9 +6,7 @@
 //! These tests exercise deserialization of `MetricRecord`, field access,
 //! counter slot layout, and round-trip serialization.
 
-use std::borrow::Cow;
-use std::collections::HashSet;
-use std::time::SystemTime;
+use std::{borrow::Cow, collections::HashSet, time::SystemTime};
 
 use s2n_tls_metrics_schema::{
     label::{self as names, negotiated, supported},
@@ -308,7 +306,11 @@ struct NameCollector {
 impl<'a> metrique_writer::EntryWriter<'a> for NameCollector {
     fn timestamp(&mut self, _: SystemTime) {}
 
-    fn value(&mut self, name: impl Into<Cow<'a, str>>, _value: &(impl metrique_writer::Value + ?Sized)) {
+    fn value(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+        _value: &(impl metrique_writer::Value + ?Sized),
+    ) {
         self.names.push(name.into().into_owned());
     }
 
@@ -319,34 +321,37 @@ impl<'a> metrique_writer::EntryWriter<'a> for NameCollector {
 /// exactly match the catalog defined in `metric_names`.
 #[test]
 fn entry_writes_match_metric_names_catalog() {
-    use s2n_tls_metrics_schema::counter::FrozenCounter;
-    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
     use metrique_writer::Entry;
+    use s2n_tls_metrics_schema::{
+        bounded_set::FrozenBoundedStringSet, counter::FrozenCounter, record::FrozenHandshakeRecord,
+    };
 
     // Build a record with every counter slot populated so all names are emitted.
-    let mut record = FrozenHandshakeRecord::default();
-    record.handshake_success_count = 1;
-    record.handshake_failure_count = 1;
-    record.negotiated_protocols = FrozenCounter::from_slots([1; PROTOCOL_COUNT]);
-    record.negotiated_ciphers = FrozenCounter::from_slots([1; CIPHER_COUNT]);
-    record.negotiated_groups = FrozenCounter::from_slots([1; GROUP_COUNT]);
-    record.negotiated_signatures = FrozenCounter::from_slots([1; SIGNATURE_COUNT]);
-    record.supported_protocols = FrozenCounter::from_slots([1; PROTOCOL_COUNT]);
-    record.supported_ciphers = FrozenCounter::from_slots([1; CIPHER_COUNT]);
-    record.supported_groups = FrozenCounter::from_slots([1; GROUP_COUNT]);
-    record.supported_signatures = FrozenCounter::from_slots([1; SIGNATURE_COUNT]);
-    record.alerts = FrozenCounter::from_slots([1; DEFINED_ALERTS_COUNT]);
-    record.security_policies = s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet::Entries(
-        ["TestPolicy"].into_iter().map(String::from).collect(),
-    );
-    record.compatibility_general20251201 = 1;
-    record.compatibility_fips20251201 = 1;
-    record.compatibility_cnsa1 = 1;
-    record.compatibility_cnsa2 = 1;
-    record.sslv2_client_hello = 1;
-    record.handshake_duration_us = 1;
-    record.handshake_compute_us = 1;
-    record.synthetic_traffic_count = 1;
+    let record = FrozenHandshakeRecord {
+        handshake_success_count: 1,
+        handshake_failure_count: 1,
+        negotiated_protocols: FrozenCounter::from_slots([1; PROTOCOL_COUNT]),
+        negotiated_ciphers: FrozenCounter::from_slots([1; CIPHER_COUNT]),
+        negotiated_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
+        negotiated_signatures: FrozenCounter::from_slots([1; SIGNATURE_COUNT]),
+        supported_protocols: FrozenCounter::from_slots([1; PROTOCOL_COUNT]),
+        supported_ciphers: FrozenCounter::from_slots([1; CIPHER_COUNT]),
+        supported_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
+        supported_signatures: FrozenCounter::from_slots([1; SIGNATURE_COUNT]),
+        alerts: FrozenCounter::from_slots([1; DEFINED_ALERTS_COUNT]),
+        security_policies: FrozenBoundedStringSet::Entries(
+            ["TestPolicy"].into_iter().map(String::from).collect(),
+        ),
+        compatibility_general20251201: 1,
+        compatibility_fips20251201: 1,
+        compatibility_cnsa1: 1,
+        compatibility_cnsa2: 1,
+        sslv2_client_hello: 1,
+        handshake_duration_us: 1,
+        handshake_compute_us: 1,
+        synthetic_traffic_count: 1,
+        ..Default::default()
+    };
 
     let mut collector = NameCollector { names: Vec::new() };
     record.write(&mut collector);

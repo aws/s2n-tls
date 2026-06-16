@@ -16,7 +16,7 @@ use crate::{
 };
 
 use crate::{
-    label::{self as names, negotiated, supported, CounterGroup},
+    label::{self as names, CounterGroup, negotiated, supported},
     static_lists::FiniteCounter,
 };
 
@@ -168,18 +168,33 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         write_counter(&self.supported_groups, &supported::GROUPS, writer);
         write_counter(&self.supported_signatures, &supported::SIGNATURES, writer);
 
-        writer.value(names::COMPATIBILITY_GENERAL20251201, &self.compatibility_general20251201);
-        writer.value(names::COMPATIBILITY_FIPS20251201, &self.compatibility_fips20251201);
+        writer.value(
+            names::COMPATIBILITY_GENERAL20251201,
+            &self.compatibility_general20251201,
+        );
+        writer.value(
+            names::COMPATIBILITY_FIPS20251201,
+            &self.compatibility_fips20251201,
+        );
         writer.value(names::COMPATIBILITY_CNSA1, &self.compatibility_cnsa1);
         writer.value(names::COMPATIBILITY_CNSA2, &self.compatibility_cnsa2);
 
         writer.value(names::SSLV2_CLIENT_HELLO, &self.sslv2_client_hello);
-        writer.value(names::HANDSHAKE_SUCCESS_COUNT, &self.handshake_success_count);
-        writer.value(names::HANDSHAKE_FAILURE_COUNT, &self.handshake_failure_count);
+        writer.value(
+            names::HANDSHAKE_SUCCESS_COUNT,
+            &self.handshake_success_count,
+        );
+        writer.value(
+            names::HANDSHAKE_FAILURE_COUNT,
+            &self.handshake_failure_count,
+        );
         write_counter(&self.alerts, &names::ALERTS, writer);
         writer.value(names::HANDSHAKE_DURATION_US, &self.handshake_duration_us);
         writer.value(names::HANDSHAKE_COMPUTE_US, &self.handshake_compute_us);
-        writer.value(names::SYNTHETIC_TRAFFIC_COUNT, &self.synthetic_traffic_count);
+        writer.value(
+            names::SYNTHETIC_TRAFFIC_COUNT,
+            &self.synthetic_traffic_count,
+        );
     }
 }
 

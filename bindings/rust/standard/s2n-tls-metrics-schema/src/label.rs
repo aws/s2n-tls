@@ -14,8 +14,8 @@ use std::{
 };
 
 use crate::static_lists::{
-    Alert, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, Group, Signature, Version, CIPHER_COUNT,
-    GROUP_COUNT, PROTOCOL_COUNT, SIGNATURE_COUNT,
+    Alert, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group,
+    PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
 };
 
 /// Cache key keyed by slot index so the cache type stays non-generic.
@@ -113,7 +113,11 @@ pub struct CounterGroup {
 impl CounterGroup {
     /// Returns the cached metric name for a slot index.
     pub fn metric_name(&self, slot: usize) -> &'static str {
-        debug_assert!(slot < self.count, "slot {slot} out of range for {}", self.prefix);
+        debug_assert!(
+            slot < self.count,
+            "slot {slot} out of range for {}",
+            self.prefix
+        );
         (self.name_from_slot)(slot, self.prefix)
     }
 
