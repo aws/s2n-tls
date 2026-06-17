@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.dependencies]
-s2n-codec = "0.81"
+s2n-codec = "0.82"
 
 # brass-aphid-wire has a dependency on s2n-tls. This patch is necessary to unify
 # the crates.io dependency that brass-aphid-wire declares with the path-based 

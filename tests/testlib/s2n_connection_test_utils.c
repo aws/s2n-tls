@@ -15,23 +15,41 @@
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <sys/socket.h>
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <sys/socket.h>
+    #include <unistd.h>
+#endif
 #include <sys/types.h>
-#include <unistd.h>
 
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 
 int s2n_fd_set_blocking(int fd)
 {
+#ifdef _WIN32
+    u_long mode = 0;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
     return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
+#endif
 }
 
 int s2n_fd_set_non_blocking(int fd)
 {
+#ifdef _WIN32
+    u_long mode = 1;
+    return ioctlsocket(fd, FIONBIO, &mode);
+#else
     return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+#endif
 }
 
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
@@ -137,6 +155,36 @@ S2N_RESULT s2n_connections_set_io_stuffer_pair(struct s2n_connection *client, st
 
 int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 {
+#ifdef _WIN32
+    /* Winsock requires initialization before any socket call. */
+    WSADATA wsa_data = { 0 };
+    int wsa_rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    POSIX_ENSURE(wsa_rc == 0, S2N_ERR_IO);
+
+    /* Windows doesn't have socketpair. Emulate with TCP loopback. */
+    int listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    POSIX_ENSURE(listener >= 0, S2N_ERR_IO);
+
+    struct sockaddr_in addr = { 0 };
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = 0;
+
+    POSIX_ENSURE(bind(listener, (struct sockaddr *) &addr, sizeof(addr)) == 0, S2N_ERR_IO);
+    POSIX_ENSURE(listen(listener, 1) == 0, S2N_ERR_IO);
+
+    int addrlen = sizeof(addr);
+    POSIX_ENSURE(getsockname(listener, (struct sockaddr *) &addr, &addrlen) == 0, S2N_ERR_IO);
+
+    io_pair->client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    POSIX_ENSURE(io_pair->client >= 0, S2N_ERR_IO);
+    POSIX_ENSURE(connect(io_pair->client, (struct sockaddr *) &addr, sizeof(addr)) == 0, S2N_ERR_IO);
+
+    io_pair->server = accept(listener, NULL, NULL);
+    POSIX_ENSURE(io_pair->server >= 0, S2N_ERR_IO);
+
+    closesocket(listener);
+#else
     signal(SIGPIPE, SIG_IGN);
 
     int socket_pair[2];
@@ -145,6 +193,7 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 
     io_pair->client = socket_pair[0];
     io_pair->server = socket_pair[1];
+#endif
 
     return 0;
 }
@@ -159,13 +208,63 @@ int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
     return 0;
 }
 
+#ifdef _WIN32
+/* On Windows, the s2n library does not provide built-in socket I/O.
+ * Tests use these custom I/O callbacks that wrap Winsock recv/send.
+ * The socket fd is passed directly as the io_context pointer via uintptr_t cast.
+ */
+static int s2n_test_recv_cb(void *io_context, uint8_t *buf, uint32_t len)
+{
+    int fd = (int) (uintptr_t) io_context;
+
+    int result = recv(fd, (char *) buf, len, 0);
+    if (result < 0) {
+        int wsa_err = WSAGetLastError();
+        if (wsa_err == WSAEWOULDBLOCK) {
+            errno = EAGAIN;
+        } else {
+            errno = EIO;
+        }
+    }
+    return result;
+}
+
+static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    int fd = (int) (uintptr_t) io_context;
+
+    int result = send(fd, (const char *) buf, len, 0);
+    if (result < 0) {
+        int wsa_err = WSAGetLastError();
+        if (wsa_err == WSAEWOULDBLOCK) {
+            errno = EAGAIN;
+        } else {
+            errno = EIO;
+        }
+    }
+    return result;
+}
+#endif
+
 int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair)
 {
+    int fd = 0;
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_connection_set_fd(conn, io_pair->client));
+        fd = io_pair->client;
     } else if (conn->mode == S2N_SERVER) {
-        POSIX_GUARD(s2n_connection_set_fd(conn, io_pair->server));
+        fd = io_pair->server;
+    } else {
+        POSIX_BAIL(S2N_ERR_INVALID_STATE);
     }
+
+#ifdef _WIN32
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_test_recv_cb));
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, (void *) (uintptr_t) fd));
+    POSIX_GUARD(s2n_connection_set_send_ctx(conn, (void *) (uintptr_t) fd));
+#else
+    POSIX_GUARD(s2n_connection_set_fd(conn, fd));
+#endif
 
     return 0;
 }
@@ -182,16 +281,27 @@ int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 {
     POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
     POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
+#ifdef _WIN32
+    WSACleanup();
+#endif
     return 0;
 }
 
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close)
 {
     if (mode_to_close == S2N_CLIENT && io_pair->client != S2N_CLOSED_FD) {
+#ifdef _WIN32
+        POSIX_GUARD(closesocket(io_pair->client));
+#else
         POSIX_GUARD(close(io_pair->client));
+#endif
         io_pair->client = S2N_CLOSED_FD;
     } else if (mode_to_close == S2N_SERVER && io_pair->server != S2N_CLOSED_FD) {
+#ifdef _WIN32
+        POSIX_GUARD(closesocket(io_pair->server));
+#else
         POSIX_GUARD(close(io_pair->server));
+#endif
         io_pair->server = S2N_CLOSED_FD;
     }
     return 0;

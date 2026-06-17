@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/socket.h>
-
 #include "api/unstable/renegotiate.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"

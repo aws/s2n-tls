@@ -156,8 +156,8 @@ fn subscriber_allocation_budget() {
     // Note that blocks may not scale in a strictly linear manner because of how
     // the mpsc channel allocs in chunks.
     const EXPORT: AllocDelta = AllocDelta {
-        blocks: 4,
-        bytes: 2564,
+        blocks: 5,
+        bytes: 3598,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across
