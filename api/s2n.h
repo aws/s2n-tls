@@ -4073,6 +4073,11 @@ S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buf
  */
 S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config);
 
+/**
+ * Get the mode of this connection, client or server.
+ */
+S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
+
 #ifdef __cplusplus
 }
 #endif

@@ -508,8 +508,9 @@ int s2n_get_stacktrace(struct s2n_stacktrace *trace)
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
+/* No-op on platforms without execinfo. Callers expect this to succeed without overwriting s2n_errno. */
 int s2n_print_stacktrace(FILE *fptr)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    return S2N_SUCCESS;
 }
 #endif /* S2N_STACKTRACE */

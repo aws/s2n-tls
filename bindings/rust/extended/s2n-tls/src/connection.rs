@@ -132,12 +132,12 @@ impl Connection {
         }
 
         let mut connection = Self { connection };
-        connection.init_context(mode);
+        connection.init_context();
         connection
     }
 
-    fn init_context(&mut self, mode: Mode) {
-        let context = Box::new(Context::new(mode));
+    fn init_context(&mut self) {
+        let context = Box::new(Context::new());
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
@@ -183,8 +183,12 @@ impl Connection {
         Self { connection }
     }
 
-    pub(crate) fn mode(&self) -> Mode {
-        self.context().mode
+    /// Returns the mode (client or server) of this connection.
+    ///
+    /// Corresponds to [`s2n_connection_get_mode`].
+    pub fn mode(&self) -> Mode {
+        let mode = unsafe { s2n_connection_get_mode(self.connection.as_ptr()) };
+        mode.try_into().unwrap()
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
@@ -534,8 +538,6 @@ impl Connection {
     where
         F: FnOnce(&mut Self) -> Result<T, Error>,
     {
-        let mode = self.mode();
-
         // Safety:
         // We re-init the context after the wipe
         unsafe { self.drop_context()? };
@@ -543,7 +545,7 @@ impl Connection {
         let result = wipe(self);
         // We must initialize the context again whether or not wipe succeeds.
         // A connection without a context is invalid and has undefined behavior.
-        self.init_context(mode);
+        self.init_context();
         result?;
 
         Ok(())
@@ -1551,7 +1553,6 @@ impl Connection {
 }
 
 struct Context {
-    mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
@@ -1564,9 +1565,8 @@ struct Context {
 }
 
 impl Context {
-    fn new(mode: Mode) -> Self {
+    fn new() -> Self {
         Context {
-            mode,
             waker: None,
             async_callback: None,
             verify_host_callback: None,
