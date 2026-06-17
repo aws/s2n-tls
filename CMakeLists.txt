@@ -487,7 +487,11 @@ if (APPLE)
     set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS})
+if (NOT WIN32)
+    # On Windows, math functions are part of the C runtime; no separate libm exists.
+    target_link_libraries(${PROJECT_NAME} PUBLIC m)
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
@@ -508,6 +512,10 @@ if (BUILD_TESTING)
     # make sure all linked tests include the prelude
     target_compile_options(testss2n PUBLIC -include "${S2N_PRELUDE}" -fPIC)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
+    if (WIN32)
+        # Test utilities use sockets for self-talk tests
+        target_link_libraries(testss2n PUBLIC ws2_32)
+    endif()
     if (SECCOMP)
         message(STATUS "Linking tests with seccomp")
         target_link_libraries(testss2n PRIVATE seccomp)
@@ -587,6 +595,53 @@ if (BUILD_TESTING)
     ############################################################################
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    if (WIN32)
+        set(S2N_WINDOWS_EXCLUDE_TESTS
+            # Tests that require kTLS
+            s2n_ktls_io_sendfile_test
+            s2n_ktls_io_test
+            s2n_ktls_test
+            s2n_ktls_test_utils_test
+            s2n_self_talk_ktls_test
+
+            # Tests that depend on POSIX socket close behavior: on Windows,
+            # closesocket() abruptly resets the connection and discards unread
+            # data, so the peer sees an I/O error instead of the buffered alert.
+            s2n_drain_alert_test
+
+            # Tests that require seccomp which is only available on Linux
+            s2n_seccomp_failure_test
+
+            # Tests that measure memory via /proc/self/statm and getrlimit() which are not
+            # available on Windows
+            s2n_mem_usage_test
+
+            # Tests that use fork()
+            s2n_examples_test
+            s2n_fragmentation_coalescing_test
+            s2n_handshake_test
+            s2n_init_test
+            s2n_io_test
+            s2n_key_update_threads_test
+            s2n_malformed_handshake_test
+            s2n_mem_allocator_test
+            s2n_random_test
+            s2n_release_non_empty_buffers_test
+            s2n_self_talk_alerts_test
+            s2n_self_talk_broken_pipe_test
+            s2n_self_talk_client_hello_cb_test
+            s2n_self_talk_custom_io_test
+            s2n_self_talk_min_protocol_version_test
+            s2n_self_talk_nonblocking_test
+            s2n_self_talk_session_id_test
+            s2n_self_talk_tls12_test
+            s2n_self_talk_tls13_test
+        )
+        foreach(excluded ${S2N_WINDOWS_EXCLUDE_TESTS})
+            list(REMOVE_ITEM UNITTESTS_SRC
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/${excluded}.c")
+        endforeach()
+    endif()
     foreach(test_case ${UNITTESTS_SRC})
         # NAME_WE: name without extension
         get_filename_component(test_case_name ${test_case} NAME_WE)
@@ -627,21 +682,24 @@ if (BUILD_TESTING)
     ######################### build utility binaries ###########################
     ############################################################################
 
-    add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
-    target_link_libraries(s2nc ${PROJECT_NAME})
-    target_compile_options(s2nc PRIVATE -std=gnu99)
+    # s2nc/s2nd can't be built on Windows yet
+    if (NOT WIN32)
+        add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+        target_link_libraries(s2nc ${PROJECT_NAME})
+        target_compile_options(s2nc PRIVATE -std=gnu99)
 
-    add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
-    target_link_libraries(s2nd ${PROJECT_NAME})
-    target_compile_options(s2nd PRIVATE -std=gnu99)
+        add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
+        target_link_libraries(s2nd ${PROJECT_NAME})
+        target_compile_options(s2nd PRIVATE -std=gnu99)
 
-    add_executable(policy "bin/policy.c")
-    target_link_libraries(policy ${PROJECT_NAME})
-    target_compile_options(policy PRIVATE -std=gnu99)
+        add_executable(policy "bin/policy.c")
+        target_link_libraries(policy ${PROJECT_NAME})
+        target_compile_options(policy PRIVATE -std=gnu99)
 
-    if(S2N_LTO)
-        target_compile_options(s2nc PRIVATE -flto)
-        target_compile_options(s2nd PRIVATE -flto)
+        if(S2N_LTO)
+            target_compile_options(s2nc PRIVATE -flto)
+            target_compile_options(s2nd PRIVATE -flto)
+        endif()
     endif()
 
     if (S2N_INTEG_TESTS)
