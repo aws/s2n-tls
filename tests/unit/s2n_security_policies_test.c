@@ -999,14 +999,24 @@ int main(int argc, char **argv)
                 /* 20250414 > 20260513 (with either p-256 or p-384 cert) */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha384_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha256_chain_and_key));
-
-                /* 20260513 also supports ML-DSA-87 certs */
-                if (s2n_mldsa_is_supported()) {
-                    DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
-                    EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
-                }
             };
+
+            /* 20260513 */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                /* 20260513 supports ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
+
+                /* 20260513 > 20260220 (CNSA 2.0 interop) with either ML-DSA-87 or p-384 cert */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", ecdsa_sha384_chain_and_key));
+
+                /* 20260513 > 20260219 (CNSA 2.0 strict) with ML-DSA-87 cert only */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", mldsa87_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            }
         };
     };
 
