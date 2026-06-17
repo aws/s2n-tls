@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.4-189192eb</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.4-ecfd797a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -831,6 +831,8 @@ Functions</h2></td></tr>
 <tr class="memitem:a0a870cb61cc69457a41f2bcee5f365a5"><td class="memItemLeft" align="right" valign="top"><a id="a0a870cb61cc69457a41f2bcee5f365a5" name="a0a870cb61cc69457a41f2bcee5f365a5"></a>
 <a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>s2n_config_set_cert_authorities_from_trust_store</b> (struct s2n_config *config)</td></tr>
 <tr class="separator:a0a870cb61cc69457a41f2bcee5f365a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a00acc702d76244d8c1dc28f0dae13f61"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <a class="el" href="s2n_8h.html#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a00acc702d76244d8c1dc28f0dae13f61">s2n_connection_get_mode</a> (struct s2n_connection *conn)</td></tr>
+<tr class="separator:a00acc702d76244d8c1dc28f0dae13f61"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -7027,6 +7029,25 @@ Only a minimal amount of information about the original TLS connection is serial
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A POSIX error signal. </dd></dl>
+
+</div>
+</div>
+<a id="a00acc702d76244d8c1dc28f0dae13f61" name="a00acc702d76244d8c1dc28f0dae13f61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a00acc702d76244d8c1dc28f0dae13f61">&#9670;&#160;</a></span>s2n_connection_get_mode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <a class="el" href="s2n_8h.html#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a> s2n_connection_get_mode </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Get the mode of this connection, client or server. </p>
 
 </div>
 </div>
