@@ -3,9 +3,9 @@
 
 //! Canonical metric name definitions and caching for TLS telemetry.
 //!
-//! All metric names emitted via EMF and consumed by MWS queries or storage
-//! layers are defined here. Downstream crates should import from this module
-//! rather than duplicating string literals.
+//! All serialized metric names representations are defined here.
+//! Downstream crates should import from this module rather than
+//! duplicating string literals.
 
 use std::{
     collections::HashMap,

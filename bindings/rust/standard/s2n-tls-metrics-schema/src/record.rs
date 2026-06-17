@@ -16,7 +16,7 @@ use crate::{
 };
 
 use crate::{
-    label::{self as names, CounterGroup, negotiated, supported},
+    metric_names::{self as names, CounterGroup, negotiated, supported},
     static_lists::FiniteCounter,
 };
 

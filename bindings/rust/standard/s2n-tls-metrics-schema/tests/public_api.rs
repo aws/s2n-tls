@@ -9,7 +9,7 @@
 use std::{borrow::Cow, collections::HashSet, time::SystemTime};
 
 use s2n_tls_metrics_schema::{
-    label::{self as names, negotiated, supported},
+    metric_names::{self as names, negotiated, supported},
     static_lists::{
         CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group,
         PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
