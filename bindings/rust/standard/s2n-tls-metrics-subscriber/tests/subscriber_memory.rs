@@ -79,16 +79,23 @@ impl AllocDelta {
             bytes: self.bytes - other.bytes,
         }
     }
+
+    fn div(&self, factor: i64) -> Self {
+        Self {
+            blocks: self.blocks / factor,
+            bytes: self.bytes / factor,
+        }
+    }
 }
 
-/// Run `work` `n` times and return the cumulative allocation delta.
+/// Run `work` `n` times and return the average allocation delta.
 fn measure(n: i64, work: impl Fn()) -> AllocDelta {
     let before = dhat::HeapStats::get();
     for _ in 0..n {
         work();
     }
     let after = dhat::HeapStats::get();
-    AllocDelta::from_total_delta(&before, &after)
+    AllocDelta::from_total_delta(&before, &after).div(n)
 }
 
 #[derive(Tabled)]
@@ -135,21 +142,22 @@ fn subscriber_allocation_budget() {
 
     // Block counts are deterministic per code path so we use strict equality;
     // byte counts can drift with capacity rounding so we use fuzzy_equals.
-    const HOT_PATH: AllocDelta = AllocDelta {
-        blocks: N * 8,
-        bytes: N * 344,
+    /// The allocations done per handshake (on_handshake_event callback)
+    const HANDSHAKE: AllocDelta = AllocDelta {
+        blocks: 8,
+        bytes: 344,
     };
 
-    // The +(N + 31) / 32 term tracks std mpsc growing its node arena in
-    // 32-slot chunks (i.e. ceil(N / 32) extra block allocations).
-    //
     // Bytes scale with `sizeof(HandshakeRecordInProgress)` (per-flush
     // `Arc::new`) and `sizeof(FrozenHandshakeRecord)` (per-flush mpsc
     // node), so adding fields to either type bumps this number by
     // roughly (field_size * 2) * N.
+    //
+    // Note that blocks may not scale in a strictly linear manner because of how
+    // the mpsc channel allocs in chunks.
     const EXPORT: AllocDelta = AllocDelta {
-        blocks: N * 4 + (N + 31) / 32,
-        bytes: 512_928,
+        blocks: 5,
+        bytes: 3598,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across
@@ -195,7 +203,7 @@ fn subscriber_allocation_budget() {
     // so this surfaces in CI logs only on failure — same behavior as
     // `integration/tests/memory.rs`.
     let rows: Vec<BudgetRow> = [
-        BudgetRow::pair("hot path", HOT_PATH, hot_path),
+        BudgetRow::pair("hot path", HANDSHAKE, hot_path),
         BudgetRow::pair("export", EXPORT, export),
         BudgetRow::pair("retained", RETAINED, retained),
     ]
@@ -206,8 +214,8 @@ fn subscriber_allocation_budget() {
     table.with(Style::markdown());
     println!("{table}");
 
-    assert_eq!(hot_path.blocks, HOT_PATH.blocks);
-    assert!(fuzzy_equals(hot_path.bytes, HOT_PATH.bytes));
+    assert_eq!(hot_path.blocks, HANDSHAKE.blocks);
+    assert!(fuzzy_equals(hot_path.bytes, HANDSHAKE.bytes));
     assert_eq!(export.blocks, EXPORT.blocks);
     assert!(fuzzy_equals(export.bytes, EXPORT.bytes));
     assert_eq!(retained.blocks, RETAINED.blocks);

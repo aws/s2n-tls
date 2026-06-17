@@ -6,56 +6,32 @@ use std::{
     time::SystemTime,
 };
 
-use serde::{Deserialize, Serialize};
-
-use crate::{
-    attribution::Attribution,
-    compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
-    counter::{Counter, FrozenCounter},
-    detector::SyntheticTrafficDetector,
-    label::{State, metric_label},
-    parsing::ClientHelloSupportedParameters,
+use s2n_tls_metrics_schema::{
+    record::FrozenHandshakeRecord,
     static_lists::{
-        CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-        Signature, TlsParam, ToStaticString, Version,
+        Alert, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
-/// Metric Record is an opaque type which implements [`metrique_writer::Entry`].
-///
-/// This is the preferred type for public s2n-tls-metric-subscriber traits and
-/// interfaces.
-// This currently just holds a single struct. In the future we will
-// likely rely on an enum to handle different record types, e.g. SessionResumptionFailure.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MetricRecord {
-    pub attribution: Attribution,
-    pub handshake: FrozenHandshakeRecord,
-}
+use crate::{
+    bounded_set::BoundedStringSet,
+    compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
+    counter::Counter,
+    detector::SyntheticTrafficDetector,
+    parsing::ClientHelloSupportedParameters,
+};
 
-impl MetricRecord {
-    pub(crate) fn new(handshake: FrozenHandshakeRecord, attribution: Attribution) -> Self {
-        Self {
-            attribution,
-            handshake,
-        }
-    }
-}
-
-impl metrique_writer::Entry for MetricRecord {
-    fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
-        // "Operation" is a reserved label in some telemetry systems,
-        // so the key generally shouldn't be changed.
-        let operation = if self.attribution.component.is_empty() {
-            "TlsTelemetry".to_owned()
-        } else {
-            format!("TlsTelemetry.{}", self.attribution.component)
-        };
-        writer.value("Operation", &operation);
-        writer.value("service", &self.attribution.service);
-        writer.value("resource", &self.attribution.resource);
-        self.handshake.write(writer)
-    }
+fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
+    let iana = match v {
+        s2n_tls::enums::Version::SSLV3 => 0x0300u16,
+        s2n_tls::enums::Version::TLS10 => 0x0301,
+        s2n_tls::enums::Version::TLS11 => 0x0302,
+        s2n_tls::enums::Version::TLS12 => 0x0303,
+        s2n_tls::enums::Version::TLS13 => 0x0304,
+        _ => return None,
+    };
+    Some(Version(s2n_codec::zerocopy::U16::new(iana)))
 }
 
 /// The HandshakeRecordInProgress stores the in-flight counters for handshake
@@ -66,8 +42,14 @@ pub(crate) struct HandshakeRecordInProgress {
     /// point it can be exported. This is only used in the drop impl.
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
+    security_policies: BoundedStringSet,
+
     /// the total number of handshakes that this record represents.
-    handshake_count: AtomicU64,
+    handshake_success_count: AtomicU64,
+
+    /// the total number of failed handshakes
+    handshake_failure_count: AtomicU64,
+    alerts: Counter<DEFINED_ALERTS_COUNT, Alert>,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -89,23 +71,26 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// sum of handshake duration, including network latency and waiting
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_compute_us: AtomicU64,
 
     /// Number of handshakes flagged by the configured
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
-    /// every other counter on this record (including `handshake_count`).
+    /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
-            handshake_count: Default::default(),
+            security_policies: Default::default(),
+            handshake_success_count: Default::default(),
+            handshake_failure_count: Default::default(),
+            alerts: Counter::new(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -140,7 +125,7 @@ impl HandshakeRecordInProgress {
 
         // Run the detector first, on every handshake (including SSLv2).
         // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
-        // every other counter (including `handshake_count`) reflects real
+        // every other counter (including `handshake_success_count`) reflects real
         // traffic only, so consumers can read each metric directly without
         // post-processing.
         if let Some(detector) = detector {
@@ -150,11 +135,22 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        self.handshake_count.fetch_add(1, Ordering::Relaxed);
+        let success = match event.result() {
+            s2n_tls::events::HandshakeResult::Failure(_) => {
+                self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
+                let alert = conn.alert().map(Alert);
+                if let Some(alert) = alert {
+                    self.alerts.increment(&alert);
+                }
+                return Ok(());
+            }
+            s2n_tls::events::HandshakeResult::Success(s) => {
+                self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
+                s
+            }
+        };
 
-        ////////////////////////////////////////////////////////////////////////
-        /////////////////////   fields from connection   ///////////////////////
-        ////////////////////////////////////////////////////////////////////////
+        self.security_policies.record(event.security_policy_label());
 
         if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
             self.negotiated_signatures.increment(&sig);
@@ -203,19 +199,15 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        ////////////////////////////////////////////////////////////////////////
-        //////////////////////   fields from event   ///////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-
-        if let Ok(version) = event.protocol_version().to_static_string().parse() {
+        if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
             self.negotiated_protocols.increment(&version);
         }
 
-        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
+        if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
             self.negotiated_ciphers.increment(&cipher);
         }
 
-        if let Some(group) = event.group().and_then(|g| g.parse().ok()) {
+        if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
             self.negotiated_groups.increment(&group);
         }
 
@@ -245,7 +237,9 @@ impl HandshakeRecordInProgress {
     fn finish(&mut self) -> FrozenHandshakeRecord {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
-            handshake_count: self.handshake_count.load(Ordering::Relaxed),
+            handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
+            handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
+            alerts: self.alerts.freeze(),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),
@@ -267,6 +261,7 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            security_policies: self.security_policies.freeze(),
         }
     }
 }
@@ -279,180 +274,15 @@ impl Drop for HandshakeRecordInProgress {
     }
 }
 
-/// `SystemTime` has no meaningful `Default` impl for serde's purposes, so we
-/// pick `UNIX_EPOCH` explicitly as the `#[serde(default = ...)]` target for
-/// `freeze_time`.
-fn system_time_epoch() -> SystemTime {
-    SystemTime::UNIX_EPOCH
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct FrozenHandshakeRecord {
-    #[serde(default = "system_time_epoch")]
-    pub freeze_time: SystemTime,
-
-    #[serde(default)]
-    pub handshake_count: u64,
-
-    #[serde(default)]
-    pub negotiated_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
-    #[serde(default)]
-    pub negotiated_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
-    #[serde(default)]
-    pub negotiated_groups: FrozenCounter<GROUP_COUNT, Group>,
-    #[serde(default)]
-    pub negotiated_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
-
-    #[serde(default)]
-    pub sslv2_client_hello: u64,
-    #[serde(default)]
-    pub supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
-    #[serde(default)]
-    pub supported_ciphers: FrozenCounter<CIPHER_COUNT, Cipher>,
-    #[serde(default)]
-    pub supported_groups: FrozenCounter<GROUP_COUNT, Group>,
-    #[serde(default)]
-    pub supported_signatures: FrozenCounter<SIGNATURE_COUNT, Signature>,
-
-    #[serde(default)]
-    pub compatibility_general20251201: u64,
-    #[serde(default)]
-    pub compatibility_fips20251201: u64,
-    #[serde(default)]
-    pub compatibility_cnsa1: u64,
-    #[serde(default)]
-    pub compatibility_cnsa2: u64,
-
-    #[serde(default)]
-    pub handshake_duration_us: u64,
-    #[serde(default)]
-    pub handshake_compute_us: u64,
-
-    #[serde(default)]
-    pub synthetic_traffic_count: u64,
-}
-
-// This is just cfg(test) because we only use it in tests to assert on cases of
-// all-zero records
-#[cfg(test)]
-impl Default for FrozenHandshakeRecord {
-    fn default() -> Self {
-        Self {
-            freeze_time: SystemTime::UNIX_EPOCH,
-            handshake_count: 0,
-            negotiated_protocols: FrozenCounter::default(),
-            negotiated_ciphers: FrozenCounter::default(),
-            negotiated_groups: FrozenCounter::default(),
-            negotiated_signatures: FrozenCounter::default(),
-            sslv2_client_hello: 0,
-            supported_protocols: FrozenCounter::default(),
-            supported_ciphers: FrozenCounter::default(),
-            supported_groups: FrozenCounter::default(),
-            supported_signatures: FrozenCounter::default(),
-            compatibility_general20251201: 0,
-            compatibility_fips20251201: 0,
-            compatibility_cnsa1: 0,
-            compatibility_cnsa2: 0,
-            handshake_duration_us: 0,
-            handshake_compute_us: 0,
-            synthetic_traffic_count: 0,
-        }
-    }
-}
-
-impl metrique_writer::Entry for FrozenHandshakeRecord {
-    fn write<'a>(&'a self, writer: &mut impl metrique_writer::EntryWriter<'a>) {
-        writer.timestamp(self.freeze_time);
-
-        // Emit one label per non-zero slot for each (kind, state) cell.
-        // The label uses the element's `Display` impl.
-        fn write_counter<'a, const N: usize, T, W>(
-            counter: &'a FrozenCounter<N, T>,
-            parameter: TlsParam,
-            state: State,
-            writer: &mut W,
-        ) where
-            T: FiniteCounter<N> + std::fmt::Display,
-            W: metrique_writer::EntryWriter<'a>,
-        {
-            for (slot, element, count) in counter.iter_non_zero() {
-                let label = metric_label(slot, element, parameter, state);
-                writer.value(label, &count);
-            }
-        }
-
-        write_counter(
-            &self.negotiated_protocols,
-            TlsParam::Version,
-            State::Negotiated,
-            writer,
-        );
-        write_counter(
-            &self.negotiated_ciphers,
-            TlsParam::Cipher,
-            State::Negotiated,
-            writer,
-        );
-        write_counter(
-            &self.negotiated_groups,
-            TlsParam::Group,
-            State::Negotiated,
-            writer,
-        );
-        write_counter(
-            &self.negotiated_signatures,
-            TlsParam::SignatureScheme,
-            State::Negotiated,
-            writer,
-        );
-        write_counter(
-            &self.supported_protocols,
-            TlsParam::Version,
-            State::Supported,
-            writer,
-        );
-        write_counter(
-            &self.supported_ciphers,
-            TlsParam::Cipher,
-            State::Supported,
-            writer,
-        );
-        write_counter(
-            &self.supported_groups,
-            TlsParam::Group,
-            State::Supported,
-            writer,
-        );
-        write_counter(
-            &self.supported_signatures,
-            TlsParam::SignatureScheme,
-            State::Supported,
-            writer,
-        );
-
-        writer.value(
-            "compatibility.general20251201",
-            &self.compatibility_general20251201,
-        );
-        writer.value(
-            "compatibility.fips20251201",
-            &self.compatibility_fips20251201,
-        );
-        writer.value("compatibility.cnsa1", &self.compatibility_cnsa1);
-        writer.value("compatibility.cnsa2", &self.compatibility_cnsa2);
-
-        writer.value("sslv2_client_hello", &self.sslv2_client_hello);
-        writer.value("handshake_count", &self.handshake_count);
-        writer.value("handshake_duration_us", &self.handshake_duration_us);
-        writer.value("handshake_compute_us", &self.handshake_compute_us);
-        writer.value("synthetic_traffic_count", &self.synthetic_traffic_count);
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+    use s2n_tls_metrics_schema::{
+        counter::FrozenCounter,
+        static_lists::{Cipher, FiniteCounter},
+    };
+
+    use super::*;
 
     #[test]
     fn record_contents_negotiated_parameters() {
@@ -461,49 +291,65 @@ mod tests {
         let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record = &records[0].handshake;
+        let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 1);
-        assert_eq!(record.negotiated_ciphers.total(), 1);
-        assert_eq!(record.negotiated_groups.total(), 1);
-        assert_eq!(record.negotiated_signatures.total(), 1);
-        assert_eq!(record.negotiated_protocols.total(), 1);
-
-        let expected_version = result
-            .client
-            .actual_protocol_version()
-            .unwrap()
-            .to_static_string();
-        assert_eq!(record.negotiated_protocols.count_for(expected_version), 1);
-
-        let expected_cipher = result.client.cipher_suite().unwrap().to_owned();
-        let expected_cipher_description = Cipher::from_openssl_name(expected_cipher.as_str())
-            .and_then(|cipher| cipher.known_description())
-            .unwrap();
+        assert_eq!(record.handshake_success_count, 1);
         assert_eq!(
             record
                 .negotiated_ciphers
-                .count_for(expected_cipher_description),
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
             1
         );
+        assert_eq!(
+            record
+                .negotiated_groups
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            1
+        );
+        assert_eq!(
+            record
+                .negotiated_signatures
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            1
+        );
+        assert_eq!(
+            record
+                .negotiated_protocols
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            1
+        );
+
+        let expected_version_element =
+            protocol_version_to_iana(result.client.actual_protocol_version().unwrap()).unwrap();
+        let slot = expected_version_element.slot_from_key().unwrap();
+        assert_eq!(record.negotiated_protocols.slots()[slot], 1);
+
+        let expected_cipher = result.client.cipher_suite().unwrap().to_owned();
+        let expected_cipher_element = Cipher::from_openssl_name(expected_cipher.as_str()).unwrap();
+        let slot = expected_cipher_element.slot_from_key().unwrap();
+        assert_eq!(record.negotiated_ciphers.slots()[slot], 1);
 
         let expected_group = result
             .client
             .selected_key_exchange_group()
             .unwrap()
             .to_owned();
-        assert_eq!(
-            record.negotiated_groups.count_for(expected_group.as_str()),
-            1
-        );
+        let expected_group_element: Group = expected_group.parse().unwrap();
+        let slot = expected_group_element.slot_from_key().unwrap();
+        assert_eq!(record.negotiated_groups.slots()[slot], 1);
 
         let expected_sig = result.client.signature_scheme().unwrap().to_owned();
-        assert_eq!(
-            record
-                .negotiated_signatures
-                .count_for(expected_sig.as_str()),
-            1
-        );
+        let expected_sig_element: Signature = expected_sig.parse().unwrap();
+        let slot = expected_sig_element.slot_from_key().unwrap();
+        assert_eq!(record.negotiated_signatures.slots()[slot], 1);
     }
 
     #[test]
@@ -545,10 +391,8 @@ mod tests {
         let _ = endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record = &records[0].handshake;
+        let record = &records[0].as_schema().handshake;
 
-        /// For every slot in `counter`, assert the count is 1 iff the slot's
-        /// element description appears in `expected`, else 0.
         fn assert_supported_matches<const N: usize, T>(
             counter: &FrozenCounter<N, T>,
             expected: &[&str],
@@ -566,7 +410,7 @@ mod tests {
                 })
                 .collect();
 
-            for (slot, &count) in counter.slots_for_test().iter().enumerate() {
+            for (slot, &count) in counter.slots().iter().enumerate() {
                 let name = T::key_from_slot(slot).unwrap();
                 if expected_slots.contains(&slot) {
                     assert_eq!(count, 1, "{name} count is {count}, not one");
@@ -592,13 +436,41 @@ mod tests {
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record = &records[0].handshake;
+        let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 3);
-        assert_eq!(record.negotiated_ciphers.total(), 3);
-        assert_eq!(record.negotiated_groups.total(), 3);
-        assert_eq!(record.negotiated_signatures.total(), 3);
-        assert_eq!(record.negotiated_protocols.total(), 3);
+        assert_eq!(record.handshake_success_count, 3);
+        assert_eq!(
+            record
+                .negotiated_ciphers
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            3
+        );
+        assert_eq!(
+            record
+                .negotiated_groups
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            3
+        );
+        assert_eq!(
+            record
+                .negotiated_signatures
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            3
+        );
+        assert_eq!(
+            record
+                .negotiated_protocols
+                .iter_non_zero()
+                .map(|(_, _, c)| c)
+                .sum::<u64>(),
+            3
+        );
     }
 
     /// A record with no handshakes should be entirely empty/default.
@@ -608,7 +480,7 @@ mod tests {
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let mut record = records[0].handshake.clone();
+        let mut record = records[0].as_schema().handshake.clone();
 
         // ignore the freeze time, since that "default" value is set to the Unix Epoch.
         record.freeze_time = SystemTime::UNIX_EPOCH;
@@ -625,12 +497,99 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let record = &records[0].handshake;
+        let record = &records[0].as_schema().handshake;
 
         assert_eq!(record.compatibility_general20251201, 1);
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
         assert_eq!(record.compatibility_cnsa2, 0);
+    }
+
+    #[test]
+    fn record_contents_security_policies() {
+        use s2n_tls::security::Policy;
+        use s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet;
+        use std::ffi::CStr;
+
+        // a single handshake -> a single security policy
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 1);
+                    assert!(set.contains("default_tls13"));
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // multiple handshakes shifting between two policies -> two policies recorded
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+            let policy_b = Policy::from_version("20240501").unwrap();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+            let mut pair =
+                s2n_tls::testing::TestPair::from_configs(&client_config, &endpoint.server_config);
+            pair.server.set_security_policy(&policy_b).unwrap();
+            pair.handshake().unwrap();
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 2);
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // more than 10 security policies -> TOO_MANY is recorded
+        {
+            let endpoint = TestEndpoint::new();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+
+            let policies: Vec<Policy> = {
+                let mut seen = std::collections::HashSet::new();
+                let mut result = Vec::new();
+                for entry in s2n_tls_sys_internal::security_policy_table() {
+                    // we need unique security policies (e.g. unique security policy
+                    // pointers)
+                    if !seen.insert(entry.security_policy as usize) {
+                        continue;
+                    }
+                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().unwrap();
+                    result.push(Policy::from_version(name).unwrap());
+                    if result.len() > BoundedStringSet::MAX_STORAGE {
+                        break;
+                    }
+                }
+                result
+            };
+            assert_eq!(policies.len(), BoundedStringSet::MAX_STORAGE + 1);
+
+            for policy in &policies {
+                let mut pair = s2n_tls::testing::TestPair::from_configs(
+                    &client_config,
+                    &endpoint.server_config,
+                );
+                pair.server.set_security_policy(policy).unwrap();
+                pair.handshake().unwrap();
+            }
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            assert_eq!(
+                records[0].as_schema().handshake.security_policies,
+                FrozenBoundedStringSet::TooMany
+            );
+        }
     }
 
     /// Make sure that the compute time is less than the overall handshake time.
@@ -644,7 +603,7 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let single_handshake = &records[0].handshake;
+        let single_handshake = &records[0].as_schema().handshake;
 
         assert!(single_handshake.handshake_compute_us <= single_handshake.handshake_duration_us);
         drop(records);
@@ -654,8 +613,8 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let single_handshake = &records[0].handshake;
-        let multiple_handshakes = &records[1].handshake;
+        let single_handshake = &records[0].as_schema().handshake;
+        let multiple_handshakes = &records[1].as_schema().handshake;
 
         assert!(
             multiple_handshakes.handshake_compute_us <= multiple_handshakes.handshake_duration_us
@@ -663,38 +622,5 @@ mod tests {
 
         assert!(single_handshake.handshake_compute_us < multiple_handshakes.handshake_compute_us);
         assert!(single_handshake.handshake_duration_us < multiple_handshakes.handshake_duration_us);
-    }
-
-    /// A JSON payload that only includes `handshake_count` deserializes
-    /// successfully: `#[serde(default)]` on every other field fills it with
-    /// its documented default (0 for integer counters, `SystemTime::UNIX_EPOCH`
-    /// for `freeze_time`, a zero-filled `FrozenCounter` for per-kind fields).
-    #[test]
-    fn deserialize_missing_fields_uses_defaults() {
-        let json = r#"{"handshake_count": 10}"#;
-        let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
-
-        assert_eq!(record.handshake_count, 10);
-        assert_eq!(record.freeze_time, SystemTime::UNIX_EPOCH);
-
-        // Per-kind counters default to a zero-filled slab of the right length.
-        assert_eq!(record.negotiated_protocols, FrozenCounter::default());
-        assert_eq!(record.negotiated_ciphers, FrozenCounter::default());
-        assert_eq!(record.negotiated_groups, FrozenCounter::default());
-        assert_eq!(record.negotiated_signatures, FrozenCounter::default());
-        assert_eq!(record.supported_protocols, FrozenCounter::default());
-        assert_eq!(record.supported_ciphers, FrozenCounter::default());
-        assert_eq!(record.supported_groups, FrozenCounter::default());
-        assert_eq!(record.supported_signatures, FrozenCounter::default());
-
-        // Scalar integer fields default to zero.
-        assert_eq!(record.sslv2_client_hello, 0);
-        assert_eq!(record.compatibility_general20251201, 0);
-        assert_eq!(record.compatibility_fips20251201, 0);
-        assert_eq!(record.compatibility_cnsa1, 0);
-        assert_eq!(record.compatibility_cnsa2, 0);
-        assert_eq!(record.handshake_duration_us, 0);
-        assert_eq!(record.handshake_compute_us, 0);
-        assert_eq!(record.synthetic_traffic_count, 0);
     }
 }

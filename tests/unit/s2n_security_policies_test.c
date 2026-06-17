@@ -1230,5 +1230,52 @@ int main(int argc, char **argv)
         }
     };
 
+    /* s2n_find_version_from_security_policy */
+    {
+        /* SAFETY: null pointer */
+        {
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(NULL), "unknown");
+        };
+
+        /* Returns correct version for a dated policy */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &policy));
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "20240501");
+        };
+
+        /* Returns correct version for default_tls13 */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &policy));
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "default_tls13");
+        };
+
+        /* Returns "unknown" for a policy not in the selection table */
+        {
+            struct s2n_security_policy unknown_policy = security_policy_null;
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(&unknown_policy), "unknown");
+        };
+
+        /* For duplicate policy pointers, the first version in the table is returned */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            /* ELBSecurityPolicy-TLS-1-0-2015-05 and 2016-08 share the same policy pointer */
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("ELBSecurityPolicy-2016-08", &policy));
+            const char *version = s2n_find_version_from_security_policy(policy);
+            /* The first entry in the table for this pointer should be returned */
+            EXPECT_STRING_EQUAL(version, "ELBSecurityPolicy-TLS-1-0-2015-05");
+        };
+
+        /* All policies in the table return a non-"unknown" version */
+        {
+            for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+                const char *version = s2n_find_version_from_security_policy(security_policy_selection[i].security_policy);
+                EXPECT_NOT_NULL(version);
+                EXPECT_NOT_EQUAL(strcmp(version, "unknown"), 0);
+            }
+        };
+    };
+
     END_TEST();
 }

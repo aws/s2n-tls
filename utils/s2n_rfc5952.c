@@ -16,7 +16,18 @@
 #include "utils/s2n_rfc5952.h"
 
 #include <stdio.h>
-#include <sys/socket.h>
+/* <winsock2.h> internally includes core elements from <windows.h>. For historical
+ * reasons, <windows.h> defaults to including <winsock.h> (Winsock 1.1), whose
+ * declarations conflict with <winsock2.h> (Winsock 2). Defining WIN32_LEAN_AND_MEAN
+ * before including <winsock2.h> prevents this transitive <winsock.h> inclusion.
+ * https://learn.microsoft.com/en-us/windows/win32/winsock/include-files-2
+ */
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <winsock2.h>
+#else
+    #include <sys/socket.h>
+#endif
 #include <sys/types.h>
 
 #include "error/s2n_errno.h"

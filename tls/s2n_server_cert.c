@@ -39,7 +39,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&in) || size_of_all_certificates < 3,
             S2N_ERR_BAD_MESSAGE);
 
-    s2n_cert_public_key public_key;
+    DEFER_CLEANUP(s2n_cert_public_key public_key = { 0 }, s2n_pkey_free);
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));
 
     s2n_pkey_type actual_cert_pkey_type;
@@ -54,6 +54,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_is_cert_type_valid_for_auth(conn, actual_cert_pkey_type));
     POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));
     conn->handshake_params.server_public_key = public_key;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
 
     /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
     conn->handshake.io = in;

@@ -20,7 +20,9 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 
 struct s2n_reneg_test_case {
     uint8_t protocol_version;
@@ -103,10 +105,12 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+#ifndef _WIN32
             EXPECT_EQUAL(client_conn->send, s2n_socket_write);
             EXPECT_TRUE(client_conn->managed_send_io);
             EXPECT_EQUAL(client_conn->recv, s2n_socket_read);
             EXPECT_TRUE(client_conn->managed_recv_io);
+#endif
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
@@ -134,9 +138,11 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+#ifndef _WIN32
             EXPECT_NOT_EQUAL(client_conn->send, s2n_socket_write);
-            EXPECT_FALSE(client_conn->managed_send_io);
             EXPECT_NOT_EQUAL(client_conn->recv, s2n_socket_read);
+#endif
+            EXPECT_FALSE(client_conn->managed_send_io);
             EXPECT_FALSE(client_conn->managed_recv_io);
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
