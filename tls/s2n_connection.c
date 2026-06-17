@@ -898,11 +898,6 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6 = 0;
-    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
-        conn->ipv6 = (ipv6 ? 1 : 0);
-    }
-
     conn->write_fd_broken = 0;
 
     return 0;
