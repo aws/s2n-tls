@@ -1120,6 +1120,23 @@ int main(int argc, char **argv)
         };
     };
 
+    /* s2n_connection_get_mode */
+    {
+        /* Safety */
+        EXPECT_EQUAL(s2n_connection_get_mode(NULL), S2N_SERVER);
+
+        /* Returns correct mode */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_EQUAL(s2n_connection_get_mode(conn), S2N_CLIENT);
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_EQUAL(s2n_connection_get_mode(server), S2N_SERVER);
+        };
+    };
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
     END_TEST();

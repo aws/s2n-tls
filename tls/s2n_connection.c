@@ -1901,3 +1901,11 @@ int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled)
     conn->recv_buffering = enabled;
     return S2N_SUCCESS;
 }
+
+s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
+{
+    if (conn == NULL) {
+        return S2N_SERVER;
+    }
+    return conn->mode;
+}
