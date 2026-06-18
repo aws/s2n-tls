@@ -1617,7 +1617,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
-int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
+int s2n_connection_get_unverified_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(cert_chain_and_key);
@@ -1633,7 +1633,7 @@ int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, s
     POSIX_ENSURE_REF(validator);
 
     STACK_OF(X509) *certs = validator->cert_chain_from_wire;
-    POSIX_ENSURE(certs != NULL, S2N_ERR_NULL);
+    POSIX_ENSURE(certs != NULL, S2N_ERR_NO_CERT_FOUND);
 
     int cert_count = sk_X509_num(certs);
     POSIX_ENSURE_GT(cert_count, 0);

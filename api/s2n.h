@@ -2542,7 +2542,7 @@ S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *c
  *   s2n connection.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
+S2N_API extern int s2n_connection_get_unverified_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
 
 /**
  * Sets the initial number of session tickets to send after a >=TLS1.3 handshake. The default value is one ticket.
