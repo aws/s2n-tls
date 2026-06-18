@@ -162,7 +162,6 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
     POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
     POSIX_GUARD(s2n_free(&conn->handshake_params.client_cert_chain));
-    POSIX_GUARD(s2n_free(&conn->handshake_params.server_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
     return 0;
@@ -668,27 +667,6 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 
     *cert_chain_out = conn->handshake_params.client_cert_chain.data;
     *cert_chain_len = conn->handshake_params.client_cert_chain.size;
-
-    return S2N_SUCCESS;
-}
-
-int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(der_cert_chain_out);
-    POSIX_ENSURE_REF(cert_chain_len);
-
-    struct s2n_blob *chain = NULL;
-    if (conn->mode == S2N_CLIENT) {
-        chain = &conn->handshake_params.server_cert_chain;
-    } else {
-        chain = &conn->handshake_params.client_cert_chain;
-    }
-
-    POSIX_ENSURE_REF(chain->data);
-
-    *der_cert_chain_out = chain->data;
-    *cert_chain_len = chain->size;
 
     return S2N_SUCCESS;
 }
@@ -1615,6 +1593,53 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
     for (size_t cert_idx = 0; cert_idx < (size_t) cert_count; cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
+        POSIX_ENSURE_REF(cert);
+        DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_crypto_free);
+        int cert_size = i2d_X509(cert, &cert_data);
+        POSIX_ENSURE_GT(cert_size, 0);
+
+        struct s2n_blob mem = { 0 };
+        POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+        POSIX_ENSURE_REF(new_node);
+
+        new_node->next = NULL;
+        *insert = new_node;
+        insert = &new_node->next;
+
+        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
+        POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
+    }
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(cert_chain_and_key);
+    POSIX_ENSURE_REF(cert_chain_and_key->cert_chain);
+
+    /* Ensure that cert_chain_and_key is empty BEFORE we modify it in any way. */
+    POSIX_ENSURE(cert_chain_and_key->cert_chain->head == NULL, S2N_ERR_INVALID_ARGUMENT);
+
+    DEFER_CLEANUP(struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain, s2n_cert_chain_free_pointer);
+    struct s2n_cert **insert = &cert_chain->head;
+
+    const struct s2n_x509_validator *validator = &conn->x509_validator;
+    POSIX_ENSURE_REF(validator);
+
+    STACK_OF(X509) *certs = validator->cert_chain_from_wire;
+    POSIX_ENSURE(certs != NULL, S2N_ERR_NULL);
+
+    int cert_count = sk_X509_num(certs);
+    POSIX_ENSURE_GT(cert_count, 0);
+
+    for (size_t cert_idx = 0; cert_idx < (size_t) cert_count; cert_idx++) {
+        X509 *cert = sk_X509_value(certs, cert_idx);
         POSIX_ENSURE_REF(cert);
         DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_crypto_free);
         int cert_size = i2d_X509(cert, &cert_data);
