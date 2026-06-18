@@ -616,13 +616,10 @@ if (BUILD_TESTING)
             s2n_io_test
             s2n_key_update_threads_test
             s2n_malformed_handshake_test
-            s2n_mem_allocator_test
             s2n_random_test
-            s2n_release_non_empty_buffers_test
             s2n_self_talk_alerts_test
             s2n_self_talk_broken_pipe_test
             s2n_self_talk_client_hello_cb_test
-            s2n_self_talk_custom_io_test
             s2n_self_talk_nonblocking_test
             s2n_self_talk_session_id_test
         )
