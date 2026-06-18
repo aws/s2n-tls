@@ -14,188 +14,170 @@
  */
 
 #include <stdint.h>
-#include <sys/wait.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
 
 #define SUPPORTED_CERTIFICATE_FORMATS (2)
 
 static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
 static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
 
-void mock_client(struct s2n_test_io_pair *io_pair)
+static uint64_t s2n_test_mock_time = 0;
+
+static int s2n_test_mock_clock(void *in, uint64_t *out)
 {
-    char buffer[0xffff];
-    struct s2n_connection *conn = NULL;
-    struct s2n_config *config = NULL;
-    s2n_blocked_status blocked;
-
-    /* Give the server a chance to listen */
-    sleep(1);
-
-    conn = s2n_connection_new(S2N_CLIENT);
-    config = s2n_config_new();
-    EXPECT_OK(s2n_config_set_tls12_security_policy(config));
-    s2n_config_disable_x509_verification(config);
-    s2n_connection_set_config(conn, config);
-
-    s2n_connection_set_io_pair(conn, io_pair);
-
-    s2n_negotiate(conn, &blocked);
-
-    s2n_connection_free_handshake(conn);
-
-    uint16_t timeout = 1;
-    s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
-    int i = 0;
-    for (i = 1; i < 0xffff - 100; i += 100) {
-        for (int j = 0; j < i; j++) {
-            buffer[j] = 33;
-        }
-        s2n_send(conn, buffer, i, &blocked);
-    }
-
-    for (int j = 0; j < i; j++) {
-        buffer[j] = 33;
-    }
-
-    /* release the buffers here to validate we can continue IO after */
-    s2n_connection_release_buffers(conn);
-
-    /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
-    struct timespec sleep_time = { .tv_sec = timeout, .tv_nsec = 50000000 };
-    int r = 0;
-    do {
-        r = nanosleep(&sleep_time, &sleep_time);
-    } while (r != 0);
-    /* Active application bytes consumed is reset to 0 in before writing data. */
-    /* Its value should equal to bytes written after writing */
-    ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
-    if (bytes_written != conn->active_application_bytes_consumed) {
-        exit(0);
-    }
-
-    int shutdown_rc = -1;
-    while (shutdown_rc != 0) {
-        shutdown_rc = s2n_shutdown(conn, &blocked);
-    }
-
-    s2n_connection_free(conn);
-    s2n_config_free(config);
-
-    /* Give the server a chance to a void a sigpipe */
-    sleep(1);
-
-    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
-
-    exit(0);
+    *out = s2n_test_mock_time;
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn = NULL;
-    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status = 0;
-    char *cert_chain_pem = NULL;
-    char *private_key_pem = NULL;
-    char *dhparams_pem = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
 
-        /* Create a pipe */
-        struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
-
-        /* Create a child process */
-        pid_t pid = fork();
-        if (pid == 0) {
-            /* This is the client process, close the server end of the pipe */
-            EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
-
-            /* Write the fragmented hello message */
-            mock_client(&io_pair);
-        }
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        char *dhparams_pem = NULL;
 
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-        /* This is the server process, close the client end of the pipe */
-        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
-
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-        EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_OK(s2n_config_set_tls12_security_policy(config));
+        /* Set up server config */
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
+        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, s2n_test_mock_clock, NULL));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_NOT_NULL(chain_and_keys[cert] = s2n_cert_chain_and_key_new());
             EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_keys[cert], cert_chain_pem, private_key_pem));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_keys[cert]));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_keys[cert]));
         }
 
         if (is_dh_key_exchange) {
             EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-            EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+            EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
         }
 
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        /* Set up client config */
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        EXPECT_OK(s2n_config_set_tls12_security_policy(client_config));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(client_config, s2n_test_mock_clock, NULL));
 
-        /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+        /* Set up server connection */
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Negotiate the handshake. */
-        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+        /* Set up client connection */
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        char buffer[0xffff];
-        for (int i = 1; i < 0xffff; i += 100) {
-            char *ptr = buffer;
+        /* Use in-memory IO stuffer pair */
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate the handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+
+        /* Release handshake buffers on client */
+        EXPECT_SUCCESS(s2n_connection_free_handshake(client_conn));
+
+        /* Client sends data in increasing chunks, server reads and verifies.
+         * With dynamic record threshold enabled, the first 0x7fff bytes use
+         * small TLS records (fitting in one TCP segment) for lower latency.
+         */
+        char send_buffer[0xffff];
+        char recv_buffer[0xffff];
+
+        uint16_t timeout = 1;
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_record_threshold(client_conn, 0x7fff, timeout));
+
+        int i = 0;
+        for (i = 1; i < 0xffff - 100; i += 100) {
+            for (int j = 0; j < i; j++) {
+                send_buffer[j] = 33;
+            }
+            EXPECT_EQUAL(s2n_send(client_conn, send_buffer, i, &blocked), i);
+
+            /* Server reads the data */
+            char *ptr = recv_buffer;
             int size = i;
-
             do {
                 int bytes_read = 0;
-                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
+                EXPECT_SUCCESS(bytes_read = s2n_recv(server_conn, ptr, size, &blocked));
                 size -= bytes_read;
                 ptr += bytes_read;
             } while (size);
 
             for (int j = 0; j < i; j++) {
-                EXPECT_EQUAL(buffer[j], 33);
+                EXPECT_EQUAL(recv_buffer[j], 33);
             }
 
-            /* release the buffers here to validate we can continue IO after */
-            EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
+            /* Reset the IO stuffer cursors after all data is consumed,
+             * preventing unbounded growth that causes expensive reallocs.
+             */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.server_in), 0);
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&io_pair.server_in));
         }
 
-        int shutdown_rc = -1;
-        do {
-            shutdown_rc = s2n_shutdown(conn, &blocked);
-            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while (shutdown_rc != 0);
+        /* Release the buffers to validate we can continue IO after */
+        EXPECT_SUCCESS(s2n_connection_release_buffers(server_conn));
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Fill the buffer for the final send */
+        for (int j = 0; j < i; j++) {
+            send_buffer[j] = 33;
+        }
+
+        /* Release buffers on client to validate we can continue IO after */
+        EXPECT_SUCCESS(s2n_connection_release_buffers(client_conn));
+
+        /* Simulate timeout for dynamic record threshold by advancing mock clock.
+         * After the timeout period, active_application_bytes_consumed is reset
+         * to 0 before writing data, so its value should equal bytes written
+         * after the send.
+         */
+        s2n_test_mock_time += (uint64_t) timeout * 1000000000 + 1;
+
+        ssize_t bytes_written = s2n_send(client_conn, send_buffer, i, &blocked);
+        EXPECT_TRUE(bytes_written > 0);
+        EXPECT_EQUAL((uint64_t) bytes_written, client_conn->active_application_bytes_consumed);
+
+        /* Server reads the final chunk */
+        {
+            char *ptr = recv_buffer;
+            int size = i;
+            do {
+                int bytes_read = 0;
+                EXPECT_SUCCESS(bytes_read = s2n_recv(server_conn, ptr, size, &blocked));
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while (size);
+        }
+
+        /* Graceful shutdown (both sides) */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        /* Clean up cert chains */
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_keys[cert]));
         }
-        EXPECT_SUCCESS(s2n_config_free(config));
-
-        /* Clean up */
-        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-        EXPECT_EQUAL(status, 0);
-        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         free(cert_chain_pem);
         free(private_key_pem);

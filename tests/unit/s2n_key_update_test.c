@@ -149,6 +149,7 @@ int main(int argc, char **argv)
         };
 
         /* Key update messages not allowed with ktls by default */
+#ifndef _WIN32
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -189,6 +190,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
         };
+#endif
 
         /* Key update message received contains invalid key update request */
         {
@@ -510,6 +512,7 @@ int main(int argc, char **argv)
         };
 
         /* KeyUpdate fails if ktls */
+#ifndef _WIN32
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -532,6 +535,7 @@ int main(int argc, char **argv)
                     S2N_ERR_KTLS_KEYUPDATE);
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
         };
+#endif
     };
 
     /* s2n_check_record_limit */

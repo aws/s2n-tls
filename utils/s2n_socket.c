@@ -215,23 +215,6 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     return result;
 }
 
-int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
-{
-    POSIX_ENSURE_REF(ipv6);
-
-    socklen_t len = 0;
-    struct sockaddr_storage addr;
-    len = sizeof(addr);
-    POSIX_GUARD(getpeername(fd, (struct sockaddr *) &addr, &len));
-
-    *ipv6 = 0;
-    if (AF_INET6 == addr.ss_family) {
-        *ipv6 = 1;
-    }
-
-    return 0;
-}
-
 #endif
 
 /* Suppress empty translation unit warning when compiled on Windows. */
