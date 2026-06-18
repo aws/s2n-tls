@@ -10,6 +10,6 @@
 pub mod attribution;
 pub mod bounded_set;
 pub mod counter;
-pub mod label;
+pub mod metric_names;
 pub mod record;
 pub mod static_lists;
