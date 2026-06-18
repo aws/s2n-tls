@@ -102,6 +102,7 @@ struct s2n_handshake_parameters {
     struct s2n_pkey server_public_key;
     struct s2n_pkey client_public_key;
     struct s2n_blob client_cert_chain;
+    struct s2n_blob server_cert_chain;
     s2n_pkey_type client_cert_pkey_type;
 
     /* Signature/hash algorithm pairs offered by the peer.

@@ -162,6 +162,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
     POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
     POSIX_GUARD(s2n_free(&conn->handshake_params.client_cert_chain));
+    POSIX_GUARD(s2n_free(&conn->handshake_params.server_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
     return 0;
@@ -667,6 +668,27 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 
     *cert_chain_out = conn->handshake_params.client_cert_chain.data;
     *cert_chain_len = conn->handshake_params.client_cert_chain.size;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(der_cert_chain_out);
+    POSIX_ENSURE_REF(cert_chain_len);
+
+    struct s2n_blob *chain = NULL;
+    if (conn->mode == S2N_CLIENT) {
+        chain = &conn->handshake_params.server_cert_chain;
+    } else {
+        chain = &conn->handshake_params.client_cert_chain;
+    }
+
+    POSIX_ENSURE_REF(chain->data);
+
+    *der_cert_chain_out = chain->data;
+    *cert_chain_len = chain->size;
 
     return S2N_SUCCESS;
 }

@@ -2521,6 +2521,32 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
 /**
+ * Gets the raw certificate chain received from the peer, without requiring certificate validation to have succeeded.
+ *
+ * Unlike `s2n_connection_get_peer_cert_chain`, this function does not require that certificate validation has
+ * completed successfully. It can be called even after a failed handshake to inspect the peer's certificate chain
+ * for diagnostic or logging purposes.
+ *
+ * For client connections, this returns the server's certificate chain.
+ * For server connections, this returns the client's certificate chain.
+ *
+ * The retrieved certificate chain has the format described by the TLS 1.2 RFC:
+ * https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.2. Each certificate is a DER-encoded ASN.1 X.509,
+ * prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's
+ * protocol version.
+ *
+ * @warning The certificate chain returned by this function has NOT been validated. Callers must not trust
+ * any information in the certificates without performing their own validation.
+ * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @param der_cert_chain_out A pointer that's set to the unverified peer certificate chain.
+ * @param cert_chain_len A pointer that's set to the size of the `der_cert_chain_out` buffer.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_get_unverified_peer_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
+
+/**
  * Sets the initial number of session tickets to send after a >=TLS1.3 handshake. The default value is one ticket.
  *
  * @param config A pointer to the config object.
