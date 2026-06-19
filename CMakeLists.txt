@@ -306,10 +306,11 @@ endif()
 
 # On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
 # shadow libcrypto headers from imported targets (propagated with -isystem).
-# Force -I for imported target includes so aws-lc headers take priority over
-# any brew-installed OpenSSL in /usr/local.
-if (APPLE)
-    set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
+# Explicitly add the libcrypto include dir with -I priority for feature probes
+# and compilation, ensuring aws-lc headers are found before brew OpenSSL.
+if (crypto_INCLUDE_DIR)
+    set(ADDITIONAL_FLAGS "-DCMAKE_C_FLAGS=-I${crypto_INCLUDE_DIR}")
+    include_directories(BEFORE "${crypto_INCLUDE_DIR}")
 endif()
 
 # Sets the result of the feature probe to `IS_AVAILABLE`
