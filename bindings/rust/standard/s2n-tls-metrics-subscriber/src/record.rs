@@ -880,8 +880,7 @@ mod tests {
 
         impl MtlsEndpoint {
             pub fn handshake(&self) {
-                let mut pair =
-                    TestPair::from_configs(&self.client_config, &self.server_config);
+                let mut pair = TestPair::from_configs(&self.client_config, &self.server_config);
                 pair.client.set_server_name("localhost").unwrap();
                 pair.handshake().unwrap();
             }
@@ -905,15 +904,35 @@ mod tests {
 
         // Server's own cert is RSA 4096 (leaf + 2 chain certs)
         assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
-        assert_eq!(record.server_leaf_cert_sig.get(&CertSignatureAlgorithm::RsaPkcsSha384), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
         assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
-        assert_eq!(record.server_chain_cert_sig.get(&CertSignatureAlgorithm::RsaPkcsSha384), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
 
         // Client's cert is ECDSA P384 (leaf + CA chain cert)
         assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
-        assert_eq!(record.client_leaf_cert_sig.get(&CertSignatureAlgorithm::EcdsaSha384), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
         assert_eq!(record.client_chain_cert_key.get(&CertKeyType::Secp384r1), 1);
-        assert_eq!(record.client_chain_cert_sig.get(&CertSignatureAlgorithm::EcdsaSha384), 1);
+        assert_eq!(
+            record
+                .client_chain_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
 
         // No RSA in client fields, no ECDSA in server fields
         assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
@@ -937,13 +956,28 @@ mod tests {
 
         // Server's cert (peer) is RSA 4096 (leaf + 2 chain certs)
         assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
-        assert_eq!(record.server_leaf_cert_sig.get(&CertSignatureAlgorithm::RsaPkcsSha384), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
         assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
-        assert_eq!(record.server_chain_cert_sig.get(&CertSignatureAlgorithm::RsaPkcsSha384), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
 
         // Client's own cert is ECDSA P384 (leaf only, selected_cert has no chain)
         assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
-        assert_eq!(record.client_leaf_cert_sig.get(&CertSignatureAlgorithm::EcdsaSha384), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
         assert_eq!(record.client_chain_cert_key.total(), 0);
         assert_eq!(record.client_chain_cert_sig.total(), 0);
 
