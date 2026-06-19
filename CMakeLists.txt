@@ -320,6 +320,13 @@ endif()
 if (crypto_INCLUDE_DIR)
     set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
     message(STATUS "CRYPTO_INCLUDE_FLAG: ${CRYPTO_INCLUDE_FLAG}")
+    # On macOS, demote any brew OpenSSL include path to a system path with
+    # -isystem so it is searched after our -I libcrypto path. This prevents
+    # brew OpenSSL headers in /usr/local/include from being mixed with aws-lc
+    # headers during feature probes.
+    if (APPLE AND EXISTS "/usr/local/include/openssl/crypto.h")
+        set(CRYPTO_INCLUDE_FLAG "${CRYPTO_INCLUDE_FLAG} -isystem /usr/local/include")
+    endif()
 endif()
 
 # Sets the result of the feature probe to `IS_AVAILABLE`
