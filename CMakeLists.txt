@@ -309,7 +309,13 @@ endif()
 # Explicitly add the libcrypto include dir with -I priority for feature probes
 # and compilation, ensuring aws-lc headers are found before brew OpenSSL.
 if (NOT crypto_INCLUDE_DIR)
-    get_target_property(crypto_INCLUDE_DIR ${LINK_LIB} INTERFACE_INCLUDE_DIRECTORIES)
+    # Try to find the include dir from CMAKE_PREFIX_PATH
+    find_path(crypto_INCLUDE_DIR
+        NAMES openssl/crypto.h
+        HINTS "${CMAKE_PREFIX_PATH}"
+        PATH_SUFFIXES include
+        NO_DEFAULT_PATH
+    )
 endif()
 if (crypto_INCLUDE_DIR)
     set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
