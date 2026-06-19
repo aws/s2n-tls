@@ -1523,8 +1523,6 @@ const struct s2n_security_policy security_policy_null = {
     .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
-
-
 const struct s2n_security_policy security_policy_elb_backend_2016_08 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_backend_2016_08,
@@ -1557,7 +1555,6 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2020_10 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
-
 const struct s2n_security_policy security_policy_intb_2021_04 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_intb_2021_04,
@@ -1573,10 +1570,9 @@ const struct s2n_security_policy security_policy_intb_2021_04_gcm = {
     .signature_preferences = &s2n_signature_preferences_20210423_intb,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
-        [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
     },
 };
-
 
 const struct s2n_security_policy security_policy_elb_tls13_1_0_2021_06 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -1640,7 +1636,6 @@ const struct s2n_security_policy security_policy_elb_tls13_1_3_2021_06 = {
     .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
     .ecc_preferences = &s2n_ecc_preferences_20240603,
 };
-
 
 const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_2023_04 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -1714,7 +1709,6 @@ const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_2023_04 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
-
 const struct s2n_security_policy security_policy_elb_tls13_1_0_PQ_2025_09 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_tls13_1_0_2021_06,
@@ -1768,7 +1762,6 @@ const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_2025_09 = {
     .certificate_signature_preferences = &s2n_signature_preferences_elb_no_SHA1_SHA224_20250930,
     .ecc_preferences = &s2n_ecc_preferences_20240603,
 };
-
 
 const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_PQ_2025_09 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -1833,7 +1826,6 @@ const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_2025_09 =
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
-
 const struct s2n_security_policy security_policy_elb_tls13_1_2_RFC9151_FIPS_2023_07 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &elb_security_policy_tls13_1_2_RFC9151_FIPS_2023_07,
@@ -1878,7 +1870,6 @@ const struct s2n_security_policy security_policy_elb_tls12_1_2_Ext0_RFC9151_2024
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
-
 
 const struct s2n_security_policy security_policy_20170816_healthcheck = {
     .minimum_protocol_version = S2N_TLS10,
