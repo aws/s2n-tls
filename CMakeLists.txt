@@ -309,7 +309,7 @@ endif()
 # Explicitly add the libcrypto include dir with -I priority for feature probes
 # and compilation, ensuring aws-lc headers are found before brew OpenSSL.
 if (crypto_INCLUDE_DIR)
-    set(ADDITIONAL_FLAGS "-DCMAKE_C_FLAGS=-I${crypto_INCLUDE_DIR}")
+    set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
     include_directories(BEFORE "${crypto_INCLUDE_DIR}")
 endif()
 
@@ -350,7 +350,7 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS ${CRYPTO_INCLUDE_FLAG} -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
