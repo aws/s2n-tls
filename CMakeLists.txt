@@ -485,6 +485,12 @@ if (S2N_INTERN_LIBCRYPTO)
     endif()
 else()
     # LINK_LIB is set above after checking targets. It handles the find_package craziness.
+    # On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
+    # shadow libcrypto headers from imported targets (propagated with -isystem).
+    # Force -I for imported target includes so aws-lc headers take priority.
+    if (APPLE)
+        set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+    endif()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
