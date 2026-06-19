@@ -8,6 +8,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use s2n_codec::zerocopy::U16;
+use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use zerocopy::{FromBytes, Immutable, Unaligned};
 
@@ -15,6 +16,8 @@ pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
 pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
 pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
+pub const CERT_KEY_COUNT: usize = CERT_KEYS.len();
+pub const CERT_SIG_COUNT: usize = CERT_SIGS.len();
 
 /// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
 /// Shared by `Version`, `Group`, and `Signature`, whose wire form is the
@@ -549,6 +552,87 @@ pub const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] =
     SignatureSchemeInformation::new("rsa_pss_rsae_sha384", 2053),
     SignatureSchemeInformation::new("rsa_pss_rsae_sha512", 2054),
 ];
+
+/// KeyType can be decoded from an AlgorithmIdentifier element of an X509 certificate
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertKeyType {
+    Rsa1024,
+    Rsa2048,
+    Rsa3072,
+    Rsa4096,
+    RsaPss2048,
+    RsaPss3072,
+    RsaPss4096,
+    Secp256r1,
+    Secp384r1,
+    Secp521r1,
+    Unknown,
+}
+
+impl Display for CertKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_KEYS: [CertKeyType; 11] = [
+    CertKeyType::Rsa1024,
+    CertKeyType::Rsa2048,
+    CertKeyType::Rsa3072,
+    CertKeyType::Rsa4096,
+    CertKeyType::RsaPss2048,
+    CertKeyType::RsaPss3072,
+    CertKeyType::RsaPss4096,
+    CertKeyType::Secp256r1,
+    CertKeyType::Secp384r1,
+    CertKeyType::Secp521r1,
+    CertKeyType::Unknown,
+];
+
+impl FiniteCounter<CERT_KEY_COUNT> for CertKeyType {
+    const ELEMENTS: [CertKeyType; CERT_KEY_COUNT] = CERT_KEYS;
+}
+
+// Unfortunately, CertSignatures are _not_ the same as TLS SignatureSchemes.
+// TLS SignatureSchemes also encode information about the issuing public key (e.g. secp384, RSAE)
+// but that is not present at the actual certificate signature level.
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertSignatureAlgorithm {
+    RsaPkcsSha1,
+    RsaPkcsSha256,
+    RsaPkcsSha384,
+    RsaPkcsSha512,
+    /// NOTE: RSA-PSS encodes the hash algorithm in the AlgorithmIdentifier
+    /// parameters (RSASSA-PSS-params), not in the OID itself. We currently
+    /// only parse the OID, so the hash (e.g. SHA256) is not reported.
+    RsaPss,
+    EcdsaSha256,
+    EcdsaSha384,
+    EcdsaSha512,
+    Unknown,
+}
+
+impl Display for CertSignatureAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_SIGS: [CertSignatureAlgorithm; 9] = [
+    CertSignatureAlgorithm::RsaPkcsSha1,
+    CertSignatureAlgorithm::RsaPkcsSha256,
+    CertSignatureAlgorithm::RsaPkcsSha384,
+    CertSignatureAlgorithm::RsaPkcsSha512,
+    CertSignatureAlgorithm::RsaPss,
+    CertSignatureAlgorithm::EcdsaSha256,
+    CertSignatureAlgorithm::EcdsaSha384,
+    CertSignatureAlgorithm::EcdsaSha512,
+    CertSignatureAlgorithm::Unknown,
+];
+
+impl FiniteCounter<CERT_SIG_COUNT> for CertSignatureAlgorithm {
+    const ELEMENTS: [CertSignatureAlgorithm; CERT_SIG_COUNT] = CERT_SIGS;
+}
 
 #[cfg(test)]
 mod tests {

@@ -14,8 +14,9 @@ use std::{
 };
 
 use crate::static_lists::{
-    Alert, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group,
-    PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
+    Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
+    Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT,
+    SIGNATURE_COUNT, Signature, Version,
 };
 
 /// Cache key keyed by slot index so the cache type stays non-generic.
@@ -97,6 +98,8 @@ pub const ALL_SCALARS: &[&str] = &[
     HANDSHAKE_DURATION_US,
     HANDSHAKE_COMPUTE_US,
     SYNTHETIC_TRAFFIC_COUNT,
+    SERVER_CERT_PARSE_FAILURE,
+    CLIENT_CERT_PARSE_FAILURE,
 ];
 
 /// A counter group descriptor: prefix string, element count, and cached name accessor.
@@ -152,6 +155,66 @@ pub const ALERTS: CounterGroup = CounterGroup {
     count: DEFINED_ALERTS_COUNT,
     name_from_slot: alert_metric_name,
 };
+
+fn cert_key_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, CertKeyType::key_from_slot(slot).unwrap(), prefix)
+}
+
+fn cert_sig_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(
+        slot,
+        CertSignatureAlgorithm::key_from_slot(slot).unwrap(),
+        prefix,
+    )
+}
+
+pub const SERVER_CERT_PARSE_FAILURE: &str = "cert.server.subscriber_parse_failure";
+pub const CLIENT_CERT_PARSE_FAILURE: &str = "cert.client.subscriber_parse_failure";
+
+pub mod cert {
+    use super::*;
+
+    pub const SERVER_LEAF_KEY: CounterGroup = CounterGroup {
+        prefix: "cert.server.leaf.key",
+        count: CERT_KEY_COUNT,
+        name_from_slot: cert_key_metric_name,
+    };
+    pub const SERVER_LEAF_SIG: CounterGroup = CounterGroup {
+        prefix: "cert.server.leaf.sig",
+        count: CERT_SIG_COUNT,
+        name_from_slot: cert_sig_metric_name,
+    };
+    pub const SERVER_CHAIN_KEY: CounterGroup = CounterGroup {
+        prefix: "cert.server.chain.key",
+        count: CERT_KEY_COUNT,
+        name_from_slot: cert_key_metric_name,
+    };
+    pub const SERVER_CHAIN_SIG: CounterGroup = CounterGroup {
+        prefix: "cert.server.chain.sig",
+        count: CERT_SIG_COUNT,
+        name_from_slot: cert_sig_metric_name,
+    };
+    pub const CLIENT_LEAF_KEY: CounterGroup = CounterGroup {
+        prefix: "cert.client.leaf.key",
+        count: CERT_KEY_COUNT,
+        name_from_slot: cert_key_metric_name,
+    };
+    pub const CLIENT_LEAF_SIG: CounterGroup = CounterGroup {
+        prefix: "cert.client.leaf.sig",
+        count: CERT_SIG_COUNT,
+        name_from_slot: cert_sig_metric_name,
+    };
+    pub const CLIENT_CHAIN_KEY: CounterGroup = CounterGroup {
+        prefix: "cert.client.chain.key",
+        count: CERT_KEY_COUNT,
+        name_from_slot: cert_key_metric_name,
+    };
+    pub const CLIENT_CHAIN_SIG: CounterGroup = CounterGroup {
+        prefix: "cert.client.chain.sig",
+        count: CERT_SIG_COUNT,
+        name_from_slot: cert_sig_metric_name,
+    };
+}
 
 macro_rules! define_counter_groups {
     ($mod_name:ident, $state:literal) => {

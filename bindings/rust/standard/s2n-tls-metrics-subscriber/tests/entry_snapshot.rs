@@ -7,10 +7,7 @@
 
 use metrique_writer::format::Format;
 use metrique_writer_format_emf::Emf;
-use s2n_tls::{
-    security::DEFAULT_TLS13,
-    testing::{build_config, config_builder},
-};
+use s2n_tls::{security::DEFAULT_TLS13, testing::CertKeyPair};
 use s2n_tls_metrics_subscriber::{
     AggregatedMetricsSubscriber, Attribution, MetricRecord, TelemetrySink,
 };
@@ -69,11 +66,37 @@ fn entry_emf_snapshot() {
     );
 
     let server_config = {
-        let mut c = config_builder(&DEFAULT_TLS13).unwrap();
+        let keypair = CertKeyPair::from_path(
+            "permutations/rsae_pkcs_4096_sha384/",
+            "server-chain",
+            "server-key",
+            "ca-cert",
+        );
+        let mut c = s2n_tls::config::Builder::new();
+        c.set_security_policy(&DEFAULT_TLS13).unwrap();
+        c.load_pem(keypair.cert(), keypair.key()).unwrap();
+        c.trust_pem(keypair.cert()).unwrap();
+        c.set_verify_host_callback(s2n_tls::testing::InsecureAcceptAllCertificatesHandler {})
+            .unwrap();
         c.set_event_subscriber(subscriber.clone()).unwrap();
         c.build().unwrap()
     };
-    let client_config = build_config(&DEFAULT_TLS13).unwrap();
+    let client_config = {
+        let keypair = CertKeyPair::from_path(
+            "permutations/rsae_pkcs_4096_sha384/",
+            "server-chain",
+            "server-key",
+            "ca-cert",
+        );
+        let mut c = s2n_tls::config::Builder::new();
+        c.set_security_policy(&DEFAULT_TLS13).unwrap();
+        c.load_pem(keypair.cert(), keypair.key()).unwrap();
+        c.trust_pem(keypair.cert()).unwrap();
+        c.with_system_certs(false).unwrap();
+        c.set_verify_host_callback(s2n_tls::testing::InsecureAcceptAllCertificatesHandler {})
+            .unwrap();
+        c.build().unwrap()
+    };
     let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
     pair.handshake().unwrap();
 

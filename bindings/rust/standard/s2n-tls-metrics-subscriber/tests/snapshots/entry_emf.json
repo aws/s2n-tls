@@ -116,6 +116,24 @@
             "Name": "signature_scheme.supported.rsa_pss_rsae_sha512"
           },
           {
+            "Name": "cert.server.leaf.key.Rsa4096"
+          },
+          {
+            "Name": "cert.server.leaf.sig.RsaPkcsSha384"
+          },
+          {
+            "Name": "cert.server.chain.key.Rsa4096"
+          },
+          {
+            "Name": "cert.server.chain.sig.RsaPkcsSha384"
+          },
+          {
+            "Name": "cert.server.subscriber_parse_failure"
+          },
+          {
+            "Name": "cert.client.subscriber_parse_failure"
+          },
+          {
             "Name": "compatibility.general20251201"
           },
           {
@@ -155,6 +173,12 @@
     "Timestamp": "<TIMESTAMP>"
   },
   "alert.close_notify": 1,
+  "cert.client.subscriber_parse_failure": 0,
+  "cert.server.chain.key.Rsa4096": 2,
+  "cert.server.chain.sig.RsaPkcsSha384": 2,
+  "cert.server.leaf.key.Rsa4096": 1,
+  "cert.server.leaf.sig.RsaPkcsSha384": 1,
+  "cert.server.subscriber_parse_failure": 0,
   "cipher.negotiated.TLS_AES_128_GCM_SHA256": 1,
   "cipher.supported.TLS_AES_128_GCM_SHA256": 1,
   "cipher.supported.TLS_AES_256_GCM_SHA384": 1,
