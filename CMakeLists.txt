@@ -310,7 +310,9 @@ endif()
 # and compilation, ensuring aws-lc headers are found before brew OpenSSL.
 if (crypto_INCLUDE_DIR)
     set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
-    include_directories(BEFORE "${crypto_INCLUDE_DIR}")
+    message(STATUS "CRYPTO_INCLUDE_FLAG: ${CRYPTO_INCLUDE_FLAG}")
+else()
+    message(STATUS "crypto_INCLUDE_DIR is not set - feature probes may use wrong headers")
 endif()
 
 # Sets the result of the feature probe to `IS_AVAILABLE`
