@@ -364,7 +364,7 @@ function(feature_probe PROBE_NAME)
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
     # Uncomment the line below to get the output of the try_compile command
-    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
+    message(STATUS "Output of try_compile for ${PROBE_NAME}: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
