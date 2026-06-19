@@ -304,6 +304,14 @@ else()
     message(STATUS "CMAKE_OBJCOPY found: ${CMAKE_OBJCOPY}")
 endif()
 
+# On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
+# shadow libcrypto headers from imported targets (propagated with -isystem).
+# Force -I for imported target includes so aws-lc headers take priority over
+# any brew-installed OpenSSL in /usr/local.
+if (APPLE)
+    set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
+endif()
+
 # Sets the result of the feature probe to `IS_AVAILABLE`
 function(feature_probe_result PROBE_NAME IS_AVAILABLE)
     # normalize the boolean value
@@ -477,14 +485,6 @@ if (S2N_INTERN_LIBCRYPTO)
 else()
     # LINK_LIB is set above after checking targets. It handles the find_package craziness.
     target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
-endif()
-
-# On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
-# shadow libcrypto headers from imported targets (propagated with -isystem).
-# Force -I for imported target includes so aws-lc headers take priority over
-# any brew-installed OpenSSL in /usr/local.
-if (APPLE)
-    set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS})
