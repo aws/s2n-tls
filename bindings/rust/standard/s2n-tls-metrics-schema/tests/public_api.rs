@@ -9,10 +9,10 @@
 use std::{borrow::Cow, collections::HashSet, time::SystemTime};
 
 use s2n_tls_metrics_schema::{
-    metric_names::{self as names, negotiated, supported},
+    metric_names::{self as names, cert, negotiated, supported},
     static_lists::{
-        CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group,
-        PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
+        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter,
+        GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -339,6 +339,16 @@ fn entry_writes_match_metric_names_catalog() {
         supported_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
         supported_signatures: FrozenCounter::from_slots([1; SIGNATURE_COUNT]),
         alerts: FrozenCounter::from_slots([1; DEFINED_ALERTS_COUNT]),
+        server_leaf_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        server_leaf_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        server_chain_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        server_chain_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        client_leaf_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        client_leaf_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        client_chain_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        client_chain_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        server_cert_parsing_failure: 1,
+        client_cert_parsing_failure: 1,
         security_policies: FrozenBoundedStringSet::Entries(
             ["TestPolicy"].into_iter().map(String::from).collect(),
         ),
@@ -368,6 +378,21 @@ fn entry_writes_match_metric_names_catalog() {
     for slot in 0..names::ALERTS.count {
         expected.insert(names::ALERTS.metric_name(slot).to_string());
     }
+    let cert_groups: &[&names::CounterGroup] = &[
+        &cert::SERVER_LEAF_KEY,
+        &cert::SERVER_LEAF_SIG,
+        &cert::SERVER_CHAIN_KEY,
+        &cert::SERVER_CHAIN_SIG,
+        &cert::CLIENT_LEAF_KEY,
+        &cert::CLIENT_LEAF_SIG,
+        &cert::CLIENT_CHAIN_KEY,
+        &cert::CLIENT_CHAIN_SIG,
+    ];
+    for group in cert_groups {
+        for slot in 0..group.count {
+            expected.insert(group.metric_name(slot).to_string());
+        }
+    }
     for &name in names::ALL_SCALARS {
         expected.insert(name.to_string());
     }
@@ -381,6 +406,8 @@ fn entry_writes_match_metric_names_catalog() {
         + GROUP_COUNT * 2
         + SIGNATURE_COUNT * 2
         + DEFINED_ALERTS_COUNT
+        + CERT_KEY_COUNT * 4
+        + CERT_SIG_COUNT * 4
         + names::ALL_SCALARS.len()
         + 1; // security_policies: 1 test policy entry
     assert_eq!(

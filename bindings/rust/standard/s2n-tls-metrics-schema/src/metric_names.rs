@@ -98,6 +98,8 @@ pub const ALL_SCALARS: &[&str] = &[
     HANDSHAKE_DURATION_US,
     HANDSHAKE_COMPUTE_US,
     SYNTHETIC_TRAFFIC_COUNT,
+    SERVER_CERT_PARSE_FAILURE,
+    CLIENT_CERT_PARSE_FAILURE,
 ];
 
 /// A counter group descriptor: prefix string, element count, and cached name accessor.
