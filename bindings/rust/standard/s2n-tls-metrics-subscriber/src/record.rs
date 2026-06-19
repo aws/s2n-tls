@@ -9,8 +9,9 @@ use std::{
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm, Cipher,
-        GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
+        Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
+        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
+        Signature, Version,
     },
 };
 
@@ -49,6 +50,7 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// the total number of failed handshakes
     handshake_failure_count: AtomicU64,
+    alerts: Counter<DEFINED_ALERTS_COUNT, Alert>,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -102,6 +104,7 @@ impl HandshakeRecordInProgress {
             security_policies: Default::default(),
             handshake_success_count: Default::default(),
             handshake_failure_count: Default::default(),
+            alerts: Counter::new(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -160,6 +163,10 @@ impl HandshakeRecordInProgress {
         let success = match event.result() {
             s2n_tls::events::HandshakeResult::Failure(_) => {
                 self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
+                let alert = conn.alert().map(Alert);
+                if let Some(alert) = alert {
+                    self.alerts.increment(&alert);
+                }
                 return Ok(());
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
@@ -326,6 +333,7 @@ impl HandshakeRecordInProgress {
             freeze_time: SystemTime::now(),
             handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
             handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
+            alerts: self.alerts.freeze(),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),

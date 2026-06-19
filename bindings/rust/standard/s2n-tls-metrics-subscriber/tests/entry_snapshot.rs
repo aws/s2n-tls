@@ -99,6 +99,42 @@ fn entry_emf_snapshot() {
     };
     let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
     pair.handshake().unwrap();
+
+    // Failed handshake: client does not trust the server cert, shuts down
+    // (sending close_notify), and the server receives the alert.
+    {
+        use std::task::Poll;
+
+        let untrusted_client_config = {
+            let mut builder = s2n_tls::config::Builder::new();
+            builder.set_security_policy(&DEFAULT_TLS13).unwrap();
+            builder.set_max_blinding_delay(0).unwrap();
+            builder.with_system_certs(false).unwrap();
+            builder.build().unwrap()
+        };
+        let mut failed_pair =
+            s2n_tls::testing::TestPair::from_configs(&untrusted_client_config, &server_config);
+        // Drive handshake until client fails cert validation
+        assert!(failed_pair.client.poll_negotiate().is_pending());
+        assert!(failed_pair.server.poll_negotiate().is_pending());
+        let client_err = match failed_pair.client.poll_negotiate() {
+            Poll::Ready(Err(e)) => e,
+            other => panic!("expected client error, got {:?}", other),
+        };
+        assert_eq!(client_err.name(), "S2N_ERR_CERT_UNTRUSTED");
+
+        // Client sends close_notify
+        assert!(failed_pair.client.poll_shutdown_send().is_ready());
+
+        // Server reads the alert and fails
+        let server_err = match failed_pair.server.poll_negotiate() {
+            Poll::Ready(Err(e)) => e,
+            other => panic!("expected server error, got {:?}", other),
+        };
+        assert_eq!(server_err.name(), "S2N_ERR_CLOSED");
+        assert_eq!(failed_pair.server.alert().unwrap(), 0); // close_notify
+    }
+
     subscriber.finish_record();
 
     let records = sink.0.lock().unwrap();

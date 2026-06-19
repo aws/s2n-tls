@@ -180,6 +180,9 @@ static S2N_RESULT s2n_renegotiate_read_app_data(struct s2n_connection *conn, uin
 int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
         ssize_t *app_data_size, s2n_blocked_status *blocked)
 {
+    POSIX_ENSURE_REF(blocked);
+    *blocked = S2N_BLOCKED_ON_READ;
+
     POSIX_GUARD_RESULT(s2n_renegotiate_validate(conn));
 
     POSIX_ENSURE_REF(app_data_size);

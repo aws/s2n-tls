@@ -12,35 +12,12 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use zerocopy::{FromBytes, Immutable, Unaligned};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TlsParam {
-    /// E.g. TLS 1.2
-    Version,
-    /// E.g. TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-    Cipher,
-    /// E.g. SecP256r1MLKEM768
-    Group,
-    /// E.g. ecdsa_secp384r1_sha384
-    SignatureScheme,
-}
-
 pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
 pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
 pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
 pub const CERT_KEY_COUNT: usize = CERT_KEYS.len();
 pub const CERT_SIG_COUNT: usize = CERT_SIGS.len();
-
-impl Display for TlsParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TlsParam::Version => write!(f, "version"),
-            TlsParam::Cipher => write!(f, "cipher"),
-            TlsParam::Group => write!(f, "group"),
-            TlsParam::SignatureScheme => write!(f, "signature_scheme"),
-        }
-    }
-}
 
 /// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
 /// Shared by `Version`, `Group`, and `Signature`, whose wire form is the
@@ -170,6 +147,10 @@ impl FromStr for Signature {
             .map(|info| info.signature)
             .ok_or(())
     }
+}
+
+impl FiniteCounter<DEFINED_ALERTS_COUNT> for Alert {
+    const ELEMENTS: [Self; DEFINED_ALERTS_COUNT] = Alert::DEFINED_ALERTS;
 }
 
 #[serde_as]
@@ -446,6 +427,48 @@ impl SignatureSchemeInformation {
         }
     }
 }
+
+/// Represents a TLS alert
+///
+/// Most elements of this struct are code-generated from the relevant IANA CSV at
+/// <https://www.iana.org/assignments/tls-parameters/tls-parameters-6.csv>
+/// ```
+/// use s2n_tls_metrics_schema::static_lists::Alert;
+///
+/// // named constant
+/// let alert = Alert::CLOSE_NOTIFY;
+///
+/// // string description
+/// assert_eq!(Alert::CLOSE_NOTIFY.get_description(), Some("close_notify"));
+///
+/// // domain of all defined alerts
+/// assert_eq!(Alert::DEFINED_ALERTS.len(), 30);
+/// ```
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Alert(pub u8);
+include!(concat!(env!("OUT_DIR"), "/alerts_generated.rs"));
+
+impl Display for Alert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_alert_{}", self.0),
+        }
+    }
+}
+
+impl FromStr for Alert {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::DEFINED_ALERTS
+            .iter()
+            .find(|a| a.get_description() == Some(s))
+            .copied()
+            .ok_or(())
+    }
+}
+
+pub const DEFINED_ALERTS_COUNT: usize = Alert::DEFINED_ALERTS.len();
 
 pub const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("SSLv3", 0x0300),
