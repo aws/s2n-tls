@@ -306,28 +306,9 @@ endif()
 
 # On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
 # shadow libcrypto headers from imported targets (propagated with -isystem).
-# Explicitly add the libcrypto include dir with -I priority for feature probes
-# and compilation, ensuring aws-lc headers are found before brew OpenSSL.
-if (NOT crypto_INCLUDE_DIR)
-    # Try to find the include dir from CMAKE_PREFIX_PATH
-    find_path(crypto_INCLUDE_DIR
-        NAMES openssl/crypto.h
-        HINTS "${CMAKE_PREFIX_PATH}"
-        PATH_SUFFIXES include
-        NO_DEFAULT_PATH
-    )
-endif()
-if (crypto_INCLUDE_DIR)
-    set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
-    message(STATUS "CRYPTO_INCLUDE_FLAG: ${CRYPTO_INCLUDE_FLAG}")
-    # On macOS, demote any brew OpenSSL include path to a system path with
-    # -isystem so it is searched after our -I libcrypto path. This prevents
-    # brew OpenSSL headers in /usr/local/include from being mixed with aws-lc
-    # headers during feature probes.
-    if (APPLE AND EXISTS "/usr/local/include/openssl/crypto.h")
-        set(CRYPTO_INCLUDE_FLAG "${CRYPTO_INCLUDE_FLAG} -isystem /usr/local/include")
-    endif()
-endif()
+# Setting NO_SYSTEM_FROM_IMPORTED forces imported target includes (aws-lc) to
+# use -I instead of -isystem, so they outrank /usr/local/include. This is
+# applied to both the s2n target and the feature probes (via try_compile).
 
 # Sets the result of the feature probe to `IS_AVAILABLE`
 function(feature_probe_result PROBE_NAME IS_AVAILABLE)
@@ -365,13 +346,13 @@ function(feature_probe PROBE_NAME)
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
-        CMAKE_FLAGS ${ADDITIONAL_FLAGS} "-DCMAKE_C_FLAGS=${CRYPTO_INCLUDE_FLAG}"
+        CMAKE_FLAGS ${ADDITIONAL_FLAGS} "-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
         COMPILE_DEFINITIONS -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
     # Uncomment the line below to get the output of the try_compile command
-    message(STATUS "Output of try_compile for ${PROBE_NAME}: ${TRY_COMPILE_OUTPUT}")
+    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
