@@ -10,9 +10,9 @@ use crate::{
     bounded_set::FrozenBoundedStringSet,
     counter::FrozenCounter,
     static_lists::{
-        Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType,
-        CertSignatureAlgorithm, Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
-        SIGNATURE_COUNT, Signature, Version,
+        Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
+        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
+        Signature, Version,
     },
 };
 
@@ -199,14 +199,46 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         write_counter(&self.supported_ciphers, &supported::CIPHERS, writer);
         write_counter(&self.supported_groups, &supported::GROUPS, writer);
         write_counter(&self.supported_signatures, &supported::SIGNATURES, writer);
-        write_counter(&self.server_leaf_cert_key, &names::cert::SERVER_LEAF_KEY, writer);
-        write_counter(&self.server_leaf_cert_sig, &names::cert::SERVER_LEAF_SIG, writer);
-        write_counter(&self.server_chain_cert_key, &names::cert::SERVER_CHAIN_KEY, writer);
-        write_counter(&self.server_chain_cert_sig, &names::cert::SERVER_CHAIN_SIG, writer);
-        write_counter(&self.client_leaf_cert_key, &names::cert::CLIENT_LEAF_KEY, writer);
-        write_counter(&self.client_leaf_cert_sig, &names::cert::CLIENT_LEAF_SIG, writer);
-        write_counter(&self.client_chain_cert_key, &names::cert::CLIENT_CHAIN_KEY, writer);
-        write_counter(&self.client_chain_cert_sig, &names::cert::CLIENT_CHAIN_SIG, writer);
+        write_counter(
+            &self.server_leaf_cert_key,
+            &names::cert::SERVER_LEAF_KEY,
+            writer,
+        );
+        write_counter(
+            &self.server_leaf_cert_sig,
+            &names::cert::SERVER_LEAF_SIG,
+            writer,
+        );
+        write_counter(
+            &self.server_chain_cert_key,
+            &names::cert::SERVER_CHAIN_KEY,
+            writer,
+        );
+        write_counter(
+            &self.server_chain_cert_sig,
+            &names::cert::SERVER_CHAIN_SIG,
+            writer,
+        );
+        write_counter(
+            &self.client_leaf_cert_key,
+            &names::cert::CLIENT_LEAF_KEY,
+            writer,
+        );
+        write_counter(
+            &self.client_leaf_cert_sig,
+            &names::cert::CLIENT_LEAF_SIG,
+            writer,
+        );
+        write_counter(
+            &self.client_chain_cert_key,
+            &names::cert::CLIENT_CHAIN_KEY,
+            writer,
+        );
+        write_counter(
+            &self.client_chain_cert_sig,
+            &names::cert::CLIENT_CHAIN_SIG,
+            writer,
+        );
         writer.value(
             names::SERVER_CERT_PARSE_FAILURE,
             &self.server_cert_parsing_failure,
