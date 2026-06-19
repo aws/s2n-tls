@@ -308,11 +308,12 @@ endif()
 # shadow libcrypto headers from imported targets (propagated with -isystem).
 # Explicitly add the libcrypto include dir with -I priority for feature probes
 # and compilation, ensuring aws-lc headers are found before brew OpenSSL.
+if (NOT crypto_INCLUDE_DIR)
+    get_target_property(crypto_INCLUDE_DIR ${LINK_LIB} INTERFACE_INCLUDE_DIRECTORIES)
+endif()
 if (crypto_INCLUDE_DIR)
     set(CRYPTO_INCLUDE_FLAG "-I${crypto_INCLUDE_DIR}")
     message(STATUS "CRYPTO_INCLUDE_FLAG: ${CRYPTO_INCLUDE_FLAG}")
-else()
-    message(STATUS "crypto_INCLUDE_DIR is not set - feature probes may use wrong headers")
 endif()
 
 # Sets the result of the feature probe to `IS_AVAILABLE`
