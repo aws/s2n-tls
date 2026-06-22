@@ -19,7 +19,24 @@ macro_rules! conditional_module {
     };
 }
 
+/// Same as conditional_module but also excludes the module on Windows.
+/// Used for modules whose headers are not available on Windows (e.g. gated
+/// behind #ifndef _WIN32).
+#[rustfmt::skip]
+macro_rules! conditional_module_not_windows {
+    ($mod_name:ident, $feature_name:literal) => {
+        #[cfg(all(feature = $feature_name, not(windows)))]
+        #[rustfmt::skip]
+        mod $mod_name;
+
+        #[cfg(all(feature = $feature_name, not(windows)))]
+        pub use $mod_name::*;
+    };
+}
+
 conditional_module!(quic, "quic");
-conditional_module!(internal, "internal");
+// s2n_internal.h uses S2N_PRIVATE_API which doesn't export symbols on Windows,
+// causing bindgen to produce an empty module. Exclude on Windows.
+conditional_module_not_windows!(internal, "internal");
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
 // conditional_module!(foo, "unstable-foo");

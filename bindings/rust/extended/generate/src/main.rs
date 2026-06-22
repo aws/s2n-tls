@@ -18,6 +18,28 @@ use bindgen::callbacks::ItemKind;
 /// modules.
 const FEATURE_TOKEN_PLACEHOLDER: &str = "<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>";
 
+/// Functions that are not available on Windows because their implementations
+/// are gated behind `#ifndef _WIN32` in the C source code.
+const WINDOWS_UNAVAILABLE_FUNCTIONS: &[&str] = &[
+    "s2n_connection_set_fd",
+    "s2n_connection_set_read_fd",
+    "s2n_connection_set_write_fd",
+    "s2n_connection_get_read_fd",
+    "s2n_connection_get_write_fd",
+    "s2n_connection_use_corked_io",
+    "s2n_sendv",
+    "s2n_sendv_with_offset",
+    "s2n_sendfile",
+    "s2n_config_ktls_enable_unsafe_tls13",
+];
+
+/// Feature modules that are entirely excluded on Windows because their headers
+/// or implementations are not available on the platform.
+const WINDOWS_EXCLUDED_FEATURES: &[&str] = &[
+    "internal",
+    "unstable-ktls",
+];
+
 /// This binary is only expected to run in the context of the generate.sh script
 /// which handles certain behaviors such as copying header files to
 /// s2n-tls-sys/lib and other sundry actions.
@@ -39,6 +61,11 @@ fn main() {
     .unwrap()
     .write_to_file(out_dir.join("src/api.rs"))
     .unwrap();
+
+    // Post-process api.rs to add #[cfg(not(windows))] to functions that are
+    // not available on Windows (their C implementations are gated behind
+    // #ifndef _WIN32).
+    postprocess_api_for_windows(&out_dir.join("src/api.rs"));
 
     write_feature_bindings(
         out_dir.join("lib/tls/s2n_internal.h"),
@@ -87,6 +114,13 @@ fn main() {
         );
     }
 
+    // Post-process all feature module files for Windows-unavailable functions
+    postprocess_api_for_windows(&out_dir.join("src/features/internal.rs"));
+    postprocess_api_for_windows(&out_dir.join("src/features/quic.rs"));
+    for (header_name, _) in unstable_headers.iter() {
+        postprocess_api_for_windows(&out_dir.join(format!("src/features/{}.rs", header_name)));
+    }
+
     // generate a cargo.toml that defines the correct features
     let mut features_definition_token = unstable_headers
         .iter()
@@ -102,7 +136,12 @@ fn main() {
     let features_module_token = unstable_headers
         .iter()
         .map(|(header_name, _header)| {
-            format!("conditional_module!({header_name}, \"unstable-{header_name}\");")
+            // ktls.h is entirely wrapped in #ifndef _WIN32, so exclude on Windows
+            if header_name == "ktls" {
+                format!("conditional_module_not_windows!({header_name}, \"unstable-{header_name}\");")
+            } else {
+                format!("conditional_module!({header_name}, \"unstable-{header_name}\");")
+            }
         })
         .collect::<Vec<String>>()
         .join("\n");
@@ -124,11 +163,42 @@ const COPYRIGHT: &str = r#"
 const PRELUDE: &str = r#"
 #![allow(unused_imports, non_camel_case_types)]
 
-use libc::{iovec, FILE, off_t};
+#[cfg(not(windows))]
+use libc::{iovec, FILE};
+
+#[cfg(not(windows))]
+pub use libc::off_t;
+
+#[cfg(windows)]
+use libc::FILE;
+
+// iovec is not available in the libc crate on Windows.
+// Define it to match the struct in s2n.h for Windows.
+#[cfg(windows)]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct iovec {
+    pub iov_base: *mut ::libc::c_void,
+    pub iov_len: usize,
+}
+
+// off_t is not available in the libc crate on Windows.
+#[cfg(windows)]
+pub type off_t = i64;
+
 // specify that aws-lc-rs is used, so that the rust compiler will link in the appropriate
 // libcrypto artifact.
 #[cfg(not(s2n_tls_external_build))]
 extern crate aws_lc_rs as _;
+"#;
+
+/// A simpler prelude for feature modules that import types from the main api
+/// module via `use crate::api::*` instead of defining them locally.
+/// off_t is re-exported by crate::api via `pub use libc::off_t` (on non-windows)
+/// or `pub type off_t = i64` (on windows), so feature modules get it via
+/// `use crate::api::*`.
+const FEATURE_PRELUDE: &str = r#"
+#![allow(unused_imports, non_camel_case_types)]
 "#;
 
 fn base_builder() -> bindgen::Builder {
@@ -145,6 +215,21 @@ fn base_builder() -> bindgen::Builder {
         .blocklist_item("s2n_errno")
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
+        .ctypes_prefix("::libc")
+}
+
+fn feature_builder() -> bindgen::Builder {
+    bindgen::Builder::default()
+        .use_core()
+        .layout_tests(true)
+        .detect_include_paths(true)
+        .size_t_is_usize(true)
+        .enable_function_attribute_detection()
+        .default_enum_style(bindgen::EnumVariation::ModuleConsts)
+        .rust_target(bindgen::RustTarget::Stable_1_47)
+        .blocklist_item("s2n_errno")
+        .raw_line(COPYRIGHT)
+        .raw_line(FEATURE_PRELUDE)
         .ctypes_prefix("::libc")
 }
 
@@ -171,7 +256,19 @@ fn write_feature_bindings(
 ) {
     let header_path_str = format!("{}", header_path.as_ref().display());
     let lib_path = s2n_tls_sys_dir.join("lib");
-    base_builder()
+    // Use just the filename for allowlist_file matching. On Windows, the full
+    // path reported by clang may differ in format from what Rust provides
+    // (e.g. MSYS2 paths vs Windows paths), causing regex mismatches.
+    let file_name = header_path
+        .as_ref()
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap();
+    // Escape regex special chars in the filename (mainly the dot in .h)
+    let escaped_name = file_name.replace('.', "\\.");
+    let allowlist_pattern = format!(".*{}", escaped_name);
+    feature_builder()
         .header(&header_path_str)
         .parse_callbacks(Box::new(
             functions.with_feature(Some(feature_flag.to_owned())),
@@ -180,7 +277,7 @@ fn write_feature_bindings(
         .clang_arg(format!("-I{}/api", lib_path.display()))
         .clang_arg(format!("-I{}", lib_path.display()))
         .allowlist_recursively(false)
-        .allowlist_file(&header_path_str)
+        .allowlist_file(&allowlist_pattern)
         // s2n_internal.h defines opaque handles to these structs, but we want
         // them to be imported from the main api module
         .blocklist_type("s2n_connection")
@@ -190,6 +287,44 @@ fn write_feature_bindings(
         .unwrap()
         .write_to_file(output_path)
         .unwrap();
+}
+
+/// Post-processes a generated bindings file to add `#[cfg(not(windows))]`
+/// to `extern "C"` blocks containing Windows-unavailable functions.
+fn postprocess_api_for_windows(path: &Path) {
+    let content = fs::read_to_string(path).expect("failed to read generated file");
+    let lines: Vec<&str> = content.lines().collect();
+    let mut output = String::with_capacity(content.len());
+
+    for (i, line) in lines.iter().enumerate() {
+        // Before each `extern "C" {`, check if it contains a Windows-unavailable fn
+        if line.trim() == "extern \"C\" {" && block_needs_windows_cfg(&lines[i + 1..]) {
+            output.push_str("#[cfg(not(windows))]\n");
+        }
+        output.push_str(line);
+        output.push('\n');
+    }
+
+    fs::write(path, output).expect("failed to write post-processed file");
+}
+
+/// Looks inside an extern block (starting after the opening brace) for a
+/// `pub fn` whose name is in WINDOWS_UNAVAILABLE_FUNCTIONS.
+fn block_needs_windows_cfg(lines: &[&str]) -> bool {
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.starts_with("pub fn ") {
+            let name = trimmed["pub fn ".len()..]
+                .split(|c: char| c == '(' || c == ' ')
+                .next()
+                .unwrap_or("");
+            return WINDOWS_UNAVAILABLE_FUNCTIONS.contains(&name);
+        }
+        if trimmed == "}" {
+            return false;
+        }
+    }
+    false
 }
 
 fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
@@ -249,8 +384,18 @@ impl FunctionCallbacks {
 
             // if the function is behind a feature, gate it with `cfg`
             if let Some(feature) = feature {
-                writeln!(o, "#[cfg(feature = {:?})]", feature)?;
+                // Features not available on Windows need a combined cfg gate
+                if WINDOWS_EXCLUDED_FEATURES.contains(&feature.as_str()) {
+                    writeln!(o, "#[cfg(all(feature = {:?}, not(windows)))]", feature)?;
+                } else {
+                    writeln!(o, "#[cfg(feature = {:?})]", feature)?;
+                }
             };
+
+            // if the function is not available on Windows, gate the test
+            if WINDOWS_UNAVAILABLE_FUNCTIONS.contains(&function.as_str()) {
+                writeln!(o, "#[cfg(not(windows))]")?;
+            }
 
             writeln!(o, "fn {} () {{", function)?;
             writeln!(o, "    let ptr = crate::{} as *const ();", function)?;
