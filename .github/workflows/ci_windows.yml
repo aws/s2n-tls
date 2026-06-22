@@ -31,7 +31,7 @@ jobs:
             pkg-prefix: mingw-w64-clang-x86_64
             env-path: /clang64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
