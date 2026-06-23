@@ -30,6 +30,7 @@ jobs:
           - sys: clang64
             pkg-prefix: mingw-w64-clang-x86_64
             env-path: /clang64
+            asan: ON
     steps:
       - uses: actions/checkout@v7
 
@@ -71,7 +72,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_PREFIX_PATH=${{matrix.env-path}}/local \
             -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON \
-            -DBUILD_TESTING=ON
+            -DBUILD_TESTING=ON \
+            -DASAN=${{matrix.asan || 'OFF'}}
           cmake --build ./build -j $(nproc)
 
       - name: Run unit tests
