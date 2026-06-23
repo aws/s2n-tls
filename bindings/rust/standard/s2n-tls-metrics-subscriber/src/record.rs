@@ -146,7 +146,12 @@ impl HandshakeRecordInProgress {
         event: &s2n_tls::events::HandshakeEvent,
         detector: Option<&dyn SyntheticTrafficDetector>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let client_hello = conn.client_hello()?;
+        // client_hello is only available on the server side of the connection
+        let client_hello = if conn.mode() == s2n_tls::enums::Mode::Server {
+            Some(conn.client_hello()?)
+        } else {
+            None
+        };
 
         // Run the detector first, on every handshake (including SSLv2).
         // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
@@ -154,9 +159,11 @@ impl HandshakeRecordInProgress {
         // traffic only, so consumers can read each metric directly without
         // post-processing.
         if let Some(detector) = detector {
-            if detector.is_synthetic(client_hello) {
-                self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
-                return Ok(());
+            if let Some(client_hello) = client_hello {
+                if detector.is_synthetic(client_hello) {
+                    self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
+                    return Ok(());
+                }
             }
         }
 
@@ -177,53 +184,52 @@ impl HandshakeRecordInProgress {
 
         self.security_policies.record(event.security_policy_label());
 
-        if conn.client_hello_is_sslv2()? {
-            self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
-        } else {
-            let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
+        if let Some(client_hello) = client_hello {
+            if conn.client_hello_is_sslv2()? {
+                self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
+            } else {
+                let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
 
-            supported_parameter
-                .supported_versions()
-                .iter()
-                .for_each(|version| self.supported_protocols.increment(version));
+                supported_parameter
+                    .supported_versions()
+                    .iter()
+                    .for_each(|version| self.supported_protocols.increment(version));
 
-            supported_parameter
-                .supported_ciphers()
-                .iter()
-                .for_each(|cipher| self.supported_ciphers.increment(cipher));
+                supported_parameter
+                    .supported_ciphers()
+                    .iter()
+                    .for_each(|cipher| self.supported_ciphers.increment(cipher));
 
-            supported_parameter
-                .supported_groups()
-                .iter()
-                .flat_map(|groups| groups.iter())
-                .for_each(|group| self.supported_groups.increment(group));
+                supported_parameter
+                    .supported_groups()
+                    .iter()
+                    .flat_map(|groups| groups.iter())
+                    .for_each(|group| self.supported_groups.increment(group));
 
-            supported_parameter
-                .supported_signatures()
-                .iter()
-                .flat_map(|sigs| sigs.iter())
-                .for_each(|signature| self.supported_signatures.increment(signature));
+                supported_parameter
+                    .supported_signatures()
+                    .iter()
+                    .flat_map(|sigs| sigs.iter())
+                    .for_each(|signature| self.supported_signatures.increment(signature));
 
-            if General20251201::supported(&supported_parameter) {
-                self.compatibility_general20251201
-                    .fetch_add(1, Ordering::Relaxed);
-            }
-            if Fips20251201::supported(&supported_parameter) {
-                self.compatibility_fips20251201
-                    .fetch_add(1, Ordering::Relaxed);
-            }
-            if Cnsa1::supported(&supported_parameter) {
-                self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
-            }
-            if Cnsa2::supported(&supported_parameter) {
-                self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                if General20251201::supported(&supported_parameter) {
+                    self.compatibility_general20251201
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                if Fips20251201::supported(&supported_parameter) {
+                    self.compatibility_fips20251201
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                if Cnsa1::supported(&supported_parameter) {
+                    self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                }
+                if Cnsa2::supported(&supported_parameter) {
+                    self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                }
             }
         }
 
         // populate cert metrics
-        //
-        // TODO: This needs https://github.com/aws/s2n-tls/issues/3524 to make the
-        // client/server labels correct when called from a client
         {
             fn record_chain_metrics<'a>(
                 mut certs: impl Iterator<
@@ -263,7 +269,14 @@ impl HandshakeRecordInProgress {
                 }
             }
 
-            if let Some(cert) = conn.selected_cert() {
+            // selected_cert() is the local cert; peer_cert_chain() is the remote cert.
+            // Map to server/client labels based on connection mode.
+            let (server_cert, client_cert) = match conn.mode() {
+                s2n_tls::enums::Mode::Server => (conn.selected_cert(), conn.peer_cert_chain().ok()),
+                s2n_tls::enums::Mode::Client => (conn.peer_cert_chain().ok(), conn.selected_cert()),
+            };
+
+            if let Some(cert) = server_cert {
                 record_chain_metrics(
                     cert.iter(),
                     &self.server_leaf_cert_key,
@@ -274,7 +287,7 @@ impl HandshakeRecordInProgress {
                 );
             }
 
-            if let Ok(cert) = conn.peer_cert_chain() {
+            if let Some(cert) = client_cert {
                 record_chain_metrics(
                     cert.iter(),
                     &self.client_leaf_cert_key,
@@ -727,5 +740,249 @@ mod tests {
 
         assert!(single_handshake.handshake_compute_us < multiple_handshakes.handshake_compute_us);
         assert!(single_handshake.handshake_duration_us < multiple_handshakes.handshake_duration_us);
+    }
+
+    /// Helper: performs an mTLS handshake using distinct cert types for server
+    /// (RSA 4096 / SHA384) and client (ECDSA P384 / SHA384) so the test can
+    /// distinguish which cert ended up in which record field.
+    mod mtls_helper {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            enums::ClientAuthType,
+            security::DEFAULT_TLS13,
+            testing::{CertKeyPair, TestPair},
+        };
+
+        pub(super) struct MtlsEndpoint {
+            pub subscriber: AggregatedMetricsSubscriber<VecSink>,
+            pub sink: VecSink,
+            pub client_config: s2n_tls::config::Config,
+            pub server_config: s2n_tls::config::Config,
+        }
+
+        /// Server cert: RSA 4096 / SHA384
+        fn server_keypair() -> CertKeyPair {
+            CertKeyPair::from_path(
+                "permutations/rsae_pkcs_4096_sha384/",
+                "server-chain",
+                "server-key",
+                "ca-cert",
+            )
+        }
+
+        /// Client cert: ECDSA P384 / SHA384
+        fn client_keypair() -> CertKeyPair {
+            CertKeyPair::from_path(
+                "permutations/ec_ecdsa_p384_sha384/",
+                "client-cert",
+                "client-key",
+                "ca-cert",
+            )
+        }
+
+        /// Build an mTLS endpoint with the subscriber on the server side.
+        pub(super) fn server_endpoint() -> MtlsEndpoint {
+            let sink = VecSink::new();
+            let attribution = Attribution {
+                service: "test".to_owned(),
+                resource: "test".to_owned(),
+                component: "test".to_owned(),
+            };
+            let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+            let server_keypair = server_keypair();
+            let client_keypair = client_keypair();
+
+            let server_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(server_keypair.cert(), server_keypair.key())
+                    .unwrap()
+                    .trust_pem(client_keypair.ca_cert())
+                    .unwrap()
+                    .set_client_auth_type(ClientAuthType::Required)
+                    .unwrap()
+                    .set_event_subscriber(subscriber.clone())
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            let client_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(client_keypair.cert(), client_keypair.key())
+                    .unwrap()
+                    .trust_pem(server_keypair.ca_cert())
+                    .unwrap()
+                    .with_system_certs(false)
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            MtlsEndpoint {
+                subscriber,
+                sink,
+                client_config,
+                server_config,
+            }
+        }
+
+        /// Build an mTLS endpoint with the subscriber on the client side.
+        pub(super) fn client_endpoint() -> MtlsEndpoint {
+            let sink = VecSink::new();
+            let attribution = Attribution {
+                service: "test".to_owned(),
+                resource: "test".to_owned(),
+                component: "test".to_owned(),
+            };
+            let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+            let server_keypair = server_keypair();
+            let client_keypair = client_keypair();
+
+            let server_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(server_keypair.cert(), server_keypair.key())
+                    .unwrap()
+                    .trust_pem(client_keypair.ca_cert())
+                    .unwrap()
+                    .set_client_auth_type(ClientAuthType::Required)
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            let client_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(client_keypair.cert(), client_keypair.key())
+                    .unwrap()
+                    .trust_pem(server_keypair.ca_cert())
+                    .unwrap()
+                    .with_system_certs(false)
+                    .unwrap()
+                    .set_event_subscriber(subscriber.clone())
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            MtlsEndpoint {
+                subscriber,
+                sink,
+                client_config,
+                server_config,
+            }
+        }
+
+        impl MtlsEndpoint {
+            pub fn handshake(&self) {
+                let mut pair = TestPair::from_configs(&self.client_config, &self.server_config);
+                pair.client.set_server_name("localhost").unwrap();
+                pair.handshake().unwrap();
+            }
+        }
+    }
+
+    /// When the subscriber is on the server, `selected_cert` (server's own RSA cert)
+    /// should be recorded as server, and `peer_cert_chain` (client's ECDSA cert)
+    /// should be recorded as client.
+    #[test]
+    fn mtls_server_cert_attribution() {
+        let endpoint = mtls_helper::server_endpoint();
+        endpoint.handshake();
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // Sanity check: a cipher was negotiated
+        assert_eq!(record.negotiated_ciphers.total(), 1);
+
+        // Server's own cert is RSA 4096 (leaf + 2 chain certs)
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
+        assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
+
+        // Client's cert is ECDSA P384 (leaf + CA chain cert)
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+        assert_eq!(record.client_chain_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_chain_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+
+        // No RSA in client fields, no ECDSA in server fields
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
+    }
+
+    /// When the subscriber is on the client, `selected_cert` (client's own ECDSA cert)
+    /// should be recorded as client, and `peer_cert_chain` (server's RSA cert)
+    /// should be recorded as server.
+    #[test]
+    fn mtls_client_cert_attribution() {
+        let endpoint = mtls_helper::client_endpoint();
+        endpoint.handshake();
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // Sanity check: a cipher was negotiated
+        assert_eq!(record.negotiated_ciphers.total(), 1);
+
+        // Server's cert (peer) is RSA 4096 (leaf + 2 chain certs)
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
+        assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
+
+        // Client's own cert is ECDSA P384 (leaf only, selected_cert has no chain)
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+        assert_eq!(record.client_chain_cert_key.total(), 0);
+        assert_eq!(record.client_chain_cert_sig.total(), 0);
+
+        // No RSA in client fields, no ECDSA in server fields
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
     }
 }
