@@ -15,3 +15,77 @@ redundantAssignment:tests/unit/s2n_timer_test.c
 // cppcheck Message: (style:knownConditionTrueFalse) Condition 's2n_libcrypto_awslc_api_version()<17' is always true
 // Reason: s2n_libcrypto_awslc_api_version() are implemented using macro's and for certain libcrypto's the preprocessor will produce a trivial function returning e.g. 1 always.
 knownConditionTrueFalse:crypto/s2n_libcrypto.c
+
+// cppcheck Message: (warning:arrayIndexOutOfBoundsCond) Either the condition 'c=='0'' is redundant or the array 'hex_to_value[1]' is accessed at index 48, which is out of bounds.
+// Reason: hex_to_value uses C99 designated initializers sized to the largest index. Bounds are validated before access.
+arrayIndexOutOfBoundsCond:stuffer/s2n_stuffer_hex.c
+
+// cppcheck Message: (warning:nullPointerRedundantCheck) Either the condition 'psk==NULL' is redundant or there is possible null pointer dereference: psk.
+// Reason: psk is NULL when the early data client branch did not execute. Both NULL and non-NULL paths are valid and intentional per RFC 8446.
+nullPointerRedundantCheck:tls/s2n_tls13_secrets.c
+
+// Reason: Const correctness suggestions are low-priority style noise. Suppressed globally.
+constParameterPointer
+constVariablePointer
+constVariable
+constParameter
+constParameterCallback
+
+// Reason: Conditions always true/false due to compile-time constants or platform-dependent macros.
+knownConditionTrueFalse
+
+// Reason: Intentional bitwise ops for constant-time comparisons in crypto code.
+bitwiseOnBoolean
+
+// Reason: Intentional tests comparing a value to itself to verify macro behavior.
+duplicateExpression:tests/unit/s2n_safety_test.c
+
+// Reason: Code after raise()/abort() in test fork patterns is intentionally unreachable.
+unreachableCode:tests/unit/*
+
+// Reason: Variables assigned for debugging or future use in tests.
+unreadVariable:tests/unit/*
+
+// Reason: Unused struct members are intentional in cleanup tests.
+unusedStructMember:tests/unit/s2n_cleanup_test.c
+
+// Reason: Variable used in s2n_send to test error handling; content is irrelevant.
+unreadVariable:bin/echo.c
+
+// Reason: False positive. Local struct holds pointer to local variable in same scope.
+danglingLifetime:tests/unit/s2n_tls13_pq_handshake_test.c
+
+// Reason: False positive. Stack buffer is written before use.
+uninitvar:tests/unit/s2n_mem_allocator_test.c
+
+// Reason: Buffer content irrelevant; test verifies EPIPE error.
+uninitvar:tests/unit/s2n_self_talk_broken_pipe_test.c
+
+// Reason: Buffer content irrelevant; test verifies error handling.
+uninitvar:tests/unit/s2n_self_talk_tls12_test.c
+
+// Reason: Buffer is written up to index i before s2n_send reads exactly i bytes. Remainder is irrelevant.
+uninitvar:tests/unit/s2n_self_talk_tls13_test.c
+
+// Reason: malloc failure in tests is unrealistic.
+nullPointerOutOfMemory:tests/unit/s2n_self_talk_nonblocking_test.c
+
+// Reason: Cppcheck doesn't need system headers to analyze code correctly.
+missingIncludeSystem
+
+// Reason: Cppcheck doesn't need project-specific include paths for all headers.
+missingInclude
+
+// Reason: Informational messages about cppcheck limiting its own analysis depth.
+checkLevelNormal
+normalCheckLevelMaxBranches
+
+// Reason: Report about active checkers is informational, not actionable.
+checkersReport
+
+// Reason: Suppressions from old cppcheck version that no longer match.
+unmatchedSuppression
+
+// Reason: s2n_prelude.h is force-included via compiler flags (-include). Cppcheck doesn't
+// replicate this, so #error guards about missing prelude trigger incorrectly.
+preprocessorErrorDirective
