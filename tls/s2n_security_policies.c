@@ -1365,7 +1365,7 @@ const struct s2n_security_policy security_policy_20260220 = {
     },
 };
 
-/* 20250414 with pure MLKEM1024 and ML-DSA-87 added, compatible with CNSA 2.0 */
+/* 20250414 with pure MLKEM1024 and ML-DSA-87 added, interoperable with CNSA 2.0 */
 const struct s2n_security_policy security_policy_20260513 = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_20250211,
