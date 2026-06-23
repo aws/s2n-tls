@@ -18,7 +18,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Dependencies
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Prebuild
         run: |
@@ -32,7 +32,7 @@ jobs:
     runs-on: macos-14-large
     name: macOS x64 with aws-lc
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
