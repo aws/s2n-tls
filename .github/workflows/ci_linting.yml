@@ -17,7 +17,7 @@ jobs:
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -40,7 +40,7 @@ jobs:
   headers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -51,7 +51,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -62,7 +62,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -111,7 +111,7 @@ jobs:
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: clang-format check
         uses: jidicula/clang-format-action@v4.18.0
         with:
@@ -121,8 +121,8 @@ jobs:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: actions/checkout@v7
+      - uses: nixbuild/nix-quick-install-action@v35
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix flake check
@@ -130,8 +130,8 @@ jobs:
   nixfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: actions/checkout@v7
+      - uses: nixbuild/nix-quick-install-action@v35
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix fmt

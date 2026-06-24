@@ -18,6 +18,10 @@
 #include <s2n.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This is a special value assigned to handshake_start_epoch_ns to indicate that
  * it has already been sent to the application and should not be sent again.
  */
@@ -68,3 +72,7 @@ S2N_API extern int s2n_config_set_subscriber(struct s2n_config *config, void *su
  * error_code field will be set with the relevant error information.
  */
 S2N_API extern int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_handshake_cb callback);
+
+#ifdef __cplusplus
+}
+#endif

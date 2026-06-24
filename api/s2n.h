@@ -245,13 +245,16 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
-/*
+/**
  * Performs a complete deinitialization and cleanup of the s2n-tls library.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_cleanup_final(void);
 
+/**
+ * Indicates whether s2n-tls is operating in FIPS mode.
+ */
 typedef enum {
     S2N_FIPS_MODE_DISABLED = 0,
     S2N_FIPS_MODE_ENABLED,
@@ -329,8 +332,6 @@ S2N_API extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 /**
  * Callback function type used to get the system time.
  *
- * @param void* A pointer to arbitrary data for use within the callback
- * @param uint64_t* A pointer that the callback will set to the time in nanoseconds
  * The function should return 0 on success and -1 on failure.
  */
 typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
@@ -924,6 +925,9 @@ S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  */
 S2N_API extern int s2n_config_load_system_certs(struct s2n_config *config);
 
+/**
+ * Toggles whether generated signatures are verified before being sent.
+ */
 typedef enum {
     S2N_VERIFY_AFTER_SIGN_DISABLED,
     S2N_VERIFY_AFTER_SIGN_ENABLED
@@ -1056,7 +1060,7 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  */
 S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
 
-/* Disable TLS intent verification for received certificates.
+/** Disable TLS intent verification for received certificates.
  *
  * By default, s2n-tls will verify that received certificates set Key Usage / Extended Key Usage
  * fields that are consistent with the current TLS context (e.g. checking that serverAuth is set
@@ -2514,8 +2518,8 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
  * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
- * @param cert_chain_out A pointer that's set to the client certificate chain.
- * @param cert_chain_len A pointer that's set to the size of the `cert_chain_out` buffer.
+ * @param der_cert_chain_out A pointer that's set to the client certificate chain.
+ * @param cert_chain_len A pointer that's set to the size of the `der_cert_chain_out` buffer.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
@@ -2822,7 +2826,7 @@ S2N_API extern int s2n_connection_get_selected_client_cert_digest_algorithm(stru
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18
  *
  * @param conn A pointer to the s2n connection
- * @param group_name A pointer that will be set to the signature scheme name.
+ * @param scheme_name A pointer that will be set to the signature scheme name.
  * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise.
  */
 S2N_API extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name);
@@ -3274,7 +3278,7 @@ S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection
  * and should never be set higher than TLS1.2. Therefore this method should only be used
  * for logging or fingerprinting.
  *
- * @param conn A pointer to the client hello struct
+ * @param ch A pointer to the client hello struct
  * @param out The protocol version in the record header containing the Client Hello.
  */
 S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);
@@ -3329,7 +3333,7 @@ typedef enum {
  * occurs after certificate selection.
  *
  * @param conn A pointer to the connection
- * @param cert_match An enum indicating whether or not the server found a certificate
+ * @param match_status An enum indicating whether or not the server found a certificate
  * that matched the client's SNI extension.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
@@ -3375,6 +3379,12 @@ S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection 
  * @note This is currently only available with TLS 1.3 connections which have finished a handshake.
  *
  * @param conn A pointer to the connection
+ * @param label The exporter label used to generate the keying material.
+ * @param label_length The length of the label.
+ * @param context The context value used to generate the keying material.
+ * @param context_length The length of the context.
+ * @param output A pointer to the buffer to write the exported keying material into.
+ * @param output_length The desired length of the keying material to export.
  * @returns A POSIX error signal. If an error was returned, the value contained in `output` should be considered invalid.
  */
 S2N_API extern int s2n_connection_tls_exporter(struct s2n_connection *conn,
@@ -3953,7 +3963,7 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
 
-/* Indicates which serialized connection version will be provided. The default value is
+/** Indicates which serialized connection version will be provided. The default value is
  * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
  */
 typedef enum {
@@ -4051,7 +4061,7 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
  */
 S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
-/* Load all acceptable certificate authorities from the currently configured trust store.
+/** Load all acceptable certificate authorities from the currently configured trust store.
  *
  * The loaded certificate authorities will be advertised during the handshake.
  * This can help your peer select a certificate if they have multiple certificate

@@ -51,6 +51,21 @@ impl<'a> HandshakeEvent<'a> {
             HandshakeResult::Failure(HandshakeFailure(self.0))
         }
     }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn protocol_version(&self) -> crate::enums::Version {
+        HandshakeSuccess(self.0).protocol_version()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn cipher(&self) -> &'static str {
+        HandshakeSuccess(self.0).cipher()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn group(&self) -> Option<&'static str> {
+        HandshakeSuccess(self.0).group()
+    }
 }
 
 impl HandshakeSuccess<'_> {
