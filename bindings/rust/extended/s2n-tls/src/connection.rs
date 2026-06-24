@@ -1322,6 +1322,31 @@ impl Connection {
         }
     }
 
+    /// Returns the unverified peer certificate chain.
+    ///
+    /// Unlike [`peer_cert_chain`](Self::peer_cert_chain), this function does not require that
+    /// certificate validation has completed successfully. It can be called even after a failed
+    /// handshake to inspect the peer's certificate chain for diagnostic or logging purposes.
+    ///
+    /// # Warning
+    ///
+    /// The certificate chain returned by this function has NOT been validated. Callers must not
+    /// trust any information in the certificates without performing their own validation.
+    ///
+    /// Corresponds to [`s2n_connection_get_unverified_peer_cert_chain`].
+    pub fn unverified_peer_cert_chain(&self) -> Result<CertificateChain<'static>, Error> {
+        unsafe {
+            let chain_handle = CertificateChainHandle::allocate()?;
+            s2n_connection_get_unverified_peer_cert_chain(
+                self.connection.as_ptr(),
+                chain_handle.cert.as_ptr(),
+            )
+            .into_result()
+            .map(|_| ())?;
+            Ok(CertificateChain::from_allocated(chain_handle))
+        }
+    }
+
     /// Get the certificate used during the TLS handshake
     ///
     /// - If `self` is a server connection, the certificate selected will depend on the

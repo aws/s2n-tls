@@ -161,8 +161,22 @@ fn failed_server_auth() {
     let server_own = pair.server.connection().selected_cert().unwrap();
     assert_chain_valid(&server_own);
 
-    // Client cannot retrieve peer's unvalidated cert.
+    // Client cannot retrieve peer's validated cert chain.
     assert!(pair.client.connection().peer_cert_chain().is_err());
+
+    // The client CAN retrieve the unverified peer cert chain for diagnostics
+    // (the cert was parsed before validation failed).
+    let unverified = pair.client.connection().unverified_peer_cert_chain();
+    if let Ok(chain) = unverified {
+        assert_chain_valid(&chain);
+
+        // The unverified chain should match what the server sent.
+        let unverified_leaf = chain.iter().next().unwrap().unwrap();
+        let unverified_der = unverified_leaf.der().unwrap();
+        let server_own_cert = server_own.iter().next().unwrap().unwrap();
+        let server_own_der = server_own_cert.der().unwrap();
+        assert_eq!(unverified_der, server_own_der);
+    }
 }
 
 // ============================================================================
@@ -187,7 +201,7 @@ fn failed_client_auth() {
     assert!(client_own.is_some());
     assert_chain_valid(&client_own.unwrap());
 
-    // Server cannot retrieve peer's unvalidated cert.
+    // Server cannot retrieve peer's validated cert chain.
     assert!(pair
         .server
         .connection()
@@ -195,4 +209,11 @@ fn failed_client_auth() {
         .unwrap()
         .is_none());
     assert!(pair.server.connection().peer_cert_chain().is_err());
+
+    // The server CAN retrieve the unverified peer cert chain for diagnostics
+    // if the client cert was parsed before the handshake aborted.
+    let unverified = pair.server.connection().unverified_peer_cert_chain();
+    if let Ok(chain) = unverified {
+        assert_chain_valid(&chain);
+    }
 }

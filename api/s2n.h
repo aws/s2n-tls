@@ -2525,6 +2525,30 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
 /**
+ * Returns the unverified peer certificate chain as a `s2n_cert_chain_and_key` opaque object.
+ *
+ * Unlike `s2n_connection_get_peer_cert_chain`, this function does not require that certificate
+ * validation has completed successfully. It can be called even after a failed handshake to inspect
+ * the peer's certificate chain for diagnostic or logging purposes. The certificate chain is
+ * available as soon as the Certificate message has been received and parsed, regardless of whether
+ * validation succeeded or failed.
+ *
+ * The `s2n_cert_chain_and_key` parameter must be allocated by the caller using the
+ * `s2n_cert_chain_and_key_new` API prior to this function call and must be empty. To free the
+ * memory associated with the `s2n_cert_chain_and_key` object use the `s2n_cert_chain_and_key_free`
+ * API.
+ *
+ * @warning The certificate chain returned by this function has NOT been validated. Callers must not
+ * trust any information in the certificates without performing their own validation.
+ *
+ * @param conn A pointer to the s2n_connection object being read.
+ * @param cert_chain_and_key The returned unverified peer certificate chain retrieved from the
+ *   s2n connection.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_get_unverified_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
+
+/**
  * Sets the initial number of session tickets to send after a >=TLS1.3 handshake. The default value is one ticket.
  *
  * @param config A pointer to the config object.
