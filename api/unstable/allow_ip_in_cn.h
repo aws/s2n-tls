@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file allow_ip_in_cn.h
  *
@@ -42,3 +46,7 @@
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
 S2N_API extern int s2n_config_allow_ip_in_cn(struct s2n_config *config);
+
+#ifdef __cplusplus
+}
+#endif
