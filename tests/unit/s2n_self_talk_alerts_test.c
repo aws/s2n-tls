@@ -100,8 +100,45 @@ int main(int argc, char **argv)
         /* Ensure that callback was invoked */
         EXPECT_EQUAL(warning_alert.invoked, 2);
 
-        /* Verify data transfer still works */
-        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        /* Verify data transfer still works after the warning alerts were ignored.
+         * Send a range of payload sizes, including sizes large enough to span
+         * multiple TLS records, and verify every byte is received correctly.
+         * Because the IO pair is non-blocking and both peers run in the same
+         * process, interleave send and recv so a large payload that fills the
+         * in-memory buffer can't deadlock. */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        uint8_t send_buffer[0xffff] = { 0 };
+        uint8_t recv_buffer[0xffff] = { 0 };
+        for (size_t size = 1; size < s2n_array_len(send_buffer); size += 100) {
+            POSIX_CHECKED_MEMSET(&send_buffer[0], 33, size);
+
+            size_t total_sent = 0;
+            size_t total_received = 0;
+            while (total_received < size) {
+                if (total_sent < size) {
+                    ssize_t sent = s2n_send(client_conn, send_buffer + total_sent,
+                            size - total_sent, &blocked);
+                    if (sent > 0) {
+                        total_sent += sent;
+                    } else {
+                        EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+                    }
+                }
+
+                ssize_t received = s2n_recv(server_conn, recv_buffer + total_received,
+                        size - total_received, &blocked);
+                if (received > 0) {
+                    total_received += received;
+                } else {
+                    EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+                }
+            }
+
+            EXPECT_EQUAL(total_received, size);
+            for (size_t j = 0; j < size; j++) {
+                EXPECT_EQUAL(recv_buffer[j], 33);
+            }
+        }
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
