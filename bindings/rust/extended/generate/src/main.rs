@@ -209,7 +209,7 @@ fn base_builder() -> bindgen::Builder {
         .size_t_is_usize(true)
         .enable_function_attribute_detection()
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
-        .rust_target(bindgen::RustTarget::Stable_1_47)
+        .rust_target(bindgen::RustTarget::Stable_1_71)
         // rust can't access thread-local variables
         // https://github.com/rust-lang/rust/issues/29594
         .blocklist_item("s2n_errno")
@@ -226,8 +226,7 @@ fn feature_builder() -> bindgen::Builder {
         .size_t_is_usize(true)
         .enable_function_attribute_detection()
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
-        .rust_target(bindgen::RustTarget::Stable_1_47)
-        .blocklist_item("s2n_errno")
+        .rust_target(bindgen::RustTarget::Stable_1_71)
         .raw_line(COPYRIGHT)
         .raw_line(FEATURE_PRELUDE)
         .ctypes_prefix("::libc")
@@ -313,8 +312,8 @@ fn postprocess_api_for_windows(path: &Path) {
 fn block_needs_windows_cfg(lines: &[&str]) -> bool {
     for line in lines {
         let trimmed = line.trim();
-        if trimmed.starts_with("pub fn ") {
-            let name = trimmed["pub fn ".len()..]
+        if let Some(after_pub_fn) = trimmed.strip_prefix("pub fn ") {
+            let name = after_pub_fn
                 .split(|c: char| c == '(' || c == ' ')
                 .next()
                 .unwrap_or("");
