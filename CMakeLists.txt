@@ -627,7 +627,6 @@ if (BUILD_TESTING)
             s2n_init_test
             s2n_io_test
             s2n_key_update_threads_test
-            s2n_mem_allocator_test
             s2n_random_test
             s2n_self_talk_alerts_test
             s2n_self_talk_broken_pipe_test
