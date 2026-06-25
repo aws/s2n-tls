@@ -172,8 +172,7 @@ pub use libc::off_t;
 #[cfg(windows)]
 use libc::FILE;
 
-// iovec is not available in the libc crate on Windows.
-// Define it to match the struct in s2n.h for Windows.
+// This iovec matches the `struct iovec` that s2n.h defines for Windows.
 #[cfg(windows)]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
