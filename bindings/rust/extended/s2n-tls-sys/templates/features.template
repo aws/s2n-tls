@@ -35,8 +35,6 @@ macro_rules! conditional_module_not_windows {
 }
 
 conditional_module!(quic, "quic");
-// s2n_internal.h uses S2N_PRIVATE_API which doesn't export symbols on Windows,
-// causing bindgen to produce an empty module. Exclude on Windows.
-conditional_module_not_windows!(internal, "internal");
+conditional_module!(internal, "internal");
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
 // conditional_module!(foo, "unstable-foo");

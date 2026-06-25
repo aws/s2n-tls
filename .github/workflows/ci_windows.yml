@@ -127,8 +127,9 @@ jobs:
           rustup default stable-${{matrix.rust-target}}
           rustup component add rustfmt
 
-      - name: Generate Rust bindings
+      - name: Generate and build Rust bindings
         shell: msys2 {0}
         run: |
           set -eu
           ./bindings/rust/extended/generate.sh --skip-tests
+          cargo build --manifest-path bindings/rust/extended/s2n-tls/Cargo.toml
