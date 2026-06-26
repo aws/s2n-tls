@@ -906,9 +906,9 @@ S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *ce
         { NID_secp384r1, "ecdsa_secp384r1" },
         { NID_secp521r1, "ecdsa_secp521r1" },
         /* ML-DSA: matched against public_key_bits (all variants share NID_PQDSA in AWS-LC) */
-        { 10496, "mldsa44" }, // ML-DSA-44 = 1312 Bytes
-        { 15616, "mldsa65" }, // ML-DSA-65 = 1952 Bytes
-        { 20736, "mldsa87" }, // ML-DSA-87 = 2592 Bytes
+        { 10496, "mldsa44" },  // ML-DSA-44 = 1312 Bytes
+        { 15616, "mldsa65" },  // ML-DSA-65 = 1952 Bytes
+        { 20736, "mldsa87" },  // ML-DSA-87 = 2592 Bytes
     };
 
     const char *result_str = NULL;
