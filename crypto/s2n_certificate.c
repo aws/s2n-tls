@@ -25,7 +25,6 @@
 #include <strings.h>
 
 #include "api/s2n.h"
-#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
@@ -897,16 +896,19 @@ S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *ce
     RESULT_ENSURE_REF(cert_info);
     RESULT_ENSURE_REF(required_size);
 
+    /* Static lookup table for non-RSA key types. */
     static const struct {
-        int nid;
+        int id;
         const char *str;
     } static_mappings[] = {
+        /* ECDSA: matched against public_key_nid */
         { NID_X9_62_prime256v1, "ecdsa_secp256r1" },
         { NID_secp384r1, "ecdsa_secp384r1" },
         { NID_secp521r1, "ecdsa_secp521r1" },
-        { S2N_NID_MLDSA44, "mldsa44" },
-        { S2N_NID_MLDSA65, "mldsa65" },
-        { S2N_NID_MLDSA87, "mldsa87" },
+        /* ML-DSA: matched against public_key_bits (all variants share NID_PQDSA in AWS-LC) */
+        { 10496, "mldsa44" }, // ML-DSA-44 = 1312 Bytes
+        { 15616, "mldsa65" }, // ML-DSA-65 = 1952 Bytes
+        { 20736, "mldsa87" }, // ML-DSA-87 = 2592 Bytes
     };
 
     const char *result_str = NULL;
@@ -923,9 +925,10 @@ S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *ce
         result_str = rsa_buffer;
         result_size = (uint32_t) written + 1; /* +1 for null terminator */
     } else {
-        /* ECDSA and ML-DSA: static NID-to-string lookup */
+        /* ECDSA: lookup by public_key_nid. ML-DSA: lookup by public_key_bits. */
         for (size_t i = 0; i < s2n_array_len(static_mappings); i++) {
-            if (public_key_nid == static_mappings[i].nid) {
+            if (public_key_nid == static_mappings[i].id
+                    || cert_info->public_key_bits == static_mappings[i].id) {
                 result_str = static_mappings[i].str;
                 result_size = strlen(result_str) + 1;
                 break;
