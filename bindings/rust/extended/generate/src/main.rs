@@ -36,7 +36,6 @@ const WINDOWS_UNAVAILABLE_FUNCTIONS: &[&str] = &[
 /// Feature modules that are entirely excluded on Windows because their headers
 /// or implementations are not available on the platform.
 const WINDOWS_EXCLUDED_FEATURES: &[&str] = &[
-    "internal",
     "unstable-ktls",
 ];
 
