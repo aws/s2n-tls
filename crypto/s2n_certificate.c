@@ -25,6 +25,7 @@
 #include <strings.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
@@ -880,4 +881,69 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
     POSIX_GUARD(s2n_parse_x509_extension(cert, oid, ext_value, ext_value_len, critical));
 
     return S2N_SUCCESS;
+}
+
+/* Maximum buffer size for public key string:
+ * - RSA: "rsa_" (4) + max digits for key size (5 for 65536) + null = 10 bytes
+ * - ECDSA: "ecdsa_secp521r1" (15) + null = 16 bytes
+ * - ML-DSA: "mldsa87" (7) + null = 8 bytes
+ * Maximum: 16 bytes
+ */
+#define S2N_PUBLIC_KEY_STRING_MAX_SIZE 16
+
+S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *cert_info,
+        char *output, uint32_t output_size, uint32_t *required_size)
+{
+    RESULT_ENSURE_REF(cert_info);
+    RESULT_ENSURE_REF(required_size);
+
+    static const struct {
+        int nid;
+        const char *str;
+    } static_mappings[] = {
+        { NID_X9_62_prime256v1, "ecdsa_secp256r1" },
+        { NID_secp384r1, "ecdsa_secp384r1" },
+        { NID_secp521r1, "ecdsa_secp521r1" },
+        { S2N_NID_MLDSA44, "mldsa44" },
+        { S2N_NID_MLDSA65, "mldsa65" },
+        { S2N_NID_MLDSA87, "mldsa87" },
+    };
+
+    const char *result_str = NULL;
+    uint32_t result_size = 0;
+    char rsa_buffer[S2N_PUBLIC_KEY_STRING_MAX_SIZE] = { 0 };
+
+    int public_key_nid = cert_info->public_key_nid;
+
+    /* RSA and RSA-PSS: dynamic format "rsa_<bits>" */
+    if (public_key_nid == NID_rsaEncryption || public_key_nid == NID_rsassaPss) {
+        int written = snprintf(rsa_buffer, sizeof(rsa_buffer), "rsa_%d", cert_info->public_key_bits);
+        RESULT_ENSURE_GT(written, 0);
+        RESULT_ENSURE_LT(written, (int) sizeof(rsa_buffer));
+        result_str = rsa_buffer;
+        result_size = (uint32_t) written + 1; /* +1 for null terminator */
+    } else {
+        /* ECDSA and ML-DSA: static NID-to-string lookup */
+        for (size_t i = 0; i < s2n_array_len(static_mappings); i++) {
+            if (public_key_nid == static_mappings[i].nid) {
+                result_str = static_mappings[i].str;
+                result_size = strlen(result_str) + 1;
+                break;
+            }
+        }
+        RESULT_ENSURE(result_str != NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    }
+
+    /* result_size includes the null terminator */
+    *required_size = result_size;
+
+    /* Check if output buffer is provided and large enough */
+    if (output == NULL || output_size < result_size) {
+        RESULT_BAIL(S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    }
+
+    /* Copy the formatted string to output buffer (including null terminator) */
+    RESULT_CHECKED_MEMCPY(output, result_str, result_size);
+
+    return S2N_RESULT_OK;
 }
