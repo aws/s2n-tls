@@ -55,8 +55,7 @@ install_awslc() {
       -DCMAKE_BUILD_TYPE=relwithdebinfo \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
       -DCMAKE_C_COMPILER=$(which clang) \
-      -DCMAKE_CXX_COMPILER=$(which clang++) \
-      -DDISABLE_GO=ON
+      -DCMAKE_CXX_COMPILER=$(which clang++) 
     ninja -j "$(nproc)" -C build install
     ninja -C build clean
 }
