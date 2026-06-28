@@ -649,6 +649,27 @@ impl Connection {
         .map_ok(|_| self)
     }
 
+    /// Returns whether the TLS handshake is fully complete.
+    ///
+    /// "Complete" means all handshake messages have been exchanged and
+    /// consumed, including the TLS 1.2 server Finished message. Once
+    /// this returns `Ok(true)`, the connection is ready for application
+    /// data.
+    ///
+    /// Prefer this over inspecting [`Self::handshake_type`] for
+    /// `"NEGOTIATED"` — that string is set before all handshake bytes
+    /// are consumed and can cause a loop to exit one iteration too early,
+    /// particularly for TLS 1.2.
+    ///
+    /// Corresponds to [`s2n_connection_handshake_complete`].
+    pub fn handshake_complete(&self) -> Result<bool, Error> {
+        unsafe {
+            s2n_connection_handshake_complete(self.connection.as_ptr())
+                .into_result()
+                .map(|res| res != 0)
+        }
+    }
+
     /// Encrypts and sends data on a connection where
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
