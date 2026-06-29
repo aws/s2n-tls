@@ -6,7 +6,13 @@ extern crate alloc;
 // Ensure memory is correctly managed in tests
 // tests invoked using the checkers::test macro have additional
 // memory sanity checks that occur
-#[cfg(test)]
+//
+// This is not installed on Windows: the `checkers` allocator records into a
+// thread-local, and on Windows the first access to that thread-local from
+// within an allocation triggers another allocation, recursing into the
+// allocator until the stack overflows during process startup. The
+// allocation-sanity tests that rely on it are likewise gated to non-Windows targets.
+#[cfg(all(test, not(target_os = "windows")))]
 #[global_allocator]
 static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
 

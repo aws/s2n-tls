@@ -65,6 +65,11 @@ fn register_async_pkey_verify_offload(
     unsafe {
         let raw = raw_config(s2n_cfg);
         let allowed_types = s2n_async_offload_op_type::OFFLOAD_PKEY_VERIFY;
+        // The generated repr of the `s2n_async_offload_op_type` enum is platform
+        // dependent: u32 on Linux, i32 on Windows, while `allow_list` is always
+        // u32, so Windows needs a cast.
+        #[cfg(target_os = "windows")]
+        let allowed_types = allowed_types as u32;
 
         let result = s2n_config_set_async_offload_callback(
             raw,
