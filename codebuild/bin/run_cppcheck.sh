@@ -15,24 +15,53 @@
 
 set -e
 
-usage() {
-    echo "run_cppcheck.sh install_dir"
-    exit 1
-}
+CPPCHECK_EXECUTABLE=$(which cppcheck)
+CPPCHECK_BUILD_DIR=".cppcheck-build-dir"
+DIRS="api bin crypto error stuffer ./tests/unit tls utils"
 
-if [ "$#" -ne "1" ]; then
-    usage
-fi
+mkdir -p "$CPPCHECK_BUILD_DIR"
 
-INSTALL_DIR=$1
-
-CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck
+$CPPCHECK_EXECUTABLE --version
 
 FAILED=0
-$CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
-if [ $FAILED == 1 ];
-then
+
+# Config 1: Linux + AWS-LC (primary customer configuration)
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
+  --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
+  --max-configs=1 \
+  --enable=warning,performance,portability \
+  --template='[{file}:{line}]: ({severity}:{id}) {message}' \
+  --inline-suppr \
+  --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
+  -D__linux__ -DOPENSSL_IS_AWSLC \
+  -U_WIN32 -U__FreeBSD__ -ULIBRESSL_VERSION_NUMBER -UOPENSSL_IS_BORINGSSL \
+  -I . -I ./tests $DIRS || FAILED=1
+
+# Config 2: Linux + OpenSSL (open source users)
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
+  --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
+  --max-configs=1 \
+  --enable=warning,performance,portability \
+  --template='[{file}:{line}]: ({severity}:{id}) {message}' \
+  --inline-suppr \
+  --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
+  -D__linux__ \
+  -U_WIN32 -U__FreeBSD__ -UOPENSSL_IS_AWSLC -UOPENSSL_IS_BORINGSSL -ULIBRESSL_VERSION_NUMBER \
+  -I . -I ./tests $DIRS || FAILED=1
+
+# Config 3: Windows (SDK users)
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
+  --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
+  --max-configs=1 \
+  --enable=warning,performance,portability \
+  --template='[{file}:{line}]: ({severity}:{id}) {message}' \
+  --inline-suppr \
+  --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
+  -D_WIN32 \
+  -U__linux__ -U__FreeBSD__ -UOPENSSL_IS_AWSLC -UOPENSSL_IS_BORINGSSL -ULIBRESSL_VERSION_NUMBER \
+  -I . -I ./tests $DIRS || FAILED=1
+
+if [ $FAILED == 1 ]; then
 	printf "\\033[31;1mFAILED cppcheck\\033[0m\\n"
 	exit -1
 else
