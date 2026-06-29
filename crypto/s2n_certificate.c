@@ -881,3 +881,72 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
 
     return S2N_SUCCESS;
 }
+
+/* Maximum buffer size for public key string:
+ * - RSA: "rsa_" (4) + max digits for key size (5 for 65536) + null = 10 bytes
+ * - ECDSA: "ecdsa_secp521r1" (15) + null = 16 bytes
+ * - ML-DSA: "mldsa87" (7) + null = 8 bytes
+ * Maximum: 16 bytes
+ */
+#define S2N_PUBLIC_KEY_STRING_MAX_SIZE 16
+
+S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *cert_info,
+        char *output, uint32_t output_size, uint32_t *required_size)
+{
+    RESULT_ENSURE_REF(cert_info);
+    RESULT_ENSURE_REF(required_size);
+
+    /* Static lookup table for non-RSA key types. */
+    static const struct {
+        int id;
+        const char *str;
+    } static_mappings[] = {
+        /* ECDSA: matched against public_key_nid */
+        { NID_X9_62_prime256v1, "ecdsa_secp256r1" },
+        { NID_secp384r1, "ecdsa_secp384r1" },
+        { NID_secp521r1, "ecdsa_secp521r1" },
+        /* ML-DSA: matched against public_key_bits (all variants share NID_PQDSA in AWS-LC) */
+        { 10496, "mldsa44" },  // ML-DSA-44 = 1312 Bytes
+        { 15616, "mldsa65" },  // ML-DSA-65 = 1952 Bytes
+        { 20736, "mldsa87" },  // ML-DSA-87 = 2592 Bytes
+    };
+
+    const char *result_str = NULL;
+    uint32_t result_size = 0;
+    char rsa_buffer[S2N_PUBLIC_KEY_STRING_MAX_SIZE] = { 0 };
+
+    int public_key_nid = cert_info->public_key_nid;
+
+    /* RSA and RSA-PSS: dynamic format "rsa_<bits>" */
+    if (public_key_nid == NID_rsaEncryption || public_key_nid == NID_rsassaPss) {
+        int written = snprintf(rsa_buffer, sizeof(rsa_buffer), "rsa_%d", cert_info->public_key_bits);
+        RESULT_ENSURE_GT(written, 0);
+        RESULT_ENSURE_LT(written, (int) sizeof(rsa_buffer));
+        result_str = rsa_buffer;
+        result_size = (uint32_t) written + 1; /* +1 for null terminator */
+    } else {
+        /* ECDSA: lookup by public_key_nid. ML-DSA: lookup by public_key_bits. */
+        for (size_t i = 0; i < s2n_array_len(static_mappings); i++) {
+            if (public_key_nid == static_mappings[i].id
+                    || cert_info->public_key_bits == static_mappings[i].id) {
+                result_str = static_mappings[i].str;
+                result_size = strlen(result_str) + 1;
+                break;
+            }
+        }
+        RESULT_ENSURE(result_str != NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    }
+
+    /* result_size includes the null terminator */
+    *required_size = result_size;
+
+    /* Check if output buffer is provided and large enough */
+    if (output == NULL || output_size < result_size) {
+        RESULT_BAIL(S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    }
+
+    /* Copy the formatted string to output buffer (including null terminator) */
+    RESULT_CHECKED_MEMCPY(output, result_str, result_size);
+
+    return S2N_RESULT_OK;
+}

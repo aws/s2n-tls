@@ -4074,6 +4074,27 @@ S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *
  */
 S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
 
+/**
+ * Gets a string describing the public key algorithm and parameters of the
+ * leaf certificate for the specified connection mode.
+ *
+ * The returned string format depends on the key type:
+ * - RSA: "rsa_2048", "rsa_3072", "rsa_4096", or "rsa_<keysize>" for other sizes
+ * - ECDSA: "ecdsa_secp256r1", "ecdsa_secp384r1", "ecdsa_secp521r1"
+ * - ML-DSA: "mldsa44", "mldsa65", "mldsa87"
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param mode S2N_SERVER for server certificate, S2N_CLIENT for client certificate.
+ * @param output Buffer to write the null-terminated result string.
+ * @param output_size On input, the size of the output buffer. On output, the
+ *                    number of bytes written (including null terminator), or
+ *                    the required size if the buffer is too small.
+ *
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_conn_get_signature_public_key(struct s2n_connection *conn,
+        s2n_mode mode, char *output, uint32_t *output_size);
+
 #ifdef __cplusplus
 }
 #endif
