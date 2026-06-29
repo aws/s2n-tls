@@ -19,6 +19,21 @@ macro_rules! conditional_module {
     };
 }
 
+/// Same as conditional_module but also excludes the module on Windows.
+/// Used for modules whose headers are not available on Windows (e.g. gated
+/// behind #ifndef _WIN32).
+#[rustfmt::skip]
+macro_rules! conditional_module_not_windows {
+    ($mod_name:ident, $feature_name:literal) => {
+        #[cfg(all(feature = $feature_name, not(windows)))]
+        #[rustfmt::skip]
+        mod $mod_name;
+
+        #[cfg(all(feature = $feature_name, not(windows)))]
+        pub use $mod_name::*;
+    };
+}
+
 conditional_module!(quic, "quic");
 conditional_module!(internal, "internal");
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
