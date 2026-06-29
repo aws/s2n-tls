@@ -217,7 +217,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/openssl-102/install
           # The sha256 suffix pins the cache to a specific source tarball.
