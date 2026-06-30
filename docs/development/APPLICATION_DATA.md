@@ -20,6 +20,8 @@ Applications are responsible for opening and configuring the file descriptors. s
 
 See [tls/s2n_socket.c](https://github.com/aws/s2n-tls/blob/main/utils/s2n_socket.c) for the file descriptor related logic.
 
+These file descriptor based behaviors rely on POSIX socket APIs and are not available on Windows. On Windows, applications cannot set a file descriptor and must instead supply custom send/receive callbacks (see [Custom callbacks](#custom-callbacks) below). `utils/s2n_socket.c` compiles to an empty translation unit on Windows.
+
 ### Custom callbacks
 
 If calling `read` or `write` on a file descriptor is not sufficient, applications can use s2n_connection_set_recv_cb and s2n_connection_set_send_cb to set custom IO callbacks to implement whatever read and write logic they need. These custom callbacks replace the default callbacks set when file descriptors are configured.
