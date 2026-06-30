@@ -14,6 +14,16 @@ including socket options. s2n-tls itself sets a few socket options:
 used during the TLS handshake. TCP_NOPUSH or TCP_NODELAY may be used if TCP_CORK
 is not available.
 
+**Note for Windows:**
+The file descriptor based APIs (`s2n_connection_set_fd()`,
+`s2n_connection_set_read_fd()`, `s2n_connection_set_write_fd()`, and
+`s2n_connection_use_corked_io()`) rely on POSIX socket semantics and are **not
+available on Windows**. On Windows, applications must instead provide their own
+I/O methods using the custom I/O callbacks described in
+[Custom IO Callbacks](#custom-io-callbacks). The callbacks can wrap a Winsock
+`SOCKET` (using `recv()`/`send()`) or any other transport. The socket options
+listed above are also only set on platforms that support them.
+
 **Important Note:**
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
@@ -21,6 +31,7 @@ the process to terminate unless it is handled or ignored by the application.
 See the [signal man page](https://linux.die.net/man/2/signal) for instructions on
 how to handle C signals, or simply ignore the SIGPIPE signal by calling
 `signal(SIGPIPE, SIG_IGN)` before calling any s2n-tls IO methods.
+(SIGPIPE does not exist on Windows, so this does not apply there.)
 
 ## Blocking or Non-Blocking?
 
@@ -50,6 +61,11 @@ int flags = fcntl(fd, F_GETFL, 0);
 if (flags < 0) return S2N_FAILURE;
 if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) return S2N_FAILURE;
 ```
+
+On Windows, `fcntl()` is not available. Configure the non-blocking mode of the
+underlying transport directly (for example, with `ioctlsocket()` and `FIONBIO`
+for a Winsock `SOCKET`) and drive I/O through the custom I/O callbacks described
+in [Custom IO Callbacks](#custom-io-callbacks).
 
 Note: If an application requires non-blocking IO, it likely also requires self-service blinding. See [Blinding](./ch03-error-handling.md#Blinding).
 
@@ -231,8 +247,19 @@ to the custom IO methods by using `s2n_connection_set_recv_ctx()` and `s2n_conne
 s2n-tls will call the custom IO methods with the custom context instead of calling
 the default implementation.
 
+On Windows, the default file descriptor based I/O is not available (see
+[Basic IO setup](#basic-io-setup)), so providing custom I/O callbacks is the only
+way to connect s2n-tls to a transport. A typical implementation wraps a Winsock
+`SOCKET` and calls `recv()`/`send()`.
+
 The custom IO methods may send or receive less than the requested length. They
 should return the number of bytes sent/received, or set errno and return an error code < 0.
 s2n-tls will interpret errno set to EWOULDBLOCK or EAGAIN as indicating a retriable
 blocking error, and set **s2n_errno** and the s2n_blocked_status appropriately.
 s2n-tls will interpret a return value of 0 as a closed connection.
+
+On Windows, Winsock reports a blocking condition through `WSAGetLastError()`
+returning `WSAEWOULDBLOCK` rather than through `errno`. A custom callback should
+translate this into a retriable blocking error by setting `errno` to `EWOULDBLOCK`
+(or `EAGAIN`) before returning a negative value, so that s2n-tls reports
+`S2N_ERR_T_BLOCKED` as expected.
