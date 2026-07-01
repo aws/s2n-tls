@@ -64,4 +64,4 @@ features = ["prefix-symbols"]
 # Since this overrides the dependency from the openssl-src crate,
 # the features are copied from the openssl-src crate's Cargo.toml:
 # https://github.com/sfackler/rust-openssl/blob/eb88fb0533c3593cc2fff6d03cf2befea8ecbe27/openssl-sys/Cargo.toml#L31
-openssl-src = { version = "300.5", optional = true, features = ["legacy"] }
+openssl-src = { version = "400.0", optional = true, features = ["legacy"] }
