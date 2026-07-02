@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_blob.h"
@@ -28,10 +29,44 @@ union p_hash_state {
     struct s2n_hmac_state s2n_hmac;
 };
 
-struct s2n_prf_working_space {
+/* TLS 1.2 PRF scratch space. p_hash, digest0, and digest1 are all live
+ * simultaneously within a single s2n_p_hash() computation, so they can't
+ * overlap each other. */
+struct s2n_prf_tls12_space {
     union p_hash_state p_hash;
     uint8_t digest0[S2N_MAX_DIGEST_LEN];
     uint8_t digest1[S2N_MAX_DIGEST_LEN];
+};
+
+/* Reusable contexts for the TLS 1.3 key schedule.
+ * Allocated once on first key-schedule use, reset (init) per derivation, and
+ * freed once with the workspace. */
+struct s2n_prf_tls13_space {
+    struct s2n_hmac_state tls13_hmac;
+    struct s2n_hash_state tls13_hash;
+};
+
+/* Tracks which version-specific scratch space in s2n_prf_working_space->space
+ * has been allocated. A connection uses either the TLS 1.2 PRF or the TLS 1.3
+ * key schedule, never both, so only one side is ever allocated. The contexts
+ * are heap-backed (EVP_MD_CTX), so we must know which side is live in order to
+ * free and wipe exactly the allocated contexts. */
+typedef enum {
+    S2N_PRF_SPACE_UNALLOCATED = 0,
+    S2N_PRF_SPACE_TLS12,
+    S2N_PRF_SPACE_TLS13,
+} s2n_prf_space_type;
+
+/* A connection uses either the TLS 1.2 PRF or the TLS 1.3 key schedule, never
+ * both, so the two scratch spaces safely overlap in the space union. The
+ * contexts within are allocated lazily (only the negotiated side is ever
+ * allocated) and `allocated` records which side that is. */
+struct s2n_prf_working_space {
+    union {
+        struct s2n_prf_tls12_space tls12;
+        struct s2n_prf_tls13_space tls13;
+    } space;
+    s2n_prf_space_type allocated;
 };
 
 /* TLS key expansion results in an array of contiguous data which is then
@@ -59,6 +94,14 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
 S2N_RESULT s2n_prf_new(struct s2n_connection *conn);
 S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn);
 S2N_RESULT s2n_prf_free(struct s2n_connection *conn);
+
+/* Lazily allocates the per-connection prf_space workspace and its reusable
+ * TLS 1.3 key-schedule contexts (tls13_hmac/tls13_hash) on first use, then
+ * returns the workspace via the out-param. Centralizes the lazy-allocation rule
+ * so the TLS 1.3 key-schedule derivation sites can obtain an
+ * allocated workspace without duplicating the allocation logic. The returned
+ * workspace has its TLS 1.3 scratch space allocated (allocated == TLS13). */
+S2N_RESULT s2n_connection_get_prf_space(struct s2n_connection *conn, struct s2n_prf_working_space **ws);
 
 int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 int s2n_prf_hybrid_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);

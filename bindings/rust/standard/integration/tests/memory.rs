@@ -273,12 +273,12 @@ mod memory_test {
         fn assert_expected(&self) {
             /// The allocated memory expected at each step of the connection lifecycle
             const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
-                (Lifecycle::ConnectionInit, 61_466),
-                (Lifecycle::AfterClientHello, 89_062),
-                (Lifecycle::AfterServerHello, 117_429),
-                (Lifecycle::AfterClientFinished, 108_736),
-                (Lifecycle::HandshakeComplete, 91_323),
-                (Lifecycle::ApplicationData, 91_323),
+                (Lifecycle::ConnectionInit, 61_066),
+                (Lifecycle::AfterClientHello, 88_662),
+                (Lifecycle::AfterServerHello, 117_909),
+                (Lifecycle::AfterClientFinished, 110_096),
+                (Lifecycle::HandshakeComplete, 92_683),
+                (Lifecycle::ApplicationData, 92_683),
             ];
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()

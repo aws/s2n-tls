@@ -195,23 +195,23 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
 
 static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
-    POSIX_GUARD(s2n_hmac_new(&ws->p_hash.s2n_hmac));
-    return s2n_hmac_init(&ws->p_hash.s2n_hmac, S2N_HMAC_NONE, NULL, 0);
+    POSIX_GUARD(s2n_hmac_new(&ws->space.tls12.p_hash.s2n_hmac));
+    return s2n_hmac_init(&ws->space.tls12.p_hash.s2n_hmac, S2N_HMAC_NONE, NULL, 0);
 }
 
 static int s2n_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
-    return s2n_hmac_init(&ws->p_hash.s2n_hmac, alg, secret->data, secret->size);
+    return s2n_hmac_init(&ws->space.tls12.p_hash.s2n_hmac, alg, secret->data, secret->size);
 }
 
 static int s2n_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
 {
-    return s2n_hmac_update(&ws->p_hash.s2n_hmac, data, size);
+    return s2n_hmac_update(&ws->space.tls12.p_hash.s2n_hmac, data, size);
 }
 
 static int s2n_hmac_p_hash_digest(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
 {
-    return s2n_hmac_digest(&ws->p_hash.s2n_hmac, digest, size);
+    return s2n_hmac_digest(&ws->space.tls12.p_hash.s2n_hmac, digest, size);
 }
 
 static int s2n_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
@@ -219,8 +219,8 @@ static int s2n_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
     /* If we actually initialized s2n_hmac, wipe it.
      * A valid, initialized s2n_hmac_state will have a valid block size.
      */
-    if (ws->p_hash.s2n_hmac.hash_block_size != 0) {
-        return s2n_hmac_reset(&ws->p_hash.s2n_hmac);
+    if (ws->space.tls12.p_hash.s2n_hmac.hash_block_size != 0) {
+        return s2n_hmac_reset(&ws->space.tls12.p_hash.s2n_hmac);
     }
     return S2N_SUCCESS;
 }
@@ -232,7 +232,7 @@ static int s2n_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
 
 static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
 {
-    return s2n_hmac_free(&ws->p_hash.s2n_hmac);
+    return s2n_hmac_free(&ws->space.tls12.p_hash.s2n_hmac);
 }
 
 static const struct s2n_p_hash_hmac s2n_internal_p_hash_hmac = {
@@ -281,7 +281,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
             POSIX_GUARD(hmac->update(ws, seed_c->data, seed_c->size));
         }
     }
-    POSIX_GUARD(hmac->final(ws, ws->digest0, digest_size));
+    POSIX_GUARD(hmac->final(ws, ws->space.tls12.digest0, digest_size));
 
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
@@ -289,7 +289,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     while (outputlen) {
         /* Now compute hmac(secret + A(N - 1) + seed) */
         POSIX_GUARD(hmac->reset(ws));
-        POSIX_GUARD(hmac->update(ws, ws->digest0, digest_size));
+        POSIX_GUARD(hmac->update(ws, ws->space.tls12.digest0, digest_size));
 
         /* Add the label + seed and compute this round's A */
         POSIX_GUARD(hmac->update(ws, label->data, label->size));
@@ -301,20 +301,20 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
             }
         }
 
-        POSIX_GUARD(hmac->final(ws, ws->digest1, digest_size));
+        POSIX_GUARD(hmac->final(ws, ws->space.tls12.digest1, digest_size));
 
         uint32_t bytes_to_xor = S2N_MIN(outputlen, digest_size);
 
         for (size_t i = 0; i < bytes_to_xor; i++) {
-            *output ^= ws->digest1[i];
+            *output ^= ws->space.tls12.digest1[i];
             output++;
             outputlen--;
         }
 
         /* Stash a digest of A(N), in A(N), for the next round */
         POSIX_GUARD(hmac->reset(ws));
-        POSIX_GUARD(hmac->update(ws, ws->digest0, digest_size));
-        POSIX_GUARD(hmac->final(ws, ws->digest0, digest_size));
+        POSIX_GUARD(hmac->update(ws, ws->space.tls12.digest0, digest_size));
+        POSIX_GUARD(hmac->final(ws, ws->space.tls12.digest0, digest_size));
     }
 
     POSIX_GUARD(hmac->cleanup(ws));
@@ -322,21 +322,126 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     return 0;
 }
 
+/* Frees whichever version-specific scratch space was lazily allocated in the
+ * prf_space workspace and resets the allocation state to unallocated. The
+ * contexts are heap-backed (EVP_MD_CTX), and the tls12 and tls13 scratch spaces
+ * overlap in the same union storage, so we free exactly the side that was
+ * allocated. Safe to call when nothing is allocated. */
+static S2N_RESULT s2n_prf_space_free_contexts(struct s2n_prf_working_space *ws)
+{
+    RESULT_ENSURE_REF(ws);
+
+    switch (ws->allocated) {
+        case S2N_PRF_SPACE_TLS12: {
+            const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+            RESULT_ENSURE_REF(hmac_impl);
+            RESULT_GUARD_POSIX(hmac_impl->free(ws));
+        } break;
+        case S2N_PRF_SPACE_TLS13:
+            RESULT_GUARD_POSIX(s2n_hmac_free(&ws->space.tls13.tls13_hmac));
+            RESULT_GUARD_POSIX(s2n_hash_free(&ws->space.tls13.tls13_hash));
+            break;
+        case S2N_PRF_SPACE_UNALLOCATED:
+            break;
+    }
+    ws->allocated = S2N_PRF_SPACE_UNALLOCATED;
+
+    return S2N_RESULT_OK;
+}
+
+/* Lazily allocates the TLS 1.2 PRF scratch space (the p_hash hmac) into the
+ * workspace union. A connection uses either the TLS 1.2 PRF or the TLS 1.3 key
+ * schedule, never both, so this asserts that the TLS 1.3 side was not already
+ * allocated into the same union storage. */
+static S2N_RESULT s2n_prf_space_ensure_tls12(struct s2n_prf_working_space *ws)
+{
+    RESULT_ENSURE_REF(ws);
+
+    if (ws->allocated == S2N_PRF_SPACE_TLS12) {
+        return S2N_RESULT_OK;
+    }
+
+    /* A reused connection (s2n_connection_wipe preserves prf_space) may switch
+     * protocol versions between handshakes. Since the tls12 and tls13 scratch
+     * spaces overlap in the same union storage, free the other side before
+     * allocating this one. No single handshake uses both sides, so this only
+     * happens at a handshake boundary. */
+    RESULT_GUARD(s2n_prf_space_free_contexts(ws));
+
+    const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
+    RESULT_GUARD_POSIX(hmac_impl->alloc(ws));
+    ws->allocated = S2N_PRF_SPACE_TLS12;
+
+    return S2N_RESULT_OK;
+}
+
+/* Lazily allocates the reusable TLS 1.3 key-schedule contexts (tls13_hmac and
+ * tls13_hash) into the workspace union. Asserts that the
+ * TLS 1.2 side was not already allocated into the same union storage. If the
+ * hash allocation fails after the hmac allocation succeeds, the hmac is freed
+ * so no half-initialized side is left behind. */
+static S2N_RESULT s2n_prf_space_ensure_tls13(struct s2n_prf_working_space *ws)
+{
+    RESULT_ENSURE_REF(ws);
+
+    if (ws->allocated == S2N_PRF_SPACE_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    /* A reused connection (s2n_connection_wipe preserves prf_space) may switch
+     * protocol versions between handshakes. Since the tls12 and tls13 scratch
+     * spaces overlap in the same union storage, free the other side before
+     * allocating this one. No single handshake uses both sides, so this only
+     * happens at a handshake boundary. */
+    RESULT_GUARD(s2n_prf_space_free_contexts(ws));
+
+    RESULT_GUARD_POSIX(s2n_hmac_new(&ws->space.tls13.tls13_hmac));
+    if (s2n_hash_new(&ws->space.tls13.tls13_hash) != S2N_SUCCESS) {
+        RESULT_GUARD_POSIX(s2n_hmac_free(&ws->space.tls13.tls13_hmac));
+        RESULT_BAIL(S2N_ERR_ALLOC);
+    }
+    ws->allocated = S2N_PRF_SPACE_TLS13;
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_EQ(conn->prf_space, NULL);
 
+    /* Allocate only the workspace shell here. The version-specific contexts
+     * (TLS 1.2 p_hash or the TLS 1.3 key-schedule contexts) are allocated
+     * lazily on first use, so a connection only ever allocates the contexts for
+     * the protocol it actually negotiates. */
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_realloc(&mem, sizeof(struct s2n_prf_working_space)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
     conn->prf_space = (struct s2n_prf_working_space *) (void *) mem.data;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
+    conn->prf_space->allocated = S2N_PRF_SPACE_UNALLOCATED;
 
-    /* Allocate the hmac state */
-    const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
-    RESULT_ENSURE_REF(hmac_impl);
-    RESULT_GUARD_POSIX(hmac_impl->alloc(conn->prf_space));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_connection_get_prf_space(struct s2n_connection *conn, struct s2n_prf_working_space **ws)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(ws);
+
+    /* Lazily allocate the workspace shell on first use. */
+    if (conn->prf_space == NULL) {
+        RESULT_GUARD(s2n_prf_new(conn));
+    }
+
+    /* All callers of this accessor are TLS 1.3 key-schedule derivation sites,
+     * so ensure the reusable TLS 1.3 contexts are allocated. */
+    RESULT_GUARD(s2n_prf_space_ensure_tls13(conn->prf_space));
+
+    *ws = conn->prf_space;
+    RESULT_ENSURE_REF(*ws);
+
     return S2N_RESULT_OK;
 }
 
@@ -345,9 +450,14 @@ S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->prf_space);
 
-    const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
-    RESULT_ENSURE_REF(hmac_impl);
-    RESULT_GUARD_POSIX(hmac_impl->reset(conn->prf_space));
+    /* Only the TLS 1.2 p_hash context carries state that must be reset between
+     * handshakes. If it was never allocated (TLS 1.3 connection, or a fresh
+     * workspace), there is nothing to wipe. */
+    if (conn->prf_space->allocated == S2N_PRF_SPACE_TLS12) {
+        const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+        RESULT_ENSURE_REF(hmac_impl);
+        RESULT_GUARD_POSIX(hmac_impl->reset(conn->prf_space));
+    }
 
     return S2N_RESULT_OK;
 }
@@ -359,9 +469,9 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
-    RESULT_ENSURE_REF(hmac_impl);
-    RESULT_GUARD_POSIX(hmac_impl->free(conn->prf_space));
+    /* Free whichever version-specific contexts were lazily allocated before
+     * releasing the workspace object. */
+    RESULT_GUARD(s2n_prf_space_free_contexts(conn->prf_space));
 
     RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &conn->prf_space, sizeof(struct s2n_prf_working_space)));
     return S2N_RESULT_OK;
@@ -377,6 +487,11 @@ S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, 
      * outputs will be XORd just ass the TLS 1.0 and 1.1 RFCs require.
      */
     RESULT_GUARD_POSIX(s2n_blob_zero(out));
+
+    /* The custom PRF uses the TLS 1.2 p_hash scratch space, which is allocated
+     * lazily so that TLS 1.3 connections never allocate it. */
+    RESULT_ENSURE_REF(conn->prf_space);
+    RESULT_GUARD(s2n_prf_space_ensure_tls12(conn->prf_space));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         RESULT_GUARD_POSIX(s2n_p_hash(conn->prf_space, conn->secure->cipher_suite->prf_alg, secret, label, seed_a,
