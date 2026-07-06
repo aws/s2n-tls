@@ -31,7 +31,13 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/uio.h>
+#ifndef _WIN32
+    #include <sys/uio.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct s2n_certificate_request;
 struct s2n_certificate_authority_list;
@@ -115,3 +121,7 @@ typedef int (*s2n_cert_request_callback)(struct s2n_connection *conn, void *ctx,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API int s2n_config_set_cert_request_callback(struct s2n_config *config, s2n_cert_request_callback cert_req_callback, void *ctx);
+
+#ifdef __cplusplus
+}
+#endif

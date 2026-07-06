@@ -32,7 +32,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -85,7 +85,7 @@ jobs:
   sensitive-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: install rust toolchain
         id: toolchain
         run: |
@@ -104,10 +104,14 @@ jobs:
         # invoked on the `cargo test --all-features` pattern.
         run: RUST_LOG=TRACE cargo test --no-default-features --features pq
 
+      - name: metrics-subscriber memory test
+        working-directory: ${{env.STANDARD_PATH}}/s2n-tls-metrics-subscriber
+        run: cargo test --release --features memory-test --test subscriber_memory
+
   external-build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -118,7 +122,7 @@ jobs:
       - uses: camshaft/rust-cache@v1
 
       - name: Checkout aws-lc
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: aws/aws-lc
           path: aws-lc
@@ -179,7 +183,7 @@ jobs:
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -201,7 +205,7 @@ jobs:
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -216,7 +220,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/openssl-102/install
-          key: ${{ runner.os }}-openssl-102
+          # The sha256 suffix pins the cache to a specific source tarball.
+          # Bumping the tarball (or version) busts the cache automatically,
+          # which also prevents a stale cache entry from masking a broken
+          # download step.
+          key: ${{ runner.os }}-openssl-1.0.2u-ecd0c6ff
 
       - if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }}
         name: Install OpenSSL 1.0.2
@@ -227,7 +235,16 @@ jobs:
           mkdir install
           install_dir="$(pwd)"/install
 
-          wget https://www.openssl.org/source/old/1.0.2/openssl-1.0.2u.tar.gz
+          # OpenSSL moved release hosting to GitHub in 2024. The openssl.org
+          # redirect for the 1.0.2 series points at a non-existent asset
+          # (openssl/openssl under the tag `openssl-1.0.2u`), so fetch directly
+          # from the tag that actually exists (`OpenSSL_1_0_2u`).
+          tarball_url="https://github.com/openssl/openssl/releases/download/OpenSSL_1_0_2u/openssl-1.0.2u.tar.gz"
+          expected_sha256="ecd0c6ffb493dd06707d38b14bb4d8c2288bb7033735606569d8f90f89669d16"
+
+          curl --fail --location --silent --show-error \
+               --output openssl-1.0.2u.tar.gz "${tarball_url}"
+          echo "${expected_sha256}  openssl-1.0.2u.tar.gz" | sha256sum --check --strict
           tar -xzvf openssl-1.0.2u.tar.gz
 
           pushd openssl-1.0.2u
@@ -252,7 +269,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -296,7 +313,7 @@ jobs:
   asan-unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -333,7 +350,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -361,7 +378,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -402,7 +419,7 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -425,7 +442,7 @@ jobs:
   pcaps:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -463,7 +480,7 @@ jobs:
           - bindings/rust/extended
           - bindings/rust/standard
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -502,7 +519,7 @@ jobs:
   check-generated-cargo-toml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         id: toolchain
@@ -528,3 +545,30 @@ jobs:
           from s2n-tls-sys/templates/Cargo.template has been found. Please ensure that the committed \
           Cargo.toml is up-to-date by regenerating it with ${{env.ROOT_PATH}}/generate.sh"
           exit 1
+
+  metrics-subscriber-fuzz:
+    name: metrics-subscriber fuzz tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust nightly
+        run: |
+          rustup toolchain install nightly
+          rustup override set nightly
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '>=1.18'
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ${{env.ROOT_PATH}}/generate.sh
+
+      - run: cargo install cargo-fuzz
+
+      - name: fuzz cert parser
+        working-directory: ${{env.STANDARD_PATH}}/s2n-tls-metrics-subscriber
+        run: cargo +nightly fuzz run fuzz_cert_parse --jobs $(nproc) -- -max_total_time=60

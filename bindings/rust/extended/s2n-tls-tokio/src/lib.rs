@@ -171,6 +171,34 @@ where
         &mut self.stream
     }
 
+    /// Consumes the `TlsStream`, returning its [`Connection`]
+    /// (or [`Builder::Output`](Builder)) and IO stream.
+    ///
+    /// Inverse of [`TlsStream::from_parts`]. All TLS state, including any data
+    /// s2n-tls has already buffered, stays with the returned connection.
+    ///
+    /// Only call this at a quiescent point: after the handshake and while no
+    /// read, write, or shutdown future is in flight. Any in-flight blinding
+    /// timer is dropped, but the connection retains its remaining blinding
+    /// delay and re-applies it on the next poll.
+    pub fn into_parts(self) -> (C, S) {
+        (self.conn, self.stream)
+    }
+
+    /// Reassembles a `TlsStream` from a [`Connection`] (or
+    /// [`Builder::Output`](Builder)) and IO stream from [`TlsStream::into_parts`].
+    ///
+    /// Inverse of [`TlsStream::into_parts`]. The connection must already be
+    /// negotiated; this does not perform a handshake.
+    pub fn from_parts(conn: C, stream: S) -> Self {
+        TlsStream {
+            conn,
+            stream,
+            blinding: None,
+            shutdown_error: None,
+        }
+    }
+
     async fn open(conn: C, stream: S) -> Result<Self, Error> {
         let mut tls = TlsStream {
             conn,

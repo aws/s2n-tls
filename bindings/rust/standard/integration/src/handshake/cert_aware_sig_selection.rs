@@ -37,7 +37,7 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
         let mut configs =
-            TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+            TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default_without_certs();
         // Setup OpenSSL client
         configs.client.set_ca_file(&cert_materials.ca_path).unwrap();
 
@@ -82,7 +82,7 @@ fn trial(server_policy: &Policy, cert_materials: &CertMaterials) -> SignatureSch
 #[test]
 fn signature_selection() {
     // ECDSA
-    required_capability(&[Capability::Tls13], || {
+    {
         let secp256r1 = CertMaterials::from_permutation("ec_ecdsa_p256_sha256");
         let secp521r1 = CertMaterials::from_permutation("ec_ecdsa_p521_sha512");
 
@@ -97,7 +97,7 @@ fn signature_selection() {
             trial(&policy, &secp521r1),
             iana::constants::ecdsa_secp521r1_sha512
         );
-    });
+    }
 
     // MLDSA
     required_capability(&[Capability::MLDsa], || {
