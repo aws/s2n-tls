@@ -358,7 +358,7 @@ impl Connection {
     /// This only applies to TLS1.3. Earlier versions do not support key updates.
     ///
     /// Corresponds to [`s2n_connection_get_key_update_counts`].
-    #[cfg(feature = "unstable-ktls")]
+    #[cfg(all(feature = "unstable-ktls", not(windows)))]
     pub fn key_update_counts(&self) -> Result<KeyUpdateCount, Error> {
         let mut send_key_updates = 0;
         let mut recv_key_updates = 0;
@@ -529,6 +529,10 @@ impl Connection {
     }
 
     /// Corresponds to [`s2n_connection_use_corked_io`].
+    ///
+    /// Not available on Windows: the underlying C implementation is gated
+    /// behind `#ifndef _WIN32`.
+    #[cfg(not(windows))]
     pub fn use_corked_io(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_connection_use_corked_io(self.connection.as_ptr()).into_result() }?;
         Ok(self)
