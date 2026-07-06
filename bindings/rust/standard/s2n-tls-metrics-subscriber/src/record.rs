@@ -96,6 +96,10 @@ pub(crate) struct HandshakeRecordInProgress {
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
     /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
+
+    /// Number of handshakes where an internal error prevented the metrics
+    /// subscriber from fully recording metrics.
+    internal_failure: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
@@ -136,19 +140,25 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
             synthetic_traffic_count: Default::default(),
+            internal_failure: Default::default(),
             exporter,
         }
     }
 
+    // This method should always be infallible. If there is an internal error
+    // e.g. being unable to retrieve something from s2n-tls, you should increment
+    // the internal_failure metric and log the error with `tracing::error!`
     pub fn update(
         &self,
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
         detector: Option<&dyn SyntheticTrafficDetector>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // client_hello is only available on the server side of the connection
+    ) {
+        // client_hello is only available on the server side of the connection.
+        // Even on the server side, the client hello may not be populated if the
+        // handshake failed before the client hello was fully received/parsed.
         let client_hello = if conn.mode() == s2n_tls::enums::Mode::Server {
-            Some(conn.client_hello()?)
+            conn.client_hello().ok()
         } else {
             None
         };
@@ -162,7 +172,7 @@ impl HandshakeRecordInProgress {
             if let Some(client_hello) = client_hello {
                 if detector.is_synthetic(client_hello) {
                     self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
-                    return Ok(());
+                    return;
                 }
             }
         }
@@ -174,7 +184,7 @@ impl HandshakeRecordInProgress {
                 if let Some(alert) = alert {
                     self.alerts.increment(&alert);
                 }
-                return Ok(());
+                return;
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
                 self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
@@ -182,49 +192,83 @@ impl HandshakeRecordInProgress {
             }
         };
 
+        // if it was a successful handshake and we're a server, then the client
+        // hello should always be available. If not, increment an internal failure
+        // metric and give up.
+        if conn.mode() == s2n_tls::enums::Mode::Server && client_hello.is_none() {
+            tracing::error!(
+                "client hello unavailable after successful handshake: {:?}",
+                conn.client_hello().err()
+            );
+            self.internal_failure.fetch_add(1, Ordering::Relaxed);
+            return;
+        }
+
         self.security_policies.record(event.security_policy_label());
 
         if let Some(client_hello) = client_hello {
-            if conn.client_hello_is_sslv2()? {
-                self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
-            } else {
-                let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
-
-                supported_parameter
-                    .supported_versions()
-                    .iter()
-                    .for_each(|version| self.supported_protocols.increment(version));
-
-                supported_parameter
-                    .supported_ciphers()
-                    .iter()
-                    .for_each(|cipher| self.supported_ciphers.increment(cipher));
-
-                supported_parameter
-                    .supported_groups()
-                    .iter()
-                    .flat_map(|groups| groups.iter())
-                    .for_each(|group| self.supported_groups.increment(group));
-
-                supported_parameter
-                    .supported_signatures()
-                    .iter()
-                    .flat_map(|sigs| sigs.iter())
-                    .for_each(|signature| self.supported_signatures.increment(signature));
-
-                if General20251201::supported(&supported_parameter) {
-                    self.compatibility_general20251201
-                        .fetch_add(1, Ordering::Relaxed);
+            match (
+                conn.client_hello_is_sslv2(),
+                ClientHelloSupportedParameters::new(client_hello),
+            ) {
+                (Ok(true), _) => {
+                    // we don't support parsing supported parameters from SSLv2
+                    // client hellos because they have a different structure
+                    self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
                 }
-                if Fips20251201::supported(&supported_parameter) {
-                    self.compatibility_fips20251201
-                        .fetch_add(1, Ordering::Relaxed);
+                (Ok(false), Ok(supported_parameter)) => {
+                    supported_parameter
+                        .supported_versions()
+                        .iter()
+                        .for_each(|version| self.supported_protocols.increment(version));
+
+                    supported_parameter
+                        .supported_ciphers()
+                        .iter()
+                        .for_each(|cipher| self.supported_ciphers.increment(cipher));
+
+                    supported_parameter
+                        .supported_groups()
+                        .iter()
+                        .flat_map(|groups| groups.iter())
+                        .for_each(|group| self.supported_groups.increment(group));
+
+                    supported_parameter
+                        .supported_signatures()
+                        .iter()
+                        .flat_map(|sigs| sigs.iter())
+                        .for_each(|signature| self.supported_signatures.increment(signature));
+
+                    if General20251201::supported(&supported_parameter) {
+                        self.compatibility_general20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Fips20251201::supported(&supported_parameter) {
+                        self.compatibility_fips20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa1::supported(&supported_parameter) {
+                        self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa2::supported(&supported_parameter) {
+                        self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
-                if Cnsa1::supported(&supported_parameter) {
-                    self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                (Err(e), _) => {
+                    // never expected to fail: a failure means the handshake
+                    // succeeded without s2n-tls knowing whether or not it was
+                    // an SSLv2 client hello
+                    tracing::error!("failed to determine sslv2 client hello status: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
                 }
-                if Cnsa2::supported(&supported_parameter) {
-                    self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                (_, Err(e)) => {
+                    // never expected to fail: a failure means that s2n-tls 
+                    // considered the client hello well-formed, but our parser
+                    // didn't
+                    tracing::error!("failed to parse client hello supported parameters: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
                 }
             }
         }
@@ -327,8 +371,6 @@ impl HandshakeRecordInProgress {
         );
         self.handshake_duration_us
             .fetch_add(event.duration().as_micros() as u64, Ordering::Relaxed);
-
-        Ok(())
     }
 
     /// make a copy of this record to be exported.
@@ -379,6 +421,9 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            internal_failure: self
+                .internal_failure
+                .load(Ordering::Relaxed),
             security_policies: self.security_policies.freeze(),
         }
     }
@@ -984,5 +1029,56 @@ mod tests {
         // No RSA in client fields, no ECDSA in server fields
         assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
         assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
+    }
+
+    /// After a Hello Retry Request, the server's client_hello may not be
+    /// available. This test documents that behavior by asserting that an
+    /// internal_failure is recorded for the server-side HRR handshake.
+    #[test]
+    fn hello_retry_request_internal_failure() {
+        use s2n_tls::security::Policy;
+
+        let sink = crate::test_utils::VecSink::new();
+        let attribution = crate::Attribution {
+            service: "test_server".to_owned(),
+            resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
+        };
+        let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        // Use a server policy with strongly preferred groups to force HRR.
+        // "20251117" strongly prefers secp384r1, so a client that sends a
+        // secp256r1 key share will trigger a HelloRetryRequest.
+        let hrr_policy = Policy::from_version("20251117").unwrap();
+        let server_config = {
+            let mut config = s2n_tls::testing::config_builder(&hrr_policy).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.build().unwrap()
+        };
+
+        // Client uses default_tls13 which sends secp256r1 as its initial key share
+        let client_config =
+            s2n_tls::testing::build_config(&s2n_tls::security::DEFAULT_TLS13).unwrap();
+        let mut pair =
+            s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // The handshake succeeded
+        assert_eq!(record.handshake_success_count, 1);
+
+        // Check if HRR actually happened by looking at the negotiated group.
+        // If HRR happened, the server should have negotiated secp384r1 even
+        // though the client initially offered secp256r1.
+        let negotiated_group = pair.server.selected_key_exchange_group();
+        eprintln!("negotiated group: {:?}", negotiated_group);
+        eprintln!("internal_failure: {}", record.internal_failure);
+        eprintln!("handshake_success_count: {}", record.handshake_success_count);
+
+        // But the client hello was unavailable after HRR, causing an internal failure
+        assert_eq!(record.internal_failure, 1);
     }
 }
