@@ -116,7 +116,9 @@ int s2n_record_parse_aead(
     }
 
     /* Truncate and wipe the MAC and any padding */
-    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
+    uint32_t wipe_len = 0;
+    POSIX_GUARD(s2n_sub_overflow(s2n_stuffer_data_available(&conn->in), payload_length, &wipe_len));
+    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, wipe_len));
     conn->in_status = PLAINTEXT;
 
     return 0;
