@@ -117,6 +117,94 @@ jobs:
         with:
           clang-format-version: '18'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
+
+  iwyu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iwyu libssl-dev clang cmake
+          include-what-you-use --version
+
+      - name: Generate compilation database
+        run: |
+          cmake . -B build \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Report unused includes
+        # This check is INFORMATIONAL: it reports unused includes but never fails
+        # the job. The s2n-tls tree has many pre-existing findings, so gating PRs
+        # on it would block all changes. It can be made blocking after a cleanup
+        # pass by exiting non-zero when unused includes remain.
+        #
+        # IWYU flags (forwarded via -Xiwyu):
+        #   --mapping_file            s2n include conventions (see .github/config/s2n.imp)
+        #   --prefix_header_includes=keep
+        #                             s2n compiles every file with `-include s2n_prelude.h`;
+        #                             keep it instead of letting IWYU add/remove it.
+        #   --no_fwd_decls            s2n is C, so forward-declaration hints don't apply.
+        run: |
+          IWYU_OUTPUT=$(iwyu_tool -p build \
+            crypto error stuffer tls utils tests/unit tests/testlib -- \
+            -Xiwyu --mapping_file="$PWD/.github/config/s2n.imp" \
+            -Xiwyu --prefix_header_includes=keep \
+            -Xiwyu --no_fwd_decls 2>&1)
+
+          # IWYU output is verbose: for each file it also lists includes to ADD
+          # and prints a full corrected include-list. Developers here only care
+          # about UNUSED includes to delete, so we keep just the
+          # "should remove these lines:" sections and reformat each entry as:
+          #
+          #   path/to/file.c:<line>: unused include <header>
+          #
+          # which is compact, greppable, and clickable in the CI log. The awk
+          # tracks the current file (from the "should remove" header, stripped to
+          # a repo-relative path) and, for each "- #include" line under it,
+          # extracts the header spelling and the line number from the trailing
+          # "// lines X-X" comment.
+          UNUSED=$(echo "$IWYU_OUTPUT" | awk -v root="$PWD/" '
+            /should remove these lines:/ { file=$1; sub(root, "", file); inremove=1; next }
+            /^The full include-list/     { inremove=0 }
+            /should add these lines:/    { inremove=0 }
+            inremove && /^- #include/ {
+              hdr=$0; sub(/^- #include /, "", hdr)
+              line=hdr; sub(/.*\/\/ lines /, "", line); sub(/-.*/, "", line)
+              inc=hdr;  sub(/  *\/\/.*/, "", inc)
+              print file ":" line ": unused include " inc
+            }
+          ')
+
+          UNUSED_COUNT=$(echo "$UNUSED" | grep -c . || true)
+          UNUSED_FILE_COUNT=$(echo "$UNUSED" | sed 's/:.*//' | sort -u | grep -c . || true)
+
+          echo "===== Unused includes ====="
+          echo "$UNUSED"
+          echo "==========================="
+          echo "Total: $UNUSED_COUNT unused include(s) in $UNUSED_FILE_COUNT file(s)"
+
+          {
+            echo "## include-what-you-use: unused includes (informational)"
+            if [ "$UNUSED_COUNT" -gt 0 ]; then
+              echo "Found **$UNUSED_COUNT** unused include(s) across **$UNUSED_FILE_COUNT** file(s)."
+              echo "Each line is \`file:line: unused include <header>\` — candidates to delete."
+              echo '```'
+              echo "$UNUSED"
+              echo '```'
+            else
+              echo "No unused includes found."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$UNUSED_COUNT" -gt 0 ]; then
+            echo "::warning::include-what-you-use found $UNUSED_COUNT unused include(s) in $UNUSED_FILE_COUNT file(s) (informational, not blocking)."
+          fi
+          # Always succeed: this check is informational for now.
+          exit 0
+
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest

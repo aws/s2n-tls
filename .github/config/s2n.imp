@@ -1,0 +1,26 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# include-what-you-use (IWYU) mapping file for s2n-tls.
+#
+# This file teaches IWYU about s2n-specific include conventions so that it
+# suggests the header that s2n developers are expected to include, rather than
+# the header that physically defines a symbol. See:
+# https://github.com/include-what-you-use/include-what-you-use/blob/master/docs/IWYUMappings.md
+#
+# Format reminder:
+#   { "include": [ "<from>", "<vis>", "<to>", "<vis>" ] }
+# means "when a file would include <from>, tell it to include <to> instead".
+# A "private" visibility marks a header that must never be included directly.
+
+# NOTE: The public API lives at api/s2n.h, but the build adds `-I api` to the
+# include path, so IWYU reports it as "s2n.h" (it always uses the shortest
+# spelling reachable from an -I directory). This spelling cannot be remapped to
+# "api/s2n.h" via this file; treat "s2n.h" suggestions as "api/s2n.h".
+[
+  # utils/s2n_safety.h is the umbrella header for s2n's safety/ensure macros
+  # (POSIX_GUARD, RESULT_ENSURE, etc.). The macros are physically split across
+  # s2n_safety_macros.h and s2n_ensure.h, but callers must include the umbrella.
+  { "include": [ "\"utils/s2n_safety_macros.h\"", "private", "\"utils/s2n_safety.h\"", "public" ] },
+  { "include": [ "\"utils/s2n_ensure.h\"", "private", "\"utils/s2n_safety.h\"", "public" ] }
+]
