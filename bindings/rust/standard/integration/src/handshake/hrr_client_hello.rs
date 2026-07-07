@@ -65,7 +65,7 @@ fn first_client_hello_not_available_after_hrr() {
         let decrypted_stream = pair.io.decrypter.borrow();
         let transcript = decrypted_stream.as_ref().unwrap().transcript();
 
-        assert!(transcript.hello_retry_request().is_some(),);
+        assert!(transcript.hello_retry_request().is_some());
 
         let client_hellos = transcript.client_hellos();
         assert_eq!(client_hellos.len(), 2);
