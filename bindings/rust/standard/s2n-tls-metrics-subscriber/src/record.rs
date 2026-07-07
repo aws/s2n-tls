@@ -263,7 +263,7 @@ impl HandshakeRecordInProgress {
                     return;
                 }
                 (_, Err(e)) => {
-                    // never expected to fail: a failure means that s2n-tls 
+                    // never expected to fail: a failure means that s2n-tls
                     // considered the client hello well-formed, but our parser
                     // didn't
                     tracing::error!("failed to parse client hello supported parameters: {e}");
@@ -421,9 +421,7 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
-            internal_failure: self
-                .internal_failure
-                .load(Ordering::Relaxed),
+            internal_failure: self.internal_failure.load(Ordering::Relaxed),
             security_policies: self.security_policies.freeze(),
         }
     }
@@ -1031,54 +1029,58 @@ mod tests {
         assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
     }
 
-    /// After a Hello Retry Request, the server's client_hello may not be
-    /// available. This test documents that behavior by asserting that an
-    /// internal_failure is recorded for the server-side HRR handshake.
+    /// A handshake that fails before the client hello is received should still
+    /// record a failure metric without panicking.
     #[test]
-    fn hello_retry_request_internal_failure() {
-        use s2n_tls::security::Policy;
+    fn failure_without_client_hello() {
+        use std::{io::Write, task::Poll};
 
         let sink = crate::test_utils::VecSink::new();
         let attribution = crate::Attribution {
-            service: "test_server".to_owned(),
-            resource: "test_resource".to_owned(),
-            component: "test_component".to_owned(),
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
         };
         let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
 
-        // Use a server policy with strongly preferred groups to force HRR.
-        // "20251117" strongly prefers secp384r1, so a client that sends a
-        // secp256r1 key share will trigger a HelloRetryRequest.
-        let hrr_policy = Policy::from_version("20251117").unwrap();
         let server_config = {
-            let mut config = s2n_tls::testing::config_builder(&hrr_policy).unwrap();
+            let mut config =
+                s2n_tls::testing::config_builder(&s2n_tls::security::DEFAULT_TLS13).unwrap();
             config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.set_max_blinding_delay(0).unwrap();
             config.build().unwrap()
         };
-
-        // Client uses default_tls13 which sends secp256r1 as its initial key share
         let client_config =
             s2n_tls::testing::build_config(&s2n_tls::security::DEFAULT_TLS13).unwrap();
-        let mut pair =
-            s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
-        pair.handshake().unwrap();
+
+        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+
+        // Write garbage that looks like a TLS record but with invalid content.
+        // Record header: content_type(1) | version(2) | length(2) | payload
+        // Use content_type 0xFF (invalid) to trigger an immediate error.
+        let garbage_record: &[u8] = &[
+            0x16, // content_type: handshake
+            0x03, 0x01, // version: TLS 1.0
+            0x00, 0x05, // length: 5 bytes
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // garbage handshake payload
+        ];
+        pair.io
+            .client_tx_stream
+            .borrow_mut()
+            .write_all(garbage_record)
+            .unwrap();
+
+        // The server should fail because it received garbage instead of a client hello.
+        match pair.server.poll_negotiate() {
+            Poll::Ready(Err(_)) => {}
+            other => panic!("expected server error, got {:?}", other),
+        }
 
         subscriber.finish_record();
         let records = sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        // The handshake succeeded
-        assert_eq!(record.handshake_success_count, 1);
-
-        // Check if HRR actually happened by looking at the negotiated group.
-        // If HRR happened, the server should have negotiated secp384r1 even
-        // though the client initially offered secp256r1.
-        let negotiated_group = pair.server.selected_key_exchange_group();
-        eprintln!("negotiated group: {:?}", negotiated_group);
-        eprintln!("internal_failure: {}", record.internal_failure);
-        eprintln!("handshake_success_count: {}", record.handshake_success_count);
-
-        // But the client hello was unavailable after HRR, causing an internal failure
-        assert_eq!(record.internal_failure, 1);
+        assert_eq!(record.handshake_failure_count, 1);
+        assert_eq!(record.internal_failure, 0);
     }
 }

@@ -281,10 +281,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             names::SYNTHETIC_TRAFFIC_COUNT,
             &self.synthetic_traffic_count,
         );
-        writer.value(
-            names::INTERNAL_FAILURE,
-            &self.internal_failure,
-        );
+        writer.value(names::INTERNAL_FAILURE, &self.internal_failure);
     }
 }
 
