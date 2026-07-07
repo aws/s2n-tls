@@ -1056,8 +1056,6 @@ mod tests {
         let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
 
         // Write garbage that looks like a TLS record but with invalid content.
-        // Record header: content_type(1) | version(2) | length(2) | payload
-        // Use content_type 0xFF (invalid) to trigger an immediate error.
         let garbage_record: &[u8] = &[
             0x16, // content_type: handshake
             0x03, 0x01, // version: TLS 1.0
@@ -1075,6 +1073,8 @@ mod tests {
             Poll::Ready(Err(_)) => {}
             other => panic!("expected server error, got {:?}", other),
         }
+        // confirm that the "client hello" was not available
+        assert!(pair.server.client_hello().is_err());
 
         subscriber.finish_record();
         let records = sink.records.lock().unwrap();
