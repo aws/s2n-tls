@@ -51,3 +51,8 @@ struct s2n_security_rule {
 S2N_RESULT s2n_security_policy_validate_security_rules(
         const struct s2n_security_policy *policy,
         struct s2n_security_rule_result *result);
+
+S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rule,
+        const struct s2n_security_policy *policy, struct s2n_security_rule_result *result);
+
+extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
