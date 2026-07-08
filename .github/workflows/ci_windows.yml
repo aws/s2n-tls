@@ -161,6 +161,13 @@ jobs:
               --root "${{matrix.env-path}}" bindgen-cli
           fi
 
+      # openssl-src doesn't pass `-j` to make on Windows, so the vendored OpenSSL
+      # build runs single-threaded. Export MAKEFLAGS so make parallelizes
+      # which speeds up Openssl Vendered version build.
+      - name: Enable parallel make for vendored OpenSSL
+        shell: msys2 {0}
+        run: echo "MAKEFLAGS=-j$(nproc)" >> "$GITHUB_ENV"
+
       - name: Generate Rust bindings
         shell: msys2 {0}
         run: |
