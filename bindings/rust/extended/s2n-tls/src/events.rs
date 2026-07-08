@@ -7,12 +7,69 @@ use crate::connection::Connection;
 
 pub struct HandshakeEvent<'a>(&'a s2n_tls_sys::s2n_event_handshake);
 
+/// The outcome of a handshake: either success with negotiated parameters,
+/// or failure with error information.
+pub enum HandshakeResult<'a> {
+    Success(HandshakeSuccess<'a>),
+    Failure(HandshakeFailure<'a>),
+}
+
+/// Negotiated parameters available after a successful handshake.
+pub struct HandshakeSuccess<'a>(&'a s2n_tls_sys::s2n_event_handshake);
+
+/// Error information available after a failed handshake.
+pub struct HandshakeFailure<'a>(&'a s2n_tls_sys::s2n_event_handshake);
+
 impl<'a> HandshakeEvent<'a> {
     pub(crate) fn new(event: &'a s2n_tls_sys::s2n_event_handshake) -> Self {
         Self(event)
     }
 
-    /// Return the negotiated protocol version on the connection
+    /// The security policy label for the connection.
+    pub fn security_policy_label(&self) -> &'static str {
+        maybe_string(self.0.security_policy_label).unwrap_or("unknown")
+    }
+
+    /// Handshake duration, which includes network latency and waiting for the peer.
+    pub fn duration(&self) -> Duration {
+        Duration::from_nanos(self.0.handshake_end_ns - self.0.handshake_start_ns)
+    }
+
+    /// Handshake time, which is just the amount of time synchronously spent in s2n_negotiate.
+    ///
+    /// This is roughly the "cpu cost" of the handshake.
+    pub fn synchronous_time(&self) -> Duration {
+        Duration::from_nanos(self.0.handshake_time_ns)
+    }
+
+    /// Returns the outcome of the handshake, providing access to either the
+    /// negotiated parameters (on success) or error information (on failure).
+    pub fn result(&self) -> HandshakeResult<'a> {
+        if self.0.error_code == 0 {
+            HandshakeResult::Success(HandshakeSuccess(self.0))
+        } else {
+            HandshakeResult::Failure(HandshakeFailure(self.0))
+        }
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn protocol_version(&self) -> crate::enums::Version {
+        HandshakeSuccess(self.0).protocol_version()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn cipher(&self) -> &'static str {
+        HandshakeSuccess(self.0).cipher()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn group(&self) -> Option<&'static str> {
+        HandshakeSuccess(self.0).group()
+    }
+}
+
+impl HandshakeSuccess<'_> {
+    /// Return the negotiated protocol version on the connection.
     pub fn protocol_version(&self) -> crate::enums::Version {
         self.0.protocol_version.try_into().unwrap()
     }
@@ -33,35 +90,32 @@ impl<'a> HandshakeEvent<'a> {
             Some(group)
         }
     }
+}
 
-    /// The security policy label for the connection.
-    pub fn security_policy_label(&self) -> &'static str {
-        maybe_string(self.0.security_policy_label).unwrap_or("unknown")
-    }
-
-    /// Handshake duration, which includes network latency and waiting for the peer.
-    pub fn duration(&self) -> Duration {
-        Duration::from_nanos(self.0.handshake_end_ns - self.0.handshake_start_ns)
-    }
-
-    /// Handshake time, which is just the amount of time synchronously spent in s2n_negotiate.
-    ///
-    /// This is roughly the "cpu cost" of the handshake.
-    pub fn synchronous_time(&self) -> Duration {
-        Duration::from_nanos(self.0.handshake_time_ns)
+impl HandshakeFailure<'_> {
+    /// The s2n error code for the handshake failure.
+    pub fn error_code(&self) -> i32 {
+        self.0.error_code
     }
 }
 
 impl Debug for HandshakeEvent<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("s2n_event_handshake")
-            .field("protocol_version", &self.protocol_version())
-            .field("cipher", &self.cipher())
-            .field("group", &self.group())
-            .field("security_policy_label", &self.security_policy_label())
-            .field("handshake_duration", &self.duration())
-            .field("handshake_cpu_duration", &self.synchronous_time())
-            .finish()
+        let mut s = f.debug_struct("HandshakeEvent");
+        s.field("security_policy_label", &self.security_policy_label())
+            .field("duration", &self.duration())
+            .field("synchronous_time", &self.synchronous_time());
+        match self.result() {
+            HandshakeResult::Success(success) => {
+                s.field("protocol_version", &success.protocol_version())
+                    .field("cipher", &success.cipher())
+                    .field("group", &success.group());
+            }
+            HandshakeResult::Failure(failure) => {
+                s.field("error_code", &failure.error_code());
+            }
+        }
+        s.finish()
     }
 }
 
@@ -87,6 +141,7 @@ pub trait EventSubscriber: 'static + Send + Sync {
 #[cfg(test)]
 mod tests {
     use futures_test::task::noop_waker;
+    use std::ffi::CStr;
 
     use crate::{
         enums::Version, error::Error as S2NError, security::DEFAULT_TLS13,
@@ -97,6 +152,7 @@ mod tests {
             atomic::{AtomicU64, Ordering},
             Arc, Mutex,
         },
+        task::Poll,
         time::SystemTime,
     };
 
@@ -105,8 +161,9 @@ mod tests {
         security::{self, Policy},
         testing::{build_config, config_builder, TestPair},
     };
+
     #[derive(Debug)]
-    struct ExpectedEvent {
+    struct ExpectedSuccess {
         cipher: &'static str,
         group: Option<&'static str>,
         protocol: crate::enums::Version,
@@ -116,31 +173,34 @@ mod tests {
     #[derive(Debug, Default)]
     pub struct TestSubscriber {
         invoked: Arc<AtomicU64>,
-        expected_event: Arc<Mutex<Option<ExpectedEvent>>>,
+        expected: Arc<Mutex<Option<ExpectedSuccess>>>,
     }
 
-    impl ExpectedEvent {
-        fn assert_similar(&self, event: &HandshakeEvent) {
-            assert_eq!(self.cipher, event.cipher());
-            assert_eq!(self.group, event.group());
-            assert_eq!(self.protocol, event.protocol_version());
+    impl ExpectedSuccess {
+        fn assert_matches(&self, event: &HandshakeEvent) {
+            let success = match event.result() {
+                HandshakeResult::Success(s) => s,
+                HandshakeResult::Failure(_) => panic!("expected success, got failure"),
+            };
+            assert_eq!(self.cipher, success.cipher());
+            assert_eq!(self.group, success.group());
+            assert_eq!(self.protocol, success.protocol_version());
             assert_eq!(self.security_policy_label, event.security_policy_label());
         }
     }
 
     impl TestSubscriber {
-        fn set_expected_event(&self, event: ExpectedEvent) {
-            let mut expected_event = self.expected_event.lock().unwrap();
-            *expected_event = Some(event);
+        fn set_expected(&self, event: ExpectedSuccess) {
+            *self.expected.lock().unwrap() = Some(event);
         }
     }
 
     impl EventSubscriber for TestSubscriber {
         fn on_handshake_event(&self, _conn: &Connection, event: &HandshakeEvent) {
             assert!(event.synchronous_time() <= event.duration());
-            let expected_event = self.expected_event.lock().unwrap();
-            if let Some(expected) = expected_event.as_ref() {
-                expected.assert_similar(event);
+            let expected = self.expected.lock().unwrap();
+            if let Some(expected) = expected.as_ref() {
+                expected.assert_matches(event);
             }
             self.invoked
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -149,7 +209,7 @@ mod tests {
 
     #[test]
     fn tls13_handshake() -> Result<(), S2NError> {
-        const EXPECTED_EVENT: ExpectedEvent = ExpectedEvent {
+        const EXPECTED: ExpectedSuccess = ExpectedSuccess {
             cipher: "TLS_AES_128_GCM_SHA256",
             group: Some("X25519MLKEM768"),
             protocol: Version::TLS13,
@@ -158,7 +218,7 @@ mod tests {
 
         let subscriber = TestSubscriber::default();
         let invoked = subscriber.invoked.clone();
-        subscriber.set_expected_event(EXPECTED_EVENT);
+        subscriber.set_expected(EXPECTED);
 
         let server_config = {
             let mut builder = config_builder(&security::DEFAULT).unwrap();
@@ -206,7 +266,7 @@ mod tests {
     /// When RSA key exchange is negotiated, the group is not recorded in the event
     #[test]
     fn rsa_key_exchange() -> Result<(), S2NError> {
-        const EXPECTED_EVENT: ExpectedEvent = ExpectedEvent {
+        const EXPECTED: ExpectedSuccess = ExpectedSuccess {
             cipher: "AES128-SHA256",
             group: None,
             protocol: Version::TLS12,
@@ -218,7 +278,7 @@ mod tests {
 
         let subscriber = TestSubscriber::default();
         let invoked = subscriber.invoked.clone();
-        subscriber.set_expected_event(EXPECTED_EVENT);
+        subscriber.set_expected(EXPECTED);
 
         let server_config = {
             let mut builder = config_builder(&rsa_kx_policy).unwrap();
@@ -238,13 +298,13 @@ mod tests {
 
     #[test]
     fn tls12_handshake() -> Result<(), S2NError> {
-        const FULL_HS_EVENT: ExpectedEvent = ExpectedEvent {
+        const FULL_HS: ExpectedSuccess = ExpectedSuccess {
             cipher: "ECDHE-RSA-AES128-GCM-SHA256",
             group: Some("secp256r1"),
             protocol: Version::TLS12,
             security_policy_label: "ELBSecurityPolicy-TLS-1-0-2015-04",
         };
-        const RESUMPTION_EVENT: ExpectedEvent = ExpectedEvent {
+        const RESUMPTION: ExpectedSuccess = ExpectedSuccess {
             cipher: "ECDHE-RSA-AES128-GCM-SHA256",
             group: None,
             protocol: Version::TLS12,
@@ -253,7 +313,7 @@ mod tests {
 
         let subscriber = TestSubscriber::default();
         let invoked = subscriber.invoked.clone();
-        let expected_event = subscriber.expected_event.clone();
+        let expected = subscriber.expected.clone();
         // arbitrary policy which only allows TLS 1.2 and supports ECDHE
         let tls12_ecdhe_policy = Policy::from_version("ELBSecurityPolicy-TLS-1-0-2015-04")?;
 
@@ -280,7 +340,7 @@ mod tests {
         };
 
         // full handshake: ECDHE negotiated, so group is recorded
-        *expected_event.lock().unwrap() = Some(FULL_HS_EVENT);
+        *expected.lock().unwrap() = Some(FULL_HS);
         {
             let mut test_pair = TestPair::from_configs(&client_config, &server_config);
             test_pair.client.set_waker(Some(&noop_waker()))?;
@@ -290,7 +350,7 @@ mod tests {
 
         // session resumption: there is no additional ECDHE in TLS 1.2 session
         // resumption, so no group is recorded.
-        *expected_event.lock().unwrap() = Some(RESUMPTION_EVENT);
+        *expected.lock().unwrap() = Some(RESUMPTION);
         {
             let mut test_pair = TestPair::from_configs(&client_config, &server_config);
             test_pair.client.set_waker(Some(&noop_waker()))?;
@@ -329,11 +389,24 @@ mod tests {
         Ok(())
     }
 
-    /// No handshake event is emitted in the case of failure.
+    /// A handshake event is emitted in the case of failure, with error information.
     #[test]
-    fn no_event_when_failure() -> Result<(), S2NError> {
-        let subscriber = TestSubscriber::default();
-        let invoked = subscriber.invoked.clone();
+    fn failure_event() -> Result<(), S2NError> {
+        #[derive(Debug, Default)]
+        struct TestErrorSubscriber {
+            error_code: Arc<Mutex<Option<i32>>>,
+        }
+
+        impl EventSubscriber for TestErrorSubscriber {
+            fn on_handshake_event(&self, _conn: &Connection, event: &HandshakeEvent) {
+                if let HandshakeResult::Failure(failure) = event.result() {
+                    *self.error_code.lock().unwrap() = Some(failure.error_code());
+                }
+            }
+        }
+
+        let subscriber = TestErrorSubscriber::default();
+        let error_code = subscriber.error_code.clone();
 
         let server_config = {
             // doesn't allow TLS 1.3
@@ -346,9 +419,26 @@ mod tests {
         let client_config = build_config(&DEFAULT_TLS13).unwrap();
 
         let mut pair = TestPair::from_configs(&client_config, &server_config);
-        pair.handshake().unwrap_err();
+        // Drive the client first to send the ClientHello, then the server
+        // to process it and fail.
+        pair.server.set_waker(Some(&noop_waker()))?;
+        let _ = pair.client.poll_negotiate();
+        let server_err = match pair.server.poll_negotiate() {
+            Poll::Ready(Err(e)) => e,
+            other => panic!("expected server failure, got {:?}", other),
+        };
 
-        assert_eq!(invoked.load(Ordering::Relaxed), 0);
+        let code = error_code
+            .lock()
+            .unwrap()
+            .expect("failure event was emitted");
+        let event_error_name = unsafe {
+            CStr::from_ptr(s2n_tls_sys::s2n_strerror_name(code))
+                .to_str()
+                .unwrap()
+        };
+        assert_eq!(event_error_name, server_err.name());
+
         Ok(())
     }
 }

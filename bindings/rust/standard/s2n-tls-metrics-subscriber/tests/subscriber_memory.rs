@@ -144,8 +144,8 @@ fn subscriber_allocation_budget() {
     // byte counts can drift with capacity rounding so we use fuzzy_equals.
     /// The allocations done per handshake (on_handshake_event callback)
     const HANDSHAKE: AllocDelta = AllocDelta {
-        blocks: 8,
-        bytes: 344,
+        blocks: 16,
+        bytes: 1360,
     };
 
     // Bytes scale with `sizeof(HandshakeRecordInProgress)` (per-flush
@@ -156,8 +156,8 @@ fn subscriber_allocation_budget() {
     // Note that blocks may not scale in a strictly linear manner because of how
     // the mpsc channel allocs in chunks.
     const EXPORT: AllocDelta = AllocDelta {
-        blocks: 4,
-        bytes: 2564,
+        blocks: 5,
+        bytes: 4966,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across

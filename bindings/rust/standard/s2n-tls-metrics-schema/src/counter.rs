@@ -60,6 +60,14 @@ impl<const N: usize, T: FiniteCounter<N>> FrozenCounter<N, T> {
             .filter(|&(_, &c)| c > 0)
             .filter_map(|(slot, &c)| T::key_from_slot(slot).map(|key| (slot, key, c)))
     }
+
+    /// Returns the count for a given element.
+    pub fn get(&self, element: &T) -> u64 {
+        element
+            .slot_from_key()
+            .map(|slot| self.slots[slot])
+            .unwrap_or(0)
+    }
 }
 
 impl<const N: usize, T: FiniteCounter<N>> Default for FrozenCounter<N, T> {

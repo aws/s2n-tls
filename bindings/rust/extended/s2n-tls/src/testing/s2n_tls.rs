@@ -580,7 +580,7 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature = "unstable-ktls")]
+    #[cfg(all(feature = "unstable-ktls", not(windows)))]
     #[test]
     fn key_updates() -> Result<(), Error> {
         use crate::{connection::KeyUpdateCount, enums::PeerKeyUpdate};

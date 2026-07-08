@@ -205,13 +205,7 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
             .synthetic_detector
             .get()
             .map(|boxed| boxed.as_ref());
-        let res = current_record.update(connection, event, detector);
-        // we never expect this to fail, but if it fails in production there is
-        // no meaningful way to handle the failure
-        debug_assert!(res.is_ok());
-        if let Err(e) = res {
-            tracing::error!("failed to update handshake record: {e}");
-        }
+        current_record.update(connection, event, detector);
         // Drop the Arc before attempting export so that finish_record can
         // observe the final reference count drop.
         drop(current_record);
@@ -294,9 +288,9 @@ mod tests {
         );
 
         // Verify handshake counts
-        assert_eq!(records[0].as_schema().handshake.handshake_count, 2);
-        assert_eq!(records[1].as_schema().handshake.handshake_count, 1);
-        assert_eq!(records[2].as_schema().handshake.handshake_count, 0);
+        assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
+        assert_eq!(records[1].as_schema().handshake.handshake_success_count, 1);
+        assert_eq!(records[2].as_schema().handshake.handshake_success_count, 0);
     }
 
     /// Passive export: when the interval has elapsed, the next handshake
@@ -400,7 +394,7 @@ mod tests {
         assert_eq!(records.len(), 1);
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 2);
+        assert_eq!(record.handshake_success_count, 2);
         assert_eq!(record.synthetic_traffic_count, 3);
         assert_eq!(record.negotiated_protocols.total(), 2);
         assert_eq!(record.negotiated_ciphers.total(), 2);
@@ -416,7 +410,7 @@ mod tests {
         endpoint.subscriber.finish_record();
 
         let records = endpoint.sink.records.lock().unwrap();
-        assert_eq!(records[0].as_schema().handshake.handshake_count, 2);
+        assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
         assert_eq!(records[0].as_schema().handshake.synthetic_traffic_count, 0);
     }
 }

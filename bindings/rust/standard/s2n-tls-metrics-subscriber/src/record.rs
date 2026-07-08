@@ -9,16 +9,18 @@ use std::{
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        CIPHER_COUNT, Cipher, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature,
-        Version,
+        Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
+        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
+        Signature, Version,
     },
 };
 
 use crate::{
+    bounded_set::BoundedStringSet,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
-    parsing::ClientHelloSupportedParameters,
+    parsing::{self, ClientHelloSupportedParameters},
 };
 
 fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
@@ -41,8 +43,14 @@ pub(crate) struct HandshakeRecordInProgress {
     /// point it can be exported. This is only used in the drop impl.
     exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>,
 
+    security_policies: BoundedStringSet,
+
     /// the total number of handshakes that this record represents.
-    handshake_count: AtomicU64,
+    handshake_success_count: AtomicU64,
+
+    /// the total number of failed handshakes
+    handshake_failure_count: AtomicU64,
+    alerts: Counter<DEFINED_ALERTS_COUNT, Alert>,
 
     negotiated_protocols: Counter<PROTOCOL_COUNT, Version>,
     negotiated_ciphers: Counter<CIPHER_COUNT, Cipher>,
@@ -57,6 +65,19 @@ pub(crate) struct HandshakeRecordInProgress {
     supported_groups: Counter<GROUP_COUNT, Group>,
     supported_signatures: Counter<SIGNATURE_COUNT, Signature>,
 
+    // chain counters will increment for both the ICA and the CA
+    server_leaf_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    server_leaf_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    server_chain_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    server_chain_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    client_leaf_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    client_leaf_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    client_chain_cert_key: Counter<CERT_KEY_COUNT, CertKeyType>,
+    client_chain_cert_sig: Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+    /// indicates a parsing error in the metrics subscriber der codec
+    server_cert_parsing_failure: AtomicU64,
+    client_cert_parsing_failure: AtomicU64,
+
     compatibility_general20251201: AtomicU64,
     compatibility_fips20251201: AtomicU64,
     compatibility_cnsa1: AtomicU64,
@@ -64,23 +85,30 @@ pub(crate) struct HandshakeRecordInProgress {
 
     /// sum of handshake duration, including network latency and waiting
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_duration_us: AtomicU64,
     /// sum of handshake compute
     ///
-    /// To get the average, divide this by handshake_count.
+    /// To get the average, divide this by handshake_success_count.
     handshake_compute_us: AtomicU64,
 
     /// Number of handshakes flagged by the configured
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
-    /// every other counter on this record (including `handshake_count`).
+    /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
+
+    /// Number of handshakes where an internal error prevented the metrics
+    /// subscriber from fully recording metrics.
+    internal_failure: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
     pub fn new(exporter: std::sync::mpsc::Sender<FrozenHandshakeRecord>) -> Self {
         Self {
-            handshake_count: Default::default(),
+            security_policies: Default::default(),
+            handshake_success_count: Default::default(),
+            handshake_failure_count: Default::default(),
+            alerts: Counter::new(),
 
             negotiated_groups: Counter::new(),
             negotiated_ciphers: Counter::new(),
@@ -93,6 +121,17 @@ impl HandshakeRecordInProgress {
             supported_protocols: Counter::new(),
             supported_signatures: Counter::new(),
 
+            server_leaf_cert_key: Counter::new(),
+            server_leaf_cert_sig: Counter::new(),
+            server_chain_cert_key: Counter::new(),
+            server_chain_cert_sig: Counter::new(),
+            client_leaf_cert_key: Counter::new(),
+            client_leaf_cert_sig: Counter::new(),
+            client_chain_cert_key: Counter::new(),
+            client_chain_cert_sig: Counter::new(),
+            server_cert_parsing_failure: Default::default(),
+            client_cert_parsing_failure: Default::default(),
+
             compatibility_general20251201: AtomicU64::default(),
             compatibility_fips20251201: AtomicU64::default(),
             compatibility_cnsa1: AtomicU64::default(),
@@ -101,89 +140,226 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
             synthetic_traffic_count: Default::default(),
+            internal_failure: Default::default(),
             exporter,
         }
     }
 
+    // This method should always be infallible. If there is an internal error
+    // e.g. being unable to retrieve something from s2n-tls, you should increment
+    // the internal_failure metric and log the error with `tracing::error!`
     pub fn update(
         &self,
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
         detector: Option<&dyn SyntheticTrafficDetector>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let client_hello = conn.client_hello()?;
+    ) {
+        // client_hello is only available on the server side of the connection.
+        // Even on the server side, the client hello may not be populated if the
+        // handshake failed before the client hello was fully received/parsed.
+        let client_hello = if conn.mode() == s2n_tls::enums::Mode::Server {
+            conn.client_hello().ok()
+        } else {
+            None
+        };
 
         // Run the detector first, on every handshake (including SSLv2).
         // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
-        // every other counter (including `handshake_count`) reflects real
+        // every other counter (including `handshake_success_count`) reflects real
         // traffic only, so consumers can read each metric directly without
         // post-processing.
         if let Some(detector) = detector {
-            if detector.is_synthetic(client_hello) {
-                self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
-                return Ok(());
+            if let Some(client_hello) = client_hello {
+                if detector.is_synthetic(client_hello) {
+                    self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
+                    return;
+                }
             }
         }
 
-        self.handshake_count.fetch_add(1, Ordering::Relaxed);
+        let success = match event.result() {
+            s2n_tls::events::HandshakeResult::Failure(_) => {
+                self.handshake_failure_count.fetch_add(1, Ordering::Relaxed);
+                let alert = conn.alert().map(Alert);
+                if let Some(alert) = alert {
+                    self.alerts.increment(&alert);
+                }
+                return;
+            }
+            s2n_tls::events::HandshakeResult::Success(s) => {
+                self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
+                s
+            }
+        };
 
-        if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
-            self.negotiated_signatures.increment(&sig);
+        // if it was a successful handshake and we're a server, then the client
+        // hello should always be available. If not, increment an internal failure
+        // metric and give up.
+        if conn.mode() == s2n_tls::enums::Mode::Server && client_hello.is_none() {
+            tracing::error!(
+                "client hello unavailable after successful handshake: {:?}",
+                conn.client_hello().err()
+            );
+            self.internal_failure.fetch_add(1, Ordering::Relaxed);
+            return;
         }
 
-        if conn.client_hello_is_sslv2()? {
-            self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
-        } else {
-            let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
+        self.security_policies.record(event.security_policy_label());
 
-            supported_parameter
-                .supported_versions()
-                .iter()
-                .for_each(|version| self.supported_protocols.increment(version));
+        if let Some(client_hello) = client_hello {
+            match (
+                conn.client_hello_is_sslv2(),
+                ClientHelloSupportedParameters::new(client_hello),
+            ) {
+                (Ok(true), _) => {
+                    // we don't support parsing supported parameters from SSLv2
+                    // client hellos because they have a different structure
+                    self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
+                }
+                (Ok(false), Ok(supported_parameter)) => {
+                    supported_parameter
+                        .supported_versions()
+                        .iter()
+                        .for_each(|version| self.supported_protocols.increment(version));
 
-            supported_parameter
-                .supported_ciphers()
-                .iter()
-                .for_each(|cipher| self.supported_ciphers.increment(cipher));
+                    supported_parameter
+                        .supported_ciphers()
+                        .iter()
+                        .for_each(|cipher| self.supported_ciphers.increment(cipher));
 
-            supported_parameter
-                .supported_groups()
-                .iter()
-                .flat_map(|groups| groups.iter())
-                .for_each(|group| self.supported_groups.increment(group));
+                    supported_parameter
+                        .supported_groups()
+                        .iter()
+                        .flat_map(|groups| groups.iter())
+                        .for_each(|group| self.supported_groups.increment(group));
 
-            supported_parameter
-                .supported_signatures()
-                .iter()
-                .flat_map(|sigs| sigs.iter())
-                .for_each(|signature| self.supported_signatures.increment(signature));
+                    supported_parameter
+                        .supported_signatures()
+                        .iter()
+                        .flat_map(|sigs| sigs.iter())
+                        .for_each(|signature| self.supported_signatures.increment(signature));
 
-            if General20251201::supported(&supported_parameter) {
-                self.compatibility_general20251201
-                    .fetch_add(1, Ordering::Relaxed);
-            }
-            if Fips20251201::supported(&supported_parameter) {
-                self.compatibility_fips20251201
-                    .fetch_add(1, Ordering::Relaxed);
-            }
-            if Cnsa1::supported(&supported_parameter) {
-                self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
-            }
-            if Cnsa2::supported(&supported_parameter) {
-                self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                    if General20251201::supported(&supported_parameter) {
+                        self.compatibility_general20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Fips20251201::supported(&supported_parameter) {
+                        self.compatibility_fips20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa1::supported(&supported_parameter) {
+                        self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa2::supported(&supported_parameter) {
+                        self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+                (Err(e), _) => {
+                    // never expected to fail: a failure means the handshake
+                    // succeeded without s2n-tls knowing whether or not it was
+                    // an SSLv2 client hello
+                    tracing::error!("failed to determine sslv2 client hello status: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
+                }
+                (_, Err(e)) => {
+                    // never expected to fail: a failure means that s2n-tls
+                    // considered the client hello well-formed, but our parser
+                    // didn't
+                    tracing::error!("failed to parse client hello supported parameters: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
+                }
             }
         }
 
-        if let Some(version) = protocol_version_to_iana(event.protocol_version()) {
-            self.negotiated_protocols.increment(&version);
+        // populate cert metrics
+        {
+            fn record_chain_metrics<'a>(
+                mut certs: impl Iterator<
+                    Item = Result<s2n_tls::cert_chain::Certificate<'a>, s2n_tls::error::Error>,
+                >,
+                leaf_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                leaf_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                chain_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                chain_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                parse_failures: &AtomicU64,
+            ) {
+                if let Some(Ok(cert)) = certs.next() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                leaf_key.increment(&c.key_type);
+                                leaf_sig.increment(&c.signature);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+                for cert in certs.flatten() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                chain_key.increment(&c.key_type);
+                                chain_sig.increment(&c.signature);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // selected_cert() is the local cert; peer_cert_chain() is the remote cert.
+            // Map to server/client labels based on connection mode.
+            let (server_cert, client_cert) = match conn.mode() {
+                s2n_tls::enums::Mode::Server => (conn.selected_cert(), conn.peer_cert_chain().ok()),
+                s2n_tls::enums::Mode::Client => (conn.peer_cert_chain().ok(), conn.selected_cert()),
+            };
+
+            if let Some(cert) = server_cert {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.server_leaf_cert_key,
+                    &self.server_leaf_cert_sig,
+                    &self.server_chain_cert_key,
+                    &self.server_chain_cert_sig,
+                    &self.server_cert_parsing_failure,
+                );
+            }
+
+            if let Some(cert) = client_cert {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.client_leaf_cert_key,
+                    &self.client_leaf_cert_sig,
+                    &self.client_chain_cert_key,
+                    &self.client_chain_cert_sig,
+                    &self.client_cert_parsing_failure,
+                );
+            }
         }
 
-        if let Some(cipher) = Cipher::from_openssl_name(event.cipher()) {
-            self.negotiated_ciphers.increment(&cipher);
-        }
+        // populate negotiation parameters
+        {
+            if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
+                self.negotiated_protocols.increment(&version);
+            }
 
-        if let Some(group) = event.group().and_then(|g| g.parse().ok()) {
-            self.negotiated_groups.increment(&group);
+            if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
+                self.negotiated_ciphers.increment(&cipher);
+            }
+
+            if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
+                self.negotiated_groups.increment(&group);
+            }
+
+            if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
+                self.negotiated_signatures.increment(&sig);
+            }
         }
 
         // accuracy: as long as the handshake took less than 500,000 years
@@ -195,8 +371,6 @@ impl HandshakeRecordInProgress {
         );
         self.handshake_duration_us
             .fetch_add(event.duration().as_micros() as u64, Ordering::Relaxed);
-
-        Ok(())
     }
 
     /// make a copy of this record to be exported.
@@ -212,7 +386,9 @@ impl HandshakeRecordInProgress {
     fn finish(&mut self) -> FrozenHandshakeRecord {
         FrozenHandshakeRecord {
             freeze_time: SystemTime::now(),
-            handshake_count: self.handshake_count.load(Ordering::Relaxed),
+            handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
+            handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
+            alerts: self.alerts.freeze(),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),
             negotiated_groups: self.negotiated_groups.freeze(),
@@ -224,6 +400,17 @@ impl HandshakeRecordInProgress {
             supported_groups: self.supported_groups.freeze(),
             supported_signatures: self.supported_signatures.freeze(),
 
+            server_leaf_cert_key: self.server_leaf_cert_key.freeze(),
+            server_leaf_cert_sig: self.server_leaf_cert_sig.freeze(),
+            server_chain_cert_key: self.server_chain_cert_key.freeze(),
+            server_chain_cert_sig: self.server_chain_cert_sig.freeze(),
+            client_leaf_cert_key: self.client_leaf_cert_key.freeze(),
+            client_leaf_cert_sig: self.client_leaf_cert_sig.freeze(),
+            client_chain_cert_key: self.client_chain_cert_key.freeze(),
+            client_chain_cert_sig: self.client_chain_cert_sig.freeze(),
+            server_cert_parsing_failure: self.server_cert_parsing_failure.load(Ordering::Relaxed),
+            client_cert_parsing_failure: self.client_cert_parsing_failure.load(Ordering::Relaxed),
+
             compatibility_general20251201: self
                 .compatibility_general20251201
                 .load(Ordering::Relaxed),
@@ -234,6 +421,8 @@ impl HandshakeRecordInProgress {
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            internal_failure: self.internal_failure.load(Ordering::Relaxed),
+            security_policies: self.security_policies.freeze(),
         }
     }
 }
@@ -265,7 +454,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 1);
+        assert_eq!(record.handshake_success_count, 1);
         assert_eq!(
             record
                 .negotiated_ciphers
@@ -410,7 +599,7 @@ mod tests {
         let records = endpoint.sink.records.lock().unwrap();
         let record = &records[0].as_schema().handshake;
 
-        assert_eq!(record.handshake_count, 3);
+        assert_eq!(record.handshake_success_count, 3);
         assert_eq!(
             record
                 .negotiated_ciphers
@@ -477,6 +666,93 @@ mod tests {
         assert_eq!(record.compatibility_cnsa2, 0);
     }
 
+    #[test]
+    fn record_contents_security_policies() {
+        use s2n_tls::security::Policy;
+        use s2n_tls_metrics_schema::bounded_set::FrozenBoundedStringSet;
+        use std::ffi::CStr;
+
+        // a single handshake -> a single security policy
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 1);
+                    assert!(set.contains("default_tls13"));
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // multiple handshakes shifting between two policies -> two policies recorded
+        {
+            let endpoint = TestEndpoint::new();
+            endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+            let policy_b = Policy::from_version("20240501").unwrap();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+            let mut pair =
+                s2n_tls::testing::TestPair::from_configs(&client_config, &endpoint.server_config);
+            pair.server.set_security_policy(&policy_b).unwrap();
+            pair.handshake().unwrap();
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            let policies = &records[0].as_schema().handshake.security_policies;
+            match policies {
+                FrozenBoundedStringSet::Entries(set) => {
+                    assert_eq!(set.len(), 2);
+                }
+                FrozenBoundedStringSet::TooMany => panic!("expected Entries"),
+            }
+        }
+
+        // more than 10 security policies -> TOO_MANY is recorded
+        {
+            let endpoint = TestEndpoint::new();
+            let client_config = s2n_tls::testing::build_config(&ARBITRARY_POLICY_1).unwrap();
+
+            let policies: Vec<Policy> = {
+                let mut seen = std::collections::HashSet::new();
+                let mut result = Vec::new();
+                for entry in s2n_tls_sys_internal::security_policy_table() {
+                    // we need unique security policies (e.g. unique security policy
+                    // pointers)
+                    if !seen.insert(entry.security_policy as usize) {
+                        continue;
+                    }
+                    let name = unsafe { CStr::from_ptr(entry.version) }.to_str().unwrap();
+                    result.push(Policy::from_version(name).unwrap());
+                    if result.len() > BoundedStringSet::MAX_STORAGE {
+                        break;
+                    }
+                }
+                result
+            };
+            assert_eq!(policies.len(), BoundedStringSet::MAX_STORAGE + 1);
+
+            for policy in &policies {
+                let mut pair = s2n_tls::testing::TestPair::from_configs(
+                    &client_config,
+                    &endpoint.server_config,
+                );
+                pair.server.set_security_policy(policy).unwrap();
+                pair.handshake().unwrap();
+            }
+
+            endpoint.subscriber.finish_record();
+            let records = endpoint.sink.records.lock().unwrap();
+            assert_eq!(
+                records[0].as_schema().handshake.security_policies,
+                FrozenBoundedStringSet::TooMany
+            );
+        }
+    }
+
     /// Make sure that the compute time is less than the overall handshake time.
     ///
     /// Additionally, make sure that three handshakes takes longer than one handshake.
@@ -507,5 +783,304 @@ mod tests {
 
         assert!(single_handshake.handshake_compute_us < multiple_handshakes.handshake_compute_us);
         assert!(single_handshake.handshake_duration_us < multiple_handshakes.handshake_duration_us);
+    }
+
+    /// Helper: performs an mTLS handshake using distinct cert types for server
+    /// (RSA 4096 / SHA384) and client (ECDSA P384 / SHA384) so the test can
+    /// distinguish which cert ended up in which record field.
+    mod mtls_helper {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            enums::ClientAuthType,
+            security::DEFAULT_TLS13,
+            testing::{CertKeyPair, TestPair},
+        };
+
+        pub(super) struct MtlsEndpoint {
+            pub subscriber: AggregatedMetricsSubscriber<VecSink>,
+            pub sink: VecSink,
+            pub client_config: s2n_tls::config::Config,
+            pub server_config: s2n_tls::config::Config,
+        }
+
+        /// Server cert: RSA 4096 / SHA384
+        fn server_keypair() -> CertKeyPair {
+            CertKeyPair::from_path(
+                "permutations/rsae_pkcs_4096_sha384/",
+                "server-chain",
+                "server-key",
+                "ca-cert",
+            )
+        }
+
+        /// Client cert: ECDSA P384 / SHA384
+        fn client_keypair() -> CertKeyPair {
+            CertKeyPair::from_path(
+                "permutations/ec_ecdsa_p384_sha384/",
+                "client-cert",
+                "client-key",
+                "ca-cert",
+            )
+        }
+
+        /// Build an mTLS endpoint with the subscriber on the server side.
+        pub(super) fn server_endpoint() -> MtlsEndpoint {
+            let sink = VecSink::new();
+            let attribution = Attribution {
+                service: "test".to_owned(),
+                resource: "test".to_owned(),
+                component: "test".to_owned(),
+            };
+            let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+            let server_keypair = server_keypair();
+            let client_keypair = client_keypair();
+
+            let server_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(server_keypair.cert(), server_keypair.key())
+                    .unwrap()
+                    .trust_pem(client_keypair.ca_cert())
+                    .unwrap()
+                    .set_client_auth_type(ClientAuthType::Required)
+                    .unwrap()
+                    .set_event_subscriber(subscriber.clone())
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            let client_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(client_keypair.cert(), client_keypair.key())
+                    .unwrap()
+                    .trust_pem(server_keypair.ca_cert())
+                    .unwrap()
+                    .with_system_certs(false)
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            MtlsEndpoint {
+                subscriber,
+                sink,
+                client_config,
+                server_config,
+            }
+        }
+
+        /// Build an mTLS endpoint with the subscriber on the client side.
+        pub(super) fn client_endpoint() -> MtlsEndpoint {
+            let sink = VecSink::new();
+            let attribution = Attribution {
+                service: "test".to_owned(),
+                resource: "test".to_owned(),
+                component: "test".to_owned(),
+            };
+            let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+            let server_keypair = server_keypair();
+            let client_keypair = client_keypair();
+
+            let server_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(server_keypair.cert(), server_keypair.key())
+                    .unwrap()
+                    .trust_pem(client_keypair.ca_cert())
+                    .unwrap()
+                    .set_client_auth_type(ClientAuthType::Required)
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            let client_config = {
+                let mut c = s2n_tls::config::Builder::new();
+                c.set_security_policy(&DEFAULT_TLS13)
+                    .unwrap()
+                    .load_pem(client_keypair.cert(), client_keypair.key())
+                    .unwrap()
+                    .trust_pem(server_keypair.ca_cert())
+                    .unwrap()
+                    .with_system_certs(false)
+                    .unwrap()
+                    .set_event_subscriber(subscriber.clone())
+                    .unwrap();
+                c.build().unwrap()
+            };
+
+            MtlsEndpoint {
+                subscriber,
+                sink,
+                client_config,
+                server_config,
+            }
+        }
+
+        impl MtlsEndpoint {
+            pub fn handshake(&self) {
+                let mut pair = TestPair::from_configs(&self.client_config, &self.server_config);
+                pair.client.set_server_name("localhost").unwrap();
+                pair.handshake().unwrap();
+            }
+        }
+    }
+
+    /// When the subscriber is on the server, `selected_cert` (server's own RSA cert)
+    /// should be recorded as server, and `peer_cert_chain` (client's ECDSA cert)
+    /// should be recorded as client.
+    #[test]
+    fn mtls_server_cert_attribution() {
+        let endpoint = mtls_helper::server_endpoint();
+        endpoint.handshake();
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // Sanity check: a cipher was negotiated
+        assert_eq!(record.negotiated_ciphers.total(), 1);
+
+        // Server's own cert is RSA 4096 (leaf + 2 chain certs)
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
+        assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
+
+        // Client's cert is ECDSA P384 (leaf + CA chain cert)
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+        assert_eq!(record.client_chain_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_chain_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+
+        // No RSA in client fields, no ECDSA in server fields
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
+    }
+
+    /// When the subscriber is on the client, `selected_cert` (client's own ECDSA cert)
+    /// should be recorded as client, and `peer_cert_chain` (server's RSA cert)
+    /// should be recorded as server.
+    #[test]
+    fn mtls_client_cert_attribution() {
+        let endpoint = mtls_helper::client_endpoint();
+        endpoint.handshake();
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // Sanity check: a cipher was negotiated
+        assert_eq!(record.negotiated_ciphers.total(), 1);
+
+        // Server's cert (peer) is RSA 4096 (leaf + 2 chain certs)
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Rsa4096), 1);
+        assert_eq!(
+            record
+                .server_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            1
+        );
+        assert_eq!(record.server_chain_cert_key.get(&CertKeyType::Rsa4096), 2);
+        assert_eq!(
+            record
+                .server_chain_cert_sig
+                .get(&CertSignatureAlgorithm::RsaPkcsSha384),
+            2
+        );
+
+        // Client's own cert is ECDSA P384 (leaf only, selected_cert has no chain)
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Secp384r1), 1);
+        assert_eq!(
+            record
+                .client_leaf_cert_sig
+                .get(&CertSignatureAlgorithm::EcdsaSha384),
+            1
+        );
+        assert_eq!(record.client_chain_cert_key.total(), 0);
+        assert_eq!(record.client_chain_cert_sig.total(), 0);
+
+        // No RSA in client fields, no ECDSA in server fields
+        assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
+        assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
+    }
+
+    /// A handshake that fails before the client hello is received should still
+    /// record a failure metric without panicking.
+    #[test]
+    fn failure_without_client_hello() {
+        use std::{io::Write, task::Poll};
+
+        let sink = crate::test_utils::VecSink::new();
+        let attribution = crate::Attribution {
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
+        };
+        let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        let server_config = {
+            let mut config =
+                s2n_tls::testing::config_builder(&s2n_tls::security::DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.set_max_blinding_delay(0).unwrap();
+            config.build().unwrap()
+        };
+        let client_config =
+            s2n_tls::testing::build_config(&s2n_tls::security::DEFAULT_TLS13).unwrap();
+
+        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+
+        // Write garbage that looks like a TLS record but with invalid content.
+        let garbage_record: &[u8] = &[
+            0x16, // content_type: handshake
+            0x03, 0x01, // version: TLS 1.0
+            0x00, 0x05, // length: 5 bytes
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // garbage handshake payload
+        ];
+        pair.io
+            .client_tx_stream
+            .borrow_mut()
+            .write_all(garbage_record)
+            .unwrap();
+
+        // The server should fail because it received garbage instead of a client hello.
+        match pair.server.poll_negotiate() {
+            Poll::Ready(Err(_)) => {}
+            other => panic!("expected server error, got {:?}", other),
+        }
+        // confirm that the "client hello" was not available
+        assert!(pair.server.client_hello().is_err());
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_failure_count, 1);
+        assert_eq!(record.internal_failure, 0);
     }
 }

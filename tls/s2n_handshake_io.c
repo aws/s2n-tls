@@ -1750,6 +1750,20 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         conn->handshake_event.handshake_end_ns = negotiate_end;
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+    } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED && conn->config) {
+        /* S2N_ERR_T_BLOCKED is the only retryable error type -- it indicates
+         * the handshake is still in progress but IO would block. All other
+         * error types are terminal failures, so we emit the failure event. */
+        conn->handshake_event.handshake_end_ns = negotiate_end;
+        conn->handshake_event.error_code = s2n_errno;
+        /* Save and restore error state because populate calls functions
+         * that may overwrite them (e.g. s2n_connection_get_key_exchange_group). */
+        int saved_errno = s2n_errno;
+        struct s2n_debug_info saved_debug_info = _s2n_debug_info;
+        POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+        s2n_errno = saved_errno;
+        _s2n_debug_info = saved_debug_info;
     }
 
     conn->negotiate_in_use = false;
