@@ -124,6 +124,11 @@ pub struct FrozenHandshakeRecord {
 
     #[serde(default)]
     pub synthetic_traffic_count: u64,
+
+    /// Number of handshakes where an internal error prevented the metrics
+    /// subscriber from fully recording metrics.
+    #[serde(default)]
+    pub internal_failure: u64,
 }
 
 impl Default for FrozenHandshakeRecord {
@@ -159,6 +164,7 @@ impl Default for FrozenHandshakeRecord {
             handshake_duration_us: 0,
             handshake_compute_us: 0,
             synthetic_traffic_count: 0,
+            internal_failure: 0,
             security_policies: Default::default(),
         }
     }
@@ -275,6 +281,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             names::SYNTHETIC_TRAFFIC_COUNT,
             &self.synthetic_traffic_count,
         );
+        writer.value(names::INTERNAL_FAILURE, &self.internal_failure);
     }
 }
 
