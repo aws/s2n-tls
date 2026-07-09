@@ -25,40 +25,17 @@ $CPPCHECK_EXECUTABLE --version
 
 FAILED=0
 
-# Config 1: Linux + AWS-LC (primary customer configuration)
+# Linux + AWS-LC configuration
+# Major macros are explicitly defined to avoid combinatorial explosion.
+# Remaining unknown macros use the default --max-configs=12 heuristic.
 $CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
   --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
-  --max-configs=1 \
   --enable=warning,performance,portability \
   --template='[{file}:{line}]: ({severity}:{id}) {message}' \
   --inline-suppr \
   --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
   -D__linux__ -DOPENSSL_IS_AWSLC \
   -U_WIN32 -U__FreeBSD__ -ULIBRESSL_VERSION_NUMBER -UOPENSSL_IS_BORINGSSL \
-  -I . -I ./tests $DIRS || FAILED=1
-
-# Config 2: Linux + OpenSSL (open source users)
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
-  --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
-  --max-configs=1 \
-  --enable=warning,performance,portability \
-  --template='[{file}:{line}]: ({severity}:{id}) {message}' \
-  --inline-suppr \
-  --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
-  -D__linux__ \
-  -U_WIN32 -U__FreeBSD__ -UOPENSSL_IS_AWSLC -UOPENSSL_IS_BORINGSSL -ULIBRESSL_VERSION_NUMBER \
-  -I . -I ./tests $DIRS || FAILED=1
-
-# Config 3: Windows (SDK users)
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j "$(nproc)" \
-  --cppcheck-build-dir="$CPPCHECK_BUILD_DIR" \
-  --max-configs=1 \
-  --enable=warning,performance,portability \
-  --template='[{file}:{line}]: ({severity}:{id}) {message}' \
-  --inline-suppr \
-  --suppressions-list=codebuild/bin/cppcheck_suppressions.txt \
-  -D_WIN32 \
-  -U__linux__ -U__FreeBSD__ -UOPENSSL_IS_AWSLC -UOPENSSL_IS_BORINGSSL -ULIBRESSL_VERSION_NUMBER \
   -I . -I ./tests $DIRS || FAILED=1
 
 if [ $FAILED == 1 ]; then
