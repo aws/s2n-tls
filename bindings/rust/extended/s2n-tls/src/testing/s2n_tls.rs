@@ -421,6 +421,10 @@ mod tests {
         Ok(())
     }
 
+    // Uses `SSL_CERT_FILE`, which s2n reads via the C `getenv`. On Windows the
+    // `temp_env` var below only updates the Win32 environment, which `getenv`
+    // doesn't see, so the cert never loads. Gate the test out since there is a test limitation.
+    #[cfg(not(target_os = "windows"))]
     #[test]
     fn system_certs_loaded_by_default() -> Result<(), Error> {
         let keypair = CertKeyPair::default();
@@ -440,6 +444,9 @@ mod tests {
         })
     }
 
+    // See system_certs_loaded_by_default: the `temp_env` `SSL_CERT_FILE` var
+    // isn't visible to the C `getenv` that s2n uses on Windows.
+    #[cfg(not(target_os = "windows"))]
     #[test]
     fn disable_loading_system_certs() -> Result<(), Error> {
         let keypair = CertKeyPair::default();
