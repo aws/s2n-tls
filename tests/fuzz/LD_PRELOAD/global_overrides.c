@@ -26,25 +26,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
-{
-    /* Override the original s2n_stuffer_send_to_fd to check if the write file descriptor is -1, and if so, skip
-     * writing anything. This is to speed up fuzz tests that write unnecessary data that is never actually read.
-     */
-    if(wfd == -1){
-       stuffer->read_cursor += len;
-       return len;
-    }
-
-    /* Otherwise, call the original s2n_stuffer_send_to_fd() */
-    typedef int (*orig_s2n_stuffer_send_to_fd_func_type)(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent);
-    orig_s2n_stuffer_send_to_fd_func_type orig_s2n_stuffer_send_to_fd;
-    orig_s2n_stuffer_send_to_fd = (orig_s2n_stuffer_send_to_fd_func_type) dlsym(RTLD_NEXT, "s2n_stuffer_send_to_fd");
-    POSIX_GUARD_PTR(orig_s2n_stuffer_send_to_fd);
-    POSIX_GUARD(orig_s2n_stuffer_send_to_fd(stuffer, wfd, len, bytes_sent));
-    return S2N_SUCCESS;
-}
-
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob){
 
     /* If fuzzing, only generate "fake" random numbers in order to ensure that fuzz tests are deterministic and repeatable.
