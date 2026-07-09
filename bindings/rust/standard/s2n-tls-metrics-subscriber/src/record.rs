@@ -1140,4 +1140,90 @@ mod tests {
         assert_eq!(record.handshake_failure_count, 1);
         assert_eq!(record.internal_failure, 0);
     }
+
+    /// Make sure that the client issues are properly plumbed in, and show up in
+    /// the record. We have to use OpenSSL to get a poorly configured client.
+    #[test]
+    fn ffdhe_only_client_triggers_tls13_without_s2n_supported_groups() {
+        use openssl::ssl::{SslContext, SslMethod};
+        use tls_harness::{
+            SigType, TlsConnPair,
+            cohort::{OpenSslConfig, OpenSslConnection, S2NConfig, S2NConnection},
+        };
+
+        let sink = crate::test_utils::VecSink::new();
+        let attribution = crate::Attribution {
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
+        };
+        let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        // s2n-tls server: TLS 1.2 only, with subscriber
+        let tls12_only_policy = s2n_tls::security::Policy::from_version("20190214").unwrap();
+        let server_config: S2NConfig = {
+            let mut builder = s2n_tls::config::Builder::new();
+            builder.with_system_certs(false).unwrap();
+            builder.set_security_policy(&tls12_only_policy).unwrap();
+            let cert = tls_harness::harness::read_to_bytes(
+                tls_harness::PemType::ServerCertChain,
+                SigType::Rsa2048,
+            );
+            let key = tls_harness::harness::read_to_bytes(
+                tls_harness::PemType::ServerKey,
+                SigType::Rsa2048,
+            );
+            builder.load_pem(&cert, &key).unwrap();
+            builder.set_event_subscriber(subscriber.clone()).unwrap();
+            S2NConfig {
+                config: builder.build().unwrap(),
+                ticket_storage: Default::default(),
+            }
+        };
+
+        // OpenSSL client: TLS 1.3 capable, FFDHE-only groups
+        let client_config: OpenSslConfig = {
+            let mut builder = SslContext::builder(SslMethod::tls_client()).unwrap();
+            builder.set_security_level(0);
+            builder
+                .set_ca_file(tls_harness::get_cert_path(
+                    tls_harness::PemType::CACert,
+                    SigType::Rsa2048,
+                ))
+                .unwrap();
+            // Only FFDHE groups — s2n-tls doesn't support these for TLS 1.3
+            builder.set_groups_list("ffdhe2048").unwrap();
+            OpenSslConfig {
+                config: builder.build(),
+                session_ticket_storage: Default::default(),
+            }
+        };
+
+        let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
+            TlsConnPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+
+        // Inspect what the server saw in the client hello
+        let client_hello = pair.server.connection().client_hello().unwrap();
+        let supported_params =
+            crate::parsing::ClientHelloSupportedParameters::new(client_hello).unwrap();
+        let versions = supported_params.supported_versions();
+        let groups = supported_params.supported_groups();
+        eprintln!("supported_versions: {:?}", versions);
+        eprintln!("supported_groups: {:?}", groups);
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_success_count, 1);
+
+        let slot = ClientIssue::Tls13WithoutS2NSupportedGroups
+            .slot_from_key()
+            .unwrap();
+        assert_eq!(
+            record.client_issues.slots()[slot], 1,
+            "Expected Tls13WithoutS2NSupportedGroups to be incremented"
+        );
+    }
 }

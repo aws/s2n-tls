@@ -374,6 +374,13 @@ impl Group {
             .find(|info| info.group == *self)
             .map(|info| info.iana_description)
     }
+
+    pub fn available_in_s2n(&self) -> bool {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.group == *self)
+            .is_some()
+    }
 }
 
 impl Display for Group {

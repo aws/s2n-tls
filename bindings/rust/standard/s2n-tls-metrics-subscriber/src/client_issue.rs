@@ -13,11 +13,12 @@ pub fn has_issue(
     match issue {
         ClientIssue::Tls13WithoutS2NSupportedGroups => {
             let supports_tls13 = supported.supported_versions().contains(&Version::TLS_1_3);
-            // ClientHelloSupportedParameters only contains groups that s2n-tls
-            // supports and recognizes.
-            let no_s2n_groups = supported
-                .supported_groups()
-                .is_some_and(|groups| groups.is_empty());
+            // Check whether any of the client's offered groups are ones that
+            // s2n-tls actually supports. In the wild we have seen clients that
+            // only support FFDHE groups
+            let no_s2n_groups = supported.supported_groups().is_some_and(|groups| {
+                !groups.iter().any(|g| g.available_in_s2n())
+            });
             supports_tls13 && no_s2n_groups
         }
         ClientIssue::Tls13WithoutModernSigAlgs => {
@@ -64,6 +65,11 @@ pub fn has_issue(
 mod test {
     use super::*;
     use s2n_tls_metrics_schema::static_lists::{Cipher, Group};
+    use s2n_codec::zerocopy::U16;
+
+    /// An FFDHE group that s2n-tls does not support for TLS 1.3.
+    /// ffdhe2048 = IANA value 0x0100
+    const FFDHE2048: Group = Group(U16::new(0x0100));
 
     /// Helper to construct a NegotiatedParameters for testing.
     fn negotiated(signature: Option<Signature>) -> NegotiatedParameters {
@@ -94,7 +100,15 @@ mod test {
         let issue = ClientIssue::Tls13WithoutS2NSupportedGroups;
         let neg = negotiated(None);
 
-        // positive: TLS 1.3 with extension present but empty (no recognized groups)
+        // positive: TLS 1.3 with only FFDHE groups (not supported by s2n-tls)
+        let sup = supported(
+            vec![Version::TLS_1_3, Version::TLS_1_2],
+            Some(vec![FFDHE2048]),
+            Some(vec![Signature::ecdsa_secp256r1_sha256]),
+        );
+        assert!(has_issue(issue, &neg, &sup));
+
+        // positive: TLS 1.3 with extension present but empty
         let sup = supported(
             vec![Version::TLS_1_3, Version::TLS_1_2],
             Some(vec![]),
@@ -105,7 +119,7 @@ mod test {
         // negative: has at least one recognized group
         let sup = supported(
             vec![Version::TLS_1_3],
-            Some(vec![Group::x25519]),
+            Some(vec![FFDHE2048, Group::x25519]),
             Some(vec![Signature::ecdsa_secp256r1_sha256]),
         );
         assert!(!has_issue(issue, &neg, &sup));
