@@ -159,7 +159,7 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             attribution: self.inner.attribution.clone().into_schema(),
             handshake,
         });
-        export_pipeline.sink.export_record(&record);
+        export_pipeline.sink.export_record(record);
         self.inner
             .last_export_epoch_ms
             .store(epoch_ms_now(), Ordering::Relaxed);

@@ -16,8 +16,8 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 struct CaptureSink(Arc<Mutex<Vec<MetricRecord>>>);
 impl TelemetrySink for CaptureSink {
-    fn export_record(&self, record: &MetricRecord) {
-        self.0.lock().unwrap().push(record.clone());
+    fn export_record(&self, record: MetricRecord) {
+        self.0.lock().unwrap().push(record);
     }
 }
 

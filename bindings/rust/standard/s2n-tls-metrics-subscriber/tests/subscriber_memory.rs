@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Allocation regression gate for [`AggregatedMetricsSubscriber`].
+//! 
+//! Run with cargo test --features memory-test
 //!
 //! Same shape as `bindings/rust/standard/integration/tests/memory.rs`:
 //! `dhat::Alloc` as the global allocator, hardcoded expected values, and
@@ -34,7 +36,7 @@ fn fuzzy_equals(actual: i64, expected: i64) -> bool {
 struct NullSink;
 
 impl TelemetrySink for NullSink {
-    fn export_record(&self, _record: &MetricRecord) {}
+    fn export_record(&self, _record: MetricRecord) {}
 }
 
 fn attribution() -> Attribution {
