@@ -15,6 +15,7 @@
 
 #include "tls/s2n_connection_serialize.h"
 
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
@@ -67,6 +68,36 @@ static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
         s2n_renegotiate_response *response)
 {
     return S2N_SUCCESS;
+}
+
+/* TLS 1.0 BEAST mitigation splits the first byte of each CBC payload into its
+ * own record (see s2n_send.c). A single s2n_recv call only consumes one record,
+ * so we loop until the expected number of bytes have been read.
+ */
+static S2N_RESULT s2n_test_send_and_recv_loop(struct s2n_connection *send_conn,
+        struct s2n_connection *recv_conn)
+{
+    RESULT_ENSURE_REF(send_conn);
+    RESULT_ENSURE_REF(recv_conn);
+
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    const uint8_t send_data[] = "hello world";
+    ssize_t send_size = s2n_send(send_conn, send_data, sizeof(send_data), &blocked);
+    RESULT_GUARD_POSIX(send_size);
+    RESULT_ENSURE_EQ(send_size, sizeof(send_data));
+
+    uint8_t recv_data[sizeof(send_data)] = { 0 };
+    size_t bytes_recvd = 0;
+    while (bytes_recvd < sizeof(send_data)) {
+        ssize_t r = s2n_recv(recv_conn, recv_data + bytes_recvd,
+                sizeof(send_data) - bytes_recvd, &blocked);
+        RESULT_GUARD_POSIX(r);
+        RESULT_ENSURE_GT(r, 0);
+        bytes_recvd += r;
+    }
+    RESULT_ENSURE_EQ(memcmp(recv_data, send_data, send_size), 0);
+
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_test_deserialize_with_version(const uint8_t *serialized_data,
@@ -533,6 +564,10 @@ int main(int argc, char **argv)
 
         /* Protocol version validation */
         {
+            /* Buffer sized for a TLS1.2 blob. CBC ciphers in TLS1.0/SSLv3 use
+             * a different blob shape (with implicit IVs appended), so use
+             * tls12_config which negotiates an AEAD cipher and keeps the blob
+             * within the TLS1.2 shape across all fake-version iterations. */
             uint8_t serialized_data[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -541,8 +576,8 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
 
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
             EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
@@ -1042,6 +1077,212 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb,
                                           NULL),
+                S2N_ERR_INVALID_STATE);
+    };
+
+    /* Self-talk: TLS1.0 + CBC connections round-trip through serialize/deserialize.
+     *
+     * TLS1.0 CBC chains records: the last ciphertext block of record N becomes
+     * the IV of record N+1. The serialization captures both peers' implicit_iv
+     * buffers so the deserialized connection can continue.
+     */
+    {
+        /* Force a specific CBC cipher suite so the test always exercises the
+         * chaining path. Pattern borrowed from s2n_cbc_test.c. */
+        struct s2n_cipher_suite *test_ciphers[] = { &s2n_ecdhe_rsa_with_aes_128_cbc_sha };
+        struct s2n_cipher_preferences test_prefs = {
+            .count = s2n_array_len(test_ciphers),
+            .suites = test_ciphers,
+        };
+        struct s2n_security_policy test_policy = security_policy_test_all;
+        test_policy.cipher_preferences = &test_prefs;
+
+        DEFER_CLEANUP(struct s2n_config *tls10_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls10_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls10_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls10_config));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(tls10_config, S2N_SERIALIZED_CONN_V1));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls10_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls10_config));
+        client_conn->security_policy_override = &test_policy;
+        server_conn->security_policy_override = &test_policy;
+        client_conn->client_protocol_version = S2N_TLS10;
+        server_conn->server_protocol_version = S2N_TLS10;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS10);
+
+        /* Exchange records on both directions to mutate the implicit IV */
+        for (size_t i = 0; i < 3; i++) {
+            EXPECT_OK(s2n_test_send_and_recv_loop(server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, server_conn));
+        }
+
+        uint8_t expected_client_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        uint8_t expected_server_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        EXPECT_MEMCPY_SUCCESS(expected_client_iv, server_conn->secure->client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+        EXPECT_MEMCPY_SUCCESS(expected_server_iv, server_conn->secure->server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+
+        uint32_t length = 0;
+        EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
+        EXPECT_EQUAL(length, S2N_SERIALIZED_CONN_TLS10_SIZE);
+
+        uint8_t buffer[S2N_SERIALIZED_CONN_TLS10_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+        DEFER_CLEANUP(struct s2n_connection *new_server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(new_server_conn);
+        EXPECT_SUCCESS(s2n_connection_deserialize(new_server_conn, buffer, sizeof(buffer)));
+
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->client_implicit_iv,
+                expected_client_iv, S2N_TLS_MAX_IV_LEN);
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->server_implicit_iv,
+                expected_server_iv, S2N_TLS_MAX_IV_LEN);
+
+        /* End-to-end: the deserialized server keeps talking to the still-live
+         * client. Without IV preservation the first record here would fail. */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
+        for (size_t i = 0; i < 10; i++) {
+            EXPECT_OK(s2n_test_send_and_recv_loop(new_server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, new_server_conn));
+        }
+    };
+
+    /* Self-talk: same coverage for SSLv3. SSLv3 is not supported in FIPS mode
+     * (see s2n_ssl_prf_test). */
+    if (!s2n_is_in_fips_mode()) {
+        struct s2n_cipher_suite *test_ciphers[] = { &s2n_rsa_with_aes_128_cbc_sha };
+        struct s2n_cipher_preferences test_prefs = {
+            .count = s2n_array_len(test_ciphers),
+            .suites = test_ciphers,
+        };
+        struct s2n_security_policy test_policy = security_policy_test_all;
+        test_policy.cipher_preferences = &test_prefs;
+
+        DEFER_CLEANUP(struct s2n_config *sslv3_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(sslv3_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(sslv3_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(sslv3_config));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(sslv3_config, S2N_SERIALIZED_CONN_V1));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, sslv3_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, sslv3_config));
+        client_conn->security_policy_override = &test_policy;
+        server_conn->security_policy_override = &test_policy;
+        client_conn->client_protocol_version = S2N_SSLv3;
+        server_conn->server_protocol_version = S2N_SSLv3;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_SSLv3);
+
+        for (size_t i = 0; i < 3; i++) {
+            EXPECT_OK(s2n_test_send_and_recv_loop(server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, server_conn));
+        }
+
+        uint8_t expected_client_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        uint8_t expected_server_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+        EXPECT_MEMCPY_SUCCESS(expected_client_iv, server_conn->secure->client_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+        EXPECT_MEMCPY_SUCCESS(expected_server_iv, server_conn->secure->server_implicit_iv,
+                S2N_TLS_MAX_IV_LEN);
+
+        uint32_t length = 0;
+        EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
+        EXPECT_EQUAL(length, S2N_SERIALIZED_CONN_TLS10_SIZE);
+
+        uint8_t buffer[S2N_SERIALIZED_CONN_TLS10_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+        DEFER_CLEANUP(struct s2n_connection *new_server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(new_server_conn);
+        EXPECT_SUCCESS(s2n_connection_deserialize(new_server_conn, buffer, sizeof(buffer)));
+
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->client_implicit_iv,
+                expected_client_iv, S2N_TLS_MAX_IV_LEN);
+        EXPECT_BYTEARRAY_EQUAL(new_server_conn->secure->server_implicit_iv,
+                expected_server_iv, S2N_TLS_MAX_IV_LEN);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.client_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
+        for (size_t i = 0; i < 10; i++) {
+            EXPECT_OK(s2n_test_send_and_recv_loop(new_server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv_loop(client_conn, new_server_conn));
+        }
+    };
+
+    /* Negative: serializing an RC4 connection is rejected up front. RC4 holds
+     * keystream position in libcrypto state we can't capture, so producing the
+     * blob would just yield something un-deserializable. Better to fail fast.
+     */
+    if (s2n_rsa_with_rc4_128_sha.available) {
+        struct s2n_cipher_suite *test_ciphers[] = { &s2n_rsa_with_rc4_128_sha };
+        struct s2n_cipher_preferences test_prefs = {
+            .count = s2n_array_len(test_ciphers),
+            .suites = test_ciphers,
+        };
+        struct s2n_security_policy test_policy = security_policy_test_all;
+        test_policy.cipher_preferences = &test_prefs;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        client_conn->security_policy_override = &test_policy;
+        server_conn->security_policy_override = &test_policy;
+        client_conn->client_protocol_version = S2N_TLS10;
+        server_conn->server_protocol_version = S2N_TLS10;
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(server_conn->secure->cipher_suite->record_alg->cipher->type, S2N_STREAM);
+
+        uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)),
                 S2N_ERR_INVALID_STATE);
     };
 

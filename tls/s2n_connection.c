@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/param.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -54,7 +53,9 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 #include "utils/s2n_timer.h"
 
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
@@ -170,11 +171,13 @@ static int s2n_connection_free_managed_recv_io(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
+#ifndef _WIN32
     if (conn->managed_recv_io) {
         POSIX_GUARD(s2n_free_object((uint8_t **) &conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
         conn->managed_recv_io = false;
         conn->recv = NULL;
     }
+#endif
     return S2N_SUCCESS;
 }
 
@@ -182,11 +185,13 @@ static int s2n_connection_free_managed_send_io(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
+#ifndef _WIN32
     if (conn->managed_send_io) {
         POSIX_GUARD(s2n_free_object((uint8_t **) &conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
         conn->managed_send_io = false;
         conn->send = NULL;
     }
+#endif
     return S2N_SUCCESS;
 }
 
@@ -199,12 +204,14 @@ static int s2n_connection_free_managed_io(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
 {
+#ifndef _WIN32
     if (s2n_connection_is_managed_corked(conn) && conn->recv) {
         POSIX_GUARD(s2n_socket_read_restore(conn));
     }
     if (s2n_connection_is_managed_corked(conn) && conn->send) {
         POSIX_GUARD(s2n_socket_write_restore(conn));
     }
+#endif
 
     /* Remove all I/O-related members */
     POSIX_GUARD(s2n_connection_free_managed_io(conn));
@@ -401,6 +408,7 @@ int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
 
 void *s2n_connection_get_ctx(struct s2n_connection *conn)
 {
+    PTR_ENSURE_REF(conn);
     return conn->context;
 }
 
@@ -834,6 +842,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     return 0;
 }
 
+#ifndef _WIN32
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem = { 0 };
@@ -889,11 +898,6 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6 = 0;
-    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
-        conn->ipv6 = (ipv6 ? 1 : 0);
-    }
-
     conn->write_fd_broken = 0;
 
     return 0;
@@ -926,9 +930,13 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
 
     return 0;
 }
+#endif
 
 uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
+    if (conn == NULL) {
+        return 0;
+    }
     if (conn->ktls_recv_enabled) {
         return 0;
     }
@@ -937,6 +945,9 @@ uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 
 uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
+    if (conn == NULL) {
+        return 0;
+    }
     if (conn->ktls_send_enabled) {
         return 0;
     }
@@ -1110,7 +1121,7 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
     if (conn->client_hello.sslv2) {
         return S2N_SSLv2;
     } else {
-        return MIN(conn->client_hello.legacy_version, S2N_TLS12);
+        return S2N_MIN(conn->client_hello.legacy_version, S2N_TLS12);
     }
 }
 
@@ -1400,7 +1411,7 @@ S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, u
     if (conn->negotiated_mfl_code) {
         /* Respect the upper limit agreed on with the peer */
         RESULT_ENSURE_LT(conn->negotiated_mfl_code, s2n_array_len(mfl_code_to_length));
-        conn->max_outgoing_fragment_length = MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
+        conn->max_outgoing_fragment_length = S2N_MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
     } else {
         conn->max_outgoing_fragment_length = max_frag_length;
     }
@@ -1508,6 +1519,7 @@ int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection
 
 const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length)
 {
+    PTR_ENSURE_REF(conn);
     if (!length) {
         return NULL;
     }
@@ -1888,4 +1900,12 @@ int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled)
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_INVALID_STATE);
     conn->recv_buffering = enabled;
     return S2N_SUCCESS;
+}
+
+s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
+{
+    if (conn == NULL) {
+        return S2N_SERVER;
+    }
+    return conn->mode;
 }

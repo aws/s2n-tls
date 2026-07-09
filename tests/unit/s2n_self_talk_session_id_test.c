@@ -13,10 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <errno.h>
 #include <stdint.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -29,7 +26,7 @@
 #define MAX_VAL_LEN 255
 
 static const char SESSION_ID[] = "0123456789abcdef0123456789abcdef";
-static const char MSG[] = "Test";
+static const char TEST_MSG[] = "Test";
 
 struct session_cache_entry {
     uint8_t key[MAX_KEY_LEN];
@@ -137,174 +134,9 @@ static void initialize_cache()
     }
 }
 
-void mock_client(struct s2n_test_io_pair *io_pair)
-{
-    size_t serialized_session_state_length = 0;
-    uint8_t serialized_session_state[256] = { 0 };
-
-    struct s2n_connection *conn = NULL;
-    struct s2n_config *config = NULL;
-    s2n_blocked_status blocked;
-    int result = 0;
-
-    /* Give the server a chance to listen */
-    sleep(1);
-
-    /* Initial handshake */
-    conn = s2n_connection_new(S2N_CLIENT);
-    config = s2n_config_new();
-    s2n_config_set_cipher_preferences(config, "20240501");
-    s2n_config_disable_x509_verification(config);
-    s2n_connection_set_config(conn, config);
-
-    s2n_connection_set_io_pair(conn, io_pair);
-
-    /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
-    EXPECT_MEMCPY_SUCCESS(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
-    conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
-
-    if (s2n_negotiate(conn, &blocked) != 0) {
-        result = 1;
-    }
-
-    /* Make sure we did a full handshake */
-    if (!IS_FULL_HANDSHAKE(conn)) {
-        result = 2;
-    }
-
-    /* Save session state from the connection */
-    memset(serialized_session_state, 0, sizeof(serialized_session_state));
-    serialized_session_state_length = s2n_connection_get_session_length(conn);
-    if (serialized_session_state_length > sizeof(serialized_session_state)) {
-        result = 3;
-    }
-
-    /* Send very low session buffer size and see that you can get an error */
-    if (s2n_connection_get_session(conn, serialized_session_state, 1) == 0) {
-        result = 4;
-    }
-
-    if (s2n_errno != S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG) {
-        result = 5;
-    }
-
-    if ((size_t) s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
-        result = 6;
-    }
-
-    /* server would choose a session ID for client */
-    if (memcmp(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) == 0) {
-        result = 7;
-    }
-
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
-        result = 8;
-    }
-
-    int shutdown_rc = -1;
-    while (shutdown_rc != 0) {
-        shutdown_rc = s2n_shutdown(conn, &blocked);
-    }
-
-    s2n_connection_free(conn);
-
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
-
-    /* Session resumption */
-    conn = s2n_connection_new(S2N_CLIENT);
-    s2n_connection_set_io_pair(conn, io_pair);
-    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
-
-    /* Set session state on client connection */
-    if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 9;
-    }
-
-    if (s2n_negotiate(conn, &blocked) != 0) {
-        result = 10;
-    }
-
-    /* Make sure we did a abbreviated handshake */
-    if (!IS_RESUMPTION_HANDSHAKE(conn)) {
-        result = 11;
-    }
-
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
-        result = 12;
-    }
-
-    shutdown_rc = -1;
-    while (shutdown_rc != 0) {
-        shutdown_rc = s2n_shutdown(conn, &blocked);
-    }
-
-    s2n_connection_free(conn);
-
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
-
-    /* Session resumption with bad session state */
-    conn = s2n_connection_new(S2N_CLIENT);
-    EXPECT_OK(s2n_connection_set_tls12_security_policy(conn));
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    s2n_connection_set_io_pair(conn, io_pair);
-
-    /* Change the format of the session state and check we cannot deserialize it */
-    serialized_session_state[0] = 3;
-    if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) == 0) {
-        result = 13;
-    }
-
-    if (s2n_errno != S2N_ERR_INVALID_SERIALIZED_SESSION_STATE) {
-        result = 14;
-    }
-
-    serialized_session_state[0] = 0;
-    /* Change the protocol version (36th byte) in session state */
-    if (serialized_session_state_length < 36) {
-        result = 15;
-    }
-
-    serialized_session_state[35] = 30;
-    if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 16;
-    }
-
-    if (s2n_negotiate(conn, &blocked) == 0) {
-        result = 17;
-    }
-
-    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
-        result = 18;
-    }
-
-    s2n_connection_free(conn);
-    s2n_config_free(config);
-
-    /* Give the server a chance to avoid sigpipe */
-    sleep(1);
-
-    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
-    exit(result);
-}
-
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn = NULL;
-    struct s2n_config *config = NULL;
-    s2n_blocked_status blocked;
-    int status = 0;
-    pid_t pid = 0;
-    char *cert_chain_pem = NULL;
-    char *private_key_pem = NULL;
-    struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    char buffer[256];
-    int bytes_read = 0;
-    int shutdown_rc = -1;
-    uint64_t now = 0;
-    uint8_t session_id_from_server[MAX_KEY_LEN];
-    uint8_t session_id_from_client[MAX_KEY_LEN];
+    BEGIN_TEST();
 
     /* aes keys. Used for session ticket/session data encryption. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
     uint8_t ticket_key_name[16] = "2018.07.26.15\0";
@@ -313,171 +145,206 @@ int main(int argc, char **argv)
         0xaf, 0xdb, 0x63, 0x77, 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c,
         0xcb, 0x04 };
 
-    BEGIN_TEST();
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    /* Create a pipe */
-    struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+    EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache));
+    EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
+    EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+    /* Although we disable session ticket, as long as session cache
+     * callbacks are binded, session ticket key storage would be initialized
+     */
+    EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(config, 1));
+    uint64_t now = 0;
+    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+    EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+            ticket_key, sizeof(ticket_key), now / ONE_SEC_IN_NANOS));
 
-        /* Write the fragmented hello message */
-        mock_client(&io_pair);
-    }
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    uint8_t session_id_from_server[MAX_KEY_LEN] = { 0 };
 
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    /* Saved session state for resumption tests */
+    size_t serialized_session_state_length = 0;
+    uint8_t serialized_session_state[256] = { 0 };
 
-    /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
-
-    /* Initial handshake */
+    /* Initial handshake with session ID fallback to full handshake */
     {
-        /* Initialize the cache so the client and server start off on the same page */
         initialize_cache();
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache));
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* Although we disable session ticket, as long as session cache
-         * callbacks are binded, session ticket key storage would be initialized
-         */
-        POSIX_GUARD(s2n_config_set_session_cache_onoff(config, 1));
-        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), ticket_key, sizeof(ticket_key), now / ONE_SEC_IN_NANOS));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        /* Set the session id to ensure we're able to fallback to full handshake
+         * if session is not in server cache */
+        EXPECT_MEMCPY_SUCCESS(client_conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
+        client_conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
 
-        /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
 
-        /* Negotiate the handshake. */
-        int r = s2n_negotiate(conn, &blocked);
-        /* first time it always blocks the handshake, as we mock a remote
-         * connection/event from the lock
-         */
-        EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        /* Negotiate succeeds on retry */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Make sure the get_session_id and get_session_id_length APIs are
-         * working as expected */
-        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
-        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_server, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
+        /* Make sure the get_session_id and get_session_id_length APIs are working */
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(server_conn), MAX_KEY_LEN);
+        EXPECT_EQUAL(s2n_connection_get_session_id(server_conn, session_id_from_server, MAX_KEY_LEN),
+                s2n_connection_get_session_id_length(server_conn));
 
         /* Make sure we did a full TLS1.2 handshake */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(conn));
-        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
 
-        /* Ensure the message was delivered */
-        EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
-        EXPECT_EQUAL(bytes_read, sizeof(MSG));
-        EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
+        /* Server would choose a session ID for client (different from what client sent) */
+        EXPECT_TRUE(memcmp(client_conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) != 0);
 
-        /* Shutdown handshake */
-        do {
-            shutdown_rc = s2n_shutdown(conn, &blocked);
-            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while (shutdown_rc != 0);
+        /* Save session state from the connection for resumption tests */
+        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        EXPECT_TRUE(serialized_session_state_length <= sizeof(serialized_session_state));
 
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Send very low session buffer size and see that you can get an error */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session(client_conn, serialized_session_state, 1),
+                S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
+
+        /* Get the full session state */
+        EXPECT_EQUAL((size_t) s2n_connection_get_session(client_conn, serialized_session_state,
+                             serialized_session_state_length),
+                serialized_session_state_length);
+
+        /* Verify data transfer works */
+        EXPECT_EQUAL(s2n_send(client_conn, TEST_MSG, sizeof(TEST_MSG), &blocked), sizeof(TEST_MSG));
+        char buffer[256] = { 0 };
+        EXPECT_EQUAL(s2n_recv(server_conn, buffer, sizeof(buffer), &blocked), sizeof(TEST_MSG));
+        EXPECT_EQUAL(memcmp(buffer, TEST_MSG, sizeof(TEST_MSG)), 0);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
     /* Session resumption */
     {
         initialize_cache();
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-        /* Negotiate the handshake. */
-        int r = s2n_negotiate(conn, &blocked);
-        /* first time it always blocks the handshake, as we mock a remote
-         * connection/event from the lock
-         */
-        EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* Make sure the get_session_id and get_session_id_length APIs are
-         * working as expected */
-        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
-        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_client, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+
+        /* Set session state on client connection */
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
+
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+        /* Negotiate succeeds on retry */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Make sure the get_session_id and get_session_id_length APIs are working */
+        uint8_t session_id_from_client[MAX_KEY_LEN] = { 0 };
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(server_conn), MAX_KEY_LEN);
+        EXPECT_EQUAL(s2n_connection_get_session_id(server_conn, session_id_from_client, MAX_KEY_LEN),
+                s2n_connection_get_session_id_length(server_conn));
         EXPECT_EQUAL(0, memcmp(session_id_from_client, session_id_from_server, MAX_KEY_LEN));
 
-        /* Make sure we did a abbreviated handshake */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn));
+        /* Make sure we did an abbreviated handshake */
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(client_conn));
 
-        /* Ensure the message was delivered */
-        memset(buffer, 0, sizeof(buffer));
-        EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
-        EXPECT_EQUAL(bytes_read, sizeof(MSG));
-        EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
+        /* Verify data transfer works */
+        EXPECT_EQUAL(s2n_send(client_conn, TEST_MSG, sizeof(TEST_MSG), &blocked), sizeof(TEST_MSG));
+        char buffer[256] = { 0 };
+        EXPECT_EQUAL(s2n_recv(server_conn, buffer, sizeof(buffer), &blocked), sizeof(TEST_MSG));
+        EXPECT_EQUAL(memcmp(buffer, TEST_MSG, sizeof(TEST_MSG)), 0);
 
-        /* Shutdown handshake */
-        do {
-            shutdown_rc = s2n_shutdown(conn, &blocked);
-            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while (shutdown_rc != 0);
-
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
-    /* Session resumption with bad session state on client side */
+    /* Session resumption with bad session state */
     {
         initialize_cache();
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-        int r = s2n_negotiate(conn, &blocked);
-        EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-        /* Verify we failed to negotiate */
-        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+
+        /* Change the format of the session state and check we cannot deserialize it */
+        uint8_t bad_session_state[256] = { 0 };
+        memcpy(bad_session_state, serialized_session_state, serialized_session_state_length);
+        bad_session_state[0] = 3;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_set_session(client_conn, bad_session_state, serialized_session_state_length),
+                S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+
+        /* Change the protocol version (36th byte) in session state */
+        EXPECT_TRUE(serialized_session_state_length >= 36);
+        memcpy(bad_session_state, serialized_session_state, serialized_session_state_length);
+        bad_session_state[35] = 30;
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, bad_session_state, serialized_session_state_length));
+
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+        /* Verify negotiation fails due to bad session state */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_BAD_MESSAGE);
+
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
-
-    /* Close the pipes */
-    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     /* Session caching with a server that does not support EMS */
     {
         initialize_cache();
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        s2n_config_disable_x509_verification(config);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate until server has read the Client Hello message but hasn't written the server hello message */
@@ -525,8 +392,6 @@ int main(int argc, char **argv)
         EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
         EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
 
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
@@ -539,17 +404,18 @@ int main(int argc, char **argv)
      **/
     {
         initialize_cache();
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        s2n_config_disable_x509_verification(config);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Connection is successful and EMS is negotiated */
@@ -579,8 +445,6 @@ int main(int argc, char **argv)
         /* Server did not receive the EMS extension from client */
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_MISSING_EXTENSION);
 
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
@@ -595,17 +459,18 @@ int main(int argc, char **argv)
      **/
     {
         initialize_cache();
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        s2n_config_disable_x509_verification(config);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate until server has read the Client Hello message but hasn't written the Server Hello message */
@@ -654,19 +519,8 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
 
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
-
-    /* Clean up */
-    EXPECT_SUCCESS(s2n_config_free(config));
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    free(cert_chain_pem);
-    free(private_key_pem);
 
     END_TEST();
 }

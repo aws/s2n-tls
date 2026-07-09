@@ -18,6 +18,10 @@
 #include <s2n.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This is a special value assigned to handshake_start_epoch_ns to indicate that
  * it has already been sent to the application and should not be sent again.
  */
@@ -34,6 +38,8 @@ struct s2n_event_handshake {
     const char *cipher;
     /* static memory */
     const char *group;
+    /* static memory */
+    const char *security_policy_label;
     /* the amount of time inside the synchronous s2n_negotiate method */
     uint64_t handshake_time_ns;
     /**
@@ -45,6 +51,12 @@ struct s2n_event_handshake {
      */
     uint64_t handshake_start_ns;
     uint64_t handshake_end_ns;
+    /**
+     * If the handshake failed, this contains the error code.
+     * 0 indicates no error (successful handshake).
+     * The error name can be retrieved via s2n_strerror_name(error_code).
+     */
+    int error_code;
 };
 
 typedef void (*s2n_event_on_handshake_cb)(struct s2n_connection *conn, void *subscriber, struct s2n_event_handshake *event);
@@ -56,6 +68,11 @@ S2N_API extern int s2n_config_set_subscriber(struct s2n_config *config, void *su
  * The `struct s2n_event_handshake *event` is only valid over the lifetime of the 
  * callbacks, and must not be referenced after the callback returned.
  * 
- * An event is not emitted if the handshake fails.
+ * An event is emitted both on success and failure. On failure, the event's
+ * error_code field will be set with the relevant error information.
  */
 S2N_API extern int s2n_config_set_handshake_event(struct s2n_config *config, s2n_event_on_handshake_cb callback);
+
+#ifdef __cplusplus
+}
+#endif

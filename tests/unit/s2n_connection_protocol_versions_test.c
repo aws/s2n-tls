@@ -159,12 +159,12 @@ int main(int argc, char **argv)
                      * version to determine the client's maximum version, even if a supported
                      * versions extension was received.
                      */
-                    EXPECT_EQUAL(actual_protocol_version, MIN(server_version, client_hello_version));
+                    EXPECT_EQUAL(actual_protocol_version, S2N_MIN(server_version, client_hello_version));
                 } else {
                     /* TLS 1.3 servers always use the version in the supported versions extension,
                      * regardless of the client hello version.
                      */
-                    EXPECT_EQUAL(actual_protocol_version, MIN(server_version, client_supported_version));
+                    EXPECT_EQUAL(actual_protocol_version, S2N_MIN(server_version, client_supported_version));
                 }
             }
         }

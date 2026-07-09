@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_pq.h"
 #include "tls/extensions/s2n_ec_point_format.h"

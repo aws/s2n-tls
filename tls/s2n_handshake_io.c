@@ -14,7 +14,6 @@
  */
 
 #include <errno.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
@@ -36,7 +35,9 @@
 #include "utils/s2n_events.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 
 /* clang-format off */
 struct s2n_handshake_action {
@@ -798,7 +799,11 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 /* clang-format on */
 
 #define MAX_HANDSHAKE_TYPE_LEN 142
-static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
+/* The handshake type labels used for TLS 1.0 - TLS 1.2, e.g. `NEGOTIATED|WITH_SESSION_TICKET` */
+static char handshake_type_str_tls12ish[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
+
+/* The handshake type labels used for TLS 1.3, e.g. `NEGOTIATED|HELLO_RETRY_REQUEST` */
+static char handshake_type_str_tls13[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = { 0 };
 
 static const char *tls12_handshake_type_names[] = {
     "NEGOTIATED|",
@@ -850,7 +855,9 @@ message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *co
 static int s2n_advance_message(struct s2n_connection *conn)
 {
     /* Get the mode: 'C'lient or 'S'erver */
+#ifndef _WIN32
     char previous_writer = ACTIVE_STATE(conn).writer;
+#endif
     char this_mode = CONNECTION_WRITER(conn);
 
     /* Actually advance the message number */
@@ -861,6 +868,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
         conn->handshake.message_number++;
     }
 
+#ifndef _WIN32
     /* Set TCP_QUICKACK to avoid artificial delay during the handshake */
     POSIX_GUARD(s2n_socket_quickack(conn));
 
@@ -891,6 +899,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     if (s2n_connection_is_managed_corked(conn)) {
         POSIX_GUARD(s2n_socket_write_uncork(conn));
     }
+#endif
 
     return S2N_SUCCESS;
 }
@@ -1151,44 +1160,46 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
         return "INITIAL";
     }
 
-    const char **handshake_type_names = tls13_handshake_type_names;
-    size_t handshake_type_names_len = s2n_array_len(tls13_handshake_type_names);
+    const char **handshake_labels = tls13_handshake_type_names;
+    size_t handshake_labels_len = s2n_array_len(tls13_handshake_type_names);
+    char(*names)[MAX_HANDSHAKE_TYPE_LEN] = handshake_type_str_tls13;
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        handshake_type_names = tls12_handshake_type_names;
-        handshake_type_names_len = s2n_array_len(tls12_handshake_type_names);
+        handshake_labels = tls12_handshake_type_names;
+        handshake_labels_len = s2n_array_len(tls12_handshake_type_names);
+        names = handshake_type_str_tls12ish;
     }
 
     /* Not all handshake strings will be created already. If the handshake string
      * is not null, we can just return the handshake. Otherwise we have to compute
      * it down below. */
-    if (handshake_type_str[handshake_type][0] != '\0') {
-        return handshake_type_str[handshake_type];
+    if (names[handshake_type][0] != '\0') {
+        return names[handshake_type];
     }
 
-    /* Compute handshake_type_str[handshake_type] by concatenating
-     * each applicable handshake_type.
+    /* Compute the cached string by concatenating each applicable handshake_type.
      *
-     * Unit tests enforce that the elements of handshake_type_str are always
+     * Unit tests enforce that the elements of the cache are always
      * long enough to contain the longest possible valid handshake_type, but
      * for safety we still handle the case where we need to truncate.
      */
-    char *p = handshake_type_str[handshake_type];
-    size_t remaining = sizeof(handshake_type_str[0]);
-    for (size_t i = 0; i < handshake_type_names_len; i++) {
-        if (handshake_type & (1 << i)) {
-            size_t bytes_to_copy = MIN(remaining, strlen(handshake_type_names[i]));
-            PTR_CHECKED_MEMCPY(p, handshake_type_names[i], bytes_to_copy);
+    char *p = names[handshake_type];
+    size_t remaining = MAX_HANDSHAKE_TYPE_LEN;
+    for (size_t i = 0; i < handshake_labels_len; i++) {
+        bool label_applies = handshake_type & (1 << i);
+        if (label_applies) {
+            size_t bytes_to_copy = S2N_MIN(remaining, strlen(handshake_labels[i]));
+            PTR_CHECKED_MEMCPY(p, handshake_labels[i], bytes_to_copy);
             p[bytes_to_copy] = '\0';
             p += bytes_to_copy;
             remaining -= bytes_to_copy;
         }
     }
 
-    if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
+    if (p != names[handshake_type] && '|' == *(p - 1)) {
         *(p - 1) = '\0';
     }
 
-    return handshake_type_str[handshake_type];
+    return names[handshake_type];
 }
 
 S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t content_type, s2n_blocked_status *blocked)
@@ -1296,7 +1307,7 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
     S2N_ERROR_IF(handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
-    bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
+    bytes_to_take = S2N_MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
 
     /* If the record is handshake data, add it to the handshake buffer */
     POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, bytes_to_take));
@@ -1739,6 +1750,20 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         conn->handshake_event.handshake_end_ns = negotiate_end;
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+    } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED && conn->config) {
+        /* S2N_ERR_T_BLOCKED is the only retryable error type -- it indicates
+         * the handshake is still in progress but IO would block. All other
+         * error types are terminal failures, so we emit the failure event. */
+        conn->handshake_event.handshake_end_ns = negotiate_end;
+        conn->handshake_event.error_code = s2n_errno;
+        /* Save and restore error state because populate calls functions
+         * that may overwrite them (e.g. s2n_connection_get_key_exchange_group). */
+        int saved_errno = s2n_errno;
+        struct s2n_debug_info saved_debug_info = _s2n_debug_info;
+        POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+        s2n_errno = saved_errno;
+        _s2n_debug_info = saved_debug_info;
     }
 
     conn->negotiate_in_use = false;
