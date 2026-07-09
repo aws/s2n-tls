@@ -271,24 +271,26 @@ where
     /// Signal a "would block" to s2n's C IO layer by setting the CRT `errno` to
     /// EWOULDBLOCK. `s2n_io.c` reads `errno` to distinguish a retriable blocked
     /// read/write from a fatal IO error.
-    #[cfg(not(target_os = "windows"))]
     fn set_io_would_block() {
-        // The `errno` crate writes the CRT errno, which is what s2n reads.
-        set_errno(Errno(libc::EWOULDBLOCK));
-    }
-
-    /// Windows variant: the `errno` crate writes the Win32 last-error, not the
-    /// CRT `errno` that s2n reads, so set the CRT errno directly. s2n and this
-    /// code share one statically linked CRT, so `_set_errno` and `errno` hit the
-    /// same thread-local.
-    #[cfg(target_os = "windows")]
-    fn set_io_would_block() {
-        extern "C" {
-            fn _set_errno(value: core::ffi::c_int) -> core::ffi::c_int;
+        #[cfg(not(target_os = "windows"))]
+        {
+            // The `errno` crate writes the CRT errno, which is what s2n reads.
+            set_errno(Errno(libc::EWOULDBLOCK));
         }
-        // SAFETY: `_set_errno` only writes the thread-local CRT errno.
-        unsafe {
-            let _ = _set_errno(libc::EWOULDBLOCK);
+
+        // On Windows the `errno` crate writes the Win32 last-error, not the CRT
+        // `errno` that s2n reads, so set the CRT errno directly. s2n and this
+        // code share one statically linked CRT, so `_set_errno` and `errno` hit
+        // the same thread-local variable.
+        #[cfg(target_os = "windows")]
+        {
+            extern "C" {
+                fn _set_errno(value: core::ffi::c_int) -> core::ffi::c_int;
+            }
+            // SAFETY: `_set_errno` only writes the thread-local CRT errno.
+            unsafe {
+                let _ = _set_errno(libc::EWOULDBLOCK);
+            }
         }
     }
 
