@@ -6,17 +6,19 @@ use std::{
     time::SystemTime,
 };
 
+use s2n_tls::{connection::Connection, error::Error as S2NError, events::HandshakeSuccess};
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
         Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
-        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-        Signature, Version,
+        Cipher, ClientIssue, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
 use crate::{
     bounded_set::BoundedStringSet,
+    client_issue::has_issue,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
@@ -33,6 +35,43 @@ fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
         _ => return None,
     };
     Some(Version(s2n_codec::zerocopy::U16::new(iana)))
+}
+
+pub(crate) struct NegotiatedParameters {
+    pub version: Version,
+    pub cipher: Cipher,
+    pub group: Option<Group>,
+    pub signature: Option<Signature>,
+}
+
+impl NegotiatedParameters {
+    fn from_connection(success: &HandshakeSuccess, conn: &Connection) -> Result<Self, S2NError> {
+        let version = match protocol_version_to_iana(success.protocol_version()) {
+            Some(version) => version,
+            None => {
+                tracing::error!("{:?} not a recognized protocol", success.protocol_version());
+                return Err(S2NError::application("unrecognized parameter".into()));
+            }
+        };
+
+        let cipher = match Cipher::from_openssl_name(success.cipher()) {
+            Some(cipher) => cipher,
+            None => {
+                tracing::error!("{:?} not a recognized cipher", success.protocol_version());
+                return Err(S2NError::application("unrecognized parameter".into()));
+            }
+        };
+
+        let group = success.group().and_then(|g| g.parse().ok());
+        let signature = conn.signature_scheme().and_then(|s| s.parse().ok());
+
+        Ok(Self {
+            version,
+            cipher,
+            group,
+            signature,
+        })
+    }
 }
 
 /// The HandshakeRecordInProgress stores the in-flight counters for handshake
@@ -82,6 +121,8 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_fips20251201: AtomicU64,
     compatibility_cnsa1: AtomicU64,
     compatibility_cnsa2: AtomicU64,
+
+    client_issue: Counter<{ ClientIssue::COUNT }, ClientIssue>,
 
     /// sum of handshake duration, including network latency and waiting
     ///
@@ -136,6 +177,8 @@ impl HandshakeRecordInProgress {
             compatibility_fips20251201: AtomicU64::default(),
             compatibility_cnsa1: AtomicU64::default(),
             compatibility_cnsa2: AtomicU64::default(),
+
+            client_issue: Counter::new(),
 
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
@@ -206,7 +249,26 @@ impl HandshakeRecordInProgress {
 
         self.security_policies.record(event.security_policy_label());
 
-        if let Some(client_hello) = client_hello {
+        // populate negotiated parameters
+        let negotiated = match NegotiatedParameters::from_connection(&success, conn) {
+            Ok(negotiated) => negotiated,
+            Err(_) => {
+                // error is already logged in NegotiatedParameters::from_connection
+                self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                // this connection is in a bad state, don't record any more telemetry
+                return;
+            }
+        };
+        self.negotiated_protocols.increment(&negotiated.version);
+        self.negotiated_ciphers.increment(&negotiated.cipher);
+        if let Some(group) = negotiated.group {
+            self.negotiated_groups.increment(&group);
+        }
+        if let Some(sig) = negotiated.signature {
+            self.negotiated_signatures.increment(&sig);
+        }
+
+        let supported_parameters = if let Some(client_hello) = client_hello {
             match (
                 conn.client_hello_is_sslv2(),
                 ClientHelloSupportedParameters::new(client_hello),
@@ -215,6 +277,7 @@ impl HandshakeRecordInProgress {
                     // we don't support parsing supported parameters from SSLv2
                     // client hellos because they have a different structure
                     self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
+                    None
                 }
                 (Ok(false), Ok(supported_parameter)) => {
                     supported_parameter
@@ -253,6 +316,7 @@ impl HandshakeRecordInProgress {
                     if Cnsa2::supported(&supported_parameter) {
                         self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
                     }
+                    Some(supported_parameter)
                 }
                 (Err(e), _) => {
                     // never expected to fail: a failure means the handshake
@@ -271,6 +335,16 @@ impl HandshakeRecordInProgress {
                     return;
                 }
             }
+        } else {
+            None
+        };
+
+        // populate client issues
+        if let Some(supported) = supported_parameters {
+            ClientIssue::MEMBERS
+                .into_iter()
+                .filter(|issue| has_issue(*issue, &negotiated, &supported))
+                .for_each(|issue| self.client_issue.increment(&issue));
         }
 
         // populate cert metrics
@@ -343,25 +417,6 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        // populate negotiation parameters
-        {
-            if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
-                self.negotiated_protocols.increment(&version);
-            }
-
-            if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
-                self.negotiated_ciphers.increment(&cipher);
-            }
-
-            if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
-                self.negotiated_groups.increment(&group);
-            }
-
-            if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
-                self.negotiated_signatures.increment(&sig);
-            }
-        }
-
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
         // over a panic.
@@ -417,6 +472,8 @@ impl HandshakeRecordInProgress {
             compatibility_fips20251201: self.compatibility_fips20251201.load(Ordering::Relaxed),
             compatibility_cnsa1: self.compatibility_cnsa1.load(Ordering::Relaxed),
             compatibility_cnsa2: self.compatibility_cnsa2.load(Ordering::Relaxed),
+
+            client_issues: self.client_issue.freeze(),
 
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
