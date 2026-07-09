@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Allocation regression gate for [`AggregatedMetricsSubscriber`].
-//! 
+//!
 //! Run with cargo test --features memory-test
 //!
 //! Same shape as `bindings/rust/standard/integration/tests/memory.rs`:
