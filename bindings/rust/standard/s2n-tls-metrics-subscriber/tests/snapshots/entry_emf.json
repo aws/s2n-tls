@@ -165,6 +165,9 @@
           },
           {
             "Name": "synthetic_traffic_count"
+          },
+          {
+            "Name": "internal_failure"
           }
         ],
         "Namespace": "TlsMetrics"
@@ -206,6 +209,7 @@
   "handshake_duration_us": "<DURATION>",
   "handshake_failure_count": 1,
   "handshake_success_count": 1,
+  "internal_failure": 0,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 1,
