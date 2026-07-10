@@ -298,13 +298,13 @@ impl Signature {
     pub const mldsa65: Self = Signature(U16::new(0x0905));
     pub const mldsa87: Self = Signature(U16::new(0x0906));
 
-    pub const ecdsa_sha1: Self = Signature(U16::new(515));
-    pub const legacy_ecdsa_sha224: Self = Signature(U16::new(771));
-    pub const legacy_rsa_sha224: Self = Signature(U16::new(769));
-    pub const rsa_pkcs1_sha1: Self = Signature(U16::new(513));
-    pub const rsa_pkcs1_sha256: Self = Signature(U16::new(1025));
-    pub const rsa_pkcs1_sha384: Self = Signature(U16::new(1281));
-    pub const rsa_pkcs1_sha512: Self = Signature(U16::new(1537));
+    pub const ecdsa_sha1: Self = Signature(U16::new(0x0203));
+    pub const legacy_ecdsa_sha224: Self = Signature(U16::new(0x0303));
+    pub const legacy_rsa_sha224: Self = Signature(U16::new(0x0301));
+    pub const rsa_pkcs1_sha1: Self = Signature(U16::new(0x0201));
+    pub const rsa_pkcs1_sha256: Self = Signature(U16::new(0x0401));
+    pub const rsa_pkcs1_sha384: Self = Signature(U16::new(0x0501));
+    pub const rsa_pkcs1_sha512: Self = Signature(U16::new(0x0601));
 
     /// This is the list of signature algorithms that
     /// - s2n-tls recognizes/generally support
