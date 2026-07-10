@@ -22,7 +22,7 @@ serde = { version = "1.0.225", features = ["derive"] }
 # a future, incompatible revision of the unstable event API (see PR #5913).
 # s2n-tls and s2n-tls-sys must stay on the same version: parsing/mod.rs casts
 # between their types and guards it with a static_assertions size check.
-s2n-tls = { version = "=0.3.39", path = "../../extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
+s2n-tls = { version = "0.3.39", path = "../../extended/s2n-tls", default-features = false, features = ["unstable-events", "unstable-testing"] }
 s2n-tls-sys = { version = "=0.3.39", path = "../../extended/s2n-tls-sys"}
 const-oid = "0.10.2"
 
@@ -34,6 +34,8 @@ fuzzing = []
 memory-test = []
 
 [dev-dependencies]
+# enable default features, because this application is responsible for calling init
+s2n-tls = { version = "0.3.39", path = "../../extended/s2n-tls", default-features = true}
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
 serde_json = "1.0.141"
 ciborium = "0.2"
