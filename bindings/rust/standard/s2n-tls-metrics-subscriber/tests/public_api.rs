@@ -16,8 +16,8 @@ fn opaque_serialize_then_schema_deserialize() {
     #[derive(Clone)]
     struct CaptureSink(Arc<Mutex<Vec<Vec<u8>>>>);
     impl TelemetrySink for CaptureSink {
-        fn export_record(&self, record: &MetricRecord) {
-            let bytes = serde_json::to_vec(record).unwrap();
+        fn export_record(&self, record: MetricRecord) {
+            let bytes = serde_json::to_vec(&record).unwrap();
             self.0.lock().unwrap().push(bytes);
         }
     }
