@@ -57,7 +57,7 @@ impl NegotiatedParameters {
         let cipher = match Cipher::from_openssl_name(success.cipher()) {
             Some(cipher) => cipher,
             None => {
-                tracing::error!("{:?} not a recognized cipher", success.protocol_version());
+                tracing::error!("{:?} not a recognized cipher", success.cipher());
                 return Err(S2NError::application("unrecognized parameter".into()));
             }
         };
