@@ -43,6 +43,8 @@ dhat = "0.3"
 tabled = "0.21"
 metrique-writer = { version = "0.1.19", features = ["test-util"] }
 metrique-writer-format-emf = "0.1.21"
+tls-harness = { path = "../tls-harness" }
+openssl = { version = "0.10", features = ["vendored"] }
 
 [[test]]
 name = "subscriber_memory"
