@@ -9,6 +9,10 @@
 //! compatibility with the released subscriber. The fix is to restore the
 //! missing APIs (with #[deprecated] annotations) in the bindings.
 
+// The s2n-tls-metrics-subscriber assumes the Linux binding types and does not compile on Windows,
+// so this compatibility test is limited to non-Windows targets (see integration/Cargo.toml).
+#![cfg(not(target_os = "windows"))]
+
 use old_metrics_subscriber::{
     AggregatedMetricsSubscriber, Attribution, MetricRecord, TelemetrySink,
 };
