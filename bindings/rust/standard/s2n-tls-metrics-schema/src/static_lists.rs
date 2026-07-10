@@ -378,8 +378,7 @@ impl Group {
     pub fn available_in_s2n(&self) -> bool {
         GROUPS_AVAILABLE_IN_S2N
             .iter()
-            .find(|info| info.group == *self)
-            .is_some()
+            .any(|info| info.group == *self)
     }
 }
 

@@ -16,9 +16,9 @@ pub fn has_issue(
             // Check whether any of the client's offered groups are ones that
             // s2n-tls actually supports. In the wild we have seen clients that
             // only support FFDHE groups
-            let no_s2n_groups = supported.supported_groups().is_some_and(|groups| {
-                !groups.iter().any(|g| g.available_in_s2n())
-            });
+            let no_s2n_groups = supported
+                .supported_groups()
+                .is_some_and(|groups| !groups.iter().any(|g| g.available_in_s2n()));
             supports_tls13 && no_s2n_groups
         }
         ClientIssue::Tls13WithoutModernSigAlgs => {
@@ -64,8 +64,8 @@ pub fn has_issue(
 #[cfg(test)]
 mod test {
     use super::*;
-    use s2n_tls_metrics_schema::static_lists::{Cipher, Group};
     use s2n_codec::zerocopy::U16;
+    use s2n_tls_metrics_schema::static_lists::{Cipher, Group};
 
     /// An FFDHE group that s2n-tls does not support for TLS 1.3.
     /// ffdhe2048 = IANA value 0x0100

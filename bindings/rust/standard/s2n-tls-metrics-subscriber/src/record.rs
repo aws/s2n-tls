@@ -1222,7 +1222,8 @@ mod tests {
             .slot_from_key()
             .unwrap();
         assert_eq!(
-            record.client_issues.slots()[slot], 1,
+            record.client_issues.slots()[slot],
+            1,
             "Expected Tls13WithoutS2NSupportedGroups to be incremented"
         );
     }
