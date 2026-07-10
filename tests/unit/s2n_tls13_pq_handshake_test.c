@@ -527,13 +527,15 @@ int main()
                 .len_prefix_expected = true,
         },
 
-        /* Server does not support PQ; client sends a PQ key share, but no EC shares;
-         * server should negotiate EC and send HRR. */
+        /* Server does not support PQ; client sends a PQ key share, but no usable
+         * EC share (its classical retry list omits x25519 so the hybrid's X25519
+         * can't be donated, and ecc_curves[0] is unsupported); server negotiates
+         * its top mutually-supported curve (secp256r1) and sends HRR. */
         {
                 .client_policy = &security_policy_test_tls13_retry_with_pq,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
-                .expected_curve = default_curve,
+                .expected_curve = &s2n_ecc_curve_secp256r1,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
         },

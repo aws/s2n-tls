@@ -43,6 +43,22 @@ const struct s2n_security_policy security_policy_test_tls13_retry = {
     .ecc_preferences = &ecc_preferences_for_retry,
 };
 
+/* ECC list for the PQ retry policy. Deliberately EXCLUDES x25519: the PQ hybrid
+ * (X25519MLKEM768) generates an X25519 key, and if x25519 were also a classical
+ * preference the client would reuse that key as a usable standalone classical
+ * share, letting the server negotiate in 1-RTT and defeating this policy's
+ * "always force a HRR" invariant. */
+const struct s2n_ecc_named_curve *const ecc_pref_list_for_retry_pq[] = {
+    &s2n_unsupported_curve,
+    &s2n_ecc_curve_secp256r1,
+    &s2n_ecc_curve_secp384r1,
+    &s2n_ecc_curve_secp521r1,
+};
+const struct s2n_ecc_preferences ecc_preferences_for_retry_pq = {
+    .count = s2n_array_len(ecc_pref_list_for_retry_pq),
+    .ecc_curves = ecc_pref_list_for_retry_pq,
+};
+
 /* Supports both PQ and ECC, however client's first ECC Curve is s2n_unsupported_curve, which will always force a HRR */
 const struct s2n_security_policy security_policy_test_tls13_retry_with_pq = {
     .minimum_protocol_version = S2N_TLS10,
@@ -50,7 +66,7 @@ const struct s2n_security_policy security_policy_test_tls13_retry_with_pq = {
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2024_10,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
-    .ecc_preferences = &ecc_preferences_for_retry,
+    .ecc_preferences = &ecc_preferences_for_retry_pq,
 };
 
 /*
