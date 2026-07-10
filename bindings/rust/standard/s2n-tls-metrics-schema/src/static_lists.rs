@@ -313,7 +313,7 @@ impl Signature {
         // SHA1 ecdsa schemes are not supported for TLS 1.3
         Self::ecdsa_sha1,
         Self::legacy_ecdsa_sha224,
-        // rsa pkcs1 is not support for TLS 1.3
+        // rsa pkcs1 is not supported for TLS 1.3
         Self::rsa_pkcs1_sha1,
         Self::legacy_rsa_sha224,
         Self::rsa_pkcs1_sha256,
