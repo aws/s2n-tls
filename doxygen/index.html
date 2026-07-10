@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.5-d6e161e0</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.5-2a75b1b3</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -179,8 +179,11 @@ Tier 1</h3>
 <td class="markdownTableBodyNone">FreeBSD <a href="https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf">latest</a>  </td><td class="markdownTableBodyNone">x86_64  </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">OSX <a href="https://github.com/actions/runner-images?tab=readme-ov-file#available-images">latest</a>  </td><td class="markdownTableBodyNone">aarch64  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Windows (MSYS2 / MinGW)*  </td><td class="markdownTableBodyNone">x86_64  </td></tr>
 </table>
 <p>**Work in Progress</p>
+<p>*Windows is supported through the MSYS2 environment with a MinGW toolchain (<span class="tt">UCRT64</span>, <span class="tt">MINGW64</span>, and <span class="tt">CLANG64</span>). The MSVC toolchain is not supported. On Windows, AWS-LC is the only supported libcrypto. Some POSIX-specific features (such as kTLS) are not available on Windows. See the build documentation for details.</p>
 <h3 class="doxsection"><a class="anchor" id="autotoc_md24"></a>
 Tier 2</h3>
 <table class="markdownTable">
