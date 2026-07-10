@@ -73,7 +73,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     }
 
     /* We only ever send a single EC key share: either the share requested by the server
-     * during a retry, or the most preferred share according to local preferences.
+     * during a retry, or a share selected based on local preferences and available key material.
      */
     struct s2n_ecc_evp_params *client_params = &conn->kex_params.client_ecc_evp_params;
     if (s2n_is_hello_retry_handshake(conn)) {
@@ -98,7 +98,45 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
          **/
         client_params->negotiated_curve = server_curve;
     } else {
+        /* Performance optimization: if the PQ hybrid already generated a key for
+         * the same curve as ecc_curves[0], reuse it as the standalone classical
+         * key share instead of generating a separate one. This saves one EC keygen
+         * per handshake.
+         *
+         * Because the reuse only fires when the hybrid's curve IS ecc_curves[0],
+         * the wire is always unchanged. It's the same curve, same group ID, same bytes a
+         * server would have seen without this optimization.
+         */
         client_params->negotiated_curve = ecc_pref->ecc_curves[0];
+
+/* EVP_PKEY_up_ref was added in OpenSSL 1.1.0. On libcryptos without
+ * EVP_APIS_SUPPORTED (e.g. OpenSSL 1.0.2), PQ hybrids are never generated
+ * (s2n_pq_is_enabled() returns false), so hybrid_ecc->evp_pkey is always NULL
+ * and this reuse path is unreachable. Compile it out to avoid referencing the
+ * missing symbol. */
+#if EVP_APIS_SUPPORTED
+        struct s2n_ecc_evp_params *hybrid_ecc = &conn->kex_params.client_kem_group_params.ecc_params;
+        const struct s2n_ecc_named_curve *hybrid_curve = hybrid_ecc->negotiated_curve;
+
+        if (hybrid_curve && hybrid_ecc->evp_pkey != NULL
+                && hybrid_curve == ecc_pref->ecc_curves[0]) {
+            /* The hybrid's classical curve matches the default standalone key share
+             * curve, so we can reuse the already-generated key instead of creating
+             * a new one. The same EC public key is offered both inside the hybrid
+             * KeyShareEntry and as the standalone classical KeyShareEntry.
+             * These are distinct groups (different IANA ids) and the server
+             * selects exactly one, so the private key is used in at most one
+             * shared secret computation with no cross-group key reuse.
+             *
+             * Both client_ecc_evp_params and client_kem_group_params.ecc_params
+             * hold a reference. EVP_PKEY_free (called by s2n_ecc_evp_params_free
+             * on connection cleanup) decrements the refcount, so the key is
+             * freed exactly once when the last reference is released. */
+            EVP_PKEY_up_ref(hybrid_ecc->evp_pkey);
+            client_params->negotiated_curve = hybrid_curve;
+            client_params->evp_pkey = hybrid_ecc->evp_pkey;
+        }
+#endif
     }
     POSIX_GUARD(s2n_ecdhe_parameters_send(client_params, out));
 

@@ -527,8 +527,9 @@ int main()
                 .len_prefix_expected = true,
         },
 
-        /* Server does not support PQ; client sends a PQ key share, but no EC shares;
-         * server should negotiate EC and send HRR. */
+        /* Server doesn't support PQ. Client's ecc_curves[0] is unsupported so
+         * the server sends HRR. After retry the server negotiates its top
+         * mutually-supported curve from the client's supported_groups. */
         {
                 .client_policy = &security_policy_test_tls13_retry_with_pq,
                 .server_policy = &security_policy_test_all_tls13,
