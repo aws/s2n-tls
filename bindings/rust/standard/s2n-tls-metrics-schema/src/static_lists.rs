@@ -644,7 +644,7 @@ pub enum ClientIssue {
     /// A client which supports TLS 1.3, but didn't include the supported groups
     /// extension.
     ///
-    /// This clients were previously observed in the wild. We would like to avoid
+    /// These clients were previously observed in the wild. We would like to avoid
     /// supporting this behavior.
     Tls13WithoutSupportedGroup,
     /// s2n-tls will make a "best-effort" to send a certificate, even if there are
