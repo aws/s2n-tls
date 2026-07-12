@@ -989,7 +989,7 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enabled)
 {
     POSIX_ENSURE_REF(config);
-    if (enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
+    if (enabled) {
         POSIX_GUARD(s2n_config_init_session_ticket_keys(config));
         config->use_session_cache = 1;
     } else {
