@@ -6,17 +6,19 @@ use std::{
     time::SystemTime,
 };
 
+use s2n_tls::{connection::Connection, error::Error as S2NError, events::HandshakeSuccess};
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
         Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
-        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-        Signature, Version,
+        Cipher, ClientIssue, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
 use crate::{
     bounded_set::BoundedStringSet,
+    client_issue::has_issue,
     compatibility::{Cnsa1, Cnsa2, Fips20251201, General20251201, TlsProfile},
     counter::Counter,
     detector::SyntheticTrafficDetector,
@@ -33,6 +35,43 @@ fn protocol_version_to_iana(v: s2n_tls::enums::Version) -> Option<Version> {
         _ => return None,
     };
     Some(Version(s2n_codec::zerocopy::U16::new(iana)))
+}
+
+pub(crate) struct NegotiatedParameters {
+    pub version: Version,
+    pub cipher: Cipher,
+    pub group: Option<Group>,
+    pub signature: Option<Signature>,
+}
+
+impl NegotiatedParameters {
+    fn from_connection(success: &HandshakeSuccess, conn: &Connection) -> Result<Self, S2NError> {
+        let version = match protocol_version_to_iana(success.protocol_version()) {
+            Some(version) => version,
+            None => {
+                tracing::error!("{:?} not a recognized protocol", success.protocol_version());
+                return Err(S2NError::application("unrecognized parameter".into()));
+            }
+        };
+
+        let cipher = match Cipher::from_openssl_name(success.cipher()) {
+            Some(cipher) => cipher,
+            None => {
+                tracing::error!("{:?} not a recognized cipher", success.cipher());
+                return Err(S2NError::application("unrecognized parameter".into()));
+            }
+        };
+
+        let group = success.group().and_then(|g| g.parse().ok());
+        let signature = conn.signature_scheme().and_then(|s| s.parse().ok());
+
+        Ok(Self {
+            version,
+            cipher,
+            group,
+            signature,
+        })
+    }
 }
 
 /// The HandshakeRecordInProgress stores the in-flight counters for handshake
@@ -83,6 +122,8 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_cnsa1: AtomicU64,
     compatibility_cnsa2: AtomicU64,
 
+    client_issue: Counter<{ ClientIssue::COUNT }, ClientIssue>,
+
     /// sum of handshake duration, including network latency and waiting
     ///
     /// To get the average, divide this by handshake_success_count.
@@ -96,6 +137,10 @@ pub(crate) struct HandshakeRecordInProgress {
     /// [`SyntheticTrafficDetector`]. Synthetic handshakes are excluded from
     /// every other counter on this record (including `handshake_success_count`).
     synthetic_traffic_count: AtomicU64,
+
+    /// Number of handshakes where an internal error prevented the metrics
+    /// subscriber from fully recording metrics.
+    internal_failure: AtomicU64,
 }
 
 impl HandshakeRecordInProgress {
@@ -133,22 +178,30 @@ impl HandshakeRecordInProgress {
             compatibility_cnsa1: AtomicU64::default(),
             compatibility_cnsa2: AtomicU64::default(),
 
+            client_issue: Counter::new(),
+
             handshake_duration_us: Default::default(),
             handshake_compute_us: Default::default(),
             synthetic_traffic_count: Default::default(),
+            internal_failure: Default::default(),
             exporter,
         }
     }
 
+    // This method should always be infallible. If there is an internal error
+    // e.g. being unable to retrieve something from s2n-tls, you should increment
+    // the internal_failure metric and log the error with `tracing::error!`
     pub fn update(
         &self,
         conn: &s2n_tls::connection::Connection,
         event: &s2n_tls::events::HandshakeEvent,
         detector: Option<&dyn SyntheticTrafficDetector>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // client_hello is only available on the server side of the connection
+    ) {
+        // client_hello is only available on the server side of the connection.
+        // Even on the server side, the client hello may not be populated if the
+        // handshake failed before the client hello was fully received/parsed.
         let client_hello = if conn.mode() == s2n_tls::enums::Mode::Server {
-            Some(conn.client_hello()?)
+            conn.client_hello().ok()
         } else {
             None
         };
@@ -162,7 +215,7 @@ impl HandshakeRecordInProgress {
             if let Some(client_hello) = client_hello {
                 if detector.is_synthetic(client_hello) {
                     self.synthetic_traffic_count.fetch_add(1, Ordering::Relaxed);
-                    return Ok(());
+                    return;
                 }
             }
         }
@@ -174,7 +227,7 @@ impl HandshakeRecordInProgress {
                 if let Some(alert) = alert {
                     self.alerts.increment(&alert);
                 }
-                return Ok(());
+                return;
             }
             s2n_tls::events::HandshakeResult::Success(s) => {
                 self.handshake_success_count.fetch_add(1, Ordering::Relaxed);
@@ -182,51 +235,116 @@ impl HandshakeRecordInProgress {
             }
         };
 
+        // if it was a successful handshake and we're a server, then the client
+        // hello should always be available. If not, increment an internal failure
+        // metric and give up.
+        if conn.mode() == s2n_tls::enums::Mode::Server && client_hello.is_none() {
+            tracing::error!(
+                "client hello unavailable after successful handshake: {:?}",
+                conn.client_hello().err()
+            );
+            self.internal_failure.fetch_add(1, Ordering::Relaxed);
+            return;
+        }
+
         self.security_policies.record(event.security_policy_label());
 
-        if let Some(client_hello) = client_hello {
-            if conn.client_hello_is_sslv2()? {
-                self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
-            } else {
-                let supported_parameter = ClientHelloSupportedParameters::new(client_hello)?;
+        // populate negotiated parameters
+        let negotiated = match NegotiatedParameters::from_connection(&success, conn) {
+            Ok(negotiated) => negotiated,
+            Err(_) => {
+                // error is already logged in NegotiatedParameters::from_connection
+                self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                // this connection is in a bad state, don't record any more telemetry
+                return;
+            }
+        };
+        self.negotiated_protocols.increment(&negotiated.version);
+        self.negotiated_ciphers.increment(&negotiated.cipher);
+        if let Some(group) = negotiated.group {
+            self.negotiated_groups.increment(&group);
+        }
+        if let Some(sig) = negotiated.signature {
+            self.negotiated_signatures.increment(&sig);
+        }
 
-                supported_parameter
-                    .supported_versions()
-                    .iter()
-                    .for_each(|version| self.supported_protocols.increment(version));
-
-                supported_parameter
-                    .supported_ciphers()
-                    .iter()
-                    .for_each(|cipher| self.supported_ciphers.increment(cipher));
-
-                supported_parameter
-                    .supported_groups()
-                    .iter()
-                    .flat_map(|groups| groups.iter())
-                    .for_each(|group| self.supported_groups.increment(group));
-
-                supported_parameter
-                    .supported_signatures()
-                    .iter()
-                    .flat_map(|sigs| sigs.iter())
-                    .for_each(|signature| self.supported_signatures.increment(signature));
-
-                if General20251201::supported(&supported_parameter) {
-                    self.compatibility_general20251201
-                        .fetch_add(1, Ordering::Relaxed);
+        let supported_parameters = if let Some(client_hello) = client_hello {
+            match (
+                conn.client_hello_is_sslv2(),
+                ClientHelloSupportedParameters::new(client_hello),
+            ) {
+                (Ok(true), _) => {
+                    // we don't support parsing supported parameters from SSLv2
+                    // client hellos because they have a different structure
+                    self.sslv2_client_hello.fetch_add(1, Ordering::Relaxed);
+                    None
                 }
-                if Fips20251201::supported(&supported_parameter) {
-                    self.compatibility_fips20251201
-                        .fetch_add(1, Ordering::Relaxed);
+                (Ok(false), Ok(supported_parameter)) => {
+                    supported_parameter
+                        .supported_versions()
+                        .iter()
+                        .for_each(|version| self.supported_protocols.increment(version));
+
+                    supported_parameter
+                        .supported_ciphers()
+                        .iter()
+                        .for_each(|cipher| self.supported_ciphers.increment(cipher));
+
+                    supported_parameter
+                        .supported_groups()
+                        .iter()
+                        .flat_map(|groups| groups.iter())
+                        .for_each(|group| self.supported_groups.increment(group));
+
+                    supported_parameter
+                        .supported_signatures()
+                        .iter()
+                        .flat_map(|sigs| sigs.iter())
+                        .for_each(|signature| self.supported_signatures.increment(signature));
+
+                    if General20251201::supported(&supported_parameter) {
+                        self.compatibility_general20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Fips20251201::supported(&supported_parameter) {
+                        self.compatibility_fips20251201
+                            .fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa1::supported(&supported_parameter) {
+                        self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                    }
+                    if Cnsa2::supported(&supported_parameter) {
+                        self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Some(supported_parameter)
                 }
-                if Cnsa1::supported(&supported_parameter) {
-                    self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                (Err(e), _) => {
+                    // never expected to fail: a failure means the handshake
+                    // succeeded without s2n-tls knowing whether or not it was
+                    // an SSLv2 client hello
+                    tracing::error!("failed to determine sslv2 client hello status: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
                 }
-                if Cnsa2::supported(&supported_parameter) {
-                    self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                (_, Err(e)) => {
+                    // never expected to fail: a failure means that s2n-tls
+                    // considered the client hello well-formed, but our parser
+                    // didn't
+                    tracing::error!("failed to parse client hello supported parameters: {e}");
+                    self.internal_failure.fetch_add(1, Ordering::Relaxed);
+                    return;
                 }
             }
+        } else {
+            None
+        };
+
+        // populate client issues
+        if let Some(supported) = supported_parameters {
+            ClientIssue::MEMBERS
+                .into_iter()
+                .filter(|issue| has_issue(*issue, &negotiated, &supported))
+                .for_each(|issue| self.client_issue.increment(&issue));
         }
 
         // populate cert metrics
@@ -299,25 +417,6 @@ impl HandshakeRecordInProgress {
             }
         }
 
-        // populate negotiation parameters
-        {
-            if let Some(version) = protocol_version_to_iana(success.protocol_version()) {
-                self.negotiated_protocols.increment(&version);
-            }
-
-            if let Some(cipher) = Cipher::from_openssl_name(success.cipher()) {
-                self.negotiated_ciphers.increment(&cipher);
-            }
-
-            if let Some(group) = success.group().and_then(|g| g.parse().ok()) {
-                self.negotiated_groups.increment(&group);
-            }
-
-            if let Some(sig) = conn.signature_scheme().and_then(|s| s.parse().ok()) {
-                self.negotiated_signatures.increment(&sig);
-            }
-        }
-
         // accuracy: as long as the handshake took less than 500,000 years
         // this cast will not truncate. We prefer truncation/less accurate metrics
         // over a panic.
@@ -327,8 +426,6 @@ impl HandshakeRecordInProgress {
         );
         self.handshake_duration_us
             .fetch_add(event.duration().as_micros() as u64, Ordering::Relaxed);
-
-        Ok(())
     }
 
     /// make a copy of this record to be exported.
@@ -376,9 +473,12 @@ impl HandshakeRecordInProgress {
             compatibility_cnsa1: self.compatibility_cnsa1.load(Ordering::Relaxed),
             compatibility_cnsa2: self.compatibility_cnsa2.load(Ordering::Relaxed),
 
+            client_issues: self.client_issue.freeze(),
+
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
             handshake_compute_us: self.handshake_compute_us.load(Ordering::Relaxed),
             synthetic_traffic_count: self.synthetic_traffic_count.load(Ordering::Relaxed),
+            internal_failure: self.internal_failure.load(Ordering::Relaxed),
             security_policies: self.security_policies.freeze(),
         }
     }
@@ -984,5 +1084,147 @@ mod tests {
         // No RSA in client fields, no ECDSA in server fields
         assert_eq!(record.client_leaf_cert_key.get(&CertKeyType::Rsa4096), 0);
         assert_eq!(record.server_leaf_cert_key.get(&CertKeyType::Secp384r1), 0);
+    }
+
+    /// A handshake that fails before the client hello is received should still
+    /// record a failure metric without panicking.
+    #[test]
+    fn failure_without_client_hello() {
+        use std::{io::Write, task::Poll};
+
+        let sink = crate::test_utils::VecSink::new();
+        let attribution = crate::Attribution {
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
+        };
+        let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        let server_config = {
+            let mut config =
+                s2n_tls::testing::config_builder(&s2n_tls::security::DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.set_max_blinding_delay(0).unwrap();
+            config.build().unwrap()
+        };
+        let client_config =
+            s2n_tls::testing::build_config(&s2n_tls::security::DEFAULT_TLS13).unwrap();
+
+        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+
+        // Write garbage that looks like a TLS record but with invalid content.
+        let garbage_record: &[u8] = &[
+            0x16, // content_type: handshake
+            0x03, 0x01, // version: TLS 1.0
+            0x00, 0x05, // length: 5 bytes
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // garbage handshake payload
+        ];
+        pair.io
+            .client_tx_stream
+            .borrow_mut()
+            .write_all(garbage_record)
+            .unwrap();
+
+        // The server should fail because it received garbage instead of a client hello.
+        match pair.server.poll_negotiate() {
+            Poll::Ready(Err(_)) => {}
+            other => panic!("expected server error, got {:?}", other),
+        }
+        // confirm that the "client hello" was not available
+        assert!(pair.server.client_hello().is_err());
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_failure_count, 1);
+        assert_eq!(record.internal_failure, 0);
+    }
+
+    /// Make sure that the client issues are properly plumbed in, and show up in
+    /// the record. We have to use OpenSSL to get a poorly configured client.
+    #[test]
+    fn ffdhe_only_client_triggers_tls13_without_s2n_supported_groups() {
+        use openssl::ssl::{SslContext, SslMethod};
+        use tls_harness::{
+            SigType, TlsConnPair,
+            cohort::{OpenSslConfig, OpenSslConnection, S2NConfig, S2NConnection},
+        };
+
+        let sink = crate::test_utils::VecSink::new();
+        let attribution = crate::Attribution {
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
+        };
+        let subscriber = crate::AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        // s2n-tls server: TLS 1.2 only, with subscriber
+        let tls12_only_policy = s2n_tls::security::Policy::from_version("20190214").unwrap();
+        let server_config: S2NConfig = {
+            let mut builder = s2n_tls::config::Builder::new();
+            builder.with_system_certs(false).unwrap();
+            builder.set_security_policy(&tls12_only_policy).unwrap();
+            let cert = tls_harness::harness::read_to_bytes(
+                tls_harness::PemType::ServerCertChain,
+                SigType::Rsa2048,
+            );
+            let key = tls_harness::harness::read_to_bytes(
+                tls_harness::PemType::ServerKey,
+                SigType::Rsa2048,
+            );
+            builder.load_pem(&cert, &key).unwrap();
+            builder.set_event_subscriber(subscriber.clone()).unwrap();
+            S2NConfig {
+                config: builder.build().unwrap(),
+                ticket_storage: Default::default(),
+            }
+        };
+
+        // OpenSSL client: TLS 1.3 capable, FFDHE-only groups
+        let client_config: OpenSslConfig = {
+            let mut builder = SslContext::builder(SslMethod::tls_client()).unwrap();
+            builder.set_security_level(0);
+            builder
+                .set_ca_file(tls_harness::get_cert_path(
+                    tls_harness::PemType::CACert,
+                    SigType::Rsa2048,
+                ))
+                .unwrap();
+            // Only FFDHE groups — s2n-tls doesn't support these for TLS 1.3
+            builder.set_groups_list("ffdhe2048").unwrap();
+            OpenSslConfig {
+                config: builder.build(),
+                session_ticket_storage: Default::default(),
+            }
+        };
+
+        let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> =
+            TlsConnPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+
+        // Inspect what the server saw in the client hello
+        let client_hello = pair.server.connection().client_hello().unwrap();
+        let supported_params =
+            crate::parsing::ClientHelloSupportedParameters::new(client_hello).unwrap();
+        let versions = supported_params.supported_versions();
+        let groups = supported_params.supported_groups();
+        eprintln!("supported_versions: {:?}", versions);
+        eprintln!("supported_groups: {:?}", groups);
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_success_count, 1);
+
+        let slot = ClientIssue::Tls13WithoutS2NSupportedGroups
+            .slot_from_key()
+            .unwrap();
+        assert_eq!(
+            record.client_issues.slots()[slot],
+            1,
+            "Expected Tls13WithoutS2NSupportedGroups to be incremented"
+        );
     }
 }

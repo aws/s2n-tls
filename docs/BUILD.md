@@ -68,7 +68,38 @@ cmake3 --install build
 ```
 </details>
 
-Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
+<details>
+<summary>Windows (MSYS2 / MinGW)</summary>
+
+Windows is supported using the [MSYS2](https://www.msys2.org/) environment with a MinGW toolchain. Building with the MSVC toolchain is not currently supported.
+
+After installing MSYS2, open a MinGW shell (one of `UCRT64`, `MINGW64`, or `CLANG64`) and install the build dependencies. The package prefix depends on the environment you chose (`mingw-w64-ucrt-x86_64` for `UCRT64`, `mingw-w64-x86_64` for `MINGW64`, or `mingw-w64-clang-x86_64` for `CLANG64`):
+
+```bash
+# example for the UCRT64 environment
+pacman -S --needed \
+    mingw-w64-ucrt-x86_64-clang \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-ninja \
+    make git
+```
+
+A supported libcrypto must also be available. On Windows, **AWS-LC is the only supported and tested libcrypto** — it is the only backend exercised by our Windows CI, and other libcryptos (OpenSSL, BoringSSL, LibreSSL) are not supported on Windows. See [Building with a specific libcrypto](#building-with-a-specific-libcrypto) and the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md). Once AWS-LC is installed, build s2n-tls:
+
+```bash
+# build s2n-tls
+cmake . -Bbuild -GNinja \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_PREFIX_PATH=<path to libcrypto install> \
+    -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
+```
+
+Note that some POSIX-specific features are not available on Windows. The `s2nc` and `s2nd` test utilities, kTLS, and a handful of unit tests that depend on POSIX socket or memory APIs are not built or run on Windows.
+</details>
 
 Using the commands above, the libraries and headers will be located in the `s2n-tls-install` directory.
 

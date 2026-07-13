@@ -11,8 +11,8 @@ use crate::{
     counter::FrozenCounter,
     static_lists::{
         Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
-        Cipher, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-        Signature, Version,
+        Cipher, ClientIssue, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -118,12 +118,20 @@ pub struct FrozenHandshakeRecord {
     pub compatibility_cnsa2: u64,
 
     #[serde(default)]
+    pub client_issues: FrozenCounter<{ ClientIssue::COUNT }, ClientIssue>,
+
+    #[serde(default)]
     pub handshake_duration_us: u64,
     #[serde(default)]
     pub handshake_compute_us: u64,
 
     #[serde(default)]
     pub synthetic_traffic_count: u64,
+
+    /// Number of handshakes where an internal error prevented the metrics
+    /// subscriber from fully recording metrics.
+    #[serde(default)]
+    pub internal_failure: u64,
 }
 
 impl Default for FrozenHandshakeRecord {
@@ -156,9 +164,11 @@ impl Default for FrozenHandshakeRecord {
             compatibility_fips20251201: 0,
             compatibility_cnsa1: 0,
             compatibility_cnsa2: 0,
+            client_issues: FrozenCounter::default(),
             handshake_duration_us: 0,
             handshake_compute_us: 0,
             synthetic_traffic_count: 0,
+            internal_failure: 0,
             security_policies: Default::default(),
         }
     }
@@ -259,6 +269,8 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value(names::COMPATIBILITY_CNSA1, &self.compatibility_cnsa1);
         writer.value(names::COMPATIBILITY_CNSA2, &self.compatibility_cnsa2);
 
+        write_counter(&self.client_issues, &names::CLIENT_ISSUES, writer);
+
         writer.value(names::SSLV2_CLIENT_HELLO, &self.sslv2_client_hello);
         writer.value(
             names::HANDSHAKE_SUCCESS_COUNT,
@@ -275,6 +287,7 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             names::SYNTHETIC_TRAFFIC_COUNT,
             &self.synthetic_traffic_count,
         );
+        writer.value(names::INTERNAL_FAILURE, &self.internal_failure);
     }
 }
 
