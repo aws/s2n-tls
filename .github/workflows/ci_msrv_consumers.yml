@@ -1,12 +1,10 @@
 ---
-# Ensures that s2n-tls's Minimum Supported Rust Version (MSRV) does not outpace
-# its key downstream consumers.
+# Ensures s2n-tls's Minimum Supported Rust Version (MSRV) does not outpace its
+# key downstream consumers.
 #
-# Rather than comparing version strings, this workflow performs a real build: it
-# compiles a key consumer (s2n-quic in this case) against *this PR's* s2n-tls,
-# using the Rust toolchain pinned to the CONSUMER's MSRV. If s2n-tls has raised
-# its MSRV above what the consumer can tolerate, this PR's s2n-tls will fail to
-# compile on the consumer's MSRV toolchain, failing this check.
+# Compiles a consumer (s2n-quic) against *this PR's* s2n-tls using the toolchain
+# pinned to the CONSUMER's MSRV. If s2n-tls has raised its MSRV above what the
+# consumer can tolerate, this PR's s2n-tls fails to compile, failing the check.
 name: MSRV Consumers
 
 on:
@@ -19,8 +17,6 @@ on:
     branches: [main]
 
 env:
-  # Source of truth for the s2n-tls Rust MSRV. ci_rust.yml already treats this
-  # rust-toolchain.toml as canonical.
   ROOT_PATH: bindings/rust/extended
 
 permissions:
@@ -43,18 +39,14 @@ jobs:
           path: s2n-quic
           submodules: true
 
-      # Read the CONSUMER's MSRV. The consumer builds against this PR's s2n-tls
-      # using the consumer's own MSRV toolchain. If s2n-tls has raised its MSRV
-      # above the consumer's, this PR's s2n-tls will fail to compile on the
-      # consumer's MSRV toolchain, which is exactly the regression we want to
-      # catch.
+      # The consumer's MSRV is the toolchain we build with.
       - uses: SebRollen/toml-action@v1.2.0
         id: consumer_msrv
         with:
           file: 's2n-quic/rust-toolchain'
           field: 'toolchain.channel'
 
-      # Also read s2n-tls's own MSRV, purely for a readable log line.
+      # s2n-tls's own MSRV, read only for a readable log line.
       - uses: SebRollen/toml-action@v1.2.0
         id: s2n_tls_msrv
         with:
@@ -65,15 +57,9 @@ jobs:
         run: |
           echo "s2n-tls MSRV:  ${{steps.s2n_tls_msrv.outputs.value}}"
           echo "s2n-quic MSRV: ${{steps.consumer_msrv.outputs.value}}"
-          echo "Building s2n-quic against this PR's s2n-tls using s2n-quic's MSRV toolchain."
-          # Both checkouts ship their own pinned toolchain files, which override
-          # `rustup override set`. We instead pass an explicit `cargo +<version>`
-          # at build time (highest precedence) to guarantee the consumer's MSRV.
           rustup toolchain install "${{steps.consumer_msrv.outputs.value}}" --profile minimal
 
-      # go is required for generate.sh to build aws-lc-rs in FIPS mode; the
-      # generate step also produces the s2n-tls-sys bindings that the local
-      # crates need before they can be used as a path dependency.
+      # go is required for generate.sh to build aws-lc-rs in FIPS mode.
       - name: Install go
         uses: actions/setup-go@v6
         with:
@@ -81,13 +67,18 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      # Produces the s2n-tls-sys bindings needed before the local crates can be
+      # used as path dependencies.
       - name: Generate s2n-tls bindings
         run: ./s2n-tls/${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # Redirect s2n-quic's crates.io s2n-tls dependency to this PR's checkout.
-      # s2n-quic-tls depends on `s2n-tls` from crates.io, and `s2n-tls` in turn
-      # pulls in `s2n-tls-sys` and `s2n-tls-tokio` via path, so patching these
-      # three entries covers the dependency tree.
+      # s2n-quic-tls depends on `s2n-tls`, which pulls in `s2n-tls-sys` and
+      # `s2n-tls-tokio` via path, so patching these three covers the tree.
+      #
+      # A [patch.crates-io] entry is silently ignored if its version differs
+      # from Cargo.lock, so we `cargo update` to adopt it and then fail loudly
+      # if the patch still didn't take (guards against a false-positive pass).
       - name: Patch s2n-quic to use this PR's s2n-tls
         working-directory: s2n-quic
         run: |
@@ -99,37 +90,24 @@ jobs:
             echo "s2n-tls-sys = { path = \"${TLS_PATH}/s2n-tls-sys\" }"
             echo "s2n-tls-tokio = { path = \"${TLS_PATH}/s2n-tls-tokio\" }"
           } >> Cargo.toml
-          echo "----- appended [patch.crates-io] -----"
           tail -n 5 Cargo.toml
 
-          # A [patch.crates-io] entry is silently ignored if its version differs
-          # from what is pinned in Cargo.lock (cargo emits a "patch not used"
-          # warning and keeps building the crates.io version). Our local crates
-          # will almost always have a newer version than what s2n-quic has
-          # locked, so we must explicitly update the lockfile to adopt the patch.
           cargo +${{steps.consumer_msrv.outputs.value}} update \
             -p s2n-tls -p s2n-tls-sys -p s2n-tls-tokio
 
-          # Fail loudly if the patch still didn't take (guards against the
-          # false-positive where the check passes without exercising this PR).
           if cargo +${{steps.consumer_msrv.outputs.value}} tree \
               --package s2n-quic-tls -i s2n-tls 2>&1 \
               | grep -q "patch .* was not used"; then
             echo "ERROR: the [patch.crates-io] override for s2n-tls was not applied."
-            echo "       s2n-quic is not building against this PR's s2n-tls."
             exit 1
           fi
-          echo "----- resolved s2n-tls source -----"
           cargo +${{steps.consumer_msrv.outputs.value}} tree \
             --package s2n-quic-tls -i s2n-tls
 
-      # Build the s2n-quic crate that actually integrates s2n-tls. If s2n-tls's
-      # MSRV has outpaced s2n-quic, this build fails on the MSRV toolchain.
+      # s2n-quic-tls already enables the s2n-tls "quic" feature, so a plain
+      # package build exercises the integration. The explicit `+<version>` pins
+      # the consumer's MSRV regardless of any checked-in rust-toolchain files.
       - name: Build s2n-quic against this PR's s2n-tls
         working-directory: s2n-quic
         run: |
-          # s2n-quic-tls already depends on s2n-tls with the "quic" feature
-          # enabled, so a plain package build exercises the integration. The
-          # explicit `+<version>` pins the consumer's MSRV toolchain regardless
-          # of any checked-in rust-toolchain files.
           cargo +${{steps.consumer_msrv.outputs.value}} build --package s2n-quic-tls
