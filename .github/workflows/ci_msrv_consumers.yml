@@ -110,4 +110,16 @@ jobs:
       - name: Build s2n-quic against this PR's s2n-tls
         working-directory: s2n-quic
         run: |
-          cargo +${{steps.consumer_msrv.outputs.value}} build --package s2n-quic-tls
+          if ! cargo +${{steps.consumer_msrv.outputs.value}} build --package s2n-quic-tls; then
+            echo "::error::s2n-tls MSRV (${{steps.s2n_tls_msrv.outputs.value}}) has outpaced s2n-quic (${{steps.consumer_msrv.outputs.value}})"
+            echo ""
+            echo "s2n-tls failed to build against s2n-quic on s2n-quic's MSRV toolchain"
+            echo "(${{steps.consumer_msrv.outputs.value}}). Raising s2n-tls's MSRV above a key consumer's is a"
+            echo "breaking change for that consumer's users."
+            echo ""
+            echo "To resolve, either:"
+            echo "  * lower the s2n-tls MSRV in ${{env.ROOT_PATH}}/rust-toolchain.toml"
+            echo "    (and the matching crate manifests and .clippy.toml), or"
+            echo "  * coordinate with s2n-quic to raise its MSRV first."
+            exit 1
+          fi
