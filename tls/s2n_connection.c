@@ -458,6 +458,16 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
     POSIX_GUARD(s2n_free(&conn->client_hello.raw_message));
 
+    /* Null out pointers that aliased into the now-freed raw_message buffer.
+     * Without this, parsed_extensions[i].extension.data becomes dangling.
+     */
+    conn->client_hello.cipher_suites.data = NULL;
+    conn->client_hello.extensions.raw.data = NULL;
+    for (size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) {
+        conn->client_hello.extensions.parsed_extensions[i].extension.data = NULL;
+        conn->client_hello.extensions.parsed_extensions[i].extension.size = 0;
+    }
+
     /* We can free extension data we no longer need */
     POSIX_GUARD(s2n_free(&conn->client_ticket));
     POSIX_GUARD(s2n_free(&conn->status_response));
