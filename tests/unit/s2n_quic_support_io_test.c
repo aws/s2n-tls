@@ -338,7 +338,7 @@ int main(int argc, char **argv)
         }
 
         /* Write test message */
-        DEFER_CLEANUP(struct s2n_blob server_hello, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob server_hello = { 0 }, s2n_free);
         EXPECT_OK(s2n_write_test_message(&server_hello, TLS_SERVER_HELLO));
 
         /* Setup IO buffers */
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            DEFER_CLEANUP(struct s2n_blob encrypted_extensions, s2n_free);
+            DEFER_CLEANUP(struct s2n_blob encrypted_extensions = { 0 }, s2n_free);
             EXPECT_OK(s2n_write_test_message(&encrypted_extensions, TLS_ENCRYPTED_EXTENSIONS));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));
