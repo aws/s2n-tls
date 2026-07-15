@@ -48,3 +48,13 @@ cc = { version = "1.2.26", features = ["parallel"] }
 home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
 regex = "1.12"
 zeroize = "1.8"
+
+# Configure docs.rs generated documentation to enable all features and render
+# cfg-gated code with the native rustdoc "Available on ..." restriction.
+# See https://docs.rs/about/metadata
+[package.metadata.docs.rs]
+rustdoc-args = [
+    "-Zcrate-attr=feature(doc_cfg)",
+    "-Zcrate-attr=doc(auto_cfg)",
+]
+all-features = true
