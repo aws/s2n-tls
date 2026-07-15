@@ -73,6 +73,7 @@ struct s2n_client_hello {
 };
 
 int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello);
+S2N_RESULT s2n_client_hello_free_ptr(struct s2n_client_hello **ch);
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 struct s2n_client_hello *s2n_connection_get_previous_client_hello(struct s2n_connection *conn);

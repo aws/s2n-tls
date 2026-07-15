@@ -350,7 +350,12 @@ struct s2n_connection {
 
     struct s2n_client_hello client_hello;
 
-    struct s2n_client_hello previous_client_hello;
+    /* The first ClientHello sent before a HelloRetryRequest. It is a pointer,
+     * rather than embedded by value, to avoid growing every connection by the
+     * size of an s2n_client_hello. It is only allocated when a HelloRetryRequest
+     * occurs, and is NULL otherwise.
+     */
+    struct s2n_client_hello *previous_client_hello;
 
     struct s2n_x509_validator x509_validator;
 

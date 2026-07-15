@@ -110,25 +110,23 @@ fn both_client_hellos_available_after_hrr() {
 /// `previous_client_hello()` returns `None`.
 #[test]
 fn no_previous_client_hello_without_hrr() {
-    required_capability(&[Capability::Tls13], || {
-        let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
-            let mut configs =
-                TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
-            configs
-                .server
-                .set_security_policy(&STRONGLY_PREFERRED_GROUPS)
-                .unwrap();
-            // The client offers the server's preferred group directly, so no
-            // HelloRetryRequest is needed.
-            configs.client.set_groups_list("secp384r1").unwrap();
-            configs.connection_pair()
-        };
+    let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
+        let mut configs =
+            TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
+        configs
+            .server
+            .set_security_policy(&STRONGLY_PREFERRED_GROUPS)
+            .unwrap();
+        // The client offers the server's preferred group directly, so no
+        // HelloRetryRequest is needed.
+        configs.client.set_groups_list("secp384r1").unwrap();
+        configs.connection_pair()
+    };
 
-        pair.handshake().unwrap();
-        pair.shutdown().unwrap();
+    pair.handshake().unwrap();
+    pair.shutdown().unwrap();
 
-        // A client hello was received, but no HRR occurred.
-        assert!(pair.server.connection().client_hello().is_ok());
-        assert!(pair.server.connection().previous_client_hello().is_none());
-    });
+    // A client hello was received, but no HRR occurred.
+    assert!(pair.server.connection().client_hello().is_ok());
+    assert!(pair.server.connection().previous_client_hello().is_none());
 }

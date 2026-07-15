@@ -55,11 +55,11 @@ struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *
 struct s2n_client_hello *s2n_connection_get_previous_client_hello(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
-    if (conn->previous_client_hello.parsed != 1) {
+    if (conn->previous_client_hello == NULL || conn->previous_client_hello->parsed != 1) {
         return NULL;
     }
 
-    return &conn->previous_client_hello;
+    return conn->previous_client_hello;
 }
 
 static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length)
@@ -201,6 +201,20 @@ int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello)
     client_hello->extensions.raw.data = NULL;
 
     return 0;
+}
+
+/* Frees a heap-allocated, connection-owned client_hello and NULLs the pointer. */
+S2N_RESULT s2n_client_hello_free_ptr(struct s2n_client_hello **ch)
+{
+    RESULT_ENSURE_REF(ch);
+    if (*ch == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD_POSIX(s2n_client_hello_free_raw_message(*ch));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) ch, sizeof(struct s2n_client_hello)));
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_client_hello_free(struct s2n_client_hello **ch)
@@ -498,9 +512,20 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      * it to 0 on the connection's client_hello before the second ClientHello arrives.
      */
     if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->previous_client_hello));
-        conn->previous_client_hello = previous_hello_retry;
-        conn->previous_client_hello.parsed = 1;
+        /* Only one HelloRetryRequest is allowed per handshake, so this is reached
+         * once and previous_client_hello has not been allocated yet.
+         */
+        POSIX_ENSURE(conn->previous_client_hello == NULL, S2N_ERR_INVALID_STATE);
+
+        DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+        POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_client_hello)));
+        POSIX_GUARD(s2n_blob_zero(&mem));
+
+        conn->previous_client_hello = (struct s2n_client_hello *) (void *) mem.data;
+        ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
+
+        *conn->previous_client_hello = previous_hello_retry;
+        conn->previous_client_hello->parsed = 1;
         previous_hello_retry = (struct s2n_client_hello){ 0 };
     }
 
