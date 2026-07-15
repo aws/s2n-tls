@@ -1493,6 +1493,23 @@ struct s2n_client_hello;
 S2N_API extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 
 /**
+ * Get the first ClientHello sent before a HelloRetryRequest.
+ *
+ * When a server sends a HelloRetryRequest, the client responds with a second
+ * ClientHello. By default s2n_connection_get_client_hello() returns that second
+ * (most recent) ClientHello. This method returns the first ClientHello,
+ * which is useful for inspecting the values the client originally offered.
+ *
+ * This is only available on the server, and only after a HelloRetryRequest has
+ * occurred. If no HelloRetryRequest was sent, there is no previous ClientHello
+ * and NULL is returned.
+ *
+ * @param conn The connection object containing the client hello
+ * @returns A handle to the s2n_client_hello structure holding the first client hello sent before a HelloRetryRequest. NULL is returned if no HelloRetryRequest occurred.
+ */
+S2N_API extern struct s2n_client_hello *s2n_connection_get_previous_client_hello(struct s2n_connection *conn);
+
+/**
  * Creates an s2n_client_hello from bytes representing a ClientHello message.
  *
  * The input bytes should include the message header (message type and length),

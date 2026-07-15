@@ -75,6 +75,7 @@ struct s2n_client_hello {
 int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello);
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
+struct s2n_client_hello *s2n_connection_get_previous_client_hello(struct s2n_connection *conn);
 
 ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
 ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);

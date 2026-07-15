@@ -519,6 +519,106 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
+    /* After a HelloRetryRequest, the server retains the first ClientHello and it
+     * can be accessed via s2n_connection_get_previous_client_hello. It is distinct
+     * from the second (current) ClientHello returned by s2n_connection_get_client_hello.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+        /* The current ClientHello (the second one) is available */
+        struct s2n_client_hello *current = s2n_connection_get_client_hello(server_conn);
+        EXPECT_NOT_NULL(current);
+
+        /* The first ClientHello, sent before the HelloRetryRequest, is retained */
+        struct s2n_client_hello *previous = s2n_connection_get_previous_client_hello(server_conn);
+        EXPECT_NOT_NULL(previous);
+
+        /* The two ClientHellos are genuinely different messages. The client offers
+         * a different key share in its second ClientHello in response to the HRR,
+         * so the raw messages must differ.
+         */
+        ssize_t current_len = s2n_client_hello_get_raw_message_length(current);
+        ssize_t previous_len = s2n_client_hello_get_raw_message_length(previous);
+        EXPECT_TRUE(current_len > 0);
+        EXPECT_TRUE(previous_len > 0);
+
+        DEFER_CLEANUP(struct s2n_blob current_raw = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob previous_raw = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&current_raw, current_len));
+        EXPECT_SUCCESS(s2n_alloc(&previous_raw, previous_len));
+        EXPECT_EQUAL(s2n_client_hello_get_raw_message(current, current_raw.data, current_raw.size), current_len);
+        EXPECT_EQUAL(s2n_client_hello_get_raw_message(previous, previous_raw.data, previous_raw.size), previous_len);
+
+        bool identical = (current_len == previous_len)
+                && (memcmp(current_raw.data, previous_raw.data, current_len) == 0);
+        EXPECT_FALSE(identical);
+    };
+
+    /* Without a HelloRetryRequest, there is no previous ClientHello and
+     * s2n_connection_get_previous_client_hello returns NULL.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+        /* A ClientHello was received, but no HelloRetryRequest occurred */
+        EXPECT_NOT_NULL(s2n_connection_get_client_hello(server_conn));
+        EXPECT_NULL(s2n_connection_get_previous_client_hello(server_conn));
+    };
+
     /* Hello Retry Request + (poll and no-poll) client hello callback */
     {
         EXPECT_OK(hello_retry_client_hello_cb_test());

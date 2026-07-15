@@ -350,6 +350,8 @@ struct s2n_connection {
 
     struct s2n_client_hello client_hello;
 
+    struct s2n_client_hello previous_client_hello;
+
     struct s2n_x509_validator x509_validator;
 
     struct s2n_async_offload_op async_offload_op;

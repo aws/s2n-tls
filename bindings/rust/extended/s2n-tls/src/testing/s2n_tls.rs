@@ -27,6 +27,51 @@ mod tests {
         assert!(TestPair::handshake_with_config(&config).is_ok());
     }
 
+    // After a HelloRetryRequest, the first ClientHello (sent before the HRR) is
+    // retained and accessible via Connection::previous_client_hello, while
+    // Connection::client_hello returns the second ClientHello. Without an HRR,
+    // there is no previous ClientHello.
+    #[test]
+    fn previous_client_hello_after_hrr() -> Result<(), Error> {
+        // The server strongly prefers secp384r1.
+        let server_policy = Policy::from_version("20251117")?;
+        // The default TLS1.3 client offers a different group as its initial key
+        // share, forcing the server to request a HelloRetryRequest.
+        let client_policy = security::DEFAULT_TLS13;
+
+        // Without an HRR (both sides use the same policy), there is no previous ClientHello.
+        {
+            let config = build_config(&client_policy)?;
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
+            assert!(pair.server.client_hello().is_ok());
+            assert!(pair.server.previous_client_hello().is_none());
+        }
+
+        // With an HRR, both ClientHellos are available and they are distinct.
+        {
+            let client_config = build_config(&client_policy)?;
+            let server_config = build_config(&server_policy)?;
+            let mut pair = TestPair::from_configs(&client_config, &server_config);
+            pair.handshake()?;
+
+            let current = pair.server.client_hello()?;
+            let previous = pair
+                .server
+                .previous_client_hello()
+                .expect("previous client hello should be available after an HRR");
+
+            // The two ClientHellos are genuinely different messages: the client
+            // offers a new key share in its second ClientHello, so the raw
+            // messages differ.
+            let current_raw = current.raw_message()?;
+            let previous_raw = previous.raw_message()?;
+            assert_ne!(current_raw, previous_raw);
+        }
+
+        Ok(())
+    }
+
     #[test]
     fn kem_group_name_retrieval() -> Result<(), Error> {
         // PQ isn't supported
