@@ -35,3 +35,24 @@ export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
 ```
 cargo build
 ```
+
+## Performance note: Rust ≥ 1.90 and cross-file LTO
+
+`s2n-tls-sys`'s build script compiles the vendored `libs2n` C code with `-flto -ffat-lto-objects` when the C compiler is GCC-like, relying on the linker to perform cross-file LTO on the resulting fat objects.
+
+Starting with Rust 1.90, the default linker on `x86_64-unknown-linux-gnu` [switched from GNU `bfd` to `rust-lld`](https://blog.rust-lang.org/2025/09/01/rust-lld-on-1.90.0-stable/). `rust-lld` does not implement the GCC linker plugin protocol used to consume GCC fat-LTO `.gnu.lto_*` sections, so the LTO pass is silently skipped and the native-code fallback is linked as-is. On our benchmarks this adds ~17-22 µs per TLS handshake (~2-4%).
+
+To restore the earlier behavior under Rust ≥ 1.90 with GCC on `x86_64-unknown-linux-gnu`, opt out of `rust-lld`:
+
+```
+RUSTFLAGS="-Clinker-features=-lld"
+```
+
+Or in `.cargo/config.toml`:
+
+```toml
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-Clinker-features=-lld"]
+```
+
+Consumers on Clang, aarch64, or non-Linux targets are unaffected — Clang drops `-ffat-lto-objects` with a warning, and only `x86_64-unknown-linux-gnu` has the `rust-lld` default.
