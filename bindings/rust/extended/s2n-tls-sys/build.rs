@@ -104,6 +104,23 @@ fn build_vendored() {
             build
                 .flag_if_supported("-flto")
                 .flag_if_supported("-ffat-lto-objects");
+
+            // These fat-LTO objects require the final linker to implement the
+            // GCC linker plugin protocol to actually perform cross-file LTO.
+            // rust-lld (the default on x86_64-unknown-linux-gnu since Rust 1.90)
+            // does not, so the LTO pass is silently skipped, costing ~2-4% per
+            // TLS handshake. Warn if we detect that combination so the silent
+            // regression is at least discoverable.
+            if lto_silently_disabled() {
+                println!(
+                    "cargo:warning=s2n-tls-sys: cross-file LTO of the vendored libs2n is \
+                     silently disabled. Rust >= 1.90 defaults to the rust-lld linker on \
+                     x86_64-unknown-linux-gnu, which cannot consume GCC fat-LTO objects, \
+                     costing ~2-4% per TLS handshake. To restore LTO, build with \
+                     RUSTFLAGS=\"-Clinker-features=-lld\". For details see: \
+                     https://github.com/aws/s2n-tls/blob/main/bindings/rust/extended/s2n-tls-sys/README.md#performance-note-rust--190-and-cross-file-lto"
+                );
+            }
         }
     }
 
@@ -159,6 +176,40 @@ fn build_vendored() {
     std::fs::create_dir_all(&include_dir).unwrap();
     std::fs::copy("lib/api/s2n.h", include_dir.join("s2n.h")).unwrap();
     println!("cargo:include={}", include_dir.display());
+}
+
+/// Returns true if the current toolchain/target combination will silently drop
+/// the C fat-LTO pass.
+///
+/// The regression is silent: the build succeeds and the fat-LTO objects are
+/// simply linked without the cross-file LTO step. This only affects GCC-like
+/// compilers (checked by the caller) targeting x86_64-unknown-linux-gnu on
+/// Rust >= 1.90, and only when the user hasn't already opted out of rust-lld.
+///
+/// Every check fails open: if we can't positively confirm the affected
+/// combination, we return false rather than risk a spurious warning.
+fn lto_silently_disabled() -> bool {
+    // Only x86_64-unknown-linux-gnu defaults to rust-lld.
+    if std::env::var("TARGET").as_deref() != Ok("x86_64-unknown-linux-gnu") {
+        return false;
+    }
+
+    // If the user already opted out of rust-lld, there's nothing to warn about.
+    // CARGO_ENCODED_RUSTFLAGS captures both RUSTFLAGS and build.rustflags /
+    // target.<triple>.rustflags from .cargo/config.toml.
+    if let Ok(flags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
+        if flags.contains("linker-features=-lld") {
+            return false;
+        }
+    }
+
+    // rust-lld only became the default on this target in Rust 1.90. Older
+    // toolchains still use GNU bfd, which consumes the fat-LTO sections.
+    // Fail open: if the version can't be determined, stay silent.
+    match rustc_version::version() {
+        Ok(version) => version >= rustc_version::Version::new(1, 90, 0),
+        Err(_) => false,
+    }
 }
 
 fn builder(libcrypto: &Libcrypto) -> cc::Build {
