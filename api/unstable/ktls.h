@@ -20,6 +20,10 @@
 
     #include <s2n.h>
 
+    #ifdef __cplusplus
+extern "C" {
+    #endif
+
 /**
  * @file ktls.h
  *
@@ -160,5 +164,9 @@ S2N_API int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
  */
 S2N_API int s2n_sendfile(struct s2n_connection *conn, int fd, off_t offset, size_t count,
         size_t *bytes_written, s2n_blocked_status *blocked);
+
+    #ifdef __cplusplus
+}
+    #endif
 
 #endif

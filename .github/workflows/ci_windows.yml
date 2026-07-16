@@ -30,8 +30,9 @@ jobs:
           - sys: clang64
             pkg-prefix: mingw-w64-clang-x86_64
             env-path: /clang64
+            asan: ON
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -62,7 +63,7 @@ jobs:
             -DBUILD_TESTING=OFF
           cmake --build aws-lc-build -j $(nproc) --target install
 
-      - name: Build libs2n.a
+      - name: Build libs2n.a and unit tests
         shell: msys2 {0}
         run: |
           set -eu
@@ -70,6 +71,133 @@ jobs:
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_PREFIX_PATH=${{matrix.env-path}}/local \
-            -DBUILD_TESTING=OFF \
-            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON
+            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=ON \
+            -DBUILD_TESTING=ON \
+            -DASAN=${{matrix.asan || 'OFF'}}
           cmake --build ./build -j $(nproc)
+
+      - name: Run unit tests
+        shell: msys2 {0}
+        run: |
+          set -eu
+          ctest --test-dir build --output-on-failure -j $(nproc)
+
+  rust-bindings:
+    runs-on: windows-latest
+    name: Rust Bindings (${{matrix.sys}})
+    env:
+      # msys2 ships clang, not gcc, but cc-rs defaults to gcc for *-gnu.
+      CC: clang
+      CXX: clang++
+      # gnullvm doesn't auto-link winpthreads, so s2n's pthread/clock_gettime/
+      # nanosleep symbols are undefined; -lpthread links it explicitly. Both vars
+      # are needed: RUSTFLAGS for the normal link, RUSTDOCFLAGS for doctests
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_RUSTFLAGS: -Clink-arg=-lpthread
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_RUSTDOCFLAGS: -Clink-arg=-lpthread
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sys: ucrt64
+            pkg-prefix: mingw-w64-ucrt-x86_64
+            env-path: /ucrt64
+            rust-host: x86_64-pc-windows-gnu
+          - sys: mingw64
+            pkg-prefix: mingw-w64-x86_64
+            env-path: /mingw64
+            rust-host: x86_64-pc-windows-gnu
+          - sys: clang64
+            pkg-prefix: mingw-w64-clang-x86_64
+            env-path: /clang64
+            # clang64 targets gnullvm, but pinned Rust 1.89 has no gnullvm host
+            # toolchain. rust-host is the host we install (gnu); cargo-target
+            # is what we cross-compile for (gnullvm).
+            rust-host: x86_64-pc-windows-gnu
+            cargo-target: x86_64-pc-windows-gnullvm
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.sys}}
+          update: true
+          install: >-
+            ${{matrix.pkg-prefix}}-clang
+            ${{matrix.pkg-prefix}}-clang-libs
+            ${{matrix.pkg-prefix}}-cmake
+            ${{matrix.pkg-prefix}}-ninja
+            ${{matrix.pkg-prefix}}-go
+            ${{matrix.pkg-prefix}}-nasm
+            ${{matrix.pkg-prefix}}-rustup
+            make
+            git
+            diffutils
+            jq
+
+      - name: Install Rust toolchain
+        shell: msys2 {0}
+        run: |
+          set -eu
+          # Force the MinGW gnu host; otherwise rustup picks the runner's MSVC
+          # host, which can't build build.rs's GCC/Clang flags.
+          rustup set default-host ${{matrix.rust-host}}
+          rustup default stable-${{matrix.rust-host}}
+          rustup component add rustfmt
+
+          # clang64 has no gnullvm host toolchain, so cross-compile to gnullvm
+          # from the gnu host.
+          if [ -n "${{matrix.cargo-target}}" ]; then
+            # Add the gnullvm std to both toolchains that need it: the "1.89"
+            # workspaces (both pin it, so one add covers both) and the repo-root
+            # "stable" default used by the cargo install below.
+            ( cd bindings/rust/extended && rustup target add ${{matrix.cargo-target}} )
+            rustup target add ${{matrix.cargo-target}}
+            echo "CARGO_BUILD_TARGET=${{matrix.cargo-target}}" >> "$GITHUB_ENV"
+            # aws-lc-sys has no prebuilt bindings for gnullvm, so it runs bindgen
+            # at build time. Install bindgen-cli into the msys2 prefix (on PATH);
+            # build it for gnullvm so it runs in the clang64 environment.
+            cargo install --locked --target ${{matrix.cargo-target}} \
+              --root "${{matrix.env-path}}" bindgen-cli
+          fi
+
+      # openssl-src doesn't pass `-j` to make on Windows, so the vendored OpenSSL
+      # build runs single-threaded. Export MAKEFLAGS so make parallelizes
+      # which speeds up Openssl Vendered version build.
+      - name: Enable parallel make for vendored OpenSSL
+        shell: msys2 {0}
+        run: echo "MAKEFLAGS=-j$(nproc)" >> "$GITHUB_ENV"
+
+      - name: Generate Rust bindings
+        shell: msys2 {0}
+        run: |
+          set -eu
+          ./bindings/rust/extended/generate.sh
+
+      - name: Test extended workspace
+        shell: msys2 {0}
+        working-directory: bindings/rust/extended
+        run: |
+          set -eu
+          cargo test
+
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, PQ, and unstable-custom_x509_extensions"
+        shell: msys2 {0}
+        working-directory: bindings/rust/extended
+        run: |
+          set -eu
+          cargo test --features unstable-fingerprint,unstable-ktls,quic,pq,unstable-custom_x509_extensions
+
+      - name: "Feature Test: Renegotiate"
+        shell: msys2 {0}
+        working-directory: bindings/rust/extended
+        run: |
+          set -eu
+          cargo test --features unstable-renegotiate
+
+      - name: Test integration crate
+        shell: msys2 {0}
+        working-directory: bindings/rust/standard
+        run: |
+          set -eu
+          cargo test -p integration

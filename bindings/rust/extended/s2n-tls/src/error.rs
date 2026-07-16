@@ -408,9 +408,19 @@ mod tests {
     // this value if the definition of an IO error changes might be easier.
     const S2N_IO_ERROR_CODE: s2n_status_code::Type = 1 << 26;
 
+    // The value that decodes to `ConnectionReset` differs by platform:
+    // `from_raw_os_error` reads a POSIX errno on non-Windows and a Winsock code
+    // on Windows.
+    #[cfg(not(target_os = "windows"))]
+    const OS_CONNECTION_RESET: i32 = libc::ECONNRESET;
+    // 10054 is WSAECONNRESET ("Connection reset by peer").
+    // See https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
+    #[cfg(target_os = "windows")]
+    const OS_CONNECTION_RESET: i32 = 10054;
+
     #[test]
     fn s2n_io_error_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
-        set_errno(Errno(libc::ECONNRESET));
+        set_errno(Errno(OS_CONNECTION_RESET));
         unsafe {
             let s2n_errno_ptr = s2n_errno_location();
             *s2n_errno_ptr = S2N_IO_ERROR_CODE;

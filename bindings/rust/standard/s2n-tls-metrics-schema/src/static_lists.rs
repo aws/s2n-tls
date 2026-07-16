@@ -8,36 +8,16 @@
 use std::{fmt::Display, str::FromStr};
 
 use s2n_codec::zerocopy::U16;
+use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use zerocopy::{FromBytes, Immutable, Unaligned};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TlsParam {
-    /// E.g. TLS 1.2
-    Version,
-    /// E.g. TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-    Cipher,
-    /// E.g. SecP256r1MLKEM768
-    Group,
-    /// E.g. ecdsa_secp384r1_sha384
-    SignatureScheme,
-}
 
 pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
 pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
 pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
-
-impl Display for TlsParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TlsParam::Version => write!(f, "version"),
-            TlsParam::Cipher => write!(f, "cipher"),
-            TlsParam::Group => write!(f, "group"),
-            TlsParam::SignatureScheme => write!(f, "signature_scheme"),
-        }
-    }
-}
+pub const CERT_KEY_COUNT: usize = CERT_KEYS.len();
+pub const CERT_SIG_COUNT: usize = CERT_SIGS.len();
 
 /// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
 /// Shared by `Version`, `Group`, and `Signature`, whose wire form is the
@@ -167,6 +147,10 @@ impl FromStr for Signature {
             .map(|info| info.signature)
             .ok_or(())
     }
+}
+
+impl FiniteCounter<DEFINED_ALERTS_COUNT> for Alert {
+    const ELEMENTS: [Self; DEFINED_ALERTS_COUNT] = Alert::DEFINED_ALERTS;
 }
 
 #[serde_as]
@@ -314,6 +298,29 @@ impl Signature {
     pub const mldsa65: Self = Signature(U16::new(0x0905));
     pub const mldsa87: Self = Signature(U16::new(0x0906));
 
+    pub const ecdsa_sha1: Self = Signature(U16::new(0x0203));
+    pub const legacy_ecdsa_sha224: Self = Signature(U16::new(0x0303));
+    pub const legacy_rsa_sha224: Self = Signature(U16::new(0x0301));
+    pub const rsa_pkcs1_sha1: Self = Signature(U16::new(0x0201));
+    pub const rsa_pkcs1_sha256: Self = Signature(U16::new(0x0401));
+    pub const rsa_pkcs1_sha384: Self = Signature(U16::new(0x0501));
+    pub const rsa_pkcs1_sha512: Self = Signature(U16::new(0x0601));
+
+    /// This is the list of signature algorithms that
+    /// - s2n-tls recognizes/generally support
+    /// - do not support TLS 1.3
+    pub const SIG_ALGS_TLS13_UNSUPPORTED: &[Signature] = &[
+        // SHA1 ecdsa schemes are not supported for TLS 1.3
+        Self::ecdsa_sha1,
+        Self::legacy_ecdsa_sha224,
+        // rsa pkcs1 is not supported for TLS 1.3
+        Self::rsa_pkcs1_sha1,
+        Self::legacy_rsa_sha224,
+        Self::rsa_pkcs1_sha256,
+        Self::rsa_pkcs1_sha384,
+        Self::rsa_pkcs1_sha512,
+    ];
+
     pub fn known_description(&self) -> Option<&'static str> {
         SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
             .iter()
@@ -366,6 +373,12 @@ impl Group {
             .iter()
             .find(|info| info.group == *self)
             .map(|info| info.iana_description)
+    }
+
+    pub fn available_in_s2n(&self) -> bool {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .any(|info| info.group == *self)
     }
 }
 
@@ -443,6 +456,48 @@ impl SignatureSchemeInformation {
         }
     }
 }
+
+/// Represents a TLS alert
+///
+/// Most elements of this struct are code-generated from the relevant IANA CSV at
+/// <https://www.iana.org/assignments/tls-parameters/tls-parameters-6.csv>
+/// ```
+/// use s2n_tls_metrics_schema::static_lists::Alert;
+///
+/// // named constant
+/// let alert = Alert::CLOSE_NOTIFY;
+///
+/// // string description
+/// assert_eq!(Alert::CLOSE_NOTIFY.get_description(), Some("close_notify"));
+///
+/// // domain of all defined alerts
+/// assert_eq!(Alert::DEFINED_ALERTS.len(), 30);
+/// ```
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Alert(pub u8);
+include!(concat!(env!("OUT_DIR"), "/alerts_generated.rs"));
+
+impl Display for Alert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_alert_{}", self.0),
+        }
+    }
+}
+
+impl FromStr for Alert {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::DEFINED_ALERTS
+            .iter()
+            .find(|a| a.get_description() == Some(s))
+            .copied()
+            .ok_or(())
+    }
+}
+
+pub const DEFINED_ALERTS_COUNT: usize = Alert::DEFINED_ALERTS.len();
 
 pub const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("SSLv3", 0x0300),
@@ -526,6 +581,148 @@ pub const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] =
     SignatureSchemeInformation::new("rsa_pss_rsae_sha384", 2053),
     SignatureSchemeInformation::new("rsa_pss_rsae_sha512", 2054),
 ];
+
+/// KeyType can be decoded from an AlgorithmIdentifier element of an X509 certificate
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertKeyType {
+    Rsa1024,
+    Rsa2048,
+    Rsa3072,
+    Rsa4096,
+    RsaPss2048,
+    RsaPss3072,
+    RsaPss4096,
+    Secp256r1,
+    Secp384r1,
+    Secp521r1,
+    Unknown,
+}
+
+impl Display for CertKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_KEYS: [CertKeyType; 11] = [
+    CertKeyType::Rsa1024,
+    CertKeyType::Rsa2048,
+    CertKeyType::Rsa3072,
+    CertKeyType::Rsa4096,
+    CertKeyType::RsaPss2048,
+    CertKeyType::RsaPss3072,
+    CertKeyType::RsaPss4096,
+    CertKeyType::Secp256r1,
+    CertKeyType::Secp384r1,
+    CertKeyType::Secp521r1,
+    CertKeyType::Unknown,
+];
+
+impl FiniteCounter<CERT_KEY_COUNT> for CertKeyType {
+    const ELEMENTS: [CertKeyType; CERT_KEY_COUNT] = CERT_KEYS;
+}
+
+/// An issue client is a client with non-ideal configuration that should be remediated
+///
+/// They generally are either
+/// - relying on a behavior that will break in certain server configurations
+/// - relying on a behavior that we would like to deprecate
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum ClientIssue {
+    /// A client which supports TLS 1.3, but doesn't support any s2n-tls supported
+    /// groups
+    ///
+    /// s2n-tls does not support FFDHE groups for TLS 1.3. A client that only has
+    /// ffdhe supported groups will successfully connect to a TLS 1.2 server, but
+    /// will be broken when that server starts supporting TLS 1.3
+    Tls13WithoutS2NSupportedGroups,
+    /// A client which supports TLS 1.3, but doesn't support the required signatures.
+    ///
+    /// We have observed clients in the wild that advertise TLS 1.3 support, but
+    /// which only include rsa_pkcsv15 signatures
+    Tls13WithoutModernSigAlgs,
+    /// A client which supports TLS 1.3, but didn't include the supported groups
+    /// extension.
+    ///
+    /// These clients were previously observed in the wild. We would like to avoid
+    /// supporting this behavior.
+    Tls13WithoutSupportedGroup,
+    /// s2n-tls will make a "best-effort" to send a certificate, even if there are
+    /// no signature algorithms in common.
+    ///
+    /// https://github.com/aws/s2n-tls/blob/efe8bd425153f8512cd70fd752872223eb545135/bindings/rust/standard/integration/src/handshake_failure_errors.rs#L106-L108
+    /// A stricter behavior would generally be easier to reason about, and clients
+    /// should not be lying about their supported signatures.
+    LiedAboutSupportedSignatures,
+}
+
+impl ClientIssue {
+    pub const COUNT: usize = Self::MEMBERS.len();
+    pub const MEMBERS: [ClientIssue; 4] = [
+        ClientIssue::Tls13WithoutS2NSupportedGroups,
+        ClientIssue::Tls13WithoutModernSigAlgs,
+        ClientIssue::Tls13WithoutSupportedGroup,
+        ClientIssue::LiedAboutSupportedSignatures,
+    ];
+}
+
+impl Display for ClientIssue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Tls13WithoutS2NSupportedGroups => {
+                f.write_str("tls13_without_s2n_supported_groups")
+            }
+            Self::Tls13WithoutModernSigAlgs => f.write_str("tls13_without_modern_sig_algs"),
+            Self::Tls13WithoutSupportedGroup => f.write_str("tls13_without_supported_group"),
+            Self::LiedAboutSupportedSignatures => f.write_str("lied_about_supported_signatures"),
+        }
+    }
+}
+
+impl FiniteCounter<{ ClientIssue::COUNT }> for ClientIssue {
+    const ELEMENTS: [Self; ClientIssue::COUNT] = ClientIssue::MEMBERS;
+}
+
+// Unfortunately, CertSignatures are _not_ the same as TLS SignatureSchemes.
+// TLS SignatureSchemes also encode information about the issuing public key (e.g. secp384, RSAE)
+// but that is not present at the actual certificate signature level.
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertSignatureAlgorithm {
+    RsaPkcsSha1,
+    RsaPkcsSha256,
+    RsaPkcsSha384,
+    RsaPkcsSha512,
+    /// NOTE: RSA-PSS encodes the hash algorithm in the AlgorithmIdentifier
+    /// parameters (RSASSA-PSS-params), not in the OID itself. We currently
+    /// only parse the OID, so the hash (e.g. SHA256) is not reported.
+    RsaPss,
+    EcdsaSha256,
+    EcdsaSha384,
+    EcdsaSha512,
+    Unknown,
+}
+
+impl Display for CertSignatureAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_SIGS: [CertSignatureAlgorithm; 9] = [
+    CertSignatureAlgorithm::RsaPkcsSha1,
+    CertSignatureAlgorithm::RsaPkcsSha256,
+    CertSignatureAlgorithm::RsaPkcsSha384,
+    CertSignatureAlgorithm::RsaPkcsSha512,
+    CertSignatureAlgorithm::RsaPss,
+    CertSignatureAlgorithm::EcdsaSha256,
+    CertSignatureAlgorithm::EcdsaSha384,
+    CertSignatureAlgorithm::EcdsaSha512,
+    CertSignatureAlgorithm::Unknown,
+];
+
+impl FiniteCounter<CERT_SIG_COUNT> for CertSignatureAlgorithm {
+    const ELEMENTS: [CertSignatureAlgorithm; CERT_SIG_COUNT] = CERT_SIGS;
+}
 
 #[cfg(test)]
 mod tests {

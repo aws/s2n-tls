@@ -3,6 +3,8 @@
 
 //! Allocation regression gate for [`AggregatedMetricsSubscriber`].
 //!
+//! Run with cargo test --features memory-test
+//!
 //! Same shape as `bindings/rust/standard/integration/tests/memory.rs`:
 //! `dhat::Alloc` as the global allocator, hardcoded expected values, and
 //! `fuzzy_equals` (±100 bytes) for byte-level drift. The test runs in
@@ -34,7 +36,7 @@ fn fuzzy_equals(actual: i64, expected: i64) -> bool {
 struct NullSink;
 
 impl TelemetrySink for NullSink {
-    fn export_record(&self, _record: &MetricRecord) {}
+    fn export_record(&self, _record: MetricRecord) {}
 }
 
 fn attribution() -> Attribution {
@@ -144,8 +146,8 @@ fn subscriber_allocation_budget() {
     // byte counts can drift with capacity rounding so we use fuzzy_equals.
     /// The allocations done per handshake (on_handshake_event callback)
     const HANDSHAKE: AllocDelta = AllocDelta {
-        blocks: 8,
-        bytes: 344,
+        blocks: 16,
+        bytes: 1360,
     };
 
     // Bytes scale with `sizeof(HandshakeRecordInProgress)` (per-flush
@@ -157,7 +159,7 @@ fn subscriber_allocation_budget() {
     // the mpsc channel allocs in chunks.
     const EXPORT: AllocDelta = AllocDelta {
         blocks: 5,
-        bytes: 3073,
+        bytes: 4966,
     };
 
     // Subscriber state is fixed-size, so nothing should be retained across
