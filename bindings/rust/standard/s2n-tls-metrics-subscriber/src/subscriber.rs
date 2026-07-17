@@ -159,7 +159,7 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             attribution: self.inner.attribution.clone().into_schema(),
             handshake,
         });
-        export_pipeline.sink.export_record(&record);
+        export_pipeline.sink.export_record(record);
         self.inner
             .last_export_epoch_ms
             .store(epoch_ms_now(), Ordering::Relaxed);
@@ -205,13 +205,7 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
             .synthetic_detector
             .get()
             .map(|boxed| boxed.as_ref());
-        let res = current_record.update(connection, event, detector);
-        // we never expect this to fail, but if it fails in production there is
-        // no meaningful way to handle the failure
-        debug_assert!(res.is_ok());
-        if let Err(e) = res {
-            tracing::error!("failed to update handshake record: {e}");
-        }
+        current_record.update(connection, event, detector);
         // Drop the Arc before attempting export so that finish_record can
         // observe the final reference count drop.
         drop(current_record);
