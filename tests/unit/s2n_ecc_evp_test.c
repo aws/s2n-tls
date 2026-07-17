@@ -191,7 +191,18 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&test_params));
             EXPECT_NOT_NULL(test_params.evp_pkey);
 
-            EXPECT_FAILURE(s2n_ecc_evp_write_params_point(&test_params, &wire));
+            /* The errno differs by build: the EVP path writes via
+             * s2n_stuffer_write_bytes, which reports the out-of-space condition
+             * as S2N_ERR_STUFFER_IS_FULL. The non-EVP path writes via
+             * s2n_stuffer_raw_write, which returns NULL on the same condition
+             * and is caught by POSIX_ENSURE_REF as S2N_ERR_NULL. */
+#if EVP_APIS_SUPPORTED
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ecc_evp_write_params_point(&test_params, &wire),
+                    S2N_ERR_STUFFER_IS_FULL);
+#else
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ecc_evp_write_params_point(&test_params, &wire),
+                    S2N_ERR_NULL);
+#endif
 
             /* Clean up */
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&test_params));
