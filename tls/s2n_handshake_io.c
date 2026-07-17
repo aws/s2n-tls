@@ -1255,12 +1255,15 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
             POSIX_GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
         POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode](conn));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, message_names[ACTIVE_MESSAGE(conn)], (uint8_t) conn->mode));
         if (record_type == TLS_HANDSHAKE) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     }
 
     POSIX_GUARD_RESULT(s2n_handshake_message_send(conn, record_type, &blocked));
+    POSIX_GUARD_RESULT(s2n_event_checkpoint_send(conn, "RECORD_WRITE", (uint8_t) conn->mode));
     if (record_type == TLS_HANDSHAKE) {
         POSIX_GUARD_RESULT(s2n_handshake_transcript_update(conn));
     }
@@ -1461,6 +1464,8 @@ static int s2n_handshake_message_process(struct s2n_connection *conn, uint8_t re
 
         /* Call the relevant handler */
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode](conn)));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, message_names[ACTIVE_MESSAGE(conn)], (uint8_t) conn->mode));
 
         /* Advance the state machine */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));
@@ -1515,6 +1520,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
         POSIX_GUARD(r);
     }
+
+    POSIX_GUARD_RESULT(s2n_event_checkpoint_send(conn, "RECORD_READ", (uint8_t) conn->mode));
 
     if (isSSLv2) {
         S2N_ERROR_IF(record_type != SSLv2_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
@@ -1741,6 +1748,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_GUARD(s2n_default_monotonic_clock(NULL, &negotiate_start));
     if (conn->handshake_event.handshake_start_ns == 0) {
         conn->handshake_event.handshake_start_ns = negotiate_start;
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, "NEGOTIATE_START", (uint8_t) conn->mode));
     }
 
     int result = s2n_negotiate_impl(conn, blocked);
@@ -1757,6 +1766,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         conn->handshake_event.handshake_end_ns = negotiate_end;
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, "NEGOTIATE_END", (uint8_t) conn->mode));
     } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED && conn->config) {
         /* S2N_ERR_T_BLOCKED is the only retryable error type -- it indicates
          * the handshake is still in progress but IO would block. All other
