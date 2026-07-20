@@ -1008,6 +1008,13 @@ int main(int argc, char **argv)
                 /* 20260513 supports ML-DSA-87 certs */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
 
+                /* Mixed cert chain (e.g. P-256 root → ML-DSA-87 leaf) should also work with 20260513 */
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *p256_mldsa87_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_mldsa87_chain,
+                    "../pems/mixed_chains/p256_root_mldsa87_leaf/server-chain.pem",
+                    "../pems/mixed_chains/p256_root_mldsa87_leaf/server-key.pem"));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", p256_mldsa87_chain));
+
                 /* 20260513 > 20260220 (CNSA 2.0 interop) with either ML-DSA-87 or p-384 cert */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", mldsa87_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", ecdsa_sha384_chain_and_key));
