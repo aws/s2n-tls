@@ -118,6 +118,8 @@ const char *cipher_exceptions[] = {
     "CloudFront-TLS-1-0-2014-sha256",
     "CloudFront-TLS-1-0-2016",
     "test_all",
+    "20260520",
+    "20260520_gcm",
 };
 
 /* List of s2n TLS Security Policies that are allowed to have a minimum TLS Version below TLS 1.2 and support ML-KEM */
@@ -133,6 +135,8 @@ const char *tls_version_exceptions[] = {
     "CloudFront-TLS-1-0-2016",
     "CloudFront-TLS-1-1-2016",
     "test_all",
+    "20260520",
+    "20260520_gcm",
 };
 
 const size_t mlkem_list_size = s2n_array_len(mlkem_list);
@@ -393,9 +397,9 @@ int main(int argc, char **argv)
                 .expected_group = "secp384r1",
                 .expected_sig_scheme = "mldsa87",
             },
-            /* `test_pq_only` does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
+            /* Default CRT policy does not support ML-DSA-87 and prefers hybrid MLKEM over pure MLKEM1024. */
             {
-                .client_policy = "test_pq_only",
+                .client_policy = "AWS-CRT-SDK-TLSv1.0-2025-PQ",
                 .server_policy = "cnsa_1_2_interop",
                 .server_name = "localhost",
                 .expected_error = S2N_ERR_OK,

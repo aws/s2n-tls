@@ -132,7 +132,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     POSIX_ENSURE(s2n_result_is_ok(s2n_client_cert_chain_store(conn, &cert_chain)),
             S2N_ERR_BAD_MESSAGE);
 
-    s2n_cert_public_key public_key = { 0 };
+    DEFER_CLEANUP(s2n_cert_public_key public_key = { 0 }, s2n_pkey_free);
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
@@ -145,6 +145,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
     conn->handshake_params.client_public_key = public_key;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
 
     /* Update handshake.io to reflect the true stuffer state after all async callbacks are handled. */
     conn->handshake.io = in;

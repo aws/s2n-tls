@@ -43,3 +43,7 @@
      */
     #define S2N_API __attribute__((visibility("default")))
 #endif
+
+/* These replace the use of MIN/MAX from <sys/param.h>, which is not available on Windows. */
+#define S2N_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define S2N_MAX(a, b) (((a) > (b)) ? (a) : (b))

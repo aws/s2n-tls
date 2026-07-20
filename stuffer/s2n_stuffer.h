@@ -19,7 +19,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/uio.h>
+#ifndef _WIN32
+    #include <sys/uio.h>
+#endif
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
@@ -111,11 +113,6 @@ int S2N_RESULT_MUST_USE s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, u
  */
 void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, const uint32_t data_len);
 void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
-
-/* Send/receive stuffer to/from a file descriptor */
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len,
-        uint32_t *bytes_written);
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent);
 
 /* Read and write integers in network order */
 int S2N_RESULT_MUST_USE s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);

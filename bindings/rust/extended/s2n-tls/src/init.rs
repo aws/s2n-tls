@@ -14,8 +14,11 @@ static S2N_INIT: Once = Once::new();
 ///
 /// This function should only be called once
 unsafe fn global_init() -> Result<(), Error> {
-    mem::init()?;
-    s2n_init().into_result()?;
+    #[cfg(feature = "init")]
+    {
+        mem::init()?;
+        s2n_init().into_result()?;
+    }
     Ok(())
 }
 
@@ -36,10 +39,19 @@ impl Drop for Thread {
     fn drop(&mut self) {
         // https://doc.rust-lang.org/std/thread/struct.LocalKey.html#platform-specific-behavior
         // Note that a "best effort" is made to ensure that destructors for types stored in thread local storage are run, but not all platforms can guarantee that destructors will be run for all types in thread local storage.
-        let _ = unsafe { s2n_cleanup().into_result() };
+        #[cfg(feature = "init")]
+        {
+            let _ = unsafe { s2n_cleanup().into_result() };
+        }
     }
 }
 
+/// When the default `init` feature is disabled (via `default-features = false`),
+/// this function skips calling [`s2n_init`] and [`s2n_mem_set_callbacks`].
+/// This is intended for FFI consumers whose host application already calls
+/// [`s2n_init`] from C before using the Rust bindings (e.g. a C service that
+/// links its own libs2n and also pulls in the metrics-subscriber crate).
+///
 /// Corresponds to [`s2n_init`].
 pub fn init() {
     S2N_THREAD.with(|_| ());
@@ -62,6 +74,7 @@ pub fn fips_mode() -> Result<FipsMode, Error> {
     fips_mode.try_into()
 }
 
+#[cfg(feature = "init")]
 mod mem {
     use super::*;
     use alloc::alloc::{alloc, dealloc, Layout};

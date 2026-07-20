@@ -196,7 +196,7 @@ impl Builder {
             .context("No capture file provided")?;
         let capture = RTSharkBuilder::builder().input_path(&file);
         self.build_from_capture(capture)
-            .with_context(|| format!("Failed to parse capture file {}", &file))
+            .with_context(|| format!("Failed to parse capture file {}", file))
     }
 }
 

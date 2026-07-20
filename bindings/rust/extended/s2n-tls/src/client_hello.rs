@@ -105,6 +105,20 @@ impl ClientHello {
         Ok(server_name)
     }
 
+    /// Corresponds to [`s2n_client_hello_get_random`].
+    ///
+    /// Returns the 32-byte client random from the ClientHello message. The
+    /// random bytes in the message returned by [`Self::raw_message`] are
+    /// zeroed out, so this accessor is the only way to read them.
+    pub fn random(&self) -> Result<[u8; 32], Error> {
+        let mut out = [0u8; 32];
+        unsafe {
+            s2n_client_hello_get_random(self.deref_mut_ptr(), out.as_mut_ptr(), out.len() as u32)
+                .into_result()?;
+        }
+        Ok(out)
+    }
+
     /// Corresponds to [`s2n_client_hello_get_raw_message`], but also
     /// calls [`s2n_client_hello_get_raw_message_length`].
     ///
