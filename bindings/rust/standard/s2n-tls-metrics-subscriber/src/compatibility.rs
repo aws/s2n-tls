@@ -4,10 +4,8 @@
 //! This module holds utilities for checking when a client is compatible with some
 //! particular TLS Profile.
 
-use crate::{
-    parsing::ClientHelloSupportedParameters,
-    static_lists::{Cipher, Group, Signature, Version},
-};
+use crate::parsing::ClientHelloSupportedParameters;
+use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
 pub(crate) trait TlsProfile {
     const ALLOWED_VERSIONS: &[Version];
@@ -19,26 +17,16 @@ pub(crate) trait TlsProfile {
     fn supported(client_hello: &ClientHelloSupportedParameters) -> bool {
         let supported_version = client_hello
             .supported_versions()
-            .map(|client_versions| {
-                client_versions
-                    .iter()
-                    .any(|client_version| Self::ALLOWED_VERSIONS.contains(client_version))
-            })
-            .unwrap_or(false);
+            .iter()
+            .any(|client_version| Self::ALLOWED_VERSIONS.contains(client_version));
 
         let supported_cipher = client_hello
             .supported_ciphers()
-            .map(|client_ciphers| {
-                client_ciphers
-                    .iter()
-                    .any(|client_cipher| Self::ALLOWED_CIPHERS.contains(client_cipher))
-            })
-            .unwrap_or(false);
+            .iter()
+            .any(|client_cipher| Self::ALLOWED_CIPHERS.contains(client_cipher));
 
         let supported_signature = client_hello
             .supported_signatures()
-            .ok()
-            .flatten()
             .map(|client_signatures| {
                 client_signatures
                     .iter()
@@ -48,8 +36,6 @@ pub(crate) trait TlsProfile {
 
         let supported_group = client_hello
             .supported_groups()
-            .ok()
-            .flatten()
             .map(|client_groups| {
                 client_groups
                     .iter()
@@ -256,7 +242,7 @@ mod tests {
         let server = handshake_with_policy("default", &default_cert());
         let ch = server.client_hello().unwrap();
         assert!(General20251201::supported(
-            &ClientHelloSupportedParameters::new(ch)
+            &ClientHelloSupportedParameters::new(ch).unwrap()
         ));
     }
 
@@ -265,7 +251,7 @@ mod tests {
         let server = handshake_with_policy("default_fips", &default_cert());
         let ch = server.client_hello().unwrap();
         assert!(Fips20251201::supported(
-            &ClientHelloSupportedParameters::new(ch)
+            &ClientHelloSupportedParameters::new(ch).unwrap()
         ));
     }
 
@@ -273,7 +259,9 @@ mod tests {
     fn cnsa_1_compatible_with_cnsa1() {
         let server = handshake_with_policy("cnsa_1", &ecdsa_p384_cert());
         let ch = server.client_hello().unwrap();
-        assert!(Cnsa1::supported(&ClientHelloSupportedParameters::new(ch)));
+        assert!(Cnsa1::supported(
+            &ClientHelloSupportedParameters::new(ch).unwrap()
+        ));
     }
 
     #[test]
@@ -282,7 +270,7 @@ mod tests {
         let mut pair = TestPair::from_configs(&client_config, &server_config);
         pair.handshake().unwrap();
         let ch = pair.server.client_hello().unwrap();
-        let supported_parameters = ClientHelloSupportedParameters::new(ch);
+        let supported_parameters = ClientHelloSupportedParameters::new(ch).unwrap();
 
         assert!(Cnsa2::supported(&supported_parameters));
         // doesn't support required groups/signatures
@@ -299,7 +287,7 @@ mod tests {
         let cert = ecdsa_p384_cert();
         let server = handshake_with_policy("cnsa_1_2_interop", &cert);
         let ch = server.client_hello().unwrap();
-        let supported_parameters = ClientHelloSupportedParameters::new(ch);
+        let supported_parameters = ClientHelloSupportedParameters::new(ch).unwrap();
         assert!(Cnsa1::supported(&supported_parameters));
         assert!(Cnsa2::supported(&supported_parameters));
     }

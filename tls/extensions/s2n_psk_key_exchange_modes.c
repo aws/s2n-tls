@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_client_psk.h"
 #include "tls/s2n_tls_parameters.h"

@@ -18,7 +18,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"
@@ -869,8 +868,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(io_pair.client, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);
-        EXPECT_EQUAL(write(io_pair.client, sslv2_client_hello, sslv2_client_hello_len), sslv2_client_hello_len);
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, sslv2_client_hello, sslv2_client_hello_len), sslv2_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -1073,9 +1072,9 @@ int main(int argc, char **argv)
         ext_data = NULL;
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -1279,9 +1278,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Re-send the client hello message */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -1418,9 +1417,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.client, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);

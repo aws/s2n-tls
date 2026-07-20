@@ -9,8 +9,7 @@ use s2n_tls::{
 };
 
 use crate::{
-    AggregatedMetricsSubscriber, MetricRecord, attribution::Attribution,
-    telemetry_sink::TelemetrySink,
+    AggregatedMetricsSubscriber, Attribution, MetricRecord, telemetry_sink::TelemetrySink,
 };
 
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
@@ -31,7 +30,7 @@ impl VecSink {
 }
 
 impl TelemetrySink for VecSink {
-    fn export_record(&self, record: &MetricRecord) {
+    fn export_record(&self, record: MetricRecord) {
         self.records.lock().unwrap().push(record.clone());
     }
 }
@@ -57,6 +56,7 @@ impl TestEndpoint<VecSink> {
         let attribution = Attribution {
             service: "test_server".to_owned(),
             resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
         let server_config = {

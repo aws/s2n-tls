@@ -13,7 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <arpa/inet.h>
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <ws2tcpip.h>
+#else
+    #include <arpa/inet.h>
+#endif
 
 #include "s2n_test.h"
 

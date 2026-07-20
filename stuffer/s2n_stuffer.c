@@ -15,8 +15,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-#include <sys/param.h>
-
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
@@ -215,13 +213,16 @@ int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
     return S2N_SUCCESS;
 }
 
+/**
+ * wipe the last `size` bytes of previously written data
+ */
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
-    uint32_t wipe_size = MIN(size, stuffer->write_cursor);
+    uint32_t wipe_size = S2N_MIN(size, stuffer->write_cursor);
 
     stuffer->write_cursor -= wipe_size;
-    stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
+    stuffer->read_cursor = S2N_MIN(stuffer->read_cursor, stuffer->write_cursor);
     POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, wipe_size);
 
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
@@ -316,7 +317,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_GUARD(s2n_stuffer_reserve_space(stuffer, n));
     stuffer->write_cursor += n;
-    stuffer->high_water_mark = MAX(stuffer->write_cursor, stuffer->high_water_mark);
+    stuffer->high_water_mark = S2N_MAX(stuffer->write_cursor, stuffer->high_water_mark);
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
@@ -378,7 +379,7 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *io
         size_t iov_len_op = iov[i].iov_len - to_skip;
         POSIX_ENSURE_LTE(iov_len_op, UINT32_MAX);
         uint32_t iov_len = (uint32_t) iov_len_op;
-        uint32_t iov_size_to_take = MIN(size_left, iov_len);
+        uint32_t iov_size_to_take = S2N_MIN(size_left, iov_len);
         POSIX_ENSURE_REF(iov[i].iov_base);
         POSIX_ENSURE_LT(to_skip, iov[i].iov_len);
         POSIX_CHECKED_MEMCPY(ptr, ((uint8_t *) (iov[i].iov_base)) + to_skip, iov_size_to_take);
@@ -412,7 +413,7 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
     if (s2n_stuffer_space_remaining(stuffer) < n) {
         POSIX_ENSURE(stuffer->growable, S2N_ERR_STUFFER_IS_FULL);
         /* Always grow a stuffer by at least 1k */
-        const uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES);
+        const uint32_t growth = S2N_MAX(n - s2n_stuffer_space_remaining(stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES);
         uint32_t new_size = 0;
         POSIX_GUARD(s2n_add_overflow(stuffer->blob.size, growth, &new_size));
         POSIX_GUARD(s2n_stuffer_resize(stuffer, new_size));

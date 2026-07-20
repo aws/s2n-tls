@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         uint16_t size = 0;
-        const int RECORD_SIZE_LESS_OVERHEADS = 1415;
+        const int RECORD_SIZE_LESS_OVERHEADS = 1395;
 
         EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
         EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS, size);

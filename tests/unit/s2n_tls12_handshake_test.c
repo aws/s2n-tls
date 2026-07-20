@@ -520,5 +520,39 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Test: ensure that there isn't a collision between TLS 1.2 and TLS 1.3 flags
+     * that share the same bit.
+     */
+    {
+        /* sanity check: these flags are the same bit */
+        EXPECT_EQUAL((int) TLS12_PERFECT_FORWARD_SECRECY, (int) HELLO_RETRY_REQUEST);
+
+        uint32_t tls12_type = NEGOTIATED | FULL_HANDSHAKE | TLS12_PERFECT_FORWARD_SECRECY;
+        uint32_t tls13_type = NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST;
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        /* Clear the cache entries so we start fresh */
+        memset(handshake_type_str_tls12ish[tls12_type], 0, MAX_HANDSHAKE_TYPE_LEN);
+        memset(handshake_type_str_tls13[tls13_type], 0, MAX_HANDSHAKE_TYPE_LEN);
+
+        /* First: populate cache via TLS 1.2 */
+        conn->actual_protocol_version = S2N_TLS12;
+        conn->handshake.handshake_type = tls12_type;
+        const char *tls12_name = s2n_connection_get_handshake_type_name(conn);
+        EXPECT_NOT_NULL(tls12_name);
+        EXPECT_STRING_EQUAL(tls12_name, "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY");
+
+        /* Second: query cache via TLS 1.3 with same bitmap — should not collide */
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->handshake.handshake_type = tls13_type;
+        const char *tls13_name = s2n_connection_get_handshake_type_name(conn);
+        EXPECT_NOT_NULL(tls13_name);
+        EXPECT_STRING_EQUAL(tls13_name, "NEGOTIATED|FULL_HANDSHAKE|HELLO_RETRY_REQUEST");
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    };
+
     END_TEST();
 }
