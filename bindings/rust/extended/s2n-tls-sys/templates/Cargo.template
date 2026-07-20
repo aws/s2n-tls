@@ -43,6 +43,8 @@ libc = "0.2.121"
 
 [build-dependencies]
 cc = { version = "1.2.26", features = ["parallel"] }
+# Used to detect the active rustc version in build.rs (rust-lld LTO warning).
+rustc_version = "0.4"
 
 [dev-dependencies]
 home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
