@@ -99,8 +99,20 @@ fn build_vendored() {
         build.define("S2N_BUILD_RELEASE", "1");
         build.define("NDEBUG", "1");
 
-        // build s2n-tls with LTO if supported
-        if build.get_compiler().is_like_gnu() {
+        // Enable cross-file LTO of libs2n when the toolchain can actually
+        // perform it.
+        //
+        // Since Rust 1.90, rust-lld is the default linker on
+        // x86_64-unknown-linux-gnu. rust-lld can consume Clang's LLVM-bitcode
+        // LTO objects, but NOT GCC's GIMPLE fat-LTO sections, so a GCC +
+        // rust-lld build silently drops the LTO pass (costing ~2-4% per TLS
+        // handshake). Clang + rust-lld works, and GCC + bfd works.
+        //
+        // So: prefer Clang when available (works with every linker), and only
+        // fall back to GCC's fat-LTO objects otherwise (works with bfd).
+        if build.get_compiler().is_like_clang() || try_prefer_clang(&mut build) {
+            build.flag_if_supported("-flto");
+        } else if build.get_compiler().is_like_gnu() {
             build
                 .flag_if_supported("-flto")
                 .flag_if_supported("-ffat-lto-objects");
@@ -159,6 +171,34 @@ fn build_vendored() {
     std::fs::create_dir_all(&include_dir).unwrap();
     std::fs::copy("lib/api/s2n.h", include_dir.join("s2n.h")).unwrap();
     println!("cargo:include={}", include_dir.display());
+}
+
+/// Try to switch `build` to use Clang so that cross-file LTO works under
+/// rust-lld (the default linker on x86_64-unknown-linux-gnu since Rust 1.90).
+///
+/// Returns true if Clang was selected. This is a no-op (returns false) when:
+///   * the user explicitly set `CC` or
+///   * `clang` isn't on PATH / isn't runnable.
+fn try_prefer_clang(build: &mut cc::Build) -> bool {
+    let target = std::env::var("TARGET").unwrap_or_default();
+    if std::env::var("CC").is_ok()
+        || std::env::var(format!("CC_{target}")).is_ok()
+        || std::env::var(format!("CC_{}", target.replace('-', "_"))).is_ok()
+    {
+        return false;
+    }
+
+    let clang_runs = std::process::Command::new("clang")
+        .arg("--version")
+        .output()
+        .map(|out| out.status.success())
+        .unwrap_or(false);
+    if !clang_runs {
+        return false;
+    }
+
+    build.compiler("clang");
+    true
 }
 
 fn builder(libcrypto: &Libcrypto) -> cc::Build {
