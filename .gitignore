@@ -44,3 +44,5 @@ result-*
 # Exclude rust build directories
 *target/
 Cargo.lock
+# cppcheck incremental analysis cache
+.cppcheck-build-dir/
