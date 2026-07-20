@@ -786,6 +786,11 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_test_all_fips[
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
     &s2n_ecdsa_sha224,
+
+    /* ML-DSA */
+    &s2n_mldsa44,
+    &s2n_mldsa65,
+    &s2n_mldsa87,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips = {
@@ -831,4 +836,106 @@ const struct s2n_signature_scheme* s2n_cert_sig_scheme_pref_list_20251113[] = {
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20251113 = {
     .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20251113),
     .signature_schemes = s2n_cert_sig_scheme_pref_list_20251113,
+};
+
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260219[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa87,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20260219 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20260219),
+    .signature_schemes = s2n_sig_scheme_pref_list_20260219,
+};
+
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260220[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa87,
+
+    /* CNSA 1.0 */
+    &s2n_ecdsa_sha384,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pkcs1_sha384,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20260220 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20260220),
+    .signature_schemes = s2n_sig_scheme_pref_list_20260220,
+};
+
+const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20260220[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa87,
+
+    /* CNSA 1.0 */
+    &s2n_ecdsa_sha384,
+    &s2n_rsa_pkcs1_sha384,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_20260220 = {
+    .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20260220),
+    .signature_schemes = s2n_cert_sig_scheme_pref_list_20260220,
+};
+
+/* 20240501 with ML-DSA-87 added */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260513[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa87,
+
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+
+    /* RSA-PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+
+    /* RSA */
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* Legacy RSA with PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20260513 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20260513),
+    .signature_schemes = s2n_sig_scheme_pref_list_20260513,
+};
+
+/* 20201110 with ML-DSA-87 added */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260514[] = {
+    /* CNSA 2.0 */
+    &s2n_mldsa87,
+
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_rsa_pkcs1_sha224,
+
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+};
+
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_20260514 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20260514),
+    .signature_schemes = s2n_sig_scheme_pref_list_20260514,
 };

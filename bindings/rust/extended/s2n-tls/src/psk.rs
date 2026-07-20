@@ -31,7 +31,7 @@ impl Builder {
 
     /// Set the public PSK identity.
     ///
-    /// Corresponds to [s2n_psk_set_identity].
+    /// Corresponds to [`s2n_psk_set_identity`].
     pub fn set_identity(&mut self, identity: &[u8]) -> Result<&mut Self, crate::error::Error> {
         let identity_length = identity.len().try_into().map_err(|_| {
             Error::bindings(
@@ -52,7 +52,7 @@ impl Builder {
     ///
     /// Secrets must be at least 16 bytes.
     ///
-    /// Corresponds to [s2n_psk_set_secret].
+    /// Corresponds to [`s2n_psk_set_secret`].
     pub fn set_secret(&mut self, secret: &[u8]) -> Result<&mut Self, crate::error::Error> {
         let secret_length = secret.len().try_into().map_err(|_| {
             Error::bindings(
@@ -82,7 +82,7 @@ impl Builder {
 
     /// Set the HMAC function associated with the PSK.
     ///
-    /// Corresponds to [s2n_psk_set_hmac].
+    /// Corresponds to [`s2n_psk_set_hmac`].
     pub fn set_hmac(&mut self, hmac: PskHmac) -> Result<&mut Self, crate::error::Error> {
         unsafe { s2n_psk_set_hmac(self.psk.ptr.as_ptr(), hmac.into()).into_result() }?;
         self.has_hmac = true;
@@ -141,7 +141,7 @@ unsafe impl Sync for Psk {}
 impl Psk {
     /// Allocate a new, uninitialized Psk.
     ///
-    /// Corresponds to [s2n_external_psk_new].
+    /// Corresponds to [`s2n_external_psk_new`].
     fn allocate() -> Result<Self, crate::error::Error> {
         let psk = unsafe { s2n_external_psk_new().into_result() }?;
         Ok(Self { ptr: psk })
@@ -153,7 +153,7 @@ impl Psk {
 }
 
 impl Drop for Psk {
-    /// Corresponds to [s2n_psk_free].
+    /// Corresponds to [`s2n_psk_free`].
     fn drop(&mut self) {
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.

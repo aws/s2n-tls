@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_hmac.h"
 #include "error/s2n_errno.h"
@@ -57,7 +56,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Determine what the padding length is */
     uint8_t padding_length = decrypted->data[decrypted->size - 1];
 
-    int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
+    int payload_length = S2N_MAX(payload_and_padding_size - padding_length - 1, 0);
 
     /* Update the MAC */
     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
@@ -77,13 +76,18 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, currently_in_hash_block));
     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
-    /* SSLv3 doesn't specify what the padding should actually be */
+    /* SSLv3 doesn't specify what the padding should actually be, so
+     * padding bytes are not verified. This is the vector for the POODLE
+     * attack (CVE-2014-3566). SSLv3 is disabled by default and not
+     * recommended. If SSLv3 must be used, the blinding feature (enabled
+     * by default) helps mitigates this issue as well.
+     */
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return 0 - mismatches;
     }
 
     /* Check the maximum amount that could theoretically be padding */
-    uint32_t check = MIN(255, (payload_and_padding_size - 1));
+    uint32_t check = S2N_MIN(255, (payload_and_padding_size - 1));
 
     POSIX_ENSURE_GTE(check, padding_length);
 

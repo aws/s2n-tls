@@ -37,7 +37,15 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/uio.h>
+#ifndef _WIN32
+    #include <sys/uio.h>
+#else
+/* struct iovec equivalent for Windows */
+struct iovec {
+    void *iov_base;
+    size_t iov_len;
+};
+#endif
 
 /**
  *  Function return code
@@ -203,8 +211,8 @@ S2N_API extern int s2n_crypto_disable_init(void);
  * @warning This function must be called BEFORE s2n_init() to have any effect. It will return an error
  * if s2n is already initialized.
  *
- * @note This will cause `s2n_cleanup` to do complete cleanup of s2n-tls when called from the main
- * thread (the thread `s2n_init` was called from).
+ * @note When the atexit handler is disabled, callers are responsible for calling
+ * s2n_cleanup_final() to perform full library cleanup before process exit.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -229,20 +237,24 @@ S2N_API extern unsigned long s2n_get_openssl_version(void);
 S2N_API extern int s2n_init(void);
 
 /**
- * Cleans up thread-local resources used by s2n-tls. Does not perform a full library cleanup. To fully
- * clean up the library use s2n_cleanup_final().
+ * @deprecated This function is a no-op. It previously cleaned up thread-local
+ * DRBG state, but the custom DRBG has been removed. Retained for API
+ * compatibility. Use s2n_cleanup_final() for full library cleanup.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_cleanup(void);
 
-/*
+/**
  * Performs a complete deinitialization and cleanup of the s2n-tls library.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_cleanup_final(void);
 
+/**
+ * Indicates whether s2n-tls is operating in FIPS mode.
+ */
 typedef enum {
     S2N_FIPS_MODE_DISABLED = 0,
     S2N_FIPS_MODE_ENABLED,
@@ -320,8 +332,6 @@ S2N_API extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 /**
  * Callback function type used to get the system time.
  *
- * @param void* A pointer to arbitrary data for use within the callback
- * @param uint64_t* A pointer that the callback will set to the time in nanoseconds
  * The function should return 0 on success and -1 on failure.
  */
 typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
@@ -563,34 +573,32 @@ S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 
 /**
- * A callback function that will be called when s2n-tls is initialized.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_init_callback)(void);
 
 /**
- * A callback function that will be called when `s2n_cleanup` is executed.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_cleanup_callback)(void);
 
 /**
- * A callback function that will be used to provide entropy to the s2n-tls
- * random number generators.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
 
 /**
- * A callback function that will be used to mix in entropy every time the RNG
- * is invoked.
+ * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
 typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
 
 /**
  * Allows the caller to override s2n-tls's entropy functions.
  * 
- * @warning This function must be called before s2n_init().
+ * @deprecated Custom random callbacks are no longer supported. Randomness is
+ * now delegated directly to libcrypto or /dev/urandom. This function is a
+ * no-op kept for backwards compatibility.
  *
- * @note The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.
- * 
  * @param rand_init_callback The s2n_rand_init_callback
  * @param rand_cleanup_callback The s2n_rand_cleanup_callback
  * @param rand_seed_callback The s2n_rand_seed_callback
@@ -917,6 +925,9 @@ S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  */
 S2N_API extern int s2n_config_load_system_certs(struct s2n_config *config);
 
+/**
+ * Toggles whether generated signatures are verified before being sent.
+ */
 typedef enum {
     S2N_VERIFY_AFTER_SIGN_DISABLED,
     S2N_VERIFY_AFTER_SIGN_ENABLED
@@ -999,7 +1010,7 @@ typedef uint8_t (*s2n_verify_host_fn)(const char *host_name, size_t host_name_le
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
  * The default behavior is to require that the hostname match the server name set with s2n_set_server_name().
- * This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using
+ * This will likely lead to all client certificates being rejected, so the callback will need to be overridden when using
  *  client authentication.
  *
  * This change will be inherited by s2n_connections using this config. If a separate callback for different connections
@@ -1049,7 +1060,7 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  */
 S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
 
-/* Disable TLS intent verification for received certificates.
+/** Disable TLS intent verification for received certificates.
  *
  * By default, s2n-tls will verify that received certificates set Key Usage / Extended Key Usage
  * fields that are consistent with the current TLS context (e.g. checking that serverAuth is set
@@ -1957,18 +1968,44 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
 
 /**
- * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
- * enabled by `s2n_connection_set_recv_buffering`.
+ * Reports how many bytes of unprocessed TLS records are buffered after the current
+ * record.
+ * 
+ * This is only useful when `s2n_connection_set_recv_buffering` is enabled, and 
+ * will return 0 otherwise.
+ * 
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`. While `s2n_peek` reports
+ * application data that is ready for the application to read with no additional
+ * processing, `s2n_peek_buffered` reports raw TLS records that still need to be
+ * parsed and likely decrypted. Those records may contain application data, but
+ * they may also only contain TLS control messages.
+ * 
+ * When receive buffering is enabled, it is useful to imagine that an s2n-tls
+ * connection behaves as if it has two buffers, one for the "current record",
+ * and one for "additional data".
+ * ```text
+ * c -> ciphertext
+ * p -> plaintext
  *
- * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
- * While `s2n_peek` reports application data that is ready for the application
- * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
- * records that still need to be parsed and likely decrypted. Those records may
- * contain application data, but they may also only contain TLS control messages.
+ *          |-----current record-----|-------additional------------|
+ * case 1 - |ccccccccccccc
+ * case 2 - |pppppppppppppppppppppppp|
+ * case 3 - |pppppppppppppppppppppppp|ccccccccccccccccccc
+ * ```
+ * In case 1, we received a record fragment. Records can only be decrypted
+ * once the full record is available. So "current record" just stores the record
+ * fragment (ciphertext). There are currently no APIs to determine if there
+ * is a record fragment stored. https://github.com/aws/s2n-tls/issues/5863. `s2n_peek_buffered`
+ * and `s2n_peek` will both return 0 in this case.
  *
- * If an application needs to determine whether there is any data left to handle
- * (for example, before calling `poll` to wait on the read file descriptor) then
- * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ * In case 2, we received a full record, which is decrypted and stored in current
+ * record. `s2n_peek` will return the count of plaintext bytes
+ * yet to be read from "current record", and `s2n_peek_buffered` will return 0
+ *
+ * In case 3, additional bytes (another record, complete or incomplete) were
+ * also read off the wire. In this case `s2n_peek_buffered` will return the length
+ * of ciphertext bytes buffered in "additional". This is the only case in which
+ * `s2n_peek_buffered` will return a non-zero result.
  *
  * @param conn A pointer to the s2n_connection object
  * @returns The number of buffered encrypted bytes
@@ -2010,7 +2047,7 @@ S2N_API extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connec
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
  * The default behavior is to require that the hostname match the server name set with s2n_set_server_name(). This will
- * likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.
+ * likely lead to all client certificates being rejected, so the callback will need to be overridden when using client authentication.
  *
  * If a single callback for different connections using the same config is desired, see s2n_config_set_verify_host_callback().
  *
@@ -2248,6 +2285,7 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
+#ifndef _WIN32
 /**
  * Works in the same way as s2n_sendv_with_offset() but with the `offs` parameter implicitly assumed to be 0.
  * Therefore in the partial write case, the caller would have to make sure that the `bufs` and `count` fields are modified in a way that takes
@@ -2274,11 +2312,13 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
- * @param offs The write cursor offset. This should be updated as data is written. See the example code.
+ * @param offs The write cursor offset. This is the byte offset, not a buffer offset.
+ * This should be updated as data is written. See the example code.
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
+#endif
 
 /**
  * Decrypts and reads **size* to `buf` data from the associated
@@ -2478,8 +2518,8 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
  * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
- * @param cert_chain_out A pointer that's set to the client certificate chain.
- * @param cert_chain_len A pointer that's set to the size of the `cert_chain_out` buffer.
+ * @param der_cert_chain_out A pointer that's set to the client certificate chain.
+ * @param cert_chain_len A pointer that's set to the size of the `der_cert_chain_out` buffer.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
@@ -2786,7 +2826,7 @@ S2N_API extern int s2n_connection_get_selected_client_cert_digest_algorithm(stru
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18
  *
  * @param conn A pointer to the s2n connection
- * @param group_name A pointer that will be set to the signature scheme name.
+ * @param scheme_name A pointer that will be set to the signature scheme name.
  * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise.
  */
 S2N_API extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn, const char **scheme_name);
@@ -3238,7 +3278,7 @@ S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection
  * and should never be set higher than TLS1.2. Therefore this method should only be used
  * for logging or fingerprinting.
  *
- * @param conn A pointer to the client hello struct
+ * @param ch A pointer to the client hello struct
  * @param out The protocol version in the record header containing the Client Hello.
  */
 S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);
@@ -3293,7 +3333,7 @@ typedef enum {
  * occurs after certificate selection.
  *
  * @param conn A pointer to the connection
- * @param cert_match An enum indicating whether or not the server found a certificate
+ * @param match_status An enum indicating whether or not the server found a certificate
  * that matched the client's SNI extension.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
@@ -3339,6 +3379,12 @@ S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection 
  * @note This is currently only available with TLS 1.3 connections which have finished a handshake.
  *
  * @param conn A pointer to the connection
+ * @param label The exporter label used to generate the keying material.
+ * @param label_length The length of the label.
+ * @param context The context value used to generate the keying material.
+ * @param context_length The length of the context.
+ * @param output A pointer to the buffer to write the exported keying material into.
+ * @param output_length The desired length of the keying material to export.
  * @returns A POSIX error signal. If an error was returned, the value contained in `output` should be considered invalid.
  */
 S2N_API extern int s2n_connection_tls_exporter(struct s2n_connection *conn,
@@ -3903,7 +3949,7 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
 
-/* Indicates which serialized connection version will be provided. The default value is
+/** Indicates which serialized connection version will be provided. The default value is
  * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
  */
 typedef enum {
@@ -3947,9 +3993,9 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * connection object that can talk to the original peer with the same encryption keys.
  *
  * @warning This feature is dangerous because it provides cryptographic material from a TLS session
- * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
- * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
- * without encryption.
+ * in plaintext. The serialized blob also does not include a MAC or signature, so a modified blob
+ * will be deserialized and used as-is. Users MUST both encrypt and MAC the serialized connection to
+ * provide secrecy and integrity before storing or sending it off-box.
  *
  * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
  * s2n_config object associated with this connection before this connection began its TLS handshake.
@@ -3958,7 +4004,16 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @note This API will error if the handshake is not yet complete. Additionally it will error if there
  * is still application data in the IO buffers given that this data does not get serialized by s2n-tls.
  * You can use `s2n_send` to drain the send buffer and `s2n_peek` + `s2n_recv` to drain the read buffer.
- * @note Serialization is unsupported for SSLv3 connections. See: https://github.com/aws/s2n-tls/issues/5538.
+ * Note that s2n-tls will buffer record fragments until the complete record is available. `s2n_peek` 
+ * will _not_ report buffered record fragments. To avoid buffered record fragments, applications should
+ * continue to call s2n_recv until a non-blocked status is returned, after which point s2n_peek and s2n_recv
+ * can be used to drain the read buffer.
+ * @warning Due to the above read/buffering interaction, this API must not be used
+ * with recv_buffering (s2n_connection_set_recv_buffering), because there is no
+ * way to ensure that an s2n-tls connection hasn't buffered any record fragments.
+ * @note Stream cipher (RC4) connections cannot be serialized. RC4 keystream
+ * position is held in libcrypto state that this API does not capture, so a
+ * deserialized RC4 connection cannot decrypt records from its peer.
  *
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
@@ -3970,10 +4025,12 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
 /**
  * Deserializes the provided buffer into the `s2n_connection` parameter.
  *
- * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
- * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
- * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
- * connection before sending it off-box and deserializing it.
+ * @warning s2n-tls does not check the integrity of the provided buffer. The serialized blob does
+ * not include a MAC or signature, so a modified buffer will be deserialized and used as-is. A
+ * corrupted buffer will cause a connection failure when attempting to resume sending or receiving
+ * encrypted data. To avoid this, callers MUST MAC and encrypt the serialized connection before
+ * storing or sending it off-box. Encrypt-then-MAC using a key not stored alongside the blob is
+ * the recommended approach.
  *
  * @warning Only a minimal amount of information about the original TLS connection is serialized.
  * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
@@ -3990,7 +4047,7 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
  */
 S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
-/* Load all acceptable certificate authorities from the currently configured trust store.
+/** Load all acceptable certificate authorities from the currently configured trust store.
  *
  * The loaded certificate authorities will be advertised during the handshake.
  * This can help your peer select a certificate if they have multiple certificate
@@ -4011,6 +4068,11 @@ S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buf
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config);
+
+/**
+ * Get the mode of this connection, client or server.
+ */
+S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
 
 #ifdef __cplusplus
 }

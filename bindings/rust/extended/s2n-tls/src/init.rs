@@ -14,8 +14,11 @@ static S2N_INIT: Once = Once::new();
 ///
 /// This function should only be called once
 unsafe fn global_init() -> Result<(), Error> {
-    mem::init()?;
-    s2n_init().into_result()?;
+    #[cfg(feature = "init")]
+    {
+        mem::init()?;
+        s2n_init().into_result()?;
+    }
     Ok(())
 }
 
@@ -32,15 +35,24 @@ thread_local! {
 struct Thread;
 
 impl Drop for Thread {
-    /// Corresponds to [s2n_cleanup].
+    /// Corresponds to [`s2n_cleanup`].
     fn drop(&mut self) {
         // https://doc.rust-lang.org/std/thread/struct.LocalKey.html#platform-specific-behavior
         // Note that a "best effort" is made to ensure that destructors for types stored in thread local storage are run, but not all platforms can guarantee that destructors will be run for all types in thread local storage.
-        let _ = unsafe { s2n_cleanup().into_result() };
+        #[cfg(feature = "init")]
+        {
+            let _ = unsafe { s2n_cleanup().into_result() };
+        }
     }
 }
 
-/// Corresponds to [s2n_init].
+/// When the default `init` feature is disabled (via `default-features = false`),
+/// this function skips calling [`s2n_init`] and [`s2n_mem_set_callbacks`].
+/// This is intended for FFI consumers whose host application already calls
+/// [`s2n_init`] from C before using the Rust bindings (e.g. a C service that
+/// links its own libs2n and also pulls in the metrics-subscriber crate).
+///
+/// Corresponds to [`s2n_init`].
 pub fn init() {
     S2N_THREAD.with(|_| ());
 }
@@ -53,7 +65,7 @@ pub fn init() {
 /// FIPS requirements. Applications desiring FIPS compliance should use this API to ensure that
 /// s2n-tls has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
 ///
-/// Corresponds to [s2n_get_fips_mode].
+/// Corresponds to [`s2n_get_fips_mode`].
 pub fn fips_mode() -> Result<FipsMode, Error> {
     let mut fips_mode = s2n_fips_mode::FIPS_MODE_DISABLED;
     unsafe {
@@ -62,12 +74,13 @@ pub fn fips_mode() -> Result<FipsMode, Error> {
     fips_mode.try_into()
 }
 
+#[cfg(feature = "init")]
 mod mem {
     use super::*;
     use alloc::alloc::{alloc, dealloc, Layout};
     use core::{ffi::c_void, mem::align_of};
 
-    /// Corresponds to [s2n_mem_set_callbacks].
+    /// Corresponds to [`s2n_mem_set_callbacks`].
     pub unsafe fn init() -> Result<(), Error> {
         s2n_mem_set_callbacks(
             Some(mem_init_callback),

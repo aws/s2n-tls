@@ -31,7 +31,7 @@ unsafe impl Sync for CertificateChainHandle<'_> {}
 impl CertificateChainHandle<'_> {
     /// Allocate an uninitialized CertificateChainHandle.
     ///
-    /// Corresponds to [s2n_cert_chain_and_key_new].
+    /// Corresponds to [`s2n_cert_chain_and_key_new`].
     pub(crate) fn allocate() -> Result<CertificateChainHandle<'static>, crate::error::Error> {
         crate::init::init();
         Ok(CertificateChainHandle {
@@ -49,7 +49,7 @@ impl CertificateChainHandle<'_> {
         }
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
+    /// Corresponds to [`s2n_cert_chain_and_key_get_ctx`].
     fn context_mut(&mut self) -> Option<&mut Context> {
         let context = unsafe { s2n_cert_chain_and_key_get_ctx(self.cert.as_ptr()) };
         if context.is_null() {
@@ -59,7 +59,7 @@ impl CertificateChainHandle<'_> {
         }
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
+    /// Corresponds to [`s2n_cert_chain_and_key_get_ctx`].
     fn context(&self) -> Option<&Context> {
         let context = unsafe { s2n_cert_chain_and_key_get_ctx(self.cert.as_ptr()) };
         if context.is_null() {
@@ -71,7 +71,7 @@ impl CertificateChainHandle<'_> {
 }
 
 impl Drop for CertificateChainHandle<'_> {
-    /// Corresponds to [s2n_cert_chain_and_key_free].
+    /// Corresponds to [`s2n_cert_chain_and_key_free`].
     fn drop(&mut self) {
         if self.is_owned {
             if let Some(internal_context) = self.context_mut() {
@@ -110,7 +110,7 @@ impl Builder {
         })
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_load_pem_bytes]
+    /// Corresponds to [`s2n_cert_chain_and_key_load_pem_bytes`]
     ///
     /// This can be used with [crate::config::Builder::load_chain] to share a
     /// single cert across multiple configs.
@@ -132,7 +132,7 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_load_public_pem_bytes].
+    /// Corresponds to [`s2n_cert_chain_and_key_load_public_pem_bytes`].
     ///
     /// This method is only used when performing private-key offloading. For standard
     /// use-cases see [CertificateChain::from_pem].
@@ -152,7 +152,7 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [s2n_cert_chain_and_key_set_ocsp_data].
+    /// Corresponds to [`s2n_cert_chain_and_key_set_ocsp_data`].
     pub fn set_ocsp_data(&mut self, data: &[u8]) -> Result<&mut Self, Error> {
         unsafe {
             s2n_cert_chain_and_key_set_ocsp_data(
@@ -170,7 +170,7 @@ impl Builder {
     ///
     /// This API will override an existing application context set on the Builder.
     ///
-    /// Corresponds to [s2n_cert_chain_and_key_set_ctx].
+    /// Corresponds to [`s2n_cert_chain_and_key_set_ctx`].
     pub fn set_application_context<T: Send + Sync + 'static>(
         &mut self,
         app_context: T,
@@ -258,7 +258,7 @@ impl CertificateChain<'_> {
     ///
     /// To set a context on the connection, use [`Builder::set_application_context()`].
     ///
-    /// Corresponds to [s2n_cert_chain_and_key_get_ctx].
+    /// Corresponds to [`s2n_cert_chain_and_key_get_ctx`].
     pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
         if let Some(internal_context) = self.cert_handle.context() {
             internal_context.application_context.downcast_ref()
@@ -272,7 +272,7 @@ impl CertificateChain<'_> {
     /// Note that the underlying API currently traverses a linked list, so this is a relatively
     /// expensive API to call.
     ///
-    /// Corresponds to [s2n_cert_chain_get_length].
+    /// Corresponds to [`s2n_cert_chain_get_length`].
     pub fn len(&self) -> usize {
         let mut length: u32 = 0;
         let res = unsafe { s2n_cert_chain_get_length(self.as_ptr(), &mut length).into_result() };
@@ -306,7 +306,7 @@ pub struct CertificateChainIter<'a> {
 impl<'a> Iterator for CertificateChainIter<'a> {
     type Item = Result<Certificate<'a>, Error>;
 
-    /// Corresponds to [s2n_cert_chain_get_cert].
+    /// Corresponds to [`s2n_cert_chain_get_cert`].
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
         // u32 fits into usize on platforms we support.
@@ -341,7 +341,7 @@ pub struct Certificate<'a> {
 }
 
 impl Certificate<'_> {
-    /// Corresponds to [s2n_cert_get_der].
+    /// Corresponds to [`s2n_cert_get_der`].
     pub fn der(&self) -> Result<&[u8], Error> {
         unsafe {
             let mut buffer = ptr::null();

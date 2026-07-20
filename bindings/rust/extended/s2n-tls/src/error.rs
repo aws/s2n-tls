@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 
 use crate::utilities::cstr_to_str;
 
-/// Corresponds to [s2n_error_type].
+/// Corresponds to [`s2n_error_type`].
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ErrorType {
@@ -207,7 +207,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror_name] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror_name`] for ErrorSource::Library errors.
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, name, _) => name,
@@ -219,7 +219,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror`] for ErrorSource::Library errors.
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::Bindings(_, _, msg) => msg,
@@ -231,7 +231,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_strerror_debug] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_strerror_debug`] for ErrorSource::Library errors.
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
@@ -252,7 +252,7 @@ impl Error {
         }
     }
 
-    /// Corresponds to [s2n_error_get_type] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_error_get_type`] for ErrorSource::Library errors.
     pub fn kind(&self) -> ErrorType {
         match self.0 {
             Context::Bindings(error_type, _, _) => error_type,
@@ -294,7 +294,7 @@ impl Error {
     ///
     /// This API is currently incomplete and should not be relied upon.
     ///
-    /// Corresponds to [s2n_error_get_alert] for ErrorSource::Library errors.
+    /// Corresponds to [`s2n_error_get_alert`] for ErrorSource::Library errors.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
             Context::Bindings(_, _, _) | Context::Application(_) => None,
@@ -408,9 +408,19 @@ mod tests {
     // this value if the definition of an IO error changes might be easier.
     const S2N_IO_ERROR_CODE: s2n_status_code::Type = 1 << 26;
 
+    // The value that decodes to `ConnectionReset` differs by platform:
+    // `from_raw_os_error` reads a POSIX errno on non-Windows and a Winsock code
+    // on Windows.
+    #[cfg(not(target_os = "windows"))]
+    const OS_CONNECTION_RESET: i32 = libc::ECONNRESET;
+    // 10054 is WSAECONNRESET ("Connection reset by peer").
+    // See https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
+    #[cfg(target_os = "windows")]
+    const OS_CONNECTION_RESET: i32 = 10054;
+
     #[test]
     fn s2n_io_error_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
-        set_errno(Errno(libc::ECONNRESET));
+        set_errno(Errno(OS_CONNECTION_RESET));
         unsafe {
             let s2n_errno_ptr = s2n_errno_location();
             *s2n_errno_ptr = S2N_IO_ERROR_CODE;
@@ -481,7 +491,7 @@ mod tests {
 
         // make sure nested errors work
         {
-            let io_error = std::io::Error::new(std::io::ErrorKind::Other, CustomError);
+            let io_error = std::io::Error::other(CustomError);
             let error = Error::application(Box::new(io_error));
 
             let app_error = error.application_error().unwrap();

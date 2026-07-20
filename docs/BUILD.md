@@ -68,7 +68,38 @@ cmake3 --install build
 ```
 </details>
 
-Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
+<details>
+<summary>Windows (MSYS2 / MinGW)</summary>
+
+Windows is supported using the [MSYS2](https://www.msys2.org/) environment with a MinGW toolchain. Building with the MSVC toolchain is not currently supported.
+
+After installing MSYS2, open a MinGW shell (one of `UCRT64`, `MINGW64`, or `CLANG64`) and install the build dependencies. The package prefix depends on the environment you chose (`mingw-w64-ucrt-x86_64` for `UCRT64`, `mingw-w64-x86_64` for `MINGW64`, or `mingw-w64-clang-x86_64` for `CLANG64`):
+
+```bash
+# example for the UCRT64 environment
+pacman -S --needed \
+    mingw-w64-ucrt-x86_64-clang \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-ninja \
+    make git
+```
+
+A supported libcrypto must also be available. On Windows, **AWS-LC is the only supported and tested libcrypto** — it is the only backend exercised by our Windows CI, and other libcryptos (OpenSSL, BoringSSL, LibreSSL) are not supported on Windows. See [Building with a specific libcrypto](#building-with-a-specific-libcrypto) and the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md). Once AWS-LC is installed, build s2n-tls:
+
+```bash
+# build s2n-tls
+cmake . -Bbuild -GNinja \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_PREFIX_PATH=<path to libcrypto install> \
+    -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
+```
+
+Note that some POSIX-specific features are not available on Windows. The `s2nc` and `s2nd` test utilities, kTLS, and a handful of unit tests that depend on POSIX socket or memory APIs are not built or run on Windows.
+</details>
 
 Using the commands above, the libraries and headers will be located in the `s2n-tls-install` directory.
 
@@ -256,14 +287,4 @@ CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
 
 ## RAND engine override
 
-By default, s2n-tls may override the libcrypto random implementation with its custom implementation. This allows the libcrypto APIs invoked by s2n-tls to internally use the s2n-tls random implementation when fetching random bytes.
-
-The motivation for this behavior is twofold:
-1. Ensure that s2n-tls usage is safe when linked to a libcrypto with known issues in its random implementation, such as OpenSSL 1.0.2. See https://wiki.openssl.org/index.php/Random_fork-safety for details.
-2. Ensure that s2n-tls usage is safe when used in snapshot environments. Some applications, such as [Lambda SnapStart](https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html), take a snapshot of the memory and disk state, and later restore this state to a virtual machine. Precautions must be taken when running inside a restored snapshot environment to ensure that randomly generated data remains unique between restored snapshots. See the Lambda SnapStart documentation for details: https://docs.aws.amazon.com/lambda/latest/dg/snapstart-uniqueness.html
-
-When both of the above concerns are known to be mitigated in the linked libcrypto's random implementation, s2n-tls will not override the libcrypto's implementation, as is the case for AWS-LC.
-
-The s2n-tls RAND engine may conflict with some environments that use the same libcrypto as s2n-tls. For example, other applications or libraries may have certain requirements for the libcrypto RAND engine that the s2n-tls implementation doesn't provide. Other applications or libraries might also need to implement their own custom RAND engines. If the s2n-tls RAND engine conflicts with your environment, consider enabling libcrypto interning with the `S2N_INTERN_LIBCRYPTO` CMake option, which will build s2n-tls with its own copy of the libcrypto that's isolated from the rest of the environment.
-
-If the s2n-tls RAND engine conflicts with your environment and enabling libcrypto interning is not a viable option, s2n-tls can be forced to disable overriding the RAND engine by setting the `S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE` CMake flag to false when building s2n-tls. This is not recommended unless both of the concerns described above are confirmed to be inapplicable to your use case.
+> **Note:** The custom RAND engine was removed as part of the DRBG deprecation. s2n-tls now delegates all randomness directly to the linked libcrypto or to `/dev/urandom` (for older libcryptos like OpenSSL 1.0.2 that lack `RAND_priv_bytes` and `RAND_public_bytes`). The `S2N_OVERRIDE_LIBCRYPTO_RAND_ENGINE` CMake flag is retained for backwards compatibility but is a no-op.

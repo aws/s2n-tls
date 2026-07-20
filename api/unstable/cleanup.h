@@ -17,13 +17,18 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
- * Cleans up any internal thread-local resources used by s2n-tls. This function
- * is called by `s2n_cleanup`, but depending on your thread management model, 
- * it may be called directly instead. 
- * 
- * See [Initialization](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch02-initializing.md) for details.
+ * @deprecated Thread-local random state has been removed. This function is a
+ * no-op kept for backwards compatibility.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_cleanup_thread(void);
+
+#ifdef __cplusplus
+}
+#endif

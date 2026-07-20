@@ -89,7 +89,8 @@ run_integration_v2_tests() {
 run_unit_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DBUILD_SHARED_LIBS=on
+            -DBUILD_SHARED_LIBS=on \
+            -DS2N_ENFORCE_PROPER_LIBCRYPTO_FEATURE_PROBE=1
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
     cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"

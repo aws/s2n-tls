@@ -215,10 +215,21 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_psk_parameters_init(&params));
 
         /* Verify params are initialized.
-         * Only element_size should be set. */
-        struct s2n_psk_parameters expected_params = { 0 };
-        expected_params.psk_list.element_size = sizeof(struct s2n_psk);
-        EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
+         * Only element_size should be set.
+         * 
+         * NOTE: check individual components to accommodate 32-bit system.
+         */
+        EXPECT_EQUAL(params.type, S2N_PSK_TYPE_RESUMPTION);
+        EXPECT_EQUAL(params.psk_list.mem.data, NULL);
+        EXPECT_EQUAL(params.psk_list.mem.size, 0);
+        EXPECT_EQUAL(params.psk_list.mem.allocated, 0);
+        EXPECT_EQUAL(params.psk_list.mem.growable, 0);
+        EXPECT_EQUAL(params.psk_list.len, 0);
+        EXPECT_EQUAL(params.psk_list.element_size, sizeof(struct s2n_psk));
+        EXPECT_EQUAL(params.binder_list_size, 0);
+        EXPECT_EQUAL(params.chosen_psk_wire_index, 0);
+        EXPECT_NULL(params.chosen_psk);
+        EXPECT_EQUAL(params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
     };
 
     /* Test s2n_psk_parameters_wipe */

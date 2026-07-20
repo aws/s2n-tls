@@ -31,7 +31,7 @@ impl<T, E> From<Result<T, E>> for CallbackResult {
     }
 }
 
-/// Corresponds to [s2n_fips_mode].
+/// Corresponds to [`s2n_fips_mode`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum FipsMode {
@@ -59,7 +59,7 @@ impl TryFrom<s2n_fips_mode::Type> for FipsMode {
     }
 }
 
-/// Corresponds to [s2n_mode].
+/// Corresponds to [`s2n_mode`].
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Server,
@@ -72,6 +72,19 @@ impl From<Mode> for s2n_mode::Type {
             Mode::Server => s2n_mode::SERVER,
             Mode::Client => s2n_mode::CLIENT,
         }
+    }
+}
+
+impl TryFrom<s2n_mode::Type> for Mode {
+    type Error = Error;
+
+    fn try_from(input: s2n_mode::Type) -> Result<Self, Self::Error> {
+        let mode = match input {
+            s2n_mode::SERVER => Mode::Server,
+            s2n_mode::CLIENT => Mode::Client,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(mode)
     }
 }
 
@@ -129,7 +142,7 @@ impl TryFrom<s2n_cert_sni_match::Type> for CertSNIMatch {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
-/// Corresponds to [s2n_blinding].
+/// Corresponds to [`s2n_blinding`].
 pub enum Blinding {
     SelfService,
     BuiltIn,
@@ -144,7 +157,7 @@ impl From<Blinding> for s2n_blinding::Type {
     }
 }
 
-/// Corresponds to [s2n_cert_auth_type].
+/// Corresponds to [`s2n_cert_auth_type`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ClientAuthType {
@@ -163,7 +176,7 @@ impl From<ClientAuthType> for s2n_cert_auth_type::Type {
     }
 }
 
-/// Corresponds to [s2n_alert_behavior].
+/// Corresponds to [`s2n_alert_behavior`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum AlertBehavior {
@@ -180,7 +193,7 @@ impl From<AlertBehavior> for s2n_alert_behavior::Type {
     }
 }
 
-/// Corresponds to [s2n_tls_signature_algorithm].
+/// Corresponds to [`s2n_tls_signature_algorithm`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[allow(non_camel_case_types)]
@@ -208,7 +221,7 @@ impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
     }
 }
 
-/// Corresponds to [s2n_tls_hash_algorithm].
+/// Corresponds to [`s2n_tls_hash_algorithm`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[allow(non_camel_case_types)]
@@ -238,7 +251,7 @@ impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlgorithm {
     }
 }
 
-/// Corresponds to [s2n_peer_key_update].
+/// Corresponds to [`s2n_peer_key_update`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PeerKeyUpdate {
@@ -287,7 +300,7 @@ impl From<PskHmac> for s2n_psk_hmac::Type {
     }
 }
 
-/// Corresponds to [s2n_serialization_version].
+/// Corresponds to [`s2n_serialization_version`].
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SerializationVersion {

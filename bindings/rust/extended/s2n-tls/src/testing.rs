@@ -126,7 +126,6 @@ impl CertKeyPair {
     /// ```
     pub fn from_path(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
         let cert_path = format!("{}{prefix}{chain}.pem", Self::TEST_PEMS_PATH);
-        println!("{cert_path:?}");
         let key_path = format!("{}{prefix}{key}.pem", Self::TEST_PEMS_PATH);
         let ca_path = format!("{}{prefix}{ca}.pem", Self::TEST_PEMS_PATH);
         let cert = std::fs::read(&cert_path)
@@ -391,7 +390,7 @@ impl TestPair {
                     // TCP Close) which would not be correct here. To just communicate
                     // that there is no more data, we instead set the errno to
                     // WouldBlock and return -1.
-                    errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+                    set_io_would_block();
                     -1
                 } else {
                     len as c_int
@@ -401,6 +400,32 @@ impl TestPair {
                 // VecDeque IO Operations should never fail
                 panic!("{err:?}");
             }
+        }
+    }
+}
+
+/// Signal a "would block" to s2n's C IO layer by setting the CRT `errno` to
+/// EWOULDBLOCK. `s2n_io.c` reads `errno` to distinguish a retriable blocked
+/// read/write from a fatal IO error. Shared by this crate's test IO callbacks.
+pub(crate) fn set_io_would_block() {
+    #[cfg(not(target_os = "windows"))]
+    {
+        // The `errno` crate writes the CRT errno, which is what s2n reads.
+        errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+    }
+
+    // On Windows the `errno` crate writes the Win32 last-error, not the CRT
+    // `errno` that s2n reads, so set the CRT errno directly. s2n and this code
+    // share one statically linked CRT, so `_set_errno` and `errno` hit the same
+    // thread-local variable.
+    #[cfg(target_os = "windows")]
+    {
+        extern "C" {
+            fn _set_errno(value: core::ffi::c_int) -> core::ffi::c_int;
+        }
+        // SAFETY: `_set_errno` only writes the thread-local CRT errno.
+        unsafe {
+            let _ = _set_errno(libc::EWOULDBLOCK);
         }
     }
 }

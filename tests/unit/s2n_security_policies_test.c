@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
@@ -172,6 +173,7 @@ int main(int argc, char **argv)
 
         if (has_tls_13_cipher) {
             bool has_tls_13_sig_alg = false;
+            bool has_tls_12_rsa = false;
             bool has_rsa_pss = false;
 
             for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
@@ -186,13 +188,22 @@ int main(int argc, char **argv)
                     has_tls_13_sig_alg = true;
                 }
 
+                if (sig_alg == S2N_SIGNATURE_RSA) {
+                    has_tls_12_rsa = true;
+                }
+
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
                     has_rsa_pss = true;
                 }
             }
 
             EXPECT_TRUE(has_tls_13_sig_alg);
-            EXPECT_TRUE(has_rsa_pss);
+            /* RSA signature algorithm IDs are different between TLS 1.2 and TLS 1.3. If RSA signatures
+             * are supported in TLS 1.2, and there are TLS 1.3 ciphers, RSA_PSS should be required for
+             * forwards compatibility with TLS 1.3 (since RSA in TLS 1.3 only allows RSA_PSS). */
+            if (has_tls_12_rsa) {
+                EXPECT_TRUE(has_rsa_pss);
+            }
         }
     }
 
@@ -393,6 +404,14 @@ int main(int argc, char **argv)
             "PQ-TLS-1-2-2024-10-08",
             "PQ-TLS-1-2-2024-10-08_gcm",
             "PQ-TLS-1-2-2024-10-09",
+            "20260520",
+            "20260520_gcm",
+            "20260521",
+            "20260521_gcm",
+            "20260522",
+            "20260522_gcm",
+            "20260523",
+            "20260523_gcm",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
@@ -976,7 +995,28 @@ int main(int argc, char **argv)
 
                 /* 20250211 > 20250414 (with p-384 cert only) */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "20250414", ecdsa_sha384_chain_and_key));
+
+                /* 20250414 > 20260513 (with either p-256 or p-384 cert) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha256_chain_and_key));
             };
+
+            /* 20260513 */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                /* 20260513 supports ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
+
+                /* 20260513 > 20260220 (CNSA 2.0 interop) with either ML-DSA-87 or p-384 cert */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", ecdsa_sha384_chain_and_key));
+
+                /* 20260513 > 20260219 (CNSA 2.0 strict) with ML-DSA-87 cert only */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", mldsa87_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            }
         };
     };
 
@@ -1188,6 +1228,53 @@ int main(int argc, char **argv)
                         tls13_sig_prefs->signature_schemes[i]);
             }
         }
+    };
+
+    /* s2n_find_version_from_security_policy */
+    {
+        /* SAFETY: null pointer */
+        {
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(NULL), "unknown");
+        };
+
+        /* Returns correct version for a dated policy */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &policy));
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "20240501");
+        };
+
+        /* Returns correct version for default_tls13 */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &policy));
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "default_tls13");
+        };
+
+        /* Returns "unknown" for a policy not in the selection table */
+        {
+            struct s2n_security_policy unknown_policy = security_policy_null;
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(&unknown_policy), "unknown");
+        };
+
+        /* For duplicate policy pointers, the first version in the table is returned */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            /* ELBSecurityPolicy-TLS-1-0-2015-05 and 2016-08 share the same policy pointer */
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("ELBSecurityPolicy-2016-08", &policy));
+            const char *version = s2n_find_version_from_security_policy(policy);
+            /* The first entry in the table for this pointer should be returned */
+            EXPECT_STRING_EQUAL(version, "ELBSecurityPolicy-TLS-1-0-2015-05");
+        };
+
+        /* All policies in the table return a non-"unknown" version */
+        {
+            for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+                const char *version = s2n_find_version_from_security_policy(security_policy_selection[i].security_policy);
+                EXPECT_NOT_NULL(version);
+                EXPECT_NOT_EQUAL(strcmp(version, "unknown"), 0);
+            }
+        };
     };
 
     END_TEST();

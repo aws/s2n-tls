@@ -19,8 +19,11 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/wait.h>
-#include <unistd.h>
+
+#ifndef _WIN32
+    #include <sys/wait.h>
+    #include <unistd.h>
+#endif
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
@@ -509,11 +512,14 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Ensure that a handshake can be performed after all file descriptors are closed */
+    /* Ensure that a handshake can be performed after all file descriptors are closed.
+     *
+     * This test relies on POSIX-specific APIs (sysconf(_SC_OPEN_MAX) to discover
+     * open file descriptors, and fork() to isolate the fd closure from the test
+     * harness). These are not available on Windows.
+     */
+#ifndef _WIN32
     {
-        /* A fork is created to ensure that closing file descriptors (like stdout) won't impact
-         * other tests.
-         */
         pid_t pid = fork();
         if (pid == 0) {
             long max_file_descriptors = sysconf(_SC_OPEN_MAX);
@@ -548,6 +554,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
         EXPECT_EQUAL(status, EXIT_SUCCESS);
     }
+#endif
 
     END_TEST();
 }

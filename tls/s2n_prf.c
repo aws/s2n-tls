@@ -19,7 +19,6 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <string.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
@@ -133,6 +132,10 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
     return S2N_RESULT_OK;
 }
 
+/* SSLv3 PRF uses MD5 and SHA-1 in a custom hash-based construction (not
+ * HMAC). The use of weak hash algorithms is inherent to the SSLv3 protocol
+ * specification. SSLv3 is disabled by default and not recommended.
+ */
 static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
@@ -175,7 +178,7 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
         POSIX_GUARD(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
 
-        uint32_t bytes_to_copy = MIN(outputlen, sizeof(md5_digest));
+        uint32_t bytes_to_copy = S2N_MIN(outputlen, sizeof(md5_digest));
 
         POSIX_CHECKED_MEMCPY(output, md5_digest, bytes_to_copy);
 
@@ -300,7 +303,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
         POSIX_GUARD(hmac->final(ws, ws->digest1, digest_size));
 
-        uint32_t bytes_to_xor = MIN(outputlen, digest_size);
+        uint32_t bytes_to_xor = S2N_MIN(outputlen, digest_size);
 
         for (size_t i = 0; i < bytes_to_xor; i++) {
             *output ^= ws->digest1[i];

@@ -50,14 +50,14 @@ for api in $C_APIS; do
     if [[ "${KNOWN_MISSES[*]}" =~ "$api" ]]; then continue; fi
     CALLS=`grep -ro "$api(" $BINDINGS | wc -l`
     if [ "$CALLS" == 0 ]; then continue; fi
-    DOCS=`grep -ro "///.* \[$api\]" $BINDINGS | wc -l`
+    DOCS=$(grep -ro "///.* \[\`$api\`\]" $BINDINGS | wc -l)
     if [ "$DOCS" == 0 ]; then
       if [ $C_DOCS_FAILED == 0 ]; then
         C_DOCS_FAILED=1
         FAILED=1
         printf "\e[1;34mRust bindings are missing documentation links:\e[0m "
         printf "Where possible, the Rust bindings should link to existing documentation. "
-        printf "Links can be written like \"[s2n_connection_new]\".\n"
+        printf "Links can be written like \"[\`s2n_connection_new\`]\".\n"
       fi
       echo "- $api"
     fi

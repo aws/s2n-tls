@@ -75,6 +75,8 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
 int s2n_cert_chain_and_key_set_cert_chain_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key, struct s2n_stuffer *chain_in_stuffer)
 {
+    POSIX_ENSURE_REF(cert_and_key);
+    POSIX_ENSURE_REF(cert_and_key->cert_chain);
     return s2n_create_cert_chain_from_stuffer(cert_and_key->cert_chain, chain_in_stuffer);
 }
 
@@ -102,6 +104,9 @@ int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_an
 int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key,
         struct s2n_stuffer *key_in_stuffer, struct s2n_stuffer *key_out_stuffer)
 {
+    POSIX_ENSURE_REF(cert_and_key);
+    POSIX_ENSURE_REF(cert_and_key->private_key);
+
     struct s2n_blob key_blob = { 0 };
 
     POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
@@ -388,6 +393,7 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
 int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len)
 {
+    POSIX_ENSURE_REF(chain_and_key);
     POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
     POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
     return S2N_SUCCESS;
@@ -602,12 +608,14 @@ int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key 
 
 int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx)
 {
+    POSIX_ENSURE_REF(cert_and_key);
     cert_and_key->context = ctx;
     return 0;
 }
 
 void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key)
 {
+    PTR_ENSURE_REF(cert_and_key);
     return cert_and_key->context;
 }
 
@@ -715,6 +723,7 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
 
     int len = ASN1_STRING_length(asn1_str);
+    POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
         /* ASN1_STRING_data() returns an internal pointer to the data.
@@ -816,6 +825,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
              * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_data.html.
              */
             asn1_str = X509_EXTENSION_get_data(x509_ext);
+            POSIX_ENSURE_REF(asn1_str);
             /* ASN1_STRING_length() returns the length of the content of `asn1_str`.
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */

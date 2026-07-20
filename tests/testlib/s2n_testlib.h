@@ -64,6 +64,19 @@ int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connec
 int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
 
+/* On Windows, POSIX write()/read() don't work on sockets.
+ * Use these macros when writing/reading raw bytes to/from socket fds in tests.
+ */
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <winsock2.h>
+    #define s2n_test_send(fd, buf, len) send(fd, (const char *) (buf), len, 0)
+    #define s2n_test_recv(fd, buf, len) recv(fd, (char *) (buf), len, 0)
+#else
+    #define s2n_test_send(fd, buf, len) write(fd, buf, len)
+    #define s2n_test_recv(fd, buf, len) read(fd, buf, len)
+#endif
+
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_mark_extension_received(struct s2n_connection *conn, uint16_t iana_value);
 int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value);
@@ -116,6 +129,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_PSS_2048_SHA256_CA_CERT   "../pems/rsa_pss_2048_sha256_CA_cert.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
 #define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+
+#define S2N_MLDSA44_KEY  "../pems/mldsa/ML-DSA-44-seed.priv"
+#define S2N_MLDSA44_CERT "../pems/mldsa/ML-DSA-44.crt"
 
 #define S2N_MLDSA87_KEY  "../pems/mldsa/ML-DSA-87-seed.priv"
 #define S2N_MLDSA87_CERT "../pems/mldsa/ML-DSA-87.crt"

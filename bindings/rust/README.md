@@ -23,13 +23,35 @@ $ ./bindings/rust/extended/generate.sh
 This script generates the low-level bindings in the crate `s2n-tls-sys`, which is used by the `s2n-tls` crate to provide higher-level bindings.
 See [s2n-tls-sys](https://github.com/aws/s2n-tls/blob/main/bindings/rust/s2n-tls-sys/README.md) for more information on `s2n-tls-sys` crate.
 
+## Windows
+
+The rust bindings are supported on Windows through the [MSYS2](https://www.msys2.org/) environment with a MinGW toolchain. Use a GNU Rust target rather than an MSVC target: `x86_64-pc-windows-gnu` for the `UCRT64`/`MINGW64` environments, or `x86_64-pc-windows-gnullvm` for the `CLANG64` environment. The MSVC toolchain (`*-pc-windows-msvc`) is not supported.
+
+On Windows, AWS-LC is the only supported libcrypto. The bindings link against AWS-LC through the `aws-lc-rs` crate (which builds AWS-LC from source), so no separate libcrypto needs to be installed.
+
+From a MinGW shell, install the toolchain and dependencies (the package prefix depends on the environment, e.g. `mingw-w64-ucrt-x86_64` for `UCRT64`), then generate the bindings as usual:
+
+```bash
+# example for the UCRT64 environment
+pacman -S --needed \
+    mingw-w64-ucrt-x86_64-clang \
+    mingw-w64-ucrt-x86_64-clang-libs \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-ninja \
+    mingw-w64-ucrt-x86_64-rustup \
+    make
+
+rustup default stable-x86_64-pc-windows-gnu
+./bindings/rust/extended/generate.sh
+```
+
 ## Minimum Supported Rust Version (MSRV)
 
 There are two rust bindings workspaces that have different MSRV policies. Crates in `standard` maintain a rolling MSRV policy of at least 6 months. Crates in `extended` maintain an older MSRV for increased support.
 
 ### Extended
 
-Crates in the `extended` workspace currently support an "extended" MSRV of [1.72.0](https://releases.rs/docs/1.72.0/). This is a temporary state. Customers must not rely on `s2n-tls` crates maintaining this level of stability. We expect to revert back to the mentioned standard policy shortly.
+Crates in the `extended` workspace currently support an "extended" MSRV of [1.77.0](https://releases.rs/docs/1.77.0/). This is a temporary state. Customers must not rely on `s2n-tls` crates maintaining this level of stability. We expect to revert back to the mentioned standard policy shortly.
 
 ### Standard
 

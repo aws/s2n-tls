@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(not(target_os = "windows"))]
 use errno::{set_errno, Errno};
 use s2n_tls::{
     config::Config,
@@ -171,6 +172,34 @@ where
         &mut self.stream
     }
 
+    /// Consumes the `TlsStream`, returning its [`Connection`]
+    /// (or [`Builder::Output`](Builder)) and IO stream.
+    ///
+    /// Inverse of [`TlsStream::from_parts`]. All TLS state, including any data
+    /// s2n-tls has already buffered, stays with the returned connection.
+    ///
+    /// Only call this at a quiescent point: after the handshake and while no
+    /// read, write, or shutdown future is in flight. Any in-flight blinding
+    /// timer is dropped, but the connection retains its remaining blinding
+    /// delay and re-applies it on the next poll.
+    pub fn into_parts(self) -> (C, S) {
+        (self.conn, self.stream)
+    }
+
+    /// Reassembles a `TlsStream` from a [`Connection`] (or
+    /// [`Builder::Output`](Builder)) and IO stream from [`TlsStream::into_parts`].
+    ///
+    /// Inverse of [`TlsStream::into_parts`]. The connection must already be
+    /// negotiated; this does not perform a handshake.
+    pub fn from_parts(conn: C, stream: S) -> Self {
+        TlsStream {
+            conn,
+            stream,
+            blinding: None,
+            shutdown_error: None,
+        }
+    }
+
     async fn open(conn: C, stream: S) -> Result<Self, Error> {
         let mut tls = TlsStream {
             conn,
@@ -232,16 +261,43 @@ where
         match res {
             Poll::Ready(Ok(len)) => len as c_int,
             Poll::Pending => {
-                set_errno(Errno(libc::EWOULDBLOCK));
+                Self::set_io_would_block();
                 CallbackResult::Failure.into()
             }
             _ => CallbackResult::Failure.into(),
         }
     }
 
+    /// Signal a "would block" to s2n's C IO layer by setting the CRT `errno` to
+    /// EWOULDBLOCK. `s2n_io.c` reads `errno` to distinguish a retriable blocked
+    /// read/write from a fatal IO error.
+    fn set_io_would_block() {
+        #[cfg(not(target_os = "windows"))]
+        {
+            // The `errno` crate writes the CRT errno, which is what s2n reads.
+            set_errno(Errno(libc::EWOULDBLOCK));
+        }
+
+        // On Windows the `errno` crate writes the Win32 last-error, not the CRT
+        // `errno` that s2n reads, so set the CRT errno directly. s2n and this
+        // code share one statically linked CRT, so `_set_errno` and `errno` hit
+        // the same thread-local variable.
+        #[cfg(target_os = "windows")]
+        {
+            extern "C" {
+                fn _set_errno(value: core::ffi::c_int) -> core::ffi::c_int;
+            }
+            // SAFETY: `_set_errno` only writes the thread-local CRT errno.
+            unsafe {
+                let _ = _set_errno(libc::EWOULDBLOCK);
+            }
+        }
+    }
+
     unsafe extern "C" fn recv_io_cb(ctx: *mut c_void, buf: *mut u8, len: u32) -> c_int {
         Self::poll_io(ctx, |stream, async_context| {
-            let mut dest = ReadBuf::new(std::slice::from_raw_parts_mut(buf, len as usize));
+            let len: usize = len.try_into().unwrap();
+            let mut dest = ReadBuf::new(std::slice::from_raw_parts_mut(buf, len));
             stream
                 .poll_read(async_context, &mut dest)
                 .map_ok(|_| dest.filled().len())
@@ -250,7 +306,8 @@ where
 
     unsafe extern "C" fn send_io_cb(ctx: *mut c_void, buf: *const u8, len: u32) -> c_int {
         Self::poll_io(ctx, |stream, async_context| {
-            let src = std::slice::from_raw_parts(buf, len as usize);
+            let len: usize = len.try_into().unwrap();
+            let src = std::slice::from_raw_parts(buf, len);
             stream.poll_write(async_context, src)
         })
     }

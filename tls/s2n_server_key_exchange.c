@@ -228,7 +228,7 @@ int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n
     struct s2n_blob data_to_verify_1 = { 0 };
     POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(hybrid_kex_1, conn, &data_to_verify_1, raw_server_data));
 
-    total_data_to_verify->size = data_to_verify_0.size + data_to_verify_1.size;
+    POSIX_GUARD(s2n_add_overflow(data_to_verify_0.size, data_to_verify_1.size, &total_data_to_verify->size));
     return 0;
 }
 
@@ -343,7 +343,7 @@ int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *tot
     struct s2n_blob data_to_verify_1 = { 0 };
     POSIX_GUARD_RESULT(s2n_kex_server_key_send(hybrid_kex_1, conn, &data_to_verify_1));
 
-    total_data_to_sign->size = data_to_verify_0.size + data_to_verify_1.size;
+    POSIX_GUARD(s2n_add_overflow(data_to_verify_0.size, data_to_verify_1.size, &total_data_to_sign->size));
     return 0;
 }
 

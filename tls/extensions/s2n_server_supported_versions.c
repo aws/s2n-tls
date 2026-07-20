@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_server_supported_versions.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
