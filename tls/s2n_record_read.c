@@ -104,6 +104,31 @@ int s2n_record_header_parse(
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, content_type));
 
+    /* Once the protocol version is established, reject records with
+     * content_type values outside the valid TLS set {20, 21, 22, 23}.
+     * This is the earliest possible rejection point, before any buffer
+     * allocation or cryptographic work.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
+     *# type:  The higher-level protocol used to process the enclosed
+     *#    fragment.
+     *
+     * Before the protocol version is established, we must be lenient
+     * because the first record (ClientHello) may arrive before we know
+     * the protocol version.
+     */
+    if (conn->actual_protocol_version_established) {
+        switch (*content_type) {
+            case TLS_CHANGE_CIPHER_SPEC:
+            case TLS_ALERT:
+            case TLS_HANDSHAKE:
+            case TLS_APPLICATION_DATA:
+                break;
+            default:
+                POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+        }
+    }
+
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
@@ -158,7 +183,54 @@ int s2n_record_header_parse(
  * of existing interpretation of TLS 1.2 alerts. */
 static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t content_type)
 {
-    return conn->actual_protocol_version == S2N_TLS13 && (content_type == TLS_ALERT || content_type == TLS_CHANGE_CIPHER_SPEC);
+    if (conn->actual_protocol_version != S2N_TLS13) {
+        return false;
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
+     *# The outer opaque_type field of a TLSCiphertext record
+     *# is always set to the value 23 (application_data)
+     *
+     * Plaintext alerts are only valid during the handshake (e.g., if
+     * certificate validation fails before encryption is established).
+     * After the handshake completes, RFC 8446 Section 5.2 requires all
+     * records to be encrypted, so post-handshake alerts must arrive as
+     * APPLICATION_DATA records with an inner content type of ALERT.
+     *
+     * Accepting plaintext alerts post-handshake would allow an on-path
+     * attacker to flip the outer content_type of an encrypted record
+     * from APPLICATION_DATA (0x17) to ALERT (0x15), routing the raw
+     * AEAD ciphertext through the null cipher and into the alert parser.
+     * If the first two ciphertext bytes happen to form a close_notify
+     * (probability 1/256) or user_canceled (probability 1/256), the
+     * record is silently consumed — either as a fake shutdown or as a
+     * discarded warning — without incrementing the AEAD sequence number.
+     * This enables repeated, non-desynchronizing attempts at targeted
+     * connection kills or silent record drops.
+     */
+    if (content_type == TLS_ALERT && !s2n_handshake_is_complete(conn)) {
+        return true;
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5
+     *# An implementation may receive an unencrypted record of type
+     *# change_cipher_spec consisting of the single byte value 0x01
+     *# at any time after the first ClientHello message has been
+     *# sent or received and before the peer's Finished message has
+     *# been received
+     *
+     * CCS is only valid during the handshake. Once the handshake is
+     * complete, a CCS record is a protocol violation and must not be
+     * routed through the plaintext path, as that would allow it to
+     * bypass the content_type validation in s2n_record_parse.
+     */
+    if (content_type == TLS_CHANGE_CIPHER_SPEC && !s2n_handshake_is_complete(conn)) {
+        return true;
+    }
+
+    return false;
 }
 
 int s2n_record_parse(struct s2n_connection *conn)
@@ -198,6 +270,28 @@ int s2n_record_parse(struct s2n_connection *conn)
      * If ApplicationData is unencrypted, we can't trust it. */
     if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
         POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
+     *# The outer opaque_type field of a TLSCiphertext record
+     *# is always set to the value 23 (application_data)
+     *
+     * For TLS 1.3 encrypted records, the outer content_type MUST be
+     * TLS_APPLICATION_DATA. The AEAD AAD hardcodes this value, so the
+     * outer byte is not covered by the authentication tag. Without this
+     * check, records with unrecognized content_type values would be
+     * discarded after decryption without surfacing an error, which
+     * violates the record integrity guarantees of TLS 1.3.
+     *
+     * This check only applies to encrypted records (non-null cipher).
+     * During the handshake, plaintext records with other content_types
+     * (HANDSHAKE, ALERT, CCS) are legitimate and handled by
+     * s2n_is_tls13_plaintext_content above.
+     */
+    if (conn->actual_protocol_version == S2N_TLS13
+            && cipher_suite->record_alg->cipher != &s2n_null_cipher) {
+        POSIX_ENSURE(content_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
