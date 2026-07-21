@@ -1,6 +1,6 @@
 [package]
 name = "s2n-tls-metrics-subscriber"
-version = "0.0.6"
+version = "0.0.5"
 edition = "2024"
 description = "Telemetry provider for s2n-tls"
 authors = ["AWS s2n"]
@@ -8,7 +8,7 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [dependencies]
-s2n-tls-metrics-schema = { version = "0.0.3", path = "../s2n-tls-metrics-schema" }
+s2n-tls-metrics-schema = { version = "0.0.2", path = "../s2n-tls-metrics-schema" }
 s2n-codec.workspace = true
 static_assertions = "1.1.0"
 tracing = "0.1.43"
@@ -20,8 +20,8 @@ arc-swap = "1.8.0"
 serde = { version = "1.0.225", features = ["derive"] }
 # the event APIs are not stable, but we rely on the test introduced in
 # https://github.com/aws/s2n-tls/pull/5949 to ensure stability
-s2n-tls = { version = "0.3.41", path = "../../extended/s2n-tls", default-features = false, features = ["unstable-events", "unstable-testing"] }
-s2n-tls-sys = { version = "0.3.41", path = "../../extended/s2n-tls-sys"}
+s2n-tls = { version = "0.3.40", path = "../../extended/s2n-tls", default-features = false, features = ["unstable-events", "unstable-testing"] }
+s2n-tls-sys = { version = "0.3.40", path = "../../extended/s2n-tls-sys"}
 const-oid = "0.10.2"
 
 [features]
@@ -33,7 +33,7 @@ memory-test = []
 
 [dev-dependencies]
 # enable default features, because this application is responsible for calling init
-s2n-tls = { version = "0.3.41", path = "../../extended/s2n-tls", default-features = true}
+s2n-tls = { version = "0.3.40", path = "../../extended/s2n-tls", default-features = true}
 s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
 serde_json = "1.0.141"
 ciborium = "0.2"
