@@ -115,16 +115,20 @@ fn build_vendored() {
         //
         // Since Rust 1.90, rust-lld is the default linker on
         // x86_64-unknown-linux-gnu. rust-lld can't consume GCC's fat-LTO
-        // objects, so on that target we prefer Clang to keep LTO working; if
-        // only GCC is available there, LTO is silently dropped and we warn.
-        if rust_lld_is_default() {
-            if build.get_compiler().is_like_clang() || try_prefer_clang(&mut build) {
-                build.flag_if_supported("-flto");
-            } else if build.get_compiler().is_like_gnu() {
-                build
-                    .flag_if_supported("-flto")
-                    .flag_if_supported("-ffat-lto-objects");
+        // objects, so `builder()` prefers Clang there to keep LTO working; if
+        // only GCC is available, LTO is silently dropped and we warn.
+        let compiler = build.get_compiler();
+        if compiler.is_like_clang() && rust_lld_is_default() {
+            // Clang + rust-lld: Clang's LLVM bitcode LTO objects are what
+            // rust-lld can optimize. We require rust-lld here because that
+            // bitcode fails to link with a plain GNU `ld` (see #3968).
+            build.flag_if_supported("-flto");
+        } else if compiler.is_like_gnu() {
+            build
+                .flag_if_supported("-flto")
+                .flag_if_supported("-ffat-lto-objects");
 
+            if rust_lld_is_default() {
                 // GCC + rust-lld: the fat-LTO objects are ignored by rust-lld,
                 // so the LTO pass is silently dropped (~2-4% per TLS handshake).
                 println!(
@@ -138,14 +142,6 @@ fn build_vendored() {
                      https://github.com/aws/s2n-tls/blob/main/bindings/rust/extended/s2n-tls-sys/README.md#performance-note-rust--190-lto-and-the-linker"
                 );
             }
-        } else if build.get_compiler().is_like_gnu() {
-            // Non-rust-lld linker (e.g. GNU bfd, macOS ld). GCC fat-LTO objects
-            // link everywhere. We deliberately do NOT add `-flto` for Clang
-            // here: its bitcode would fail to link with a plain GNU `ld`
-            // (see #3968), and pre-1.90 this target used bfd by default.
-            build
-                .flag_if_supported("-flto")
-                .flag_if_supported("-ffat-lto-objects");
         }
     }
 
@@ -203,13 +199,14 @@ fn build_vendored() {
     println!("cargo:include={}", include_dir.display());
 }
 
-/// Try to switch `build` to use Clang so that cross-file LTO works under
-/// rust-lld (the default linker on x86_64-unknown-linux-gnu since Rust 1.90).
+/// Returns true if we should compile libs2n with Clang: `clang` is on PATH and
+/// runnable, and the user hasn't pinned a compiler via `CC` / `CC_<target>`.
 ///
-/// Returns true if Clang was selected. This is a no-op (returns false) when:
-///   * the user explicitly set `CC` or
-///   * `clang` isn't on PATH / isn't runnable.
-fn try_prefer_clang(build: &mut cc::Build) -> bool {
+/// This is only a *recommendation*; the caller decides whether to act on it
+/// (we only prefer Clang when rust-lld is the linker). The choice is made once
+/// and applied to both the feature detector and the actual compilation.
+fn clang_available_and_unpinned() -> bool {
+    // Respect an explicitly pinned compiler.
     let target = std::env::var("TARGET").unwrap_or_default();
     if std::env::var("CC").is_ok()
         || std::env::var(format!("CC_{target}")).is_ok()
@@ -218,17 +215,12 @@ fn try_prefer_clang(build: &mut cc::Build) -> bool {
         return false;
     }
 
-    let clang_runs = std::process::Command::new("clang")
+    // Only use Clang if it's actually present and runnable.
+    std::process::Command::new("clang")
         .arg("--version")
         .output()
         .map(|out| out.status.success())
-        .unwrap_or(false);
-    if !clang_runs {
-        return false;
-    }
-
-    build.compiler("clang");
-    true
+        .unwrap_or(false)
 }
 
 /// Returns true if the final linker for this build is (most likely) rust-lld.
@@ -266,6 +258,19 @@ fn rust_lld_is_default() -> bool {
 
 fn builder(libcrypto: &Libcrypto) -> cc::Build {
     let mut build = cc::Build::new();
+
+    // Select the C compiler in one place so that every `cc::Build` produced
+    // here (both the feature detector and the compilation build) agrees on the
+    // compiler. Otherwise feature detection could probe with one compiler while
+    // the code is compiled with another, baking in mismatched #defines.
+    //
+    // Prefer Clang when rust-lld is the linker (the default on
+    // x86_64-unknown-linux-gnu since Rust 1.90): Clang emits LLVM bitcode LTO
+    // objects that rust-lld can optimize, whereas GCC's fat-LTO objects can't
+    // be. We don't override an explicitly pinned `CC`.
+    if rust_lld_is_default() && clang_available_and_unpinned() {
+        build.compiler("clang");
+    }
 
     let includes = [&libcrypto.include, "lib", "lib/api"];
     if let Ok(cflags) = std::env::var("CFLAGS") {
