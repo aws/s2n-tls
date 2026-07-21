@@ -216,13 +216,10 @@ static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t 
     /*
      *= https://www.rfc-editor.org/rfc/rfc8446#section-5
      *# An implementation may receive an unencrypted record of type
-     *# change_cipher_spec
-     *
-     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.4
-     *# An implementation may receive an unencrypted record of type
-     *# change_cipher_spec at any time after the first ClientHello
-     *# message has been sent or received and before the peer's
-     *# Finished message has been received.
+     *# change_cipher_spec consisting of the single byte value 0x01
+     *# at any time after the first ClientHello message has been
+     *# sent or received and before the peer's Finished message has
+     *# been received
      *
      * CCS is only valid during the handshake. Once the handshake is
      * complete, a CCS record is a protocol violation and must not be
