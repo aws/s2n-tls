@@ -135,7 +135,7 @@ fn build_vendored() {
                      Install clang (preferred, restores LTO automatically) or build with \
                      RUSTFLAGS=\"-Clinker-features=-lld\" to fall back to the GNU bfd linker. \
                      For details see: \
-                     https://github.com/aws/s2n-tls/blob/main/bindings/rust/extended/s2n-tls-sys/README.md#performance-note-rust--190-and-cross-file-lto"
+                     https://github.com/aws/s2n-tls/blob/main/bindings/rust/extended/s2n-tls-sys/README.md#performance-note-rust--190-lto-and-the-linker"
                 );
             }
         } else if build.get_compiler().is_like_gnu() {
