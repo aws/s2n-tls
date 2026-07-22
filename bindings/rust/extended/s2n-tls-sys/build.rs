@@ -132,14 +132,8 @@ fn build_vendored() {
                 // GCC + rust-lld: the fat-LTO objects are ignored by rust-lld,
                 // so the LTO pass is silently dropped (~2-4% per TLS handshake).
                 println!(
-                    "cargo:warning=s2n-tls-sys: cross-file LTO of the vendored libs2n is \
-                     silently disabled. Clang was not found, so the C code was built with \
-                     GCC fat-LTO objects, which the default rust-lld linker (Rust >= 1.90 on \
-                     x86_64-unknown-linux-gnu) cannot consume, costing ~2-4% per TLS handshake. \
-                     Install clang (preferred, restores LTO automatically) or build with \
-                     RUSTFLAGS=\"-Clinker-features=-lld\" to fall back to the GNU bfd linker. \
-                     For details see: \
-                     https://github.com/aws/s2n-tls/blob/main/bindings/rust/extended/s2n-tls-sys/README.md#performance-note-rust--190-lto-and-the-linker"
+                    "cargo:warning=s2n-tls-sys: unable to find clang, falling back to GCC \
+                    and disabling LTO. Expecting a 2-4% performance regression."
                 );
             }
         }
