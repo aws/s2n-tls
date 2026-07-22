@@ -4,7 +4,7 @@
 //! Tests confirming ClientHello retrieval after a Hello Retry Request.
 //!
 //! After an HRR, `client_hello()` returns the *second* client hello, while
-//! `previous_client_hello()` returns the *first* one sent before the HRR.
+//! `initial_client_hello()` returns the *first* one sent before the HRR.
 //!
 //! See: https://github.com/aws/s2n-tls/issues/5961
 
@@ -28,7 +28,7 @@ static STRONGLY_PREFERRED_GROUPS: LazyLock<Policy> =
 
 /// After a Hello Retry Request, s2n-tls exposes both client hellos:
 /// - `client_hello()` returns the second (most recent) client hello.
-/// - `previous_client_hello()` returns the first client hello — which contains
+/// - `initial_client_hello()` returns the first client hello — which contains
 ///   the original key share that triggered the HRR.
 ///
 /// This test:
@@ -38,7 +38,7 @@ static STRONGLY_PREFERRED_GROUPS: LazyLock<Policy> =
 /// 3. Confirms the first client hello has secp256r1, the second has secp384r1.
 /// 4. Gets the raw message bytes from both of s2n-tls's stored client hellos,
 ///    parses them with brass-aphid, and confirms the current client hello has
-///    the second key share (secp384r1) and the previous client hello has the
+///    the second key share (secp384r1) and the initial client hello has the
 ///    first key share (secp256r1).
 #[test]
 fn both_client_hellos_available_after_hrr() {
@@ -90,26 +90,26 @@ fn both_client_hellos_available_after_hrr() {
             vec![iana::constants::secp384r1]
         );
 
-        // --- s2n-tls API: the previous client hello is the first one ---
+        // --- s2n-tls API: the initial client hello is the first one ---
 
-        let previous = pair
+        let initial = pair
             .server
             .connection()
-            .previous_client_hello()
-            .expect("previous client hello should be available after an HRR");
-        let previous_raw = previous.raw_message().unwrap();
-        let (previous_parsed, _) = ClientHello::decode_from(&previous_raw).unwrap();
+            .initial_client_hello()
+            .expect("initial client hello should be available after an HRR");
+        let initial_raw = initial.raw_message().unwrap();
+        let (initial_parsed, _) = ClientHello::decode_from(&initial_raw).unwrap();
         assert_eq!(
-            previous_parsed.key_share().unwrap(),
+            initial_parsed.key_share().unwrap(),
             vec![iana::constants::secp256r1]
         );
     });
 }
 
-/// Without a Hello Retry Request, there is no previous client hello, so
-/// `previous_client_hello()` returns `None`.
+/// Without a Hello Retry Request, only a single client hello is sent, so
+/// `initial_client_hello()` returns the same message as `client_hello()`.
 #[test]
-fn no_previous_client_hello_without_hrr() {
+fn initial_client_hello_matches_current_without_hrr() {
     let mut pair: TlsConnPair<OpenSslConnection, S2NConnection> = {
         let mut configs =
             TlsConfigBuilderPair::<SslContextBuilder, s2n_tls::config::Builder>::default();
@@ -126,7 +126,21 @@ fn no_previous_client_hello_without_hrr() {
     pair.handshake().unwrap();
     pair.shutdown().unwrap();
 
-    // A client hello was received, but no HRR occurred.
-    assert!(pair.server.connection().client_hello().is_ok());
-    assert!(pair.server.connection().previous_client_hello().is_none());
+    // A single client hello was received, so the initial and current client
+    // hellos are the same message.
+    let current_raw = pair
+        .server
+        .connection()
+        .client_hello()
+        .unwrap()
+        .raw_message()
+        .unwrap();
+    let initial_raw = pair
+        .server
+        .connection()
+        .initial_client_hello()
+        .unwrap()
+        .raw_message()
+        .unwrap();
+    assert_eq!(current_raw, initial_raw);
 }

@@ -52,14 +52,19 @@ struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *
     return &conn->client_hello;
 }
 
-struct s2n_client_hello *s2n_connection_get_previous_client_hello(struct s2n_connection *conn)
+struct s2n_client_hello *s2n_connection_get_initial_client_hello(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
-    if (conn->previous_client_hello == NULL || conn->previous_client_hello->parsed != 1) {
-        return NULL;
+
+    /* When a HelloRetryRequest occurs, the first ClientHello is preserved
+     * separately from the current (second) ClientHello.
+     */
+    if (conn->previous_client_hello != NULL && conn->previous_client_hello->parsed == 1) {
+        return conn->previous_client_hello;
     }
 
-    return conn->previous_client_hello;
+    /* Otherwise only a single ClientHello was sent, which is the initial one. */
+    return s2n_connection_get_client_hello(conn);
 }
 
 static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length)
@@ -506,7 +511,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
             &previous_hello_retry, &conn->client_hello, previous_client_random));
 
     /* On a hello retry handshake, retain the first ClientHello so that applications
-     * can inspect the original values via s2n_connection_get_previous_client_hello.
+     * can inspect the original values via s2n_connection_get_initial_client_hello.
      *
      * The `parsed` flag is set explicitly because s2n_server_hello_retry_send resets
      * it to 0 on the connection's client_hello before the second ClientHello arrives.

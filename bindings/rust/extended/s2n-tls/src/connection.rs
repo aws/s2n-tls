@@ -1030,25 +1030,23 @@ impl Connection {
         }))
     }
 
-    /// Retrieves the first ClientHello sent before a HelloRetryRequest.
+    /// Retrieves the first ClientHello sent by the client.
     ///
     /// When a server sends a HelloRetryRequest, the client responds with a
-    /// second ClientHello. [`Connection::client_hello`] returns that second
-    /// (most recent) ClientHello. This method instead returns the original
-    /// ClientHello sent before the HelloRetryRequest, which is useful for
-    /// inspecting the values the client initially offered.
+    /// second ClientHello, and [`Connection::client_hello`] returns that second
+    /// (most recent) ClientHello. This method instead always returns the first ClientHello
+    /// the client sent, which is useful for inspecting the values the client originally offered.
     ///
-    /// Returns `None` when no HelloRetryRequest has occurred, since in that
-    /// case there is no earlier ClientHello.
+    /// When no HelloRetryRequest occurs, only a single ClientHello is sent, so
+    /// this returns the same ClientHello as [`Connection::client_hello`].
     ///
-    /// Corresponds to [`s2n_connection_get_previous_client_hello`].
-    pub fn previous_client_hello(&self) -> Option<&crate::client_hello::ClientHello> {
-        let handle = unsafe { s2n_connection_get_previous_client_hello(self.connection.as_ptr()) };
-        // A NULL return indicates that no HelloRetryRequest occurred, which is a
-        // valid (non-error) state, so it maps to None.
-        let handle = NonNull::new(handle)?;
-        Some(crate::client_hello::ClientHello::from_ptr(unsafe {
-            handle.as_ref()
+    /// Corresponds to [`s2n_connection_get_initial_client_hello`].
+    pub fn initial_client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
+        let mut handle = unsafe {
+            s2n_connection_get_initial_client_hello(self.connection.as_ptr()).into_result()?
+        };
+        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {
+            handle.as_mut()
         }))
     }
 

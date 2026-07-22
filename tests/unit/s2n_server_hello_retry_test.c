@@ -520,7 +520,7 @@ int main(int argc, char **argv)
     };
 
     /* After a HelloRetryRequest, the server retains the first ClientHello and it
-     * can be accessed via s2n_connection_get_previous_client_hello. It is distinct
+     * can be accessed via s2n_connection_get_initial_client_hello. It is distinct
      * from the second (current) ClientHello returned by s2n_connection_get_client_hello.
      */
     {
@@ -558,33 +558,34 @@ int main(int argc, char **argv)
         struct s2n_client_hello *current = s2n_connection_get_client_hello(server_conn);
         EXPECT_NOT_NULL(current);
 
-        /* The first ClientHello, sent before the HelloRetryRequest, is retained */
-        struct s2n_client_hello *previous = s2n_connection_get_previous_client_hello(server_conn);
-        EXPECT_NOT_NULL(previous);
+        /* The initial ClientHello, sent before the HelloRetryRequest, is retained */
+        struct s2n_client_hello *initial = s2n_connection_get_initial_client_hello(server_conn);
+        EXPECT_NOT_NULL(initial);
 
-        /* The two ClientHellos are genuinely different messages. The client offers
-         * a different key share in its second ClientHello in response to the HRR,
-         * so the raw messages must differ.
+        /* The current and initial ClientHellos are genuinely different messages.
+         * The client offers a different key share in its second ClientHello in
+         * response to the HRR, so the raw messages must differ.
          */
         ssize_t current_len = s2n_client_hello_get_raw_message_length(current);
-        ssize_t previous_len = s2n_client_hello_get_raw_message_length(previous);
+        ssize_t initial_len = s2n_client_hello_get_raw_message_length(initial);
         EXPECT_TRUE(current_len > 0);
-        EXPECT_TRUE(previous_len > 0);
+        EXPECT_TRUE(initial_len > 0);
 
         DEFER_CLEANUP(struct s2n_blob current_raw = { 0 }, s2n_free);
-        DEFER_CLEANUP(struct s2n_blob previous_raw = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob initial_raw = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&current_raw, current_len));
-        EXPECT_SUCCESS(s2n_alloc(&previous_raw, previous_len));
+        EXPECT_SUCCESS(s2n_alloc(&initial_raw, initial_len));
         EXPECT_EQUAL(s2n_client_hello_get_raw_message(current, current_raw.data, current_raw.size), current_len);
-        EXPECT_EQUAL(s2n_client_hello_get_raw_message(previous, previous_raw.data, previous_raw.size), previous_len);
+        EXPECT_EQUAL(s2n_client_hello_get_raw_message(initial, initial_raw.data, initial_raw.size), initial_len);
 
-        bool identical = (current_len == previous_len)
-                && (memcmp(current_raw.data, previous_raw.data, current_len) == 0);
+        bool identical = (current_len == initial_len)
+                && (memcmp(current_raw.data, initial_raw.data, current_len) == 0);
         EXPECT_FALSE(identical);
     };
 
-    /* Without a HelloRetryRequest, there is no previous ClientHello and
-     * s2n_connection_get_previous_client_hello returns NULL.
+    /* Without a HelloRetryRequest, only a single ClientHello is sent, so
+     * s2n_connection_get_initial_client_hello returns the same ClientHello as
+     * s2n_connection_get_client_hello.
      */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -614,9 +615,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
 
-        /* A ClientHello was received, but no HelloRetryRequest occurred */
-        EXPECT_NOT_NULL(s2n_connection_get_client_hello(server_conn));
-        EXPECT_NULL(s2n_connection_get_previous_client_hello(server_conn));
+        /* A single ClientHello was received, so the initial ClientHello is the
+         * same object as the current one.
+         */
+        struct s2n_client_hello *current = s2n_connection_get_client_hello(server_conn);
+        struct s2n_client_hello *initial = s2n_connection_get_initial_client_hello(server_conn);
+        EXPECT_NOT_NULL(current);
+        EXPECT_EQUAL(current, initial);
     };
 
     /* Hello Retry Request + (poll and no-poll) client hello callback */
