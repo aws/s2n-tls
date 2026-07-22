@@ -189,7 +189,7 @@ impl TlsConnection for S2NConnection {
     }
 
     fn handshake_completed(&self) -> bool {
-        self.connection.handshake_complete().unwrap_or(false)
+        self.connection.handshake_complete()
     }
 
     fn send(&mut self, data: &[u8]) {

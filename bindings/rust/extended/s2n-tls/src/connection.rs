@@ -660,12 +660,8 @@ impl Connection {
     /// particularly for TLS 1.2.
     ///
     /// Corresponds to [`s2n_connection_handshake_complete`].
-    pub fn handshake_complete(&self) -> Result<bool, Error> {
-        unsafe {
-            s2n_connection_handshake_complete(self.connection.as_ptr())
-                .into_result()
-                .map(|res| res != 0)
-        }
+    pub fn handshake_complete(&self) -> bool {
+        unsafe { s2n_connection_handshake_complete(self.connection.as_ptr()) }
     }
 
     /// Encrypts and sends data on a connection where
