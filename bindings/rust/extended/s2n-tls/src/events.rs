@@ -51,6 +51,21 @@ impl<'a> HandshakeEvent<'a> {
             HandshakeResult::Failure(HandshakeFailure(self.0))
         }
     }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn protocol_version(&self) -> crate::enums::Version {
+        HandshakeSuccess(self.0).protocol_version()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn cipher(&self) -> &'static str {
+        HandshakeSuccess(self.0).cipher()
+    }
+
+    #[deprecated(note = "will be removed with the release of subscriber 0.0.5")]
+    pub fn group(&self) -> Option<&'static str> {
+        HandshakeSuccess(self.0).group()
+    }
 }
 
 impl HandshakeSuccess<'_> {
@@ -112,15 +127,81 @@ fn maybe_string(string: *const libc::c_char) -> Option<&'static str> {
     }
 }
 
+/// Per-message timing checkpoint emitted once when each TLS handler finishes.
+///
+/// Consumers reconstruct per-message durations by computing the delta between
+/// consecutive checkpoint timestamps within a single handshake. The first
+/// checkpoint emitted per handshake is `NEGOTIATE_START`, which serves as the
+/// anchor for the first message's duration.
+///
+/// The event is only valid for the duration of the callback invocation.
+pub struct TimingCheckpoint<'a>(&'a s2n_tls_sys::s2n_timing_checkpoint);
+
+impl<'a> TimingCheckpoint<'a> {
+    pub(crate) fn new(event: &'a s2n_tls_sys::s2n_timing_checkpoint) -> Self {
+        Self(event)
+    }
+
+    /// The name of the checkpoint, e.g. "NEGOTIATE_START", "CLIENT_HELLO",
+    /// "SERVER_CERT_VERIFY", "CLIENT_CHANGE_CIPHER_SPEC".
+    pub fn name(&self) -> &str {
+        maybe_string(self.0.name).unwrap_or("unknown")
+    }
+
+    /// The role: 0 = server, 1 = client.
+    pub fn role(&self) -> u8 {
+        self.0.role
+    }
+
+    /// Whether this event was recorded on the server side.
+    pub fn is_server(&self) -> bool {
+        self.0.role == 0
+    }
+
+    /// The timestamp at which the handler finished, in nanoseconds, on the
+    /// monotonic clock used by `s2n_default_monotonic_clock`. Same clock as
+    /// [`HandshakeEvent::duration`] uses, so callers can correlate per-message
+    /// checkpoints with total handshake time.
+    pub fn timestamp_ns(&self) -> u64 {
+        self.0.timestamp_ns
+    }
+}
+
+impl Debug for TimingCheckpoint<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TimingCheckpoint")
+            .field("name", &self.name())
+            .field("role", &if self.is_server() { "server" } else { "client" })
+            .field("timestamp_ns", &self.timestamp_ns())
+            .finish()
+    }
+}
+
 impl<A: EventSubscriber, B: EventSubscriber> EventSubscriber for (A, B) {
     fn on_handshake_event(&self, connection: &Connection, event: &HandshakeEvent) {
         self.0.on_handshake_event(connection, event);
         self.1.on_handshake_event(connection, event);
     }
+
+    fn on_timing_checkpoint(&self, connection: &Connection, checkpoint: &TimingCheckpoint) {
+        self.0.on_timing_checkpoint(connection, checkpoint);
+        self.1.on_timing_checkpoint(connection, checkpoint);
+    }
 }
 
 pub trait EventSubscriber: 'static + Send + Sync {
     fn on_handshake_event(&self, connection: &Connection, event: &HandshakeEvent);
+
+    /// Called once after each TLS handshake message handler completes, with a
+    /// single monotonic timestamp. The consumer reconstructs per-message
+    /// durations by computing deltas between consecutive checkpoints.
+    ///
+    /// The first checkpoint per handshake is `NEGOTIATE_START` (the anchor);
+    /// subsequent checkpoints are named after the message that just finished
+    /// (e.g. "CLIENT_HELLO", "SERVER_CERT", "CLIENT_CHANGE_CIPHER_SPEC").
+    ///
+    /// The default implementation is a no-op.
+    fn on_timing_checkpoint(&self, _connection: &Connection, _checkpoint: &TimingCheckpoint) {}
 }
 
 #[cfg(test)]
@@ -423,6 +504,67 @@ mod tests {
                 .unwrap()
         };
         assert_eq!(event_error_name, server_err.name());
+
+        Ok(())
+    }
+
+    /// Per-message timing checkpoints are delivered via on_timing_checkpoint.
+    /// Each handshake emits one checkpoint per dispatched message plus a
+    /// NEGOTIATE_START anchor.
+    #[test]
+    fn timing_checkpoint_event() -> Result<(), S2NError> {
+        #[derive(Debug, Default)]
+        struct TimingSubscriber {
+            handshake_invoked: Arc<AtomicU64>,
+            checkpoint_invoked: Arc<AtomicU64>,
+            checkpoint_names: Arc<Mutex<Vec<String>>>,
+        }
+
+        impl EventSubscriber for TimingSubscriber {
+            fn on_handshake_event(&self, _conn: &Connection, _event: &HandshakeEvent) {
+                self.handshake_invoked.fetch_add(1, Ordering::Relaxed);
+            }
+
+            fn on_timing_checkpoint(&self, _conn: &Connection, checkpoint: &TimingCheckpoint) {
+                self.checkpoint_invoked.fetch_add(1, Ordering::Relaxed);
+                self.checkpoint_names
+                    .lock()
+                    .unwrap()
+                    .push(checkpoint.name().to_string());
+                /* Timestamp is from a monotonic clock, so it should be > 0. */
+                assert!(checkpoint.timestamp_ns() > 0);
+            }
+        }
+
+        let subscriber = TimingSubscriber::default();
+        let handshake_invoked = subscriber.handshake_invoked.clone();
+        let checkpoint_invoked = subscriber.checkpoint_invoked.clone();
+        let checkpoint_names = subscriber.checkpoint_names.clone();
+
+        let config = {
+            let mut builder = config_builder(&security::DEFAULT).unwrap();
+            builder.set_event_subscriber(subscriber)?;
+            builder.build()?
+        };
+
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake().unwrap();
+
+        // Handshake event always fires (both sides).
+        assert_eq!(handshake_invoked.load(Ordering::Relaxed), 2);
+
+        // Checkpoint events fire for both sides. The first checkpoint per
+        // side is the NEGOTIATE_START anchor.
+        let count = checkpoint_invoked.load(Ordering::Relaxed);
+        assert!(count > 0, "no checkpoints were emitted");
+        let names = checkpoint_names.lock().unwrap();
+        assert!(!names.is_empty());
+        // First two names are the NEGOTIATE_START anchors from each side.
+        assert!(names.iter().any(|n| n == "NEGOTIATE_START"));
+        // All names should be non-empty.
+        for name in names.iter() {
+            assert!(!name.is_empty(), "empty checkpoint name");
+        }
 
         Ok(())
     }

@@ -45,6 +45,8 @@ int s2n_example_send(struct s2n_connection *conn, uint8_t *data, size_t data_siz
     return 0;
 }
 
+/* s2n_sendv_with_offset is not part of the public API on Windows. */
+#ifndef _WIN32
 int s2n_example_sendv(struct s2n_connection *conn, uint8_t *data, size_t data_size)
 {
     struct iovec iov[1] = { 0 };
@@ -64,3 +66,4 @@ int s2n_example_sendv(struct s2n_connection *conn, uint8_t *data, size_t data_si
     }
     return 0;
 }
+#endif

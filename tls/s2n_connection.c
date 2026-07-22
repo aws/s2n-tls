@@ -898,11 +898,6 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6 = 0;
-    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
-        conn->ipv6 = (ipv6 ? 1 : 0);
-    }
-
     conn->write_fd_broken = 0;
 
     return 0;
@@ -1905,4 +1900,12 @@ int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled)
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_INVALID_STATE);
     conn->recv_buffering = enabled;
     return S2N_SUCCESS;
+}
+
+s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
+{
+    if (conn == NULL) {
+        return S2N_SERVER;
+    }
+    return conn->mode;
 }

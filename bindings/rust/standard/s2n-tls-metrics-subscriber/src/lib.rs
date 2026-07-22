@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod bounded_set;
+mod client_issue;
 mod compatibility;
 pub(crate) mod counter;
 pub mod detector;

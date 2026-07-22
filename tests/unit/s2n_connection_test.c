@@ -15,7 +15,9 @@
 
 #include "tls/s2n_connection.h"
 
-#include "api/unstable/ktls.h"
+#ifndef _WIN32
+    #include "api/unstable/ktls.h"
+#endif
 #include "crypto/s2n_hash.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -23,7 +25,6 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_tls.h"
-#include "utils/s2n_socket.h"
 
 const uint8_t actual_version = 1, client_version = 2, server_version = 3;
 static int s2n_set_test_protocol_versions(struct s2n_connection *conn)
@@ -479,6 +480,10 @@ int main(int argc, char **argv)
     };
 
     /* s2n_connection set fd functionality */
+    /* s2n_connection_set_fd, s2n_connection_set_read_fd, and s2n_connection_set_write_fd
+     * are not available on Windows (defined in utils/s2n_socket.c, gated behind #ifndef _WIN32).
+     */
+#ifndef _WIN32
     {
         static const int READFD = 1;
         static const int WRITEFD = 2;
@@ -614,6 +619,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
+#endif
 
     /* Test s2n_connection_get_config */
     {
@@ -933,6 +939,10 @@ int main(int argc, char **argv)
     };
 
     /* Test s2n_connection_get_key_update_counts */
+    /* s2n_connection_get_key_update_counts is declared in api/unstable/ktls.h,
+     * which is not available on Windows.
+     */
+#ifndef _WIN32
     {
         /* Safety */
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -958,6 +968,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(send_count, expected_send_count);
         EXPECT_EQUAL(recv_count, expected_recv_count);
     }
+#endif
 
     /* Test s2n_connection_get_client_auth_type */
     {
@@ -1106,6 +1117,23 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS10;
             EXPECT_SUCCESS(s2n_connection_get_signature_scheme(conn, &tls10_name));
             EXPECT_STRING_EQUAL(tls10_name, s2n_ecdsa_sha256.legacy_name);
+        };
+    };
+
+    /* s2n_connection_get_mode */
+    {
+        /* Safety */
+        EXPECT_EQUAL(s2n_connection_get_mode(NULL), S2N_SERVER);
+
+        /* Returns correct mode */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_EQUAL(s2n_connection_get_mode(conn), S2N_CLIENT);
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_EQUAL(s2n_connection_get_mode(server), S2N_SERVER);
         };
     };
 

@@ -116,6 +116,24 @@
             "Name": "signature_scheme.supported.rsa_pss_rsae_sha512"
           },
           {
+            "Name": "cert.server.leaf.key.Rsa4096"
+          },
+          {
+            "Name": "cert.server.leaf.sig.RsaPkcsSha384"
+          },
+          {
+            "Name": "cert.server.chain.key.Rsa4096"
+          },
+          {
+            "Name": "cert.server.chain.sig.RsaPkcsSha384"
+          },
+          {
+            "Name": "cert.server.subscriber_parse_failure"
+          },
+          {
+            "Name": "cert.client.subscriber_parse_failure"
+          },
+          {
             "Name": "compatibility.general20251201"
           },
           {
@@ -137,6 +155,9 @@
             "Name": "handshake_failure_count"
           },
           {
+            "Name": "alert.close_notify"
+          },
+          {
             "Name": "handshake_duration_us"
           },
           {
@@ -144,6 +165,9 @@
           },
           {
             "Name": "synthetic_traffic_count"
+          },
+          {
+            "Name": "internal_failure"
           }
         ],
         "Namespace": "TlsMetrics"
@@ -151,6 +175,13 @@
     ],
     "Timestamp": "<TIMESTAMP>"
   },
+  "alert.close_notify": 1,
+  "cert.client.subscriber_parse_failure": 0,
+  "cert.server.chain.key.Rsa4096": 2,
+  "cert.server.chain.sig.RsaPkcsSha384": 2,
+  "cert.server.leaf.key.Rsa4096": 1,
+  "cert.server.leaf.sig.RsaPkcsSha384": 1,
+  "cert.server.subscriber_parse_failure": 0,
   "cipher.negotiated.TLS_AES_128_GCM_SHA256": 1,
   "cipher.supported.TLS_AES_128_GCM_SHA256": 1,
   "cipher.supported.TLS_AES_256_GCM_SHA384": 1,
@@ -176,8 +207,9 @@
   "group.supported.x25519": 1,
   "handshake_compute_us": "<DURATION>",
   "handshake_duration_us": "<DURATION>",
-  "handshake_failure_count": 0,
+  "handshake_failure_count": 1,
   "handshake_success_count": 1,
+  "internal_failure": 0,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 1,
