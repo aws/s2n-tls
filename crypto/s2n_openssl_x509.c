@@ -16,6 +16,7 @@
 #include "crypto/s2n_openssl_x509.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_mldsa.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
@@ -140,6 +141,14 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
         const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
         RESULT_ENSURE_REF(ec_group);
         info->public_key_nid = EC_GROUP_get_curve_name(ec_group);
+#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
+    } else if (EVP_PKEY_base_id(pubkey) == EVP_PKEY_PQDSA) {
+        /* EVP_PKEY_base_id() returns the generic EVP_PKEY_PQDSA for all ML-DSA
+         * variants. Use EVP_PKEY_pqdsa_get_type() to get the specific
+         * parameter-set NID (NID_MLDSA44, NID_MLDSA65, or NID_MLDSA87).
+         */
+        info->public_key_nid = EVP_PKEY_pqdsa_get_type(pubkey);
+#endif
     } else {
         info->public_key_nid = EVP_PKEY_id(pubkey);
     }
