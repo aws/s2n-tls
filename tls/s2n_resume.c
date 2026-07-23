@@ -663,7 +663,7 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
         uint64_t now)
 {
     double total_weight = 0;
-    struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS];
+    struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS] = { 0 };
     struct s2n_ticket_key *ticket_key = NULL;
 
     /* Compute weight of encrypt-decrypt keys */
@@ -962,7 +962,7 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
 int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index)
 {
     int num_of_expired_keys = 0;
-    int expired_keys_index[S2N_MAX_TICKET_KEYS];
+    int expired_keys_index[S2N_MAX_TICKET_KEYS] = { 0 };
     struct s2n_ticket_key *ticket_key = NULL;
 
     if (expired_key_index != -1) {
