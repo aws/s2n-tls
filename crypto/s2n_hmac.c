@@ -69,7 +69,7 @@ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 
 int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
 {
-    s2n_hash_algorithm hash_alg;
+    s2n_hash_algorithm hash_alg = 0;
     POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
     POSIX_GUARD(s2n_hash_digest_size(hash_alg, out));
     return S2N_SUCCESS;
@@ -195,7 +195,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     /* key needs to be as large as the biggest block size */
     POSIX_ENSURE_GTE(sizeof(state->xor_pad), state->hash_block_size);
 
-    s2n_hash_algorithm hash_alg;
+    s2n_hash_algorithm hash_alg = 0;
     POSIX_GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
 
     POSIX_GUARD(s2n_hash_init(&state->inner, hash_alg));

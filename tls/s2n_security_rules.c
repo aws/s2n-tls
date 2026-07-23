@@ -36,7 +36,7 @@ static S2N_RESULT s2n_security_rule_result_process(struct s2n_security_rule_resu
         return S2N_RESULT_OK;
     }
 
-    va_list vargs;
+    va_list vargs = { 0 };
     va_start(vargs, format);
     int ret = s2n_stuffer_vprintf(&result->output, format, vargs);
     va_end(vargs);

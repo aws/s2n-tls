@@ -129,7 +129,7 @@ int s2n_record_header_parse(
         }
     }
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];

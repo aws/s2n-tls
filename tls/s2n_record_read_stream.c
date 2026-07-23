@@ -71,7 +71,7 @@ int s2n_record_parse_stream(
     /* MAC check for streaming ciphers - no padding */
     POSIX_GUARD(s2n_hmac_update(mac, en.data, payload_length));
 
-    uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+    uint8_t check_digest[S2N_MAX_DIGEST_LEN] = { 0 };
     POSIX_ENSURE_LTE(mac_digest_size, sizeof(check_digest));
     POSIX_GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
 
