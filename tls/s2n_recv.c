@@ -203,9 +203,9 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
                 break;
             }
 
-            /* If we get here, it's an error condition. 
-             * For stateful resumption, invalidate the session on error to prevent resumption with 
-             * potentially corrupted session state. This ensures that a bad session state does not 
+            /* If we get here, it's an error condition.
+             * For stateful resumption, invalidate the session on error to prevent resumption with
+             * potentially corrupted session state. This ensures that a bad session state does not
              * lead to repeated failures during resumption attempts.
              */
             if (s2n_errno != S2N_ERR_IO_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
@@ -237,6 +237,13 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
         if (record_type != TLS_APPLICATION_DATA) {
             switch (record_type) {
+                case TLS_CHANGE_CIPHER_SPEC:
+                    /* CCS records are discarded. In TLS 1.3, CCS is a no-op
+                     * for middlebox compatibility (RFC 8446 Section 5) and is
+                     * only expected during the handshake. Post-handshake CCS
+                     * is now rejected by s2n_record_parse, so this case is
+                     * only reachable during the handshake or for TLS 1.2. */
+                    break;
                 case TLS_ALERT:
                     POSIX_GUARD(s2n_process_alert_fragment(conn));
                     break;
@@ -250,6 +257,8 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
                     }
                     break;
                 }
+                default:
+                    POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
             }
             POSIX_GUARD_RESULT(s2n_record_wipe(conn));
             continue;

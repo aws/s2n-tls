@@ -375,10 +375,19 @@ impl fmt::Debug for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Self(Context::Application(err)) = self {
-            err.fmt(f)
-        } else {
-            f.write_str(self.message())
+            return err.fmt(f);
         }
+
+        // For IO errors the s2n message is the generic "underlying I/O operation failed, check
+        // system errno". Defer to `std::io::Error`'s Display of the captured errno instead, which
+        // renders the actionable detail (e.g. "Connection reset by peer (os error 104)").
+        if self.kind() == ErrorType::IOError {
+            if let Context::Code(_, errno) = self.0 {
+                return std::io::Error::from_raw_os_error(errno.0).fmt(f);
+            }
+        }
+
+        f.write_str(self.message())
     }
 }
 
@@ -433,6 +442,16 @@ mod tests {
         assert_eq!(std::io::ErrorKind::ConnectionReset, io_error.kind());
         assert!(io_error.into_inner().is_some());
         Ok(())
+    }
+
+    #[test]
+    fn io_error_display_uses_errno() {
+        let s2n = Error(Context::Code(
+            S2N_IO_ERROR_CODE,
+            errno::Errno(OS_CONNECTION_RESET),
+        ));
+        let err = std::io::Error::from_raw_os_error(OS_CONNECTION_RESET);
+        assert_eq!(s2n.to_string(), err.to_string());
     }
 
     #[test]
