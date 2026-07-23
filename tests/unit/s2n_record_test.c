@@ -416,12 +416,12 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         struct s2n_record_header parsed_header = { 0 };
         uint8_t header_bytes[5] = { 0x16, /* Record type */
-            0x03, 0x01,             /* Protocol version: TLS10 */
-            0x00, 0x00 };           /* Record size */
+            0x03, 0x01,                   /* Protocol version: TLS10 */
+            0x00, 0x00 };                 /* Record size */
 
         uint8_t altered_header_bytes[5] = { 0x16, /* Record type */
-            0x03, 0x03,                     /* Protocol version: TLS12 */
-            0x00, 0x00 };                   /* Record size */
+            0x03, 0x03,                           /* Protocol version: TLS12 */
+            0x00, 0x00 };                         /* Record size */
 
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->header_in, header_bytes, sizeof(header_bytes)));
         EXPECT_SUCCESS(s2n_record_header_parse(server_conn, &parsed_header));
