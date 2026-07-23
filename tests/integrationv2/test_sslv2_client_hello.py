@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 
-from configuration import available_ports
 from common import Certificates, Ciphers, Protocols, ProviderOptions, data_bytes
+from configuration import available_ports
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, JavaSSL
+from providers import S2N, JavaSSL, Provider
 from utils import (
     to_bytes,
 )

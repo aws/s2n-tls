@@ -1,16 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, MINIMAL_TEST_CERTS
-from common import ProviderOptions, Protocols, Signatures, data_bytes
+from common import Protocols, ProviderOptions, Signatures, data_bytes
+from configuration import ALL_TEST_CIPHERS, MINIMAL_TEST_CERTS, available_ports
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL, GnuTLS
+from providers import S2N, GnuTLS, OpenSSL, Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
 
@@ -56,9 +57,7 @@ def signature_marker(mode, protocol, cipher, signature):
             signature = Signatures.RSA_MD5_SHA1
 
     return to_bytes(
-        "{mode} signature negotiated: {type}+{digest}".format(
-            mode=mode.title(), type=signature.sig_type, digest=signature.sig_digest
-        )
+        f"{mode.title()} signature negotiated: {signature.sig_type}+{signature.sig_digest}"
     )
 
 
@@ -151,8 +150,7 @@ def test_s2n_server_signature_algorithms(
     for results in server.get_results():
         results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
-            in results.stdout
+            to_bytes(f"Actual protocol version: {expected_version}") in results.stdout
         )
         assert (
             signature_marker(Provider.ServerMode, protocol, cipher, signature)
@@ -226,15 +224,14 @@ def test_s2n_client_signature_algorithms(
 
     for results in server.get_results():
         results.assert_success()
-        assert any([random_bytes in stream for stream in results.output_streams()])
+        assert any(random_bytes in stream for stream in results.output_streams())
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in client.get_results():
         results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
-            in results.stdout
+            to_bytes(f"Actual protocol version: {expected_version}") in results.stdout
         )
         assert (
             signature_marker(Provider.ServerMode, protocol, cipher, signature)
