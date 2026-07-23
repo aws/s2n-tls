@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 
-from configuration import available_ports, MULTI_CERT_TEST_CASES
-from common import ProviderOptions, Protocols
+from common import Protocols, ProviderOptions
+from configuration import MULTI_CERT_TEST_CASES, available_ports
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL
+from providers import S2N, OpenSSL, Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
 
@@ -75,11 +75,9 @@ def test_sni_match(managed_process, provider, other_provider, protocol, cert_tes
     for results in server.get_results():
         results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
-            in results.stdout
+            to_bytes(f"Actual protocol version: {expected_version}") in results.stdout
         )
         if cert_test_case.client_sni is not None:
             assert (
-                to_bytes("Server name: {}".format(cert_test_case.client_sni))
-                in results.stdout
+                to_bytes(f"Server name: {cert_test_case.client_sni}") in results.stdout
             )

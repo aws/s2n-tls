@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, PROTOCOLS
-from common import ProviderOptions, data_bytes, Certificates
-from fixtures import managed_process  # noqa: F401
+from common import Certificates, ProviderOptions, data_bytes
+from configuration import ALL_TEST_CIPHERS, ALL_TEST_CURVES, PROTOCOLS, available_ports
 from constants import TEST_OCSP_DIRECTORY
-from providers import Provider, S2N, OpenSSL, GnuTLS
-from utils import invalid_test_parameters, get_parameter_name
-from global_flags import get_flag, S2N_PROVIDER_VERSION
-
+from fixtures import managed_process  # noqa: F401
+from global_flags import S2N_PROVIDER_VERSION, get_flag
+from providers import S2N, GnuTLS, OpenSSL, Provider
+from utils import get_parameter_name, invalid_test_parameters
 
 OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
 
@@ -140,19 +139,17 @@ def test_s2n_server_ocsp_response(
     for client_results in client.get_results():
         client_results.assert_success()
         assert any(
-            [
-                {
-                    GnuTLS: b"OCSP Response Information:\n\tResponse Status: Successful",
-                    OpenSSL: b"OCSP Response Status: successful",
-                }.get(provider)
-                in stream
-                for stream in client_results.output_streams()
-            ]
+            {
+                GnuTLS: b"OCSP Response Information:\n\tResponse Status: Successful",
+                OpenSSL: b"OCSP Response Status: successful",
+            }.get(provider)
+            in stream
+            for stream in client_results.output_streams()
         )
 
     for server_results in server.get_results():
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character.
         assert any(
-            [random_bytes[1:] in stream for stream in server_results.output_streams()]
+            random_bytes[1:] in stream for stream in server_results.output_streams()
         )
