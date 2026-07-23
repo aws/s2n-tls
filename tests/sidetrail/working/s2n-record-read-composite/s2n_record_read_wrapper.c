@@ -34,8 +34,7 @@
 int s2n_record_parse_composite(
     const struct s2n_cipher_suite *cipher_suite,
     struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
+    struct s2n_record_header *header,
     uint8_t * implicit_iv,
     struct s2n_hmac_state *mac,
     uint8_t * sequence_number,
@@ -152,5 +151,9 @@ int s2n_record_parse_wrapper(int *xor_pad,
   uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN];
 
   g_padding_length = padding_length;
-  return s2n_record_parse_composite(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
+  struct s2n_record_header record_header = {
+    .content_type = content_type,
+    .length = encrypted_length,
+  };
+  return s2n_record_parse_composite(&cipher_suite, &conn, &record_header, implicit_iv, &hmac, sequence_number, &session_key);
 }
