@@ -8,7 +8,10 @@ use s2n_tls::{
 };
 use s2n_tls_tokio::TlsAcceptor;
 use std::{error::Error, fs};
-use tokio::{io::AsyncWriteExt, net::TcpListener};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener,
+};
 
 /// NOTE: this certificate, key, and ca are to be used for demonstration purposes only!
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/kangaroo-chain.pem");
@@ -101,10 +104,23 @@ async fn run_server(
             };
             println!("{:#?}", tls);
 
-            // Copy data from the client to stdout
-            let mut stdout = tokio::io::stdout();
-            tokio::io::copy(&mut tls, &mut stdout).await?;
+            // Receive the client's greeting.
+            let mut buffer = [0; 1024];
+            let bytes_read = tls.read(&mut buffer).await?;
+            println!(
+                "The client says: {}",
+                String::from_utf8_lossy(&buffer[..bytes_read])
+            );
+
+            // Respond, then close our side of the connection to signal
+            // that we are done writing.
+            tls.write_all(b"good byte from the server").await?;
             tls.shutdown().await?;
+
+            // The connection isn't fully closed until the client also
+            // closes its side by sending its own close_notify alert.
+            let bytes_read = tls.read(&mut buffer).await?;
+            assert_eq!(bytes_read, 0, "expected the client to close the connection");
             println!("Connection from {:?} closed", peer_addr);
 
             Ok::<(), Box<dyn Error + Send + Sync>>(())

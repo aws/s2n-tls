@@ -5,7 +5,10 @@ use clap::Parser;
 use s2n_tls::{config::Config, enums::ClientAuthType, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsConnector;
 use std::{error::Error, fs};
-use tokio::{io::AsyncWriteExt, net::TcpStream};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+};
 
 /// NOTE: this certificate, key, and ca are to be used for demonstration purposes only!
 const DEFAULT_CA: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/ca-cert.pem");
@@ -47,23 +50,21 @@ async fn run_client(
 
     // Connect to the server.
     let stream = TcpStream::connect(addr).await?;
-    let tls = client.connect("www.kangaroo.com", stream).await?;
+    let mut tls = client.connect("www.kangaroo.com", stream).await?;
     println!("{:#?}", tls);
 
-    // Split the stream.
-    // This allows us to call read and write from different tasks.
-    let (mut reader, mut writer) = tokio::io::split(tls);
+    // Send a greeting to the server.
+    tls.write_all(b"hello from the client").await?;
 
-    // Copy data from the server to stdout
-    tokio::spawn(async move {
-        let mut stdout = tokio::io::stdout();
-        tokio::io::copy(&mut reader, &mut stdout).await
-    });
+    // Receive the server's response. The server closes its side of the
+    // connection when it is done writing, so read until end-of-stream.
+    let mut response = Vec::new();
+    tls.read_to_end(&mut response).await?;
+    println!("The server says: {}", String::from_utf8_lossy(&response));
 
-    // Send data from stdin to the server
-    let mut stdin = tokio::io::stdin();
-    tokio::io::copy(&mut stdin, &mut writer).await?;
-    writer.shutdown().await?;
+    // The server already closed its side of the connection, so close
+    // ours to complete the graceful two-way shutdown.
+    tls.shutdown().await?;
 
     Ok(())
 }
