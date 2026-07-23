@@ -28,8 +28,7 @@
 int s2n_record_parse_composite(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -39,14 +38,10 @@ int s2n_record_parse_composite(
     struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.comp.record_iv_size };
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
 
-    /* Add the header to the HMAC */
-    uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
-    POSIX_ENSURE_REF(header);
-
-    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { .size = header->length, .data = s2n_stuffer_raw_read(&conn->in, header->length) };
     POSIX_ENSURE_REF(en.data);
 
-    uint16_t payload_length = encrypted_length;
+    uint16_t payload_length = header->length;
     uint8_t mac_digest_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
@@ -59,7 +54,7 @@ int s2n_record_parse_composite(
     /* In the decrypt case, this outputs the MAC digest length:
      * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
     int mac_size = 0;
-    POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version, payload_length, &mac_size));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, header->content_type, conn->actual_protocol_version, payload_length, &mac_size));
 
     POSIX_ENSURE_GTE(payload_length, mac_size);
     payload_length -= mac_size;
@@ -95,7 +90,6 @@ int s2n_record_parse_composite(
      * for reading the plaintext data.
      */
     POSIX_GUARD(s2n_stuffer_reread(&conn->in));
-    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version > S2N_TLS10) {
