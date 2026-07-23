@@ -115,7 +115,7 @@ jobs:
             rust-host: x86_64-pc-windows-gnu
             cargo-target: x86_64-pc-windows-gnullvm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
