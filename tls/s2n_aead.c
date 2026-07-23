@@ -47,10 +47,29 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequenc
     return S2N_RESULT_OK;
 }
 
-/* Prepares an AAD (additional authentication data) for a TLS 1.3 AEAD record */
-S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_blob *additional_data)
+/* Prepares an AAD (additional authentication data) for a TLS 1.3 AEAD record.
+ *
+ * While the outer wire content type and outer wire version are "hard-coded", it
+ * is still necessary to check that they 
+ * - match the expected values
+ * - are correctly included in the AAD
+ * 
+ * This is necessary to ensure the integrity of the record.
+ * 
+ * - `wire_content_type`: the content type from the outer record header of the
+ *   TLS 1.3 record. For an encrypted record, this should always be "application data".
+ * - `wire_version`: the protocol version from the outer record header of the 
+ *   TLS 1.3 record. This is expected to be TLS 1.2. The "real" protocol version
+ *   is decided during the handshake.
+ * - `record_length`: The length of encrypted payload, minus the authentication 
+ *   tag. This is an internal s2n-tls concept, and not connected to any values in
+ *   the RFC.
+ * - `tag_length`: The length of the AEAD authentication tag. Length is determined
+ *   by the negotiated cipher.
+ * - `additional_data`: The AAD construction to be used with the record content
+ */
+S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header* header, struct s2n_blob *additional_data)
 {
-    RESULT_ENSURE_GT(tag_length, 0);
     RESULT_ENSURE_REF(additional_data);
     RESULT_ENSURE_GTE(additional_data->size, S2N_TLS13_AAD_LEN);
 
@@ -67,7 +86,8 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
      *#    versions of TLS.  The actual content type of the record is found
      *#    in TLSInnerPlaintext.type after decryption.
      **/
-    data[idx++] = TLS_APPLICATION_DATA;
+    RESULT_ENSURE(header->content_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+    data[idx++] = header->content_type;
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
@@ -79,8 +99,10 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
      *#    ServerHello messages, authenticates the protocol version, so this
      *#    value is redundant.
      */
-    data[idx++] = 0x03;
-    data[idx++] = 0x03;
+    RESULT_ENSURE(header->version == 0x0303, S2N_ERR_BAD_MESSAGE);
+    /* data needs to be network order */
+    data[idx++] = header->version >> 8;
+    data[idx++] = header->version & UINT8_MAX;
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
@@ -92,10 +114,9 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
      *#    record that exceeds this length MUST terminate the connection with
      *#    a "record_overflow" alert.
      */
-    uint16_t length = record_length + tag_length;
-    RESULT_ENSURE(length <= (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
-    data[idx++] = length >> 8;
-    data[idx++] = length & UINT8_MAX;
+    RESULT_ENSURE(header->length <= (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
+    data[idx++] = header->length >> 8;
+    data[idx++] = header->length & UINT8_MAX;
 
     /* Double check no overflow */
     RESULT_ENSURE_LTE(idx, additional_data->size);

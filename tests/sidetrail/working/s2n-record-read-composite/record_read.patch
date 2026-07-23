@@ -1,17 +1,17 @@
 diff --git a/tls/s2n_record_read_composite.c b/tls/s2n_record_read_composite.c
-index b57207a0..5109c47f 100644
+index 4389b88c4..patched 100644
 --- a/tls/s2n_record_read_composite.c
 +++ b/tls/s2n_record_read_composite.c
-@@ -29,6 +29,8 @@
- #include "utils/s2n_safety.h"
+@@ -26,6 +26,8 @@
  #include "utils/s2n_blob.h"
+ #include "utils/s2n_safety.h"
  
 +extern int g_padding_length;
 +
  int s2n_record_parse_composite(
-     const struct s2n_cipher_suite *cipher_suite,
-     struct s2n_connection *conn,
-@@ -88,6 +90,8 @@ int s2n_record_parse_composite(
+         const struct s2n_cipher_suite *cipher_suite,
+         struct s2n_connection *conn,
+@@ -80,6 +82,8 @@ int s2n_record_parse_composite(
  
      /* Subtract the padding length */
      POSIX_ENSURE_GT(en.size, 0);

@@ -28,21 +28,16 @@
 int s2n_record_parse_stream(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
         struct s2n_session_key *session_key)
 {
-    /* Add the header to the HMAC */
-    uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
-    POSIX_ENSURE_REF(header);
-
-    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { .size = header->length, .data = s2n_stuffer_raw_read(&conn->in, header->length) };
     POSIX_ENSURE_REF(en.data);
 
-    uint16_t payload_length = encrypted_length;
+    uint16_t payload_length = header->length;
     uint8_t mac_digest_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
@@ -53,16 +48,16 @@ int s2n_record_parse_stream(
     POSIX_GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
 
     /* Update the MAC */
-    header[3] = (payload_length >> 8);
-    header[4] = payload_length & 0xff;
     POSIX_GUARD(s2n_hmac_reset(mac));
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        POSIX_GUARD(s2n_hmac_update(mac, header, 1));
-        POSIX_GUARD(s2n_hmac_update(mac, header + 3, 2));
+        POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, 1));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     } else {
-        POSIX_GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
+        POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, sizeof(header->content_type)));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, header->version));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     }
 
     struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
@@ -83,7 +78,6 @@ int s2n_record_parse_stream(
      * for reading the plaintext data.
      */
     POSIX_GUARD(s2n_stuffer_reread(&conn->in));
-    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Truncate and wipe the MAC and any padding */
     uint32_t mac_len = 0;

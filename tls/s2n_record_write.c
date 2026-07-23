@@ -161,7 +161,16 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
-int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t record_type, struct s2n_stuffer *out)
+/**
+ * Return the protocol version that should be written into the record header.
+ * 
+ * This is the IANA version type (u16), not the internal s2n version type (u8).
+ * 
+ * This may not be the actual protocol version that was negotiated. For example
+ * TLS 1.3 records treat the record header protocol as an "opaque" value pinned
+ * to TLS 1.2 (0x0303)
+ */
+S2N_RESULT s2n_record_protocol_version(struct s2n_connection *conn, uint8_t record_type, uint16_t *out)
 {
     uint8_t record_protocol_version = conn->actual_protocol_version;
 
@@ -202,13 +211,9 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t recor
         record_protocol_version = S2N_TLS10;
     }
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    protocol_version[0] = record_protocol_version / 10;
-    protocol_version[1] = record_protocol_version % 10;
+    *out = (record_protocol_version / 10 << 8) | record_protocol_version % 10;
 
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static inline int s2n_record_encrypt(
@@ -454,7 +459,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Now that we know the length, start writing the record */
     uint8_t record_type = RECORD_TYPE(is_tls13_record, content_type);
     POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, record_type));
-    POSIX_GUARD(s2n_record_write_protocol_version(conn, record_type, &record_stuffer));
+    uint16_t wire_protocol_version = 0;
+    POSIX_GUARD_RESULT(s2n_record_protocol_version(conn, record_type, &wire_protocol_version));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, wire_protocol_version));
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
      * Composite "encrypt" will MAC the payload data and fill in padding.
@@ -468,7 +475,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
         /* Outputs number of extra bytes required for MAC and padding */
         int pad_and_mac_len = 0;
-        POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
+        POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, wire_protocol_version,
                 payload_and_eiv_len, &pad_and_mac_len));
         extra += pad_and_mac_len;
     }
@@ -511,7 +518,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         /* Set the IV size to the amount of data written */
         iv.size = s2n_stuffer_data_available(&iv_stuffer);
         if (is_tls13_record) {
-            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(data_bytes_to_take + S2N_TLS_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &aad));
+            struct s2n_record_header header = {
+                .content_type = TLS_APPLICATION_DATA,
+                .version = 0x0303,
+                .length = data_bytes_to_take + S2N_TLS_CONTENT_TYPE_LENGTH + cipher_suite->record_alg->cipher->io.aead.tag_size
+            };
+            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(&header, &aad));
         } else {
             POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
         }
