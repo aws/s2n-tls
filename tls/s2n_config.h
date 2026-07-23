@@ -248,6 +248,12 @@ struct s2n_config {
 
     /* List of certificate authorities supported */
     struct s2n_blob cert_authorities;
+
+    /* Backend_Selector (, 10.2, 10.6).
+     * Selects the cert verification backend for this config. Internal only —
+     * no public API. Default is S2N_CERT_BACKEND_ZERO_COPY on CBS builds
+     * (zero-init = 0), S2N_CERT_BACKEND_LIBCRYPTO on non-CBS builds. */
+    s2n_cert_verify_backend cert_verify_backend;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);

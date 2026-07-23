@@ -752,6 +752,14 @@ if (BUILD_TESTING)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
+        # The certificate fuzz targets exercise the zero-copy parser and path
+        # builder, which require the CBS API. On libcryptos without CBS the
+        # harnesses compile to no-ops that can never meet the minimum feature
+        # coverage, so skip them entirely.
+        if(NOT S2N_LIBCRYPTO_SUPPORTS_CBS)
+            list(FILTER FUZZ_TEST_SRCS EXCLUDE REGEX "s2n_cert_(crl|differential|ocsp|parse)_fuzz_test|s2n_cert_path_build_test")
+        endif()
+
         file(GLOB TESTLIB_SRC "tests/testlib/*.c")
         file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 

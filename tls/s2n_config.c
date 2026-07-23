@@ -287,6 +287,11 @@ int s2n_config_load_system_certs(struct s2n_config *config)
         POSIX_ENSURE_REF(store->trust_store);
     }
 
+#if S2N_LIBCRYPTO_SUPPORTS_CBS
+    /* Mutating the store invalidates any cached zero-copy snapshot. */
+    s2n_x509_trust_store_snapshot_invalidate(store);
+#endif
+
     int err_code = X509_STORE_set_default_paths(store->trust_store);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
@@ -1373,4 +1378,25 @@ int s2n_config_set_timing_checkpoint_cb(struct s2n_config *config, s2n_event_on_
     POSIX_ENSURE_REF(callback);
     config->on_timing_checkpoint_cb = callback;
     return S2N_SUCCESS;
+}
+
+/* Backend_Selector: internal setter.
+ *
+ * Sets the cert verification backend for the given config. On non-CBS builds,
+ * any value other than S2N_CERT_BACKEND_LIBCRYPTO is silently clamped to
+ * libcrypto. Selection is fixed at config init time; no public API. */
+S2N_RESULT s2n_config_set_cert_verify_backend(struct s2n_config *config,
+        s2n_cert_verify_backend backend)
+{
+    RESULT_ENSURE_REF(config);
+
+#if S2N_LIBCRYPTO_SUPPORTS_CBS
+    config->cert_verify_backend = backend;
+#else
+    /* On non-CBS builds the only valid backend is libcrypto. */
+    config->cert_verify_backend = S2N_CERT_BACKEND_LIBCRYPTO;
+    (void) backend;
+#endif
+
+    return S2N_RESULT_OK;
 }

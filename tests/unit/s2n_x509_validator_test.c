@@ -13,12 +13,19 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_x509_validator.h"
+
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
+
+/* This test exercises the libcrypto verification path specifically. Force
+ * libcrypto backend on any config used in this file. */
+#define FORCE_LIBCRYPTO_BACKEND(config) \
+    EXPECT_OK(s2n_config_set_cert_verify_backend((config), S2N_CERT_BACKEND_LIBCRYPTO))
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
@@ -153,6 +160,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* This test exercises the libcrypto verification path. Pin the default
+     * config to libcrypto so tests are unaffected by the zero-copy default. */
+    FORCE_LIBCRYPTO_BACKEND(s2n_fetch_default_config());
 
     /* The issues with 2050 only affected openssl-1.0.2 */
     if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) {
@@ -1934,6 +1945,7 @@ int main(int argc, char **argv)
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        FORCE_LIBCRYPTO_BACKEND(config);
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
@@ -1978,6 +1990,7 @@ int main(int argc, char **argv)
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        FORCE_LIBCRYPTO_BACKEND(config);
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));

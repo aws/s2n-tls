@@ -1578,6 +1578,48 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     POSIX_ENSURE_REF(validator);
     POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
 
+#if S2N_LIBCRYPTO_SUPPORTS_CBS
+    /* Zero-copy fast path: serve DER directly from the retained wire blob
+     * (or anchor DER) without materializing X509 objects. The
+     * validated path already contains indices into the chain_spans whose raw
+     * blobs point directly into the wire_chain DER bytes. */
+    if (validator->wire_chain.data != NULL && validator->validated_path.count > 0) {
+        for (uint32_t i = 0; i < validator->validated_path.count; i++) {
+            const struct s2n_cert_path_entry *entry = &validator->validated_path.entries[i];
+            const struct s2n_blob *der = NULL;
+
+            if (entry->type == S2N_CERT_PATH_ENTRY_WIRE) {
+                POSIX_ENSURE(entry->entry_index < validator->chain_spans->count, S2N_ERR_CERT_UNTRUSTED);
+                der = &validator->chain_spans->views[entry->entry_index].raw;
+            } else {
+                POSIX_ENSURE_REF(validator->anchor_snapshot);
+                POSIX_ENSURE(entry->entry_index < validator->anchor_snapshot->count, S2N_ERR_CERT_UNTRUSTED);
+                der = &validator->anchor_snapshot->anchors[entry->entry_index].der;
+            }
+
+            POSIX_ENSURE_REF(der);
+            POSIX_ENSURE_REF(der->data);
+            POSIX_ENSURE(der->size > 0, S2N_ERR_CERT_UNTRUSTED);
+
+            struct s2n_blob mem = { 0 };
+            POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+
+            struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+            POSIX_ENSURE_REF(new_node);
+
+            new_node->next = NULL;
+            *insert = new_node;
+            insert = &new_node->next;
+
+            POSIX_GUARD(s2n_alloc(&new_node->raw, der->size));
+            POSIX_CHECKED_MEMCPY(new_node->raw.data, der->data, der->size);
+        }
+
+        ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
+        return S2N_SUCCESS;
+    }
+#endif
+
     DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 }, s2n_x509_validator_validated_cert_chain_free);
     POSIX_GUARD_RESULT(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
     STACK_OF(X509) *cert_chain_validated = validated_cert_chain.stack;
