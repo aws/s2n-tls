@@ -378,27 +378,31 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(input, alert_header, sizeof(alert_header)));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(input, close_notify, sizeof(close_notify)));
 
-            /* Receive close_notify */
+            /* Receive close_notify.
+             * During the handshake, plaintext alerts are valid.
+             * After the handshake, plaintext alerts are rejected per
+             * RFC 8446 Section 5.2 — all post-handshake records must
+             * be encrypted.
+             */
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             if (type == S2N_TEST_DURING_HANDSHAKE) {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(receiver, &blocked), S2N_ERR_CLOSED);
             } else {
-                EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_recv(receiver, data, sizeof(data), &blocked),
+                        S2N_ERR_BAD_MESSAGE);
             }
-            EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
 
-            /*
-             *= https://www.rfc-editor.org/rfc/rfc8446#section-6.1
-             *= type=test
-             *# Any data received after a closure alert has been received MUST be ignored.
-             */
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(input, data, sizeof(data)));
             if (type == S2N_TEST_DURING_HANDSHAKE) {
+                EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
+
+                /*
+                 *= https://www.rfc-editor.org/rfc/rfc8446#section-6.1
+                 *= type=test
+                 *# Any data received after a closure alert has been received MUST be ignored.
+                 */
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(input, data, sizeof(data)));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(receiver, &blocked), S2N_ERR_CLOSED);
-            } else {
-                EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             }
         };
     };
@@ -652,6 +656,50 @@ int main(int argc, char **argv)
 
         /* The stuffer should still have the original data */
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->alert_in), 2);
+    };
+
+    /* Test: Encrypted close_notify is accepted post-handshake in TLS 1.3.
+     *
+     * After the handshake, alerts must be sent as encrypted records per
+     * RFC 8446 Section 5.2. Verify that an encrypted close_notify (sent
+     * via s2n_record_write, which produces outer content_type APPLICATION_DATA
+     * with inner content_type ALERT) is correctly received.
+     */
+    for (uint8_t mode = 0; mode < MODE_COUNT; mode++) {
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
+
+        struct s2n_connection *receiver = server;
+        struct s2n_connection *sender = client;
+        if (mode == S2N_CLIENT) {
+            receiver = client;
+            sender = server;
+        }
+
+        /* Send encrypted close_notify */
+        struct s2n_blob alert_blob = { 0 };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_blob_init(&alert_blob, close_notify, sizeof(close_notify)));
+        EXPECT_OK(s2n_record_write(sender, TLS_ALERT, &alert_blob));
+        EXPECT_SUCCESS(s2n_flush(sender, &blocked));
+
+        EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
     };
 
     END_TEST();
