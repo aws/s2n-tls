@@ -37,7 +37,7 @@ int s2n_record_parse_cbc(
         struct s2n_session_key *session_key)
 {
     struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size };
-    uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
+    uint8_t ivpad[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);

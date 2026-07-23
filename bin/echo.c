@@ -279,7 +279,7 @@ int print_connection_info(struct s2n_connection *conn)
 
 int negotiate(struct s2n_connection *conn, int fd)
 {
-    s2n_blocked_status blocked;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
@@ -367,7 +367,7 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
 
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 {
-    struct pollfd readers[2];
+    struct pollfd readers[2] = { 0 };
 
     readers[0].fd = sockfd;
     readers[0].events = POLLIN;
@@ -384,7 +384,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
         /* echo will send and receive Application Data back and forth between
          * client and server, until stop_echo is true or stdin EOF is reached. */
         while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
-            char buffer[STDIO_BUFSIZE];
+            char buffer[STDIO_BUFSIZE] = { 0 };
             ssize_t bytes_read = 0;
 
             if (readers[0].revents & POLLIN) {

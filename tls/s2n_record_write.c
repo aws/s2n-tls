@@ -202,7 +202,7 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t recor
         record_protocol_version = S2N_TLS10;
     }
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     protocol_version[0] = record_protocol_version / 10;
     protocol_version[1] = record_protocol_version % 10;
 
@@ -634,7 +634,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
 S2N_RESULT s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
-    struct iovec iov;
+    struct iovec iov = { 0 };
     iov.iov_base = in->data;
     iov.iov_len = in->size;
     int written = s2n_record_writev(conn, content_type, &iov, 1, 0, in->size);

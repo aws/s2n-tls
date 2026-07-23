@@ -37,7 +37,7 @@ int s2n_record_parse_composite(
 {
     /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
     struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.comp.record_iv_size };
-    uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
+    uint8_t ivpad[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);

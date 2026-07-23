@@ -100,8 +100,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method = 0;
     uint8_t session_id_len = 0;
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
@@ -300,7 +300,7 @@ int s2n_server_hello_write_message(struct s2n_connection *conn)
      * it could be S2N_TLS13. SERVER_HELLO should always respond with the legacy version.
      * https://tools.ietf.org/html/rfc8446#section-4.1.3 */
     const uint16_t legacy_protocol_version = S2N_MIN(conn->actual_protocol_version, S2N_TLS12);
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     protocol_version[0] = (uint8_t) (legacy_protocol_version / 10);
     protocol_version[1] = (uint8_t) (legacy_protocol_version % 10);
 

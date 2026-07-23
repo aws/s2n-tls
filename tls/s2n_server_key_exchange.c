@@ -162,7 +162,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     kem_data->kem_name.size = 2;
 
     struct s2n_stuffer kem_id_stuffer = { 0 };
-    uint8_t kem_id_arr[2];
+    uint8_t kem_id_arr[2] = { 0 };
     kem_extension_size kem_id = 0;
     struct s2n_blob kem_id_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&kem_id_blob, kem_id_arr, s2n_array_len(kem_id_arr)));

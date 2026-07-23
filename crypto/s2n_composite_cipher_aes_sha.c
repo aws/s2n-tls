@@ -135,7 +135,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 #if defined(OPENSSL_IS_BORINGSSL) || (defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17))
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 #else
-    uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
+    uint8_t ctrl_buf[S2N_TLS12_AAD_LEN] = { 0 };
     struct s2n_blob ctrl_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&ctrl_blob, ctrl_buf, S2N_TLS12_AAD_LEN));
     struct s2n_stuffer ctrl_stuffer = { 0 };

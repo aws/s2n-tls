@@ -1530,7 +1530,7 @@ const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t
 
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
 {
-    s2n_cert_auth_type auth_type;
+    s2n_cert_auth_type auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(s2n_connection, &auth_type));
 
     return (auth_type != S2N_CERT_AUTH_NONE);
