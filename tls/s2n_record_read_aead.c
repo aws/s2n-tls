@@ -85,7 +85,7 @@ int s2n_record_parse_aead(
     payload_length -= cipher_suite->record_alg->cipher->io.aead.tag_size;
 
     if (is_tls13_record) {
-        POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(payload_length, cipher_suite->record_alg->cipher->io.aead.tag_size, &aad));
+        POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(header, &aad));
     } else {
         POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, header->content_type, payload_length, &aad));
     }
