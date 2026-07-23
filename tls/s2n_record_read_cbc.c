@@ -86,11 +86,11 @@ int s2n_record_parse_cbc(
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, 1));
-        POSIX_GUARD(s2n_hmac_update(mac, &payload_length, sizeof(payload_length)));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     } else {
         POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, sizeof(header->content_type)));
-        POSIX_GUARD(s2n_hmac_update(mac, &header->version, sizeof(header->version)));
-        POSIX_GUARD(s2n_hmac_update(mac, &payload_length, sizeof(payload_length)));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, header->version));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     }
 
     struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
