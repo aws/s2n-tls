@@ -556,5 +556,20 @@ int main(int argc, char **argv)
     }
 #endif
 
+    /* s2n_conn_update_required_handshake_hashes: invalid protocol version fails closed */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set an invalid protocol version that no case in the switch handles */
+        conn->actual_protocol_version = 255;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_conn_update_required_handshake_hashes(conn), S2N_ERR_SAFETY);
+    }
+
     END_TEST();
 }
