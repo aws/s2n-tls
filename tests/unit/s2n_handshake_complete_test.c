@@ -107,10 +107,10 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn = NULL;
         struct s2n_connection *server_conn = NULL;
         struct s2n_config *config = NULL;
-        struct s2n_test_io_pair io_pair = {0};
+        struct s2n_test_io_pair io_pair = { 0 };
 
         EXPECT_OK(s2n_setup_negotiated_pair("20170210", rsa_chain_and_key,
-            &client_conn, &server_conn, &config, &io_pair));
+                &client_conn, &server_conn, &config, &io_pair));
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), false);
@@ -123,12 +123,12 @@ int main(int argc, char **argv)
         */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         bool server_done = false;
-        
-        while(!server_done){
+
+        while (!server_done) {
             int server_rc = s2n_negotiate(server_conn, &blocked);
-            if (server_rc == S2N_SUCCESS){
+            if (server_rc == S2N_SUCCESS) {
                 server_done = true;
-            }else{
+            } else {
                 EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
             }
 
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
-        
+
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
