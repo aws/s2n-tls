@@ -93,16 +93,19 @@ int s2n_sslv2_record_header_parse(
     return 0;
 }
 
+/**
+ * - `conn`: connection with record header available in internal buffers
+ * - `header`: output parameter, populated after the header is parsed
+ */
 int s2n_record_header_parse(
         struct s2n_connection *conn,
-        uint8_t *content_type,
-        uint16_t *fragment_length)
+        struct s2n_record_header *header)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
     S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
-    POSIX_GUARD(s2n_stuffer_read_uint8(in, content_type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(in, &header->content_type));
 
     /* Once the protocol version is established, reject records with
      * content_type values outside the valid TLS set {20, 21, 22, 23}.
@@ -118,7 +121,7 @@ int s2n_record_header_parse(
      * the protocol version.
      */
     if (conn->actual_protocol_version_established) {
-        switch (*content_type) {
+        switch (header->content_type) {
             case TLS_CHANGE_CIPHER_SPEC:
             case TLS_ALERT:
             case TLS_HANDSHAKE:
@@ -129,10 +132,12 @@ int s2n_record_header_parse(
         }
     }
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, &header->version));
+    uint8_t major_version = header->version >> 8;
+    uint8_t minor_version = header->version & 0xFF;
 
-    const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
+    /* s2n has it's own legacy format for storing version numbers */
+    const uint8_t version = (major_version * 10) + minor_version;
     /* We record the protocol version in the first record seen by the server for fingerprinting usecases */
     if (!conn->client_hello.record_version_recorded) {
         conn->client_hello.legacy_record_version = version;
@@ -162,7 +167,7 @@ int s2n_record_header_parse(
      *# endpoint that receives a record that exceeds this length MUST
      *# terminate the connection with a "record_overflow" alert.
      */
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, &header->length));
     POSIX_GUARD(s2n_stuffer_reread(in));
 
     return 0;
@@ -235,13 +240,12 @@ static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t 
 
 int s2n_record_parse(struct s2n_connection *conn)
 {
-    uint8_t content_type = 0;
-    uint16_t encrypted_length = 0;
-    POSIX_GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
+    struct s2n_record_header header = {0};
+    POSIX_GUARD(s2n_record_header_parse(conn, &header));
 
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
-    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
+    if (s2n_is_tls13_plaintext_content(conn, header.content_type)) {
         POSIX_ENSURE_REF(conn->initial);
         conn->client = conn->initial;
         conn->server = conn->initial;
@@ -261,7 +265,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         session_key = &conn->server->server_key;
     }
 
-    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
+    if (s2n_is_tls13_plaintext_content(conn, header.content_type)) {
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
@@ -269,7 +273,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     /* The NULL stream cipher MUST NEVER be used for ApplicationData.
      * If ApplicationData is unencrypted, we can't trust it. */
     if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
-        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+        POSIX_ENSURE(header.content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
     }
 
     /*
@@ -291,21 +295,21 @@ int s2n_record_parse(struct s2n_connection *conn)
      */
     if (conn->actual_protocol_version == S2N_TLS13
             && cipher_suite->record_alg->cipher != &s2n_null_cipher) {
-        POSIX_ENSURE(content_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(header.content_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
         case S2N_AEAD:
-            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_CBC:
-            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_COMPOSITE:
-            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_STREAM:
-            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         default:
             POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
