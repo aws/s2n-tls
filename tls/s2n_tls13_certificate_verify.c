@@ -81,20 +81,26 @@ int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn,
     struct s2n_stuffer *out = &conn->handshake.io;
     POSIX_GUARD(s2n_stuffer_write_uint16(out, chosen_sig_scheme->iana_value));
 
-    DEFER_CLEANUP(struct s2n_hash_state message_hash = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&message_hash));
-    POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
+    /* Reuse the per-connection hash context from prf_space rather than
+     * allocating a new one (aws/s2n-tls#3206). The async sign path copies this
+     * digest into its own context before returning, so the reused context is
+     * fully consumed within this call; s2n_hash_init resets it before use. */
+    struct s2n_prf_working_space *ws = NULL;
+    POSIX_GUARD_RESULT(s2n_connection_get_prf_space(conn, &ws));
+    POSIX_ENSURE_REF(ws);
+    struct s2n_hash_state *message_hash = &ws->space.tls13.tls13_hash;
+    POSIX_GUARD(s2n_hash_init(message_hash, chosen_sig_scheme->hash_alg));
 
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
-    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
+    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, message_hash));
 
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
     POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->mode));
 
-    POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data,
+    POSIX_GUARD(s2n_hash_update(message_hash, unsigned_content.blob.data,
             s2n_stuffer_data_available(&unsigned_content)));
 
-    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme->sig_alg, &message_hash, s2n_tls13_write_signature);
+    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme->sig_alg, message_hash, s2n_tls13_write_signature);
 }
 
 int s2n_tls13_write_signature(struct s2n_connection *conn, struct s2n_blob *signature)
@@ -168,8 +174,14 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     struct s2n_stuffer *in = &conn->handshake.io;
     DEFER_CLEANUP(struct s2n_blob signed_content = { 0 }, s2n_free);
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_hash_state message_hash = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&message_hash));
+    /* Reuse the per-connection hash context from prf_space rather than
+     * allocating a new one (aws/s2n-tls#3206). The async verify path copies
+     * this digest into its own context before returning, so the reused context
+     * is fully consumed within this call; s2n_hash_init resets it before use. */
+    struct s2n_prf_working_space *ws = NULL;
+    POSIX_GUARD_RESULT(s2n_connection_get_prf_space(conn, &ws));
+    POSIX_ENSURE_REF(ws);
+    struct s2n_hash_state *message_hash = &ws->space.tls13.tls13_hash;
 
     /* Get signature size */
     uint16_t signature_size = 0;
@@ -199,13 +211,13 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     POSIX_ENSURE(s2n_result_is_ok(s2n_signature_scheme_params_match(conn, pkey, chosen_sig_scheme)),
             S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 
-    POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
-    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
-    POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data,
+    POSIX_GUARD(s2n_hash_init(message_hash, chosen_sig_scheme->hash_alg));
+    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, message_hash));
+    POSIX_GUARD(s2n_hash_update(message_hash, unsigned_content.blob.data,
             s2n_stuffer_data_available(&unsigned_content)));
 
     POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg,
-            &message_hash, &signed_content));
+            message_hash, &signed_content));
 
     return 0;
 }

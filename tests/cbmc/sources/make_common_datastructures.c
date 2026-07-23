@@ -660,7 +660,8 @@ void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_w
      * It is always initialized based on the hashing algorithm.
      * If required, this initialization should be done in the validation function.
      */
-    cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
+    cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->space.tls12.p_hash.s2n_hmac));
+    s2n_prf_working_space->allocated = S2N_PRF_SPACE_TLS12;
 }
 
 struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()
