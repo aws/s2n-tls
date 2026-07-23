@@ -35,7 +35,9 @@
 #include "utils/s2n_events.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
+#ifndef _WIN32
+    #include "utils/s2n_socket.h"
+#endif
 
 /* clang-format off */
 struct s2n_handshake_action {
@@ -853,7 +855,9 @@ message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *co
 static int s2n_advance_message(struct s2n_connection *conn)
 {
     /* Get the mode: 'C'lient or 'S'erver */
+#ifndef _WIN32
     char previous_writer = ACTIVE_STATE(conn).writer;
+#endif
     char this_mode = CONNECTION_WRITER(conn);
 
     /* Actually advance the message number */
@@ -864,6 +868,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
         conn->handshake.message_number++;
     }
 
+#ifndef _WIN32
     /* Set TCP_QUICKACK to avoid artificial delay during the handshake */
     POSIX_GUARD(s2n_socket_quickack(conn));
 
@@ -894,6 +899,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     if (s2n_connection_is_managed_corked(conn)) {
         POSIX_GUARD(s2n_socket_write_uncork(conn));
     }
+#endif
 
     return S2N_SUCCESS;
 }
@@ -1249,12 +1255,15 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
             POSIX_GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
         POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode](conn));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, message_names[ACTIVE_MESSAGE(conn)], (uint8_t) conn->mode));
         if (record_type == TLS_HANDSHAKE) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     }
 
     POSIX_GUARD_RESULT(s2n_handshake_message_send(conn, record_type, &blocked));
+    POSIX_GUARD_RESULT(s2n_event_checkpoint_send(conn, "RECORD_WRITE", (uint8_t) conn->mode));
     if (record_type == TLS_HANDSHAKE) {
         POSIX_GUARD_RESULT(s2n_handshake_transcript_update(conn));
     }
@@ -1455,6 +1464,8 @@ static int s2n_handshake_message_process(struct s2n_connection *conn, uint8_t re
 
         /* Call the relevant handler */
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode](conn)));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, message_names[ACTIVE_MESSAGE(conn)], (uint8_t) conn->mode));
 
         /* Advance the state machine */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));
@@ -1509,6 +1520,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
         POSIX_GUARD(r);
     }
+
+    POSIX_GUARD_RESULT(s2n_event_checkpoint_send(conn, "RECORD_READ", (uint8_t) conn->mode));
 
     if (isSSLv2) {
         S2N_ERROR_IF(record_type != SSLv2_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
@@ -1728,6 +1741,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_GUARD(s2n_default_monotonic_clock(NULL, &negotiate_start));
     if (conn->handshake_event.handshake_start_ns == 0) {
         conn->handshake_event.handshake_start_ns = negotiate_start;
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, "NEGOTIATE_START", (uint8_t) conn->mode));
     }
 
     int result = s2n_negotiate_impl(conn, blocked);
@@ -1744,6 +1759,22 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         conn->handshake_event.handshake_end_ns = negotiate_end;
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_checkpoint_send(
+                conn, "NEGOTIATE_END", (uint8_t) conn->mode));
+    } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED && conn->config) {
+        /* S2N_ERR_T_BLOCKED is the only retryable error type -- it indicates
+         * the handshake is still in progress but IO would block. All other
+         * error types are terminal failures, so we emit the failure event. */
+        conn->handshake_event.handshake_end_ns = negotiate_end;
+        conn->handshake_event.error_code = s2n_errno;
+        /* Save and restore error state because populate calls functions
+         * that may overwrite them (e.g. s2n_connection_get_key_exchange_group). */
+        int saved_errno = s2n_errno;
+        struct s2n_debug_info saved_debug_info = _s2n_debug_info;
+        POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
+        POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
+        s2n_errno = saved_errno;
+        _s2n_debug_info = saved_debug_info;
     }
 
     conn->negotiate_in_use = false;

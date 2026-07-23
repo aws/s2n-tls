@@ -4,10 +4,8 @@
 //! This module holds utilities for checking when a client is compatible with some
 //! particular TLS Profile.
 
-use crate::{
-    parsing::ClientHelloSupportedParameters,
-    static_lists::{Cipher, Group, Signature, Version},
-};
+use crate::parsing::ClientHelloSupportedParameters;
+use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
 pub(crate) trait TlsProfile {
     const ALLOWED_VERSIONS: &[Version];

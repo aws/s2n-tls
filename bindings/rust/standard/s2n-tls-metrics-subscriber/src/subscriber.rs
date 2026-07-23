@@ -1,11 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+
 use crate::{
-    attribution::Attribution,
-    detector::SyntheticTrafficDetector,
-    record::{FrozenHandshakeRecord, HandshakeRecordInProgress, MetricRecord},
-    telemetry_sink::TelemetrySink,
+    Attribution, MetricRecord, detector::SyntheticTrafficDetector,
+    record::HandshakeRecordInProgress, telemetry_sink::TelemetrySink,
 };
 use arc_swap::ArcSwap;
 use s2n_tls::events::EventSubscriber;
@@ -155,8 +155,11 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
 
         // This will block the thread until the record is received.
         let handshake = export_pipeline.metric_receiver.recv().unwrap();
-        let record = MetricRecord::new(handshake, self.inner.attribution.clone());
-        export_pipeline.sink.export_record(&record);
+        let record = MetricRecord::new(s2n_tls_metrics_schema::record::MetricRecord {
+            attribution: self.inner.attribution.clone().into_schema(),
+            handshake,
+        });
+        export_pipeline.sink.export_record(record);
         self.inner
             .last_export_epoch_ms
             .store(epoch_ms_now(), Ordering::Relaxed);
@@ -202,13 +205,7 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
             .synthetic_detector
             .get()
             .map(|boxed| boxed.as_ref());
-        let res = current_record.update(connection, event, detector);
-        // we never expect this to fail, but if it fails in production there is
-        // no meaningful way to handle the failure
-        debug_assert!(res.is_ok());
-        if let Err(e) = res {
-            tracing::error!("failed to update handshake record: {e}");
-        }
+        current_record.update(connection, event, detector);
         // Drop the Arc before attempting export so that finish_record can
         // observe the final reference count drop.
         drop(current_record);
@@ -291,9 +288,9 @@ mod tests {
         );
 
         // Verify handshake counts
-        assert_eq!(records[0].handshake.handshake_count, 2);
-        assert_eq!(records[1].handshake.handshake_count, 1);
-        assert_eq!(records[2].handshake.handshake_count, 0);
+        assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
+        assert_eq!(records[1].as_schema().handshake.handshake_success_count, 1);
+        assert_eq!(records[2].as_schema().handshake.handshake_success_count, 0);
     }
 
     /// Passive export: when the interval has elapsed, the next handshake
@@ -355,8 +352,6 @@ mod tests {
             atomic::{AtomicBool, Ordering},
         };
 
-        // Toggleable detector: returns whatever its inner flag is set to.
-        // Lets us drive "synthetic" vs "real" handshakes from the test body.
         #[derive(Debug)]
         struct ToggleDetector(Arc<AtomicBool>);
         impl SyntheticTrafficDetector for ToggleDetector {
@@ -397,13 +392,10 @@ mod tests {
         subscriber.finish_record();
         let records = sink.records.lock().unwrap();
         assert_eq!(records.len(), 1);
-        let record = &records[0].handshake;
+        let record = &records[0].as_schema().handshake;
 
-        // 2 real handshakes counted; 3 synthetic flagged separately and
-        // excluded from every other counter.
-        assert_eq!(record.handshake_count, 2);
+        assert_eq!(record.handshake_success_count, 2);
         assert_eq!(record.synthetic_traffic_count, 3);
-        // Negotiated counters reflect only the 2 real handshakes.
         assert_eq!(record.negotiated_protocols.total(), 2);
         assert_eq!(record.negotiated_ciphers.total(), 2);
     }
@@ -418,7 +410,7 @@ mod tests {
         endpoint.subscriber.finish_record();
 
         let records = endpoint.sink.records.lock().unwrap();
-        assert_eq!(records[0].handshake.handshake_count, 2);
-        assert_eq!(records[0].handshake.synthetic_traffic_count, 0);
+        assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
+        assert_eq!(records[0].as_schema().handshake.synthetic_traffic_count, 0);
     }
 }

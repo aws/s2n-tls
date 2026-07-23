@@ -13,7 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "testlib/s2n_ktls_test_utils.h"
+/* kTLS is not supported on Windows. This file compiles to an empty
+ * translation unit on Windows.
+ */
+#ifndef _WIN32
+
+    #include "testlib/s2n_ktls_test_utils.h"
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
         int cmsg_type, uint8_t record_type);
@@ -247,3 +252,5 @@ S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_i
     RESULT_ENSURE_EQ(extra, 0);
     return S2N_RESULT_OK;
 }
+
+#endif

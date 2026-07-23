@@ -922,7 +922,9 @@ mod tests {
             _: *const u8,
             _: u32,
         ) -> libc::c_int {
-            errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+            // Signal a blocked send to s2n. See crate::testing::set_io_would_block
+            // for the platform errno-channel details.
+            crate::testing::set_io_would_block();
             -1
         }
 

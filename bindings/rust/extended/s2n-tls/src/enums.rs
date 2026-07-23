@@ -75,6 +75,19 @@ impl From<Mode> for s2n_mode::Type {
     }
 }
 
+impl TryFrom<s2n_mode::Type> for Mode {
+    type Error = Error;
+
+    fn try_from(input: s2n_mode::Type) -> Result<Self, Self::Error> {
+        let mode = match input {
+            s2n_mode::SERVER => Mode::Server,
+            s2n_mode::CLIENT => Mode::Client,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(mode)
+    }
+}
+
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Version {

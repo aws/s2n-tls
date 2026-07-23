@@ -288,13 +288,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         uint8_t buffer[10] = { 0 };
-        struct iovec iovec_buffer = { .iov_base = buffer, .iov_len = sizeof(buffer) };
         s2n_blocked_status blocked_status;
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(conn, buffer, sizeof(buffer), &blocked_status), S2N_ERR_UNSUPPORTED_WITH_QUIC);
         EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, buffer, sizeof(buffer), &blocked_status), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+#ifndef _WIN32
+        /* s2n_sendv and s2n_sendv_with_offset are not available on Windows */
+        struct iovec iovec_buffer = { .iov_base = buffer, .iov_len = sizeof(buffer) };
         EXPECT_FAILURE_WITH_ERRNO(s2n_sendv(conn, &iovec_buffer, 1, &blocked_status), S2N_ERR_UNSUPPORTED_WITH_QUIC);
         EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, &iovec_buffer, 1, 0, &blocked_status), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+#endif
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));

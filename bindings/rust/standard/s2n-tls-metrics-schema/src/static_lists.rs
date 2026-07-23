@@ -3,64 +3,21 @@
 
 //! This module contains the static lists of all possible values emitted by the
 //! s2n-tls "getter" APIs. These static lists are important because they allow us
-//! to maintain an array of atomic counters instead of having to resort to a hashmap
+//! to maintain an array of atomic counters instead of having to resort to a hashmap.
 
-#[cfg(test)]
-use std::ffi::c_char;
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TlsParam {
-    /// E.g. TLS 1.2
-    Version,
-    /// E.g. TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-    Cipher,
-    /// E.g. SecP256r1MLKEM768
-    Group,
-    /// E.g. ecdsa_secp384r1_sha384
-    SignatureScheme,
-}
+use s2n_codec::zerocopy::U16;
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeAs, SerializeAs, serde_as};
+use zerocopy::{FromBytes, Immutable, Unaligned};
 
 pub const GROUP_COUNT: usize = GROUPS_AVAILABLE_IN_S2N.len();
 pub const CIPHER_COUNT: usize = CIPHERS_AVAILABLE_IN_S2N.len();
 pub const SIGNATURE_COUNT: usize = SIGNATURE_SCHEMES_AVAILABLE_IN_S2N.len();
 pub const PROTOCOL_COUNT: usize = VERSIONS_AVAILABLE_IN_S2N.len();
-
-use s2n_codec::{DecoderValue, zerocopy::U16};
-#[cfg(test)]
-use s2n_tls_sys_internal::{
-    s2n_cipher_suite, s2n_ecc_named_curve, s2n_kem_group, s2n_signature_scheme,
-};
-use serde_with::{DeserializeAs, SerializeAs, serde_as};
-use zerocopy::{FromBytes, Immutable, Unaligned};
-
-impl Display for TlsParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TlsParam::Version => write!(f, "version"),
-            TlsParam::Cipher => write!(f, "cipher"),
-            TlsParam::Group => write!(f, "group"),
-            TlsParam::SignatureScheme => write!(f, "signature_scheme"),
-        }
-    }
-}
-
-pub trait ToStaticString {
-    fn to_static_string(&self) -> &'static str;
-}
-
-impl ToStaticString for s2n_tls::enums::Version {
-    fn to_static_string(&self) -> &'static str {
-        match self {
-            s2n_tls::enums::Version::SSLV3 => "SSLv3",
-            s2n_tls::enums::Version::TLS10 => "TLSv1_0",
-            s2n_tls::enums::Version::TLS11 => "TLSv1_1",
-            s2n_tls::enums::Version::TLS12 => "TLSv1_2",
-            s2n_tls::enums::Version::TLS13 => "TLSv1_3",
-            _ => "unknown",
-        }
-    }
-}
+pub const CERT_KEY_COUNT: usize = CERT_KEYS.len();
+pub const CERT_SIG_COUNT: usize = CERT_SIGS.len();
 
 /// `serde_as` helper: encode `zerocopy::U16` as a native-endian `u16`.
 /// Shared by `Version`, `Group`, and `Signature`, whose wire form is the
@@ -192,16 +149,8 @@ impl FromStr for Signature {
     }
 }
 
-/// Convert a pointer to null terminated bytes into a static string
-///
-/// Safety: the memory pointed to by value is static
-/// Safety: the bytes are null terminated
-#[cfg(test)]
-unsafe fn static_memory_to_str(value: *const c_char) -> &'static str {
-    unsafe {
-        use std::ffi::CStr;
-        CStr::from_ptr(value).to_str().unwrap()
-    }
+impl FiniteCounter<DEFINED_ALERTS_COUNT> for Alert {
+    const ELEMENTS: [Self; DEFINED_ALERTS_COUNT] = Alert::DEFINED_ALERTS;
 }
 
 #[serde_as]
@@ -249,7 +198,7 @@ impl Display for Version {
     }
 }
 
-impl<'a> DecoderValue<'a> for Version {
+impl<'a> s2n_codec::DecoderValue<'a> for Version {
     fn decode(bytes: s2n_codec::DecoderBuffer<'a>) -> s2n_codec::DecoderBufferResult<'a, Self> {
         let (value, bytes) = bytes.decode()?;
         Ok((Self(value), bytes))
@@ -273,20 +222,17 @@ impl<'a> DecoderValue<'a> for Version {
 pub struct Cipher(pub [u8; 2]);
 
 impl Cipher {
-    #[allow(dead_code)] // kept as part of the typed cipher roster
-    pub(crate) const TLS_EMPTY_RENEGOTIATION_INFO_SCSV: Self = Cipher([0, 255]);
+    #[allow(dead_code)]
+    pub const TLS_EMPTY_RENEGOTIATION_INFO_SCSV: Self = Cipher([0, 255]);
 
-    pub(crate) const TLS_AES_128_GCM_SHA256: Self = Cipher([0x13, 0x01]);
-    pub(crate) const TLS_AES_256_GCM_SHA384: Self = Cipher([0x13, 0x02]);
-    pub(crate) const TLS_CHACHA20_POLY1305_SHA256: Self = Cipher([0x13, 0x03]);
-    pub(crate) const TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: Self = Cipher([0xC0, 0x2B]);
-    pub(crate) const TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: Self = Cipher([0xC0, 0x2C]);
-    pub(crate) const TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: Self = Cipher([0xC0, 0x2F]);
-    pub(crate) const TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: Self = Cipher([0xC0, 0x30]);
+    pub const TLS_AES_128_GCM_SHA256: Self = Cipher([0x13, 0x01]);
+    pub const TLS_AES_256_GCM_SHA384: Self = Cipher([0x13, 0x02]);
+    pub const TLS_CHACHA20_POLY1305_SHA256: Self = Cipher([0x13, 0x03]);
+    pub const TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: Self = Cipher([0xC0, 0x2B]);
+    pub const TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: Self = Cipher([0xC0, 0x2C]);
+    pub const TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: Self = Cipher([0xC0, 0x2F]);
+    pub const TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: Self = Cipher([0xC0, 0x30]);
 
-    /// e.g. "TLS_AES_256_GCM_SHA384"
-    ///
-    /// `None` if the cipher is not supported by s2n-tls
     pub fn known_description(&self) -> Option<&'static str> {
         CIPHERS_AVAILABLE_IN_S2N
             .iter()
@@ -294,8 +240,6 @@ impl Cipher {
             .map(|info| info.iana_description)
     }
 
-    /// Lookup a cipher by the OpenSSL name returned from the s2n-tls
-    /// connection API (e.g. `ECDHE-RSA-AES256-GCM-SHA384`).
     pub fn from_openssl_name(name: &str) -> Option<Self> {
         CIPHERS_AVAILABLE_IN_S2N
             .iter()
@@ -334,26 +278,48 @@ impl Display for Cipher {
 #[repr(C)]
 pub struct Signature(#[serde_as(as = "ZerocopyU16")] pub s2n_codec::zerocopy::U16);
 
-// we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
 impl Signature {
-    pub(crate) const rsa_pss_rsae_sha256: Self = Signature(U16::new(0x0804));
-    pub(crate) const rsa_pss_rsae_sha384: Self = Signature(U16::new(0x0805));
-    pub(crate) const rsa_pss_rsae_sha512: Self = Signature(U16::new(0x0806));
+    pub const rsa_pss_rsae_sha256: Self = Signature(U16::new(0x0804));
+    pub const rsa_pss_rsae_sha384: Self = Signature(U16::new(0x0805));
+    pub const rsa_pss_rsae_sha512: Self = Signature(U16::new(0x0806));
 
-    pub(crate) const rsa_pss_pss_sha256: Self = Signature(U16::new(0x0809));
-    pub(crate) const rsa_pss_pss_sha384: Self = Signature(U16::new(0x080A));
-    pub(crate) const rsa_pss_pss_sha512: Self = Signature(U16::new(0x080B));
+    pub const rsa_pss_pss_sha256: Self = Signature(U16::new(0x0809));
+    pub const rsa_pss_pss_sha384: Self = Signature(U16::new(0x080A));
+    pub const rsa_pss_pss_sha512: Self = Signature(U16::new(0x080B));
 
-    pub(crate) const ecdsa_secp256r1_sha256: Self = Signature(U16::new(0x0403));
-    pub(crate) const ecdsa_secp384r1_sha384: Self = Signature(U16::new(0x0503));
-    pub(crate) const ecdsa_secp521r1_sha512: Self = Signature(U16::new(0x0603));
+    pub const ecdsa_secp256r1_sha256: Self = Signature(U16::new(0x0403));
+    pub const ecdsa_secp384r1_sha384: Self = Signature(U16::new(0x0503));
+    pub const ecdsa_secp521r1_sha512: Self = Signature(U16::new(0x0603));
 
-    #[allow(dead_code)] // kept as part of the typed signature roster
-    pub(crate) const mldsa44: Self = Signature(U16::new(0x0904));
-    #[allow(dead_code)] // kept as part of the typed signature roster
-    pub(crate) const mldsa65: Self = Signature(U16::new(0x0905));
-    pub(crate) const mldsa87: Self = Signature(U16::new(0x0906));
+    #[allow(dead_code)]
+    pub const mldsa44: Self = Signature(U16::new(0x0904));
+    #[allow(dead_code)]
+    pub const mldsa65: Self = Signature(U16::new(0x0905));
+    pub const mldsa87: Self = Signature(U16::new(0x0906));
+
+    pub const ecdsa_sha1: Self = Signature(U16::new(0x0203));
+    pub const legacy_ecdsa_sha224: Self = Signature(U16::new(0x0303));
+    pub const legacy_rsa_sha224: Self = Signature(U16::new(0x0301));
+    pub const rsa_pkcs1_sha1: Self = Signature(U16::new(0x0201));
+    pub const rsa_pkcs1_sha256: Self = Signature(U16::new(0x0401));
+    pub const rsa_pkcs1_sha384: Self = Signature(U16::new(0x0501));
+    pub const rsa_pkcs1_sha512: Self = Signature(U16::new(0x0601));
+
+    /// This is the list of signature algorithms that
+    /// - s2n-tls recognizes/generally support
+    /// - do not support TLS 1.3
+    pub const SIG_ALGS_TLS13_UNSUPPORTED: &[Signature] = &[
+        // SHA1 ecdsa schemes are not supported for TLS 1.3
+        Self::ecdsa_sha1,
+        Self::legacy_ecdsa_sha224,
+        // rsa pkcs1 is not supported for TLS 1.3
+        Self::rsa_pkcs1_sha1,
+        Self::legacy_rsa_sha224,
+        Self::rsa_pkcs1_sha256,
+        Self::rsa_pkcs1_sha384,
+        Self::rsa_pkcs1_sha512,
+    ];
 
     pub fn known_description(&self) -> Option<&'static str> {
         SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
@@ -389,28 +355,30 @@ impl Display for Signature {
 #[repr(C)]
 pub struct Group(#[serde_as(as = "ZerocopyU16")] pub s2n_codec::zerocopy::U16);
 
-// we allow non-upper case globals to let the constants exactly match the IANA description
 #[allow(non_upper_case_globals)]
 impl Group {
-    pub(crate) const x25519: Self = Group(U16::new(29));
-    pub(crate) const secp256r1: Self = Group(U16::new(23));
-    pub(crate) const secp384r1: Self = Group(U16::new(24));
-    pub(crate) const secp521r1: Self = Group(U16::new(25));
+    pub const x25519: Self = Group(U16::new(29));
+    pub const secp256r1: Self = Group(U16::new(23));
+    pub const secp384r1: Self = Group(U16::new(24));
+    pub const secp521r1: Self = Group(U16::new(25));
 
-    pub(crate) const SecP256r1MLKEM768: Self = Group(U16::new(4587));
-    pub(crate) const X25519MLKEM768: Self = Group(U16::new(4588));
-    pub(crate) const SecP384r1MLKEM1024: Self = Group(U16::new(4589));
+    pub const SecP256r1MLKEM768: Self = Group(U16::new(4587));
+    pub const X25519MLKEM768: Self = Group(U16::new(4588));
+    pub const SecP384r1MLKEM1024: Self = Group(U16::new(4589));
 
-    pub(crate) const MLKEM1024: Self = Group(U16::new(514));
+    pub const MLKEM1024: Self = Group(U16::new(514));
 
-    /// e.g. "secp256r1"
-    ///
-    /// `None` if the group is not supported by s2n-tls
     pub fn known_description(&self) -> Option<&'static str> {
         GROUPS_AVAILABLE_IN_S2N
             .iter()
             .find(|info| info.group == *self)
             .map(|info| info.iana_description)
+    }
+
+    pub fn available_in_s2n(&self) -> bool {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .any(|info| info.group == *self)
     }
 }
 
@@ -424,13 +392,13 @@ impl Display for Group {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct VersionInformation {
-    description: &'static str,
-    iana_value: u16,
+pub struct VersionInformation {
+    pub description: &'static str,
+    pub iana_value: u16,
 }
 
 impl VersionInformation {
-    const fn new(description: &'static str, iana_value: u16) -> Self {
+    pub const fn new(description: &'static str, iana_value: u16) -> Self {
         Self {
             description,
             iana_value,
@@ -439,14 +407,14 @@ impl VersionInformation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct CipherInformation {
-    cipher: Cipher,
-    iana_description: &'static str,
-    openssl_name: &'static str,
+pub struct CipherInformation {
+    pub cipher: Cipher,
+    pub iana_description: &'static str,
+    pub openssl_name: &'static str,
 }
 
 impl CipherInformation {
-    const fn new(
+    pub const fn new(
         iana_description: &'static str,
         iana_value: [u8; 2],
         openssl_name: &'static str,
@@ -457,87 +425,81 @@ impl CipherInformation {
             cipher: Cipher(iana_value),
         }
     }
-
-    #[cfg(test)]
-    fn from_s2n_cipher_suite(s2n_cipher: &s2n_cipher_suite) -> Self {
-        unsafe {
-            // SAFETY: the name and iana_name fields are both static, null-terminated
-            // strings
-            let openssl_name = static_memory_to_str(s2n_cipher.name);
-            let iana_description = static_memory_to_str(s2n_cipher.iana_name);
-            let iana_value = s2n_cipher.iana_value;
-            Self::new(iana_description, iana_value, openssl_name)
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct GroupInformation {
-    iana_description: &'static str,
-    group: Group,
+pub struct GroupInformation {
+    pub iana_description: &'static str,
+    pub group: Group,
 }
 
 impl GroupInformation {
-    const fn new(iana_description: &'static str, iana_value: u16) -> Self {
+    pub const fn new(iana_description: &'static str, iana_value: u16) -> Self {
         Self {
             iana_description,
             group: Group(U16::new(iana_value)),
         }
     }
-
-    #[cfg(test)]
-    fn from_s2n_kem_group(kem_group: &s2n_kem_group) -> Self {
-        unsafe {
-            // SAFETY: the name field is a static, null-terminated string
-            let name = static_memory_to_str(kem_group.name);
-            let iana_id = kem_group.iana_id;
-            Self::new(name, iana_id)
-        }
-    }
-
-    #[cfg(test)]
-    fn from_s2n_ecc_curve(curve: &s2n_ecc_named_curve) -> Self {
-        unsafe {
-            // SAFETY: the name field is a static, null-terminated string
-            let name = static_memory_to_str(curve.name);
-            let iana_id = curve.iana_id;
-            Self::new(name, iana_id)
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct SignatureSchemeInformation {
-    /// This is the IANA description only where that is unambiguously correct.
-    ///
-    /// Examples of non-iana signatures include legacy hashes (e.g. `legacy_ecdsa_sha224`)
-    /// and ECDSA signatures (e.g. `ecdsa_sha256`).
-    description: &'static str,
-    signature: Signature,
+pub struct SignatureSchemeInformation {
+    pub description: &'static str,
+    pub signature: Signature,
 }
 
 impl SignatureSchemeInformation {
-    const fn new(iana_description: &'static str, iana_value: u16) -> Self {
+    pub const fn new(iana_description: &'static str, iana_value: u16) -> Self {
         Self {
             description: iana_description,
             signature: Signature(U16::new(iana_value)),
         }
     }
+}
 
-    #[cfg(test)]
-    fn from_s2n_signature_scheme(scheme: &s2n_signature_scheme) -> Self {
-        unsafe {
-            // SAFETY: the name field is a static, null-terminated string
-            let name = static_memory_to_str(scheme.name);
-            let iana_value = scheme.iana_value;
-            Self::new(name, iana_value)
+/// Represents a TLS alert
+///
+/// Most elements of this struct are code-generated from the relevant IANA CSV at
+/// <https://www.iana.org/assignments/tls-parameters/tls-parameters-6.csv>
+/// ```
+/// use s2n_tls_metrics_schema::static_lists::Alert;
+///
+/// // named constant
+/// let alert = Alert::CLOSE_NOTIFY;
+///
+/// // string description
+/// assert_eq!(Alert::CLOSE_NOTIFY.get_description(), Some("close_notify"));
+///
+/// // domain of all defined alerts
+/// assert_eq!(Alert::DEFINED_ALERTS.len(), 30);
+/// ```
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Alert(pub u8);
+include!(concat!(env!("OUT_DIR"), "/alerts_generated.rs"));
+
+impl Display for Alert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get_description() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "unknown_alert_{}", self.0),
         }
     }
 }
 
-/// This list should match the negotiable TLS versions in s2n-tls, and determines
-/// how many "counter" slots the negotiated version metrics have.
-pub(crate) const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
+impl FromStr for Alert {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::DEFINED_ALERTS
+            .iter()
+            .find(|a| a.get_description() == Some(s))
+            .copied()
+            .ok_or(())
+    }
+}
+
+pub const DEFINED_ALERTS_COUNT: usize = Alert::DEFINED_ALERTS.len();
+
+pub const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("SSLv3", 0x0300),
     VersionInformation::new("TLSv1_0", 0x0301),
     VersionInformation::new("TLSv1_1", 0x0302),
@@ -545,10 +507,8 @@ pub(crate) const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
     VersionInformation::new("TLSv1_3", 0x0304),
 ];
 
-/// We are required to track OpenSSL naming because that is what the s2n-tls 
-/// connection API's return.
 #[rustfmt::skip]
-pub(crate) const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
+pub const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
     CipherInformation::new("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256" ),
     CipherInformation::new("TLS_AES_256_GCM_SHA384", [19, 2], "TLS_AES_256_GCM_SHA384" ),
     CipherInformation::new("TLS_CHACHA20_POLY1305_SHA256", [19, 3], "TLS_CHACHA20_POLY1305_SHA256" ),
@@ -588,7 +548,7 @@ pub(crate) const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
     CipherInformation::new("TLS_RSA_WITH_RC4_128_SHA", [0, 5], "RC4-SHA"),
 ];
 
-pub(crate) const GROUPS_AVAILABLE_IN_S2N: [GroupInformation; 8] = [
+pub const GROUPS_AVAILABLE_IN_S2N: [GroupInformation; 8] = [
     GroupInformation::new("MLKEM1024", 514),
     GroupInformation::new("SecP256r1MLKEM768", 4587),
     GroupInformation::new("SecP384r1MLKEM1024", 4589),
@@ -599,7 +559,7 @@ pub(crate) const GROUPS_AVAILABLE_IN_S2N: [GroupInformation; 8] = [
     GroupInformation::new("x25519", 29),
 ];
 
-pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] = [
+pub const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation; 20] = [
     SignatureSchemeInformation::new("ecdsa_sha1", 515),
     SignatureSchemeInformation::new("ecdsa_sha256", 1027),
     SignatureSchemeInformation::new("ecdsa_sha384", 1283),
@@ -622,93 +582,168 @@ pub(crate) const SIGNATURE_SCHEMES_AVAILABLE_IN_S2N: [SignatureSchemeInformation
     SignatureSchemeInformation::new("rsa_pss_rsae_sha512", 2054),
 ];
 
+/// KeyType can be decoded from an AlgorithmIdentifier element of an X509 certificate
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertKeyType {
+    Rsa1024,
+    Rsa2048,
+    Rsa3072,
+    Rsa4096,
+    RsaPss2048,
+    RsaPss3072,
+    RsaPss4096,
+    Secp256r1,
+    Secp384r1,
+    Secp521r1,
+    Unknown,
+}
+
+impl Display for CertKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_KEYS: [CertKeyType; 11] = [
+    CertKeyType::Rsa1024,
+    CertKeyType::Rsa2048,
+    CertKeyType::Rsa3072,
+    CertKeyType::Rsa4096,
+    CertKeyType::RsaPss2048,
+    CertKeyType::RsaPss3072,
+    CertKeyType::RsaPss4096,
+    CertKeyType::Secp256r1,
+    CertKeyType::Secp384r1,
+    CertKeyType::Secp521r1,
+    CertKeyType::Unknown,
+];
+
+impl FiniteCounter<CERT_KEY_COUNT> for CertKeyType {
+    const ELEMENTS: [CertKeyType; CERT_KEY_COUNT] = CERT_KEYS;
+}
+
+/// An issue client is a client with non-ideal configuration that should be remediated
+///
+/// They generally are either
+/// - relying on a behavior that will break in certain server configurations
+/// - relying on a behavior that we would like to deprecate
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum ClientIssue {
+    /// A client which supports TLS 1.3, but doesn't support any s2n-tls supported
+    /// groups
+    ///
+    /// s2n-tls does not support FFDHE groups for TLS 1.3. A client that only has
+    /// ffdhe supported groups will successfully connect to a TLS 1.2 server, but
+    /// will be broken when that server starts supporting TLS 1.3
+    Tls13WithoutS2NSupportedGroups,
+    /// A client which supports TLS 1.3, but doesn't support the required signatures.
+    ///
+    /// We have observed clients in the wild that advertise TLS 1.3 support, but
+    /// which only include rsa_pkcsv15 signatures
+    Tls13WithoutModernSigAlgs,
+    /// A client which supports TLS 1.3, but didn't include the supported groups
+    /// extension.
+    ///
+    /// These clients were previously observed in the wild. We would like to avoid
+    /// supporting this behavior.
+    Tls13WithoutSupportedGroup,
+    /// s2n-tls will make a "best-effort" to send a certificate, even if there are
+    /// no signature algorithms in common.
+    ///
+    /// https://github.com/aws/s2n-tls/blob/efe8bd425153f8512cd70fd752872223eb545135/bindings/rust/standard/integration/src/handshake_failure_errors.rs#L106-L108
+    /// A stricter behavior would generally be easier to reason about, and clients
+    /// should not be lying about their supported signatures.
+    LiedAboutSupportedSignatures,
+}
+
+impl ClientIssue {
+    pub const COUNT: usize = Self::MEMBERS.len();
+    pub const MEMBERS: [ClientIssue; 4] = [
+        ClientIssue::Tls13WithoutS2NSupportedGroups,
+        ClientIssue::Tls13WithoutModernSigAlgs,
+        ClientIssue::Tls13WithoutSupportedGroup,
+        ClientIssue::LiedAboutSupportedSignatures,
+    ];
+}
+
+impl Display for ClientIssue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Tls13WithoutS2NSupportedGroups => {
+                f.write_str("tls13_without_s2n_supported_groups")
+            }
+            Self::Tls13WithoutModernSigAlgs => f.write_str("tls13_without_modern_sig_algs"),
+            Self::Tls13WithoutSupportedGroup => f.write_str("tls13_without_supported_group"),
+            Self::LiedAboutSupportedSignatures => f.write_str("lied_about_supported_signatures"),
+        }
+    }
+}
+
+impl FiniteCounter<{ ClientIssue::COUNT }> for ClientIssue {
+    const ELEMENTS: [Self; ClientIssue::COUNT] = ClientIssue::MEMBERS;
+}
+
+// Unfortunately, CertSignatures are _not_ the same as TLS SignatureSchemes.
+// TLS SignatureSchemes also encode information about the issuing public key (e.g. secp384, RSAE)
+// but that is not present at the actual certificate signature level.
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum CertSignatureAlgorithm {
+    RsaPkcsSha1,
+    RsaPkcsSha256,
+    RsaPkcsSha384,
+    RsaPkcsSha512,
+    /// NOTE: RSA-PSS encodes the hash algorithm in the AlgorithmIdentifier
+    /// parameters (RSASSA-PSS-params), not in the OID itself. We currently
+    /// only parse the OID, so the hash (e.g. SHA256) is not reported.
+    RsaPss,
+    EcdsaSha256,
+    EcdsaSha384,
+    EcdsaSha512,
+    Unknown,
+}
+
+impl Display for CertSignatureAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+pub const CERT_SIGS: [CertSignatureAlgorithm; 9] = [
+    CertSignatureAlgorithm::RsaPkcsSha1,
+    CertSignatureAlgorithm::RsaPkcsSha256,
+    CertSignatureAlgorithm::RsaPkcsSha384,
+    CertSignatureAlgorithm::RsaPkcsSha512,
+    CertSignatureAlgorithm::RsaPss,
+    CertSignatureAlgorithm::EcdsaSha256,
+    CertSignatureAlgorithm::EcdsaSha384,
+    CertSignatureAlgorithm::EcdsaSha512,
+    CertSignatureAlgorithm::Unknown,
+];
+
+impl FiniteCounter<CERT_SIG_COUNT> for CertSignatureAlgorithm {
+    const ELEMENTS: [CertSignatureAlgorithm; CERT_SIG_COUNT] = CERT_SIGS;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
-    /// return all of the ciphers defined in any s2n-tls security policy
-    fn all_available_ciphers() -> Vec<CipherInformation> {
-        let ciphers: HashSet<CipherInformation> = s2n_tls_sys_internal::security_policy_table()
-            .iter()
-            .flat_map(|sp| {
-                let sp = unsafe { &*sp.security_policy };
-                let names: Vec<CipherInformation> = sp
-                    .ciphers()
-                    .iter()
-                    .cloned()
-                    .map(CipherInformation::from_s2n_cipher_suite)
-                    .collect();
-                names
-            })
-            .collect();
-        let mut ciphers: Vec<CipherInformation> = ciphers.into_iter().collect();
-        ciphers.sort_by_key(|cipher| cipher.iana_description);
-        ciphers
-    }
-
-    /// return all of the groups defined in any s2n-tls security policy
-    fn all_available_groups() -> Vec<GroupInformation> {
-        let groups: HashSet<GroupInformation> = s2n_tls_sys_internal::security_policy_table()
-            .iter()
-            .flat_map(|sp| {
-                let sp = unsafe { &*sp.security_policy };
-                let curves = sp
-                    .curves()
-                    .iter()
-                    .map(|curve| GroupInformation::from_s2n_ecc_curve(curve));
-                let kem_groups = sp
-                    .kems()
-                    .iter()
-                    .map(|kem| GroupInformation::from_s2n_kem_group(kem));
-                curves.chain(kem_groups).collect::<Vec<GroupInformation>>()
-            })
-            .collect();
-        let mut groups: Vec<GroupInformation> = groups.into_iter().collect();
-        groups.sort_by_key(|group| group.iana_description);
-        groups
-    }
-
-    /// return all of the signatures defined in any s2n-tls security policy
-    fn all_available_signatures() -> Vec<SignatureSchemeInformation> {
-        let sigs: HashSet<SignatureSchemeInformation> =
-            s2n_tls_sys_internal::security_policy_table()
-                .iter()
-                .flat_map(|sp| {
-                    let sp = unsafe { &*sp.security_policy };
-                    sp.signatures()
-                        .iter()
-                        .map(|sig| SignatureSchemeInformation::from_s2n_signature_scheme(sig))
-                })
-                .collect();
-        let mut sigs: Vec<SignatureSchemeInformation> = sigs.into_iter().collect();
-        sigs.sort_by_key(|sig| sig.description);
-        sigs
+    #[test]
+    fn display_fallback_for_unknown_elements() {
+        assert_eq!(Cipher([0xFF, 0xFF]).to_string(), "unknown_cipher_0xffff");
+        assert_eq!(
+            Version(U16::new(0x9999)).to_string(),
+            "unknown_version_0x9999"
+        );
+        assert_eq!(Group(U16::new(0x9999)).to_string(), "unknown_group_0x9999");
+        assert_eq!(
+            Signature(U16::new(0x9999)).to_string(),
+            "unknown_signature_0x9999"
+        );
     }
 
     #[test]
-    fn all_ciphers_in_static_list() {
-        let ciphers = all_available_ciphers();
-        assert_eq!(ciphers.as_slice(), &CIPHERS_AVAILABLE_IN_S2N[..]);
-    }
-
-    #[test]
-    fn all_groups_in_static_list() {
-        let groups = all_available_groups();
-        assert_eq!(groups.as_slice(), &GROUPS_AVAILABLE_IN_S2N[..]);
-    }
-
-    #[test]
-    fn all_signature_schemes_in_static_list() {
-        let schemes = all_available_signatures();
-        assert_eq!(schemes.as_slice(), &SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[..]);
-    }
-
-    /// Verify that the named Cipher constants have IANA values matching s2n-tls.
-    /// The static lists are already validated against s2n-tls by the tests above,
-    /// so we validate constants against the lists via known_description().
-    #[test]
-    fn cipher_constants_match_s2n() {
+    fn cipher_constants_match() {
         let cases: &[(Cipher, &str)] = &[
             (Cipher::TLS_AES_128_GCM_SHA256, "TLS_AES_128_GCM_SHA256"),
             (Cipher::TLS_AES_256_GCM_SHA384, "TLS_AES_256_GCM_SHA384"),
@@ -738,9 +773,8 @@ mod tests {
         }
     }
 
-    /// Verify that the named Group constants have IANA values matching s2n-tls.
     #[test]
-    fn group_constants_match_s2n() {
+    fn group_constants_match() {
         let cases: &[(Group, &str)] = &[
             (Group::x25519, "x25519"),
             (Group::secp256r1, "secp256r1"),
@@ -756,26 +790,8 @@ mod tests {
         }
     }
 
-    /// `Display` falls back to `unknown_<kind>_0xXXXX` for elements
-    /// constructed outside `ELEMENTS` (e.g. wire bytes from a future
-    /// registry entry).
     #[test]
-    fn display_fallback_for_unknown_elements() {
-        assert_eq!(Cipher([0xFF, 0xFF]).to_string(), "unknown_cipher_0xffff");
-        assert_eq!(
-            Version(U16::new(0x9999)).to_string(),
-            "unknown_version_0x9999"
-        );
-        assert_eq!(Group(U16::new(0x9999)).to_string(), "unknown_group_0x9999");
-        assert_eq!(
-            Signature(U16::new(0x9999)).to_string(),
-            "unknown_signature_0x9999"
-        );
-    }
-
-    /// Verify that the named Signature constants have IANA values matching s2n-tls.
-    #[test]
-    fn signature_constants_match_s2n() {
+    fn signature_constants_match() {
         let cases: &[(Signature, &str)] = &[
             (Signature::rsa_pss_rsae_sha256, "rsa_pss_rsae_sha256"),
             (Signature::rsa_pss_rsae_sha384, "rsa_pss_rsae_sha384"),

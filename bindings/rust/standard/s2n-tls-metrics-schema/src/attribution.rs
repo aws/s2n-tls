@@ -14,5 +14,6 @@ pub struct Attribution {
     /// application. For example, a load balancer application might want to
     /// record both "frontend" and "backend" telemetry. Leave empty to emit
     /// just "TlsTelemetry" without a component suffix.
+    #[serde(default)]
     pub component: String,
 }
