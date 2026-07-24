@@ -49,6 +49,11 @@ fn no_protocols_in_common() {
             s2n_error.message(),
             "TLS protocol version is not supported by configuration"
         );
+        // `s2n_connection_handshake_complete()` tracks whether the handshake
+        // state machine has reached its terminal state. A failed negotiation
+        // errors out of the state machine before that point, so this must
+        // report `false`, not `true`.
+        assert!(!pair.server().connection().handshake_complete());
     });
 }
 
@@ -270,6 +275,11 @@ fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
 
+    // Neither peer reached the terminal handshake state, so both must
+    // report the handshake as incomplete, not complete-but-failed.
+    assert!(!pair.client().connection().handshake_complete());
+    assert!(!pair.server().connection().handshake_complete());
+
     Ok(())
 }
 
@@ -316,6 +326,12 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         s2n_error.name(),
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
+
+    // Neither peer reached the terminal handshake state, so both must
+    // report the handshake as incomplete, not complete-but-failed.
+    assert!(!pair.client().connection().handshake_complete());
+    assert!(!pair.server().connection().handshake_complete());
+    
     Ok(())
 }
 
