@@ -3486,12 +3486,17 @@ S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_con
  * Indicates whether the TLS handshake is fully complete.
  *
  * "Complete" means all handshake messages have been sent and received,
- * including the TLS 1.2 server Finished message. Once this returns 1,
+ * including the TLS 1.2 server Finished message. Once this returns true,
  * the connection is ready for application data.
+ *
+ * If negotiation fails, the handshake state machine does not reach this
+ * terminal state, so this function returns false, not true. Callers
+ * should rely on the return value of `s2n_negotiate()` to detect failure,
+ * not on this function.
  *
  * @param conn A pointer to the s2n_connection
  * @returns true if the handshake is complete, false if still in progress,
- *          or if `conn` is NULL.
+ *          if it failed, or if `conn` is NULL.
  */
 S2N_API extern bool s2n_connection_handshake_complete(struct s2n_connection *conn);
 
@@ -3510,7 +3515,7 @@ struct s2n_async_pkey_op;
 /**
  * Sets whether or not a connection should enforce strict signature validation during the
  * `s2n_async_pkey_op_apply` call.
- *
+ * 
  * `mode` can take the following values:
  * - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
  * - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
