@@ -38,6 +38,13 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
     struct s2n_config *config = conn->config;
 
     POSIX_ENSURE_REF(config);
+
+    /* Caching is not possible unless all three cache callbacks are set.
+     * The callbacks can be set before or after s2n_config_set_session_cache_onoff(). */
+    if (!config->cache_store || !config->cache_retrieve || !config->cache_delete) {
+        return 0;
+    }
+
     return config->use_session_cache;
 }
 
