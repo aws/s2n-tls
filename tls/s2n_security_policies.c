@@ -1730,6 +1730,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20260522_gcm", .security_policy = &security_policy_20260522_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260523", .security_policy = &security_policy_20260523, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260523_gcm", .security_policy = &security_policy_20260523_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260721", .security_policy = &security_policy_20260721, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260722", .security_policy = &security_policy_20260722, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* If changing this, please update the usage guide's docs on the corresponding policy. */
     { .version = "rfc9151", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "cnsa_1", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
