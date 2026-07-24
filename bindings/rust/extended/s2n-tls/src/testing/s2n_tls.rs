@@ -27,6 +27,52 @@ mod tests {
         assert!(TestPair::handshake_with_config(&config).is_ok());
     }
 
+    // Connection::initial_client_hello always returns the first ClientHello the
+    // client sent. After a HelloRetryRequest it returns the ClientHello sent
+    // before the HRR, distinct from the second ClientHello returned by
+    // Connection::client_hello. Without an HRR only one ClientHello is sent, so
+    // both accessors return the same message.
+    #[test]
+    fn initial_client_hello() -> Result<(), Error> {
+        // The server strongly prefers secp384r1.
+        let server_policy = Policy::from_version("20251117")?;
+        // The default TLS1.3 client offers a different group as its initial key
+        // share, forcing the server to request a HelloRetryRequest.
+        let client_policy = security::DEFAULT_TLS13;
+
+        // Without an HRR (both sides use the same policy), the initial ClientHello
+        // is the same message as the current one.
+        {
+            let config = build_config(&client_policy)?;
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
+
+            let current_raw = pair.server.client_hello()?.raw_message()?;
+            let initial_raw = pair.server.initial_client_hello()?.raw_message()?;
+            assert_eq!(current_raw, initial_raw);
+        }
+
+        // With an HRR, both ClientHellos are available and they are distinct.
+        {
+            let client_config = build_config(&client_policy)?;
+            let server_config = build_config(&server_policy)?;
+            let mut pair = TestPair::from_configs(&client_config, &server_config);
+            pair.handshake()?;
+
+            let current = pair.server.client_hello()?;
+            let initial = pair.server.initial_client_hello()?;
+
+            // The two ClientHellos are genuinely different messages: the client
+            // offers a new key share in its second ClientHello, so the raw
+            // messages differ.
+            let current_raw = current.raw_message()?;
+            let initial_raw = initial.raw_message()?;
+            assert_ne!(current_raw, initial_raw);
+        }
+
+        Ok(())
+    }
+
     #[test]
     fn kem_group_name_retrieval() -> Result<(), Error> {
         // PQ isn't supported

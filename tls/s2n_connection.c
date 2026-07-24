@@ -283,6 +283,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
+    POSIX_GUARD_RESULT(s2n_client_hello_free_ptr(&conn->previous_client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
     POSIX_GUARD(s2n_free(&conn->cert_authorities));
@@ -457,6 +458,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     /* Truncate buffers to save memory, we are done with the handshake */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
     POSIX_GUARD(s2n_free(&conn->client_hello.raw_message));
+    POSIX_GUARD_RESULT(s2n_client_hello_free_ptr(&conn->previous_client_hello));
 
     /* We can free extension data we no longer need */
     POSIX_GUARD(s2n_free(&conn->client_ticket));
@@ -522,6 +524,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->post_handshake.in));
     POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
+    POSIX_GUARD_RESULT(s2n_client_hello_free_ptr(&conn->previous_client_hello));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->buffer_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
