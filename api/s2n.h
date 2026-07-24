@@ -2907,6 +2907,9 @@ S2N_API extern int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t *
  * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the 
  * `s2n_cert_chain_and_key_free` API.
  * 
+ * This will include the root CA, even if it was elided from the actual Certificate
+ * message.
+ * 
  * @param conn A pointer to the s2n_connection object being read.
  * @param cert_chain The returned validated peer certificate chain `cert_chain` retrieved from the s2n connection.
  */
