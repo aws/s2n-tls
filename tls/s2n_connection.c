@@ -1909,3 +1909,60 @@ s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
     }
     return conn->mode;
 }
+
+int s2n_conn_get_signature_public_key(struct s2n_connection *conn,
+        s2n_mode mode, char *output, uint32_t *output_size)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(output);
+    POSIX_ENSURE_REF(output_size);
+
+    const struct s2n_cert_info *cert_info = NULL;
+    struct s2n_cert_info peer_cert_info = { 0 };
+
+    bool requesting_own_cert = (mode == conn->mode);
+
+    if (requesting_own_cert) {
+        /* Return info about our own certificate */
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key->cert_chain);
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key->cert_chain->head);
+        cert_info = &conn->handshake_params.our_chain_and_key->cert_chain->head->info;
+    } else {
+        /* Return info about the peer's certificate (validated during handshake) */
+        const struct s2n_x509_validator *validator = &conn->x509_validator;
+        POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
+
+        DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 },
+                s2n_x509_validator_validated_cert_chain_free);
+        POSIX_GUARD_RESULT(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+        STACK_OF(X509) *cert_chain_validated = validated_cert_chain.stack;
+        POSIX_ENSURE_REF(cert_chain_validated);
+
+        int cert_count = sk_X509_num(cert_chain_validated);
+        POSIX_ENSURE_GT(cert_count, 0);
+
+        /* Get the leaf certificate (first in chain) */
+        X509 *leaf_cert = sk_X509_value(cert_chain_validated, 0);
+        POSIX_ENSURE_REF(leaf_cert);
+
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(leaf_cert, &peer_cert_info));
+        cert_info = &peer_cert_info;
+    }
+
+    POSIX_ENSURE_REF(cert_info);
+
+    uint32_t required_size = 0;
+    s2n_result format_result = s2n_cert_info_format_public_key_string(cert_info, output, *output_size, &required_size);
+
+    /* Always set the output_size to the required/written size */
+    *output_size = required_size;
+
+    /* Now check the result - this will return failure if buffer was too small */
+    if (s2n_result_is_error(format_result)) {
+        /* Propagate the error that was set by s2n_format_public_key_string */
+        POSIX_BAIL(s2n_errno);
+    }
+
+    return S2N_SUCCESS;
+}
