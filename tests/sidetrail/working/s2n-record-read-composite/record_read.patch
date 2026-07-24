@@ -11,7 +11,7 @@ index 4389b88c4..patched 100644
  int s2n_record_parse_composite(
          const struct s2n_cipher_suite *cipher_suite,
          struct s2n_connection *conn,
-@@ -80,6 +82,8 @@ int s2n_record_parse_composite(
+@@ -80,6 +82,8 @@
  
      /* Subtract the padding length */
      POSIX_ENSURE_GT(en.size, 0);
