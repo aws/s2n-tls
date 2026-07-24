@@ -5,17 +5,16 @@ import select
 import selectors
 import subprocess
 import threading
-
-from common import Results, TimeoutException
 from time import monotonic as _time
 
+from common import Results, TimeoutException
 
 _PopenSelector = selectors.PollSelector
 _PIPE_BUF = getattr(select, "PIPE_BUF", 512)
 _DEBUG_LEN = 200
 
 
-class _processCommunicator(object):
+class _processCommunicator:
     """
     This class allows greater control over stdin than using Popen.communicate().
     Popen.communicate() closes stdin as soon as data is written. This causes
@@ -372,7 +371,7 @@ class ManagedProcess(threading.Thread):
         close_marker=None,
         timeout=5,
         data_source=None,
-        env_overrides=dict(),
+        env_overrides=None,
         expect_stderr=False,
         kill_marker=None,
         send_with_newline=False,
@@ -381,6 +380,8 @@ class ManagedProcess(threading.Thread):
 
         proc_env = os.environ.copy()
 
+        if env_overrides is None:
+            env_overrides = {}
         for key in env_overrides:
             proc_env[key] = env_overrides[key]
 
@@ -435,7 +436,7 @@ class ManagedProcess(threading.Thread):
                 self.proc = proc
             except Exception as ex:
                 self.results = Results(None, None, None, ex, self.expect_stderr)
-                raise ex
+                raise
 
             communicator = _processCommunicator(proc, self.name)
 
@@ -487,7 +488,7 @@ class ManagedProcess(threading.Thread):
                     ex,
                     self.expect_stderr,
                 )
-                raise ex
+                raise
 
     def kill(self):
         self.proc.kill()

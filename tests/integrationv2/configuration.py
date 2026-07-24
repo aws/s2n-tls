@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import collections
 
-from common import Certificates, Ciphers, Curves, Protocols, AvailablePorts
+from common import AvailablePorts, Certificates, Ciphers, Curves, Protocols
 from constants import TEST_SNI_CERT_DIRECTORY
-from providers import S2N, OpenSSL, JavaSSL
-
+from providers import S2N, JavaSSL, OpenSSL
 
 # The boolean configuration will let a test run for True and False
 # for some value. For example, using the insecure flag.
