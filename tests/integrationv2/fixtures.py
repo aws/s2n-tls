@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 
-from processes import ManagedProcess
-from providers import Provider, S2N
-
 from common import ProviderOptions
 from conftest import PATH_CONFIGURATION_KEY
+from processes import ManagedProcess
+from providers import S2N, Provider
 
 
 @pytest.fixture
@@ -105,15 +104,15 @@ def managed_process(request: pytest.FixtureRequest):
 
                 print(f"Command line:\n\t{' '.join(p.cmd_line)}")
                 print(f"Exit code:\n\t {p.results.exit_code}")
-                print("")
+                print()
 
                 print("  Stdout  ".center(width, padchar))
                 print(p.results.stdout.decode("utf-8", "backslashreplace"))
-                print("")
+                print()
 
                 print("  Stderr  ".center(width, padchar))
                 print(p.results.stderr.decode("utf-8", "backslashreplace"))
-                print("")
+                print()
 
             # Whether the processes succeeded or not, clean them up.
             if aborted:
