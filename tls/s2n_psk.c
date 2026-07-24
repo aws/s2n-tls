@@ -327,6 +327,11 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         return S2N_SUCCESS;
     }
 
+    /* An offered_psk must have its identity set before being chosen.
+     * Without this check, the function would return an internal error
+     * later when attempting to match the identity. */
+    POSIX_ENSURE_REF(psk->identity.data);
+
     if (psk_params->type == S2N_PSK_TYPE_RESUMPTION && psk_list->conn->config->use_tickets) {
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
         POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));

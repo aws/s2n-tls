@@ -428,6 +428,15 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->psk_params.chosen_psk);
         };
 
+        /* Test: uninitialized PSK (identity not set) */
+        {
+            struct s2n_offered_psk *uninitialized_psk = s2n_offered_psk_new();
+            EXPECT_NOT_NULL(uninitialized_psk);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_list_choose_psk(&offered_psk_list, uninitialized_psk), S2N_ERR_NULL);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+            EXPECT_SUCCESS(s2n_offered_psk_free(&uninitialized_psk));
+        };
+
         /* Test: Multiple matches exist */
         {
             struct s2n_psk *another_match = NULL;
