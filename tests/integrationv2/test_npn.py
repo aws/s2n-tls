@@ -1,20 +1,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+
 import pytest
 
+from common import Protocols, ProviderOptions
 from configuration import (
-    available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
     PROTOCOLS,
+    available_ports,
 )
-from common import ProviderOptions, Protocols
 from fixtures import managed_process  # noqa: F401
-from providers import OpenSSL, S2N, Provider
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
-
+from providers import S2N, OpenSSL, Provider
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 # NPN not supported in TLS1.3
 TLS_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
