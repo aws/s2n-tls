@@ -3488,7 +3488,6 @@ S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_con
  * "Complete" means all handshake messages have been sent and received,
  * including the TLS 1.2 server Finished message. Once this returns true,
  * the connection is ready for application data.
- *
  * If negotiation fails, the handshake state machine does not reach this
  * terminal state, so this function returns false, not true. Callers
  * should rely on the return value of `s2n_negotiate()` to detect failure,
