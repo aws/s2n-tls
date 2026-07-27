@@ -1,8 +1,7 @@
 diff --git a/tls/s2n_record_read_stream.c b/tls/s2n_record_read_stream.c
-index 4e0ddaf0d..patched 100644
 --- a/tls/s2n_record_read_stream.c
 +++ b/tls/s2n_record_read_stream.c
-@@ -75,15 +75,20 @@ int s2n_record_parse_stream(
+@@ -74,16 +74,21 @@ int s2n_record_parse_stream(
          POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
      }
  
