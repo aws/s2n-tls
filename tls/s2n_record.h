@@ -86,5 +86,6 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
 int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_type, uint8_t *client_protocol_version, uint16_t *fragment_length);
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted);
 S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad);
-S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_blob *ad);
+S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header *header, struct s2n_blob *ad);
+S2N_RESULT s2n_record_header_version(const uint8_t (*record_header)[5], uint16_t *out);
 S2N_RESULT s2n_record_wipe(struct s2n_connection *conn);
