@@ -214,5 +214,26 @@ fn pq_takes_priority_over_strongly_preferred_ecc() {
         assert_eq!(outcome.client_key_shares, vec![iana::constants::secp384r1]);
         assert_eq!(outcome.server_selected_group, iana::constants::MLKEM1024);
         assert!(outcome.hello_retry_request);
+
+        // Classical-only client sends secp256r1 key share, supports secp384r1: HRR for strongly preferred secp384r1
+        let trial = Trial::new(
+            "secp256r1:secp384r1".to_owned(),
+            &PQ_WITH_STRONGLY_PREFERRED,
+        );
+        let outcome = trial.handshake();
+        assert_eq!(outcome.client_key_shares, vec![iana::constants::secp256r1]);
+        assert_eq!(outcome.server_selected_group, iana::constants::secp384r1);
+        assert!(outcome.hello_retry_request);
+
+        // Classical-only client sends secp256r1 key share, supports secp256r1 and secp521r1 only:
+        // no strongly preferred secp384r1 available, negotiates secp256r1 in 1-RTT
+        let trial = Trial::new(
+            "secp256r1:secp521r1".to_owned(),
+            &PQ_WITH_STRONGLY_PREFERRED,
+        );
+        let outcome = trial.handshake();
+        assert_eq!(outcome.client_key_shares, vec![iana::constants::secp256r1]);
+        assert_eq!(outcome.server_selected_group, iana::constants::secp256r1);
+        assert!(!outcome.hello_retry_request);
     });
 }
