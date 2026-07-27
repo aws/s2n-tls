@@ -1030,6 +1030,26 @@ impl Connection {
         }))
     }
 
+    /// Retrieves the first ClientHello sent by the client.
+    ///
+    /// When a server sends a HelloRetryRequest, the client responds with a
+    /// second ClientHello, and [`Connection::client_hello`] returns that second
+    /// (most recent) ClientHello. This method instead always returns the first ClientHello
+    /// the client sent, which is useful for inspecting the values the client originally offered.
+    ///
+    /// When no HelloRetryRequest occurs, only a single ClientHello is sent, so
+    /// this returns the same ClientHello as [`Connection::client_hello`].
+    ///
+    /// Corresponds to [`s2n_connection_get_initial_client_hello`].
+    pub fn initial_client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
+        let mut handle = unsafe {
+            s2n_connection_get_initial_client_hello(self.connection.as_ptr()).into_result()?
+        };
+        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {
+            handle.as_mut()
+        }))
+    }
+
     /// Corresponds to [`s2n_client_hello_cb_done`].
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {
         unsafe {
