@@ -69,13 +69,19 @@
 #define S2N_TLS_MAX_RECORD_LEN_FOR(frag) S2N_TLS12_MAX_RECORD_LEN_FOR(frag)
 #define S2N_TLS_MAXIMUM_RECORD_LENGTH    S2N_TLS_MAX_RECORD_LEN_FOR(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH)
 
+struct s2n_record_header {
+    uint8_t content_type;
+    uint16_t version;
+    uint16_t length;
+};
+
 S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size);
 S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size);
 S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size);
 S2N_RESULT s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write);
 int s2n_record_parse(struct s2n_connection *conn);
-int s2n_record_header_parse(struct s2n_connection *conn, uint8_t *content_type, uint16_t *fragment_length);
+int s2n_record_header_parse(struct s2n_connection *conn, struct s2n_record_header *header);
 int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_type);
 int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_type, uint8_t *client_protocol_version, uint16_t *fragment_length);
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted);
