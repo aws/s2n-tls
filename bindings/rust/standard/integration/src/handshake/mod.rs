@@ -3,7 +3,6 @@
 
 mod cert_aware_sig_selection;
 mod cert_retrieval;
-mod encrypted_record_integrity;
 mod group_getters;
 mod group_negotiation;
 mod handshake_failure_errors;
