@@ -56,7 +56,7 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequenc
  * 
  * This is necessary to ensure the integrity of the record.
  */
-S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header* header, struct s2n_blob *additional_data)
+S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header *header, struct s2n_blob *additional_data)
 {
     RESULT_ENSURE_REF(additional_data);
     RESULT_ENSURE_GTE(additional_data->size, S2N_TLS13_AAD_LEN);
