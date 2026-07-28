@@ -85,6 +85,10 @@ static S2N_RESULT s2n_recv_buffer_in(struct s2n_connection *conn, size_t min_siz
     return S2N_RESULT_OK;
 }
 
+/**
+ * An S2N_SUCCESS return from this method means that a full record is available
+ * in plaintext in conn->in.
+ */
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
 {
     *isSSLv2 = 0;

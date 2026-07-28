@@ -12,3 +12,4 @@ mod pq;
 mod renegotiate;
 mod serialization;
 mod session_resumption;
+mod handshake_integrity;
