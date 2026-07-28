@@ -35,7 +35,14 @@
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
+
+/* The EC_KEY APIs are deprecated in OpenSSL 3.0+, where the public key check is
+ * performed with EVP_PKEY_public_check instead. The EC_KEY cleanup func is only
+ * needed by the pre-3.0 code paths.
+ */
+#if !S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
+#endif
 
 #if !EVP_APIS_SUPPORTED
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
@@ -206,21 +213,44 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
-static S2N_RESULT s2n_ecc_check_key(EC_KEY *ec_key)
+#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
+static S2N_RESULT s2n_ecc_check_key(EVP_PKEY *evp_pkey)
 {
-    RESULT_ENSURE_REF(ec_key);
+    RESULT_ENSURE_REF(evp_pkey);
 
-#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    /* The low-level EC_KEY APIs are deprecated in OpenSSL 3.0+. EVP_PKEY_public_check
+     * performs the required public key validation on the NIST curves. When the
+     * libcrypto's FIPS provider is active, this call performs the appropriate FIPS
+     * checks; there is no separate FIPS-specific API to call here, so a FIPS-specific
+     * error is not meaningful.
+     */
+    DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(evp_pkey, NULL), EVP_PKEY_CTX_free_pointer);
+    RESULT_ENSURE(pctx != NULL, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+
+    RESULT_GUARD_OSSL(EVP_PKEY_public_check(pctx), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+
+    return S2N_RESULT_OK;
+}
+#else
+static S2N_RESULT s2n_ecc_check_key(EVP_PKEY *evp_pkey)
+{
+    RESULT_ENSURE_REF(evp_pkey);
+
+    DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_pkey), EC_KEY_free_pointer);
+    RESULT_ENSURE(ec_key != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
+    #ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
     if (s2n_is_in_fips_mode()) {
         RESULT_GUARD_OSSL(EC_KEY_check_fips(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
         return S2N_RESULT_OK;
     }
-#endif
+    #endif
 
     RESULT_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
 
     return S2N_RESULT_OK;
 }
+#endif
 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret)
 {
@@ -244,9 +274,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
      * validation is skipped with non-NIST curves for increased performance.
      */
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
-        DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-        POSIX_ENSURE(ec_key, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-        POSIX_GUARD_RESULT(s2n_ecc_check_key(ec_key));
+        POSIX_GUARD_RESULT(s2n_ecc_check_key(peer_public));
     }
 
     size_t shared_secret_size = 0;
