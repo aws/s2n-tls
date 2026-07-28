@@ -6,10 +6,10 @@
 
 use crate::capability_check::{required_capability, Capability};
 use rcgen::{CertificateParams, KeyPair, PKCS_RSA_SHA256};
-use s2n_tls::error::Error as S2NError;
 use s2n_tls::{
     config,
     enums::Version,
+    error::Error as S2NError,
     security::Policy,
     testing::{InsecureAcceptAllCertificatesHandler, TestPair},
 };
@@ -50,7 +50,7 @@ fn tamper_bit(record: &mut [u8], bit_index: usize) -> bool {
         false
     } else {
         let byte_to_mutate = record.get_mut(byte_index).unwrap();
-        *byte_to_mutate = *byte_to_mutate ^ (1 << bit_index);
+        *byte_to_mutate ^= 1 << bit_index;
         true
     }
 }

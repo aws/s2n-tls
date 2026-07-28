@@ -6,10 +6,10 @@ mod cert_retrieval;
 mod group_getters;
 mod group_negotiation;
 mod handshake_failure_errors;
+mod handshake_integrity;
 mod hrr_client_hello;
 #[cfg(feature = "pq")]
 mod pq;
 mod renegotiate;
 mod serialization;
 mod session_resumption;
-mod handshake_integrity;
