@@ -143,8 +143,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 
     POSIX_GUARD(s2n_stuffer_write_bytes(&ctrl_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, content_type));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version / 10));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, protocol_version));
     POSIX_GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
 
     /* This will unnecessarily mangle the input buffer, which is fine since it's temporary

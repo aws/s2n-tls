@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file renegotiate.h
  *
@@ -171,3 +175,7 @@ S2N_API int s2n_renegotiate_wipe(struct s2n_connection *conn);
  */
 S2N_API int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
         ssize_t *app_data_size, s2n_blocked_status *blocked);
+
+#ifdef __cplusplus
+}
+#endif

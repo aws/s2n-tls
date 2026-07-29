@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file fingerprint.h
  *
@@ -202,3 +206,7 @@ S2N_API int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch,
 S2N_API int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch,
         s2n_fingerprint_type type, uint32_t max_size,
         uint8_t *output, uint32_t *output_size);
+
+#ifdef __cplusplus
+}
+#endif

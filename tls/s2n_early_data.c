@@ -15,8 +15,6 @@
 
 #include "tls/s2n_early_data.h"
 
-#include <sys/param.h>
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_psk.h"
@@ -374,7 +372,7 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
      * while setting up this connection, not during a previous connection.
      */
     if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        *max_early_data_size = MIN(*max_early_data_size, server_max_early_data_size);
+        *max_early_data_size = S2N_MIN(*max_early_data_size, server_max_early_data_size);
     }
 
     return S2N_SUCCESS;

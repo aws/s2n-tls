@@ -227,7 +227,12 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_ARGUMENT);
         };
 
-        /* Test: s2n_security_policy_write_fd - FORMAT_V1 structure verification */
+        /* Test: s2n_security_policy_write_fd - FORMAT_V1 structure verification.
+         * This test passes a socket fd to s2n_security_policy_write_fd, which
+         * uses POSIX write() internally. On Windows, write() does not work on
+         * sockets: only on regular files and pipes.
+         */
+#ifndef _WIN32
         {
             const struct s2n_security_policy *policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
@@ -247,13 +252,14 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_blob file_buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&file_buffer, expected_length + 1));
 
-            ssize_t bytes_read = read(io_pair.server, file_buffer.data, expected_length);
+            ssize_t bytes_read = s2n_test_recv(io_pair.server, file_buffer.data, expected_length);
             EXPECT_TRUE(bytes_read >= 0);
             EXPECT_EQUAL((size_t) bytes_read, expected_length);
             file_buffer.data[expected_length] = '\0';
 
             EXPECT_OK(s2n_verify_format_v1_output((const char *) file_buffer.data));
         };
+#endif
     };
 
     END_TEST();

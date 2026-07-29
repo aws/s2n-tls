@@ -726,7 +726,8 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [`s2n_config_set_subscriber`] and [`s2n_config_set_handshake_event`].
+    /// Corresponds to [`s2n_config_set_subscriber`], [`s2n_config_set_handshake_event`],
+    /// and [`s2n_config_set_timing_checkpoint_cb`].
     #[cfg(feature = "unstable-events")]
     pub fn set_event_subscriber<T: 'static + EventSubscriber>(
         &mut self,
@@ -741,6 +742,22 @@ impl Builder {
                 let callback = context.event_subscriber.as_ref();
                 if let Some(callback) = callback {
                     callback.on_handshake_event(conn, &HandshakeEvent::new(&*event));
+                }
+            });
+        }
+
+        unsafe extern "C" fn on_timing_checkpoint(
+            conn_ptr: *mut s2n_tls_sys::s2n_connection,
+            _subscriber: *mut c_void,
+            checkpoint: *mut s2n_tls_sys::s2n_timing_checkpoint,
+        ) {
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.event_subscriber.as_ref();
+                if let Some(callback) = callback {
+                    callback.on_timing_checkpoint(
+                        conn,
+                        &crate::events::TimingCheckpoint::new(&*checkpoint),
+                    );
                 }
             });
         }
@@ -764,6 +781,16 @@ impl Builder {
             s2n_config_set_handshake_event(self.as_mut_ptr(), Some(on_handshake_event))
                 .into_result()
         }?;
+
+        // Register the per-message timing checkpoint callback.
+        unsafe {
+            s2n_tls_sys::s2n_config_set_timing_checkpoint_cb(
+                self.as_mut_ptr(),
+                Some(on_timing_checkpoint),
+            )
+            .into_result()
+        }?;
+
         Ok(self)
     }
 

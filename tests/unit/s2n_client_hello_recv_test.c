@@ -16,7 +16,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"

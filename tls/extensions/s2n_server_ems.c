@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_ems.h"
 #include "tls/s2n_tls.h"

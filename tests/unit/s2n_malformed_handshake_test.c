@@ -14,12 +14,10 @@
  */
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -196,342 +194,186 @@ static uint8_t certificate_too_large[] = {
     0x00, 0x00, 0x10
 };
 
-void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len)
+/* Write a TLS record (header + payload) into a stuffer */
+int write_record(struct s2n_stuffer *in, uint8_t content_type,
+        const uint8_t *payload, uint32_t payload_len)
 {
-    uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (server_hello_len >> 8), server_hello_len & 0xff };
+    uint8_t record_header[5] = { content_type, 0x03, 0x03, (payload_len >> 8), payload_len & 0xff };
+    POSIX_GUARD(s2n_stuffer_write_bytes(in, record_header, 5));
+    POSIX_GUARD(s2n_stuffer_write_bytes(in, payload, payload_len));
+    return S2N_SUCCESS;
+}
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
+/* Write server_hello + a certificate message as separate records */
+int send_messages(struct s2n_stuffer *in, uint8_t *server_hello,
+        uint32_t server_hello_len, uint8_t *cert, uint32_t cert_len)
+{
+    POSIX_GUARD(write_record(in, TLS_HANDSHAKE, server_hello, server_hello_len));
+    POSIX_GUARD(write_record(in, TLS_HANDSHAKE, cert, cert_len));
+    return S2N_SUCCESS;
+}
 
-    if (write(write_fd, server_hello, server_hello_len) != server_hello_len) {
-        _exit(100);
-    }
+/* Set up a fresh client connection ready to receive a ServerHello */
+int setup_conn(struct s2n_connection *conn, struct s2n_config *config,
+        struct s2n_stuffer *in)
+{
+    POSIX_GUARD(s2n_connection_set_config(conn, config));
+    POSIX_GUARD(s2n_connection_set_recv_io_stuffer(in, conn));
+    POSIX_GUARD(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
-    record_header[3] = (server_cert_len >> 8);
-    record_header[4] = server_cert_len & 0xff;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+    conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-
-    if (write(write_fd, server_cert, server_cert_len) != server_cert_len) {
-        _exit(100);
-    }
-
-    /* Close the pipe and exit */
-    close(write_fd);
+    return S2N_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status = 0;
-    pid_t pid = 0;
-    int p[2];
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Test a good certificate list */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), good_certificate_list,
+                sizeof(good_certificate_list)));
 
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
+        /* Verify that the data is as we expect it */
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
-
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), good_certificate_list, sizeof(good_certificate_list));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
-
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
-
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
-
-    /* Check that the server hello message was processed .. we should be HELLO DONE */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
+        /* Check that the server hello message was processed .. we should be HELLO DONE */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
+    };
 
     /* Test an empty certificate list */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), empty_certificate_list,
+                sizeof(empty_certificate_list)));
 
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
-
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), empty_certificate_list, sizeof(empty_certificate_list));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
-
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
-
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
-
-    /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
+        /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+    };
 
     /* Test an empty certificate */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), empty_certificate,
+                sizeof(empty_certificate)));
 
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
+        /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+    };
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
+    /* Test a 'too large' certificate list */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), empty_certificate, sizeof(empty_certificate));
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), certificate_list_too_large,
+                sizeof(certificate_list_too_large)));
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+        /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+    };
 
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
+    /* Test a 'too large' certificate */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-    /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), certificate_too_large,
+                sizeof(certificate_too_large)));
 
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* Test an 'too large' certificate list */
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
+        /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+    };
 
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    /* Test a 'too large' handshake */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
+        EXPECT_SUCCESS(setup_conn(conn, config, &in));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
+        EXPECT_SUCCESS(send_messages(&in, server_hello_message,
+                sizeof(server_hello_message), certificate_list_too_large,
+                sizeof(certificate_list_too_large)));
 
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
+        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
+                zero_to_thirty_one, 32);
 
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_list_too_large, sizeof(certificate_list_too_large));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
-
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
-
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
-
-    /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
-
-    /* Test an 'too large' certificate */
-
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
-
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
-
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
-
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_too_large, sizeof(certificate_too_large));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
-
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
-
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
-
-    /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
-
-    /* Test an 'too large' handshake */
-
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
-
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
-
-    /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    conn->handshake.message_number = SERVER_HELLO;
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
-
-        send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_list_too_large, sizeof(certificate_list_too_large));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
-        exit(0);
-    }
-
-    /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
-
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
-     * server doesn't delay its response and test finishes quickly. */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-    /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
-
-    /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
+        /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+    };
 
     END_TEST();
 }

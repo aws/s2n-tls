@@ -113,12 +113,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
     /* Send the client hello */
-    EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
-    EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
-    EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+    EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+    EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+    EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
 
     /* Send an alert from client to server */
-    EXPECT_EQUAL(write(io_pair.client, alert_record, sizeof(alert_record)), sizeof(alert_record));
+    EXPECT_EQUAL(s2n_test_send(io_pair.client, alert_record, sizeof(alert_record)), sizeof(alert_record));
 
     /* Close the client read/write end */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));

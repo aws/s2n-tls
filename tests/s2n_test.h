@@ -19,7 +19,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef _WIN32
+    #include <io.h>
+    #define setenv(name, value, overwrite) _putenv_s(name, value)
+    #define unsetenv(name) _putenv_s(name, "")
+    #ifdef _MSC_VER
+        /* MSVC prefixes POSIX-like functions with underscores. */
+        #define isatty _isatty
+        #define fileno _fileno
+    #endif
+#else
+    #include <unistd.h>
+#endif
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_alerts.h"

@@ -116,14 +116,7 @@ fn serialization() {
         let capabilities = case.required_capabilities();
         required_capability(&capabilities, || {
             let result = run_serialization_test(case);
-            // TODO: TLS 1.0 serialization is not currently supported.
-            // https://github.com/aws/s2n-tls/issues/5538
-            // Remove this special case once it is fixed.
-            if case.version == SslVersion::TLS1 {
-                assert!(result.is_err());
-            } else {
-                assert!(result.is_ok(), "{case:?} failed");
-            }
+            assert!(result.is_ok(), "{case:?}: expected success, got {result:?}",);
         });
     }
 }

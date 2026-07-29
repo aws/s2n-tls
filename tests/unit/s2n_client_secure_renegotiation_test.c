@@ -16,7 +16,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"
@@ -116,10 +115,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
-        EXPECT_EQUAL(write(io_pair.server, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -195,9 +194,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -288,10 +287,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
-        EXPECT_EQUAL(write(io_pair.server, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(s2n_test_send(io_pair.server, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
 
         /* Verify that we fail for non-empty renegotiated_connection */
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));

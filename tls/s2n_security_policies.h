@@ -203,6 +203,15 @@ extern const struct s2n_security_policy security_policy_20250429;
 extern const struct s2n_security_policy security_policy_20251013;
 extern const struct s2n_security_policy security_policy_20260219;
 extern const struct s2n_security_policy security_policy_20260220;
+extern const struct s2n_security_policy security_policy_20260513;
+extern const struct s2n_security_policy security_policy_20260520;
+extern const struct s2n_security_policy security_policy_20260520_gcm;
+extern const struct s2n_security_policy security_policy_20260521;
+extern const struct s2n_security_policy security_policy_20260521_gcm;
+extern const struct s2n_security_policy security_policy_20260522;
+extern const struct s2n_security_policy security_policy_20260522_gcm;
+extern const struct s2n_security_policy security_policy_20260523;
+extern const struct s2n_security_policy security_policy_20260523_gcm;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -298,6 +307,7 @@ bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_po
 bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
+const char *s2n_find_version_from_security_policy(const struct s2n_security_policy *security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
 S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,

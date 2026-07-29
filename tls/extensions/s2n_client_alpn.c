@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_alpn.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_protocol_preferences.h"
