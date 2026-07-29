@@ -29,8 +29,7 @@
 int s2n_record_parse_cbc(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -38,10 +37,7 @@ int s2n_record_parse_cbc(
 {
     struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size };
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
-
-    /* Add the header to the HMAC */
-    uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
-    POSIX_ENSURE_REF(header);
+    uint16_t encrypted_length = header->length;
 
     POSIX_ENSURE_LTE(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);
 
@@ -85,17 +81,16 @@ int s2n_record_parse_cbc(
     uint32_t out = 0;
     POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
     payload_length = out;
-    /* Update the MAC */
-    header[3] = (payload_length >> 8);
-    header[4] = payload_length & 0xff;
     POSIX_GUARD(s2n_hmac_reset(mac));
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        POSIX_GUARD(s2n_hmac_update(mac, header, 1));
-        POSIX_GUARD(s2n_hmac_update(mac, header + 3, 2));
+        POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, 1));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     } else {
-        POSIX_GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
+        POSIX_GUARD(s2n_hmac_update(mac, &header->content_type, sizeof(header->content_type)));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, header->version));
+        POSIX_GUARD(s2n_hmac_update_u16(mac, payload_length));
     }
 
     struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
@@ -110,7 +105,6 @@ int s2n_record_parse_cbc(
      * for reading the plaintext data.
      */
     POSIX_GUARD(s2n_stuffer_reread(&conn->in));
-    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version > S2N_TLS10) {

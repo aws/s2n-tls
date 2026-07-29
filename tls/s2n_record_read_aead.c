@@ -30,8 +30,7 @@
 int s2n_record_parse_aead(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -42,7 +41,7 @@ int s2n_record_parse_aead(
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
     struct s2n_blob en = { 0 };
-    POSIX_GUARD(s2n_blob_init(&en, s2n_stuffer_raw_read(&conn->in, encrypted_length), encrypted_length));
+    POSIX_GUARD(s2n_blob_init(&en, s2n_stuffer_raw_read(&conn->in, header->length), header->length));
     POSIX_ENSURE_REF(en.data);
     /* In AEAD mode, the explicit IV is in the record */
     POSIX_ENSURE_GTE(en.size, cipher_suite->record_alg->cipher->io.aead.record_iv_size);
@@ -79,7 +78,7 @@ int s2n_record_parse_aead(
     /* Set the IV size to the amount of data written */
     iv.size = s2n_stuffer_data_available(&iv_stuffer);
 
-    uint16_t payload_length = encrypted_length;
+    uint16_t payload_length = header->length;
     /* remove the AEAD overhead from the record size */
     POSIX_ENSURE_GTE(payload_length, cipher_suite->record_alg->cipher->io.aead.record_iv_size + cipher_suite->record_alg->cipher->io.aead.tag_size);
     payload_length -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
@@ -88,7 +87,7 @@ int s2n_record_parse_aead(
     if (is_tls13_record) {
         POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(payload_length, cipher_suite->record_alg->cipher->io.aead.tag_size, &aad));
     } else {
-        POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &aad));
+        POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, header->content_type, payload_length, &aad));
     }
 
     /* Decrypt stuff! */
@@ -108,7 +107,6 @@ int s2n_record_parse_aead(
      * for reading the plaintext data.
      */
     POSIX_GUARD(s2n_stuffer_reread(&conn->in));
-    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version >= S2N_TLS12) {

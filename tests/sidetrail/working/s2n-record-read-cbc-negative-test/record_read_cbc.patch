@@ -1,5 +1,5 @@
 diff --git a/tls/s2n_record_read_cbc.c b/tls/s2n_record_read_cbc.c
-index 346e6571..0f2527e9 100644
+index 0d6944246..patched 100644
 --- a/tls/s2n_record_read_cbc.c
 +++ b/tls/s2n_record_read_cbc.c
 @@ -26,6 +26,8 @@
@@ -11,7 +11,7 @@ index 346e6571..0f2527e9 100644
  int s2n_record_parse_cbc(
          const struct s2n_cipher_suite *cipher_suite,
          struct s2n_connection *conn,
-@@ -82,6 +84,8 @@ int s2n_record_parse_cbc(
+@@ -79,6 +81,8 @@ int s2n_record_parse_cbc(
  
      /* Subtract the padding length */
      POSIX_ENSURE_GT(en.size, 0);
@@ -20,7 +20,7 @@ index 346e6571..0f2527e9 100644
      uint32_t out = 0;
      POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
      payload_length = out;
-@@ -103,6 +107,7 @@ int s2n_record_parse_cbc(
+@@ -99,6 +103,7 @@ int s2n_record_parse_cbc(
  
      /* Padding. This finalizes the provided HMAC. */
      if (s2n_verify_cbc(conn, mac, &en) < 0) {
