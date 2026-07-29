@@ -602,8 +602,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_psk_parameters_init(&conn->psk_params));
     conn->server_keying_material_lifetime = ONE_WEEK_IN_SEC;
 
-    /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
+    /* Require all handshakes hashes. This set can be reduced as the handshake progresses.
+     * s2n_connection_zero already reset required_hash_algs_narrowed, but reset it
+     * explicitly to keep the invariant local: a wiped connection requires all
+     * hashes and has not yet narrowed them. Renegotiation wipes the connection,
+     * so renegotiated handshakes re-narrow at their first transcript update. */
     POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
+    conn->handshake.required_hash_algs_narrowed = 0;
 
     if (conn->mode == S2N_SERVER) {
         /* Start with the highest protocol version so that the highest common protocol version can be selected */

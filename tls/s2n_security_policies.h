@@ -98,6 +98,11 @@ struct s2n_security_policy_selection {
     unsigned ecc_extension_required : 1;
     unsigned pq_kem_extension_required : 1;
     unsigned supports_tls13 : 1;
+    /* Pre-computed set of hash algorithms the policy could require for the
+     * handshake transcript before cipher suite negotiation completes.
+     * Indexed by s2n_hash_algorithm; 1 = required.
+     */
+    uint8_t required_hash_algs[S2N_HASH_ALGS_COUNT];
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
@@ -263,6 +268,8 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
 const char *s2n_find_version_from_security_policy(const struct s2n_security_policy *security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
+S2N_RESULT s2n_security_policy_get_required_hash_algs(const struct s2n_security_policy *security_policy,
+        uint8_t out[S2N_HASH_ALGS_COUNT]);
 S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
         const char **version);
 /* Checks to see if a certificate has a signature algorithm that's in our 
