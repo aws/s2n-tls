@@ -19,6 +19,13 @@ impl Connection {
     }
 }
 
+pub fn reunite(read_half: ReadHalf, write_half: WriteHalf) -> Option<Connection> {
+    // First we drop one of the halves. Then we can use the into_inner function
+    // to return the inner Connection since there is only one reference left.
+    drop(read_half);
+    Arc::into_inner(write_half.conn)
+}
+
 // Be very careful about expanding functionality for the Read/Write halves. Note that the only
 // thread-safety guarantee that the s2n-tls C library advertises is the ability to send and recv
 // on separate threads. Adding extra Connection functions that mutate the connection needs to be
@@ -72,6 +79,7 @@ impl Deref for WriteHalf {
 #[cfg(test)]
 mod tests {
     use crate::{
+        connection::split::reunite,
         error::Error,
         security,
         testing::{build_config, TestPair},
@@ -125,6 +133,7 @@ mod tests {
         });
         let send = thread::spawn(move || {
             assert!(write.poll_send(&client_data).is_ready());
+            assert!(write.poll_shutdown_send().is_ready());
         });
         assert!(send.join().is_ok());
         assert!(recv.join().is_ok());
@@ -161,10 +170,7 @@ mod tests {
             while client_recv_buffer.len() != server_data.len() {
                 let uninit = client_recv_buffer.spare_capacity_mut();
                 let size = match read.poll_recv_uninitialized(uninit) {
-                    Poll::Ready(res) => match res {
-                        Ok(size) => size,
-                        Err(_) => 0,
-                    },
+                    Poll::Ready(res) => res.unwrap_or_default(),
                     Poll::Pending => 0,
                 };
                 assert_ne!(size, 0);
@@ -215,5 +221,62 @@ mod tests {
         let mut buf = [0; 1024 * 1024];
         rand_bytes(&mut buf).unwrap();
         send_and_recv_uninitialized(&buf)
+    }
+
+    /// Verify that a client connection can be split into halves, used, then
+    /// reunited back into a single Connection that remains usable for IO.
+    #[test]
+    pub fn split_reunite_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let pre_reunite_msg = b"hello from split halves";
+        let post_reunite_msg = b"hello from reunited connection";
+
+        /* Initial handshake */
+        let config = build_config(&security::DEFAULT).unwrap();
+        let mut test_pair = TestPair::from_config(&config);
+        assert!(test_pair.handshake().is_ok());
+
+        /* Split the client, exchange data via the halves, then reunite */
+        let (mut read, mut write) = test_pair.client.split();
+
+        // client -> server via the write half
+        assert!(write.poll_send(pre_reunite_msg).is_ready());
+        let mut server_recv_buffer = vec![0; pre_reunite_msg.len()];
+        receive(
+            |buf| test_pair.server.poll_recv(buf),
+            server_recv_buffer.clone(),
+            pre_reunite_msg.to_vec(),
+        );
+
+        // server -> client via the read half
+        assert!(test_pair.server.poll_send(pre_reunite_msg).is_ready());
+        let client_recv_buffer = vec![0; pre_reunite_msg.len()];
+        receive(
+            |buf| read.poll_recv(buf),
+            client_recv_buffer,
+            pre_reunite_msg.to_vec(),
+        );
+
+        // Reunite the two halves back into a single Connection.
+        let mut client = reunite(read, write).expect("Only two references exist to the Connection");
+
+        /* The reunited connection should still be usable for both send and recv,
+         * proving that the underlying s2n-tls connection state was preserved. */
+        assert!(client.poll_send(post_reunite_msg).is_ready());
+        server_recv_buffer.resize(post_reunite_msg.len(), 0);
+        receive(
+            |buf| test_pair.server.poll_recv(buf),
+            server_recv_buffer,
+            post_reunite_msg.to_vec(),
+        );
+
+        assert!(test_pair.server.poll_send(post_reunite_msg).is_ready());
+        let client_recv_buffer = vec![0; post_reunite_msg.len()];
+        receive(
+            |buf| client.poll_recv(buf),
+            client_recv_buffer,
+            post_reunite_msg.to_vec(),
+        );
+
+        Ok(())
     }
 }

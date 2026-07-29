@@ -37,7 +37,7 @@ use std::{
 
 mod builder;
 pub use builder::*;
-mod split;
+pub mod split;
 
 /// return a &str scoped to the lifetime of the surrounding function
 ///
