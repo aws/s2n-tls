@@ -254,14 +254,10 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
      *# TLSPlaintext record.  In other words, a record with an Alert type
      *# MUST contain exactly one message.
      *
-     * The entire record is available in conn->in when using the standard
-     * record layer, so if it's not exactly 2 bytes then this is incorrect
-     * behavior from the peer. With kTLS, the kernel handles record framing
-     * and partial reads are possible, so we cannot enforce this check.
+     * An alert message is exactly 2 bytes (level + description), so any other
+     * size indicates a malformed record from the peer.
      */
-    S2N_ERROR_IF(!conn->ktls_recv_enabled
-                    && s2n_stuffer_data_available(&conn->in) != 2,
-            S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 2, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) == 2, S2N_ERR_ALERT_PRESENT);
     POSIX_ENSURE(s2n_alerts_supported(conn), S2N_ERR_BAD_MESSAGE);
 
