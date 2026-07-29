@@ -58,10 +58,27 @@
  *# greater than 255 octets.
  */
 #define S2N_TLS13_ENCRYPTION_OVERHEAD_SIZE 255
+
+/**
+ * Return the record length (record header + encrypted stuff) for some plaintext
+ * data of `frag` length
+ */
 #define S2N_TLS13_MAX_RECORD_LEN_FOR(frag) ((frag) + S2N_TLS_CONTENT_TYPE_LENGTH \
         + S2N_TLS13_ENCRYPTION_OVERHEAD_SIZE                                     \
         + S2N_TLS_RECORD_HEADER_LENGTH)
 #define S2N_TLS13_MAXIMUM_RECORD_LENGTH S2N_TLS13_MAX_RECORD_LEN_FOR(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH)
+
+/**
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
+ *# length:  The length (in bytes) of the following
+ *#    TLSCiphertext.encrypted_record, which is the sum of the lengths of
+ *#    the content and the padding, plus one for the inner content type,
+ *#    plus any expansion added by the AEAD algorithm.  The length
+ *#    MUST NOT exceed 2^14 + 256 bytes.  An endpoint that receives a
+ *#    record that exceeds this length MUST terminate the connection with
+ *#    a "record_overflow" alert.
+ */
+#define S2N_TLS13_MAX_RECORD_PAYLOAD_LENGTH ((1 << 14) + 256)
 
 /* Currently, TLS1.2 records may be larger than TLS1.3 records.
  * If the protocol is unknown, assume TLS1.2.

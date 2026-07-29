@@ -211,7 +211,9 @@ S2N_RESULT s2n_record_protocol_version(struct s2n_connection *conn, uint8_t reco
         record_protocol_version = S2N_TLS10;
     }
 
-    *out = (record_protocol_version / 10 << 8) | record_protocol_version % 10;
+    uint16_t major_version = record_protocol_version / 10;
+    uint16_t minor_version = record_protocol_version % 10;
+    *out = (major_version << 8) | minor_version;
 
     return S2N_RESULT_OK;
 }

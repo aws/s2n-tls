@@ -58,6 +58,7 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequenc
  */
 S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header *header, struct s2n_blob *additional_data)
 {
+    RESULT_ENSURE_REF(header);
     RESULT_ENSURE_REF(additional_data);
     RESULT_ENSURE_GTE(additional_data->size, S2N_TLS13_AAD_LEN);
 
@@ -102,7 +103,7 @@ S2N_RESULT s2n_tls13_aead_aad_init(struct s2n_record_header *header, struct s2n_
      *#    record that exceeds this length MUST terminate the connection with
      *#    a "record_overflow" alert.
      */
-    RESULT_ENSURE(header->length <= (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
+    RESULT_ENSURE(header->length <= S2N_TLS13_MAX_RECORD_PAYLOAD_LENGTH, S2N_ERR_RECORD_LIMIT);
     data[idx++] = header->length >> 8;
     data[idx++] = header->length & UINT8_MAX;
 
