@@ -15,7 +15,12 @@ use s2n_tls::{
 };
 use std::task::Poll;
 
-fn tamper_bit(record: &mut [u8], bit_index: usize) -> bool {
+/// The version field of plaintext record headers is not protected by MACs or
+/// transcript hashes
+///
+/// This function parses the record headers to check if bit_index is a version
+/// field in a plaintext record header.
+fn bit_is_unprotected(record: &mut [u8], bit_index: usize) -> bool {
     /// https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-5
     const APPLICATION_DATA: u8 = 23;
 
@@ -44,15 +49,15 @@ fn tamper_bit(record: &mut [u8], bit_index: usize) -> bool {
     }
 
     let byte_index = bit_index / 8;
+    unprotected_bytes.contains(&byte_index)
+}
+
+fn flip_bit(record: &mut [u8], bit_index: usize) {
+    let byte_index = bit_index / 8;
     let bit_index = bit_index % 8;
 
-    if unprotected_bytes.contains(&byte_index) {
-        false
-    } else {
-        let byte_to_mutate = record.get_mut(byte_index).unwrap();
-        *byte_to_mutate ^= 1 << bit_index;
-        true
-    }
+    let byte_to_mutate = record.get_mut(byte_index).unwrap();
+    *byte_to_mutate ^= 1 << bit_index;
 }
 
 /// Perform a handshake, returning the handshake transcript size and negotiated version
@@ -75,7 +80,7 @@ fn negotiation_check(config: &config::Config) -> (usize, Version) {
     (transcript, pair.server.actual_protocol_version().unwrap())
 }
 
-fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Result<(), S2NError> {
+fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Option<Result<(), S2NError>> {
     let mut mutated = false;
     let mut transcript_bits = 0;
     let mut poll_count = 0;
@@ -86,7 +91,7 @@ fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Result<(), S2N
             // we consider this as error -> we (correctly) fail to handshake.
             // We might return pending if e.g. an attacker flips a bit on the
             // record header length, making s2n-tls think that more data is coming
-            return Err(S2NError::application("multiple poll pending".into()));
+            return Some(Err(S2NError::application("multiple poll pending".into())));
         }
 
         let mut both_ready = true;
@@ -96,23 +101,20 @@ fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Result<(), S2N
         ] {
             let poll = peer.poll_negotiate();
             if let Poll::Ready(Err(e)) = poll {
-                return Err(e);
+                return Some(Err(e));
             }
 
             let written_bits = buffer.borrow().len() * 8;
             if transcript_bits + written_bits > bit && !mutated {
                 // the bit index into the current payload
                 let record_bit_index = bit - transcript_bits;
-
                 let mut guard = buffer.borrow_mut();
                 let buffer = guard.make_contiguous();
-                if !tamper_bit(buffer, record_bit_index) {
-                    // This bit is in an unprotected region, skip it
-                    return Err(S2NError::application(
-                        "success: skipping unprotected bit".into(),
-                    ));
-                }
 
+                if bit_is_unprotected(buffer, record_bit_index) {
+                    return None;
+                }
+                flip_bit(buffer, record_bit_index);
                 mutated = true;
             }
             transcript_bits += written_bits;
@@ -121,25 +123,27 @@ fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Result<(), S2N
         }
 
         if both_ready {
-            return Ok(());
+            return Some(Ok(()));
         }
     }
 }
 
 /// Assert that flipping any single bit in an encrypted record is rejected.
 fn assert_all_mutations_rejected(config: &config::Config) {
-    // Verify the unmodified record decrypts successfully.
     let (length, _) = negotiation_check(config);
 
     for bit_index in 0..(length * 8) {
         let mut pair = TestPair::from_config(config);
         let result = handshake_with_flipped_bit(&mut pair, bit_index);
         match result {
-            Ok(()) => {
+            None => {
+                // this bit was unprotected, no handshake
+            }
+            Some(Ok(())) => {
                 // Handshake succeeded despite the bit flip
                 panic!("bit flip at {bit_index} did not fail");
             }
-            Err(_) => {
+            Some(Err(_)) => {
                 // Handshake failed as expected
             }
         }
@@ -148,6 +152,8 @@ fn assert_all_mutations_rejected(config: &config::Config) {
 
 /// Build a config using a self-signed RSA 2048 certificate generated via rcgen.
 fn build_config(policy: &Policy) -> Result<config::Config, S2NError> {
+    // use a small, self signed cert to keep the transcript small. This matters
+    // because these tests flip each bit of the transcript.
     let key_pair = KeyPair::generate_for(&PKCS_RSA_SHA256).unwrap();
     let cert = CertificateParams::default().self_signed(&key_pair).unwrap();
 
@@ -168,8 +174,8 @@ fn build_config(policy: &Policy) -> Result<config::Config, S2NError> {
 fn tls13() {
     required_capability(&[Capability::Tls13], || {
         let config = build_config(&Policy::from_version("default_tls13").unwrap()).unwrap();
-        let (length_a, _) = negotiation_check(&config);
-        let (length_b, version) = negotiation_check(&config);
+        let (length_a, version) = negotiation_check(&config);
+        let (length_b, _) = negotiation_check(&config);
         assert_eq!(length_a, length_b);
         assert_eq!(version, Version::TLS13);
 
@@ -181,8 +187,8 @@ fn tls13() {
 fn tls12() {
     let config = build_config(&Policy::from_version("test_all_tls12").unwrap()).unwrap();
 
-    let (length_a, _) = negotiation_check(&config);
-    let (length_b, version) = negotiation_check(&config);
+    let (length_a, version) = negotiation_check(&config);
+    let (length_b, _) = negotiation_check(&config);
     assert_eq!(length_a, length_b);
     assert_eq!(version, Version::TLS12);
 
