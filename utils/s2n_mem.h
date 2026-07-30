@@ -25,9 +25,12 @@ uint32_t s2n_mem_get_page_size(void);
 int s2n_mem_cleanup(void);
 
 /*
- * Generally, s2n_realloc is preferred over s2n_alloc. This is because calling
- * s2n_alloc on a blob that already has memory allocated will leak memory.
-*/
+ * s2n_alloc allocates a new buffer of the requested size. If the blob
+ * already holds an allocation, it is freed first.
+ *
+ * s2n_realloc is preferred when growing an existing blob, as it may
+ * reuse the buffer without a new allocation.
+ */
 int S2N_RESULT_MUST_USE s2n_alloc(struct s2n_blob *b, uint32_t size);
 int S2N_RESULT_MUST_USE s2n_realloc(struct s2n_blob *b, uint32_t size);
 int s2n_free(struct s2n_blob *b);

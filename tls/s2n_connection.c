@@ -1598,6 +1598,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
         POSIX_ENSURE_REF(new_node);
+        *new_node = (struct s2n_cert){ 0 };
 
         new_node->next = NULL;
         *insert = new_node;

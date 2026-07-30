@@ -29,7 +29,7 @@ void s2n_stuffer_free_harness()
     nondet_s2n_mem_init();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     const bool old_alloced = stuffer ? stuffer->alloced : false;
-    struct s2n_blob old_blob;
+    struct s2n_blob old_blob = { 0 };
     old_blob.data = stuffer ? stuffer->blob.data : NULL;
     old_blob.growable = stuffer ? stuffer->blob.growable : NULL;
 
