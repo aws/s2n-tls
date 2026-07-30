@@ -25,19 +25,18 @@
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
-/* clang-format off */
 /* TLS 1.3 cipher suites, in order of preference.
  * Can be added to other ciphers suite lists to enable
  * TLS1.3 compatibility. */
-#define S2N_TLS13_CIPHER_SUITES_20190801 \
-    &s2n_tls13_aes_256_gcm_sha384,       \
-    &s2n_tls13_aes_128_gcm_sha256,       \
-    &s2n_tls13_chacha20_poly1305_sha256
+#define S2N_TLS13_CIPHER_SUITES_20190801   \
+    &s2n_tls13_aes_256_gcm_sha384,         \
+            &s2n_tls13_aes_128_gcm_sha256, \
+            &s2n_tls13_chacha20_poly1305_sha256
 
 #define S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716 \
-    &s2n_tls13_aes_128_gcm_sha256,       \
-    &s2n_tls13_aes_256_gcm_sha384,       \
-    &s2n_tls13_chacha20_poly1305_sha256
+    &s2n_tls13_aes_128_gcm_sha256,                  \
+            &s2n_tls13_aes_256_gcm_sha384,          \
+            &s2n_tls13_chacha20_poly1305_sha256
 
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
@@ -1070,6 +1069,516 @@ const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_2021_06 =
     .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext2_2021_06,
 };
 
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_backend_2016_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_backend_2016_08 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_backend_2016_08),
+    .suites = cipher_suites_elb_security_policy_backend_2016_08,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_sslv3_2013_12[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_ecdhe_rsa_with_rc4_128_sha,
+    &s2n_rsa_with_rc4_128_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_sslv3_2013_12 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_sslv3_2013_12),
+    .suites = cipher_suites_elb_security_policy_sslv3_2013_12,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_Res_2017_01[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls_1_1_Res_2017_01 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls_1_1_Res_2017_01),
+    .suites = cipher_suites_elb_security_policy_tls_1_1_Res_2017_01,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2020_10[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2020_10 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_Res_2020_10),
+    .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2020_10,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_intb_2021_04[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_intb_2021_04 = {
+    .count = s2n_array_len(cipher_suites_intb_2021_04),
+    .suites = cipher_suites_intb_2021_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_intb_2021_04_gcm[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_intb_2021_04_gcm = {
+    .count = s2n_array_len(cipher_suites_intb_2021_04_gcm),
+    .suites = cipher_suites_intb_2021_04_gcm,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_0_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_0_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_0_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_0_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_1_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_1_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_1_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_1_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Res_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Res_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Res_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Res_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext1_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext1_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Ext1_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext1_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_3_2021_06[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_2021_06 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_3_2021_06),
+    .suites = cipher_suites_elb_security_policy_tls13_1_3_2021_06,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_0_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_0_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_0_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_0_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_1_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_1_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_1_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_1_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Res_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Res_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Res_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Res_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_FIPS_2023_04 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04),
+    .suites = cipher_suites_elb_security_policy_tls13_1_3_FIPS_2023_04,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_tls13_1_3_RFC9151_fips_2023_07[] = {
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_3_RFC9151_FIPS_2023_07 = {
+    .count = s2n_array_len(cipher_suites_elb_tls13_1_3_RFC9151_fips_2023_07),
+    .suites = cipher_suites_elb_tls13_1_3_RFC9151_fips_2023_07,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_tls13_1_2_RFC9151_fips_2023_07[] = {
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_RFC9151_FIPS_2023_07 = {
+    .count = s2n_array_len(cipher_suites_elb_tls13_1_2_RFC9151_fips_2023_07),
+    .suites = cipher_suites_elb_tls13_1_2_RFC9151_fips_2023_07,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_tls13_1_2_Ext0_RFC9151_fips_2023_07[] = {
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext0_RFC9151_FIPS_2023_07 = {
+    .count = s2n_array_len(cipher_suites_elb_tls13_1_2_Ext0_RFC9151_fips_2023_07),
+    .suites = cipher_suites_elb_tls13_1_2_Ext0_RFC9151_fips_2023_07,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls12_1_2_RFC9151_2024_01[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls12_1_2_RFC9151_2024_01 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls12_1_2_RFC9151_2024_01),
+    .suites = cipher_suites_elb_security_policy_tls12_1_2_RFC9151_2024_01,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01),
+    .suites = cipher_suites_elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20170816_healthcheck[] = {
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170816_healthcheck = {
+    .count = s2n_array_len(cipher_suites_20170816_healthcheck),
+    .suites = cipher_suites_20170816_healthcheck,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_kms_tls_1_2_2023_07[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_2_2023_07 = {
+    .count = s2n_array_len(cipher_suites_kms_tls_1_2_2023_07),
+    .suites = cipher_suites_kms_tls_1_2_2023_07,
+    .allow_chacha20_boosting = false,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -1758,7 +2267,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .allow_chacha20_boosting = false,
 };
 
-
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2021_08[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -1778,7 +2286,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2021_08 = {
     .suites = cipher_suites_kms_tls_1_0_2021_08,
     .allow_chacha20_boosting = false,
 };
-
 
 struct s2n_cipher_suite *cipher_suites_20231213[] = {
     &s2n_tls13_aes_128_gcm_sha256,
@@ -1816,8 +2323,8 @@ struct s2n_cipher_suite *cipher_suites_20231214[] = {
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20231214 = {
-        .count = s2n_array_len(cipher_suites_20231214),
-        .suites = cipher_suites_20231214,
+    .count = s2n_array_len(cipher_suites_20231214),
+    .suites = cipher_suites_20231214,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
