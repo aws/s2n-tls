@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.6-be81a87e</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.6-f08e2f3a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -1628,6 +1628,7 @@ Safety</h1>
 <li>Can only be called once. Any subsequent calls will produce a <span class="tt"><a class="el" href="#a41f8ab66d28ce2f33fa8dbf858c0ac44a0d2eba6e7ff752e54c0aa004fd53f176">S2N_ERR_T_USAGE</a></span> error.</li>
 <li>Safe to call from inside <a class="el" href="#a2ecb6a187e25469c3fd108a873da1cce">s2n_async_pkey_fn</a></li>
 <li>Safe to call from a different thread, as long as no other thread is operating on <span class="tt">op</span>.</li>
+<li>MUST NOT be called concurrently with <span class="tt"><a class="el" href="#ad3222e7aacf35a56be842678171be440">s2n_negotiate</a></span>, <span class="tt"><a class="el" href="#a9afeb514731fa9d74edf6b9e1348c067">s2n_send</a></span>, or <span class="tt"><a class="el" href="#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></span> on the same <span class="tt">conn</span>. <span class="tt"><a class="el" href="#a410b7982584c24d60d25012322e38594">s2n_async_pkey_op_apply</a></span> mutates connection state that those methods also access, and s2n-tls does not synchronize access to a single <span class="tt">s2n_connection</span>.</li>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
