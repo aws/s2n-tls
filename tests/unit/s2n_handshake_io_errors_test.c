@@ -111,7 +111,18 @@ int main(int argc, char **argv)
         /* Set up encryption on the server */
         EXPECT_OK(s2n_connection_set_secrets(server_conn));
 
-        /* Read the ClientHello */
+        /* Rewrite the record header to look like a valid TLS 1.3 encrypted
+         * record (APPLICATION_DATA, version 0x0303) so that the AAD is
+         * correctly constructed. The payload is still the unencrypted
+         * ClientHello, so AEAD decryption will fail. */
+        uint32_t record_size = s2n_stuffer_data_available(&io_stuffer);
+        EXPECT_TRUE(record_size > S2N_TLS_RECORD_HEADER_LENGTH);
+        uint8_t *wire = io_stuffer.blob.data + io_stuffer.read_cursor;
+        wire[0] = TLS_APPLICATION_DATA;
+        wire[1] = 0x03;
+        wire[2] = 0x03;
+
+        /* Read the record — decryption should fail */
         EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO),
                 S2N_ERR_DECRYPT);
 

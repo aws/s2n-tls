@@ -253,6 +253,18 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
     return s2n_hash_update(&state->inner, in, size);
 }
 
+/**
+ * A wrapper around s2n_hmac_update that can be used to write a u16 in network order
+ * to the hmac 
+ */
+int s2n_hmac_update_u16(struct s2n_hmac_state *state, const uint16_t data)
+{
+    uint8_t network_order[2] = { 0 };
+    network_order[0] = data >> 8;
+    network_order[1] = data & 0xFF;
+    return s2n_hmac_update(state, &network_order, 2);
+}
+
 int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_hmac_state_validate(state));
