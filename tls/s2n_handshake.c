@@ -179,6 +179,14 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
             POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
             break;
         }
+        default:
+            /* actual_protocol_version is a uint8_t, not an enum, so -Wswitch
+             * cannot enforce exhaustiveness. Fail closed: an unknown version
+             * must not silently skip setting the PRF hash requirement. This path
+             * is currently unreachable (the handshake sets the version to one of
+             * the five known values), but serves as defense-in-depth against
+             * internal state corruption. */
+            POSIX_BAIL(S2N_ERR_SAFETY);
     }
 
     return S2N_SUCCESS;
