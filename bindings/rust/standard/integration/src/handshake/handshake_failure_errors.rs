@@ -327,11 +327,17 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
 
-    // Neither peer reached the terminal handshake state, so both must
-    // report the handshake as incomplete, not complete-but-failed.
-    assert!(!pair.client().connection().handshake_complete());
+    // The server is the side that detects and rejects the incompatible cert,
+    // so it can never reach the terminal handshake state.
+    //
+    // Note: for TLS 1.3, the client sends its entire final flight (Certificate,
+    // CertificateVerify, Finished) without waiting on the server, so the client
+    // may locally reach its own terminal handshake state before the server has
+    // had a chance to validate and reject the certificate. This mirrors the
+    // documented TLS-1.3-specific behavior in s2n_handshake_complete_test.c, so
+    // we don't assert on the client's handshake_complete() here.
     assert!(!pair.server().connection().handshake_complete());
-    
+
     Ok(())
 }
 
