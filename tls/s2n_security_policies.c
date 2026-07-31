@@ -1371,6 +1371,7 @@ const struct s2n_security_policy security_policy_20260720 = {
     .cipher_preferences = &cipher_preferences_20250211,
     .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
     .signature_preferences = &s2n_signature_preferences_20260220,
+    .certificate_signature_preferences = &s2n_signature_preferences_20260722,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
@@ -1378,12 +1379,13 @@ const struct s2n_security_policy security_policy_20260720 = {
     },
 };
 
-/* Remove cert signature preferences from 20260220 */
+/* 20260220 with expanded cert signature preferences */
 const struct s2n_security_policy security_policy_20260721 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20260220,
     .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
     .signature_preferences = &s2n_signature_preferences_20260220,
+    .certificate_signature_preferences = &s2n_signature_preferences_20260722,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
