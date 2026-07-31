@@ -24,6 +24,7 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
+/* clang-format off */
 
 /* TLS 1.3 cipher suites, in order of preference.
  * Can be added to other ciphers suite lists to enable
