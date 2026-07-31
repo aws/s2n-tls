@@ -54,7 +54,7 @@ int s2n_record_parse_composite(
     /* In the decrypt case, this outputs the MAC digest length:
      * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
     int mac_size = 0;
-    POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, header->content_type, conn->actual_protocol_version, payload_length, &mac_size));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, header->content_type, header->version, payload_length, &mac_size));
 
     POSIX_ENSURE_GTE(payload_length, mac_size);
     payload_length -= mac_size;
