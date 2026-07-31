@@ -1,8 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Verify that any bit-flip mutation in an encrypted TLS application data
-//! record causes decryption to fail.
+//! Verify that any bit-flip in protected handshake content results in a handshake
+//! failure.
 
 use crate::capability_check::{required_capability, Capability};
 use rcgen::{CertificateParams, KeyPair, PKCS_RSA_SHA256};
