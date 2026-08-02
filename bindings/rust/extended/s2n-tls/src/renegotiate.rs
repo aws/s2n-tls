@@ -318,6 +318,38 @@ impl Connection {
         result
     }
 
+    /// Encrypts and sends multiple buffers of data on a connection where
+    /// [negotiate](`Self::poll_negotiate`) has succeeded, avoiding the need
+    /// to copy the buffers into contiguous memory first.
+    ///
+    /// Returns the number of bytes written, and may indicate a partial write.
+    /// After a partial write, the next call should not pass the same `bufs`
+    /// again, but should instead advance past the `n` bytes already written,
+    /// like [`std::io::IoSlice::advance_slices`].
+    ///
+    /// Not available on Windows: [`std::io::IoSlice`] is only guaranteed to be
+    /// ABI compatible with `iovec` on Unix platforms.
+    ///
+    /// Corresponds to [`s2n_sendv`].
+    #[cfg(not(windows))]
+    pub fn poll_sendv(&mut self, bufs: &[std::io::IoSlice<'_>]) -> Poll<Result<usize, Error>> {
+        if self.is_renegotiating() {
+            return Ready(Err(Error::bindings(
+                ErrorType::Blocked,
+                "RenegotiateError",
+                "Cannot send application data while renegotiating",
+            )));
+        }
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let count: isize = bufs.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        // Safety: std::io::IoSlice is guaranteed to be ABI compatible with
+        // iovec on Unix platforms.
+        let bufs_ptr = bufs.as_ptr() as *const libc::iovec;
+        let result = unsafe { s2n_sendv(self.as_ptr(), bufs_ptr, count, &mut blocked) }.into_poll();
+        self.renegotiate_state_mut().send_pending = result.is_pending();
+        result
+    }
+
     pub(crate) fn poll_recv_raw(
         &mut self,
         buf_ptr: *mut libc::c_void,
@@ -967,6 +999,32 @@ mod tests {
 
         // Calls to poll_send now fail
         let error = unwrap_poll(pair.client.poll_send(&[0; 1])).unwrap_err();
+        assert_eq!(error.kind(), ErrorType::Blocked);
+        assert!(error.message().contains(RENEG_ERR_MARKER));
+        assert!(error.message().contains("send application data"));
+        assert!(pair.client.is_renegotiating());
+
+        Ok(())
+    }
+
+    // poll_sendv is not currently supported during renegotiation
+    #[cfg(not(windows))]
+    #[test]
+    fn scheduled_renegotiate_with_poll_sendv() -> Result<(), Box<dyn Error>> {
+        let mut builder = config::Builder::new();
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
+        let mut pair = RenegotiateTestPair::from(builder)?;
+        pair.handshake().expect("Initial handshake");
+
+        // Read the hello request and start renegotiation
+        pair.send_renegotiate_request()
+            .expect("server HELLO_REQUEST");
+        assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
+        assert!(pair.client.is_renegotiating());
+
+        // Calls to poll_sendv now fail
+        let bufs = [std::io::IoSlice::new(&[0; 1])];
+        let error = unwrap_poll(pair.client.poll_sendv(&bufs)).unwrap_err();
         assert_eq!(error.kind(), ErrorType::Blocked);
         assert!(error.message().contains(RENEG_ERR_MARKER));
         assert!(error.message().contains("send application data"));

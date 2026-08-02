@@ -419,6 +419,26 @@ where
             .map_err(io::Error::from)
     }
 
+    #[cfg(not(target_os = "windows"))]
+    fn poll_write_vectored(
+        self: Pin<&mut Self>,
+        ctx: &mut Context<'_>,
+        bufs: &[io::IoSlice<'_>],
+    ) -> Poll<io::Result<usize>> {
+        let tls = self.get_mut();
+        tls.with_io(ctx, |mut context| context.conn.as_mut().poll_sendv(bufs))
+            .map_err(io::Error::from)
+    }
+
+    /// Indicates that [`TlsStream`] has an efficient implementation of
+    /// [`AsyncWrite::poll_write_vectored`]: the TLS layer consumes the
+    /// buffers directly when constructing records, without an extra copy
+    /// into contiguous memory.
+    #[cfg(not(target_os = "windows"))]
+    fn is_write_vectored(&self) -> bool {
+        true
+    }
+
     fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
 
