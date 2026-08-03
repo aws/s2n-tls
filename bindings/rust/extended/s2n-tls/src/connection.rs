@@ -133,6 +133,13 @@ impl Connection {
 
         let mut connection = Self { connection };
         connection.init_context();
+
+        // Default to maximum record size (16kB) to match the behavior of other
+        // TLS libraries (rustls, openssl). The C library defaults to 8KB for
+        // historical reasons related to compatibility tradeoffs, but modern
+        // usage should leverage the efficiency gains of 16kB records.
+        connection.prefer_throughput().unwrap();
+
         connection
     }
 
