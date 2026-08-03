@@ -128,6 +128,114 @@ async fn send_error() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))]
+#[tokio::test]
+async fn send_and_recv_vectored() -> Result<(), Box<dyn std::error::Error>> {
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let connector = TlsConnector::new(common::client_config()?.build()?);
+    let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (mut client, mut server) =
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
+
+    {
+        use tokio::io::AsyncWrite;
+        assert!(client.is_write_vectored());
+    }
+
+    let bufs = [
+        io::IoSlice::new(b"hello "),
+        io::IoSlice::new(b""),
+        io::IoSlice::new(b"vectored "),
+        io::IoSlice::new(b"world"),
+    ];
+    let expected: Vec<u8> = bufs.iter().flat_map(|buf| buf.iter().copied()).collect();
+
+    let written = client.write_vectored(&bufs).await?;
+    assert_eq!(written, expected.len());
+
+    let mut received = vec![0; expected.len()];
+    server.read_exact(&mut received).await?;
+    assert_eq!(expected, received);
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tokio::test]
+async fn send_and_recv_vectored_multiple_records() -> Result<(), Box<dyn std::error::Error>> {
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let connector = TlsConnector::new(common::client_config()?.build()?);
+    let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (mut client, mut server) =
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
+
+    // Send a payload larger than the maximum TLS record payload (2^14 bytes),
+    // split across multiple buffers, to ensure multiple records and exercise
+    // partial writes.
+    let expected = LARGE_TEST_DATA;
+    let mut received = vec![0; expected.len()];
+
+    let write_all_vectored = async {
+        let mut written = 0;
+        while written < expected.len() {
+            let remaining = &expected[written..];
+            let mid = remaining.len().div_ceil(2);
+            let (first, second) = remaining.split_at(mid);
+            // On a partial write, resume by advancing past the bytes
+            // already written rather than repeating the same buffers.
+            let bufs = [io::IoSlice::new(first), io::IoSlice::new(second)];
+            written += client.write_vectored(&bufs).await?;
+        }
+        Ok::<_, io::Error>(())
+    };
+
+    let (_, read_size) = tokio::try_join!(write_all_vectored, server.read_exact(&mut received))?;
+    assert_eq!(expected.len(), read_size);
+    assert_eq!(expected, received);
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tokio::test]
+async fn send_vectored_blocked_then_retry() -> Result<(), Box<dyn std::error::Error>> {
+    let client = TlsConnector::new(common::client_config()?.build()?);
+    let server = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let client_stream = common::TestStream::new(client_stream);
+    let overrides = client_stream.overrides();
+    let (mut client, mut server) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    // Setup the underlying stream to block on the next write
+    overrides.next_write(Some(Box::new(|_, ctx, _| {
+        ctx.waker().wake_by_ref();
+        Pending
+    })));
+
+    let bufs = [
+        io::IoSlice::new(b"blocked "),
+        io::IoSlice::new(b"then retried"),
+    ];
+    let expected: Vec<u8> = bufs.iter().flat_map(|buf| buf.iter().copied()).collect();
+
+    // The first write blocks, so the future retries with the same buffers
+    // once the underlying stream is writable again.
+    let written = client.write_vectored(&bufs).await?;
+    assert_eq!(written, expected.len());
+
+    let mut received = vec![0; expected.len()];
+    server.read_exact(&mut received).await?;
+    assert_eq!(expected, received);
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn recv_error() -> Result<(), Box<dyn std::error::Error>> {
     let client = TlsConnector::new(common::client_config()?.build()?);

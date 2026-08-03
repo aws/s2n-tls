@@ -667,6 +667,29 @@ impl Connection {
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
+    /// Encrypts and sends multiple buffers of data on a connection where
+    /// [negotiate](`Self::poll_negotiate`) has succeeded, avoiding the need
+    /// to copy the buffers into contiguous memory first.
+    ///
+    /// Returns the number of bytes written, and may indicate a partial write.
+    /// After a partial write, the next call should not pass the same `bufs`
+    /// again, but should instead advance past the `n` bytes already written,
+    /// like [`std::io::IoSlice::advance_slices`].
+    ///
+    /// Not available on Windows: [`std::io::IoSlice`] is only guaranteed to be
+    /// ABI compatible with `iovec` on Unix platforms.
+    ///
+    /// Corresponds to [`s2n_sendv`].
+    #[cfg(all(not(windows), not(feature = "unstable-renegotiate")))]
+    pub fn poll_sendv(&mut self, bufs: &[std::io::IoSlice<'_>]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let count: isize = bufs.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        // Safety: std::io::IoSlice is guaranteed to be ABI compatible with
+        // iovec on Unix platforms.
+        let bufs_ptr = bufs.as_ptr() as *const ::libc::iovec;
+        unsafe { s2n_sendv(self.connection.as_ptr(), bufs_ptr, count, &mut blocked).into_poll() }
+    }
+
     #[cfg(not(feature = "unstable-renegotiate"))]
     pub(crate) fn poll_recv_raw(
         &mut self,
@@ -1911,6 +1934,86 @@ mod tests {
             assert_eq!(test_pair.client.signature_scheme(), None);
             assert_eq!(test_pair.server.signature_scheme(), None);
         }
+        Ok(())
+    }
+
+    /// Test that poll_sendv sends data from multiple non-contiguous buffers,
+    /// and that the peer receives the concatenation of all the buffers.
+    #[cfg(not(windows))]
+    #[test]
+    fn poll_sendv_multiple_buffers() -> Result<(), Box<dyn std::error::Error>> {
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+
+        let bufs = [
+            std::io::IoSlice::new(b"hello "),
+            std::io::IoSlice::new(b""),
+            std::io::IoSlice::new(b"vectored "),
+            std::io::IoSlice::new(b"world"),
+        ];
+        let expected: Vec<u8> = bufs.iter().flat_map(|buf| buf.iter().copied()).collect();
+
+        match pair.server.poll_sendv(&bufs) {
+            Poll::Ready(Ok(written)) => assert_eq!(written, expected.len()),
+            other => panic!("unexpected poll_sendv result: {other:?}"),
+        }
+
+        let mut received = vec![0; expected.len()];
+        let mut total_read = 0;
+        while total_read < expected.len() {
+            match pair.client.poll_recv(&mut received[total_read..]) {
+                Poll::Ready(Ok(read)) => {
+                    assert_ne!(read, 0, "unexpected EOF");
+                    total_read += read;
+                }
+                other => panic!("unexpected poll_recv result: {other:?}"),
+            }
+        }
+        assert_eq!(received, expected);
+        Ok(())
+    }
+
+    /// Test that a blocked poll_sendv returns Pending, and that retrying
+    /// with the same buffers succeeds once IO is unblocked.
+    #[cfg(not(windows))]
+    #[test]
+    fn poll_sendv_blocked_then_retry() -> Result<(), Box<dyn std::error::Error>> {
+        unsafe extern "C" fn blocking_send_cb(
+            _: *mut libc::c_void,
+            _: *const u8,
+            _: u32,
+        ) -> libc::c_int {
+            crate::testing::set_io_would_block();
+            -1
+        }
+
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+
+        let bufs = [std::io::IoSlice::new(b"foo"), std::io::IoSlice::new(b"bar")];
+        let expected: Vec<u8> = bufs.iter().flat_map(|buf| buf.iter().copied()).collect();
+
+        // Block the server's sends. No bytes are acknowledged, so the
+        // send must return Pending.
+        pair.server.set_send_callback(Some(blocking_send_cb))?;
+        assert!(pair.server.poll_sendv(&bufs).is_pending());
+
+        // Unblock the server's sends. Retrying with the same buffers
+        // must send all the data.
+        pair.server.set_send_callback(Some(TestPair::send_cb))?;
+        match pair.server.poll_sendv(&bufs) {
+            Poll::Ready(Ok(written)) => assert_eq!(written, expected.len()),
+            other => panic!("unexpected poll_sendv result: {other:?}"),
+        }
+
+        let mut received = vec![0; expected.len()];
+        match pair.client.poll_recv(&mut received) {
+            Poll::Ready(Ok(read)) => assert_eq!(read, expected.len()),
+            other => panic!("unexpected poll_recv result: {other:?}"),
+        }
+        assert_eq!(received, expected);
         Ok(())
     }
 }
