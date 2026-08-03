@@ -45,7 +45,19 @@ int main(int argc, char **argv)
         POSIX_ENSURE_REF(security_policy->kem_preferences);
 
         /* Strongly preferred groups are now allowed to coexist with PQ preferences.
-         * PQ negotiation takes priority over strongly preferred ECC groups. */
+         * PQ negotiation takes priority over strongly preferred ECC groups.
+         * However, the strongly preferred list itself must only contain ECC curves,
+         * not PQ groups. */
+        for (size_t i = 0; i < security_policy->strongly_preferred_groups->count; i++) {
+            const struct s2n_kem_group *kem_group = NULL;
+            bool found_kem_group = false;
+            EXPECT_SUCCESS(s2n_find_kem_group_from_iana_id(
+                    security_policy->strongly_preferred_groups->iana_ids[i], &kem_group, &found_kem_group));
+            if (found_kem_group) {
+                fprintf(stderr, "Error with Security Policy: %s\n", policy_name);
+                FAIL_MSG("Strongly preferred groups must not contain PQ KEM groups.");
+            }
+        }
 
         POSIX_ENSURE_REF(security_policy->ecc_preferences);
         for (size_t i = 0; i < security_policy->ecc_preferences->count; i++) {
