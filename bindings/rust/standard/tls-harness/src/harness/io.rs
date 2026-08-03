@@ -261,12 +261,11 @@ mod tests {
             // prior to 2026-08-03, s2n-tls defaulted to records that were half the
             // size of rustls and openssl.
             //
-            // The C bindings still default to that smaller size, but the rust 
+            // The C bindings still default to that smaller size, but the rust
             // bindings now match our peer behavior, getting the efficiency benefits
             // of larger records and fewer write calls.
             assert_eq!(S2N_RECORD_DEFAULT, OPENSSL_RECORD_DEFAULT);
             assert_eq!(S2N_RECORD_DEFAULT, RUSTLS_RECORD_DEFAULT);
-
         }
     }
 }
