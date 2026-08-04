@@ -660,6 +660,8 @@ impl Connection {
     ///
     /// Corresponds to [`s2n_send`].
     #[cfg(not(feature = "unstable-renegotiate"))]
+    // don't show the renegotiate config in docs.rs, this method has the same signature and docs regardless of that cfg.
+    #[cfg_attr(docsrs, doc(cfg(true)))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
