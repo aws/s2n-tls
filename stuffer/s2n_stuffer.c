@@ -213,6 +213,9 @@ int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
     return S2N_SUCCESS;
 }
 
+/**
+ * wipe the last `size` bytes of previously written data
+ */
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));

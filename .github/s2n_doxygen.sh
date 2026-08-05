@@ -14,13 +14,12 @@
 #
 set -eu
 
-export DOXYGEN_VERSION="doxygen-1.9.5"
+export DOXYGEN_VERSION="doxygen-1.17.0"
 curl -L "https://www.doxygen.nl/files/$DOXYGEN_VERSION.linux.bin.tar.gz" -o "$DOXYGEN_VERSION.tar.gz"
 tar -xvf "$DOXYGEN_VERSION.tar.gz"
 
 # Pull in git tags
 git fetch origin --tags
-curl https://raw.githubusercontent.com/jothepro/doxygen-awesome-css/main/doxygen-awesome.css -o docs/doxygen/doxygen-awesome.css
 
 # Add a version to the Doxygen documentation
 # For example: v1.3.13-3b413f18
@@ -30,13 +29,13 @@ sed -i "s/PROJECT_NUMBER_PLACEHOLDER/$DOC_VERSION/" docs/doxygen/Doxyfile
 
 # We want to examine stderr for warnings
 # Ignore doxygen warnings from using the README.md as the mainpage
-WARNING=$($DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile 2>&1 | grep -i "warning" | grep -vi "readme" )
-WARNING_COUNT=$($WARNING | wc -l)
+# || true is necessary, because if there are no remaining warnings, grep -vi would
+# otherwise return 1/failure
+WARNING=$($DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile 2>&1 | grep -i "warning" | grep -vi "readme" || true)
 
-if [ $WARNING_COUNT -ne 0 ]; then
-    echo $WARNING
+if [ -n "$WARNING" ]; then
+    echo "$WARNING"
     exit 1
 else
     exit 0
 fi
-

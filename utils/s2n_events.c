@@ -15,6 +15,7 @@
 
 #include "utils/s2n_events.h"
 
+#include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 
@@ -64,5 +65,32 @@ S2N_RESULT s2n_event_handshake_send(struct s2n_connection *conn, struct s2n_even
 
     conn->config->on_handshake_event(conn, conn->config->subscriber, event);
     event->handshake_start_ns = HANDSHAKE_EVENT_SENT;
+    return S2N_RESULT_OK;
+}
+
+/**
+ * Emit a per-message timing checkpoint.
+ *
+ * No-op if no callback is registered or config is NULL.
+ */
+S2N_RESULT s2n_event_checkpoint_send(struct s2n_connection *conn, const char *name, uint8_t role)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(name);
+
+    if (conn->config == NULL || conn->config->on_timing_checkpoint_cb == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    uint64_t timestamp_ns = 0;
+    RESULT_GUARD_POSIX(s2n_default_monotonic_clock(NULL, &timestamp_ns));
+
+    struct s2n_timing_checkpoint checkpoint = {
+        .name = name,
+        .role = role,
+        .timestamp_ns = timestamp_ns,
+    };
+
+    conn->config->on_timing_checkpoint_cb(conn, conn->config->subscriber, &checkpoint);
     return S2N_RESULT_OK;
 }

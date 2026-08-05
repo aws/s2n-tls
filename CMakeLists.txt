@@ -334,13 +334,20 @@ function(feature_probe PROBE_NAME)
     file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.flags" PROBE_FILE)
     string(REPLACE "\n" "" PROBE_FLAGS "${PROBE_FILE}")
 
+    # On macOS, NO_SYSTEM_FROM_IMPORTED forces imported target (aws-lc) includes
+    # to use -I instead of -isystem, so they outrank the baked-in /usr/local/include.
+    set(PROBE_CMAKE_FLAGS ${ADDITIONAL_FLAGS})
+    if (APPLE)
+        list(APPEND PROBE_CMAKE_FLAGS "-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON")
+    endif()
+
     # Try to compile the probe with the given flags
     try_compile(
         IS_AVAILABLE
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
-        CMAKE_FLAGS ${ADDITIONAL_FLAGS}
+        CMAKE_FLAGS ${PROBE_CMAKE_FLAGS}
         COMPILE_DEFINITIONS -I "${CMAKE_CURRENT_LIST_DIR}" -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
@@ -479,6 +486,13 @@ else()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
+# On macOS x64, XCode's Clang has -I/usr/local/include baked in, which can
+# shadow libcrypto headers from imported targets (propagated with -isystem).
+# Force -I for imported target includes so aws-lc headers take priority.
+if (APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS})
 if (NOT WIN32)
     # On Windows, math functions are part of the C runtime; no separate libm exists.
@@ -610,24 +624,13 @@ if (BUILD_TESTING)
 
             # Tests that use fork()
             s2n_examples_test
-            s2n_fragmentation_coalescing_test
-            s2n_handshake_test
             s2n_init_test
             s2n_io_test
             s2n_key_update_threads_test
-            s2n_malformed_handshake_test
-            s2n_mem_allocator_test
             s2n_random_test
-            s2n_release_non_empty_buffers_test
-            s2n_self_talk_alerts_test
             s2n_self_talk_broken_pipe_test
             s2n_self_talk_client_hello_cb_test
-            s2n_self_talk_custom_io_test
-            s2n_self_talk_min_protocol_version_test
             s2n_self_talk_nonblocking_test
-            s2n_self_talk_session_id_test
-            s2n_self_talk_tls12_test
-            s2n_self_talk_tls13_test
         )
         foreach(excluded ${S2N_WINDOWS_EXCLUDE_TESTS})
             list(REMOVE_ITEM UNITTESTS_SRC

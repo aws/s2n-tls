@@ -1335,6 +1335,7 @@ const struct s2n_security_policy security_policy_20251117 = {
     .strongly_preferred_groups = &cnsa_1_strong_preference,
 };
 
+/* strict CNSA 2.0 policy */
 const struct s2n_security_policy security_policy_20260219 = {
     .minimum_protocol_version = S2N_TLS13,
     .cipher_preferences = &cipher_preferences_20250211,
@@ -1350,12 +1351,66 @@ const struct s2n_security_policy security_policy_20260219 = {
     },
 };
 
+/* CNSA 1.0 - 2.0 interop policy */
 const struct s2n_security_policy security_policy_20260220 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20260220,
     .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
     .signature_preferences = &s2n_signature_preferences_20260220,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20260220,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+/* TLS 1.3 only CNSA2 interop policy: remove TLS 1.2 ciphers from 20260721 */
+const struct s2n_security_policy security_policy_20260720 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_20250211,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
+    .signature_preferences = &s2n_signature_preferences_20260220,
+    .certificate_signature_preferences = &s2n_signature_preferences_20260722,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+/* 20260220 with expanded cert signature preferences */
+const struct s2n_security_policy security_policy_20260721 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20260220,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
+    .signature_preferences = &s2n_signature_preferences_20260220,
+    .certificate_signature_preferences = &s2n_signature_preferences_20260722,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+/* CNSA2 interop: add MLKEM1024 and ML-DSA-87 to 20251115 */
+const struct s2n_security_policy security_policy_20260722 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20251115,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
+    .signature_preferences = &s2n_signature_preferences_20260722,
+    .certificate_signature_preferences = &s2n_signature_preferences_20260722,
+    .ecc_preferences = &s2n_ecc_preferences_20251113,
+    .strongly_preferred_groups = &cnsa_1_strong_preference,
+};
+
+/* 20250414 with pure MLKEM1024 and ML-DSA-87 added, interoperable with CNSA 2.0 */
+const struct s2n_security_policy security_policy_20260513 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &cipher_preferences_20250211,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_cnsa2_2026_02,
+    .signature_preferences = &s2n_signature_preferences_20260513,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20260514,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
@@ -1556,6 +1611,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "ELBSecurityPolicy-FS-1-2-2019-08", .security_policy = &security_policy_elb_fs_1_2_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-FS-1-1-2019-08", .security_policy = &security_policy_elb_fs_1_1_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy = &security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-3-CNSA2-INTEROP1-FIPS-PQ-2026-07", .security_policy = &security_policy_20260720, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP2-FIPS-PQ-2026-07", .security_policy = &security_policy_20260721, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP3-FIPS-PQ-2026-07", .security_policy = &security_policy_20260722, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream", .security_policy = &security_policy_cloudfront_upstream, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-0", .security_policy = &security_policy_cloudfront_upstream_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-1", .security_policy = &security_policy_cloudfront_upstream_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1675,6 +1733,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20251116", .security_policy = &security_policy_20251116, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* the same as 20251114, but without any SHA1 HMAC ciphers */
     { .version = "20251117", .security_policy = &security_policy_20251117, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260219", .security_policy = &security_policy_20260219, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260220", .security_policy = &security_policy_20260220, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260513", .security_policy = &security_policy_20260513, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260520", .security_policy = &security_policy_20260520, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260520_gcm", .security_policy = &security_policy_20260520_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260521", .security_policy = &security_policy_20260521, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1683,6 +1744,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20260522_gcm", .security_policy = &security_policy_20260522_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260523", .security_policy = &security_policy_20260523, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20260523_gcm", .security_policy = &security_policy_20260523_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260720", .security_policy = &security_policy_20260720, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20260722", .security_policy = &security_policy_20260722, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* If changing this, please update the usage guide's docs on the corresponding policy. */
     { .version = "rfc9151", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "cnsa_1", .security_policy = &security_policy_20251013, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

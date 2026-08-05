@@ -1,6 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+// The dhat global allocator below recurses during process startup on Windows,
+// overflowing the main thread's stack before any test runs. This
+// profiling test is therefore limited to non-Windows targets.
+#![cfg(not(target_os = "windows"))]
+
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 #[cfg(not(feature = "no-sensitive-tests"))]

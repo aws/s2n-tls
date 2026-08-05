@@ -55,6 +55,5 @@ int s2n_socket_write_cork(struct s2n_connection *conn);
 int s2n_socket_write_uncork(struct s2n_connection *conn);
 int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len);
 int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len);
-int s2n_socket_is_ipv6(int fd, uint8_t *ipv6);
 
 #endif

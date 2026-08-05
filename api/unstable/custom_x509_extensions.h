@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file custom_x509_extensions.h
  *
@@ -51,3 +55,7 @@
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_config_add_custom_x509_extension(struct s2n_config *config, uint8_t *extension_oid, uint32_t extension_oid_len);
+
+#ifdef __cplusplus
+}
+#endif

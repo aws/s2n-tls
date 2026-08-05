@@ -1,20 +1,21 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import pytest
 import copy
 import os
 
+import pytest
+
+from common import Protocols, ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
     S2N_TEST_POLICIES,
+    available_ports,
 )
-from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from providers import S2N, OpenSSL, Provider
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 S2N_RESUMPTION_MARKER = to_bytes("Resumed session")
 CLOSE_MARKER_BYTES = data_bytes(10)

@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
@@ -994,7 +995,56 @@ int main(int argc, char **argv)
 
                 /* 20250211 > 20250414 (with p-384 cert only) */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250211, "20250414", ecdsa_sha384_chain_and_key));
+
+                /* 20250414 > 20260513 (with either p-256 or p-384 cert) */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha384_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20250414, "20260513", ecdsa_sha256_chain_and_key));
             };
+
+            /* 20260513 */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                /* 20260513 supports ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
+
+                /* Mixed cert chain (e.g. P-256 root → ML-DSA-87 leaf) should also work with 20260513 */
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *p256_mldsa87_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_mldsa87_chain,
+                        "../pems/mixed_chains/p256_root_mldsa87_leaf/server-chain.pem",
+                        "../pems/mixed_chains/p256_root_mldsa87_leaf/server-key.pem"));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", p256_mldsa87_chain));
+
+                /* 20260513 > 20260220 (CNSA 2.0 interop) with either ML-DSA-87 or p-384 cert */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", ecdsa_sha384_chain_and_key));
+
+                /* 20260513 > 20260219 (CNSA 2.0 strict) with ML-DSA-87 cert only */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", mldsa87_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            }
+
+            /* ELB CNSA 2.0 interop policies */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+                /* Handshake with each other using ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260720", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260722", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260722, "20260720", mldsa87_chain_and_key));
+
+                /* CNSA2-INTEROP1 can only negotiate TLS 1.3, not TLS 1.2 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251014, "20260720", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20240501, "20260720", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+                /* CNSA2-INTEROP3 can negotiate with RFC9151 interop4 using p-384 cert, but not ML-DSA-87 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", mldsa87_chain_and_key),
+                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            }
         };
     };
 

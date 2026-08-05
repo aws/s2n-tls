@@ -6,11 +6,14 @@
 //! These tests exercise deserialization of `MetricRecord`, field access,
 //! counter slot layout, and round-trip serialization.
 
-use std::time::SystemTime;
+use std::{borrow::Cow, collections::HashSet, time::SystemTime};
 
-use s2n_tls_metrics_schema::static_lists::{
-    CIPHER_COUNT, Cipher, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT,
-    Signature, Version,
+use s2n_tls_metrics_schema::{
+    metric_names::{self as names, cert, negotiated, supported},
+    static_lists::{
+        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, Cipher, DEFINED_ALERTS_COUNT, FiniteCounter,
+        GROUP_COUNT, Group, PROTOCOL_COUNT, SIGNATURE_COUNT, Signature, Version,
+    },
 };
 
 fn sample_schema_record() -> s2n_tls_metrics_schema::record::MetricRecord {
@@ -292,5 +295,132 @@ fn empty_record_has_zero_slots() {
             .iter_non_zero()
             .count(),
         0
+    );
+}
+
+/// Mock writer that captures all metric names written by the Entry impl.
+struct NameCollector {
+    names: Vec<String>,
+}
+
+impl<'a> metrique_writer::EntryWriter<'a> for NameCollector {
+    fn timestamp(&mut self, _: SystemTime) {}
+
+    fn value(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+        _value: &(impl metrique_writer::Value + ?Sized),
+    ) {
+        self.names.push(name.into().into_owned());
+    }
+
+    fn config(&mut self, _: &'a dyn metrique_writer::EntryConfig) {}
+}
+
+/// Verifies that the metric names emitted by `FrozenHandshakeRecord::write()`
+/// exactly match the catalog defined in `metric_names`.
+#[test]
+fn entry_writes_match_metric_names_catalog() {
+    use metrique_writer::Entry;
+    use s2n_tls_metrics_schema::{
+        bounded_set::FrozenBoundedStringSet, counter::FrozenCounter, record::FrozenHandshakeRecord,
+    };
+
+    // Build a record with every counter slot populated so all names are emitted.
+    let record = FrozenHandshakeRecord {
+        handshake_success_count: 1,
+        handshake_failure_count: 1,
+        negotiated_protocols: FrozenCounter::from_slots([1; PROTOCOL_COUNT]),
+        negotiated_ciphers: FrozenCounter::from_slots([1; CIPHER_COUNT]),
+        negotiated_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
+        negotiated_signatures: FrozenCounter::from_slots([1; SIGNATURE_COUNT]),
+        supported_protocols: FrozenCounter::from_slots([1; PROTOCOL_COUNT]),
+        supported_ciphers: FrozenCounter::from_slots([1; CIPHER_COUNT]),
+        supported_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
+        supported_signatures: FrozenCounter::from_slots([1; SIGNATURE_COUNT]),
+        alerts: FrozenCounter::from_slots([1; DEFINED_ALERTS_COUNT]),
+        server_leaf_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        server_leaf_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        server_chain_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        server_chain_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        client_leaf_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        client_leaf_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        client_chain_cert_key: FrozenCounter::from_slots([1; CERT_KEY_COUNT]),
+        client_chain_cert_sig: FrozenCounter::from_slots([1; CERT_SIG_COUNT]),
+        server_cert_parsing_failure: 1,
+        client_cert_parsing_failure: 1,
+        security_policies: FrozenBoundedStringSet::Entries(
+            ["TestPolicy"].into_iter().map(String::from).collect(),
+        ),
+        compatibility_general20251201: 1,
+        compatibility_fips20251201: 1,
+        compatibility_cnsa1: 1,
+        compatibility_cnsa2: 1,
+        sslv2_client_hello: 1,
+        handshake_duration_us: 1,
+        handshake_compute_us: 1,
+        synthetic_traffic_count: 1,
+        ..Default::default()
+    };
+
+    let mut collector = NameCollector { names: Vec::new() };
+    record.write(&mut collector);
+
+    let emitted: HashSet<String> = collector.names.into_iter().collect();
+
+    // Build expected set from the metric_names catalog.
+    let mut expected: HashSet<String> = HashSet::new();
+    for group in negotiated::ALL.iter().chain(supported::ALL.iter()) {
+        for slot in 0..group.count {
+            expected.insert(group.metric_name(slot).to_string());
+        }
+    }
+    for slot in 0..names::ALERTS.count {
+        expected.insert(names::ALERTS.metric_name(slot).to_string());
+    }
+    let cert_groups: &[&names::CounterGroup] = &[
+        &cert::SERVER_LEAF_KEY,
+        &cert::SERVER_LEAF_SIG,
+        &cert::SERVER_CHAIN_KEY,
+        &cert::SERVER_CHAIN_SIG,
+        &cert::CLIENT_LEAF_KEY,
+        &cert::CLIENT_LEAF_SIG,
+        &cert::CLIENT_CHAIN_KEY,
+        &cert::CLIENT_CHAIN_SIG,
+    ];
+    for group in cert_groups {
+        for slot in 0..group.count {
+            expected.insert(group.metric_name(slot).to_string());
+        }
+    }
+    for &name in names::ALL_SCALARS {
+        expected.insert(name.to_string());
+    }
+    expected.insert(names::security_policy_name("TestPolicy"));
+
+    // Guard against a new counter group being added to `write()` without
+    // updating this test and the catalog. If both sides silently omit the new
+    // group the diff checks below pass vacuously — this count check does not.
+    let expected_count = PROTOCOL_COUNT * 2
+        + CIPHER_COUNT * 2
+        + GROUP_COUNT * 2
+        + SIGNATURE_COUNT * 2
+        + DEFINED_ALERTS_COUNT
+        + CERT_KEY_COUNT * 4
+        + CERT_SIG_COUNT * 4
+        + names::ALL_SCALARS.len()
+        + 1; // security_policies: 1 test policy entry
+    assert_eq!(
+        expected.len(),
+        expected_count,
+        "expected set size drifted — did you add a counter group to the catalog without updating this assertion?"
+    );
+
+    let missing: Vec<_> = expected.difference(&emitted).collect();
+    let extra: Vec<_> = emitted.difference(&expected).collect();
+
+    assert!(
+        missing.is_empty() && extra.is_empty(),
+        "metric_names catalog vs Entry impl mismatch.\n  Missing from Entry: {missing:?}\n  Extra in Entry: {extra:?}"
     );
 }
