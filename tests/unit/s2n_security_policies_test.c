@@ -1097,7 +1097,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_tls13",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
         };
 
         /* "default_fips" */
@@ -1137,7 +1136,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
         };
 
         /* "rfc9151" */

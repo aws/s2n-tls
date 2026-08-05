@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_policy_writer.h"
+
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_policy_writer.h"
 
 static S2N_RESULT s2n_verify_format_v1_output(const char *output)
 {
