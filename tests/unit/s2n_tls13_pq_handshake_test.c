@@ -17,10 +17,10 @@
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_policy_writer.h"
 #include "tls/s2n_security_policies.h"
 
 /* Include C file directly to access static functions */

@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "stuffer/s2n_stuffer.h"
-#include "tls/policy/s2n_policy_feature.h"
+#include "tls/s2n_policy_writer.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_security_rules.h"
 #include "utils/s2n_safety.h"
