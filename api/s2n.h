@@ -3492,6 +3492,11 @@ S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_con
  * terminal state, so this function returns false, not true. Callers
  * should rely on the return value of `s2n_negotiate()` to detect failure,
  * not on this function.
+ * 
+ * For a connection restored with `s2n_connection_deserialize()`, this always
+ * returns true, since deserialization does not replay or restore the
+ * handshake state machine itself: it only marks the connection as having
+ * completed a handshake prior to serialization.
  *
  * @param conn A pointer to the s2n_connection
  * @returns true if the handshake is complete, false if still in progress,

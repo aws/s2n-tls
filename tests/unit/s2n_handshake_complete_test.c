@@ -115,38 +115,36 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), false);
 
-        /* Drive the handshake one message at a time.
-        * We stop as soon as the server side reports its handshake done
-        * but BEFORE the client has had a chance to read the server's Finished.
-        * At that exact point the old "NEGOTIATED bit" logic would have returned
-        * true for the client; the new s2n_handshake_is_complete() path must return false.
-        */
+        /* Deterministically stop the client right before it consumes the
+         * server's Finished message, while letting the server run to
+         * completion. This avoids relying on a hand-pumped s2n_negotiate()
+         * loop, where the exact interleaving of client/server steps is not
+         * guaranteed and could mask this regression instead of catching it.
+         *
+         * s2n_negotiate_until_message() only performs a single I/O attempt
+         * per call and returns S2N_ERR_T_BLOCKED like s2n_negotiate() does,
+         * so we still have to pump it in a loop until the connection is
+         * actually blocked waiting to read SERVER_FINISHED (rather than
+         * blocked on a socket write it hasn't finished yet).
+         *
+         * Key assertion: client must NOT yet be complete even though
+         * the server has already finished sending its Finished message.
+         * The old buggy logic (handshake_type & NEGOTIATED) would
+         * return true here; the correct implementation must return false.
+         */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        bool server_done = false;
 
-        while (!server_done) {
-            int server_rc = s2n_negotiate(server_conn, &blocked);
-            if (server_rc == S2N_SUCCESS) {
-                server_done = true;
-            } else {
-                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-            }
-
-            /* Key assertion: client must NOT yet be complete even though
-            * the server just finished sending its Finished message.
-            * The old buggy logic (handshake_type & NEGOTIATED) would
-            * return true here; the correct implementation must return false. */
-            if (server_done) {
-                EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
-                EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false); /* <-- regression guard */
-            }
-
-            /* Pump client one step to consume what the server just wrote */
-            int client_rc = s2n_negotiate(client_conn, &blocked);
-            if (client_rc != S2N_SUCCESS) {
+        while (s2n_result_is_error(s2n_negotiate_until_message(client_conn, &blocked, SERVER_FINISHED))) {
+            EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            if (s2n_negotiate(server_conn, &blocked) != S2N_SUCCESS) {
                 EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
             }
         }
+
+
+        EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
+        EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false); /* <-- regression guard */
+
 
         /* Now drain the client fully */
         while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
@@ -185,29 +183,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), false);
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        bool server_done = false;
 
-        while (!server_done) {
-            int server_rc = s2n_negotiate(server_conn, &blocked);
-            if (server_rc == S2N_SUCCESS) {
-                server_done = true;
-            } else {
-                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-            }
-
-            if (server_done) {
-                /* Unlike TLS 1.2, TLS 1.3's message flow doesn't guarantee
-                 * the client is still incomplete at this exact point - so we
-                 * only assert what TLS 1.3 actually guarantees: the server
-                 * is done. */
-                EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
-            }
-
-            int client_rc = s2n_negotiate(client_conn, &blocked);
-            if (client_rc != S2N_SUCCESS) {
-                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-            }
+        /* Drive the server to completion. Unlike TLS 1.2, TLS 1.3's message
+         * flow doesn't guarantee the client is still incomplete once the
+         * server is done, so we don't assert on the client's state here -
+         * we only assert what TLS 1.3 actually guarantees: the server
+         * is done once s2n_negotiate() returns success for it.
+         */
+        while (s2n_negotiate(server_conn, &blocked) != S2N_SUCCESS) {
+            EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
         }
+        EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
 
         /* Drain client fully */
         while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
@@ -222,9 +208,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
 
-        /* Post-handshake: pump NST server→client and assert flag stays true */
-        s2n_negotiate(server_conn, &blocked);
-        s2n_negotiate(client_conn, &blocked);
+        /* Post-handshake: deterministically pump a NewSessionTicket from
+         * server to client, and confirm one was actually received rather
+         * than assuming the two bare s2n_negotiate() calls did something.
+         */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                SERVER_NEW_SESSION_TICKET));
+        EXPECT_TRUE(s2n_connection_get_session_ticket_lifetime_hint(client_conn) > 0);
+
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
