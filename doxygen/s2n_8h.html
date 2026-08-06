@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.7-c95664df</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.7-81829da6</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -7263,6 +7263,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p>Returns the validated peer certificate chain as a <span class="tt">s2n_cert_chain_and_key</span> opaque object.</p>
 <p>The <span class="tt">s2n_cert_chain_and_key</span> parameter must be allocated by the caller using the <span class="tt"><a class="el" href="#a3ba831685480db5b9be2ff1c4070008c">s2n_cert_chain_and_key_new</a></span> API prior to this function call and must be empty. To free the memory associated with the <span class="tt">s2n_cert_chain_and_key</span> object use the <span class="tt"><a class="el" href="#a7bfe337472559cc966e735604bc8090b">s2n_cert_chain_and_key_free</a></span> API.</p>
+<p>This will include the root CA, even if it was elided from the actual Certificate message.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object being read. </td></tr>
