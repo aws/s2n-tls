@@ -1966,10 +1966,8 @@ mod tests {
 
         // This should fail but NOT cause a use-after-free.
         let result = conn.set_config(bad_config);
-        assert!(
-            result.is_err(),
-            "set_config should fail with too many certs for client"
-        );
+        let err = result.unwrap_err();
+        assert_eq!(err.name(), "S2N_ERR_TOO_MANY_CERTIFICATES");
 
         // The connection should still be usable (no dangling pointer).
         // Dropping the connection exercises drop_config which would crash
