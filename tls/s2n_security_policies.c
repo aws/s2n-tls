@@ -1912,6 +1912,91 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     return S2N_SUCCESS;
 }
 
+/* Compute the hash algorithms that a security policy could require for the
+ * handshake transcript before cipher suite negotiation completes.
+ *
+ * Before the cipher suite and protocol version are negotiated, connections hedge
+ * by maintaining all transcript hashes. However, a security policy limits which
+ * hashes could actually be needed:
+ * - The TLS 1.0/1.1 PRF and legacy default signature schemes need MD5, SHA1,
+ *   and the combined MD5+SHA1 hash, but only if the policy allows < TLS 1.2.
+ * - The TLS 1.2/1.3 PRF hash is defined by the negotiated cipher suite, so any
+ *   cipher suite in the policy could contribute its PRF hash.
+ * - The TLS 1.2 CertificateVerify hash is defined by the negotiated signature
+ *   scheme, which is always chosen from the policy's signature preferences.
+ *   TLS 1.3 CertificateVerify uses the cipher suite's PRF hash instead, so
+ *   TLS 1.3-only signature schemes do not contribute additional hashes.
+ */
+static S2N_RESULT s2n_security_policy_compute_required_hash_algs(
+        const struct s2n_security_policy *policy, uint8_t required[S2N_HASH_ALGS_COUNT])
+{
+    RESULT_ENSURE_REF(policy);
+    RESULT_ENSURE_REF(required);
+
+    /* If the policy is missing information needed to narrow the required hashes,
+     * fall back to requiring all hashes. Policies set via the public API are
+     * validated to include signature preferences, but tests may construct
+     * incomplete policies.
+     */
+    if (policy->cipher_preferences == NULL || policy->cipher_preferences->suites == NULL
+            || policy->signature_preferences == NULL
+            || policy->signature_preferences->signature_schemes == NULL) {
+        memset(required, 1, S2N_HASH_ALGS_COUNT);
+        return S2N_RESULT_OK;
+    }
+
+    memset(required, 0, S2N_HASH_ALGS_COUNT);
+
+    /* The TLS 1.0/1.1 PRF requires both MD5 and SHA1, and the legacy default
+     * signature schemes require SHA1 or the combined MD5+SHA1 hash. */
+    if (policy->minimum_protocol_version < S2N_TLS12) {
+        required[S2N_HASH_MD5] = 1;
+        required[S2N_HASH_SHA1] = 1;
+        required[S2N_HASH_MD5_SHA1] = 1;
+    }
+
+    for (size_t i = 0; i < policy->cipher_preferences->count; i++) {
+        const struct s2n_cipher_suite *cipher = policy->cipher_preferences->suites[i];
+        RESULT_ENSURE_REF(cipher);
+        s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
+        RESULT_GUARD_POSIX(s2n_hmac_hash_alg(cipher->prf_alg, &hash_alg));
+        RESULT_ENSURE_LT(hash_alg, S2N_HASH_ALGS_COUNT);
+        required[hash_alg] = 1;
+    }
+
+    for (size_t i = 0; i < policy->signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *scheme = policy->signature_preferences->signature_schemes[i];
+        RESULT_ENSURE_REF(scheme);
+        /* TLS 1.3 CertificateVerify signs the cipher suite's PRF hash, already
+         * accounted for above, so TLS 1.3-only schemes are skipped. */
+        if (scheme->minimum_protocol_version >= S2N_TLS13) {
+            continue;
+        }
+        RESULT_ENSURE_LT(scheme->hash_alg, S2N_HASH_ALGS_COUNT);
+        required[scheme->hash_alg] = 1;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_security_policy_get_required_hash_algs(const struct s2n_security_policy *security_policy,
+        uint8_t out[S2N_HASH_ALGS_COUNT])
+{
+    RESULT_ENSURE_REF(security_policy);
+    RESULT_ENSURE_REF(out);
+
+    for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+        if (security_policy_selection[i].security_policy == security_policy) {
+            RESULT_CHECKED_MEMCPY(out, security_policy_selection[i].required_hash_algs, S2N_HASH_ALGS_COUNT);
+            return S2N_RESULT_OK;
+        }
+    }
+
+    /* If the policy is not in the official list, compute the result */
+    RESULT_GUARD(s2n_security_policy_compute_required_hash_algs(security_policy, out));
+    return S2N_RESULT_OK;
+}
+
 int s2n_security_policies_init()
 {
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
@@ -1966,6 +2051,9 @@ int s2n_security_policies_init()
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));
+
+        POSIX_GUARD_RESULT(s2n_security_policy_compute_required_hash_algs(security_policy,
+                security_policy_selection[i].required_hash_algs));
 
         /* Validate that security rules are correctly applied.
          * This should be checked by a unit test, but outside of unit tests we
