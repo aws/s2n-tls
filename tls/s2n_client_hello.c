@@ -752,7 +752,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     }
 
     /* Reserve space for size of the list of available ciphers */
-    struct s2n_stuffer_reservation available_cipher_suites_size;
+    struct s2n_stuffer_reservation available_cipher_suites_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &available_cipher_suites_size));
 
     /* Now, write the IANA values of every available cipher suite in our list */
