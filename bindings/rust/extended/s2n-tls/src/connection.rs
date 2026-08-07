@@ -133,12 +133,10 @@ impl Connection {
 
         let mut connection = Self { connection };
         connection.init_context();
-
-        // Default to maximum record size (16kB) to match the behavior of other
-        // TLS libraries (rustls, openssl). The C library defaults to 8KB for
-        // historical reasons related to compatibility tradeoffs, but modern
-        // usage should leverage the efficiency gains of 16kB records.
-        connection.prefer_throughput().unwrap();
+        // unwrap safety: setter methods may fail if the connection is in an
+        // invalid state or allocations fail. Those errors in a new connection
+        // indicate a fatal, unrecoverable state, so unwrapping is the right choice.
+        connection.set_binding_specific_defaults().unwrap();
 
         connection
     }
@@ -558,6 +556,7 @@ impl Connection {
         // A connection without a context is invalid and has undefined behavior.
         self.init_context();
         result?;
+        self.set_binding_specific_defaults()?;
 
         Ok(())
     }
@@ -1540,6 +1539,19 @@ impl Connection {
     pub(crate) fn renegotiate_state(&self) -> &RenegotiateState {
         &self.context().renegotiate_state
     }
+
+    /// This is a convenience method to configure defaults for the rust bindings.
+    ///
+    /// This helper function is useful because defaults must be set in both
+    /// [Connection::new] and [Connection::wipe].
+    fn set_binding_specific_defaults(&mut self) -> Result<(), Error> {
+        // Default to maximum record size (16kB) to match the behavior of other
+        // TLS libraries (rustls, openssl). The C library defaults to 8KB to balance
+        // latency & throughput. We expect to update the C library if this change
+        // goes well.
+        self.prefer_throughput()?;
+        Ok(())
+    }
 }
 
 struct Context {
@@ -1679,6 +1691,7 @@ mod tests {
         testing::{build_config, config_builder, LIFOSessionResumption, SniTestCerts, TestPair},
     };
     use std::{
+        collections::VecDeque,
         net::{IpAddr, Ipv4Addr, SocketAddr},
         time::SystemTime,
     };
@@ -1918,6 +1931,72 @@ mod tests {
             assert_eq!(test_pair.client.signature_scheme(), None);
             assert_eq!(test_pair.server.signature_scheme(), None);
         }
+        Ok(())
+    }
+
+    /// Reads the TLS record payload length from a record header in the buffer.
+    ///
+    /// TLS record header format:
+    /// ```
+    /// struct RecordHeader {
+    ///     content: u8,
+    ///     version: u16,
+    ///     length: u8
+    /// }
+    /// ```
+    fn read_record_length(buffer: &VecDeque<u8>) -> u16 {
+        let high = buffer[3] as u16;
+        let low = buffer[4] as u16;
+        (high << 8) | low
+    }
+
+    /// Confirm that the large (16KB) record size is used by both newly
+    /// created connections and wiped (reused) connections.
+    #[test]
+    fn max_record_size_configuration() -> Result<(), Box<dyn std::error::Error>> {
+        /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
+        /// > The length MUST NOT exceed 2^14 bytes.
+        const MAX_PAYLOAD_LEN: u16 = 1 << 14;
+        /// inner content type + GCM auth tag
+        const PAYLOAD_OVERHEAD: u16 = 1 + 16;
+        const MAX_TLS_RECORD_LEN: u16 = MAX_PAYLOAD_LEN + PAYLOAD_OVERHEAD;
+        let config = build_config(&security::DEFAULT_TLS13)?;
+
+        // A buffer large enough to fill a full record.
+        let send_data = vec![0u8; (MAX_TLS_RECORD_LEN + 100) as usize];
+
+        let new_conn_record_length = {
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
+            pair.io.server_tx_stream.borrow_mut().clear();
+
+            assert!(pair.server.poll_send(&send_data).is_ready());
+
+            let server_tx = pair.io.server_tx_stream.borrow();
+            read_record_length(&server_tx)
+        };
+        assert_eq!(new_conn_record_length, MAX_TLS_RECORD_LEN);
+
+        let wiped_conn_record_length = {
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
+
+            // Wipe both connections to simulate reuse
+            pair.server.wipe()?;
+            pair.server.set_config(config.clone())?;
+            pair.client.wipe()?;
+            pair.client.set_config(config.clone())?;
+
+            // Rebuild the TestPair with the wiped connections to re-register IO
+            let mut pair = TestPair::from_connections(pair.client, pair.server);
+            pair.handshake()?;
+            assert!(pair.server.poll_send(&send_data).is_ready());
+
+            let server_tx = pair.io.server_tx_stream.borrow();
+            read_record_length(&server_tx)
+        };
+        assert_eq!(wiped_conn_record_length, MAX_TLS_RECORD_LEN);
+
         Ok(())
     }
 }
