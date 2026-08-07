@@ -808,9 +808,14 @@ static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket
     struct s2n_blob salt = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&salt, NULL, 0));
 
+    /* The session-ticket key derivation uses its own local HMAC context rather
+     * than the per-connection prf_space key-schedule context. Session tickets
+     * are used by both TLS 1.2 and TLS 1.3 connections, and on a TLS 1.2
+     * connection this derivation interleaves with the TLS 1.2 PRF, which shares
+     * the prf_space union storage. Using a local context keeps the union
+     * invariant (only one protocol's scratch space is live at a time) intact.
+     * See aws/s2n-tls#3206. */
     DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
-    /* TODO: There may be an optimization here to reuse existing hmac memory instead of
-     * creating an entirely new hmac. See: https://github.com/aws/s2n-tls/issues/3206 */
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac));
     RESULT_GUARD_POSIX(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &key->initial_key, &info_blob, &out_key_blob));
 
