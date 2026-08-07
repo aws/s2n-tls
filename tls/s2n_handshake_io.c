@@ -1642,6 +1642,11 @@ bool s2n_handshake_is_complete(struct s2n_connection *conn)
     return conn && (ACTIVE_STATE(conn).writer == 'B' || conn->deserialized_conn);
 }
 
+bool s2n_connection_handshake_complete(struct s2n_connection *conn)
+{
+    return s2n_handshake_is_complete(conn);
+}
+
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);

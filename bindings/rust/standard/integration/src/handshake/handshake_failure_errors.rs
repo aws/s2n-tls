@@ -49,6 +49,11 @@ fn no_protocols_in_common() {
             s2n_error.message(),
             "TLS protocol version is not supported by configuration"
         );
+        // `s2n_connection_handshake_complete()` tracks whether the handshake
+        // state machine has reached its terminal state. A failed negotiation
+        // errors out of the state machine before that point, so this must
+        // report `false`, not `true`.
+        assert!(!pair.server().connection().handshake_complete());
     });
 }
 
@@ -270,6 +275,17 @@ fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
 
+    // The server is the side that detects and rejects the incompatible cert,
+    // so it can never reach the terminal handshake state.
+    //
+    // Note: for TLS 1.3, the client sends its entire final flight (Certificate,
+    // CertificateVerify, Finished) without waiting on the server, so the client
+    // may locally reach its own terminal handshake state before the server has
+    // had a chance to validate and reject the certificate. This mirrors the
+    // documented TLS-1.3-specific behavior in s2n_handshake_complete_test.c, so
+    // we don't assert on the client's handshake_complete() here.
+    assert!(!pair.server().connection().handshake_complete());
+
     Ok(())
 }
 
@@ -316,6 +332,18 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         s2n_error.name(),
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
+
+    // The server is the side that detects and rejects the incompatible cert,
+    // so it can never reach the terminal handshake state.
+    //
+    // Note: for TLS 1.3, the client sends its entire final flight (Certificate,
+    // CertificateVerify, Finished) without waiting on the server, so the client
+    // may locally reach its own terminal handshake state before the server has
+    // had a chance to validate and reject the certificate. This mirrors the
+    // documented TLS-1.3-specific behavior in s2n_handshake_complete_test.c, so
+    // we don't assert on the client's handshake_complete() here.
+    assert!(!pair.server().connection().handshake_complete());
+
     Ok(())
 }
 
