@@ -182,13 +182,16 @@ mod memory_test {
         fn against_baseline(&self, baseline: &S2NHeapStats) -> S2NHeapStats {
             // dbg!(self);
             // dbg!(baseline);
+            // curr_* measurements are not monotonic: memory allocated before
+            // the baseline snapshot may be freed afterwards, so saturate
+            // rather than panicking on underflow.
             let mut diff = self.clone();
-            diff.total_blocks -= baseline.total_blocks;
-            diff.total_bytes -= baseline.total_bytes;
-            diff.curr_blocks -= baseline.curr_blocks;
-            diff.curr_bytes -= baseline.curr_bytes;
-            diff.max_blocks -= baseline.max_blocks;
-            diff.max_bytes -= baseline.max_bytes;
+            diff.total_blocks = diff.total_blocks.saturating_sub(baseline.total_blocks);
+            diff.total_bytes = diff.total_bytes.saturating_sub(baseline.total_bytes);
+            diff.curr_blocks = diff.curr_blocks.saturating_sub(baseline.curr_blocks);
+            diff.curr_bytes = diff.curr_bytes.saturating_sub(baseline.curr_bytes);
+            diff.max_blocks = diff.max_blocks.saturating_sub(baseline.max_blocks);
+            diff.max_bytes = diff.max_bytes.saturating_sub(baseline.max_bytes);
             diff
         }
     }
@@ -275,16 +278,7 @@ mod memory_test {
             table
         }
 
-        fn assert_expected(&self) {
-            /// The allocated memory expected at each step of the connection lifecycle
-            const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
-                (Lifecycle::ConnectionInit, 61_466),
-                (Lifecycle::AfterClientHello, 89_062),
-                (Lifecycle::AfterServerHello, 117_429),
-                (Lifecycle::AfterClientFinished, 108_736),
-                (Lifecycle::HandshakeComplete, 91_323),
-                (Lifecycle::ApplicationData, 91_323),
-            ];
+        fn assert_expected(&self, expected_memory: &[(Lifecycle, usize)]) {
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()
                 .map(|stage| {
@@ -298,7 +292,7 @@ mod memory_test {
                 })
                 .collect();
 
-            for (actual, expected) in actual_memory.iter().zip(EXPECTED_MEMORY) {
+            for (actual, expected) in actual_memory.iter().zip(expected_memory) {
                 // make sure we're looking at the right stage
                 assert_eq!(actual.0, expected.0);
                 assert!(fuzzy_equals(actual.1, expected.1))
@@ -348,29 +342,19 @@ mod memory_test {
     /// - client connection
     /// - server connection
     /// - TestPair io buffers
-    #[test]
-    fn memory_consumption() -> Result<(), S2NError> {
+    /// Run a full connection lifecycle for the given policy and assert the
+    /// memory measured at each stage matches the expected baselines.
+    fn measure_lifecycle(
+        policy_version: &str,
+        expected_memory: &[(Lifecycle, usize)],
+    ) -> Result<(), S2NError> {
         const CLIENT_MESSAGE: &[u8] = b"from client";
         const SERVER_MESSAGE: &[u8] = b"from server";
 
-        let _profiler = dhat::Profiler::new_heap();
         let mut memory_recorder = MemoryRecordBuilder::new();
-
-        unsafe {
-            aws_lc_sys::CRYPTO_set_mem_functions(
-                Some(memory_callbacks::malloc_cb),
-                Some(memory_callbacks::realloc_cb),
-                Some(memory_callbacks::free_cb),
-            )
-        };
-
-        // s2n-tls allocates memory for the default configs. This includes the system
-        // trust store, which is often a significant amount of memory (~1 MB). This
-        // is system specific, so we don't actually assert on this value.
-        s2n_tls::init::init();
         memory_recorder.after_init();
 
-        let config = testing::build_config(&Policy::from_version("default_tls13")?).unwrap();
+        let config = testing::build_config(&Policy::from_version(policy_version)?).unwrap();
         let mut memory_recorder = memory_recorder.after_config_creation();
 
         let mut pair = TestPair::from_config(&config);
@@ -402,8 +386,61 @@ mod memory_test {
         let _ = pair.server.poll_recv(&mut [0; CLIENT_MESSAGE.len()]);
         memory_recorder.measure(Lifecycle::ApplicationData, &pair);
 
+        println!("policy: {policy_version}");
         println!("{}", memory_recorder.measurement_table());
-        memory_recorder.assert_expected();
+        memory_recorder.assert_expected(expected_memory);
+
+        Ok(())
+    }
+
+    #[test]
+    fn memory_consumption() -> Result<(), S2NError> {
+        let _profiler = dhat::Profiler::new_heap();
+
+        unsafe {
+            aws_lc_sys::CRYPTO_set_mem_functions(
+                Some(memory_callbacks::malloc_cb),
+                Some(memory_callbacks::realloc_cb),
+                Some(memory_callbacks::free_cb),
+            )
+        };
+
+        // s2n-tls allocates memory for the default configs. This includes the system
+        // trust store, which is often a significant amount of memory (~1 MB). This
+        // is system specific, so we don't actually assert on this value.
+        s2n_tls::init::init();
+
+        // default_tls13 defines certificate_signature_preferences, which routes
+        // certificate validation to the libcrypto backend.
+        measure_lifecycle(
+            "default_tls13",
+            &[
+                (Lifecycle::ConnectionInit, 61_930),
+                (Lifecycle::AfterClientHello, 89_526),
+                (Lifecycle::AfterServerHello, 117_893),
+                (Lifecycle::AfterClientFinished, 109_200),
+                (Lifecycle::HandshakeComplete, 91_787),
+                (Lifecycle::ApplicationData, 91_787),
+            ],
+        )?;
+
+        // 20190801 negotiates TLS 1.3 without certificate signature/key
+        // preferences, so certificate validation runs on the zero-copy backend.
+        // Post-validation stages retain the wire-chain copy plus a span table
+        // sized to the actual certificate count (freed on connection wipe)
+        // instead of the libcrypto X509 object graph, which retains less
+        // memory in fewer allocations.
+        measure_lifecycle(
+            "20190801",
+            &[
+                (Lifecycle::ConnectionInit, 61_930),
+                (Lifecycle::AfterClientHello, 88_398),
+                (Lifecycle::AfterServerHello, 116_778),
+                (Lifecycle::AfterClientFinished, 106_550),
+                (Lifecycle::HandshakeComplete, 89_137),
+                (Lifecycle::ApplicationData, 89_137),
+            ],
+        )?;
 
         Ok(())
     }

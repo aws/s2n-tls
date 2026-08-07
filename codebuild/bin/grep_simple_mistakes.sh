@@ -90,6 +90,12 @@ KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cert_path.h"]=2
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cert_path.c"]=8
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cert_parse.c"]=2
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cert_revocation.c"]=7
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_x509_validator.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cert_view.c"]=3
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
   # NOTE: this matches on 'memcmp', which will also match comments. However, there
