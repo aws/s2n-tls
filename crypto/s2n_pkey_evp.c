@@ -19,6 +19,7 @@
 #include <openssl/rsa.h>
 
 #include "crypto/s2n_evp.h"
+#include "crypto/s2n_hash.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_pss.h"
@@ -66,20 +67,15 @@ static S2N_RESULT s2n_pkey_evp_validate_sig_alg(const struct s2n_pkey *key, s2n_
 static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm hash_alg)
 {
     PTR_ENSURE_REF(pkey);
-    switch (hash_alg) {
 #if S2N_LIBCRYPTO_SUPPORTS_PROVIDERS
-        /* For openssl-3.0, pkey methods will do an implicit fetch for the signing
-         * algorithm, which includes the hash algorithm. If using a legacy hash
-         * algorithm, specify the non-fips version.
-         */
-        case S2N_HASH_MD5:
-        case S2N_HASH_MD5_SHA1:
-        case S2N_HASH_SHA1:
-            return EVP_PKEY_CTX_new_from_pkey(NULL, pkey, "-fips");
+    /* For openssl-3.0+, use the provider-aware API.
+     * Don't use property query strings - let OpenSSL use default provider selection.
+     * Property strings like "-fips" can cause "invalid digest" errors when the
+     * EVP_PKEY_CTX provider constraints conflict with the fetched EVP_MD.
+     */
+    return EVP_PKEY_CTX_new_from_pkey(NULL, pkey, NULL);
 #endif
-        default:
-            return EVP_PKEY_CTX_new(pkey, NULL);
-    }
+    return EVP_PKEY_CTX_new(pkey, NULL);
 }
 
 /* Our "digest-and-sign" EVP signing logic is intended to support FIPS 140-3.
@@ -194,7 +190,13 @@ int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_a
     POSIX_GUARD_OSSL(EVP_PKEY_sign_init(pctx), S2N_ERR_PKEY_CTX_INIT);
 
     if (sig_alg != S2N_SIGNATURE_MLDSA) {
-        POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+        /* Legacy hash algorithms (MD5, SHA1, MD5-SHA1) may not be supported as
+         * signature MDs in OpenSSL 3.x depending on security policy.
+         * Skip setting them - the digest-then-sign path will handle them. */
+        if (hash_state->alg != S2N_HASH_MD5 && hash_state->alg != S2N_HASH_SHA1 &&
+            hash_state->alg != S2N_HASH_MD5_SHA1) {
+            POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+        }
     }
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
@@ -267,7 +269,13 @@ int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_
     POSIX_GUARD_OSSL(EVP_PKEY_verify_init(pctx), S2N_ERR_PKEY_CTX_INIT);
 
     if (sig_alg != S2N_SIGNATURE_MLDSA) {
-        POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+        /* Legacy hash algorithms (MD5, SHA1, MD5-SHA1) may not be supported as
+         * signature MDs in OpenSSL 3.x depending on security policy.
+         * Skip setting them - the digest-then-verify path will handle them. */
+        if (hash_state->alg != S2N_HASH_MD5 && hash_state->alg != S2N_HASH_SHA1 &&
+            hash_state->alg != S2N_HASH_MD5_SHA1) {
+            POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+        }
     }
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
