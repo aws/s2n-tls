@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include "crypto/s2n_tls13_keys.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_handshake.h"
@@ -282,7 +280,7 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
         RESULT_ENSURE_REF(psk);
         RESULT_ENSURE_REF(psk->identity.data);
         RESULT_ENSURE_REF(wire_identity->data);
-        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        uint32_t compare_size = S2N_MIN(wire_identity->size, psk->identity.size);
         if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
                 & (psk->identity.size == wire_identity->size) & (!*match)) {
             *match = psk;
@@ -328,6 +326,11 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         psk_params->chosen_psk = NULL;
         return S2N_SUCCESS;
     }
+
+    /* An offered_psk must have its identity set before being chosen.
+     * Without this check, the function would return an internal error
+     * later when attempting to match the identity. */
+    POSIX_ENSURE(psk->identity.data != NULL, S2N_ERR_INVALID_ARGUMENT);
 
     if (psk_params->type == S2N_PSK_TYPE_RESUMPTION && psk_list->conn->config->use_tickets) {
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));

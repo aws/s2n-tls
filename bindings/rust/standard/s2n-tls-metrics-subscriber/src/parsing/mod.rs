@@ -4,100 +4,122 @@
 //! This module holds the parsing logic that we need to pull interesting bits out
 //! of the client hello
 
+// These deny lints are used out of an abundance of caution in our parsing code
+// which is accepting untrusted input.
+#![cfg_attr(not(test), deny(clippy::indexing_slicing))]
+#![cfg_attr(not(test), deny(clippy::unwrap_used))]
+#![cfg_attr(not(test), deny(clippy::expect_used))]
+#![cfg_attr(not(test), deny(clippy::string_slice))]
+#![cfg_attr(not(test), deny(clippy::panic))]
+
 use std::ffi::c_uint;
 
 use s2n_codec::DecoderBuffer;
 use s2n_tls::{client_hello::ClientHello as S2NClientHello, error::Fallible};
 use s2n_tls_sys::{s2n_client_hello_get_extension_by_id, s2n_client_hello_get_extension_length};
 
-use crate::{
-    parsing::messages::{
-        ClientHello, SignatureSchemeList, SupportedGroups, SupportedVersionsClientHello,
-    },
-    static_lists::{Cipher, Group, Signature, Version},
+use crate::parsing::messages::{
+    ClientHello, SignatureSchemeList, SupportedGroups, SupportedVersionsClientHello,
 };
+use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
+pub mod cert;
 mod messages;
 
-/// This struct provides utility methods to access the supported parameters from
-/// a client hello
-pub struct ClientHelloSupportedParameters<'a> {
-    client_hello: &'a S2NClientHello,
+/// View of the supported-parameter lists from a `ClientHello`.
+///
+/// Constructed eagerly (FFI extension copies + decode); accessors return
+/// slices into the cached lists. Each handshake hits these accessors
+/// multiple times, so caching avoids re-parsing the same bytes.
+pub(crate) struct ClientHelloSupportedParameters {
+    versions: Vec<Version>,
+    ciphers: Vec<Cipher>,
+    groups: Option<Vec<Group>>,
+    signatures: Option<Vec<Signature>>,
 }
 
-impl<'a> ClientHelloSupportedParameters<'a> {
+impl ClientHelloSupportedParameters {
     /// https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#tls-extensiontype-values-1
     const SUPPORTED_GROUPS_ID: u16 = 10;
     const SUPPORTED_VERSIONS_ID: u16 = 43;
     const SIGNATURE_ALGORITHMS_ID: u16 = 13;
 
-    /// the raw bytes of the client hello message.
-    ///
-    /// This must not include the message header.
-    pub fn new(client_hello: &'a S2NClientHello) -> Self {
-        Self { client_hello }
-    }
+    /// Parse all four supported-parameter lists up front. Subsequent
+    /// accessor calls return slices into these owned `Vec`s and do not
+    /// allocate.
+    pub fn new(client_hello: &S2NClientHello) -> Result<Self, Box<dyn std::error::Error>> {
+        // Parse the ClientHello body once: we need both the cipher list
+        // and the legacy protocol_version (used as the versions fallback
+        // when the supported_versions extension is absent).
+        let ch_bytes = client_hello.raw_message()?;
+        let parsed_ch = DecoderBuffer::new(ch_bytes.as_ref()).decode_exact::<ClientHello>()?;
+        let ciphers = parsed_ch.cipher_suites.list.to_vec();
+        let fallback_version = parsed_ch.protocol_version;
 
-    // s2n-tls doesn't offer any way to extract the offered ciphers from the
-    // client hello, so we do it manually.
-    pub fn supported_ciphers(&self) -> Result<Vec<Cipher>, Box<dyn std::error::Error>> {
-        let bytes = self.client_hello.raw_message()?;
-        let buffer = DecoderBuffer::new(bytes.as_ref());
-        let client_hello = buffer.decode_exact::<ClientHello>()?;
-        Ok(client_hello.cipher_suites.list.to_vec())
-    }
-
-    pub fn supported_groups(&self) -> Result<Option<Vec<Group>>, Box<dyn std::error::Error>> {
-        let bytes = self.client_hello.get_extension(Self::SUPPORTED_GROUPS_ID)?;
-        let groups = match bytes {
+        let versions = match client_hello.get_extension(Self::SUPPORTED_VERSIONS_ID)? {
             Some(buffer) => {
-                let buffer = DecoderBuffer::new(&buffer);
-                let supported_groups = buffer.decode_exact::<SupportedGroups>()?;
-                supported_groups.named_group_list.list.to_vec()
+                let parsed =
+                    DecoderBuffer::new(&buffer).decode_exact::<SupportedVersionsClientHello>()?;
+                parsed.versions.list.to_vec()
             }
-            None => return Ok(None),
+            None => vec![fallback_version],
         };
-        Ok(Some(groups))
+
+        let groups = match client_hello.get_extension(Self::SUPPORTED_GROUPS_ID)? {
+            Some(buffer) => {
+                let parsed = DecoderBuffer::new(&buffer).decode_exact::<SupportedGroups>()?;
+                Some(parsed.named_group_list.list.to_vec())
+            }
+            None => None,
+        };
+
+        let signatures = match client_hello.get_extension(Self::SIGNATURE_ALGORITHMS_ID)? {
+            Some(buffer) => {
+                let parsed = DecoderBuffer::new(&buffer).decode_exact::<SignatureSchemeList>()?;
+                Some(parsed.supported_signature_algorithms.list.to_vec())
+            }
+            None => None,
+        };
+
+        Ok(Self {
+            versions,
+            ciphers,
+            groups,
+            signatures,
+        })
     }
 
-    pub fn supported_signatures(
-        &self,
-    ) -> Result<Option<Vec<Signature>>, Box<dyn std::error::Error>> {
-        let bytes = self
-            .client_hello
-            .get_extension(Self::SIGNATURE_ALGORITHMS_ID)?;
-        let sigs = match bytes {
-            Some(buffer) => {
-                let buffer = DecoderBuffer::new(&buffer);
-                let sig_list = buffer.decode_exact::<SignatureSchemeList>()?;
-                sig_list.supported_signature_algorithms.list.to_vec()
-            }
-            None => return Ok(None),
-        };
-        Ok(Some(sigs))
+    pub fn supported_versions(&self) -> &[Version] {
+        &self.versions
     }
 
-    pub fn supported_versions(&self) -> Result<Vec<Version>, Box<dyn std::error::Error>> {
-        let bytes = self
-            .client_hello
-            .get_extension(Self::SUPPORTED_VERSIONS_ID)?;
-        let versions = match bytes {
-            // the client sent the supported versions extension -> return the values
-            Some(buffer) => {
-                let buffer = DecoderBuffer::new(&buffer);
-                let supported_groups = buffer.decode_exact::<SupportedVersionsClientHello>()?;
-                supported_groups.versions.list.to_vec()
-            }
-            // the client didn't send the supported versions extension, so just
-            // return the protocol version value from the client hello
-            None => {
-                let client_hello_bytes = self.client_hello.raw_message()?;
-                let client_hello_buffer = DecoderBuffer::new(&client_hello_bytes);
-                let client_hello = client_hello_buffer.decode_exact::<ClientHello>()?;
-                vec![client_hello.protocol_version]
-            }
-        };
-        Ok(versions)
+    pub fn supported_ciphers(&self) -> &[Cipher] {
+        &self.ciphers
+    }
+
+    pub fn supported_groups(&self) -> Option<&[Group]> {
+        self.groups.as_deref()
+    }
+
+    pub fn supported_signatures(&self) -> Option<&[Signature]> {
+        self.signatures.as_deref()
+    }
+
+    /// Test-only constructor for building synthetic parameters without a real
+    /// ClientHello.
+    #[cfg(test)]
+    pub(crate) fn from_parts(
+        versions: Vec<Version>,
+        ciphers: Vec<Cipher>,
+        groups: Option<Vec<Group>>,
+        signatures: Option<Vec<Signature>>,
+    ) -> Self {
+        Self {
+            versions,
+            ciphers,
+            groups,
+            signatures,
+        }
     }
 }
 
@@ -254,20 +276,20 @@ mod tests {
                 Err(_) => continue,
             };
             let client_hello = pair.server.client_hello().unwrap();
-            let parsed = ClientHelloSupportedParameters::new(client_hello);
+            let parsed = ClientHelloSupportedParameters::new(client_hello).unwrap();
 
-            let offered_ciphers = parsed.supported_ciphers().unwrap();
+            let offered_ciphers = parsed.supported_ciphers();
             for cipher in &expected.cipher {
                 assert!(offered_ciphers.contains(cipher));
             }
 
-            if let Some(offered_groups) = parsed.supported_groups().unwrap() {
+            if let Some(offered_groups) = parsed.supported_groups() {
                 for group in &expected.groups {
                     assert!(offered_groups.contains(group));
                 }
             }
 
-            if let Some(offered_sigs) = parsed.supported_signatures().unwrap() {
+            if let Some(offered_sigs) = parsed.supported_signatures() {
                 for sig in &expected.signatures {
                     assert!(offered_sigs.contains(sig),);
                 }
@@ -308,10 +330,10 @@ mod tests {
             let policy = Policy::from_version(policy).unwrap();
             let connection = server_connection(&policy);
             let client_hello = connection.client_hello().unwrap();
-            let supported_parameters = ClientHelloSupportedParameters::new(client_hello);
+            let supported_parameters = ClientHelloSupportedParameters::new(client_hello).unwrap();
             assert_eq!(
-                supported_parameters.supported_versions().unwrap(),
-                expected_result
+                supported_parameters.supported_versions(),
+                expected_result.as_slice()
             );
         }
     }

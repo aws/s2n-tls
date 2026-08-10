@@ -68,6 +68,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(event.handshake_end_ns, 0);
         EXPECT_EQUAL(event.handshake_start_ns, 0);
         EXPECT_EQUAL(event.handshake_time_ns, 0);
+        /* no error on success */
+        EXPECT_EQUAL(event.error_code, 0);
     };
 
     /* s2n_event_handshake_send: callback is invoked */

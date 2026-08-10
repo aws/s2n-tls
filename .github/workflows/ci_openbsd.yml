@@ -17,17 +17,18 @@ jobs:
     runs-on: ubuntu-latest
     name: CI OpenBSD
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build and test in OpenBSD
         id: test
-        uses: cross-platform-actions/action@v1.0.0
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: openbsd
           architecture: x86-64
-          version: '7.4'
+          version: '7.9'
           cpu_count: 4
           shell: bash
           run: |
+            sudo sh -c 'echo "https://cdn.openbsd.org/pub/OpenBSD" > /etc/installurl'
             sudo pkg_add ninja cmake
             pkg_info
             sysctl -n kern.version

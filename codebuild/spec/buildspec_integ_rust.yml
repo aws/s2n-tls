@@ -8,31 +8,13 @@
 version: 0.2
 env:
   shell: bash
+  variables:
+    NIXDEV_ARGS: --max-jobs auto
 
 batch:
   build-graph:
-    # Cache job for x86
-    - identifier: nixCache_x86_64
-      env:
-        fleet: ubuntu24_x86_64_nix
-        variables:
-          NIXDEV_ARGS: --max-jobs auto
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-x86-64?region=us-west-2
-
-    # Cache Job for aarch64
-    - identifier: nixCache_aarch64
-      env:
-        fleet: ubuntu24_aarch64_nix
-        variables:
-          NIXDEV_ARGS: --max-jobs auto
-          NIXDEV_LIBCRYPTO: .#default
-          NIX_CACHE_BUCKET: s3://s2n-tls-nixcachebucket-aarch64?region=us-west-2
-
     # OpenSSL 1.0.2 x86
     - identifier: Rust_openssl102_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -41,8 +23,6 @@ batch:
 
     # OpenSSL 1.0.2 aarch64
     - identifier: Rust_openssl102_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -51,8 +31,6 @@ batch:
 
     # OpenSSL 1.1.1 x86
     - identifier: Rust_openssl111_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -61,8 +39,6 @@ batch:
 
     # OpenSSL 1.1.1 aarch64
     - identifier: Rust_openssl111_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -71,8 +47,6 @@ batch:
 
     # OpenSSL 3.0 x86
     - identifier: Rust_openssl30_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -81,8 +55,6 @@ batch:
 
     # OpenSSL 3.0 aarch64
     - identifier: Rust_openssl30_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -91,8 +63,6 @@ batch:
 
     # AWS-LC x86
     - identifier: Rust_awslc_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -101,8 +71,6 @@ batch:
 
     # AWS-LC aarch64
     - identifier: Rust_awslc_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -111,8 +79,6 @@ batch:
 
     # AWS-LC FIPS 2024 x86
     - identifier: Rust_awslcfips2024_x86_0
-      depend-on:
-        - nixCache_x86_64
       env:
         fleet: ubuntu24_x86_64_nix
         variables:
@@ -121,8 +87,6 @@ batch:
 
     # AWS-LC FIPS 2024 aarch64
     - identifier: Rust_awslcfips2024_aarch64_0
-      depend-on:
-        - nixCache_aarch64
       env:
         fleet: ubuntu24_aarch64_nix
         variables:
@@ -134,35 +98,27 @@ phases:
     commands:
       - if [[ $(date +%u) -eq 0 ]]; then nix store gc; fi
       - |
-        if [[ $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          echo "Refreshing nix cache..."
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-          nix build .#devShell
-          nix copy --to $NIX_CACHE_BUCKET .#devShell
-        else
-          echo "Downloading cache"
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-        fi
+        # Configure S3 bucket as a nix substituter so nix develop pulls from it automatically.
+        mkdir -p ~/.config/nix
+        echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
+        echo "require-sigs = false" >> ~/.config/nix/nix.conf
   pre_build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix copy --from $NIX_CACHE_BUCKET --all --no-check-sigs
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_configure"
-        fi
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_configure"
   build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_build"
-        fi
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_build"
   post_build:
     commands:
       - |
         set -e
-        if [[ ! $CODEBUILD_BATCH_BUILD_IDENTIFIER =~ .*"nixCache".* ]]; then
-          echo "Running Rust integration tests with $NIXDEV_LIBCRYPTO"
-          nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_test"
-        fi
+        echo "Running Rust integration tests with $NIXDEV_LIBCRYPTO"
+        nix develop $NIXDEV_ARGS $NIXDEV_LIBCRYPTO --command bash -c "source ./nix/shell.sh; rust_test"
+        echo "Pushing to nix cache..."
+        NIX_CACHE_PKG=".#cache-${NIXDEV_LIBCRYPTO#.#}"
+        nix copy --to $NIX_CACHE_BUCKET $NIX_CACHE_PKG

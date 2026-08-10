@@ -13,7 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "testlib/s2n_ktls_test_utils.h"
+/* kTLS is not supported on Windows. This file compiles to an empty
+ * translation unit on Windows.
+ */
+#ifndef _WIN32
+
+    #include "testlib/s2n_ktls_test_utils.h"
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
         int cmsg_type, uint8_t record_type);
@@ -62,7 +67,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
         size_t len = msg->msg_iov[count].iov_len;
 
         if (s2n_stuffer_write_bytes(data_buffer, buf, len) != S2N_SUCCESS) {
-            size_t partial_len = MIN(len, s2n_stuffer_space_remaining(data_buffer));
+            size_t partial_len = S2N_MIN(len, s2n_stuffer_space_remaining(data_buffer));
             POSIX_GUARD(s2n_stuffer_write_bytes(data_buffer, buf, partial_len));
             total_len += partial_len;
             if (total_len) {
@@ -120,7 +125,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         uint16_t n_avail = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
 
-        size_t n_read = MIN(size - bytes_read, n_avail);
+        size_t n_read = S2N_MIN(size - bytes_read, n_avail);
         POSIX_ENSURE_GT(n_read, 0);
         POSIX_GUARD(s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + bytes_read, n_read));
 
@@ -247,3 +252,5 @@ S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_i
     RESULT_ENSURE_EQ(extra, 0);
     return S2N_RESULT_OK;
 }
+
+#endif

@@ -16,7 +16,18 @@
 #include "utils/s2n_rfc5952.h"
 
 #include <stdio.h>
-#include <sys/socket.h>
+/* <winsock2.h> internally includes core elements from <windows.h>. For historical
+ * reasons, <windows.h> defaults to including <winsock.h> (Winsock 1.1), whose
+ * declarations conflict with <winsock2.h> (Winsock 2). Defining WIN32_LEAN_AND_MEAN
+ * before including <winsock2.h> prevents this transitive <winsock.h> inclusion.
+ * https://learn.microsoft.com/en-us/windows/win32/winsock/include-files-2
+ */
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <winsock2.h>
+#else
+    #include <sys/socket.h>
+#endif
 #include <sys/types.h>
 
 #include "error/s2n_errno.h"
@@ -93,11 +104,15 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
                     *cursor++ = ':';
                 }
 
-                if (longest_run_length == 8) {
+                i += longest_run_length - 1;
+
+                /* If the compressed run ends at the last group, emit the
+                 * trailing ':' of "::" here, since no subsequent group
+                 * will supply it. Covers both addresses ending in "::"
+                 * (e.g. "2001:db8::") and the all-zero address "::". */
+                if (i == 7) {
                     *cursor++ = ':';
                 }
-
-                i += longest_run_length - 1;
 
             } else {
                 uint8_t nibbles[4] = { (octets[i] & 0xF000) >> 12,

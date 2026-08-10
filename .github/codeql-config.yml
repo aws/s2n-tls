@@ -1,4 +1,0 @@
-name: "S2N CodeQL Config"
-
-paths-ignore:
-  - tests/integration

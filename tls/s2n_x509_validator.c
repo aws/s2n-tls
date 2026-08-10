@@ -13,12 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
+/* <winsock2.h> internally includes core elements from <windows.h>. For historical
+ * reasons, <windows.h> defaults to including <winsock.h> (Winsock 1.1), whose
+ * declarations conflict with <winsock2.h> (Winsock 2). Defining WIN32_LEAN_AND_MEAN
+ * before including <winsock2.h> prevents this transitive <winsock.h> inclusion.
+ * https://learn.microsoft.com/en-us/windows/win32/winsock/include-files-2
+ */
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <arpa/inet.h>
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+#endif
 #include <openssl/asn1.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
-#include <sys/socket.h>
 
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl_x509.h"
@@ -301,6 +313,7 @@ static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X
 static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection *conn, X509 *public_cert, bool *cn_found)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(public_cert);
     RESULT_ENSURE_REF(cn_found);
 
@@ -347,10 +360,15 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
      * section 6.2.1, IP reference identities must only be matched against
      * iPAddress SAN entries, never against CN values. Reject the CN if it
      * parses as an IPv4 or IPv6 address.
+     *
+     * This check can be temporarily disabled via s2n_config_allow_ip_in_cn()
+     * while re-issuing certs with proper iPAddress SAN entries.
      */
-    unsigned char ip_buf[sizeof(struct in6_addr)] = { 0 };
-    if (inet_pton(AF_INET, peer_cn, ip_buf) == 1 || inet_pton(AF_INET6, peer_cn, ip_buf) == 1) {
-        RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    if (!conn->config->allow_ip_in_cn) {
+        unsigned char ip_buf[sizeof(struct in6_addr)] = { 0 };
+        if (inet_pton(AF_INET, peer_cn, ip_buf) == 1 || inet_pton(AF_INET6, peer_cn, ip_buf) == 1) {
+            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+        }
     }
 
     RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);

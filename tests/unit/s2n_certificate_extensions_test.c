@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "api/s2n.h"
+#include "api/unstable/allow_ip_in_cn.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
@@ -362,43 +363,58 @@ int main(int argc, char **argv)
     };
     /* clang-format on */
 
+    /* Test: s2n_config_allow_ip_in_cn safety check */
+    {
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_allow_ip_in_cn(NULL), S2N_ERR_INVALID_ARGUMENT);
+    };
+
     /* RFC 6125: A cert with an IP literal CN and no SAN extension should NOT be accepted
-     * when the client connects to the IP address. */
+     * when the client connects to the IP address, unless s2n_config_allow_ip_in_cn is set. */
     for (int i = 0; i < s2n_array_len(test_cases); i++) {
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
+        bool allow_ip_options[] = { false, true };
+        for (int j = 0; j < s2n_array_len(allow_ip_options); j++) {
+            bool allow_ip = allow_ip_options[j];
 
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
-                s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
-                test_cases[i].cert_path, test_cases[i].key_path));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_path, NULL));
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
 
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls12"));
+            if (allow_ip) {
+                EXPECT_SUCCESS(s2n_config_allow_ip_in_cn(config));
+            }
 
-        /* The caller targets an IP literal. */
-        EXPECT_SUCCESS(s2n_set_server_name(client, test_cases[i].server_name));
-        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
+                    test_cases[i].cert_path, test_cases[i].key_path));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_path, NULL));
 
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server);
-        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls12"));
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_set_server_name(client, test_cases[i].server_name));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
 
-        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
-        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all_tls12"));
 
-        /* The CN fallback in s2n_verify_host_information_common_name rejects CN values that parse as IP addresses,
-         * since per RFC 6125 section 6.4.4 the CN fallback only applies to fully qualified DNS domain names,
-         * and IP reference identities must match iPAddress SAN entries (section 6.2.1). */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client), S2N_ERR_CERT_UNTRUSTED);
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+
+            if (allow_ip) {
+                /* With allow_ip_in_cn enabled, the CN=<IP> cert should be accepted */
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            } else {
+                /* The CN fallback rejects CN values that parse as IP addresses per RFC 6125 */
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client), S2N_ERR_CERT_UNTRUSTED);
+            }
+        };
     };
 
     END_TEST();

@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_pq_kem.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "crypto/s2n_pq.h"
 #include "tls/s2n_kem.h"

@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::panic::UnwindSafe;
+
 /// The libcrypto that s2n-tls is linked against.
 #[derive(Debug, PartialEq, Eq)]
 enum Libcrypto {
@@ -44,6 +46,8 @@ pub enum Capability {
     Tls13,
     MLKem,
     MLDsa,
+    Chachapoly,
+    Rc4,
 }
 
 impl Capability {
@@ -55,9 +59,12 @@ impl Capability {
         match self {
             // OpenSSL 1.0.2 doesn't support RSA-PSS, so TLS 1.3 isn't enabled
             Capability::Tls13 => libcrypto != Libcrypto::OpenSsl102,
+            Capability::Chachapoly => libcrypto != Libcrypto::OpenSsl102,
             // AWS-LC supports both ML-KEM + ML-DSA but AWSLCFIPS only supports ML-KEM
             Capability::MLKem => matches!(libcrypto, Libcrypto::Awslc | Libcrypto::AwslcFips),
             Capability::MLDsa => matches!(libcrypto, Libcrypto::Awslc),
+            // OpenSSL 3.0 removed RC4 from the default provider
+            Capability::Rc4 => libcrypto != Libcrypto::OpenSsl30,
         }
     }
 }
@@ -66,7 +73,7 @@ impl Capability {
 ///
 /// If all the required capabilities are present then the test must pass. Otherwise
 /// we expect the test to panic/fail.
-pub fn required_capability(required_capabilities: &[Capability], test: fn()) {
+pub fn required_capability(required_capabilities: &[Capability], test: impl FnOnce() + UnwindSafe) {
     let result = std::panic::catch_unwind(test);
     if required_capabilities.iter().all(|c| c.supported()) {
         result.unwrap();

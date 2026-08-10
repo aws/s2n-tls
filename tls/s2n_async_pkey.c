@@ -329,6 +329,13 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
      * the connection. */
     POSIX_ENSURE(op->conn == conn, S2N_ERR_ASYNC_WRONG_CONNECTION);
     POSIX_ENSURE(conn->handshake.async_state == S2N_ASYNC_INVOKED, S2N_ERR_ASYNC_WRONG_CONNECTION);
+    /* s2n_async_pkey_op_apply mutates conn->handshake state that s2n_send/s2n_recv also
+     * access. Calling it concurrently with those methods on the same connection is undefined
+     * behavior. We do NOT check negotiate_in_use here because the synchronous async_pkey
+     * pattern legitimately invokes apply() from inside the async_pkey callback, which runs
+     * on the s2n_negotiate call stack (see s2n_async_pkey_sign / _decrypt). */
+    POSIX_ENSURE(!conn->send_in_use, S2N_ERR_REENTRANCY);
+    POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
 
     const struct s2n_async_pkey_op_actions *actions = NULL;
     POSIX_GUARD_RESULT(s2n_async_get_actions(op->type, &actions));

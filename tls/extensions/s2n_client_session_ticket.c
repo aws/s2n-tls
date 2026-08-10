@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_session_ticket.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/extensions/s2n_client_psk.h"
 #include "tls/s2n_resume.h"

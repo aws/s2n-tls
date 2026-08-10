@@ -161,24 +161,28 @@ S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, st
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_GUARD_RESULT(s2n_protocol_preferences_set(&config->application_protocols, protocols, protocol_count));
     return S2N_SUCCESS;
 }
 
 int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, uint8_t protocol_len)
 {
+    POSIX_ENSURE_REF(config);
     POSIX_GUARD_RESULT(s2n_protocol_preferences_append(&config->application_protocols, protocol, protocol_len));
     return S2N_SUCCESS;
 }
 
 int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char *const *protocols, int protocol_count)
 {
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_protocol_preferences_set(&conn->application_protocols_overridden, protocols, protocol_count));
     return S2N_SUCCESS;
 }
 
 int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len)
 {
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_protocol_preferences_append(&conn->application_protocols_overridden, protocol, protocol_len));
     return S2N_SUCCESS;
 }

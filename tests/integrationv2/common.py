@@ -1,16 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import itertools
 import os
+import random
 import re
+import string
 import subprocess
 import threading
-import itertools
-import random
-import string
+
 import pytest
 
 from constants import TEST_CERT_DIRECTORY
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import S2N_PROVIDER_VERSION, get_flag
 
 
 def data_bytes(n_bytes):
@@ -46,7 +47,7 @@ def pq_enabled():
     return "awslc" in get_flag(S2N_PROVIDER_VERSION)
 
 
-class AvailablePorts(object):
+class AvailablePorts:
     """
     This iterator will atomically return the next number.
     This is useful when running multiple tests in parallel
@@ -99,10 +100,10 @@ class TimeoutException(subprocess.SubprocessError):
 
     def __str__(self):
         cmd = " ".join(self.exception.cmd)
-        return "{} {}".format(self.exception, cmd)
+        return f"{self.exception} {cmd}"
 
 
-class Cert(object):
+class Cert:
     def __init__(self, name, prefix, location=TEST_CERT_DIRECTORY):
         self.name = name
         self.cert = location + prefix + "_cert.pem"
@@ -145,15 +146,13 @@ class Cert(object):
         sig_alg_has_curve = (
             sigalg.algorithm == "EC" and sigalg.min_protocol == Protocols.TLS13
         )
-        if sig_alg_has_curve and self.curve not in sigalg.name:
-            return False
-        return True
+        return not (sig_alg_has_curve and self.curve not in sigalg.name)
 
     def __str__(self):
         return self.name
 
 
-class Certificates(object):
+class Certificates:
     """
     When referencing certificates, use these values.
     """
@@ -186,7 +185,7 @@ class Certificates(object):
     OCSP_ECDSA = Cert("OCSP_ECDSA_256", "ocsp/server_ecdsa")
 
 
-class Protocol(object):
+class Protocol:
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -210,7 +209,7 @@ class Protocol(object):
         return self.name
 
 
-class Protocols(object):
+class Protocols:
     """
     When referencing protocols, use these protocol values.
     The first argument is the human readable name. The second
@@ -227,7 +226,7 @@ class Protocols(object):
     SSLv2 = Protocol("SSLv2", 20)
 
 
-class Cipher(object):
+class Cipher:
     def __init__(
         self,
         name,
@@ -248,9 +247,7 @@ class Cipher(object):
         self.s2n = s2n
         self.pq = pq
 
-        if self.min_version >= Protocols.TLS13:
-            self.algorithm = "ANY"
-        elif iana_standard_name is None:
+        if self.min_version >= Protocols.TLS13 or iana_standard_name is None:
             self.algorithm = "ANY"
         elif "ECDSA" in iana_standard_name:
             self.algorithm = "EC"
@@ -269,7 +266,7 @@ class Cipher(object):
         return self.name
 
 
-class Ciphers(object):
+class Ciphers:
     """
     When referencing ciphers, use these class values.
     """
@@ -544,7 +541,7 @@ class Ciphers(object):
         return {cipher.iana_standard_name: cipher for cipher in ciphers}.get(iana_name)
 
 
-class Curve(object):
+class Curve:
     def __init__(self, name, min_protocol=Protocols.SSLv3):
         self.name = name
         self.min_protocol = min_protocol
@@ -553,7 +550,7 @@ class Curve(object):
         return self.name
 
 
-class Curves(object):
+class Curves:
     """
     When referencing curves, use these class values.
     Don't hardcode curve names.
@@ -579,7 +576,7 @@ class Curves(object):
         return {curve.name: curve for curve in curves}.get(name)
 
 
-class Signature(object):
+class Signature:
     def __init__(
         self,
         name,
@@ -610,7 +607,7 @@ class Signature(object):
         return self.name
 
 
-class Signatures(object):
+class Signatures:
     NONE = Signature("None+None", max_protocol=Protocols.TLS13)
     RSA_SHA1 = Signature("RSA+SHA1", max_protocol=Protocols.TLS12)
     RSA_SHA224 = Signature("RSA+SHA224", max_protocol=Protocols.TLS12)
@@ -655,7 +652,7 @@ class Signatures(object):
     )
 
 
-class Results(object):
+class Results:
     """
     An instance of this object will be returned to the test by a managed_process'
     get_results() method.
@@ -690,9 +687,7 @@ class Results(object):
         self.expect_nonzero_exit = expect_nonzero_exit
 
     def __str__(self):
-        return "Stdout: {}\nStderr: {}\nExit code: {}\nException: {}".format(
-            self.stdout, self.stderr, self.exit_code, self.exception
-        )
+        return f"Stdout: {self.stdout}\nStderr: {self.stderr}\nExit code: {self.exit_code}\nException: {self.exception}"
 
     def assert_success(self):
         assert self.exception is None, self.exception
@@ -705,7 +700,7 @@ class Results(object):
         return {self.stdout, self.stderr}
 
 
-class ProviderOptions(object):
+class ProviderOptions:
     def __init__(
         self,
         mode=None,
@@ -727,7 +722,7 @@ class ProviderOptions(object):
         server_name=None,
         protocol=None,
         use_mainline_version=None,
-        env_overrides=dict(),
+        env_overrides=None,
         enable_client_ocsp=False,
         ocsp_response=None,
         signature_algorithm=None,
@@ -795,7 +790,7 @@ class ProviderOptions(object):
         self.use_mainline_version = use_mainline_version
 
         # Extra environment parameters
-        self.env_overrides = env_overrides
+        self.env_overrides = env_overrides if env_overrides is not None else {}
 
         # Enable OCSP on the client
         self.enable_client_ocsp = enable_client_ocsp

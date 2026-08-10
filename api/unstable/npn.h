@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file npn.h
  *
@@ -48,3 +52,7 @@
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
 S2N_API int s2n_config_set_npn(struct s2n_config *config, bool enable);
+
+#ifdef __cplusplus
+}
+#endif

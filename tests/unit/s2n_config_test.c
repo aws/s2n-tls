@@ -35,6 +35,7 @@
 #include "tls/s2n_x509_validator.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
+#include "utils/s2n_mem.h"
 
 #define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
 
@@ -66,6 +67,15 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
 {
     return S2N_SUCCESS;
 }
+
+
+static int s2n_test_failing_malloc_cb(void **ptr, uint32_t requested, uint32_t *allocated)
+{
+    *ptr = NULL;
+    *allocated = 0;
+    POSIX_BAIL(S2N_ERR_ALLOC);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -1342,6 +1352,81 @@ int main(int argc, char **argv)
          * state.
          */
         EXPECT_EQUAL(conn->x509_validator.state, INIT);
+    };
+
+
+
+    /* Test: domain_name_to_cert_map remains usable after s2n_map_add fails
+     *
+     * Regression test: s2n_config_update_domain_name_to_cert_map
+     * calls s2n_map_unlock -> s2n_map_add -> s2n_map_complete. If s2n_map_add
+     * fails (e.g. OOM), the map was left in a mutable (!immutable) state.
+     * All subsequent s2n_map_lookup calls, used on every ClientHello for
+     * SNI-based cert selection, would then fail with S2N_ERR_MAP_MUTABLE,
+     * silently disabling SNI matching for the config's lifetime.
+     *
+     * The fix ensures s2n_map_complete is always called after unlock,
+     * even when add fails.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* The map starts empty and immutable. Verify a lookup succeeds. */
+        {
+            struct s2n_blob lookup_name = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&lookup_name,
+                    (uint8_t *) "test.example.com", strlen("test.example.com")));
+            struct s2n_blob lookup_value = { 0 };
+            bool found = false;
+            EXPECT_OK(s2n_map_lookup(config->domain_name_to_cert_map,
+                    &lookup_name, &lookup_value, &found));
+            EXPECT_FALSE(found);
+        }
+
+        /* Create a cert chain to attempt adding. */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        /* Install a malloc callback that always fails so s2n_map_add will
+         * fail during s2n_dup inside the unlock -> add -> complete path.
+         */
+        s2n_mem_init_callback saved_init_cb = NULL;
+        s2n_mem_cleanup_callback saved_cleanup_cb = NULL;
+        s2n_mem_malloc_callback saved_malloc_cb = NULL;
+        s2n_mem_free_callback saved_free_cb = NULL;
+        EXPECT_OK(s2n_mem_get_callbacks(&saved_init_cb, &saved_cleanup_cb,
+                &saved_malloc_cb, &saved_free_cb));
+        EXPECT_OK(s2n_mem_override_callbacks(saved_init_cb, saved_cleanup_cb,
+                s2n_test_failing_malloc_cb, saved_free_cb));
+
+        /* The cert's SANs/CNs are not in the empty map, so the update
+         * function will take the !key_found branch: unlock -> add (FAIL).
+         * With the fix, complete is still called before returning the error.
+         */
+        EXPECT_FAILURE(s2n_config_build_domain_name_to_cert_map(config, chain));
+
+        /* Restore the real malloc callback before any further allocations. */
+        EXPECT_OK(s2n_mem_override_callbacks(saved_init_cb, saved_cleanup_cb,
+                saved_malloc_cb, saved_free_cb));
+
+        /* The regression check: the map must still be immutable so that
+         * lookups succeed. Before the fix, this would fail with
+         * S2N_ERR_MAP_MUTABLE because s2n_map_complete was never called
+         * after the failed add.
+         */
+        {
+            struct s2n_blob lookup_name = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&lookup_name,
+                    (uint8_t *) "test.example.com", strlen("test.example.com")));
+            struct s2n_blob lookup_value = { 0 };
+            bool found = false;
+            EXPECT_OK(s2n_map_lookup(config->domain_name_to_cert_map,
+                    &lookup_name, &lookup_value, &found));
+            /* Lookup should succeed (not error) even though the key isn't found. */
+        }
     };
 
     END_TEST();

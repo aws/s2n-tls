@@ -16,7 +16,6 @@
 #include "tls/extensions/s2n_client_cert_status_request.h"
 
 #include <stdint.h>
-#include <sys/param.h>
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"

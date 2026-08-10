@@ -15,8 +15,6 @@
 
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 
-#include <sys/param.h>
-
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
