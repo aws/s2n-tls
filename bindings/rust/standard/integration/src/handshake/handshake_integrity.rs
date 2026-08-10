@@ -3,6 +3,12 @@
 
 //! Verify that any bit-flip in protected handshake content results in a handshake
 //! failure.
+//! 
+//! In general we do a single handshake with the config of interest to see how 
+//! many bits the transcript was -> `n`. Then we run the handshake `n` times, flipping
+//! a new bit each time and confirming that the bit flip is either
+//! - detected
+//! - happens in a part of the message without integrity protections
 
 use crate::capability_check::{required_capability, Capability};
 use rcgen::{CertificateParams, KeyPair, PKCS_RSA_SHA256};
@@ -64,6 +70,8 @@ fn flip_bit(record: &mut [u8], bit_index: usize) {
 fn negotiation_check(config: &config::Config) -> (usize, Version) {
     let mut pair = TestPair::from_config(config);
     let mut transcript = 0;
+    // we manually drive the negotiation loop because we want to check the exact
+    // amount of data written for the handshake.
     loop {
         let client_poll = pair.client.poll_negotiate();
         transcript += pair.io.client_tx_stream.borrow().len();
