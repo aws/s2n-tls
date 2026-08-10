@@ -68,14 +68,12 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
     return S2N_SUCCESS;
 }
 
-
 static int s2n_test_failing_malloc_cb(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     *ptr = NULL;
     *allocated = 0;
     POSIX_BAIL(S2N_ERR_ALLOC);
 }
-
 
 int main(int argc, char **argv)
 {
@@ -1353,8 +1351,6 @@ int main(int argc, char **argv)
          */
         EXPECT_EQUAL(conn->x509_validator.state, INIT);
     };
-
-
 
     /* Test: domain_name_to_cert_map remains usable after s2n_map_add fails
      *
