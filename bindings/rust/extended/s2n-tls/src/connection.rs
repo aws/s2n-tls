@@ -2001,17 +2001,11 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13)?;
         let mut conn = config.build_connection(Mode::Server)?;
 
-        let config_ptr_before = conn
-            .config()
-            .unwrap()
-            .as_mut_ptr();
+        let config_ptr_before = conn.config().unwrap().as_mut_ptr();
 
         conn.wipe()?;
 
-        let config_ptr_after = conn
-            .config()
-            .unwrap()
-            .as_mut_ptr();
+        let config_ptr_after = conn.config().unwrap().as_mut_ptr();
 
         assert_eq!(config_ptr_before, config_ptr_after);
         Ok(())
