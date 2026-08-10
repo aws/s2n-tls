@@ -92,7 +92,7 @@ fn negotiation_check(config: &config::Config) -> (usize, Version) {
 /// messages.
 ///
 /// Returns
-/// - `None`: if the bit belong to an unprotected part of the handshake.
+/// - `None`: if the bit belongs to an unprotected part of the handshake.
 /// - `Some(Ok(()))`: if the handshake succeeded
 /// - `Some(Err(e))`: if the handshake failed
 fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Option<Result<(), S2NError>> {
