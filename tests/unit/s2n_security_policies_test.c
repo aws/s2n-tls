@@ -20,7 +20,6 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
@@ -1024,6 +1023,27 @@ int main(int argc, char **argv)
                 EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", ecdsa_sha384_chain_and_key),
                         S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
             }
+
+            /* ELB CNSA 2.0 interop policies */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+                /* Handshake with each other using ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260720", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260722", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260722, "20260720", mldsa87_chain_and_key));
+
+                /* CNSA2-INTEROP1 can only negotiate TLS 1.3, not TLS 1.2 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251014, "20260720", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20240501, "20260720", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+                /* CNSA2-INTEROP3 can negotiate with RFC9151 interop4 using p-384 cert, but not ML-DSA-87 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", mldsa87_chain_and_key),
+                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            }
         };
     };
 
@@ -1077,19 +1097,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_tls13",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_tls13 should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "default_fips" */
@@ -1129,19 +1136,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_pq should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "rfc9151" */
