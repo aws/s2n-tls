@@ -3,8 +3,8 @@
 
 //! Verify that any bit-flip in protected handshake content results in a handshake
 //! failure.
-//! 
-//! In general we do a single handshake with the config of interest to see how 
+//!
+//! In general we do a single handshake with the config of interest to see how
 //! many bits the transcript was -> `n`. Then we run the handshake `n` times, flipping
 //! a new bit each time and confirming that the bit flip is either
 //! - detected
@@ -88,6 +88,13 @@ fn negotiation_check(config: &config::Config) -> (usize, Version) {
     (transcript, pair.server.actual_protocol_version().unwrap())
 }
 
+/// Perform a handshake, simulating an attacker that flips a bit in one of the
+/// messages.
+///
+/// Returns
+/// - `None`: if the bit belong to an unprotected part of the handshake.
+/// - `Some(Ok(()))`: if the handshake succeeded
+/// - `Some(Err(e))`: if the handshake failed
 fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Option<Result<(), S2NError>> {
     let mut mutated = false;
     let mut transcript_bits = 0;
@@ -136,7 +143,7 @@ fn handshake_with_flipped_bit(pair: &mut TestPair, bit: usize) -> Option<Result<
     }
 }
 
-/// Assert that flipping any single bit in an encrypted record is rejected.
+/// Assert that flipping any single bit in the handshake is rejected.
 fn assert_all_mutations_rejected(config: &config::Config) {
     let (length, _) = negotiation_check(config);
 
