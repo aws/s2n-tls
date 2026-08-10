@@ -23,7 +23,8 @@ phases:
     on-failure: ABORT
     commands:
       # Install musl libc
-      - git clone --depth=1 https://git.musl-libc.org/git/musl $MUSL_DIR
+      # Use GitHub mirror because git.musl-libc.org is unreliable in CI
+      - git clone --depth=1 https://github.com/ahjragaas/musl.git $MUSL_DIR
       - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
       - cd $MUSL_DIR
       - ./configure --prefix=$CODEBUILD_SRC_DIR/$MUSL_DIR
