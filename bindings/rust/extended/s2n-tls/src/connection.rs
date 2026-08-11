@@ -1979,4 +1979,80 @@ mod tests {
         // if the old config had been freed.
         drop(conn);
     }
+
+    /// `wipe` preserves the mode (client/server) of the connection.
+    #[test]
+    fn wipe_preserves_mode() -> Result<(), Box<dyn std::error::Error>> {
+        let mut client = Connection::new_client();
+        client.wipe()?;
+        assert_eq!(client.mode(), Mode::Client);
+
+        let mut server = Connection::new_server();
+        server.wipe()?;
+        assert_eq!(server.mode(), Mode::Server);
+        Ok(())
+    }
+
+    /// `wipe` preserves the config set on the connection.
+    #[test]
+    fn wipe_preserves_config() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::connection::Builder;
+
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        let mut conn = config.build_connection(Mode::Server)?;
+
+        let config_ptr_before = conn.config().unwrap().as_mut_ptr();
+
+        conn.wipe()?;
+
+        let config_ptr_after = conn.config().unwrap().as_mut_ptr();
+
+        assert_eq!(config_ptr_before, config_ptr_after);
+        Ok(())
+    }
+
+    /// `wipe` clears any application context stored on the connection.
+    #[test]
+    fn wipe_clears_application_context() -> Result<(), Box<dyn std::error::Error>> {
+        let mut conn = Connection::new_server();
+
+        conn.set_application_context(1142_u32);
+        assert_eq!(*conn.application_context::<u32>().unwrap(), 1142);
+
+        conn.wipe()?;
+
+        // After a wipe, the previously stored application context is gone.
+        assert!(conn.application_context::<u32>().is_none());
+        Ok(())
+    }
+
+    /// A wiped connection can be reused for a subsequent handshake.
+    #[test]
+    fn wipe_allows_connection_reuse() -> Result<(), Box<dyn std::error::Error>> {
+        // arbitrary policy. This test has no specific parameter expectations
+        let config = build_config(&security::DEFAULT)?;
+
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert_eq!(pair.client.actual_protocol_version()?, Version::TLS13);
+        assert_eq!(pair.server.actual_protocol_version()?, Version::TLS13);
+
+        pair.client.wipe()?;
+        pair.server.wipe()?;
+
+        // wipe removes IO state: with the send/recv callbacks gone, the
+        // handshake can't move any bytes and fails with an IO error.
+        let io_error = pair.handshake().unwrap_err();
+        assert_eq!(io_error.name(), "S2N_ERR_IO");
+
+        pair.client.wipe()?;
+        pair.server.wipe()?;
+
+        // When IO callbacks are set, the handshake succeeds
+        let mut reused = TestPair::from_connections(pair.client, pair.server);
+        reused.handshake()?;
+        assert_eq!(reused.client.actual_protocol_version()?, Version::TLS13);
+        assert_eq!(reused.server.actual_protocol_version()?, Version::TLS13);
+        Ok(())
+    }
 }
