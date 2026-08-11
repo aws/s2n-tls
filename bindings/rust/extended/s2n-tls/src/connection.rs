@@ -556,7 +556,6 @@ impl Connection {
         // A connection without a context is invalid and has undefined behavior.
         self.init_context();
         result?;
-        self.set_binding_specific_defaults()?;
 
         Ok(())
     }
@@ -571,6 +570,9 @@ impl Connection {
     /// Corresponds to [`s2n_connection_wipe`].
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
         self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
+        // we deliberately call this outside of "wipe_method", because binding 
+        // specific defaults should not be re-applied on renegotiate wipe
+        self.set_binding_specific_defaults()?;
         Ok(self)
     }
 
