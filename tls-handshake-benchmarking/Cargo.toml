@@ -1,0 +1,25 @@
+[package]
+name = "tls-handshake-benchmarking"
+version = "0.1.0"
+edition = "2021"
+description = "Per-message TLS handshake timing benchmark for s2n-tls vs Rustls"
+
+[dependencies]
+s2n-tls = { path = "../s2n-tls/bindings/rust/extended/s2n-tls", features = ["unstable-events", "unstable-testing"] }
+rustls = { path = "../rustls/rustls", features = ["timing"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libc = "0.2"
+rcgen = { version = "0.13", default-features = false, features = ["aws_lc_rs", "pem"] }
+# Used only by the --microbench mode to get a ground-truth isolated RSA
+# sign/verify time, validating the flamegraph share -> absolute-time conversion.
+aws-lc-rs = "1.17"
+
+# Optimized build that retains debuginfo + frame pointers for flamegraph
+# profiling. Build with:
+#   RUSTFLAGS="-C force-frame-pointers=yes" CFLAGS="-fno-omit-frame-pointer -g" \
+#     cargo build --profile bench-fg
+[profile.bench-fg]
+inherits = "release"
+debug = 2
+strip = false
