@@ -15,21 +15,14 @@ version: 0.2
 
 env:
   variables:
-    MUSL_DIR: "test-deps/musl"
     LIBCRYPTO_DIR: "test-deps/musl-awslc"
-    
+
 phases:
   pre_build:
     on-failure: ABORT
     commands:
-      # Install musl libc
-      # Use GitHub mirror because git.musl-libc.org is unreliable in CI
-      - git clone --depth=1 https://github.com/ahjragaas/musl.git $MUSL_DIR
-      - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
-      - cd $MUSL_DIR
-      - ./configure --prefix=$CODEBUILD_SRC_DIR/$MUSL_DIR
-      - make install
-      - cd $CODEBUILD_SRC_DIR
+      # Install musl libc from OS package manager
+      - apt-get update && apt-get install -y musl-tools
       # Install libcrypto.
       # We need to modify the usual install so that the library can link to musl.
       # If this becomes a problem, we can switch to more official cross compilation.
@@ -38,7 +31,7 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - CC="$CODEBUILD_SRC_DIR/$MUSL_DIR/bin/musl-gcc"
+      - CC="musl-gcc"
       - cmake . -Bbuild -DCMAKE_PREFIX_PATH=$CODEBUILD_SRC_DIR/$LIBCRYPTO_DIR
       - cmake --build ./build
   post_build:
