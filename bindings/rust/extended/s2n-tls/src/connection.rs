@@ -585,7 +585,7 @@ impl Connection {
     /// Corresponds to [`s2n_connection_wipe`].
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
         self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
-        // we deliberately call this outside of "wipe_method", because binding 
+        // we deliberately call this outside of "wipe_method", because binding
         // specific defaults should not be re-applied on renegotiate wipe
         self.set_binding_specific_defaults()?;
         Ok(self)
@@ -2021,7 +2021,7 @@ mod tests {
 
         Ok(())
     }
-    
+
     /// Test that a failed set_config does not cause a use-after-free.
     ///
     /// Previously, set_config would drop the old config before confirming the
