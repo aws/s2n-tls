@@ -24,7 +24,7 @@
 /*
  * The TLS protocol allows messages to be fragmented, interleaved and coalesced into 'records'. These
  * tests check that fragmented messages are recombined, that several messages in the same record work
- * and that messages interleaved with alerts (including a fragmented alert message) all work.
+ * and that messages interleaved with alerts all work.
  *
  * Instead of forking subprocesses that write records to a pipe, we write the
  * raw TLS record bytes directly into the connection's input stuffer.
@@ -299,14 +299,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(write_record(&in, TLS_HANDSHAKE,
                 server_hello_message + half, remaining));
 
+        /* We do not support (let alone negotiate) the heartbeat extension, so 
+         * s2n-tls should close the connection if it sees unrecognized content
+         * types. */
         s2n_blocked_status blocked;
-        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
-
-        EXPECT_BYTEARRAY_EQUAL(conn->handshake_params.server_random,
-                zero_to_thirty_one, 32);
-
-        /* Check that the server hello message was processed */
-        EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_BAD_MESSAGE);
     };
 
     /* Test: interleaved fragmented warning alert */
@@ -363,7 +360,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
     };
 
-    /* Test: interleaved fragmented fatal alert */
+    /* Test: fragmented fatal alert is invalid */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -407,7 +404,7 @@ int main(int argc, char **argv)
                 server_hello_message + written, rest));
 
         s2n_blocked_status blocked;
-        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_BAD_MESSAGE);
 
         /* Fatal alert should have prevented processing */
         EXPECT_BYTEARRAY_NOT_EQUAL(conn->handshake_params.server_random,
@@ -415,6 +412,9 @@ int main(int argc, char **argv)
 
         /* Check that the server hello message was not processed */
         EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+
+        /* We should not have read the full alert (because we rejected it) */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->alert_in), 0);
     };
 
     END_TEST();

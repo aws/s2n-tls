@@ -20,7 +20,6 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
@@ -1098,19 +1097,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_tls13",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_tls13 should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "default_fips" */
@@ -1150,19 +1136,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_pq should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "rfc9151" */

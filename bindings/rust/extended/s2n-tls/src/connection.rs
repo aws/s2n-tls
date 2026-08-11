@@ -268,9 +268,16 @@ impl Connection {
     /// Corresponds to [`s2n_connection_set_config`].
     pub fn set_config(&mut self, mut config: Config) -> Result<&mut Self, Error> {
         unsafe {
-            // attempt to drop the currently set config
-            self.drop_config()?;
+            // Retrieve the previous config before attempting to set the new one.
+            // We must NOT drop it until we know the new config was successfully installed,
+            // because s2n_connection_set_config has failure paths that return early
+            // without assigning conn->config. Dropping first would leave a dangling pointer.
+            let mut prev_config_ptr = core::ptr::null_mut();
+            let _ = s2n_connection_get_config(self.connection.as_ptr(), &mut prev_config_ptr)
+                .into_result();
 
+            // Attempt to install the new config. If this fails, conn->config is unchanged
+            // and still points to the previous (valid, non-freed) config.
             s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr())
                 .into_result()?;
 
@@ -279,9 +286,17 @@ impl Connection {
                 "s2n_connection_set_config was successful"
             };
 
-            // Setting the config on the connection creates one additional reference to the config
-            // so do not drop so prevent Rust from calling `drop()` at the end of this function.
-            mem::forget(config);
+            // If the C setter was a no-op (same pointer), it didn't take a new
+            // reference. Let `config` drop normally to decrement the clone's refcount.
+            // Otherwise the C side took ownership — forget `config` and drop the old one.
+            let is_same_config = NonNull::new(prev_config_ptr)
+                .is_some_and(|prev| prev.as_ptr() == config.as_mut_ptr());
+            if !is_same_config {
+                if let Some(prev) = NonNull::new(prev_config_ptr) {
+                    drop(Config::from_raw(prev));
+                }
+                mem::forget(config);
+            }
         }
 
         Ok(self)
@@ -668,6 +683,8 @@ impl Connection {
     ///
     /// Corresponds to [`s2n_send`].
     #[cfg(not(feature = "unstable-renegotiate"))]
+    // don't show the renegotiate config in docs.rs, this method has the same signature and docs regardless of that cfg.
+    #[cfg_attr(docsrs, doc(cfg(true)))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
@@ -1317,6 +1334,9 @@ impl Connection {
     }
 
     /// Returns the validated peer certificate chain.
+    ///
+    /// Note that this will include the CA from the trust store, even if the CA
+    /// was elided in the actual Certificate message.
     // 'static lifetime is because this copies the certificate chain from the connection into a new
     // chain, so the lifetime is independent of the connection.
     ///
@@ -2000,5 +2020,51 @@ mod tests {
         assert_eq!(wiped_conn_record_length, MAX_TLS_RECORD_LEN);
 
         Ok(())
+    }
+    
+    /// Test that a failed set_config does not cause a use-after-free.
+    ///
+    /// Previously, set_config would drop the old config before confirming the
+    /// new config was successfully installed. If the C setter rejected the new
+    /// config, the connection would hold a dangling pointer. This test verifies
+    /// the fix: the old config remains valid when set_config fails.
+    #[test]
+    fn set_config_failure_no_use_after_free() {
+        // Create a valid config and install it on a CLIENT connection.
+        let good_config = {
+            let mut builder = crate::config::Builder::new();
+            builder.set_security_policy(&security::DEFAULT).unwrap();
+            builder.build().unwrap()
+        };
+        let mut conn = Connection::new_client();
+        conn.set_config(good_config).unwrap();
+
+        // Create a config that will be rejected for a CLIENT connection:
+        // loading two certificate chains triggers S2N_ERR_TOO_MANY_CERTIFICATES
+        // because "only 1 certificate is supported in client mode".
+        let rsa_keypair = crate::testing::CertKeyPair::default();
+        let ecdsa_keypair =
+            crate::testing::CertKeyPair::from_path("ecdsa_p384_pkcs1_", "cert", "key", "cert");
+        let bad_config = {
+            let mut builder = crate::config::Builder::new();
+            builder.set_security_policy(&security::DEFAULT).unwrap();
+
+            // Use load_chain to add multiple certs (load_pem only allows one).
+            let rsa_chain = rsa_keypair.into_certificate_chain();
+            let ecdsa_chain = ecdsa_keypair.into_certificate_chain();
+            builder.load_chain(rsa_chain).unwrap();
+            builder.load_chain(ecdsa_chain).unwrap();
+            builder.build().unwrap()
+        };
+
+        // This should fail but NOT cause a use-after-free.
+        let result = conn.set_config(bad_config);
+        let err = result.unwrap_err();
+        assert_eq!(err.name(), "S2N_ERR_TOO_MANY_CERTIFICATES");
+
+        // The connection should still be usable (no dangling pointer).
+        // Dropping the connection exercises drop_config which would crash
+        // if the old config had been freed.
+        drop(conn);
     }
 }
