@@ -219,13 +219,16 @@ static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t na
     POSIX_ENSURE(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     size_t kem_group_index = 0;
+    bool kem_group_found = false;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         if (named_group_iana == kem_pref->tls13_kem_groups[i]->iana_id
                 && s2n_kem_group_is_available(kem_pref->tls13_kem_groups[i])) {
             kem_group_index = i;
+            kem_group_found = true;
             break;
         }
     }
+    POSIX_ENSURE(kem_group_found, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     server_kem_group_params->kem_group = kem_pref->tls13_kem_groups[kem_group_index];
