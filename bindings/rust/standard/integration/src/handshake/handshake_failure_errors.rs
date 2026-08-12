@@ -49,10 +49,6 @@ fn no_protocols_in_common() {
             s2n_error.message(),
             "TLS protocol version is not supported by configuration"
         );
-        // `s2n_connection_handshake_complete()` tracks whether the handshake
-        // state machine has reached its terminal state. A failed negotiation
-        // errors out of the state machine before that point, so this must
-        // report `false`, not `true`.
         assert!(!pair.server().connection().handshake_complete());
     });
 }
