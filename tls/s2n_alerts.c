@@ -237,55 +237,58 @@ int s2n_error_get_alert(int error, uint8_t *alert)
 
     return S2N_SUCCESS;
 }
-
+/**
+ * This function is called after the content type has been determined to be ALERT.
+ * 
+ * The full payload of the record must be available in conn->in. Generally, this
+ * means that this function should only be called after s2n_read_full_record has
+ * successfully completed.
+ */
 int s2n_process_alert_fragment(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
+     *# Alert messages (Section 6) MUST NOT be fragmented across records, and
+     *# multiple alert messages MUST NOT be coalesced into a single
+     *# TLSPlaintext record.  In other words, a record with an Alert type
+     *# MUST contain exactly one message.
+     *
+     * An alert message is exactly 2 bytes (level + description), so any other
+     * size indicates a malformed record from the peer.
+     */
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 2, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) == 2, S2N_ERR_ALERT_PRESENT);
     POSIX_ENSURE(s2n_alerts_supported(conn), S2N_ERR_BAD_MESSAGE);
 
-    while (s2n_stuffer_data_available(&conn->in)) {
-        uint8_t bytes_required = 2;
+    POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, 2));
 
-        /* Alerts are two bytes long, but can still be fragmented or coalesced */
-        if (s2n_stuffer_data_available(&conn->alert_in) == 1) {
-            bytes_required = 1;
-        }
-
-        int bytes_to_read = S2N_MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
-
-        POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
-
-        if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
-            /* Close notifications are handled as shutdowns */
-            if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                s2n_atomic_flag_set(&conn->read_closed);
-                s2n_atomic_flag_set(&conn->close_notify_received);
-                return 0;
-            }
-
-            /* Ignore warning-level alerts if we're in warning-tolerant mode */
-            if (s2n_process_as_warning(conn, conn->alert_in_data[0], conn->alert_in_data[1])) {
-                POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
-                return 0;
-            }
-
-            /* RFC 5077 5.1 - Expire any cached session on an error alert */
-            if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
-            }
-
-            /* All other alerts are treated as fatal errors.
-             *
-             *= https://www.rfc-editor.org/rfc/rfc8446#section-6
-             *# Unknown Alert types MUST be treated as error alerts.
-             */
-            POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
-            s2n_atomic_flag_set(&conn->error_alert_received);
-            POSIX_BAIL(S2N_ERR_ALERT);
-        }
+    /* Close notifications are handled as shutdowns */
+    if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
+        s2n_atomic_flag_set(&conn->read_closed);
+        s2n_atomic_flag_set(&conn->close_notify_received);
+        return 0;
     }
+
+    /* Ignore warning-level alerts if we're in warning-tolerant mode */
+    if (s2n_process_as_warning(conn, conn->alert_in_data[0], conn->alert_in_data[1])) {
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
+        return 0;
+    }
+
+    /* RFC 5077 5.1 - Expire any cached session on an error alert */
+    if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+        conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+    }
+
+    /* All other alerts are treated as fatal errors.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
+     *# Unknown Alert types MUST be treated as error alerts.
+     */
+    POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+    s2n_atomic_flag_set(&conn->error_alert_received);
+    POSIX_BAIL(S2N_ERR_ALERT);
 
     return 0;
 }
