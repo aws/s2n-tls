@@ -100,6 +100,23 @@ int main(int argc, char *argv[])
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(&test_op), S2N_ERR_INVALID_STATE);
     }
 
+    /* Test: s2n_async_offload_op_wipe refuses to wipe an in-flight op */
+    {
+        struct s2n_async_offload_op op = { 0 };
+
+        /* Wipe succeeds when not invoked */
+        op.async_state = S2N_ASYNC_NOT_INVOKED;
+        EXPECT_OK(s2n_async_offload_op_wipe(&op));
+
+        /* Wipe succeeds when complete */
+        op.async_state = S2N_ASYNC_COMPLETE;
+        EXPECT_OK(s2n_async_offload_op_wipe(&op));
+
+        /* Wipe fails when still in flight */
+        op.async_state = S2N_ASYNC_INVOKED;
+        EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_op_wipe(&op), S2N_ERR_ASYNC_BLOCKED);
+    }
+
     /* clang-format off */
     struct s2n_async_offload_test_case {
         bool async_test;

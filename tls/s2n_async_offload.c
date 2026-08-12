@@ -67,6 +67,7 @@ int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
 S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
+    RESULT_ENSURE(op->async_state != S2N_ASYNC_INVOKED, S2N_ERR_ASYNC_BLOCKED);
     if (op->op_data_free == NULL) {
         return S2N_RESULT_OK;
     }
