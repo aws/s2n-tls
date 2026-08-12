@@ -286,7 +286,7 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
 
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->verify_after_sign) {
-        DEFER_CLEANUP(struct s2n_hash_state digest_for_verify, s2n_hash_free);
+        DEFER_CLEANUP(struct s2n_hash_state digest_for_verify = { 0 }, s2n_hash_free);
         RESULT_GUARD_POSIX(s2n_hash_new(&digest_for_verify));
         RESULT_GUARD_POSIX(s2n_hash_copy(&digest_for_verify, digest));
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
@@ -423,7 +423,7 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
     /* If validation mode is S2N_ASYNC_PKEY_VALIDATION_STRICT
      * then use local hash copy to sign the signature */
     if (op->validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
-        DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
+        DEFER_CLEANUP(struct s2n_hash_state hash_state_copy = { 0 }, s2n_hash_free);
         RESULT_GUARD_POSIX(s2n_hash_new(&hash_state_copy));
         RESULT_GUARD_POSIX(s2n_hash_copy(&hash_state_copy, &sign->digest));
 
