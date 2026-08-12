@@ -38,7 +38,7 @@ When sending or receiving application data, we must read or write that data as e
 
 TLS records may only contain a limited amount of data. If an application wants to send a larger amount of data, that data will be broken into "fragments" and each fragment will be sent in a separate record.
 
-The maximum fragment length is defined by the TLS protocol as 2^14. s2n-tls uses a default fragment length of about 8k, which a code comment explains as "Testing in the wild has found 8k max record sizes give a good balance of low latency and throughput." Most TLS libraries default to about 16k.
+The rust bindings default to 16kb, and the C library defaults to 8 kb. We recommend using a 16 kb fragment length, which can be enabled with `s2n_connection_prefer_throughput`.
 
 The client and server can use the "Maximum fragment length" extension to negotiate a different fragment length. Lowering the fragment length can improve latency, since each individual record will be faster to process (see [s2n_connection_prefer_low_latency](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a9b4fafb7e9b8277f408af0ad17ab6e19)). Raising the fragment length can improve throughput, since fewer records will need to be processed (see [s2n_connection_prefer_throughput](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a11c72914bfc09a9174b6a7b019e5aa5c)).
 
