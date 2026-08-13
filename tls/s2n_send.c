@@ -271,7 +271,7 @@ ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t
 
 ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
-    struct iovec iov;
+    struct iovec iov = { 0 };
     iov.iov_base = (void *) (uintptr_t) buf;
     iov.iov_len = size;
     return s2n_sendv_with_offset(conn, &iov, 1, 0, blocked);

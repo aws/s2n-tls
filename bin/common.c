@@ -355,7 +355,7 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
             int fd = open(session_ticket_key_file_path, O_RDONLY);
             GUARD_EXIT(fd, "Error opening session ticket key file");
 
-            struct stat st;
+            struct stat st = { 0 };
             GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
 
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
