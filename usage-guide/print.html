@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66614144.js";
+            window.path_to_searchindex_js = "searchindex-8085e6da.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d147fdf9.js"></script>
@@ -547,6 +547,10 @@ be called after an error.</p>
 to establish a TLS connection with the peer.</p>
 <p>To perform the handshake, call <code>s2n_negotiate()</code> until it either returns <strong>S2N_SUCCESS</strong>
 or returns <strong>S2N_FAILURE</strong> without a <strong>S2N_ERR_T_BLOCKED</strong> error.</p>
+<p>To check whether the handshake has fully completed, use <code>s2n_connection_handshake_complete()</code>.
+Don’t rely on <code>handshake_type</code> or <code>s2n_connection_get_handshake_type_name()</code> as a completion
+signal: those describe which messages are part of the negotiated handshake, not whether the
+handshake has actually finished.</p>
 <p>For an example of how to perform a basic handshake, see <a href="https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c">examples/s2n_negotiate.c</a></p>
 <h2 id="application-data"><a class="header" href="#application-data">Application Data</a></h2>
 <p>After the TLS handshake, an application can send and receive encrypted data.</p>
