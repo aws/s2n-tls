@@ -59,7 +59,7 @@
 +    __VERIFIER_assume(currently_in_hash_block < BLOCK_SIZE);
  
      /* Check the MAC */
-     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+     uint8_t check_digest[S2N_MAX_DIGEST_LEN] = { 0 };
 @@ -82,9 +109,9 @@
       * recommended. If SSLv3 must be used, the blinding feature (enabled
       * by default) helps mitigates this issue as well.

@@ -87,6 +87,16 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_error_get_alert: unknown error type maps to internal_error */
+    {
+        uint8_t alert = 0;
+        /* Fabricate an error code whose type bits exceed S2N_ERR_T_USAGE.
+         * This exercises the default case added to s2n_error_get_alert. */
+        int fabricated_error = ((S2N_ERR_T_USAGE + 1) << S2N_ERR_NUM_VALUE_BITS);
+        EXPECT_SUCCESS(s2n_error_get_alert(fabricated_error, &alert));
+        EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
+    }
+
     /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */
     {
         const uint8_t close_notify_alert[] = {

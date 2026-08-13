@@ -975,7 +975,7 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
         conn->handshake.handshake_type |= WITH_EARLY_DATA;
     }
 
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
     if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED
@@ -1036,7 +1036,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
     if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
@@ -1113,7 +1113,7 @@ skip_cache_lookup:
 
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
 {
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
     POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_MISSING_CLIENT_CERT);
 
