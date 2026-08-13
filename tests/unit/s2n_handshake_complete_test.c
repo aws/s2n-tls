@@ -19,6 +19,17 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
 
+static bool s2n_test_ticket_received = false;
+
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
+{
+    (void) conn;
+    (void) ctx;
+    (void) ticket;
+    s2n_test_ticket_received = true;
+    return S2N_SUCCESS;
+}
+
 /*
  * Helper: create a matching server+client config pair for a given cipher
  * preference string. The caller owns both configs and must free them.
@@ -44,6 +55,14 @@ static S2N_RESULT s2n_setup_negotiated_pair(
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, cipher_pref));
+    RESULT_GUARD_POSIX(s2n_config_set_session_tickets_onoff(config, 1));
+    uint8_t ticket_key_name[16] = "test_ticket_key";
+    uint8_t ticket_key[32] = { 0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+        0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+        0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+        0xb3, 0xe5 };
+    RESULT_GUARD_POSIX(s2n_config_add_ticket_crypto_key(config,
+            ticket_key_name, sizeof(ticket_key_name), ticket_key, sizeof(ticket_key), 0));
 
     struct s2n_connection *client = s2n_connection_new(S2N_CLIENT);
     RESULT_ENSURE_REF(client);
@@ -133,12 +152,20 @@ int main(int argc, char **argv)
          * return true here; the correct implementation must return false.
          */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        bool server_done = false;
+        int max_attempts = 20; /* handshake round trips are always a small, bounded number */
 
         while (s2n_result_is_error(s2n_negotiate_until_message(client_conn, &blocked, SERVER_FINISHED))) {
             EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-            if (s2n_negotiate(server_conn, &blocked) != S2N_SUCCESS) {
-                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            if (!server_done) {
+                if (s2n_negotiate(server_conn, &blocked) == S2N_SUCCESS) {
+                    server_done = true;
+                } else {
+                    EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+                }
             }
+
+            EXPECT_TRUE(--max_attempts > 0);
         }
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
@@ -176,6 +203,9 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_setup_negotiated_pair("default_tls13", ecdsa_chain_and_key,
                 &client_conn, &server_conn, &config, &io_pair));
 
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config,
+                s2n_test_session_ticket_cb, NULL));
+
         /* Before negotiation: neither side is complete */
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), false);
@@ -190,6 +220,9 @@ int main(int argc, char **argv)
          */
         while (s2n_negotiate(server_conn, &blocked) != S2N_SUCCESS) {
             EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            if (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
         }
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
 
@@ -206,13 +239,27 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
 
-        /* Post-handshake: deterministically pump a NewSessionTicket from
-         * server to client, and confirm one was actually received rather
-         * than assuming the two bare s2n_negotiate() calls did something.
+        /* Post-handshake: the server proactively sends a NewSessionTicket.
+         * The client must actively recv to process it and fire the
+         * session ticket callback.
          */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
-                SERVER_NEW_SESSION_TICKET));
-        EXPECT_TRUE(s2n_connection_get_session_ticket_lifetime_hint(client_conn) > 0);
+        {
+            s2n_blocked_status tb = S2N_NOT_BLOCKED;
+            int send_attempts = 20;
+            while (s2n_negotiate(server_conn, &tb) != S2N_SUCCESS && send_attempts-- > 0) {
+                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
+            }
+
+            uint8_t buf[1] = { 0 };
+            int recv_attempts = 20;
+            while (!s2n_test_ticket_received && recv_attempts-- > 0) {
+                ssize_t r = s2n_recv(client_conn, buf, 1, &tb);
+                if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                    break;
+                }
+            }
+        }
+        EXPECT_TRUE(s2n_test_ticket_received);
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
