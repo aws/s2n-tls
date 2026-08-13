@@ -159,7 +159,7 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             attribution: self.inner.attribution.clone().into_schema(),
             handshake,
         });
-        export_pipeline.sink.export_record(&record);
+        export_pipeline.sink.export_record(record);
         self.inner
             .last_export_epoch_ms
             .store(epoch_ms_now(), Ordering::Relaxed);
@@ -190,6 +190,43 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
                 self.finish_record_with_pipeline(&pipeline);
             }
         }
+    }
+}
+
+/// Flush any remaining aggregated events when the subscriber is fully dropped.
+impl<S: TelemetrySink> Drop for MetricSubscriberInner<S> {
+    fn drop(&mut self) {
+        // Because the inner state is only dropped once the last
+        // `AggregatedMetricsSubscriber` handle is gone, there are no concurrent
+        // handshake threads still updating the record, so the swapped-out Arc
+        // is guaranteed to be the last reference and its `Drop` runs inline.
+        let placeholder = Arc::new(HandshakeRecordInProgress::new(self.tx_handle.clone()));
+        let final_record = self.current_record.swap(placeholder);
+        drop(final_record);
+
+        // Export the frozen record. `drop` can't propagate errors, so if the
+        // lock is poisoned or the record can't be received we silently bail
+        // out rather than panic while tearing the subscriber down.
+        let Ok(export_pipeline) = self.export_pipeline.lock() else {
+            return;
+        };
+        let Ok(handshake) = export_pipeline.metric_receiver.try_recv() else {
+            return;
+        };
+        // Don't export an empty record. If no handshakes (successful, failed, or
+        // synthetic) were aggregated since the last export, there's nothing
+        // meaningful to report, so skip the export entirely.
+        if handshake.handshake_success_count == 0
+            && handshake.handshake_failure_count == 0
+            && handshake.synthetic_traffic_count == 0
+        {
+            return;
+        }
+        let record = MetricRecord::new(s2n_tls_metrics_schema::record::MetricRecord {
+            attribution: self.attribution.clone().into_schema(),
+            handshake,
+        });
+        export_pipeline.sink.export_record(record);
     }
 }
 
@@ -291,6 +328,79 @@ mod tests {
         assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
         assert_eq!(records[1].as_schema().handshake.handshake_success_count, 1);
         assert_eq!(records[2].as_schema().handshake.handshake_success_count, 0);
+    }
+
+    /// Dropping the subscriber should flush any events aggregated since the
+    /// last export, so no records are lost when the subscriber goes away.
+    #[test]
+    fn drop_flushes_pending_record() {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            security::DEFAULT_TLS13,
+            testing::{TestPair, build_config, config_builder},
+        };
+
+        let sink = VecSink::new();
+        let attribution = Attribution {
+            service: "test".to_owned(),
+            resource: "test".to_owned(),
+            component: "test".to_owned(),
+        };
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+        let server_config = {
+            let mut cfg = config_builder(&DEFAULT_TLS13).unwrap();
+            cfg.set_event_subscriber(subscriber.clone()).unwrap();
+            cfg.build().unwrap()
+        };
+        let client_config = build_config(&ARBITRARY_POLICY_1).unwrap();
+
+        // Two handshakes, but no explicit finish_record() call.
+        for _ in 0..2 {
+            TestPair::from_configs(&client_config, &server_config)
+                .handshake()
+                .unwrap();
+        }
+
+        // No record should have been exported yet.
+        assert_eq!(sink.records.lock().unwrap().len(), 0);
+
+        // Drop every handle to the subscriber. The last drop must flush.
+        drop(subscriber);
+        drop(server_config);
+
+        let records = sink.records.lock().unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
+    }
+
+    /// Dropping intermediate clones must NOT flush; only the final drop should.
+    #[test]
+    fn drop_of_clone_does_not_flush() {
+        let endpoint = TestEndpoint::new();
+        endpoint.client_handshake(&ARBITRARY_POLICY_1);
+
+        // Dropping a clone while other handles remain should not export.
+        let clone = endpoint.subscriber.clone();
+        drop(clone);
+
+        assert_eq!(endpoint.sink.records.lock().unwrap().len(), 0,);
+    }
+
+    /// Dropping a subscriber that aggregated no handshakes must not export an
+    /// empty record.
+    #[test]
+    fn drop_with_no_handshakes_does_not_flush() {
+        let endpoint = TestEndpoint::new();
+        // No handshakes performed.
+        let TestEndpoint {
+            subscriber,
+            sink,
+            server_config,
+        } = endpoint;
+        drop(subscriber);
+        drop(server_config);
+
+        assert_eq!(sink.records.lock().unwrap().len(), 0,);
     }
 
     /// Passive export: when the interval has elapsed, the next handshake

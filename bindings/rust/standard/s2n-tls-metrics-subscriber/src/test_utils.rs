@@ -30,7 +30,7 @@ impl VecSink {
 }
 
 impl TelemetrySink for VecSink {
-    fn export_record(&self, record: &MetricRecord) {
+    fn export_record(&self, record: MetricRecord) {
         self.records.lock().unwrap().push(record.clone());
     }
 }

@@ -104,6 +104,23 @@ impl ClientHelloSupportedParameters {
     pub fn supported_signatures(&self) -> Option<&[Signature]> {
         self.signatures.as_deref()
     }
+
+    /// Test-only constructor for building synthetic parameters without a real
+    /// ClientHello.
+    #[cfg(test)]
+    pub(crate) fn from_parts(
+        versions: Vec<Version>,
+        ciphers: Vec<Cipher>,
+        groups: Option<Vec<Group>>,
+        signatures: Option<Vec<Signature>>,
+    ) -> Self {
+        Self {
+            versions,
+            ciphers,
+            groups,
+            signatures,
+        }
+    }
 }
 
 /// We generally discourage the use of direct extension retrieval so it isn't exposed

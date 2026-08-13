@@ -1,6 +1,6 @@
 [package]
 name = "s2n-tls-metrics-schema"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 description = "Serialization schema types for s2n-tls metrics. No stability guarantees."
 authors = ["AWS s2n"]

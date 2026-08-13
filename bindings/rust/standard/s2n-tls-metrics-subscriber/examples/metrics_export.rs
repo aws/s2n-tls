@@ -31,11 +31,11 @@ use s2n_tls_metrics_subscriber::{
 struct StdoutJsonSink;
 
 impl TelemetrySink for StdoutJsonSink {
-    fn export_record(&self, record: &MetricRecord) {
+    fn export_record(&self, record: MetricRecord) {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
         // MetricRecord implements serde::Serialize, so we can use serde_json
-        if let Err(e) = serde_json::to_writer(&mut handle, record) {
+        if let Err(e) = serde_json::to_writer(&mut handle, &record) {
             eprintln!("failed to serialize metric record: {e}");
             return;
         }

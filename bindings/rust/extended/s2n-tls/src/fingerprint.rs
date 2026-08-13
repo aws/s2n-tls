@@ -576,6 +576,8 @@ mod tests {
         Ok(())
     }
 
+    // Relies on the `checkers` global allocator, which is not installed on Windows.
+    #[cfg(not(target_os = "windows"))]
     #[test]
     fn hash_does_not_allocate_memory() -> Result<(), Box<dyn Error>> {
         let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
@@ -593,6 +595,8 @@ mod tests {
         Ok(())
     }
 
+    // Relies on the `checkers` global allocator, which is not installed on Windows.
+    #[cfg(not(target_os = "windows"))]
     #[test]
     fn raw_may_allocate_memory() -> Result<(), Box<dyn Error>> {
         let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;

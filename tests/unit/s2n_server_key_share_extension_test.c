@@ -808,5 +808,62 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test s2n_server_key_share_recv_pq fails when KEM group IANA matches but is not available */
+    if (s2n_pq_is_enabled()) {
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
+        /* Create a KEM group that has a valid IANA ID but will fail s2n_kem_group_is_available
+         * because its kem field is NULL. */
+        const struct s2n_kem_group unavailable_kem_group = {
+            .name = "unavailable_test_group",
+            .iana_id = 0xFFFF,
+            .curve = &s2n_ecc_curve_secp256r1,
+            .kem = NULL, /* Makes s2n_kem_group_is_available return false */
+            .send_kem_first = false,
+        };
+
+        const struct s2n_kem_group *test_unavailable_kem_groups[] = {
+            &unavailable_kem_group,
+        };
+
+        const struct s2n_kem_preferences test_unavailable_kem_prefs = {
+            .kem_count = 0,
+            .kems = NULL,
+            .tls13_kem_group_count = s2n_array_len(test_unavailable_kem_groups),
+            .tls13_kem_groups = test_unavailable_kem_groups,
+            .tls13_pq_hybrid_draft_revision = 0,
+        };
+
+        const struct s2n_security_policy test_unavailable_policy = {
+            .minimum_protocol_version = S2N_SSLv3,
+            .cipher_preferences = &cipher_preferences_test_all_tls13,
+            .kem_preferences = &test_unavailable_kem_prefs,
+            .signature_preferences = &s2n_signature_preferences_20200207,
+            .ecc_preferences = &s2n_ecc_preferences_20200310,
+        };
+
+        struct s2n_connection *client_conn = NULL;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->security_policy_override = &test_unavailable_policy;
+        client_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(client_conn, S2N_TLS13));
+        client_conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+        client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+        client_conn->actual_protocol_version_established = 1;
+
+        /* Write the IANA ID of the unavailable KEM group */
+        DEFER_CLEANUP(struct s2n_stuffer key_share_payload = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_payload, 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_payload, unavailable_kem_group.iana_id));
+
+        /* Before the fix, this would silently succeed with kem_group_index=0.
+         * After the fix, it should fail because no available group matches. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &key_share_payload),
+                S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+    };
+
     END_TEST();
 }

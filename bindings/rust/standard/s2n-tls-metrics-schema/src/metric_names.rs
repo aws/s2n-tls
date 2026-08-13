@@ -15,7 +15,7 @@ use std::{
 
 use crate::static_lists::{
     Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
-    Cipher, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT,
+    Cipher, ClientIssue, DEFINED_ALERTS_COUNT, FiniteCounter, GROUP_COUNT, Group, PROTOCOL_COUNT,
     SIGNATURE_COUNT, Signature, Version,
 };
 
@@ -152,10 +152,20 @@ fn alert_metric_name(slot: usize, prefix: &'static str) -> &'static str {
     telemetry_label(slot, Alert::key_from_slot(slot).unwrap(), prefix)
 }
 
+fn client_issue_metric_name(slot: usize, prefix: &'static str) -> &'static str {
+    telemetry_label(slot, ClientIssue::key_from_slot(slot).unwrap(), prefix)
+}
+
 pub const ALERTS: CounterGroup = CounterGroup {
     prefix: "alert",
     count: DEFINED_ALERTS_COUNT,
     name_from_slot: alert_metric_name,
+};
+
+pub const CLIENT_ISSUES: CounterGroup = CounterGroup {
+    prefix: "client_issue",
+    count: ClientIssue::COUNT,
+    name_from_slot: client_issue_metric_name,
 };
 
 fn cert_key_metric_name(slot: usize, prefix: &'static str) -> &'static str {
