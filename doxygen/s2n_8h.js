@@ -234,6 +234,7 @@ var s2n_8h =
     [ "s2n_connection_get_wire_bytes_in", "s2n_8h.html#a3815d469b844d5eb192a04998bd12944", null ],
     [ "s2n_connection_get_wire_bytes_out", "s2n_8h.html#a134ca7e01d14f709750ef420440b238b", null ],
     [ "s2n_connection_get_write_fd", "s2n_8h.html#a91b65b19decd099dfe580306c04cb210", null ],
+    [ "s2n_connection_handshake_complete", "s2n_8h.html#a8f1ddfc6033d288c0318e79cf459481c", null ],
     [ "s2n_connection_is_ocsp_stapled", "s2n_8h.html#addfbc4fdc9d191bb4d6d9040762b208b", null ],
     [ "s2n_connection_is_session_resumed", "s2n_8h.html#ae3657d081eb0957f87d93391653eb20c", null ],
     [ "s2n_connection_is_valid_for_cipher_preferences", "s2n_8h.html#ac396d45fe79efa2142be8cf491dfdbeb", null ],

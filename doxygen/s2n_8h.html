@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.7-08c487aa</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.7-dd909252</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -515,6 +515,7 @@ Functions</h2></td></tr>
 <tr class="memitem:ad782d2e72055ddfc4ce8768c163f4c6b" id="r_ad782d2e72055ddfc4ce8768c163f4c6b"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#ad782d2e72055ddfc4ce8768c163f4c6b">s2n_connection_get_key_exchange_group</a> (struct s2n_connection *conn, const char **group_name)</td></tr>
 <tr class="memitem:a5612a3161a2dcb4dd7fcb04aaf8845a8" id="r_a5612a3161a2dcb4dd7fcb04aaf8845a8"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a5612a3161a2dcb4dd7fcb04aaf8845a8">s2n_connection_get_alert</a> (struct s2n_connection *conn)</td></tr>
 <tr class="memitem:a8649c4ff89e91c0a2278c139bc033449" id="r_a8649c4ff89e91c0a2278c139bc033449"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight"><a class="el" href="#a8649c4ff89e91c0a2278c139bc033449">s2n_connection_get_handshake_type_name</a> (struct s2n_connection *conn)</td></tr>
+<tr class="memitem:a8f1ddfc6033d288c0318e79cf459481c" id="r_a8f1ddfc6033d288c0318e79cf459481c"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> bool&#160;</td><td class="memItemRight"><a class="el" href="#a8f1ddfc6033d288c0318e79cf459481c">s2n_connection_handshake_complete</a> (struct s2n_connection *conn)</td></tr>
 <tr class="memitem:af3c50354985713f6dff1d4ae87fbc442" id="r_af3c50354985713f6dff1d4ae87fbc442"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight"><a class="el" href="#af3c50354985713f6dff1d4ae87fbc442">s2n_connection_get_last_message_name</a> (struct s2n_connection *conn)</td></tr>
 <tr class="memitem:a28fc426b41fe7e3349f562bb7883448e" id="r_a28fc426b41fe7e3349f562bb7883448e"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a28fc426b41fe7e3349f562bb7883448e">s2n_config_set_async_pkey_callback</a> (struct s2n_config *config, <a class="el" href="#a2ecb6a187e25469c3fd108a873da1cce">s2n_async_pkey_fn</a> fn)</td></tr>
 <tr class="memitem:ae98d7c23a90e072172d2e0e5f94b5919" id="r_ae98d7c23a90e072172d2e0e5f94b5919"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#ae98d7c23a90e072172d2e0e5f94b5919">s2n_async_pkey_op_perform</a> (struct s2n_async_pkey_op *op, <a class="el" href="#a9abfa5333181eedc5c2e59bccbe60700">s2n_cert_private_key</a> *key)</td></tr>
@@ -7984,6 +7985,41 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a8f1ddfc6033d288c0318e79cf459481c" name="a8f1ddfc6033d288c0318e79cf459481c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8f1ddfc6033d288c0318e79cf459481c">&#9670;&#160;</a></span>s2n_connection_handshake_complete()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> bool s2n_connection_handshake_complete </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *</td>          <td class="paramname"><span class="paramname"><em>conn</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Indicates whether the TLS handshake is fully complete.</p>
+<p>"Complete" means all handshake messages have been sent and received, including the TLS 1.2 server Finished message. Once this returns true, the connection is ready for application data. If negotiation fails, the handshake state machine does not reach this terminal state, so this function returns false, not true. Callers should rely on the return value of <span class="tt"><a class="el" href="#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a></span> to detect failure, not on this function.</p>
+<p>For a connection restored with <span class="tt"><a class="el" href="#a79859a910905832157c08251d1a76888">s2n_connection_deserialize()</a></span>, this always returns true, since deserialization does not replay or restore the handshake state machine itself: it only marks the connection as having completed a handshake prior to serialization.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if the handshake is complete, false if still in progress, if it failed, or if <span class="tt">conn</span> is NULL. </dd></dl>
 
 </div>
 </div>
