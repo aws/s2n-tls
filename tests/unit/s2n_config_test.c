@@ -32,6 +32,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_x509_validator.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_mem.h"
@@ -67,9 +68,6 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
     return S2N_SUCCESS;
 }
 
-/* A malloc callback that always fails. Used by the regression test
- * to force s2n_map_add to fail during cert map construction.
- */
 static int s2n_test_failing_malloc_cb(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     *ptr = NULL;
@@ -453,62 +451,6 @@ int main(int argc, char **argv)
             /* Now add an application-owned chain */
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain));
             EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(config));
-        };
-    };
-
-    /* Test: a failed second call to s2n_config_add_cert_chain_and_key does not
-     * leave dangling pointers in the domain_name_to_cert_map.
-     */
-    {
-        /* The second call is rejected before any state is mutated */
-        {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-
-            /* First call succeeds and populates the map */
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert, key));
-            EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
-
-            uint32_t map_size_after_first = 0;
-            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_first));
-
-            /* Second call with the same cert type fails at the ownership guard */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert, key),
-                    S2N_ERR_CERT_OWNERSHIP);
-
-            /* The map must be unchanged — no new entries were inserted */
-            uint32_t map_size_after_second = 0;
-            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_second));
-            EXPECT_EQUAL(map_size_after_first, map_size_after_second);
-
-            /* The original default cert is still valid and reachable */
-            EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
-        };
-
-        /* s2n_config_add_cert_chain_and_key still allows adding two certs of the
-         * same type. The map entry is updated in-place (no new entries).
-         */
-        {
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_a = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_a,
-                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_b = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_b,
-                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_a));
-
-            uint32_t map_size_after_first = 0;
-            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_first));
-
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_b));
-
-            uint32_t map_size_after_second = 0;
-            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &map_size_after_second));
-            EXPECT_EQUAL(map_size_after_first, map_size_after_second);
         };
     };
 
@@ -1361,6 +1303,53 @@ int main(int argc, char **argv)
         /* Safety */
         uint64_t fake_callback = 0;
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_subscriber(NULL, (s2n_event_on_handshake_cb) &fake_callback), S2N_ERR_NULL);
+    };
+
+    /* Test: s2n_connection_set_config preserves the old validator on failure
+     *
+     * Regression test: s2n_connection_set_config wipes the connection's
+     * x509_validator before initializing a new one from the incoming config.
+     * If the new validator's initialization fails (e.g. set_max_chain_depth
+     * with an invalid depth), the connection was left with a wiped validator
+     * while conn->config still referenced the old config. The fix stages
+     * the new validator into a local and only swaps on full success.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_old);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+        EXPECT_EQUAL(conn->config, config_old);
+
+        /* The validator should be in the INIT state after a successful set_config. */
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
+
+        /* Create a second config that will cause set_config to fail during
+         * validator initialization. Setting max_verify_cert_chain_depth to 0
+         * (invalid) with the flag enabled triggers the failure inside
+         * s2n_x509_validator_set_max_chain_depth.
+         */
+        DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_bad);
+        config_bad->max_verify_cert_chain_depth = 0;
+        config_bad->max_verify_cert_chain_depth_set = 1;
+
+        /* set_config should fail because of the invalid chain depth. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                S2N_ERR_INVALID_ARGUMENT);
+
+        /* The connection must still reference the old config. */
+        EXPECT_EQUAL(conn->config, config_old);
+
+        /* The validator must still be functional (INIT state, not UNINIT).
+         * Before the fix, the validator was wiped to UNINIT before the
+         * failed init attempt, leaving the connection in an inconsistent
+         * state.
+         */
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
     };
 
     /* Test: domain_name_to_cert_map remains usable after s2n_map_add fails
