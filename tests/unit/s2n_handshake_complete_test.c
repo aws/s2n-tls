@@ -141,10 +141,8 @@ int main(int argc, char **argv)
             }
         }
 
-
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), false); /* <-- regression guard */
-
 
         /* Now drain the client fully */
         while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
@@ -215,7 +213,6 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                 SERVER_NEW_SESSION_TICKET));
         EXPECT_TRUE(s2n_connection_get_session_ticket_lifetime_hint(client_conn) > 0);
-
 
         EXPECT_EQUAL(s2n_connection_handshake_complete(client_conn), true);
         EXPECT_EQUAL(s2n_connection_handshake_complete(server_conn), true);
