@@ -6,7 +6,12 @@ extern crate alloc;
 // Ensure memory is correctly managed in tests
 // tests invoked using the checkers::test macro have additional
 // memory sanity checks that occur
-#[cfg(test)]
+//
+// This allocator is not installed on Windows. When it is registered as the
+// global allocator there, the test binary overflows its stack during startup.
+// Checkers doesn't seem to work well on Windows. We only use checkers for
+// these allocation-sanity checks. The allocator is gated to non-Windows targets.
+#[cfg(all(test, not(target_os = "windows")))]
 #[global_allocator]
 static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
 

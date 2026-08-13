@@ -1,2 +1,2 @@
 # This should match rust-toolchain
-msrv = "1.89"
+msrv = "1.91"

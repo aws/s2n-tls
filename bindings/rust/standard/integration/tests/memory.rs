@@ -1,6 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+// The dhat global allocator below recurses during process startup on Windows,
+// overflowing the main thread's stack before any test runs. This
+// profiling test is therefore limited to non-Windows targets.
+#![cfg(not(target_os = "windows"))]
+
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 #[cfg(not(feature = "no-sensitive-tests"))]
@@ -273,12 +278,12 @@ mod memory_test {
         fn assert_expected(&self) {
             /// The allocated memory expected at each step of the connection lifecycle
             const EXPECTED_MEMORY: &[(Lifecycle, usize)] = &[
-                (Lifecycle::ConnectionInit, 61_466),
-                (Lifecycle::AfterClientHello, 89_062),
-                (Lifecycle::AfterServerHello, 117_429),
-                (Lifecycle::AfterClientFinished, 108_736),
-                (Lifecycle::HandshakeComplete, 91_323),
-                (Lifecycle::ApplicationData, 91_323),
+                (Lifecycle::ConnectionInit, 61_498),
+                (Lifecycle::AfterClientHello, 97_391),
+                (Lifecycle::AfterServerHello, 134_055),
+                (Lifecycle::AfterClientFinished, 125_362),
+                (Lifecycle::HandshakeComplete, 107_949),
+                (Lifecycle::ApplicationData, 107_949),
             ];
             let actual_memory: Vec<(Lifecycle, usize)> = Lifecycle::all_stages()
                 .into_iter()

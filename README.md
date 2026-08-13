@@ -65,8 +65,11 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 |OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms)| x86_64 |
 |FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
 |OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images) | aarch64 |
+|Windows (MSYS2 / MinGW)*                               | x86_64          |
 
 **Work in Progress
+
+*Windows is supported through the MSYS2 environment with a MinGW toolchain (`UCRT64`, `MINGW64`, and `CLANG64`). The MSVC toolchain is not supported. On Windows, AWS-LC is the only supported libcrypto. Some POSIX-specific features (such as kTLS) are not available on Windows. See the [build documentation](docs/BUILD.md) for details.
 
 ### Tier 2
 
