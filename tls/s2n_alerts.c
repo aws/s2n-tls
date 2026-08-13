@@ -178,9 +178,14 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_NO_ALERT(S2N_ERR_DUPLICATE_EXTENSION);
         S2N_NO_ALERT(S2N_ERR_MAX_EARLY_DATA_SIZE);
         S2N_NO_ALERT(S2N_ERR_EARLY_DATA_TRIAL_DECRYPT);
-    }
 
-    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+        default:
+            /* error_code is a plain int, not an enum, so -Wswitch cannot enforce
+             * exhaustiveness. Fail closed: an unmapped protocol error has no known
+             * alert mapping. This preserves the behavior previously provided by the
+             * post-switch RESULT_BAIL. */
+            RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+    }
 }
 
 static bool s2n_alerts_supported(struct s2n_connection *conn)
@@ -231,6 +236,14 @@ int s2n_error_get_alert(int error, uint8_t *alert)
             break;
         case S2N_ERR_T_IO:
         case S2N_ERR_T_INTERNAL:
+            *alert = S2N_TLS_ALERT_INTERNAL_ERROR;
+            break;
+        default:
+            /* error_type comes from s2n_error_get_type, a plain int, so -Wswitch
+             * cannot enforce exhaustiveness. Treat an unknown error type the same
+             * as IO/INTERNAL: map it to internal_error. This avoids returning
+             * success with *alert left unset, and avoids changing the return code
+             * contract for callers that only check success/failure. */
             *alert = S2N_TLS_ALERT_INTERNAL_ERROR;
             break;
     }
