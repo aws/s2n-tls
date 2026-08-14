@@ -36,7 +36,7 @@ static S2N_RESULT s2n_map_slot(const struct s2n_map *map, struct s2n_blob *key, 
     union {
         uint8_t u8[32];
         uint32_t u32[8];
-    } digest;
+    } digest = { 0 };
 
     DEFER_CLEANUP(struct s2n_hash_state sha256 = { 0 }, s2n_hash_free);
     RESULT_GUARD_POSIX(s2n_hash_new(&sha256));

@@ -135,7 +135,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 #if defined(OPENSSL_IS_BORINGSSL) || (defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17))
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 #else
-    uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
+    uint8_t ctrl_buf[S2N_TLS12_AAD_LEN] = { 0 };
     struct s2n_blob ctrl_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&ctrl_blob, ctrl_buf, S2N_TLS12_AAD_LEN));
     struct s2n_stuffer ctrl_stuffer = { 0 };
@@ -143,8 +143,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 
     POSIX_GUARD(s2n_stuffer_write_bytes(&ctrl_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, content_type));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version / 10));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, protocol_version));
     POSIX_GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
 
     /* This will unnecessarily mangle the input buffer, which is fine since it's temporary

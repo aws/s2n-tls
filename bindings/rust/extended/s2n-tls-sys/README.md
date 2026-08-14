@@ -35,3 +35,39 @@ export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
 ```
 cargo build
 ```
+
+## Performance note: Rust ≥ 1.90, LTO, and the linker
+
+`s2n-tls-sys`'s build script compiles the vendored `libs2n` C code with link-time optimization (LTO) in release/optimized builds. The two compilers emit different kinds of LTO objects, and the linkers consume them differently:
+
+- **GCC** emits fat-LTO objects (GIMPLE + native code). GNU `bfd` performs LTO on them; other linkers (including `rust-lld`) ignore the LTO and link the embedded native code — the link succeeds, just without LTO.
+- **Clang** emits LLVM bitcode. `rust-lld` consumes it, but a plain GNU `ld` cannot and the link **fails** with "File format not recognized" (this is why an earlier change, [#3968](https://github.com/aws/s2n-tls/pull/3968), restricted LTO to GCC).
+
+Starting with Rust 1.90, the default linker on `x86_64-unknown-linux-gnu` [switched from GNU `bfd` to `rust-lld`](https://blog.rust-lang.org/2025/09/01/rust-lld-on-1.90.0-stable/). Since `rust-lld` can't consume GCC's fat-LTO objects, a GCC build on that target silently drops the LTO pass, costing ~17-22 µs per TLS handshake (~2-4%).
+
+### What the build script does automatically
+
+The build script picks the LTO approach based on the linker:
+
+- **When `rust-lld` is the linker** (the default on `x86_64-unknown-linux-gnu`, Rust ≥ 1.90): it **prefers Clang** — if `CC` is unset and `clang` is on `PATH`, it compiles `libs2n` with Clang so `rust-lld` can perform LTO. Installing `clang` is all most consumers need to do.
+- **Otherwise** (GNU `bfd`, macOS `ld`, aarch64, etc.): it uses GCC fat-LTO objects, which link with any linker. Clang bitcode LTO is deliberately *not* enabled here, to avoid the GNU `ld` link failure above.
+
+### If you must use GCC on Rust ≥ 1.90
+
+If the build falls back to GCC on `x86_64-unknown-linux-gnu` with Rust ≥ 1.90, the build script emits a `cargo:warning` because LTO will be silently dropped. To restore LTO you have two options:
+
+1. **Install `clang`** (recommended) and the build script will pick it up automatically, no flags needed.
+2. **Opt out of `rust-lld`** so the GNU `bfd` linker is used, which can consume GCC's fat-LTO objects:
+
+   ```
+   RUSTFLAGS="-Clinker-features=-lld"
+   ```
+
+   Or in `.cargo/config.toml`:
+
+   ```toml
+   [target.x86_64-unknown-linux-gnu]
+   rustflags = ["-Clinker-features=-lld"]
+   ```
+
+Consumers on aarch64 or non-Linux targets are unaffected because only `x86_64-unknown-linux-gnu` has the `rust-lld` default.

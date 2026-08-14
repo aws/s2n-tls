@@ -47,6 +47,7 @@ bytes = "1.8"
 hyper = "1.5"
 hyper-util = "0.1"
 
+rcgen = { version = "0.14.1", default-features = false, features = ["aws_lc_rs", "pem"] }
 dhat = "0.3.3"
 tabled = "0.21.0"
 serde_json = "1"

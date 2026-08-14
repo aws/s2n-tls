@@ -241,9 +241,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(type, TLS_ENCRYPTED_EXTENSIONS); /* Actual handshake type not encrypted */
         EXPECT_SUCCESS(s2n_stuffer_reread(&server_to_client));
 
-        /* Client fails to parse the EncryptedExtensions */
+        /* Client fails to parse the EncryptedExtensions.
+         * The unencrypted handshake record has content_type TLS_HANDSHAKE,
+         * which is rejected because TLS 1.3 encrypted records must have
+         * outer content_type TLS_APPLICATION_DATA (RFC 8446 Section 5.2).
+         */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_DECRYPT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_BAD_MESSAGE);
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

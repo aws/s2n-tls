@@ -14,3 +14,11 @@ dependencies = [
     "ruff>=0.9.7",
     "sslyze>=6.1.0",
 ]
+
+[tool.ruff.lint]
+ignore = [
+    "BLE001",  # blind exception catch is intentional in test fixtures
+    "S110",    # try-except-pass is intentional in test fixtures
+    "SIM102",  # nested ifs are often clearer with comments between conditions
+    "TRY002",  # custom exceptions are overkill for test utilities
+]
