@@ -80,7 +80,7 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      * must match that auth method.
      */
     if (cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
-        s2n_authentication_method auth_method_for_sig_alg;
+        s2n_authentication_method auth_method_for_sig_alg = 0;
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type_for_sig_alg, &auth_method_for_sig_alg));
         POSIX_ENSURE_EQ(cipher_suite->auth_method, auth_method_for_sig_alg);
     }
@@ -138,7 +138,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
         return S2N_SUCCESS;
     }
 
-    s2n_authentication_method auth_method_for_cert_type;
+    s2n_authentication_method auth_method_for_cert_type = 0;
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 

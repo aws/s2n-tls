@@ -49,6 +49,7 @@ fn no_protocols_in_common() {
             s2n_error.message(),
             "TLS protocol version is not supported by configuration"
         );
+        assert!(!pair.server().connection().handshake_complete());
     });
 }
 
@@ -270,6 +271,8 @@ fn mtls_cert_signature_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
 
+    assert!(!pair.server().connection().handshake_complete());
+
     Ok(())
 }
 
@@ -316,6 +319,9 @@ fn mtls_cert_key_not_allowed() -> Result<(), Box<dyn std::error::Error>> {
         s2n_error.name(),
         "S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT"
     );
+
+    assert!(!pair.server().connection().handshake_complete());
+
     Ok(())
 }
 
