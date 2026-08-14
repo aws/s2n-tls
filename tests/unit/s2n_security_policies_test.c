@@ -235,11 +235,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2025_07);
+        EXPECT_EQUAL(3, security_policy->kem_preferences->tls13_kem_group_count);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         /* The "all" security policy contains both TLS 1.2 KEM extension and TLS 1.3 KEM SupportedGroup entries*/
         security_policy = NULL;
@@ -1086,6 +1086,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240417,
                 &security_policy_20240503,
+                &security_policy_20251014,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -1125,6 +1126,7 @@ int main(int argc, char **argv)
                 &security_policy_20241001,
                 &security_policy_20250512,
                 &security_policy_20250721,
+                &security_policy_20251014,
             };
 
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
@@ -1156,79 +1158,24 @@ int main(int argc, char **argv)
         };
     };
 
-    /* Test that default_pq always matches default_tls13 */
+    /* Test that default, default_pq, and default_tls13 are all aliases of the
+     * same security policy */
     {
+        const struct s2n_security_policy *default_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_policy));
+
         const struct s2n_security_policy *default_pq = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_pq", &default_pq));
         EXPECT_NOT_EQUAL(default_pq->kem_preferences, &kem_preferences_null);
 
         const struct s2n_security_policy *default_tls13 = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &default_tls13));
-        EXPECT_EQUAL(default_tls13->kem_preferences, &kem_preferences_null);
+        EXPECT_NOT_EQUAL(default_tls13->kem_preferences, &kem_preferences_null);
 
-        /* Except for PQ algorithms, the two policies should match */
-
-        /* Most fields can be compared directly. We just ignore kem_preferences. */
-        EXPECT_EQUAL(default_pq->minimum_protocol_version, default_tls13->minimum_protocol_version);
-        EXPECT_EQUAL(default_pq->cipher_preferences, default_tls13->cipher_preferences);
-        EXPECT_EQUAL(default_pq->ecc_preferences, default_tls13->ecc_preferences);
-        EXPECT_EQUAL(default_pq->certificate_key_preferences, default_tls13->certificate_key_preferences);
-        EXPECT_EQUAL(default_pq->certificate_preferences_apply_locally,
-                default_tls13->certificate_preferences_apply_locally);
-
-        /* The signature preferences match,
-         * EXCEPT for the added PQ algorithms, which should come first.
-         */
-        {
-            const struct s2n_signature_preferences *pq_sig_prefs = default_pq->signature_preferences;
-            const struct s2n_signature_preferences *tls13_sig_prefs = default_tls13->signature_preferences;
-
-            /* Count how many PQ sig schemes */
-            size_t pq_count = 0;
-            while (pq_count < pq_sig_prefs->count) {
-                if (pq_sig_prefs->signature_schemes[pq_count]->sig_alg
-                        == S2N_SIGNATURE_MLDSA) {
-                    pq_count++;
-                } else {
-                    break;
-                }
-            }
-            EXPECT_TRUE(pq_count > 0);
-
-            /* Compare the two preference lists, minus the PQ sig schemes */
-            EXPECT_EQUAL(pq_sig_prefs->count - pq_count, tls13_sig_prefs->count);
-            for (size_t i = 0; i < default_tls13->signature_preferences->count; i++) {
-                EXPECT_EQUAL(pq_sig_prefs->signature_schemes[i + pq_count],
-                        tls13_sig_prefs->signature_schemes[i]);
-            }
-        }
-
-        /* The certificate signature preferences match,
-         * EXCEPT for the added PQ algorithms, which should come first.
-         */
-        {
-            const struct s2n_signature_preferences *pq_sig_prefs = default_pq->certificate_signature_preferences;
-            const struct s2n_signature_preferences *tls13_sig_prefs = default_tls13->certificate_signature_preferences;
-
-            /* Count how many PQ sig schemes */
-            size_t pq_count = 0;
-            while (pq_count < pq_sig_prefs->count) {
-                if (pq_sig_prefs->signature_schemes[pq_count]->sig_alg
-                        == S2N_SIGNATURE_MLDSA) {
-                    pq_count++;
-                } else {
-                    break;
-                }
-            }
-            EXPECT_TRUE(pq_count > 0);
-
-            /* Compare the two preference lists, minus the PQ sig schemes */
-            EXPECT_EQUAL(pq_sig_prefs->count - pq_count, tls13_sig_prefs->count);
-            for (size_t i = 0; i < default_tls13->signature_preferences->count; i++) {
-                EXPECT_EQUAL(pq_sig_prefs->signature_schemes[i + pq_count],
-                        tls13_sig_prefs->signature_schemes[i]);
-            }
-        }
+        /* All three default policies now alias the same underlying policy */
+        EXPECT_EQUAL(default_pq, default_policy);
+        EXPECT_EQUAL(default_tls13, default_policy);
+        EXPECT_EQUAL(default_pq, default_tls13);
     };
 
     /* s2n_find_version_from_security_policy */
@@ -1245,11 +1192,16 @@ int main(int argc, char **argv)
             EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "20240501");
         };
 
-        /* Returns correct version for default_tls13 */
+        /* Returns correct version for default_tls13.
+         *
+         * default, default_tls13, and default_pq all alias the same underlying
+         * policy. Since "default" is the first entry in the table with that
+         * policy pointer, it is the version returned.
+         */
         {
             const struct s2n_security_policy *policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &policy));
-            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "default_tls13");
+            EXPECT_STRING_EQUAL(s2n_find_version_from_security_policy(policy), "default");
         };
 
         /* Returns "unknown" for a policy not in the selection table */
