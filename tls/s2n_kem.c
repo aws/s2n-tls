@@ -298,10 +298,6 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    if (kem_params->len_prefixed) {
-        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
-    }
-
     /* We don't need to store the public key after sending it.
      * We write it directly to *out. */
     kem_params->public_key.data = s2n_stuffer_raw_write(out, kem->public_key_length);
@@ -332,12 +328,6 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    if (kem_params->len_prefixed) {
-        kem_public_key_size public_key_length = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
-        POSIX_ENSURE(public_key_length == kem->public_key_length, S2N_ERR_BAD_MESSAGE);
-    }
-
     /* Alloc memory for the public key; the peer receiving it will need it
      * later during the handshake to encapsulate the shared secret. */
     POSIX_GUARD(s2n_alloc(&(kem_params->public_key), kem->public_key_length));
@@ -354,10 +344,6 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     POSIX_ENSURE_REF(kem_params->public_key.data);
 
     const struct s2n_kem *kem = kem_params->kem;
-
-    if (kem_params->len_prefixed) {
-        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
-    }
 
     /* Ciphertext will get written to *out */
     struct s2n_blob ciphertext = { 0 };
@@ -378,12 +364,6 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_ENSURE_REF(kem_params->private_key.data);
 
     const struct s2n_kem *kem = kem_params->kem;
-
-    if (kem_params->len_prefixed) {
-        kem_ciphertext_key_size ciphertext_length = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-        POSIX_ENSURE(ciphertext_length == kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
-    }
 
     const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, kem->ciphertext_length), .size = kem->ciphertext_length };
     POSIX_ENSURE_REF(ciphertext.data);

@@ -171,11 +171,11 @@ int main(int argc, char **argv)
         }
         EXPECT_TRUE(has_tls_13_cipher);
 
-        /* Ensure all security policies that have ML-KEM support do not use previous draft wire-format
-         * for Hybrid KeyShares with length prefixing. */
+        /* Ensure all security policies that have ML-KEM support use the final (non-legacy)
+         * draft revision of the Hybrid KeyShare wire format. */
         const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
         POSIX_ENSURE_REF(kem_preferences);
-        EXPECT_FALSE(s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_preferences));
+        EXPECT_NOT_EQUAL(kem_preferences->tls13_pq_hybrid_draft_revision, 0);
 
         /* All security policies that have ML-KEM should have TLS 1.2 as their minimum supported TLS Version */
         if (security_policy->minimum_protocol_version < S2N_TLS12) {
