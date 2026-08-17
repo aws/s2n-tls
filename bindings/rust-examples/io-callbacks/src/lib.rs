@@ -1,7 +1,9 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 //! This example shows how to setup the unsafe send + recv callbacks for s2n-tls.
 //!
 //! For progress on offering safe bindings here, follow https://github.com/aws/s2n-tls/issues/6018
-//!
 
 pub mod raw_fd;
 pub mod tls_stream;

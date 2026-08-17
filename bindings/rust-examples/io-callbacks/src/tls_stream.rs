@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A minimal owning wrapper that ties an s2n-tls [`Connection`] to its transport.
 //!
 //! s2n-tls holds a raw pointer to the IO context for the life of the connection,

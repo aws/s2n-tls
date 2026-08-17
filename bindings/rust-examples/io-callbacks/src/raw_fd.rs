@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A minimal transport type built directly on a raw file descriptor.
 //!
 //! This models the kind of integration where you don't have a rich Rust type
