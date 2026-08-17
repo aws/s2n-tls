@@ -180,10 +180,10 @@ static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, str
     POSIX_ENSURE_EQ(out->size, in->size);
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
-    /* len is set by EVP_DecryptUpdate. It is not checked here but padding is manually removed and therefore
-     * the decryption operation is validated. */
+    /* len is set by EVP_DecryptUpdate and checked post operation. */
     int len = 0;
     POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
+    POSIX_ENSURE((int64_t) len == (int64_t) in->size, S2N_ERR_DECRYPT);
 
     return 0;
 }
@@ -210,8 +210,9 @@ static S2N_RESULT s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_
 {
     RESULT_ENSURE_EQ(in->size, 16);
 
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -220,8 +221,9 @@ static S2N_RESULT s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_
 {
     RESULT_ENSURE_EQ(in->size, 16);
 
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -230,8 +232,9 @@ static S2N_RESULT s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_
 {
     RESULT_ENSURE_EQ(in->size, 32);
 
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -240,8 +243,9 @@ static S2N_RESULT s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_
 {
     RESULT_ENSURE_EQ(in->size, 32);
 
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -250,8 +254,9 @@ static S2N_RESULT s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s
 {
     RESULT_ENSURE_EQ(in->size, 16);
 
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -260,8 +265,9 @@ static S2N_RESULT s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s
 {
     RESULT_ENSURE_EQ(in->size, 16);
 
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -270,8 +276,9 @@ static S2N_RESULT s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s
 {
     RESULT_ENSURE_EQ(in->size, 32);
 
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
@@ -280,8 +287,9 @@ static S2N_RESULT s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s
 {
     RESULT_ENSURE_EQ(in->size, 32);
 
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    /* Padding must be disabled after key init to take effect. */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return S2N_RESULT_OK;
 }
