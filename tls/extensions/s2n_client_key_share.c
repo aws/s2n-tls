@@ -132,10 +132,14 @@ static int s2n_generate_pq_key_share(struct s2n_stuffer *out, struct s2n_kem_gro
     } else { /* Hybrid PQ */
         if (kem_group->send_kem_first) {
             POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-            POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+            if (ecc_params->evp_pkey == NULL) {
+                POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+            }
             POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
         } else {
-            POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+            if (ecc_params->evp_pkey == NULL) {
+                POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+            }
             POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
             POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
         }
