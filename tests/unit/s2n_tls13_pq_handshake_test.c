@@ -382,8 +382,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(mlkem768_test_groups),
-        .tls13_kem_groups = mlkem768_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = mlkem768_test_groups
     };
 
     const struct s2n_security_policy mlkem768_test_policy = {
@@ -402,8 +401,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(mlkem1024_test_groups),
-        .tls13_kem_groups = mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = mlkem1024_test_groups
     };
 
     const struct s2n_security_policy mlkem1024_test_policy = {
@@ -422,8 +420,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(pure_mlkem1024_test_groups),
-        .tls13_kem_groups = pure_mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = pure_mlkem1024_test_groups
     };
 
     const struct s2n_security_policy pure_mlkem1024_test_policy = {
@@ -460,8 +457,7 @@ int main()
             .kem_count = 0,
             .kems = NULL,
             .tls13_kem_group_count = 1,
-            .tls13_kem_groups = &kem_group,
-            .tls13_pq_hybrid_draft_revision = 5
+            .tls13_kem_groups = &kem_group
         };
 
         const struct s2n_security_policy singleton_test_policy = {

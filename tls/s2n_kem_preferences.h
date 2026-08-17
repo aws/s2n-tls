@@ -28,15 +28,6 @@ struct s2n_kem_preferences {
     /* tls13_kem_groups used for hybrid TLS 1.3 */
     const uint8_t tls13_kem_group_count;
     const struct s2n_kem_group **tls13_kem_groups;
-
-    /* Which draft revision data format should the client use in its ClientHello. Currently the server will auto-detect
-     * the format the client used from the TotalLength, and will match the client's behavior for backwards compatibility.
-     *
-     * Link: https://datatracker.ietf.org/doc/html/draft-ietf-tls-hybrid-design
-     *  - Draft 0:   PQ Hybrid KEM format: (Total Length, PQ Length, PQ Share, ECC Length, ECC Share)
-     *  - Draft 1-5: PQ Hybrid KEM format: (Total Length, PQ Share, ECC Share)
-     */
-    uint8_t tls13_pq_hybrid_draft_revision;
 };
 
 extern const struct s2n_kem_group *pq_kem_groups_ietf_2024_10[];
