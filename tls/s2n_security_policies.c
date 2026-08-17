@@ -192,6 +192,19 @@ const struct s2n_security_policy security_policy_20230317 = {
     },
 };
 
+const struct s2n_security_policy security_policy_20230317_pq = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20230317,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20230317,
+    .certificate_signature_preferences = &s2n_signature_preferences_20230317,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
 const struct s2n_security_policy security_policy_20240331 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20240331,
@@ -727,6 +740,17 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021,
     .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_pq = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
     .rules = {
@@ -1482,41 +1506,6 @@ const struct s2n_security_policy security_policy_20260523_gcm = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
-const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_pq = {
-    .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20200207,
-    .ecc_preferences = &s2n_ecc_preferences_20200310,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-    },
-};
-
-const struct s2n_security_policy security_policy_20200207_pq = {
-    .minimum_protocol_version = S2N_SSLv3,
-    .cipher_preferences = &cipher_preferences_test_all_tls13,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20201021,
-    .ecc_preferences = &s2n_ecc_preferences_test_all,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-    },
-};
-
-const struct s2n_security_policy security_policy_20230317_pq = {
-    .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_20230317,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20230317,
-    .certificate_signature_preferences = &s2n_signature_preferences_20230317,
-    .ecc_preferences = &s2n_ecc_preferences_20201021,
-    .rules = {
-            [S2N_PERFECT_FORWARD_SECRECY] = true,
-            [S2N_FIPS_140_3] = true,
-    },
-};
-
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
@@ -1590,6 +1579,17 @@ const struct s2n_security_policy security_policy_20200207 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls13,
     .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20201021,
+    .ecc_preferences = &s2n_ecc_preferences_test_all,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_20200207_pq = {
+    .minimum_protocol_version = S2N_SSLv3,
+    .cipher_preferences = &cipher_preferences_test_all_tls13,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
     .rules = {
