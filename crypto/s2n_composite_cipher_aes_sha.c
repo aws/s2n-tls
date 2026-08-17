@@ -180,7 +180,6 @@ static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, str
     POSIX_ENSURE_EQ(out->size, in->size);
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
-    /* len is set by EVP_DecryptUpdate and checked post operation. */
     int len = 0;
     POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
     POSIX_ENSURE((int64_t) len == (int64_t) in->size, S2N_ERR_DECRYPT);
