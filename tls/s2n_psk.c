@@ -421,7 +421,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     POSIX_ENSURE_REF(binder_hash);
     POSIX_ENSURE_REF(output_binder);
 
-    DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
+    DEFER_CLEANUP(struct s2n_tls13_keys psk_keys = { 0 }, s2n_tls13_keys_free);
     POSIX_GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     POSIX_ENSURE_EQ(binder_hash->size, psk_keys.size);
     POSIX_ENSURE_EQ(output_binder->size, psk_keys.size);
@@ -447,7 +447,7 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
     POSIX_ENSURE_REF(psk);
     POSIX_ENSURE_REF(binder_to_verify);
 
-    DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
+    DEFER_CLEANUP(struct s2n_tls13_keys psk_keys = { 0 }, s2n_tls13_keys_free);
     POSIX_GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     POSIX_ENSURE_EQ(binder_to_verify->size, psk_keys.size);
 
