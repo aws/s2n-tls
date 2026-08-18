@@ -79,7 +79,7 @@ fn epoch_ms_now() -> u64 {
 
 /// Compute a timestamp between "now" and "now minus internal"
 ///
-/// This is necessary to smooth out export behavior. If 600 subscribers where created
+/// This is necessary to smooth out export behavior. If 600 subscribers were created
 /// at the same time, with an export interval of 60s, we want 10 subscribers to
 /// export each second, not 600 subscribers exporting at once.
 fn jittered_initial_export_placeholder(interval: Option<Duration>) -> u64 {
