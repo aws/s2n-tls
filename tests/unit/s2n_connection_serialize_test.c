@@ -1298,7 +1298,7 @@ int main(int argc, char **argv)
      *# regardless of the AlertLevel in the message.  Unknown Alert types
      *# MUST be treated as error alerts.
      */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
