@@ -158,6 +158,8 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         return 0;
     }
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     struct s2n_blob s2n_map_value = { 0 };
     bool key_found = false;
     POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
@@ -545,6 +547,8 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
 
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
 
     /* Perform all fallible checks BEFORE inserting into the domain name map.
@@ -553,8 +557,6 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
      * resulting in dangling pointers and a use-after-free during SNI lookup.
      */
     if (!config->default_certs_are_explicit) {
-        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         if (config->default_certs_by_type.certs[cert_type] != NULL) {
             /* Because library-owned certificates are tracked and cleaned up via the
              * default_certs_by_type mapping, library-owned chains MUST be set as the default
@@ -744,6 +746,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         new_defaults.certs[cert_type] = cert_key_pairs[i];
     }
@@ -751,6 +755,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
