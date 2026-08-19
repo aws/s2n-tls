@@ -497,6 +497,8 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     client_hello->alloced = true;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
+    RESULT_ENSURE(raw_message_size <= S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
+
     DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&in, raw_message_size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&in, raw_message, raw_message_size));

@@ -1612,6 +1612,12 @@ int main(int argc, char **argv)
             client_hello = s2n_client_hello_parse_message(all_zeroes, sizeof(all_zeroes));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+
+            DEFER_CLEANUP(struct s2n_blob too_large = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&too_large, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH + 1));
+            client_hello = s2n_client_hello_parse_message(too_large.data, too_large.size);
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
         };
 
         /* Test: Rejects SSLv2 */
