@@ -36,7 +36,7 @@ impl VecSink {
 }
 
 impl TelemetrySink for VecSink {
-    fn export_record(&self, record: &MetricRecord) {
+    fn export_record(&self, record: MetricRecord) {
         self.records.lock().unwrap().push(record.clone());
     }
 }
@@ -74,7 +74,7 @@ fn old_event_subscriber_builds() {
     let handshake = &json["handshake"];
 
     // One successful handshake was recorded
-    assert_eq!(handshake["handshake_count"], 1);
+    assert_eq!(handshake["handshake_success_count"], 1);
     assert_eq!(handshake["synthetic_traffic_count"], 0);
 
     // Negotiated parameters: exactly one of each was counted
