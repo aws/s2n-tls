@@ -243,7 +243,7 @@ S2N_API extern int s2n_init(void);
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_cleanup(void);
+S2N_API extern int s2n_cleanup(void) __attribute__((deprecated));
 
 /**
  * Performs a complete deinitialization and cleanup of the s2n-tls library.
@@ -324,7 +324,7 @@ S2N_API extern int s2n_config_free_dhparams(struct s2n_config *config);
 /**
  * Frees the certificate chain and key associated with an `s2n_config` object.
  *
- * @param config The configuration object with DH params being freed
+ * @param config The configuration object with certificate chain and key being freed
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
@@ -333,8 +333,12 @@ S2N_API extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
  * Callback function type used to get the system time.
  *
  * The function should return 0 on success and -1 on failure.
+ *
+ * @param context Arbitrary context data for the callback
+ * @param nanoseconds Pointer to store the current time in nanoseconds
+ * @returns 0 on success, -1 on failure
  */
-typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
+typedef int (*s2n_clock_time_nanoseconds)(void *context, uint64_t *nanoseconds);
 
 /**
  * Cache callback function that allows the caller to retrieve SSL session data
@@ -807,7 +811,7 @@ S2N_API extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *conf
  * @param private_key_pem A byte array of a PEM encoded key.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+S2N_API extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem) __attribute__((deprecated));
 
 /**
  * The preferred method of associating a certificate chain and private key pair with an `s2n_config` object.
@@ -1234,7 +1238,7 @@ S2N_API extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_
  * @param data Data for the extension
  * @param length Length of the `data` buffer
  */
-S2N_API extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
+S2N_API extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length) __attribute__((deprecated));
 
 /**
  * Allows the caller to set a TLS Maximum Fragment Length extension that will be used
@@ -2515,7 +2519,7 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
  * prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's
  * protocol version.
  *
- * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
+ * @warning The buffer pointed to by `der_cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
  * @param der_cert_chain_out A pointer that's set to the client certificate chain.
@@ -3208,10 +3212,10 @@ typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *con
  * server PSK.
  * 
  * @param config A pointer to the s2n_config object.
- * @param cb The function that should be called when the callback is triggered.
+ * @param psk_selection_callback The function that should be called when the callback is triggered.
  * @param context A pointer to a context for the caller to pass state to the callback, if needed.
  */
-S2N_API int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+S2N_API int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback psk_selection_callback, void *context);
 
 /**
  * Get the number of bytes the connection has received.
@@ -3428,7 +3432,7 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
  */
-S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
+S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn) __attribute__((deprecated));
 
 /**
  * Function to get the human readable KEM name for the connection.
@@ -3440,7 +3444,7 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
  */
-S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
+S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn) __attribute__((deprecated));
 
 /**
  * Function to get the human readable KEM group name for the connection.

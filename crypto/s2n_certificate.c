@@ -145,7 +145,7 @@ int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_a
 
     /* Put the private key pem in a stuffer */
     POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, (uint32_t) strlen(private_key_pem)));
 
     POSIX_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
 
@@ -240,12 +240,13 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
                 POSIX_BAIL(S2N_ERR_NULL_SANS);
             }
 
-            if (s2n_alloc(san_blob, san_str_len)) {
+            POSIX_ENSURE_LTE(san_str_len, UINT32_MAX);
+            if (s2n_alloc(san_blob, (uint32_t) san_str_len)) {
                 S2N_ERROR_PRESERVE_ERRNO();
             }
 
             POSIX_CHECKED_MEMCPY(san_blob->data, san_str, san_str_len);
-            san_blob->size = san_str_len;
+            san_blob->size = (uint32_t) san_str_len;
             /* normalize san_blob to lowercase */
             POSIX_GUARD(s2n_blob_char_to_lower(san_blob));
         }
@@ -780,9 +781,8 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
      * X509_get_ext_count returns the number of extensions in the x509 certificate.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
      */
-    int ext_count_value = X509_get_ext_count(x509_cert);
-    POSIX_ENSURE_GT(ext_count_value, 0);
-    size_t ext_count = (size_t) ext_count_value;
+    int ext_count = X509_get_ext_count(x509_cert);
+    POSIX_ENSURE_GT(ext_count, 0);
 
     /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
      * If no_name is 0 then long names and short names will be interpreted as well as numerical forms.
@@ -792,7 +792,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
     DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *) oid, 0), s2n_asn1_obj_free);
     POSIX_ENSURE_REF(asn1_obj_in);
 
-    for (size_t loc = 0; loc < ext_count; loc++) {
+    for (int loc = 0; loc < ext_count; loc++) {
         ASN1_OCTET_STRING *asn1_str = NULL;
         bool match_found = false;
 
