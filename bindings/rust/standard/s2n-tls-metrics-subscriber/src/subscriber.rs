@@ -8,6 +8,7 @@ use crate::{
     record::HandshakeRecordInProgress, telemetry_sink::TelemetrySink,
 };
 use arc_swap::ArcSwap;
+use rand::Rng;
 use s2n_tls::events::EventSubscriber;
 use std::{
     sync::{
@@ -76,6 +77,29 @@ fn epoch_ms_now() -> u64 {
         .as_millis() as u64
 }
 
+/// Compute a timestamp between "now" and "now minus internal"
+///
+/// This is necessary to smooth out export behavior. If 600 subscribers were created
+/// at the same time, with an export interval of 60s, we want 10 subscribers to
+/// export each second, not 600 subscribers exporting at once.
+fn jittered_initial_export_placeholder(interval: Option<Duration>) -> u64 {
+    let now = epoch_ms_now();
+    match interval {
+        Some(interval) => {
+            let interval_ms = interval.as_millis() as u64;
+            // `gen_range` panics on an empty range, so guard the zero case.
+            let offset = if interval_ms == 0 {
+                0
+            } else {
+                rand::rng().random_range(0..=interval_ms)
+            };
+            now.saturating_sub(offset)
+        }
+        // No periodic export configured; the seed is only used as a baseline.
+        None => now,
+    }
+}
+
 impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
     pub fn new(sink: S, attribution: Attribution) -> Self {
         Self::build(sink, attribution, None)
@@ -107,7 +131,9 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             export_pipeline: Mutex::new(export_pipe),
             attribution,
             export_interval,
-            last_export_epoch_ms: AtomicU64::new(epoch_ms_now()),
+            last_export_epoch_ms: AtomicU64::new(jittered_initial_export_placeholder(
+                export_interval,
+            )),
             synthetic_detector: OnceLock::new(),
         };
         Self {
@@ -254,6 +280,33 @@ impl<S: TelemetrySink> EventSubscriber for AggregatedMetricsSubscriber<S> {
 #[cfg(test)]
 mod tests {
     use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+
+    /// assert that we see a good distribution of export times
+    #[test]
+    fn jittered_initial_deadline_desynchronizes_subscribers() {
+        use super::jittered_initial_export_placeholder;
+        use std::{collections::HashSet, time::Duration};
+
+        let interval = Some(Duration::from_secs(3600));
+        let seeds: HashSet<u64> = (0..100)
+            .map(|_| jittered_initial_export_placeholder(interval))
+            .collect();
+        // we should see lots of unique export times
+        assert!(seeds.len() > 50,);
+    }
+
+    /// A zero interval must not panic (the jitter range would otherwise be
+    /// empty) and should seed with the current time.
+    #[test]
+    fn jittered_seed_handles_zero_interval() {
+        use super::{epoch_ms_now, jittered_initial_export_placeholder};
+        use std::time::Duration;
+
+        let before = epoch_ms_now();
+        let seed = jittered_initial_export_placeholder(Some(Duration::ZERO));
+        let after = epoch_ms_now();
+        assert!(seed >= before && seed <= after);
+    }
 
     /// Verify that after a handshake and finish_record, the sink contains a record.
     #[test]
