@@ -1288,10 +1288,15 @@ int main(int argc, char **argv)
     };
 
     /* A deserialized TLS1.3 connection treats warning-level alerts as fatal, even
-     * when S2N_ALERT_IGNORE_WARNINGS is configured. TLS1.3 requires all alerts
-     * to be treated as fatal, and that relies on the deserialized connection having
-     * actual_protocol_version_established set. See s2n_process_as_warning() and
-     * RFC 8446 Section 6.
+     * when S2N_ALERT_IGNORE_WARNINGS is configured. This relies on the deserialized
+     * connection having actual_protocol_version_established set so that
+     * s2n_process_as_warning() applies the TLS1.3 alert rules.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
+     *# All the alerts listed in Section 6.2 MUST be sent with
+     *# AlertLevel=fatal and MUST be treated as error alerts when received
+     *# regardless of the AlertLevel in the message.  Unknown Alert types
+     *# MUST be treated as error alerts.
      */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
