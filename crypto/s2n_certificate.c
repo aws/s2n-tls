@@ -232,8 +232,8 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
 
         if (san_name->type == GEN_DNS) {
             /* Decoding isn't necessary here since a DNS SAN name is ASCII(type V_ASN1_IA5STRING) */
-            unsigned char *san_str = san_name->d.dNSName->data;
-            const size_t san_str_len = san_name->d.dNSName->length;
+            const unsigned char *san_str = ASN1_STRING_get0_data(san_name->d.dNSName);
+            const size_t san_str_len = ASN1_STRING_length(san_name->d.dNSName);
             struct s2n_blob *san_blob = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->san_names, (void **) &san_blob));
             if (!san_blob) {
