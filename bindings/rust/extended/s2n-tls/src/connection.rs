@@ -576,13 +576,13 @@ impl Connection {
         Ok(())
     }
 
-    /// wipes an existing connection and allows it to be reused.
+    /// Resets a connection so that it can be reused.
     ///
-    /// This method erases all data associated with a connection including pending reads.
-    /// This function should be called after all I/O is completed and s2n_shutdown has been
-    /// called.
+    /// This method no longer wipes the existing connection. Instead, it replaces the
+    /// connection with a newly allocated one, preserving the mode and config.
     ///
-    /// Corresponds to [`s2n_connection_wipe`].
+    /// This method should be called after all I/O is completed and `Connection::poll_shutdown`
+    /// has been called.
     #[deprecated(
         note = "use `Connection::new()` instead; connection reuse provides negligible performance benefit"
     )]

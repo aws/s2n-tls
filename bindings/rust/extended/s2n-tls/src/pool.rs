@@ -5,20 +5,9 @@
 // deprecated items is expected.
 #![allow(deprecated)]
 
-//! Utilities to handle reusing connections.
+//! Deprecated utilities to handle reusing connections.
 //!
-//! Creating a single new connection requires significant
-//! memory allocations (about 50-60 KB, according to some tests).
-//! Instead of allocating memory for a new connection, existing
-//! memory can be reused by calling
-//! [Connection::wipe()](`crate::connection::Connection::wipe()).
-//!
-//! On modern systems with reasonably performant allocators, the benefits of reusing
-//! connections are reduced. Connection reuse is specifically intended for customers
-//! who are sensitive to allocations or for whom allocations are more expensive.
-//! Customers are encouraged to run their own benchmarks to determine the exact
-//! performance benefit. As a starting point, a simple benchmark comparing allocation
-//! against reuse can be found `bench/benches/connection_creation.rs`.
+//! [`Connection::wipe`]
 //!
 //! The [`Pool`] trait allows applications to define an
 //! [Object pool](https://en.wikipedia.org/wiki/Object_pool_pattern) that
