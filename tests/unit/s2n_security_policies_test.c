@@ -1132,8 +1132,10 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_test_cert_chain_list cert_chains = { 0 },
                     s2n_test_cert_chains_free);
             EXPECT_OK(s2n_test_cert_chains_init(&cert_chains));
+            /* default_pq now aliases the "default" policy (20251014), whose
+             * signature preferences do not include ML-DSA. */
             EXPECT_OK(s2n_test_cert_chains_set_supported(&cert_chains,
-                    S2N_PKEY_TYPE_MLDSA, 2));
+                    S2N_PKEY_TYPE_MLDSA, S2N_TEST_CERT_UNSUPPORTED));
 
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
