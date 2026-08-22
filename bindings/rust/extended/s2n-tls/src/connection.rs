@@ -493,9 +493,9 @@ impl Connection {
             host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let context = &mut *(context as *mut Context);
-            let handler = context.verify_host_callback.as_mut().unwrap();
-            verify_host(host_name, host_name_len, handler)
+            let context = &*(context as *const Context);
+            let handler = context.verify_host_callback.as_ref().unwrap();
+            verify_host(host_name, host_name_len, handler.as_ref())
         }
 
         self.context_mut().verify_host_callback = Some(Box::new(handler));
