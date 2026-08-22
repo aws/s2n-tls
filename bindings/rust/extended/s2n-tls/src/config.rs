@@ -570,9 +570,11 @@ impl Builder {
             host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let context = &mut *(context as *mut Context);
-            let handler = context.verify_host_callback.as_mut().unwrap();
-            verify_host(host_name, host_name_len, handler)
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            let handler = context.verify_host_callback.as_ref().unwrap();
+            verify_host(host_name, host_name_len, handler.as_ref())
         }
 
         let context = unsafe {
@@ -907,8 +909,10 @@ impl Builder {
             context: *mut ::libc::c_void,
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
-            let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.wall_clock.as_mut() {
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            if let Some(handler) = context.wall_clock.as_ref() {
                 if let Ok(nanos) = handler.get_time_since_epoch().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();
@@ -950,8 +954,10 @@ impl Builder {
             context: *mut ::libc::c_void,
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
-            let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.monotonic_clock.as_mut() {
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            if let Some(handler) = context.monotonic_clock.as_ref() {
                 if let Ok(nanos) = handler.get_time().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();
