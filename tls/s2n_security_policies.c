@@ -1887,7 +1887,9 @@ const struct s2n_security_policy security_policy_elb_tls12_1_2_RFC9151_2024_01 =
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &elb_security_policy_tls12_1_2_RFC9151_2024_01,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20250429,
+    /* Not s2n_signature_preferences_20250429, which also offers rsa_pss. This TLS1.2
+     * policy offers only ecdsa_sha384 and rsa_pkcs1_sha384. */
+    .signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
@@ -1896,7 +1898,9 @@ const struct s2n_security_policy security_policy_elb_tls12_1_2_Ext0_RFC9151_2024
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20250429,
+    /* Not s2n_signature_preferences_20250429, which also offers rsa_pss. This TLS1.2
+     * policy offers only ecdsa_sha384 and rsa_pkcs1_sha384. */
+    .signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };

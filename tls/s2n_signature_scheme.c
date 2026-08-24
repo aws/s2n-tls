@@ -633,25 +633,6 @@ const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250429[] = {
     &s2n_rsa_pkcs1_sha384,
 };
 
-const struct s2n_signature_scheme *const s2n_cert_sig_scheme_pref_list_20250429[] = {
-    /* ECDSA */
-    &s2n_ecdsa_sha384,
-
-    /* RSA PSS
-     * https://github.com/aws/s2n-tls/issues/3435
-     *
-     * The Openssl function used to parse signatures off certificates does not differentiate
-     * between any rsa pss signature schemes. Therefore a security policy with a certificate
-     * signatures preference list must include all rsa_pss signature schemes.
-     *
-     * Since only sha384 is allowed by rfc9151, this certificate signing policy does not
-     * support rsa_pss.
-     */
-
-    /* RSA */
-    &s2n_rsa_pkcs1_sha384,
-};
-
 const struct s2n_signature_preferences s2n_signature_preferences_20250429 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20250429),
     .signature_schemes = s2n_sig_scheme_pref_list_20250429
@@ -724,6 +705,25 @@ const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250821[] = {
 const struct s2n_signature_preferences s2n_signature_preferences_20250821 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20250821),
     .signature_schemes = s2n_sig_scheme_pref_list_20250821,
+};
+
+const struct s2n_signature_scheme *const s2n_cert_sig_scheme_pref_list_20250429[] = {
+    /* ECDSA */
+    &s2n_ecdsa_sha384,
+
+    /* RSA PSS
+     * https://github.com/aws/s2n-tls/issues/3435
+     *
+     * The Openssl function used to parse signatures off certificates does not differentiate
+     * between any rsa pss signature schemes. Therefore a security policy with a certificate
+     * signatures preference list must include all rsa_pss signature schemes.
+     *
+     * Since only sha384 is allowed by rfc9151, this certificate signing policy does not
+     * support rsa_pss.
+     */
+
+    /* RSA */
+    &s2n_rsa_pkcs1_sha384,
 };
 
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250429 = {
