@@ -2599,3 +2599,196 @@ S2N_RESULT s2n_security_policy_validate_certificate_chain(
     }
     return S2N_RESULT_OK;
 }
+
+/* The preference-list comparisons below all treat two NULL lists as equal and a
+ * NULL list as unequal to a non-NULL one, because optional policy fields are left
+ * NULL by the designated initializers used to define each security policy.
+ *
+ * List elements are compared by pointer. Every cipher suite, signature scheme,
+ * curve, KEM, and certificate key is a singleton, so pointer identity is
+ * equivalent to identity of the underlying algorithm.
+ */
+
+static bool s2n_cipher_preferences_equals(const struct s2n_cipher_preferences *a,
+        const struct s2n_cipher_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    if (a->allow_chacha20_boosting != b->allow_chacha20_boosting) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->suites[i] != b->suites[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_signature_preferences_equals(const struct s2n_signature_preferences *a,
+        const struct s2n_signature_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->signature_schemes[i] != b->signature_schemes[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_ecc_preferences_equals(const struct s2n_ecc_preferences *a,
+        const struct s2n_ecc_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->ecc_curves[i] != b->ecc_curves[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_kem_preferences_equals(const struct s2n_kem_preferences *a,
+        const struct s2n_kem_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->kem_count != b->kem_count) {
+        return false;
+    }
+    if (a->tls13_kem_group_count != b->tls13_kem_group_count) {
+        return false;
+    }
+    if (a->tls13_pq_hybrid_draft_revision != b->tls13_pq_hybrid_draft_revision) {
+        return false;
+    }
+    for (size_t i = 0; i < a->kem_count; i++) {
+        if (a->kems[i] != b->kems[i]) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < a->tls13_kem_group_count; i++) {
+        if (a->tls13_kem_groups[i] != b->tls13_kem_groups[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_supported_group_preferences_equals(const struct s2n_supported_group_preferences *a,
+        const struct s2n_supported_group_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    /* iana_ids holds IANA identifiers by value, not pointers to shared singletons. */
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->iana_ids[i] != b->iana_ids[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_certificate_key_preferences_equals(const struct s2n_certificate_key_preferences *a,
+        const struct s2n_certificate_key_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->certificate_keys[i] != b->certificate_keys[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+S2N_RESULT s2n_security_policy_equals(const struct s2n_security_policy *a,
+        const struct s2n_security_policy *b, bool *equal)
+{
+    RESULT_ENSURE_REF(a);
+    RESULT_ENSURE_REF(b);
+    RESULT_ENSURE_MUT(equal);
+
+    /* Set false up front so that any early return reports "not equal". Only the
+     * fallthrough at the end, after every field has been compared, reports equal. */
+    *equal = false;
+
+    if (a->minimum_protocol_version != b->minimum_protocol_version) {
+        return S2N_RESULT_OK;
+    }
+    if (a->certificate_preferences_apply_locally != b->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+    for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
+        if (a->rules[i] != b->rules[i]) {
+            return S2N_RESULT_OK;
+        }
+    }
+    if (!s2n_cipher_preferences_equals(a->cipher_preferences, b->cipher_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_kem_preferences_equals(a->kem_preferences, b->kem_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_signature_preferences_equals(a->signature_preferences, b->signature_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_signature_preferences_equals(a->certificate_signature_preferences,
+                b->certificate_signature_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_ecc_preferences_equals(a->ecc_preferences, b->ecc_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_supported_group_preferences_equals(a->strongly_preferred_groups, b->strongly_preferred_groups)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_certificate_key_preferences_equals(a->certificate_key_preferences, b->certificate_key_preferences)) {
+        return S2N_RESULT_OK;
+    }
+
+    *equal = true;
+    return S2N_RESULT_OK;
+}
