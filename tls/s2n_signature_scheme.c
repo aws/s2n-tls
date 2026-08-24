@@ -879,7 +879,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
 };
 
 /* 20251113 with ML-DSA-87 added */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260722[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260722[] = {
     &s2n_mldsa87,
     &s2n_ecdsa_sha384,
     &s2n_rsa_pss_pss_sha384,
