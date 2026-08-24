@@ -77,10 +77,36 @@ pub unsafe extern "C" fn generic_recv_cb<T: std::io::Read>(
     match context.read(data) {
         Ok(len) => len as c_int,
         Err(err) if err.kind() == ErrorKind::WouldBlock => {
-            errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+            set_io_would_block();
             -1
         }
         Err(unrecognized) => panic!("unexpected error: {unrecognized}"),
+    }
+}
+
+/// Signal a "would block" to s2n's C IO layer by setting the CRT `errno` to
+/// EWOULDBLOCK. `s2n_io.c` reads `errno` to distinguish a retriable blocked
+/// read/write from a fatal IO error.
+fn set_io_would_block() {
+    #[cfg(not(target_os = "windows"))]
+    {
+        // The `errno` crate writes the CRT errno, which is what s2n reads.
+        errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+    }
+
+    // On Windows the `errno` crate writes the Win32 last-error, not the CRT
+    // `errno` that s2n reads, so set the CRT errno directly. s2n and this code
+    // share one statically linked CRT, so `_set_errno` and `errno` hit the same
+    // thread-local variable.
+    #[cfg(target_os = "windows")]
+    {
+        extern "C" {
+            fn _set_errno(value: core::ffi::c_int) -> core::ffi::c_int;
+        }
+        // SAFETY: `_set_errno` only writes the thread-local CRT errno.
+        unsafe {
+            let _ = _set_errno(libc::EWOULDBLOCK);
+        }
     }
 }
 
@@ -130,11 +156,6 @@ impl From<s2n_tls::config::Config> for S2NConfig {
 pub struct S2NConnection {
     io: Pin<Box<ViewIO>>,
     connection: Connection,
-    // We have to store the result of s2n_negotiate to know when the handshake is complete.
-    //
-    // As of 2025-11-16 s2n-tls does not provide a convenient way to figure out if the handshake is
-    // complete. Checking if `handshake_type()` contains "NEGOTIATED" is _not_ sufficient.
-    handshake_done: bool,
 }
 
 impl S2NConnection {
@@ -183,23 +204,18 @@ impl TlsConnection for S2NConnection {
             connection.set_session_ticket(&ticket)?;
         }
 
-        Ok(Self {
-            io,
-            connection,
-            handshake_done: false,
-        })
+        Ok(Self { io, connection })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         if let Poll::Ready(res) = self.connection.poll_negotiate() {
             res?;
-            self.handshake_done = true;
         }
         Ok(())
     }
 
     fn handshake_completed(&self) -> bool {
-        self.handshake_done
+        self.connection.handshake_complete()
     }
 
     fn send(&mut self, data: &[u8]) {

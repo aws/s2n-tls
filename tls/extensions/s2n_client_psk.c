@@ -138,7 +138,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     struct s2n_psk_parameters *psk_params = &conn->psk_params;
     struct s2n_array *psk_list = &psk_params->psk_list;
 
-    struct s2n_stuffer_reservation identity_list_size;
+    struct s2n_stuffer_reservation identity_list_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &identity_list_size));
 
     uint16_t binder_list_size = SIZE_OF_BINDER_LIST_SIZE;

@@ -27,7 +27,7 @@ jobs:
       issues: write   # Open/update issues.
       checks: write   # Create/update a check run.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Rust toolchain
         id: toolchain
         run: |

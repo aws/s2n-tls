@@ -570,9 +570,11 @@ impl Builder {
             host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let context = &mut *(context as *mut Context);
-            let handler = context.verify_host_callback.as_mut().unwrap();
-            verify_host(host_name, host_name_len, handler)
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            let handler = context.verify_host_callback.as_ref().unwrap();
+            verify_host(host_name, host_name_len, handler.as_ref())
         }
 
         let context = unsafe {
@@ -726,7 +728,8 @@ impl Builder {
         Ok(self)
     }
 
-    /// Corresponds to [`s2n_config_set_subscriber`] and [`s2n_config_set_handshake_event`].
+    /// Corresponds to [`s2n_config_set_subscriber`], [`s2n_config_set_handshake_event`],
+    /// and [`s2n_config_set_timing_checkpoint_cb`].
     #[cfg(feature = "unstable-events")]
     pub fn set_event_subscriber<T: 'static + EventSubscriber>(
         &mut self,
@@ -741,6 +744,22 @@ impl Builder {
                 let callback = context.event_subscriber.as_ref();
                 if let Some(callback) = callback {
                     callback.on_handshake_event(conn, &HandshakeEvent::new(&*event));
+                }
+            });
+        }
+
+        unsafe extern "C" fn on_timing_checkpoint(
+            conn_ptr: *mut s2n_tls_sys::s2n_connection,
+            _subscriber: *mut c_void,
+            checkpoint: *mut s2n_tls_sys::s2n_timing_checkpoint,
+        ) {
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.event_subscriber.as_ref();
+                if let Some(callback) = callback {
+                    callback.on_timing_checkpoint(
+                        conn,
+                        &crate::events::TimingCheckpoint::new(&*checkpoint),
+                    );
                 }
             });
         }
@@ -764,6 +783,16 @@ impl Builder {
             s2n_config_set_handshake_event(self.as_mut_ptr(), Some(on_handshake_event))
                 .into_result()
         }?;
+
+        // Register the per-message timing checkpoint callback.
+        unsafe {
+            s2n_tls_sys::s2n_config_set_timing_checkpoint_cb(
+                self.as_mut_ptr(),
+                Some(on_timing_checkpoint),
+            )
+            .into_result()
+        }?;
+
         Ok(self)
     }
 
@@ -880,8 +909,10 @@ impl Builder {
             context: *mut ::libc::c_void,
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
-            let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.wall_clock.as_mut() {
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            if let Some(handler) = context.wall_clock.as_ref() {
                 if let Ok(nanos) = handler.get_time_since_epoch().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();
@@ -923,8 +954,10 @@ impl Builder {
             context: *mut ::libc::c_void,
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
-            let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.monotonic_clock.as_mut() {
+            // Cloned Configs share one context, so only take a shared
+            // reference: a `&mut` would be UB under concurrent handshakes.
+            let context = &*(context as *const Context);
+            if let Some(handler) = context.monotonic_clock.as_ref() {
                 if let Ok(nanos) = handler.get_time().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();

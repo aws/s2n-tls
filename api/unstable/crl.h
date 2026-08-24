@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file crl.h
  *
@@ -237,3 +241,7 @@ S2N_API int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
 S2N_API int s2n_cert_validation_reject(struct s2n_cert_validation_info *info);
+
+#ifdef __cplusplus
+}
+#endif

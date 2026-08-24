@@ -64,7 +64,12 @@ fn register_async_pkey_verify_offload(
     // callback. The callback will reclaim ownership using Box::from_raw to prevent leaks.
     unsafe {
         let raw = raw_config(s2n_cfg);
+        // bindgen generates this enum differently based on platform: u32 on
+        // Linux, i32 on Windows. The `allow_list` param is always u32, so cast
+        // on Windows to match. https://github.com/rust-lang/rust-bindgen/issues/1907
         let allowed_types = s2n_async_offload_op_type::OFFLOAD_PKEY_VERIFY;
+        #[cfg(target_os = "windows")]
+        let allowed_types = allowed_types as u32;
 
         let result = s2n_config_set_async_offload_callback(
             raw,

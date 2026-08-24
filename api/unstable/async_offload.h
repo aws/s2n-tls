@@ -17,6 +17,10 @@
 
 #include <s2n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @file async_offload.h
  * 
@@ -87,3 +91,7 @@ S2N_API extern int s2n_config_set_async_offload_callback(struct s2n_config *conf
  * @param op An opaque object representing the async operation
  */
 S2N_API extern int s2n_async_offload_op_perform(struct s2n_async_offload_op *op);
+
+#ifdef __cplusplus
+}
+#endif

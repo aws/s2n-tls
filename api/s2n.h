@@ -2907,6 +2907,9 @@ S2N_API extern int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t *
  * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the 
  * `s2n_cert_chain_and_key_free` API.
  * 
+ * This will include the root CA, even if it was elided from the actual Certificate
+ * message.
+ * 
  * @param conn A pointer to the s2n_connection object being read.
  * @param cert_chain The returned validated peer certificate chain `cert_chain` retrieved from the s2n connection.
  */
@@ -3483,6 +3486,28 @@ S2N_API extern int s2n_connection_get_alert(struct s2n_connection *conn);
 S2N_API extern const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
 
 /**
+ * Indicates whether the TLS handshake is fully complete.
+ *
+ * "Complete" means all handshake messages have been sent and received,
+ * including the TLS 1.2 server Finished message. Once this returns true,
+ * the connection is ready for application data.
+ * If negotiation fails, the handshake state machine does not reach this
+ * terminal state, so this function returns false, not true. Callers
+ * should rely on the return value of `s2n_negotiate()` to detect failure,
+ * not on this function.
+ * 
+ * For a connection restored with `s2n_connection_deserialize()`, this always
+ * returns true, since deserialization does not replay or restore the
+ * handshake state machine itself: it only marks the connection as having
+ * completed a handshake prior to serialization.
+ *
+ * @param conn A pointer to the s2n_connection
+ * @returns true if the handshake is complete, false if still in progress,
+ *          if it failed, or if `conn` is NULL.
+ */
+S2N_API extern bool s2n_connection_handshake_complete(struct s2n_connection *conn);
+
+/**
  * Function to return the last TLS message that was processed. The returned format is a human readable string.
  * @param conn A pointer to the s2n connection
  * @returns The last message name in the TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA". 
@@ -3497,7 +3522,7 @@ struct s2n_async_pkey_op;
 /**
  * Sets whether or not a connection should enforce strict signature validation during the
  * `s2n_async_pkey_op_apply` call.
- *
+ * 
  * `mode` can take the following values:
  * - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
  * - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
@@ -3560,6 +3585,9 @@ S2N_API extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_c
  * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
  * * Safe to call from inside s2n_async_pkey_fn
  * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ * * MUST NOT be called concurrently with `s2n_negotiate`, `s2n_send`, or `s2n_recv` on the
+ *   same `conn`. `s2n_async_pkey_op_apply` mutates connection state that those methods also
+ *   access, and s2n-tls does not synchronize access to a single `s2n_connection`.
  *
  * @param op An opaque object representing the private key operation
  * @param conn The connection associated with the operation that should be unblocked

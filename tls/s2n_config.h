@@ -216,6 +216,7 @@ struct s2n_config {
 
     void *subscriber;
     s2n_event_on_handshake_cb on_handshake_event;
+    s2n_event_on_timing_checkpoint_cb on_timing_checkpoint_cb;
 
     /* The user defined context associated with config */
     void *context;

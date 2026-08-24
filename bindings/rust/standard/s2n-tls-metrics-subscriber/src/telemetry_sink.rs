@@ -21,7 +21,7 @@ use crate::MetricRecord;
 /// bytes. That crate carries no stability guarantees.
 pub trait TelemetrySink: Send + Sync + 'static {
     /// Export a single metric record.
-    fn export_record(&self, record: &MetricRecord);
+    fn export_record(&self, record: MetricRecord);
 }
 
 /// Blanket impl so that callers can pass an `Arc<T>` directly as a sink.
@@ -29,7 +29,7 @@ pub trait TelemetrySink: Send + Sync + 'static {
 /// across multiple subscribers — they wrap it in an `Arc` and pass clones
 /// without the underlying sink type needing to implement `Clone`.
 impl<T: TelemetrySink> TelemetrySink for Arc<T> {
-    fn export_record(&self, record: &MetricRecord) {
+    fn export_record(&self, record: MetricRecord) {
         (**self).export_record(record)
     }
 }
