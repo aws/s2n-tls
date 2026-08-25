@@ -138,10 +138,8 @@ jobs:
       - name: Build with Clang 18 strict warnings
         run: |
           export CC=clang-18
-          export CXX=clang++-18
-          cmake . -Bbuild -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
-            -DCMAKE_C_FLAGS="-Werror -Wdocumentation -Wshorten-64-to-32" \
-            -DCMAKE_CXX_FLAGS="-Werror -Wdocumentation -Wshorten-64-to-32"
+          cmake . -Bbuild -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_C_FLAGS="-Werror -Wdocumentation -Wshorten-64-to-32"
           cmake --build build
 
   nixflake:

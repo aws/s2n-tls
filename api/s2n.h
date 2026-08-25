@@ -579,26 +579,26 @@ S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_init_callback)(void);
+typedef int (*s2n_rand_init_callback)(void) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_cleanup_callback)(void);
+typedef int (*s2n_rand_cleanup_callback)(void) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size) __attribute__((deprecated));
 
 /**
  * Allows the caller to override s2n-tls's entropy functions.
- * 
+ *
  * @deprecated Custom random callbacks are no longer supported. Randomness is
  * now delegated directly to libcrypto or /dev/urandom. This function is a
  * no-op kept for backwards compatibility.
@@ -610,7 +610,7 @@ typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback,
-        s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback);
+        s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback) __attribute__((deprecated));
 
 /**
  * TLS extensions supported by s2n-tls

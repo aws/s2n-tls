@@ -27,7 +27,7 @@ extern "C" {
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_cleanup_thread(void);
+S2N_API extern int s2n_cleanup_thread(void) __attribute__((deprecated));
 
 #ifdef __cplusplus
 }
