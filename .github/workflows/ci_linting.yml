@@ -117,6 +117,33 @@ jobs:
         with:
           clang-format-version: '18'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
+
+  clang-18-strict-warnings:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Install Clang 18
+        run: |
+          sudo add-apt-repository -y universe
+          sudo apt-get update
+          sudo apt-get install -y clang-18
+
+      - name: Install dependencies
+        run: source ./codebuild/bin/install_default_dependencies.sh
+
+      - name: Build with Clang 18 strict warnings
+        run: |
+          export CC=clang-18
+          export CXX=clang++-18
+          cmake . -Bbuild -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_C_FLAGS="-Werror -Wdocumentation -Wshorten-64-to-32" \
+            -DCMAKE_CXX_FLAGS="-Werror -Wdocumentation -Wshorten-64-to-32"
+          cmake --build build
+
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
