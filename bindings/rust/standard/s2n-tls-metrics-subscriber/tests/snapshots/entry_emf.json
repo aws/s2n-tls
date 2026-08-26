@@ -8,7 +8,7 @@
         ],
         "Metrics": [
           {
-            "Name": "tls_policy.default_tls13"
+            "Name": "tls_policy.default"
           },
           {
             "Name": "version.negotiated.TLSv1_3"
@@ -17,7 +17,7 @@
             "Name": "cipher.negotiated.TLS_AES_128_GCM_SHA256"
           },
           {
-            "Name": "group.negotiated.secp256r1"
+            "Name": "group.negotiated.X25519MLKEM768"
           },
           {
             "Name": "signature_scheme.negotiated.rsa_pss_rsae_sha256"
@@ -38,34 +38,25 @@
             "Name": "cipher.supported.TLS_CHACHA20_POLY1305_SHA256"
           },
           {
-            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-          },
-          {
             "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
-          },
-          {
-            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"
           },
           {
             "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
           },
           {
-            "Name": "cipher.supported.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
-          },
-          {
-            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
-          },
-          {
             "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-          },
-          {
-            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"
           },
           {
             "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
           },
           {
-            "Name": "cipher.supported.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+            "Name": "group.supported.SecP256r1MLKEM768"
+          },
+          {
+            "Name": "group.supported.SecP384r1MLKEM1024"
+          },
+          {
+            "Name": "group.supported.X25519MLKEM768"
           },
           {
             "Name": "group.supported.secp256r1"
@@ -146,6 +137,18 @@
             "Name": "compatibility.cnsa2"
           },
           {
+            "Name": "compatibility.negotiated.general20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.fips20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa1"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa2"
+          },
+          {
             "Name": "sslv2_client_hello"
           },
           {
@@ -186,21 +189,22 @@
   "cipher.supported.TLS_AES_128_GCM_SHA256": 1,
   "cipher.supported.TLS_AES_256_GCM_SHA384": 1,
   "cipher.supported.TLS_CHACHA20_POLY1305_SHA256": 1,
-  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": 1,
   "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": 1,
-  "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384": 1,
   "cipher.supported.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": 1,
-  "cipher.supported.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": 1,
-  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256": 1,
   "cipher.supported.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
-  "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384": 1,
   "cipher.supported.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384": 1,
-  "cipher.supported.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256": 1,
   "compatibility.cnsa1": 1,
   "compatibility.cnsa2": 0,
   "compatibility.fips20251201": 1,
   "compatibility.general20251201": 1,
-  "group.negotiated.secp256r1": 1,
+  "compatibility.negotiated.cnsa1": 0,
+  "compatibility.negotiated.cnsa2": 0,
+  "compatibility.negotiated.fips20251201": 1,
+  "compatibility.negotiated.general20251201": 1,
+  "group.negotiated.X25519MLKEM768": 1,
+  "group.supported.SecP256r1MLKEM768": 1,
+  "group.supported.SecP384r1MLKEM1024": 1,
+  "group.supported.X25519MLKEM768": 1,
   "group.supported.secp256r1": 1,
   "group.supported.secp384r1": 1,
   "group.supported.secp521r1": 1,
@@ -227,7 +231,7 @@
   "signature_scheme.supported.rsa_pss_rsae_sha512": 1,
   "sslv2_client_hello": 0,
   "synthetic_traffic_count": 0,
-  "tls_policy.default_tls13": 1,
+  "tls_policy.default": 1,
   "version.negotiated.TLSv1_3": 1,
   "version.supported.TLSv1_2": 1,
   "version.supported.TLSv1_3": 1
