@@ -25,12 +25,6 @@ let
     # See: https://hoverbear.org/blog/rust-bindgen-in-nix/
     # Set LIBCLANG_PATH so clang-sys (used by bindgen) can locate libclang in the Nix store.
     export LIBCLANG_PATH="${pkgs.lib.getLib pkgs.llvmPackages_18.libclang}/lib"
-    # The btls crate (BoringSSL, used by the boringssl integration tests) links
-    # libstdc++ dynamically, so the test binary needs libstdc++.so.6 at runtime.
-    # Nix does not place it on the default loader path, so add it explicitly.
-    # Without this, the binary builds but fails to start with
-    # "libstdc++.so.6: cannot open shared object file".
-    export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     # Pass the same CFLAGS that cc-wrapper would normally provide to bindgen via BINDGEN_EXTRA_CLANG_ARGS
     export BINDGEN_EXTRA_CLANG_ARGS="\
     $((< ${pkgs.stdenv.cc}/nix-support/libc-crt1-cflags)) \
