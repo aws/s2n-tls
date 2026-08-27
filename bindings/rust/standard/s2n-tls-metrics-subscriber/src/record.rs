@@ -268,6 +268,99 @@ impl HandshakeRecordInProgress {
             self.negotiated_signatures.increment(&sig);
         }
 
+        // populate cert metrics
+        //
+        // We parse the cert chains before evaluating policy compatibility below
+        // because the compatibility check needs the local (selected) chain's
+        // key types: policies like CNSA1 reject certificates whose key is not in
+        // their `certificate_key_preferences` (e.g. a P-256 cert), which the
+        // ClientHello-advertised parameters alone cannot reveal.
+        let local_cert_keys = {
+            fn record_chain_metrics<'a>(
+                mut certs: impl Iterator<
+                    Item = Result<s2n_tls::cert_chain::Certificate<'a>, s2n_tls::error::Error>,
+                >,
+                leaf_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                leaf_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                chain_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
+                chain_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
+                parse_failures: &AtomicU64,
+            ) -> Vec<CertKeyType> {
+                // The key types parsed from this chain (leaf first), returned so
+                // the caller can feed the local chain into the compatibility check.
+                let mut key_types = Vec::new();
+                if let Some(Ok(cert)) = certs.next() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                leaf_key.increment(&c.key_type);
+                                leaf_sig.increment(&c.signature);
+                                key_types.push(c.key_type);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+                for cert in certs.flatten() {
+                    if let Ok(der) = cert.der() {
+                        match parsing::cert::parse(der) {
+                            Ok(c) => {
+                                chain_key.increment(&c.key_type);
+                                chain_sig.increment(&c.signature);
+                                key_types.push(c.key_type);
+                            }
+                            Err(_) => {
+                                parse_failures.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+                key_types
+            }
+
+            // selected_cert() is the local cert; peer_cert_chain() is the remote cert.
+            // Map to server/client labels based on connection mode.
+            let (server_cert, client_cert) = match conn.mode() {
+                s2n_tls::enums::Mode::Server => (conn.selected_cert(), conn.peer_cert_chain().ok()),
+                s2n_tls::enums::Mode::Client => (conn.peer_cert_chain().ok(), conn.selected_cert()),
+            };
+
+            let server_cert_keys = if let Some(cert) = server_cert {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.server_leaf_cert_key,
+                    &self.server_leaf_cert_sig,
+                    &self.server_chain_cert_key,
+                    &self.server_chain_cert_sig,
+                    &self.server_cert_parsing_failure,
+                )
+            } else {
+                Vec::new()
+            };
+
+            let client_cert_keys = if let Some(cert) = client_cert {
+                record_chain_metrics(
+                    cert.iter(),
+                    &self.client_leaf_cert_key,
+                    &self.client_leaf_cert_sig,
+                    &self.client_chain_cert_key,
+                    &self.client_chain_cert_sig,
+                    &self.client_cert_parsing_failure,
+                )
+            } else {
+                Vec::new()
+            };
+
+            // The local (selected) chain is the server chain on the server side
+            // and the client chain on the client side, matching the mapping above.
+            match conn.mode() {
+                s2n_tls::enums::Mode::Server => server_cert_keys,
+                s2n_tls::enums::Mode::Client => client_cert_keys,
+            }
+        };
+
         let supported_parameters = if let Some(client_hello) = client_hello {
             match (
                 conn.client_hello_is_sslv2(),
@@ -302,18 +395,18 @@ impl HandshakeRecordInProgress {
                         .flat_map(|sigs| sigs.iter())
                         .for_each(|signature| self.supported_signatures.increment(signature));
 
-                    if General20251201::supported(&supported_parameter) {
+                    if General20251201::supported(&supported_parameter, &local_cert_keys) {
                         self.compatibility_general20251201
                             .fetch_add(1, Ordering::Relaxed);
                     }
-                    if Fips20251201::supported(&supported_parameter) {
+                    if Fips20251201::supported(&supported_parameter, &local_cert_keys) {
                         self.compatibility_fips20251201
                             .fetch_add(1, Ordering::Relaxed);
                     }
-                    if Cnsa1::supported(&supported_parameter) {
+                    if Cnsa1::supported(&supported_parameter, &local_cert_keys) {
                         self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
                     }
-                    if Cnsa2::supported(&supported_parameter) {
+                    if Cnsa2::supported(&supported_parameter, &local_cert_keys) {
                         self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
                     }
                     Some(supported_parameter)
@@ -345,76 +438,6 @@ impl HandshakeRecordInProgress {
                 .into_iter()
                 .filter(|issue| has_issue(*issue, &negotiated, &supported))
                 .for_each(|issue| self.client_issue.increment(&issue));
-        }
-
-        // populate cert metrics
-        {
-            fn record_chain_metrics<'a>(
-                mut certs: impl Iterator<
-                    Item = Result<s2n_tls::cert_chain::Certificate<'a>, s2n_tls::error::Error>,
-                >,
-                leaf_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
-                leaf_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
-                chain_key: &Counter<CERT_KEY_COUNT, CertKeyType>,
-                chain_sig: &Counter<CERT_SIG_COUNT, CertSignatureAlgorithm>,
-                parse_failures: &AtomicU64,
-            ) {
-                if let Some(Ok(cert)) = certs.next() {
-                    if let Ok(der) = cert.der() {
-                        match parsing::cert::parse(der) {
-                            Ok(c) => {
-                                leaf_key.increment(&c.key_type);
-                                leaf_sig.increment(&c.signature);
-                            }
-                            Err(_) => {
-                                parse_failures.fetch_add(1, Ordering::Relaxed);
-                            }
-                        }
-                    }
-                }
-                for cert in certs.flatten() {
-                    if let Ok(der) = cert.der() {
-                        match parsing::cert::parse(der) {
-                            Ok(c) => {
-                                chain_key.increment(&c.key_type);
-                                chain_sig.increment(&c.signature);
-                            }
-                            Err(_) => {
-                                parse_failures.fetch_add(1, Ordering::Relaxed);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // selected_cert() is the local cert; peer_cert_chain() is the remote cert.
-            // Map to server/client labels based on connection mode.
-            let (server_cert, client_cert) = match conn.mode() {
-                s2n_tls::enums::Mode::Server => (conn.selected_cert(), conn.peer_cert_chain().ok()),
-                s2n_tls::enums::Mode::Client => (conn.peer_cert_chain().ok(), conn.selected_cert()),
-            };
-
-            if let Some(cert) = server_cert {
-                record_chain_metrics(
-                    cert.iter(),
-                    &self.server_leaf_cert_key,
-                    &self.server_leaf_cert_sig,
-                    &self.server_chain_cert_key,
-                    &self.server_chain_cert_sig,
-                    &self.server_cert_parsing_failure,
-                );
-            }
-
-            if let Some(cert) = client_cert {
-                record_chain_metrics(
-                    cert.iter(),
-                    &self.client_leaf_cert_key,
-                    &self.client_leaf_cert_sig,
-                    &self.client_chain_cert_key,
-                    &self.client_chain_cert_sig,
-                    &self.client_cert_parsing_failure,
-                );
-            }
         }
 
         // accuracy: as long as the handshake took less than 500,000 years
