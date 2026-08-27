@@ -4107,7 +4107,7 @@ S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
  * leaf certificate for the specified connection mode.
  *
  * The returned string format depends on the key type:
- * - RSA: "rsa_2048", "rsa_3072", "rsa_4096", or "rsa_<keysize>" for other sizes
+ * - RSA: "rsa2048", "rsa3072", "rsa4096", or "rsa<keysize>" for other sizes
  * - ECDSA: "ecdsa_secp256r1", "ecdsa_secp384r1", "ecdsa_secp521r1"
  * - ML-DSA: "mldsa44", "mldsa65", "mldsa87"
  *
@@ -4120,7 +4120,7 @@ S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn);
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_conn_get_signature_public_key(struct s2n_connection *conn,
+S2N_API extern int s2n_conn_get_signature_public_key_type(struct s2n_connection *conn,
         s2n_mode mode, char *output, uint32_t *output_size);
 
 #ifdef __cplusplus

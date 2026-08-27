@@ -884,7 +884,7 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
 }
 
 /* Maximum buffer size for public key string:
- * - RSA: "rsa_" (4) + max digits for key size (5 for 65536) + null = 10 bytes
+ * - RSA: "rsa" (3) + max digits for key size (5 for 65536) + null = 9 bytes
  * - ECDSA: "ecdsa_secp521r1" (15) + null = 16 bytes
  * - ML-DSA: "mldsa87" (7) + null = 8 bytes
  * Maximum: 16 bytes
@@ -916,9 +916,9 @@ S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *ce
 
     int public_key_nid = cert_info->public_key_nid;
 
-    /* RSA and RSA-PSS: dynamic format "rsa_<bits>" */
+    /* RSA and RSA-PSS: dynamic format "rsa<bits>" */
     if (public_key_nid == NID_rsaEncryption || public_key_nid == NID_rsassaPss) {
-        int written = snprintf(rsa_buffer, sizeof(rsa_buffer), "rsa_%d", cert_info->public_key_bits);
+        int written = snprintf(rsa_buffer, sizeof(rsa_buffer), "rsa%d", cert_info->public_key_bits);
         RESULT_ENSURE_GT(written, 0);
         RESULT_ENSURE_LT(written, (int) sizeof(rsa_buffer));
         result_str = rsa_buffer;

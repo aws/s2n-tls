@@ -1931,7 +1931,7 @@ s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
     return conn->mode;
 }
 
-int s2n_conn_get_signature_public_key(struct s2n_connection *conn,
+int s2n_conn_get_signature_public_key_type(struct s2n_connection *conn,
         s2n_mode mode, char *output, uint32_t *output_size)
 {
     POSIX_ENSURE_REF(conn);

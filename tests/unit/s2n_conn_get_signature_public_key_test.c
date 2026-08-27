@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         uint32_t output_size = sizeof(output);
 
         EXPECT_FAILURE_WITH_ERRNO(
-                s2n_conn_get_signature_public_key(NULL, S2N_SERVER, output, &output_size),
+                s2n_conn_get_signature_public_key_type(NULL, S2N_SERVER, output, &output_size),
                 S2N_ERR_NULL);
     };
 
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
         uint32_t output_size = S2N_PUBLIC_KEY_STR_MAX_SIZE;
 
         EXPECT_FAILURE_WITH_ERRNO(
-                s2n_conn_get_signature_public_key(conn, S2N_SERVER, NULL, &output_size),
+                s2n_conn_get_signature_public_key_type(conn, S2N_SERVER, NULL, &output_size),
                 S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
 
         EXPECT_FAILURE_WITH_ERRNO(
-                s2n_conn_get_signature_public_key(conn, S2N_SERVER, output, NULL),
+                s2n_conn_get_signature_public_key_type(conn, S2N_SERVER, output, NULL),
                 S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -76,9 +76,9 @@ int main(int argc, char **argv)
             const char *cert_digest;
             const char *expected_output;
         } test_cases[] = {
-            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "2048", .cert_digest = "sha256", .expected_output = "rsa_2048" },
-            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "3072", .cert_digest = "sha256", .expected_output = "rsa_3072" },
-            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "4096", .cert_digest = "sha384", .expected_output = "rsa_4096" },
+            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "2048", .cert_digest = "sha256", .expected_output = "rsa2048" },
+            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "3072", .cert_digest = "sha256", .expected_output = "rsa3072" },
+            { .cert_type = "rsae", .cert_sig = "pkcs", .cert_size = "4096", .cert_digest = "sha384", .expected_output = "rsa4096" },
             { .cert_type = "ec", .cert_sig = "ecdsa", .cert_size = "p256", .cert_digest = "sha256", .expected_output = "ecdsa_secp256r1" },
             { .cert_type = "ec", .cert_sig = "ecdsa", .cert_size = "p384", .cert_digest = "sha384", .expected_output = "ecdsa_secp384r1" },
             { .cert_type = "ec", .cert_sig = "ecdsa", .cert_size = "p521", .cert_digest = "sha512", .expected_output = "ecdsa_secp521r1" },
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size));
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size));
             EXPECT_STRING_EQUAL(output, test_cases[i].expected_output);
         }
     };
@@ -180,14 +180,14 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size));
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size));
             EXPECT_STRING_EQUAL(output, mldsa_test_cases[i].expected_output);
         }
     };
 
     /* Test: Buffer size handling and missing client certificate */
     {
-        /* Set up a handshake with an RSA 2048 cert (output = "rsa_2048", 9 bytes with null) */
+        /* Set up a handshake with an RSA 2048 cert (output = "rsa2048", 8 bytes with null) */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain_and_key,
@@ -223,16 +223,16 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
-        /* "rsa_2048" = 8 chars + null = 9 bytes required */
-        const uint32_t required_size = strlen("rsa_2048") + 1;
+        /* "rsa2048" = 7 chars + null = 8 bytes required */
+        const uint32_t required_size = strlen("rsa2048") + 1;
 
         /* Test: Buffer too small returns failure and sets required size */
         {
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
-            uint32_t output_size = 4; /* Too small for "rsa_2048\0" */
+            uint32_t output_size = 4; /* Too small for "rsa2048\0" */
 
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size),
+                    s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
             EXPECT_EQUAL(output_size, required_size);
         };
@@ -242,8 +242,8 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = required_size;
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size));
-            EXPECT_STRING_EQUAL(output, "rsa_2048");
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size));
+            EXPECT_STRING_EQUAL(output, "rsa2048");
             EXPECT_EQUAL(output_size, required_size);
         };
 
@@ -252,8 +252,8 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size));
-            EXPECT_STRING_EQUAL(output, "rsa_2048");
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size));
+            EXPECT_STRING_EQUAL(output, "rsa2048");
             EXPECT_EQUAL(output_size, required_size);
         };
 
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_conn_get_signature_public_key(server, S2N_CLIENT, output, &output_size),
+            EXPECT_FAILURE_WITH_ERRNO(s2n_conn_get_signature_public_key_type(server, S2N_CLIENT, output, &output_size),
                     S2N_ERR_CERT_NOT_VALIDATED);
         };
     };
@@ -326,8 +326,8 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(client, S2N_SERVER, output, &output_size));
-            EXPECT_STRING_EQUAL(output, "rsa_2048");
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(client, S2N_SERVER, output, &output_size));
+            EXPECT_STRING_EQUAL(output, "rsa2048");
         };
 
         /* Test: S2N_CLIENT mode on server returns client's ECDSA cert info */
@@ -335,7 +335,7 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(server, S2N_CLIENT, output, &output_size));
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(server, S2N_CLIENT, output, &output_size));
             EXPECT_STRING_EQUAL(output, "ecdsa_secp256r1");
         };
 
@@ -344,13 +344,13 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_SUCCESS(s2n_conn_get_signature_public_key(server, S2N_SERVER, output, &output_size));
-            EXPECT_STRING_EQUAL(output, "rsa_2048");
+            EXPECT_SUCCESS(s2n_conn_get_signature_public_key_type(server, S2N_SERVER, output, &output_size));
+            EXPECT_STRING_EQUAL(output, "rsa2048");
         };
     };
 
     /* Property Test: RSA key format consistency
-     * For any RSA or RSA-PSS certificate with key size N, output matches "rsa_<N>" */
+     * For any RSA or RSA-PSS certificate with key size N, output matches "rsa<N>" */
     {
         int nids[] = { NID_rsaEncryption, NID_rsassaPss };
 
@@ -371,9 +371,9 @@ int main(int argc, char **argv)
 
                 EXPECT_OK(s2n_cert_info_format_public_key_string(&info, output, output_size, &required_size));
 
-                /* Verify format matches "rsa_<N>" */
+                /* Verify format matches "rsa<N>" */
                 char expected[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
-                snprintf(expected, sizeof(expected), "rsa_%d", key_bits);
+                snprintf(expected, sizeof(expected), "rsa%d", key_bits);
                 EXPECT_STRING_EQUAL(output, expected);
 
                 /* Property 5: output_size == strlen(output) + 1 */
