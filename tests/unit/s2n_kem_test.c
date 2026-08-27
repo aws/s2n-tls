@@ -252,7 +252,7 @@ int main(int argc, char **argv)
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
 
         DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH));
         struct s2n_stuffer io_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
 
         DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH));
         struct s2n_stuffer io_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
         POSIX_CHECKED_MEMCPY(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
         DEFER_CLEANUP(struct s2n_blob io_blob_3 = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob_3, TEST_CIPHERTEXT_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_alloc(&io_blob_3, TEST_CIPHERTEXT_LENGTH));
         struct s2n_stuffer io_stuffer_3 = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_3, &io_blob_3));
         uint8_t bad_ct_input_3[] = { 0, 2, 2, 2 };
