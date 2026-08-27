@@ -263,7 +263,8 @@ int main(int argc, char **argv)
             char output[S2N_PUBLIC_KEY_STR_MAX_SIZE] = { 0 };
             uint32_t output_size = sizeof(output);
 
-            EXPECT_FAILURE(s2n_conn_get_signature_public_key(server, S2N_CLIENT, output, &output_size));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_conn_get_signature_public_key(server, S2N_CLIENT, output, &output_size),
+                    S2N_ERR_CERT_NOT_VALIDATED);
         };
     };
 
