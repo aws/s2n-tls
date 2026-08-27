@@ -26,8 +26,6 @@ S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, 
     RESULT_ENSURE_REF(ecc_evp_params);
     RESULT_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
-
     if (ecc_evp_params->evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
     }
@@ -45,6 +43,7 @@ int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct 
     POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
     POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_evp_params, out));
 
     return S2N_SUCCESS;

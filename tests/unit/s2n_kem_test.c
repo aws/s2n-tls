@@ -208,7 +208,7 @@ int main(int argc, char **argv)
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
 
         DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH));
         struct s2n_stuffer io_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
 
         DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH));
         struct s2n_stuffer io_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 

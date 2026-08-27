@@ -132,15 +132,9 @@ static int s2n_generate_pq_key_share(struct s2n_stuffer *out, struct s2n_kem_gro
     } else { /* Hybrid PQ */
         if (kem_group->send_kem_first) {
             POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
-            if (ecc_params->evp_pkey == NULL) {
-                POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
-            }
-            POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out));
         } else {
-            if (ecc_params->evp_pkey == NULL) {
-                POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
-            }
-            POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
+            POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out));
             POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
         }
     }
@@ -383,10 +377,10 @@ static int s2n_client_key_share_recv_pq(struct s2n_connection *conn, struct s2n_
     }
 
     uint16_t actual_share_size = key_share->blob.size;
-    uint16_t unprefixed_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
+    uint16_t expected_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
 
     /* Ignore KEM groups with unexpected overall total share sizes */
-    if (actual_share_size != unprefixed_share_size) {
+    if (actual_share_size != expected_share_size) {
         return S2N_SUCCESS;
     }
 
