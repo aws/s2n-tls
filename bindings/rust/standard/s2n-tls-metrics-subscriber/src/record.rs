@@ -122,6 +122,16 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_cnsa1: AtomicU64,
     compatibility_cnsa2: AtomicU64,
 
+    // These mirror the `compatibility_*` counters above, but are computed from
+    // the negotiated parameters rather than the client hello. Because negotiated
+    // parameters are available on both the client and server side of a
+    // connection, these counters are populated regardless of which side the
+    // subscriber is installed on.
+    compatibility_negotiated_general20251201: AtomicU64,
+    compatibility_negotiated_fips20251201: AtomicU64,
+    compatibility_negotiated_cnsa1: AtomicU64,
+    compatibility_negotiated_cnsa2: AtomicU64,
+
     client_issue: Counter<{ ClientIssue::COUNT }, ClientIssue>,
 
     /// sum of handshake duration, including network latency and waiting
@@ -177,6 +187,11 @@ impl HandshakeRecordInProgress {
             compatibility_fips20251201: AtomicU64::default(),
             compatibility_cnsa1: AtomicU64::default(),
             compatibility_cnsa2: AtomicU64::default(),
+
+            compatibility_negotiated_general20251201: AtomicU64::default(),
+            compatibility_negotiated_fips20251201: AtomicU64::default(),
+            compatibility_negotiated_cnsa1: AtomicU64::default(),
+            compatibility_negotiated_cnsa2: AtomicU64::default(),
 
             client_issue: Counter::new(),
 
@@ -266,6 +281,27 @@ impl HandshakeRecordInProgress {
         }
         if let Some(sig) = negotiated.signature {
             self.negotiated_signatures.increment(&sig);
+        }
+
+        // Compatibility based on the negotiated parameters. Unlike the client
+        // hello based `compatibility_*` counters below, negotiated parameters
+        // are available on both the client and server side, so these counters
+        // are populated regardless of which side the subscriber runs on.
+        if General20251201::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_general20251201
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Fips20251201::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_fips20251201
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Cnsa1::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_cnsa1
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Cnsa2::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_cnsa2
+                .fetch_add(1, Ordering::Relaxed);
         }
 
         let supported_parameters = if let Some(client_hello) = client_hello {
@@ -472,6 +508,19 @@ impl HandshakeRecordInProgress {
             compatibility_fips20251201: self.compatibility_fips20251201.load(Ordering::Relaxed),
             compatibility_cnsa1: self.compatibility_cnsa1.load(Ordering::Relaxed),
             compatibility_cnsa2: self.compatibility_cnsa2.load(Ordering::Relaxed),
+
+            compatibility_negotiated_general20251201: self
+                .compatibility_negotiated_general20251201
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_fips20251201: self
+                .compatibility_negotiated_fips20251201
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_cnsa1: self
+                .compatibility_negotiated_cnsa1
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_cnsa2: self
+                .compatibility_negotiated_cnsa2
+                .load(Ordering::Relaxed),
 
             client_issues: self.client_issue.freeze(),
 
@@ -720,6 +769,108 @@ mod tests {
         assert_eq!(record.compatibility_general20251201, 1);
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
+        assert_eq!(record.compatibility_cnsa2, 0);
+    }
+
+    /// The `compatibility_negotiated_*` counters reflect whether the actually
+    /// negotiated parameters are permitted by each profile. These are computed
+    /// from negotiated parameters (available on both client and server) rather
+    /// than the client hello.
+    #[test]
+    fn record_contents_negotiated_compatibility_metrics() {
+        let endpoint = TestEndpoint::new();
+
+        let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+
+        // Figure out what was actually negotiated so the assertions below stay
+        // correct even if the default negotiated parameters change.
+        let group = result
+            .client
+            .selected_key_exchange_group()
+            .unwrap()
+            .to_owned();
+        let sig = result.client.signature_scheme().unwrap().to_owned();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // A single successful handshake -> exactly one profile evaluation.
+        // The negotiated group is an MLKEM hybrid or an EC group and the
+        // negotiated signature is RSA-PSS, so General and Fips are compatible
+        // but the CNSA profiles (which require ecdsa_secp384r1 / mldsa87) are not.
+        assert_eq!(record.compatibility_negotiated_general20251201, 1);
+        assert_eq!(record.compatibility_negotiated_fips20251201, 1);
+        assert_eq!(
+            record.compatibility_negotiated_cnsa1, 0,
+            "negotiated group {group} / signature {sig} should not satisfy CNSA1"
+        );
+        assert_eq!(record.compatibility_negotiated_cnsa2, 0);
+    }
+
+    /// The `compatibility_negotiated_*` counters must be populated when the
+    /// subscriber is installed on the *client* side of the connection.
+    ///
+    /// This is the key advantage over the client-hello-based `compatibility_*`
+    /// counters: a client connection has no parsed client hello
+    /// (`Connection::client_hello()` only returns data server-side), so the
+    /// `compatibility_*` counters stay zero on a client, while the negotiated
+    /// counters are still populated.
+    #[test]
+    fn negotiated_compatibility_available_on_client_subscriber() {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            security::DEFAULT_TLS13,
+            testing::{TestPair, build_config, config_builder},
+        };
+
+        let sink = VecSink::new();
+        let attribution = Attribution {
+            service: "test_client".to_owned(),
+            resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
+        };
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        // Subscriber is on the CLIENT config.
+        let client_config = {
+            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.build().unwrap()
+        };
+        let server_config = build_config(&DEFAULT_TLS13).unwrap();
+
+        let mut pair = TestPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+
+        // Grab the negotiated parameters for a descriptive assertion message.
+        let group = pair
+            .client
+            .selected_key_exchange_group()
+            .unwrap()
+            .to_owned();
+        let sig = pair.client.signature_scheme().unwrap().to_owned();
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_success_count, 1);
+
+        // The negotiated compatibility counters ARE populated on the client.
+        assert_eq!(
+            record.compatibility_negotiated_general20251201, 1,
+            "negotiated group {group} / signature {sig} should satisfy General"
+        );
+        assert_eq!(record.compatibility_negotiated_fips20251201, 1);
+        assert_eq!(record.compatibility_negotiated_cnsa1, 0);
+        assert_eq!(record.compatibility_negotiated_cnsa2, 0);
+
+        // Meanwhile, the client-hello-based compatibility counters stay zero on
+        // the client side, because there is no parsed client hello available.
+        assert_eq!(record.compatibility_general20251201, 0);
+        assert_eq!(record.compatibility_fips20251201, 0);
+        assert_eq!(record.compatibility_cnsa1, 0);
         assert_eq!(record.compatibility_cnsa2, 0);
     }
 
