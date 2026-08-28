@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.8-1dd6e6bf</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.8-62ab6779</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -983,10 +983,13 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('s2n_8h_source.
 <div class="line"><a id="l04098" name="l04098"></a><span class="lineno"><a class="line" href="s2n_8h.html#a0a870cb61cc69457a41f2bcee5f365a5"> 4098</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a0a870cb61cc69457a41f2bcee5f365a5">s2n_config_set_cert_authorities_from_trust_store</a>(<span class="keyword">struct</span> s2n_config *config);</div>
 <div class="line"><a id="l04099" name="l04099"></a><span class="lineno"> 4099</span></div>
 <div class="line"><a id="l04103" name="l04103"></a><span class="lineno"><a class="line" href="s2n_8h.html#a00acc702d76244d8c1dc28f0dae13f61"> 4103</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <a class="code hl_enumeration" href="s2n_8h.html#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a> <a class="code hl_function" href="s2n_8h.html#a00acc702d76244d8c1dc28f0dae13f61">s2n_connection_get_mode</a>(<span class="keyword">struct</span> s2n_connection *conn);</div>
-<div class="line"><a id="l04104" name="l04104"></a><span class="lineno"> 4104</span> </div>
-<div class="line"><a id="l04105" name="l04105"></a><span class="lineno"> 4105</span><span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a id="l04106" name="l04106"></a><span class="lineno"> 4106</span>}</div>
-<div class="line"><a id="l04107" name="l04107"></a><span class="lineno"> 4107</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l04104" name="l04104"></a><span class="lineno"> 4104</span></div>
+<div class="line"><a id="l04123" name="l04123"></a><span class="lineno"><a class="line" href="s2n_8h.html#a6b0ec24d33ad9547ed062e2c141c9190"> 4123</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keyword">extern</span> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a6b0ec24d33ad9547ed062e2c141c9190">s2n_conn_get_signature_public_key_type</a>(<span class="keyword">struct</span> s2n_connection *conn,</div>
+<div class="line"><a id="l04124" name="l04124"></a><span class="lineno"> 4124</span>        <a class="code hl_enumeration" href="s2n_8h.html#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a> mode, <span class="keywordtype">char</span> *output, uint32_t *output_size);</div>
+<div class="line"><a id="l04125" name="l04125"></a><span class="lineno"> 4125</span> </div>
+<div class="line"><a id="l04126" name="l04126"></a><span class="lineno"> 4126</span><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a id="l04127" name="l04127"></a><span class="lineno"> 4127</span>}</div>
+<div class="line"><a id="l04128" name="l04128"></a><span class="lineno"> 4128</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="as2n_8h_html_a00acc702d76244d8c1dc28f0dae13f61"><div class="ttname"><a href="s2n_8h.html#a00acc702d76244d8c1dc28f0dae13f61">s2n_connection_get_mode</a></div><div class="ttdeci">S2N_API s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)</div></div>
 <div class="ttc" id="as2n_8h_html_a012950b0841dad53f4ce0b7bd9892757"><div class="ttname"><a href="s2n_8h.html#a012950b0841dad53f4ce0b7bd9892757">s2n_config_set_session_state_lifetime</a></div><div class="ttdeci">S2N_API int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs)</div></div>
 <div class="ttc" id="as2n_8h_html_a01514c68f7b4d7926f6435e4beec8de0"><div class="ttname"><a href="s2n_8h.html#a01514c68f7b4d7926f6435e4beec8de0">s2n_connection_append_psk</a></div><div class="ttdeci">S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk)</div></div>
@@ -1118,6 +1121,7 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('s2n_8h_source.
 <div class="ttc" id="as2n_8h_html_a68a751eb59517406db2439a88e94d8d1"><div class="ttname"><a href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups</a></div><div class="ttdeci">S2N_API int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</div></div>
 <div class="ttc" id="as2n_8h_html_a699fd9e05a8e8163811db6cab01af973"><div class="ttname"><a href="s2n_8h.html#a699fd9e05a8e8163811db6cab01af973">s2n_connection_set_recv_cb</a></div><div class="ttdeci">S2N_API int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)</div></div>
 <div class="ttc" id="as2n_8h_html_a69c668f3559688152919b062f260f7c3"><div class="ttname"><a href="s2n_8h.html#a69c668f3559688152919b062f260f7c3">s2n_cert_public_key</a></div><div class="ttdeci">struct s2n_pkey s2n_cert_public_key</div><div class="ttdef"><b>Definition</b> s2n.h:655</div></div>
+<div class="ttc" id="as2n_8h_html_a6b0ec24d33ad9547ed062e2c141c9190"><div class="ttname"><a href="s2n_8h.html#a6b0ec24d33ad9547ed062e2c141c9190">s2n_conn_get_signature_public_key_type</a></div><div class="ttdeci">S2N_API int s2n_conn_get_signature_public_key_type(struct s2n_connection *conn, s2n_mode mode, char *output, uint32_t *output_size)</div></div>
 <div class="ttc" id="as2n_8h_html_a6bec40a852f3766f4e419684036e7550"><div class="ttname"><a href="s2n_8h.html#a6bec40a852f3766f4e419684036e7550">s2n_cleanup</a></div><div class="ttdeci">S2N_API int s2n_cleanup(void)</div></div>
 <div class="ttc" id="as2n_8h_html_a6de9d794c410474e9851880bd4914025"><div class="ttname"><a href="s2n_8h.html#a6de9d794c410474e9851880bd4914025">s2n_config_set_send_buffer_size</a></div><div class="ttdeci">S2N_API int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size)</div></div>
 <div class="ttc" id="as2n_8h_html_a6e4014627f6981bc4e533781d29903d5"><div class="ttname"><a href="s2n_8h.html#a6e4014627f6981bc4e533781d29903d5">s2n_mem_free_callback</a></div><div class="ttdeci">int(* s2n_mem_free_callback)(void *ptr, uint32_t size)</div><div class="ttdef"><b>Definition</b> s2n.h:559</div></div>

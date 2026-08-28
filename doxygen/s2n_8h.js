@@ -182,6 +182,7 @@ var s2n_8h =
     [ "s2n_config_set_verify_host_callback", "s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66", null ],
     [ "s2n_config_set_wall_clock", "s2n_8h.html#a43c8ab4e5c773d3e0464ed41cc51bd5d", null ],
     [ "s2n_config_wipe_trust_store", "s2n_8h.html#af7e2759066521827269d56d4da063f7b", null ],
+    [ "s2n_conn_get_signature_public_key_type", "s2n_8h.html#a6b0ec24d33ad9547ed062e2c141c9190", null ],
     [ "s2n_connection_add_new_tickets_to_send", "s2n_8h.html#a0c9e5abc313209df9dea126fb44f750a", null ],
     [ "s2n_connection_append_protocol_preference", "s2n_8h.html#a1cbf7aa3eb0834357994ea902d6c4847", null ],
     [ "s2n_connection_append_psk", "s2n_8h.html#a01514c68f7b4d7926f6435e4beec8de0", null ],

@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.8-1dd6e6bf</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.8-62ab6779</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -551,6 +551,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a79859a910905832157c08251d1a76888" id="r_a79859a910905832157c08251d1a76888"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a79859a910905832157c08251d1a76888">s2n_connection_deserialize</a> (struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length)</td></tr>
 <tr class="memitem:a0a870cb61cc69457a41f2bcee5f365a5" id="r_a0a870cb61cc69457a41f2bcee5f365a5"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a0a870cb61cc69457a41f2bcee5f365a5">s2n_config_set_cert_authorities_from_trust_store</a> (struct s2n_config *config)</td></tr>
 <tr class="memitem:a00acc702d76244d8c1dc28f0dae13f61" id="r_a00acc702d76244d8c1dc28f0dae13f61"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <a class="el" href="#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a>&#160;</td><td class="memItemRight"><a class="el" href="#a00acc702d76244d8c1dc28f0dae13f61">s2n_connection_get_mode</a> (struct s2n_connection *conn)</td></tr>
+<tr class="memitem:a6b0ec24d33ad9547ed062e2c141c9190" id="r_a6b0ec24d33ad9547ed062e2c141c9190"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a6b0ec24d33ad9547ed062e2c141c9190">s2n_conn_get_signature_public_key_type</a> (struct s2n_connection *conn, <a class="el" href="#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a> mode, char *output, uint32_t *output_size)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -6106,6 +6107,61 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a6b0ec24d33ad9547ed062e2c141c9190" name="a6b0ec24d33ad9547ed062e2c141c9190"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b0ec24d33ad9547ed062e2c141c9190">&#9670;&#160;</a></span>s2n_conn_get_signature_public_key_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_conn_get_signature_public_key_type </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *</td>          <td class="paramname"><span class="paramname"><em>conn</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="#a77a64e3b657f90d221c5faf99c643cdb">s2n_mode</a></td>          <td class="paramname"><span class="paramname"><em>mode</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *</td>          <td class="paramname"><span class="paramname"><em>output</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t *</td>          <td class="paramname"><span class="paramname"><em>output_size</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Gets a string describing the public key algorithm and parameters of the leaf certificate for the specified connection mode.</p>
+<p>The returned string format depends on the key type:</p><ul>
+<li>RSA: "rsa2048", "rsa3072", "rsa4096", or "rsa&lt;keysize&gt;" for other sizes</li>
+<li>ECDSA: "ecdsa_secp256r1", "ecdsa_secp384r1", "ecdsa_secp521r1"</li>
+<li>ML-DSA: "mldsa44", "mldsa65", "mldsa87"</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object. </td></tr>
+    <tr><td class="paramname">mode</td><td>S2N_SERVER for server certificate, S2N_CLIENT for client certificate. </td></tr>
+    <tr><td class="paramname">output</td><td>Buffer to write the null-terminated result string. </td></tr>
+    <tr><td class="paramname">output_size</td><td>On input, the size of the output buffer. On output, the number of bytes written (including null terminator), or the required size if the buffer is too small.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure. </dd></dl>
 
 </div>
 </div>
