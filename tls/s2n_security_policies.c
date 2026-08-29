@@ -72,7 +72,6 @@ const struct s2n_security_policy security_policy_20240502 = {
     },
 };
 
-/* TLS1.3 default as of 05/24 */
 const struct s2n_security_policy security_policy_20240503 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2019,
@@ -1618,9 +1617,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
      * You likely also want to update the compatibility unit tests in (tests/unit/s2n_security_rules_test.c).
      */
     { .version = "default", .security_policy = &security_policy_20251014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_tls13", .security_policy = &security_policy_20251014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_pq", .security_policy = &security_policy_20251014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20251015, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_pq", .security_policy = &security_policy_20250721, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241106", .security_policy = &security_policy_20241106, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240501", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240502", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
