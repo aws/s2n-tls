@@ -24,6 +24,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_quic_support.h"
@@ -2140,5 +2141,92 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
+
+    /* Test: s2n_client_hello_free_raw_message nulls all parsed_extension data pointers */
+    {
+        struct s2n_client_hello client_hello = { 0 };
+
+        EXPECT_SUCCESS(s2n_alloc(&client_hello.raw_message, 100));
+        memset(client_hello.raw_message.data, 0xAB, 100);
+
+        client_hello.cipher_suites.data = client_hello.raw_message.data;
+        client_hello.cipher_suites.size = 10;
+        client_hello.extensions.raw.data = client_hello.raw_message.data + 10;
+        client_hello.extensions.raw.size = 20;
+
+        client_hello.extensions.parsed_extensions[0].extension.data = client_hello.raw_message.data + 30;
+        client_hello.extensions.parsed_extensions[0].extension.size = 5;
+        client_hello.extensions.parsed_extensions[1].extension.data = client_hello.raw_message.data + 40;
+        client_hello.extensions.parsed_extensions[1].extension.size = 8;
+        client_hello.extensions.parsed_extensions[5].extension.data = client_hello.raw_message.data + 50;
+        client_hello.extensions.parsed_extensions[5].extension.size = 3;
+
+        EXPECT_SUCCESS(s2n_client_hello_free_raw_message(&client_hello));
+
+        EXPECT_NULL(client_hello.raw_message.data);
+        EXPECT_NULL(client_hello.cipher_suites.data);
+        EXPECT_NULL(client_hello.extensions.raw.data);
+
+        for (size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) {
+            EXPECT_NULL(client_hello.extensions.parsed_extensions[i].extension.data);
+            EXPECT_EQUAL(client_hello.extensions.parsed_extensions[i].extension.size, 0);
+        }
+    };
+
+    /* Test: s2n_connection_free_handshake nulls parsed_extension data pointers */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_alloc(&conn->client_hello.raw_message, 100));
+        memset(conn->client_hello.raw_message.data, 0xCD, 100);
+
+        conn->client_hello.extensions.parsed_extensions[0].extension.data =
+                conn->client_hello.raw_message.data + 10;
+        conn->client_hello.extensions.parsed_extensions[0].extension.size = 5;
+        conn->client_hello.extensions.parsed_extensions[2].extension.data =
+                conn->client_hello.raw_message.data + 20;
+        conn->client_hello.extensions.parsed_extensions[2].extension.size = 7;
+
+        EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+
+        for (size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) {
+            EXPECT_NULL(conn->client_hello.extensions.parsed_extensions[i].extension.data);
+            EXPECT_EQUAL(conn->client_hello.extensions.parsed_extensions[i].extension.size, 0);
+        }
+
+        EXPECT_NULL(conn->client_hello.cipher_suites.data);
+        EXPECT_NULL(conn->client_hello.extensions.raw.data);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    };
+
+    /* Test: s2n_client_hello_get_extension_by_id returns 0 after raw_message is freed */
+    {
+        struct s2n_client_hello client_hello = { 0 };
+
+        EXPECT_SUCCESS(s2n_alloc(&client_hello.raw_message, 100));
+        memset(client_hello.raw_message.data, 0xFF, 100);
+
+        s2n_extension_type_id server_name_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(S2N_EXTENSION_SERVER_NAME, &server_name_id));
+
+        client_hello.extensions.parsed_extensions[server_name_id].extension.data =
+                client_hello.raw_message.data + 10;
+        client_hello.extensions.parsed_extensions[server_name_id].extension.size = 5;
+        client_hello.extensions.parsed_extensions[server_name_id].extension_type = S2N_EXTENSION_SERVER_NAME;
+
+        uint8_t out[10] = { 0 };
+        ssize_t len = s2n_client_hello_get_extension_by_id(&client_hello,
+                S2N_EXTENSION_SERVER_NAME, out, sizeof(out));
+        EXPECT_EQUAL(len, 5);
+
+        EXPECT_SUCCESS(s2n_client_hello_free_raw_message(&client_hello));
+
+        len = s2n_client_hello_get_extension_by_id(&client_hello,
+                S2N_EXTENSION_SERVER_NAME, out, sizeof(out));
+        EXPECT_EQUAL(len, 0);
+    };
+
     END_TEST();
 }
