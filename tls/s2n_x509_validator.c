@@ -234,13 +234,16 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
 
     if (current_name->type == GEN_DNS || current_name->type == GEN_URI) {
         *san_found = true;
-
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
         const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+#else
+        const unsigned char *name = ASN1_STRING_get0_data(current_name->d.ia5);
+#endif
         RESULT_ENSURE_REF(name);
         int name_len = ASN1_STRING_length(current_name->d.ia5);
         RESULT_ENSURE_GT(name_len, 0);
 
-        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
+        RESULT_ENSURE(conn->verify_host_fn((const char *)name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_INVALID_HOSTNAME);
 
         return S2N_RESULT_OK;
     }
@@ -249,9 +252,14 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
         *san_found = true;
 
         /* try to validate an IP address if it's in the subject alt name. */
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
         const unsigned char *ip_addr = current_name->d.iPAddress->data;
-        RESULT_ENSURE_REF(ip_addr);
         int ip_addr_len = current_name->d.iPAddress->length;
+#else
+        const unsigned char *ip_addr = ASN1_STRING_get0_data(current_name->d.iPAddress);
+        int ip_addr_len = ASN1_STRING_length(current_name->d.iPAddress);
+#endif
+        RESULT_ENSURE_REF(ip_addr);
         RESULT_ENSURE_GT(ip_addr_len, 0);
 
         RESULT_STACK_BLOB(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
@@ -316,8 +324,14 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(public_cert);
     RESULT_ENSURE_REF(cn_found);
-
-    X509_NAME *subject_name = X509_get_subject_name(public_cert);
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
+    ASN1_STRING *common_name;
+    X509_NAME *subject_name;
+#else
+    const ASN1_STRING *common_name;
+    const X509_NAME *subject_name;
+#endif
+    subject_name = X509_get_subject_name(public_cert);
     RESULT_ENSURE(subject_name, S2N_ERR_CERT_UNTRUSTED);
 
     int curr_idx = -1;
@@ -332,7 +346,7 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
 
     RESULT_ENSURE(curr_idx >= 0, S2N_ERR_CERT_UNTRUSTED);
 
-    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
+    common_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
     RESULT_ENSURE(common_name, S2N_ERR_CERT_UNTRUSTED);
 
     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
@@ -351,7 +365,12 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     RESULT_ENSURE_GT(cn_len, 0);
     uint32_t len = (uint32_t) cn_len;
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
+
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
     RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
+#else
+    RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_get0_data(common_name), len);
+#endif
 
     /* According to https://www.rfc-editor.org/rfc/rfc6125#section-6.4.4,
      * the CN fallback only applies to fully qualified DNS domain names.
