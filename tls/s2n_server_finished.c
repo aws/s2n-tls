@@ -81,15 +81,16 @@ int s2n_tls13_server_finished_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS13);
 
-    uint8_t length = s2n_stuffer_data_available(&conn->handshake.io);
-    S2N_ERROR_IF(length == 0, S2N_ERR_BAD_MESSAGE);
+    /* get tls13 keys first so we can validate length */
+    s2n_tls13_connection_keys(keys, conn);
+
+    /* RFC 8446 §4.4.4: Finished message must be exactly the HMAC output length */
+    uint32_t length = s2n_stuffer_data_available(&conn->handshake.io);
+    POSIX_ENSURE_EQ(length, keys.size);
 
     /* read finished mac from handshake */
     struct s2n_blob wire_finished_mac = { 0 };
     POSIX_GUARD(s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length));
-
-    /* get tls13 keys */
-    s2n_tls13_connection_keys(keys, conn);
 
     /* get transcript hash */
     POSIX_ENSURE_REF(conn->handshake.hashes);
