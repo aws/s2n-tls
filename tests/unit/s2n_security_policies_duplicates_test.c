@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_ecc_evp.h"
 #include "s2n_test.h"
 #include "tls/s2n_security_policies.h"
 
@@ -99,6 +100,43 @@ static const struct s2n_policy_pair allowed_duplicates[] = {
             .policy_a = "CloudFront-TLS-1-2-2021-no-sha1",
             .policy_b = "CloudFront-TLS-1-2-2021-no-sha1-PQ-Beta",
     },
+#if !EVP_APIS_SUPPORTED
+    /* The pairs below are distinguished only by x25519, so they are duplicates
+     * exactly on the libcryptos that compile x25519 out of the curve preferences:
+     * openssl-1.0.2, LibreSSL and BoringSSL.
+     *
+     * s2n_ecc_pref_list_20200310 is x25519, p256, p384. s2n_ecc_pref_list_20230623
+     * is p256, x25519, p384, differing only in where x25519 sits.
+     * s2n_ecc_pref_list_20140601 is p256, p384. Drop x25519 and all three become
+     * the same list.
+     *
+     * Each AWS-CRT-SDK pair below is 20200310 against 20230623, and
+     * 20190801/20190802 is 20200310 against 20140601. */
+    {
+            .policy_a = "AWS-CRT-SDK-SSLv3.0",
+            .policy_b = "AWS-CRT-SDK-SSLv3.0-2023",
+    },
+    {
+            .policy_a = "AWS-CRT-SDK-TLSv1.0",
+            .policy_b = "AWS-CRT-SDK-TLSv1.0-2023",
+    },
+    {
+            .policy_a = "AWS-CRT-SDK-TLSv1.1",
+            .policy_b = "AWS-CRT-SDK-TLSv1.1-2023",
+    },
+    {
+            .policy_a = "AWS-CRT-SDK-TLSv1.2",
+            .policy_b = "AWS-CRT-SDK-TLSv1.2-2023",
+    },
+    {
+            .policy_a = "AWS-CRT-SDK-TLSv1.3",
+            .policy_b = "AWS-CRT-SDK-TLSv1.3-2023",
+    },
+    {
+            .policy_a = "20190801",
+            .policy_b = "20190802",
+    },
+#endif
 };
 
 static const size_t allowed_duplicates_count = s2n_array_len(allowed_duplicates);
