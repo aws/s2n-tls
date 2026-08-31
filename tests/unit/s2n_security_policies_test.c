@@ -1030,8 +1030,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
 
                 /* Handshake with each other using ML-DSA-87 certs */
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260720", mldsa87_chain_and_key));
-                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260721, "20260722", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260220, "20260720", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260220, "20260722", mldsa87_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260722, "20260720", mldsa87_chain_and_key));
 
                 /* CNSA2-INTEROP1 can only negotiate TLS 1.3, not TLS 1.2 */

@@ -15,17 +15,7 @@ curves:
 certificate signature schemes:
 - mldsa87
 - ecdsa_sha384
-- rsa_pss_pss_sha384
-- rsa_pss_rsae_sha384
 - rsa_pkcs1_sha384
-- ecdsa_sha256
-- rsa_pss_pss_sha256
-- rsa_pss_rsae_sha256
-- rsa_pkcs1_sha256
-- ecdsa_sha512
-- rsa_pss_pss_sha512
-- rsa_pss_rsae_sha512
-- rsa_pkcs1_sha512
 pq:
 - revision: 5
 - kem groups:
