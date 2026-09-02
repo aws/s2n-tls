@@ -234,9 +234,17 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     const BIGNUM *bn_g = s2n_get_g_dh_param(server_dh_params);
     const BIGNUM *bn_Ys = s2n_get_Ys_dh_param(server_dh_params);
 
-    uint16_t p_size = BN_num_bytes(bn_p);
-    uint16_t g_size = BN_num_bytes(bn_g);
-    uint16_t Ys_size = BN_num_bytes(bn_Ys);
+    /* Reject sizes that don't fit in the uint16 wire encoding before truncating. */
+    int p_num_bytes = BN_num_bytes(bn_p);
+    int g_num_bytes = BN_num_bytes(bn_g);
+    int Ys_num_bytes = BN_num_bytes(bn_Ys);
+    POSIX_ENSURE(p_num_bytes >= 0 && p_num_bytes <= UINT16_MAX, S2N_ERR_DH_SERIALIZING);
+    POSIX_ENSURE(g_num_bytes >= 0 && g_num_bytes <= UINT16_MAX, S2N_ERR_DH_SERIALIZING);
+    POSIX_ENSURE(Ys_num_bytes >= 0 && Ys_num_bytes <= UINT16_MAX, S2N_ERR_DH_SERIALIZING);
+
+    uint16_t p_size = p_num_bytes;
+    uint16_t g_size = g_num_bytes;
+    uint16_t Ys_size = Ys_num_bytes;
     uint8_t *p = NULL;
     uint8_t *g = NULL;
     uint8_t *Ys = NULL;
@@ -279,7 +287,14 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
 
     const BIGNUM *client_pub_key_bn = s2n_get_Ys_dh_param(&client_params);
     POSIX_ENSURE_REF(client_pub_key_bn);
-    client_pub_key_size = BN_num_bytes(client_pub_key_bn);
+    /* Reject sizes that don't fit in the uint16 wire encoding before truncating. */
+    int client_pub_key_num_bytes = BN_num_bytes(client_pub_key_bn);
+    if (client_pub_key_num_bytes < 0 || client_pub_key_num_bytes > UINT16_MAX) {
+        POSIX_GUARD(s2n_free(shared_key));
+        POSIX_GUARD(s2n_dh_params_free(&client_params));
+        POSIX_BAIL(S2N_ERR_DH_WRITING_PUBLIC_KEY);
+    }
+    client_pub_key_size = client_pub_key_num_bytes;
     POSIX_GUARD(s2n_stuffer_write_uint16(Yc_out, client_pub_key_size));
     client_pub_key = s2n_stuffer_raw_write(Yc_out, client_pub_key_size);
     if (client_pub_key == NULL) {
