@@ -558,6 +558,7 @@ impl Connection {
         Ok(self)
     }
 
+    #[cfg(feature = "unstable-renegotiate")]
     pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
     where
         F: FnOnce(&mut Self) -> Result<T, Error>,
@@ -575,19 +576,31 @@ impl Connection {
         Ok(())
     }
 
-    /// wipes an existing connection and allows it to be reused.
+    /// Resets a connection so that it can be reused.
     ///
-    /// This method erases all data associated with a connection including pending reads.
-    /// This function should be called after all I/O is completed and s2n_shutdown has been
-    /// called. Reusing the same connection handle(s) is more performant than repeatedly
-    /// calling s2n_connection_new and s2n_connection_free
+    /// This method no longer wipes the existing connection. Instead, it replaces the
+    /// connection with a newly allocated one, preserving the mode and config.
     ///
-    /// Corresponds to [`s2n_connection_wipe`].
+    /// This method should be called after all I/O is completed and `Connection::poll_shutdown`
+    /// has been called.
+    #[deprecated(
+        note = "use `Connection::new()` instead; connection reuse provides negligible performance benefit"
+    )]
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
-        // we deliberately call this outside of "wipe_method", because binding
-        // specific defaults should not be re-applied on renegotiate wipe
-        self.set_binding_specific_defaults()?;
+        // s2n_connection_wipe is a nightmare of a method, with lifetime issues
+        // that are incredibly difficult to reason about. We do not expose it in
+        // the rust bindings. In our benchmarking, the savings were ~ 2 us, which
+        // is less than 1% of the cost of a handshake.
+        let clean_connection = {
+            let mut connection = Connection::new(self.mode());
+            // config will be none if Connection::set_config has yet to be called
+            if let Some(config) = self.config() {
+                connection.set_config(config)?;
+            }
+            connection
+        };
+        *self = clean_connection;
+
         Ok(self)
     }
 
@@ -1992,6 +2005,7 @@ mod tests {
     /// Confirm that the large (16KB) record size is used by both newly
     /// created connections and wiped (reused) connections.
     #[test]
+    #[allow(deprecated)]
     fn max_record_size_configuration() -> Result<(), Box<dyn std::error::Error>> {
         /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
         /// > The length MUST NOT exceed 2^14 bytes.
@@ -2087,6 +2101,7 @@ mod tests {
 
     /// `wipe` preserves the mode (client/server) of the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_preserves_mode() -> Result<(), Box<dyn std::error::Error>> {
         let mut client = Connection::new_client();
         client.wipe()?;
@@ -2100,6 +2115,7 @@ mod tests {
 
     /// `wipe` preserves the config set on the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_preserves_config() -> Result<(), Box<dyn std::error::Error>> {
         use crate::connection::Builder;
 
@@ -2118,6 +2134,7 @@ mod tests {
 
     /// `wipe` clears any application context stored on the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_clears_application_context() -> Result<(), Box<dyn std::error::Error>> {
         let mut conn = Connection::new_server();
 
@@ -2133,6 +2150,7 @@ mod tests {
 
     /// A wiped connection can be reused for a subsequent handshake.
     #[test]
+    #[allow(deprecated)]
     fn wipe_allows_connection_reuse() -> Result<(), Box<dyn std::error::Error>> {
         // arbitrary policy. This test has no specific parameter expectations
         let config = build_config(&security::DEFAULT)?;
