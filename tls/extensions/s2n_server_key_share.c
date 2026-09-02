@@ -41,13 +41,10 @@ static int s2n_server_key_share_send_hybrid_partial_ecc(struct s2n_connection *c
     POSIX_ENSURE_REF(out);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
-    struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
 
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(server_ecc_params->negotiated_curve);
-    if (client_kem_params->len_prefixed) {
-        POSIX_GUARD(s2n_stuffer_write_uint16(out, server_ecc_params->negotiated_curve->share_size));
-    }
+
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(server_ecc_params));
     POSIX_GUARD(s2n_ecc_evp_write_params_point(server_ecc_params, out));
 
@@ -179,18 +176,12 @@ static int s2n_server_key_share_recv_hybrid_partial_ecc(struct s2n_connection *c
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(extension);
 
-    struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     const struct s2n_kem_group *server_kem_group = server_kem_group_params->kem_group;
     POSIX_ENSURE_REF(server_kem_group);
     uint16_t expected_ecc_share_size = server_kem_group->curve->share_size;
 
     /* Parse ECC key share */
-    if (client_kem_params->len_prefixed) {
-        uint16_t actual_ecc_share_size = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_ecc_share_size));
-        POSIX_ENSURE(actual_ecc_share_size == expected_ecc_share_size, S2N_ERR_BAD_KEY_SHARE);
-    }
 
     struct s2n_blob point_blob = { 0 };
     POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, expected_ecc_share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
@@ -252,9 +243,6 @@ static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t na
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == actual_hybrid_share_size, S2N_ERR_BAD_KEY_SHARE);
 
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
-
-    /* Don't need to set client_kem_params->len_prefixed since we are the client;
-     * server-side should auto-detect hybrid share size and match our behavior. */
 
     if (server_kem_group_params->kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
         POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);

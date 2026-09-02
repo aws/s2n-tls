@@ -111,8 +111,6 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
 
     if (policy->kem_preferences && policy->kem_preferences != &kem_preferences_null) {
         RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "pq:\n"));
-        RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- revision: %i\n",
-                policy->kem_preferences->tls13_pq_hybrid_draft_revision));
 
         if (policy->kem_preferences->kem_count > 0) {
             RESULT_GUARD_POSIX(s2n_stuffer_printf(stuffer, "- kems:\n"));
