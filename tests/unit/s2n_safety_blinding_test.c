@@ -143,6 +143,15 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         };
 
+        /* Closes connection but does not blind for a missing client cert */
+        {
+            SETUP_TEST(conn);
+            s2n_errno = S2N_ERR_MISSING_CLIENT_CERT;
+            EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
+            EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+        };
+
         /* Blinds for an average error */
         {
             SETUP_TEST(conn);

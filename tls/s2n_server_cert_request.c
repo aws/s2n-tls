@@ -161,7 +161,10 @@ static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
             POSIX_ENSURE_REF(cert);
         }
         conn->handshake_params.our_chain_and_key = cert;
-        conn->handshake_params.client_cert_pkey_type = s2n_cert_chain_and_key_get_pkey_type(cert);
+        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert);
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        conn->handshake_params.client_cert_pkey_type = cert_type;
 
         POSIX_GUARD_RESULT(s2n_signature_algorithm_select(conn));
     }
