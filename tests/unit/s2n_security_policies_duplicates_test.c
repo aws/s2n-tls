@@ -58,7 +58,8 @@ static const struct s2n_policy_alias_group allowed_alias_groups[] = {
     /* Names of the standard a dated policy implements. */
     { { "rfc9151", "cnsa_1", "20251013" } },
     { { "cnsa_2", "20260219" } },
-    { { "cnsa_1_2_interop", "20260220" } },
+    /* 20260220 also ships under an ELB name, so all three names are one group. */
+    { { "cnsa_1_2_interop", "20260220", "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP2-FIPS-PQ-2026-07" } },
 
     /* ELB names for dated policies. The ELB name is listed first in
      * security_policy_selection, so it is the name reported by
@@ -68,6 +69,7 @@ static const struct s2n_policy_alias_group allowed_alias_groups[] = {
     { { "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP3-FIPS-2023-07", "20251114" } },
     { { "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP4-FIPS-2023-07", "20251115" } },
     { { "ELBSecurityPolicy-TLS13-1-3-CNSA2-INTEROP1-FIPS-PQ-2026-07", "20260720" } },
+    /* INTEROP2 shares 20260220, so it is declared with cnsa_1_2_interop above. */
     { { "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP3-FIPS-PQ-2026-07", "20260722" } },
 
     /* Not a mistake, as noted in security_policy_selection: ELB shipped these two
