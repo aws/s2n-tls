@@ -10,9 +10,9 @@ use s2n_tls::{connection::Connection, error::Error as S2NError, events::Handshak
 use s2n_tls_metrics_schema::{
     record::FrozenHandshakeRecord,
     static_lists::{
-        Alert, CertKeyType, CertSignatureAlgorithm, Cipher, ClientIssue, Group, Signature, Version,
-        CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, DEFINED_ALERTS_COUNT, GROUP_COUNT,
-        PROTOCOL_COUNT, SIGNATURE_COUNT,
+        Alert, CERT_KEY_COUNT, CERT_SIG_COUNT, CIPHER_COUNT, CertKeyType, CertSignatureAlgorithm,
+        Cipher, ClientIssue, DEFINED_ALERTS_COUNT, GROUP_COUNT, Group, PROTOCOL_COUNT,
+        SIGNATURE_COUNT, Signature, Version,
     },
 };
 
@@ -570,7 +570,7 @@ impl Drop for HandshakeRecordInProgress {
 #[cfg(test)]
 mod tests {
     use crate::test_utils::{
-        TestEndpoint, ARBITRARY_POLICY_1, P256_PREFERRING_POLICY, STRONGLY_PREFERRED_GROUPS_POLICY,
+        ARBITRARY_POLICY_1, P256_PREFERRING_POLICY, STRONGLY_PREFERRED_GROUPS_POLICY, TestEndpoint,
     };
     use s2n_tls_metrics_schema::{
         counter::FrozenCounter,
@@ -873,10 +873,10 @@ mod tests {
     /// counters are still populated.
     #[test]
     fn negotiated_compatibility_available_on_client_subscriber() {
-        use crate::{test_utils::VecSink, AggregatedMetricsSubscriber, Attribution};
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
         use s2n_tls::{
             security::DEFAULT_TLS13,
-            testing::{build_config, config_builder, TestPair},
+            testing::{TestPair, build_config, config_builder},
         };
 
         let sink = VecSink::new();
@@ -1052,7 +1052,7 @@ mod tests {
     /// (RSA 4096 / SHA384) and client (ECDSA P384 / SHA384) so the test can
     /// distinguish which cert ended up in which record field.
     mod mtls_helper {
-        use crate::{test_utils::VecSink, AggregatedMetricsSubscriber, Attribution};
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
         use s2n_tls::{
             enums::ClientAuthType,
             security::DEFAULT_TLS13,
@@ -1353,8 +1353,8 @@ mod tests {
     fn ffdhe_only_client_triggers_tls13_without_s2n_supported_groups() {
         use openssl::ssl::{SslContext, SslMethod};
         use tls_harness::{
-            cohort::{OpenSslConfig, OpenSslConnection, S2NConfig, S2NConnection},
             SigType, TlsConnPair,
+            cohort::{OpenSslConfig, OpenSslConnection, S2NConfig, S2NConnection},
         };
 
         let sink = crate::test_utils::VecSink::new();
