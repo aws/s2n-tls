@@ -323,7 +323,7 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     bytes_in_hash %= state->hash_block_size;
     POSIX_ENSURE(bytes_in_hash <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     /* The length of the key is not private, so don't need to do tricky math here */
-    state->currently_in_hash_block = bytes_in_hash;
+    state->currently_in_hash_block = (uint32_t) bytes_in_hash;
     return S2N_SUCCESS;
 }
 

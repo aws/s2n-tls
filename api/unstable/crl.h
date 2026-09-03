@@ -55,7 +55,7 @@ typedef int (*s2n_crl_lookup_callback)(struct s2n_crl_lookup *lookup, void *cont
  * Set a callback to provide CRLs to use for CRL validation.
  *
  * @param config A pointer to the connection config
- * @param s2n_crl_lookup_callback The function to be called for each received certificate.
+ * @param callback The function to be called for each received certificate.
  * @param context Context to be passed to the callback function.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure
  */

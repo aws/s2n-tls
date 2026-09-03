@@ -257,7 +257,8 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_GUARD_OSSL(EVP_PKEY_derive_init(ctx), S2N_ERR_ECDHE_SHARED_SECRET);
     POSIX_GUARD_OSSL(EVP_PKEY_derive_set_peer(ctx, peer_public), S2N_ERR_ECDHE_SHARED_SECRET);
     POSIX_GUARD_OSSL(EVP_PKEY_derive(ctx, NULL, &shared_secret_size), S2N_ERR_ECDHE_SHARED_SECRET);
-    POSIX_GUARD(s2n_alloc(shared_secret, shared_secret_size));
+    POSIX_ENSURE_LTE(shared_secret_size, UINT32_MAX);
+    POSIX_GUARD(s2n_alloc(shared_secret, (uint32_t) shared_secret_size));
 
     if (EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1) {
         POSIX_GUARD(s2n_free(shared_secret));
@@ -451,7 +452,8 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
         OPENSSL_free(encoded_point);
         POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
     } else {
-        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
+        POSIX_ENSURE_LTE(size, UINT32_MAX);
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, (uint32_t) size));
         OPENSSL_free(encoded_point);
     }
 #else
