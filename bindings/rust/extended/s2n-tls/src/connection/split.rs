@@ -79,14 +79,24 @@ impl Deref for WriteHalf {
 #[cfg(test)]
 mod tests {
     use crate::{
-        connection::split::reunite,
+        config,
+        connection::{split::reunite, Connection},
         error::Error,
         security,
-        testing::{build_config, TestPair},
+        testing::{
+            build_config,
+            test::{openssl_handshake, ServerTestStream},
+            CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair,
+        },
     };
     use bytes::BytesMut;
-    use openssl::rand::rand_bytes;
+    use foreign_types::ForeignTypeRef;
+    use openssl::{
+        rand::rand_bytes,
+        ssl::{Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion},
+    };
     use std::{
+        io::{Read, Write},
         task::Poll,
         thread::{self},
     };
@@ -130,19 +140,37 @@ mod tests {
         // Test parallel reads/writes by sending the client halves to separate threads
         let recv = thread::spawn(move || {
             receive(|buf| read.poll_recv(buf), client_recv_buffer, server_data);
+            read
         });
         let send = thread::spawn(move || {
             assert!(write.poll_send(&client_data).is_ready());
-            assert!(write.poll_shutdown_send().is_ready());
+            write
         });
-        assert!(send.join().is_ok());
-        assert!(recv.join().is_ok());
+        let mut write = send.join().unwrap();
+        let mut read = recv.join().unwrap();
 
         receive(
             |buf| test_pair.server.poll_recv(buf),
             server_recv_buffer,
             test_data.to_vec(),
         );
+
+        // Check that all sides of the connection can send and recv shutdown gracefully
+        assert!(write.poll_shutdown_send().is_ready());
+        assert!(matches!(
+            test_pair.server.poll_shutdown_send(),
+            Poll::Ready(Result::Ok { .. })
+        ));
+        let mut buf = vec![0; test_data.len()];
+        assert!(matches!(
+            test_pair.server.poll_recv(&mut buf),
+            Poll::Ready(Result::Ok(0))
+        ));
+        assert!(matches!(
+            read.poll_recv(&mut buf),
+            Poll::Ready(Result::Ok(0))
+        ));
+
         Ok(())
     }
 
@@ -278,5 +306,99 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    // Check that an s2n-tls split connection can continue to read and write data after
+    // reading a key update requested message. s2n-tls itself never sends key update requested
+    // messages, so we use Openssl as a peer to generate the key update request.
+    #[test]
+    fn peer_requested_key_update_after_split() -> Result<(), Box<dyn std::error::Error>> {
+        const SERVER_DATA: &[u8] = b"beep boop";
+        const CLIENT_DATA: &[u8] = b"boop beep";
+
+        let (mut client, mut server) = key_update_test_pair()?;
+        openssl_handshake(&mut client, &mut server)?;
+
+        // Split the client into independent read and write halves.
+        let (mut read, mut write) = client.split();
+
+        let ssl_ptr = server.ssl().as_ptr();
+        let rc = unsafe { SSL_key_update(ssl_ptr, SSL_KEY_UPDATE_REQUESTED) };
+        assert_eq!(rc, 1, "SSL_key_update should succeed");
+
+        // This write will flush the key update message before sending SERVER_DATA.
+        server.write_all(SERVER_DATA)?;
+
+        // Decrypting SERVER_DATA correctly proves the read half handled the peer's key update.
+        let recv_buffer = vec![0; SERVER_DATA.len()];
+        receive(|buf| read.poll_recv(buf), recv_buffer, SERVER_DATA.to_vec());
+
+        // The write half sends data. Because openssl requested a key update,
+        // s2n-tls sends its own KeyUpdate record (updating its sending key) ahead
+        // of the application data.
+        assert!(write.poll_send(CLIENT_DATA).is_ready());
+
+        // openssl reads the data, processing the s2n-tls KeyUpdate record and
+        // updating its receiving key. Decrypting CLIENT_DATA correctly proves the
+        // write half's key update was accepted by the peer.
+        let mut server_recv = vec![0; CLIENT_DATA.len()];
+        server.read_exact(&mut server_recv)?;
+        assert_eq!(server_recv, CLIENT_DATA);
+
+        #[cfg(all(feature = "unstable-ktls", not(windows)))]
+        {
+            let counts = read.key_update_counts()?;
+            assert_eq!(counts.recv_key_updates, 1, "read half updated the recv key");
+            assert_eq!(
+                counts.send_key_updates, 1,
+                "write half updated the send key"
+            );
+        }
+
+        Ok(())
+    }
+
+    // openssl-sys does not expose the key update API, so we declare it manually.
+    // See https://docs.openssl.org/master/man3/SSL_key_update/
+    extern "C" {
+        fn SSL_key_update(s: *mut openssl_sys::SSL, update_type: libc::c_int) -> libc::c_int;
+    }
+
+    // Update our own sending key AND request that the peer update its sending key.
+    const SSL_KEY_UPDATE_REQUESTED: libc::c_int = 1;
+
+    fn key_update_test_pair(
+    ) -> Result<(Connection, SslStream<ServerTestStream>), Box<dyn std::error::Error>> {
+        let certs = CertKeyPair::from_path(
+            "permutations/rsae_pkcs_4096_sha384/",
+            "server-chain",
+            "server-key",
+            "ca-cert",
+        );
+
+        // Build the s2n-tls client. Key updates require TLS1.3.
+        let mut builder = config::Builder::new();
+        builder.set_security_policy(&security::DEFAULT_TLS13)?;
+        builder.trust_pem(certs.ca_cert())?;
+        builder.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+        builder.with_system_certs(false)?;
+        let config = builder.build()?;
+        let s2n_pair = TestPair::from_config(&config);
+        let client = s2n_pair.client;
+
+        // Build the openssl server, restricted to TLS1.3.
+        let mut ctx_builder = SslContext::builder(SslMethod::tls_server())?;
+        ctx_builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
+        ctx_builder.set_max_proto_version(Some(SslVersion::TLS1_3))?;
+        ctx_builder.set_certificate_chain_file(certs.cert_path())?;
+        ctx_builder.set_private_key_file(certs.key_path(), SslFiletype::PEM)?;
+        ctx_builder.set_verify(SslVerifyMode::NONE);
+        let openssl_ctx = ctx_builder.build();
+        let openssl_ssl = Ssl::new(&openssl_ctx)?;
+
+        // Connect the openssl server to the same IO that the s2n-tls client uses.
+        let server = SslStream::new(openssl_ssl, ServerTestStream(s2n_pair.io))?;
+
+        Ok((client, server))
     }
 }
