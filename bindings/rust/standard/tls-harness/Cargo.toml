@@ -1,6 +1,6 @@
 [features]
 default = ["renegotiate"]
-boringssl = ["dep:boring"]
+boringssl = ["dep:btls"]
 renegotiate = ["s2n-tls/unstable-renegotiate"]
 
 [package]
@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 s2n-tls = { path = "../../extended/s2n-tls" }
 errno = "0.3.13"
-libc = "0.2.174"
+libc = "0.2.185"
 strum = { version = "0.28", features = ["derive"] }
 rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
@@ -20,18 +20,27 @@ openssl = { version = "0.10.73", features = ["vendored"] }
 openssl-sys = "0.9.109"
 byteorder = "1.5.0"
 foreign-types-shared = "0.1.1"
-boring = { git = "https://github.com/kaukabrizvi/boring.git", features = ["prefix-symbols"], optional = true }
 
 brass-aphid-wire-decryption = "0.0.2"
 brass-aphid-wire-messages = "0.0.2"
 tracing = "0.1.43"
 
+# BoringSSL is provided by the `btls` crate, a maintained fork of
+# cloudflare/boring published to crates.io. It is used instead of `boring`
+# because it supports symbol prefixing, which is required to link BoringSSL
+# alongside the vendored OpenSSL above without duplicate symbol errors.
+# See https://github.com/cloudflare/boring/pull/401 for the upstream effort.
+#
+# `optional = true` gates this behind the `boringssl` feature, so the BoringSSL
+# build cost is only paid by jobs that actually run the interop tests.
+#
 # NOTE: BoringSSL is disabled on macOS to avoid symbol collisions with
 # OpenSSL (see https://github.com/aws/s2n-tls/pull/5659), and on Windows
 # because BoringSSL can't be built under the MSYS2/MinGW toolchain.
-[target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies.boring]
-git = "https://github.com/kaukabrizvi/boring.git"
+[target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies.btls]
+version = "0.5.6"
 features = ["prefix-symbols"]
+optional = true
 
 [dev-dependencies]
 # env_logger and log are used to enable logging for rustls, which can help with
